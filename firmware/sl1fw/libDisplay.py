@@ -63,8 +63,13 @@ class Display(object):
         if newPage is None:
             self.logger.warning("There is no page named '%s'!", page)
         else:
-            self.actualPage = newPage
-            self.actualPage.show()
+            retc = newPage.prepare()
+            if retc:
+                self.setPage(retc)
+            else:
+                self.actualPage = newPage
+                self.actualPage.show()
+            #endif
         #endif
         return self.actualPage
     #enddef

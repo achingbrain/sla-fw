@@ -26,13 +26,11 @@ class Hardware(object):
         self._tiltSynced = False
         self._towerSynced = False
 
-        self._tiltEnabled = 0
-        self._towerEnabled = 0
-
         self._lastTiltProfile = None
         self._lastTowerProfile = None
 
         self._fansRequested = 0
+        self._tiltToPosition = 0
 
         self._tiltProfiles = {
                 "homingFast"    : 0,
@@ -40,9 +38,9 @@ class Hardware(object):
                 "moveFast"      : 2,
                 "moveSlow"      : 3,
                 "layer"         : 4,
-                "firstLayer"    : 5,
-                "reserved1"     : 6,
-                "reserved2"     : 7,
+                "hold"          : 5,
+                "release"       : 6,
+                "calibration"   : 7,
                 }
         self._towerProfiles = {
                 "homingFast"    : 0,
@@ -50,9 +48,9 @@ class Hardware(object):
                 "moveFast"      : 2,
                 "moveSlow"      : 3,
                 "layer"         : 4,
-                "calibration"   : 5,
-                "reserved1"     : 6,
-                "reserved2"     : 7,
+                "hold"          : 5,
+                "release"       : 6,
+                "calibration"   : 7,
                 }
         # get sorted profiles names
         self._tiltProfileNames = map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1]))
@@ -123,6 +121,15 @@ class Hardware(object):
 
         self.motorsRelease()
         self.fans(True, True, True, True)  # all on - safety
+    #enddef
+
+
+    def _intOrNone(self, string):
+        try:
+            return int(string)
+        except Exception:
+            return None
+        #endtry
     #enddef
 
 
@@ -473,38 +480,46 @@ class Hardware(object):
         self._commMC("!motr")
         self._tiltSynced = False
         self._towerSynced = False
-        self._tiltEnabled = 0
-        self._towerEnabled = 0
     #enddef
 
 
     # --- tower ---
 
-    # TODO smazat az bude implementovano v MC
-    def _towerHold(self):
-        if not self._towerEnabled:
-            self._towerEnabled = 1
-            self._commMC("!ena", self._tiltEnabled + self._towerEnabled)
-        #enddef
-    #enddef
 
-
-    def towerSync(self):
-        self._towerHold()
-        # home is at top position
+    def towerSync(self, retries = 2):
+        ''' home is at top position '''
+        self._towerSyncRetries = retries
         self.setTowerProfile('homingFast')
         self._commMC("!twho")
     #enddef
 
 
     def isTowerSynced(self):
-        if self._commMC("?twho") == "0":
-            self._towerSynced = True
+        homingStatus = self._intOrNone(self._commMC("?twho"))
+        if homingStatus > 0:    # not done and not error
+            return False
+        elif not homingStatus:
             self._commMC("!twpo", self.hwConfig.towerHeight)
+            self._towerSynced = True
             return True
         else:
-            return False
+            self.logger.warning("Tower homing failed!")
+            self.beepAlarm(3)
+            if self._towerSyncRetries:
+                self._towerSyncRetries -= 1
+                self.setTowerProfile('homingFast')
+                self._commMC("!twho")
+                return False
+            else:
+                self.logger.error("Tower homing max tries reached!")
+                return True
+            #endif
         #endif
+    #enddef
+
+
+    def towerSyncFailed(self):
+        return self._towerSyncRetries == 0
     #enddef
 
 
@@ -517,7 +532,6 @@ class Hardware(object):
 
 
     def towerMoveAbsolute(self, position):
-        self._towerHold()
         self._commMC("!twma", position)
     #enddef
 
@@ -557,6 +571,7 @@ class Hardware(object):
     #enddef
 
 
+    # TODO smazat, nepouzito
     def isTowerOnTop(self):
         return self.isTowerOnPosition()
     #enddef
@@ -604,11 +619,7 @@ class Hardware(object):
     def getTowerPositionMicroSteps(self):
         steps = self._commMC("?twpo")
         self.debug.showItems(towerPositon = steps)
-        try:
-            return int(steps)
-        except Exception:
-            return None
-        #endtry
+        return self._intOrNone(steps)
     #enddef
 
 
@@ -630,30 +641,66 @@ class Hardware(object):
 
     # --- tilt ---
 
-    # TODO smazat az bude implementovano v MC
-    def _tiltHold(self):
-        if not self._tiltEnabled:
-            self._tiltEnabled = 2
-            self._commMC("!ena", self._tiltEnabled + self._towerEnabled)
-        #enddef
-    #enddef
 
+    def tiltSyncWait(self, retries = None):
+        ''' home at bottom position, retries = None is infinity '''
+        while True:
+            self.setTiltProfile('homingFast')
+            self._commMC("!tiho")
+            homingStatus = 1
+            while homingStatus > 0: # not done and not error
+                homingStatus = self._intOrNone(self._commMC("?tiho"))
+                sleep(0.1)
+            #endwhile
+            # test homing result
+            if not homingStatus:
+                self._commMC("!tipo", 0)
+                self._tiltSynced = True
+                return True
+            else:
+                self.logger.warning("Tilt homing failed!")
+                self.beepAlarm(3)
+                position = self._intOrNone(self._commMC("?tipo"))
+                if position is None:
+                    continue
+                elif position > 800:
+                    self.logger.info("Tilt is stuck at top position")
+                    releaseFrom = 1600
+                else:
+                    self.logger.info("Tilt is stuck at bottom position")
+                    releaseFrom = 0
+                #endif
 
-    def tiltSyncWait(self):
-        ''' home at bottom position '''
-        self._tiltHold()
-        self.setTiltProfile('homingFast')
-        self._commMC("!tiho")
-        while self._commMC("?tiho") != "0":
-            sleep(0.1)
+                self.setTiltProfile('release')
+                self._commMC("!tipo", releaseFrom)
+                self._commMC("!tima", 800)
+                while self.isTiltMoving():
+                    sleep(0.1)
+                #endwhile
+                if self._tiltToPosition != self.getTiltPositionMicroSteps():
+                    self.logger.info("Release failed :-(")
+                else:
+                    self.logger.info("Release was successful :-)")
+                #endif
+
+                # repeat count, None is infinity
+                if retries is None:
+                    continue
+                #endif
+                if retries:
+                    retries -= 1
+                    continue
+                else:
+                    self.logger.error("Tilt homing max tries reached!")
+                    return False
+                #endif
+            #endif
         #endwhile
-        self._commMC("!tipo", 0)
-        self._tiltSynced = True
     #enddef
 
 
     def tiltMoveAbsolute(self, position):
-        self._tiltHold()
+        self._tiltToPosition = position
         self._commMC("!tima", position)
     #enddef
 
@@ -663,8 +710,28 @@ class Hardware(object):
     #enddef
 
 
+    def isTiltMoving(self):
+        return self._commMC("?mot") != "0"
+    #enddef
+
+
     def isTiltOnPosition(self):
-        return self._commMC("?mot") == "0"
+        if self.isTiltMoving():
+            return False
+        #endif
+        while self._tiltToPosition != self.getTiltPositionMicroSteps():
+            self.logger.warning("Tilt is not on required position! Sync forced.")
+            self.beepAlarm(3)
+            profileBackup = self._lastTiltProfile
+            self.tiltSyncWait()
+            self.setTiltProfile(profileBackup)
+            self.tiltMoveAbsolute(self._tiltToPosition)
+            while self.isTiltMoving():
+                sleep(0.1)
+            #endwhile
+        #endwhile
+
+        return True
     #enddef
 
 
@@ -687,7 +754,6 @@ class Hardware(object):
 
 
     def tiltUp(self):
-        sleep(0.5)  # FIXME MC issue
         self.tiltMoveAbsolute(self.hwConfig.tiltHeight)
     #enddef
 
@@ -711,11 +777,11 @@ class Hardware(object):
 
 
     def isTiltOnMax(self):
-        onPosition = self.isTiltOnPosition()
-        if onPosition:
+        stopped = not self.isTiltMoving()
+        if stopped:
             self._commMC("!tipo", self._tiltEnd)
         #endif
-        return onPosition
+        return stopped
     #enddef
 
 
@@ -725,11 +791,11 @@ class Hardware(object):
 
 
     def isTiltOnMin(self):
-        onPosition = self.isTiltOnPosition()
-        if onPosition:
+        stopped = not self.isTiltMoving()
+        if stopped:
             self._commMC("!tipo", 0)
         #endif
-        return onPosition
+        return stopped
     #enddef
 
 
@@ -746,21 +812,7 @@ class Hardware(object):
     def getTiltPositionMicroSteps(self):
         steps = self._commMC("?tipo")
         self.debug.showItems(tiltPosition = steps)
-        try:
-            return int(steps)
-        except Exception:
-            return None
-        #endtry
-    #enddef
-
-
-    def tiltReset(self):
-        if not self._tiltSynced:
-            self.tiltSyncWait()
-        #endif
-        self.setTiltProfile('layer')
-        self.tiltDownWait()
-        self.tiltUpWait()
+        return self._intOrNone(steps)
     #enddef
 
 

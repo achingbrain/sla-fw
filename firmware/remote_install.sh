@@ -27,19 +27,20 @@ echo "Remote temp is ${target_tmp}"
 echo "Installing on target"
 scp -r ${tmp}/* root@${target}:${target_tmp}
 ssh root@${target} "\
-cp -f \"$CFG\" \"$CFG.bak\"
+cp -f \"$CFG\" \"$CFG.bak\"; \
 cd ${target_tmp}; \
 tar xvf sl1fw*.tar.gz; \
 rm sl1fw*.tar.gz; \
 cd sl1fw-*; \
 pip install . ; \
-mv -f \"$CFG\" \"$CFG.new\"
-cp \"$CFG.bak\" \"$CFG\"
+mv -f \"$CFG\" \"$CFG.new\"; \
+cp \"$CFG.bak\" \"$CFG\"; \
+systemctl daemon-reload; \
 systemctl restart sl1fw
 "
 
 echo "Removing remote temp"
 ssh root@${target} "rm -rf ${target_tmp}"
 
-echo "Removing local temo"
+echo "Removing local temp"
 rm -rf ${tmp}
