@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SL1 remote display</title>
-  <link rel="stylesheet" type="text/css" href="static/style.css" />
+  <title>SL1 debug display</title>
+  <link rel="stylesheet" type="text/css" href="static/debug.css" />
   <script type="text/javascript" src="static/jquery-3.3.1.min.js"></script>
   <script type="text/javascript" src="static/websocket.js"></script>
-  <script type="text/javascript" src="static/onclick.js"></script>
+  <script type="text/javascript">function hookOnClick(){}</script>
 </head>
-<body onload="wsInit('ws');">
+<body onload="wsInit('dbg');">
   CONNECTING...
 </body>
 </html>

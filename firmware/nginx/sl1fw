@@ -25,6 +25,10 @@ upstream websocket {
 	server 127.0.0.1:16384;
 }
 
+upstream debugsocket {
+	server 127.0.0.1:49152;
+}
+
 # Default server configuration
 #
 server {
@@ -39,7 +43,7 @@ server {
 	server_name localhost;
 
 	location / {
-		try_files $uri $uri/ =404;
+		try_files $uri $uri.html $uri/ =404;
 	}
 
 	location /ws {
@@ -50,8 +54,18 @@ server {
 		proxy_set_header Connection $connection_upgrade;
 	}
 
-	location /log {
+	location /dbg {
+		proxy_read_timeout 60m;
+		proxy_pass http://debugsocket;
+		proxy_http_version 1.1;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection $connection_upgrade;
+	}
+
+	location /logf {
 		default_type "text/plain";
+		sendfile on;
+		tcp_nopush on;
 		alias /run/sl1fw/sl1fw.log;
 	}
 }

@@ -4,13 +4,12 @@
 
 import os
 
-swVersion = "Gen3RMC-181-114"
+swVersion = "Gen3-181-205"
 
 home = "/home/root"
 
 swPath = "/usr/lib/python2.7/site-packages/sl1fw"
 usbPath = "/mnt/usb"
-#usbPath = os.path.join(home, "project")
 ramdiskPath = "/run/sl1fw"
 printerlog = os.path.join(ramdiskPath, "sl1fw.log")
 jobCounter = os.path.join(home, "jobs.log")
@@ -29,6 +28,8 @@ hostnameCommand = os.path.join(scriptDir, "set_hostname.sh")
 
 webDisplayPort = 16384
 qtDisplayPort = 32768
+debugPort = 49152
+templates = '/srv/http/intranet/templates'
 
 nextionDevice = "/dev/ttyS1"
 

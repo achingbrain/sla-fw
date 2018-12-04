@@ -12,7 +12,7 @@ from websocket_server import WebsocketServer # pip install git+https://github.co
 
 class SocketServer(multiprocessing.Process):
 
-    def __init__(self, port, commands, events):
+    def __init__(self, port, commands, events = None):
         super(SocketServer, self).__init__()
         self.commands = commands
         self.events = events
@@ -102,7 +102,11 @@ class SocketServer(multiprocessing.Process):
             if client:
                 self.logger.debug("Message from client [%d]:%s:%d - '%s'",
                         client['id'], client['address'][0], client['address'][1], str(message))
-                self.events.put(json.loads(self.receiveMessage(message)))
+                if self.events:
+                    self.events.put(json.loads(self.receiveMessage(message)))
+                else:
+                    self.logger.warning("No queue for received message")
+                #endif
             #endif
         except Exception:
             self.logger.exception("_onMessageReceived() exception")

@@ -498,9 +498,13 @@ class PageNetInfo(Page):
         if ip != "none":
             items["qr1label"] = "Remote access"
             items["qr1"] = "http://%s" % ip
+            items["qr2label"] = "Debug"
+            items["qr2"] = "http://%s/debug" % ip
         else:
             items["qr1label"] = ""
             items["qr1"] = ""
+            items["qr2label"] = ""
+            items["qr2"] = ""
         #endif
         return items
     #enddef

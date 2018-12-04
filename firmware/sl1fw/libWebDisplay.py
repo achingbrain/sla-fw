@@ -15,7 +15,7 @@ class WebDisplayServer(SocketServer):
     def __init__(self, port, commands, events):
         self.logger = logging.getLogger(__name__)
         super(WebDisplayServer, self).__init__(port, commands, events)
-        self.jinja = jinja2.Environment(loader = jinja2.FileSystemLoader('/srv/http/intranet/templates'))
+        self.jinja = jinja2.Environment(loader = jinja2.FileSystemLoader(defines.templates))
     #enddef
 
 
@@ -27,7 +27,7 @@ class WebDisplayServer(SocketServer):
 
         try:
 
-            if data["command"] == "showPage":
+            if data['command'] == "showPage":
 
                 self.newClientData = data
                 page = data['page']
@@ -38,17 +38,17 @@ class WebDisplayServer(SocketServer):
                 output['type'] = "page"
                 output['content'] = html
 
-            elif data["command"] == "showItems":
+            elif data['command'] == "showItems":
 
-                del data["command"]
+                del data['command']
                 self.newClientData.update(data)
                 output['type'] = "items"
                 output['content'] = data
 
-#            elif data["command"] == "change":  TODO jako showItems?
+#            elif data['command'] == "change":  TODO jako showItems?
 
             else:
-                self.logger.warning("unknown command '%s'", data["command"])
+                self.logger.warning("unknown command '%s'", data['command'])
             #endif
 
         except Exception:

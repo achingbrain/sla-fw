@@ -7,6 +7,8 @@ import serial
 import re
 from time import time, sleep
 
+from libDebug import Debug
+
 import defines
 
 class Hardware(object):
@@ -15,6 +17,8 @@ class Hardware(object):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.config = config
+
+        self.debug = Debug()
 
         self._tiltSynced = False
         self._towerSynced = False
@@ -130,15 +134,17 @@ class Hardware(object):
 
     def _commMC(self, *args):
         if self.port.inWaiting():
-            self.logger.warn("data on serial line: '%s'", self.port.read(256))
+            self.logger.warning("data on serial line: '%s'", self.port.read(256))
         #endif
         params = " ".join(str(x) for x in args)
         self.logger.debug("write '%s'", params)
+        self.debug.log("> %s" % params)
         try:
             self.port.write('%s\n' % params)
             while True:
-                line = self.port.readline()
-                self.logger.debug("read '%s'", line.strip())
+                line = self.port.readline().strip()
+                self.logger.debug("read '%s'", line)
+                self.debug.log("< %s" % line)
                 if line == '':
                     return None
                 #endif
@@ -508,6 +514,7 @@ class Hardware(object):
 
     def getTowerPosition(self):
         steps = self._commMC("?twpo")
+        self.debug.showItems(towerPositon = steps)
         try:
             return "%.3f mm" % self.hwConfig.calcMM(int(steps))
         except Exception:
@@ -518,6 +525,7 @@ class Hardware(object):
 
     def getTowerPositionMicroSteps(self):
         steps = self._commMC("?twpo")
+        self.debug.showItems(towerPositon = steps)
         try:
             return int(steps)
         except Exception:
@@ -533,6 +541,7 @@ class Hardware(object):
             self._lastTowerProfile = profile
             profileId = self._towerProfiles.get(profile, None)
             if profileId is not None:
+                self.debug.showItems(towerProfile = profile)
                 self._commMC("!twcs", profileId)
             else:
                 self.logger.error("Invalid tower profile '%s'", profile)
@@ -648,6 +657,7 @@ class Hardware(object):
 
     def getTiltPosition(self):
         steps = self._commMC("?tipo")
+        self.debug.showItems(tiltPosition = steps)
         if steps is None:
             return "ERROR"
         #endif
@@ -657,6 +667,7 @@ class Hardware(object):
 
     def getTiltPositionMicroSteps(self):
         steps = self._commMC("?tipo")
+        self.debug.showItems(tiltPosition = steps)
         try:
             return int(steps)
         except Exception:
@@ -682,6 +693,7 @@ class Hardware(object):
             self._lastTiltProfile = profile
             profileId = self._tiltProfiles.get(profile, None)
             if profileId is not None:
+                self.debug.showItems(tiltProfile = profile)
                 self._commMC("!tics", profileId)
             else:
                 self.logger.error("Invalid tilt profile '%s'", profile)
