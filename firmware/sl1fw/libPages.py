@@ -959,6 +959,8 @@ class PageSetupHW(Page):
         self.pageUI = "setup"
         self.autorepeat = {
                 "minus2g1" : (5, 1), "plus2g1" : (5, 1),
+                "minus2g2" : (5, 1), "plus2g2" : (5, 1),
+                "minus2g3" : (5, 1), "plus2g3" : (5, 1),
                 }
         self.items = {
                 "label1g1" : "Fan check",
@@ -966,6 +968,8 @@ class PageSetupHW(Page):
                 "label1g3" : "Nextion rotate",
 
                 "label2g1" : "Screw mm/rot",
+                "label2g2" : "Tower corr. (mm)",
+                "label2g3" : "Tilt height (msteps)",
 
                 "button4" : "Save",
                 "back" : "Back",
@@ -973,6 +977,8 @@ class PageSetupHW(Page):
         self.changed = {}
         self.temp = {}
         self.temp["screwmm"] = self.display.hwConfig.screwMm
+        self.temp["towcorr"] = 0.0
+        self.temp["tiltheight"] = self.display.hwConfig.tiltHeight
     #enddef
 
 
@@ -982,6 +988,8 @@ class PageSetupHW(Page):
         self.items["state1g3"] = 1 if self.display.hwConfig.nextionRotate else 0
 
         self.items["value2g1"] = str(self.display.hwConfig.screwMm)
+        self.items["value2g2"] = "0.0"
+        self.items["value2g3"] = str(self.display.hwConfig.tiltHeight)
 
         super(PageSetupHW, self).show()
     #enddef
@@ -1005,6 +1013,16 @@ class PageSetupHW(Page):
 
     def button4ButtonRelease(self):
         ''' save '''
+
+        # FIXME hnus, pryc jak to bude mozne...
+        if "towcorr" in self.changed:
+            corr = self.display.hwConfig.calcMicroSteps(self.temp["towcorr"])
+            self.logger.debug("tower correction", corr)
+            del self.changed["towcorr"]
+            self.changed["towerheight"] = self.display.hwConfig.towerHeight + corr
+        #endif
+        # az sem
+
         self.display.hwConfig.update(**self.changed)
         if not self.display.hwConfig.writeFile():
             self.display.hw.beepAlarm(3)
@@ -1038,6 +1056,26 @@ class PageSetupHW(Page):
 
     def plus2g1Button(self):
         return self._value(2, 8, "screwmm", 1, "value2g1")
+    #enddef
+
+
+    def minus2g2Button(self):
+        return self._value(-10, 10, "towcorr", -0.1, "value2g2")
+    #enddef
+
+
+    def plus2g2Button(self):
+        return self._value(-10, 10, "towcorr", 0.1, "value2g2")
+    #enddef
+
+
+    def minus2g3Button(self):
+        return self._value(1, 1600, "tiltheight", -1, "value2g3")
+    #enddef
+
+
+    def plus2g3Button(self):
+        return self._value(1, 1600, "tiltheight", 1, "value2g3")
     #enddef
 
 #endclass

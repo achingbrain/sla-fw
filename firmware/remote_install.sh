@@ -35,6 +35,7 @@ cd sl1fw-*; \
 pip install . ; \
 mv -f \"$CFG\" \"$CFG.new\"
 cp \"$CFG.bak\" \"$CFG\"
+systemctl restart sl1fw
 "
 
 echo "Removing remote temp"
