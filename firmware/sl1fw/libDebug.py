@@ -1,0 +1,100 @@
+# part of SL1 firmware
+# 2014-2018 Futur3d - www.futur3d.net
+# 2018 Prusa Research s.r.o. - www.prusa3d.com
+
+import logging
+from collections import deque
+import jinja2
+from multiprocessing import Queue
+
+from libServer import SocketServer
+
+import defines
+
+class DebugServer(SocketServer):
+
+    def __init__(self, port, commands):
+        self.logger = logging.getLogger(__name__)
+        super(DebugServer, self).__init__(port, commands)
+        self.jinja = jinja2.Environment(loader = jinja2.FileSystemLoader(defines.templates))
+        self.newClientData['wholePage'] = True
+    #enddef
+
+
+    def formatMessage(self, data):
+        self.logger.debug("data: '%s'", str(data))
+        output = dict()
+
+        try:
+            if data.get('wholePage', False):
+                html = self.jinja.get_template('debug.html').render(items = data)
+                self.logger.debug("HTML: '%s'", html.replace("\n", " | "))
+                output['type'] = "page"
+                output['content'] = html
+            else:
+                self.newClientData.update(data)
+                output['type'] = "items"
+                output['content'] = data
+            #endif
+        except Exception:
+            self.logger.exception("exception")
+            output['type'] = "page"
+            output['content'] = "SERVER ERROR!"
+        #endtry
+
+        return output
+    #enddef
+
+#endclass
+
+
+class Debug(object):
+
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.commands = Queue()
+        self.items = dict()
+        self.server = DebugServer(defines.debugPort, self.commands)
+        self.server.start()
+        self.setup = {
+                "towerProfile" : ("Tower profile: ", "line1"),
+                "towerPositon" : ("Tower position: ", "line2"),
+                "tiltProfile" : ("Tilt profile: ", "line3"),
+                "tiltPosition" : ("Tilt position: ", "line4"),
+                }
+        self.logLines = deque(maxlen = 30)
+    #enddef
+
+
+    def __del__(self):
+        self.server.join()
+    #enddef
+
+
+    def showItems(self, **kwargs):
+        output = dict()
+        for name, value in kwargs.iteritems():
+            item = self.setup.get(name, None)
+            if item:
+                output[item[1]] = "%s%s" % (item[0], value)
+            else:
+                self.logger.warning("Unknown item '%s', ignored", name)
+            #endif
+        try:
+            self.commands.put_nowait(output)
+        except Exception:
+            self.logger.exception("put exception")
+        #endtry
+    #enddef
+
+
+    def log(self, message):
+        self.logLines.append(message)
+        try:
+            self.commands.put_nowait( { 'log' : "\n".join(self.logLines) } )
+        except Exception:
+            self.logger.exception("put log exception")
+        #endtry
+    #enddef
+
+#endclass

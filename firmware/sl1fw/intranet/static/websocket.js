@@ -1,9 +1,9 @@
 var ws;
 
-function wsInit() {
+function wsInit(dir) {
 
     // Connect to Web Socket
-    ws = new WebSocket("ws://" + window.location.host + "/ws");
+    ws = new WebSocket("ws://" + window.location.host + "/" + dir);
 
     // Set event handlers.
     ws.onopen = function() {

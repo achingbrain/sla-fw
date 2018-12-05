@@ -33,8 +33,8 @@ class VirtualDisplay(object):
 
 
     def showPage(self):
-        self.items["net"] = self.netActive
-        self.items["command"] = "showPage"
+        self.items['net'] = self.netActive
+        self.items['command'] = "showPage"
         try:
             self.commands.put_nowait(self.items)
         except Exception:
@@ -45,7 +45,7 @@ class VirtualDisplay(object):
 
 
     def showItems(self, items):
-        items["command"] = "showItems"
+        items['command'] = "showItems"
         try:
             self.commands.put_nowait(items)
         except Exception:
@@ -60,7 +60,7 @@ class VirtualDisplay(object):
 
         self.netActive = value
         try:
-            self.commands.put_nowait({"command" : "change", "netActive" : value })
+            self.commands.put_nowait({'command' : "change", 'netActive' : value })
         except Exception:
             self.logger.exception("put netActive exception")
         #endtry

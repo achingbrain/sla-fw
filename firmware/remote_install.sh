@@ -1,5 +1,7 @@
 #!/bin/sh
 
+CFG="/etc/sl1fw/hardware.cfg"
+
 # Resolve target
 if [ "$#" -ne 1 ]; then
     echo "Please provide target ip as the only argument"
@@ -25,11 +27,14 @@ echo "Remote temp is ${target_tmp}"
 echo "Installing on target"
 scp -r ${tmp}/* root@${target}:${target_tmp}
 ssh root@${target} "\
+cp -f \"$CFG\" \"$CFG.bak\"
 cd ${target_tmp}; \
 tar xvf sl1fw*.tar.gz; \
 rm sl1fw*.tar.gz; \
 cd sl1fw-*; \
 pip install . ; \
+mv -f \"$CFG\" \"$CFG.new\"
+cp \"$CFG.bak\" \"$CFG\"
 "
 
 echo "Removing remote temp"
