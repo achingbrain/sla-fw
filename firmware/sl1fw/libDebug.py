@@ -22,13 +22,13 @@ class DebugServer(SocketServer):
 
 
     def formatMessage(self, data):
-        self.logger.debug("data: '%s'", str(data))
+        #self.logger.debug("data: '%s'", str(data))
         output = dict()
 
         try:
             if data.get('wholePage', False):
                 html = self.jinja.get_template('debug.html').render(items = data)
-                self.logger.debug("HTML: '%s'", html.replace("\n", " | "))
+                #self.logger.debug("HTML: '%s'", html.replace("\n", " | "))
                 output['type'] = "page"
                 output['content'] = html
             else:

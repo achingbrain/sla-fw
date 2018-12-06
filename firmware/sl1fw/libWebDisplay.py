@@ -20,7 +20,7 @@ class WebDisplayServer(SocketServer):
 
 
     def formatMessage(self, data):
-        self.logger.debug("data: '%s'", str(data))
+        #self.logger.debug("data: '%s'", str(data))
         output = dict()
 
         design = "dwarf3"   # TODO
@@ -34,7 +34,7 @@ class WebDisplayServer(SocketServer):
                 content = self.jinja.get_template("_%sC.html" % page).render(items = data, design = design)
                 header = self.jinja.get_template("_%sH.html" % page).render(design = design)
                 html = self.jinja.get_template('layout.html').render(content = content, header = header, design = design, page = page)
-                self.logger.debug("HTML: '%s'", html.replace("\n", " | "))
+                #self.logger.debug("HTML: '%s'", html.replace("\n", " | "))
                 output['type'] = "page"
                 output['content'] = html
 

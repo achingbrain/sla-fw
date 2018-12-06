@@ -461,11 +461,16 @@ class PageSysInfo(Page):
                 "line2" : "System: %s" % self.display.hwConfig.os.name,
                 "line3" : "System version: %s" % self.display.hwConfig.os.version,
                 "line4" : "Firwmare version: %s" % defines.swVersion,
-                "line5" : "Controller version: %s" % self.display.hw.getControllerVersion(),
-                "line6" : "Controller number: %s" % self.display.hw.getControllerSerial(),
                 }
         self.callbackPeriod = 2
         self.oldValues = {}
+    #enddef
+
+
+    def show(self):
+        self.items["line5"] = "Controller version: %s" % self.display.hw.getControllerVersion()
+        self.items["line6"] = "Controller number: %s" % self.display.hw.getControllerSerial()
+        super(PageSysInfo, self).show()
     #enddef
 
 
@@ -798,7 +803,7 @@ class PagePatterns(Page):
     def show(self):
         try:
             from libScreen import Screen
-            self.screen = Screen(self.display.hwConfig, "data")
+            self.screen = Screen(self.display.hwConfig, defines.dataPath)
             self.button1ButtonRelease()
         except Exception:
             self.logger.exception("screen exception:")
@@ -891,7 +896,8 @@ class PageAdmin(Page):
                 "button4" : "Setup HW",
 
                 "button6" : "Flash Nextion",
-                "button7" : "USB update",
+                "button7" : "Flash MC",
+                "button8" : "USB update",
 
                 "button11" : "Change hostname",
                 "button12" : "Setup WiFi",
@@ -923,12 +929,20 @@ class PageAdmin(Page):
 
 
     def button6ButtonRelease(self):
-        self.display.flashDisplays(self.display.hwConfig.design, "data/")
+        self.display.flashDisplays(self.display.hwConfig.design, defines.dataPath)
         return "_SELF_"
     #enddef
 
 
     def button7ButtonRelease(self):
+        pageWait = PageWait(self.display, line2 = "Flashing Motion Controler")
+        pageWait.show()
+        self.display.hw.flashMC()
+        return "_SELF_"
+    #enddef
+
+
+    def button8ButtonRelease(self):
         return self.display.usbUpdate()
     #enddef
 

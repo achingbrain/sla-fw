@@ -413,10 +413,10 @@ class NextionDisplay(object):
         if message[0] != "ND" or message[1] != self.firmwareVersion:
             self.logger.warning("Wrong display firmware version, flash forced.")
             self.hw.beepAlarm(4)
-            if not self._flashRaw(self.hwConfig.design, self.hwConfig.nextionRotate, "data/"):
-                self.logger.error("Forced flash failed!")
+            if not self._flashRaw(self.hwConfig.design, self.hwConfig.nextionRotate, defines.dataPath):
+                self.logger.critical("Forced flash failed!")
                 self.hw.beepAlarm(5)
-                # FIXME neco s tim udelat?
+                raise Exception("Nextion flash failed!")
             #endif
         #endif
     #enddef
