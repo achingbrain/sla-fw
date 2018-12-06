@@ -6,6 +6,7 @@ import logging
 import serial
 import re
 from time import time, sleep
+from multiprocessing import Lock
 
 from libDebug import Debug
 
@@ -17,7 +18,9 @@ class Hardware(object):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.config = config
-
+        self.MCversion = ""
+        self.MCserial = ""
+        self.portLock = Lock()
         self.debug = Debug()
 
         self._tiltSynced = False
@@ -116,16 +119,7 @@ class Hardware(object):
                 "5" : "operation not permitted",
                 }
 
-        self.MCversion = self._commMC("?ver")
-        if self.MCversion is None:
-            raise Exception("Can't connect to MC!")
-        else:
-            self.logger.info("MC fw version: %s", self.MCversion)
-        #endif
-        self.MCserial = self._commMC("?ser")
-        if self.MCserial:
-            self.logger.info("MC serial number: %s", self.MCserial)
-        #endif
+        self._firmwareCheck()
 
         self.motorsRelease()
         self.fans(True, True, True, True)  # all on - safety
@@ -133,25 +127,35 @@ class Hardware(object):
 
 
     def _commMC(self, *args):
+
+        self.portLock.acquire()
+
         if self.port.inWaiting():
             self.logger.warning("data on serial line: '%s'", self.port.read(256))
         #endif
+
         params = " ".join(str(x) for x in args)
         self.logger.debug("write '%s'", params)
         self.debug.log("> %s" % params)
+
         try:
             self.port.write('%s\n' % params)
+
             while True:
-                line = self.port.readline().strip()
+                line = self.port.readline().strip().decode("ascii").encode()
                 self.logger.debug("read '%s'", line)
                 self.debug.log("< %s" % line)
+
                 if line == '':
                     return None
                 #endif
+
                 match = self.commOKStr.match(line)
+
                 if match is not None:
                     return match.group(1).strip() if match.group(1) else True
                 #endif
+
                 match = self.commErrStr.match(line)
                 if match is not None:
                     err = self.commErrors.get(match.group(1), "unknown error")
@@ -161,10 +165,85 @@ class Hardware(object):
                     self.logger.debug("debug: '%s'", line)
                 #endif
             #endwhile
+
         except Exception:
             self.logger.exception("exception:")
             return None
+        finally:
+            self.portLock.release()
         #endtry
+    #enddef
+
+
+    def _firmwareCheck(self):
+        self.MCversion = self._commMC("?ver")
+        if self.MCversion is None or self.MCversion != defines.reqMcVersion:
+            self.logger.warning("Wrong MC firmware version, flash forced.")
+
+            if not self._flashMC():
+                self.logger.critical("Forced flash failed!")
+                raise Exception("MC flash failed!")
+            #endif
+
+            self.MCversion = self._commMC("?ver")
+            if self.MCversion is None or self.MCversion != defines.reqMcVersion:
+                self.logger.critical("Wrong MC firmware!")
+                raise Exception("Wrong MC firmware!")
+            #endif
+
+        else:
+            self.logger.info("MC fw version: %s", self.MCversion)
+        #endif
+
+        self.MCserial = self._commMC("?ser")
+        if self.MCserial:
+            self.logger.info("MC serial number: %s", self.MCserial)
+        #endif
+    #enddef
+
+
+    def flashMC(self):
+        self._flashMC()
+        self._firmwareCheck()
+    #enddef
+
+
+    def _flashMC(self):
+        import subprocess
+        import gpio
+
+        self.portLock.acquire()
+
+        # RESET MC
+        gpio.setup(131, gpio.OUT)
+        gpio.set(131, 1)
+        sleep(1/1000000)
+        gpio.set(131, 0)
+
+        process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        while True:
+            line = process.stdout.readline()
+            retc = process.poll()
+            if line == '' and retc is not None:
+                break
+            #endif
+            if line:
+                line = line.strip()
+                if line == "":
+                    continue
+                #endif
+                self.logger.info("flashMC output: '%s'", line)
+            #endif
+        #endwhile
+
+        if retc:
+            self.logger.error("%s failed with code %d", defines.hostnameCommand, retc)
+        #endif
+
+        sleep(2)
+        self.portLock.release()
+
+        return False if retc else True
     #enddef
 
 

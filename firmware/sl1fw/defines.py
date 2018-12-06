@@ -5,10 +5,12 @@
 import os
 
 swVersion = "Gen3-181-205"
+reqMcVersion = "SLA-control 0.9.1-152"
 
 home = "/home/root"
 
 swPath = "/usr/lib/python2.7/site-packages/sl1fw"
+dataPath = os.path.join(swPath, "data")
 usbPath = "/mnt/usb"
 ramdiskPath = "/run/sl1fw"
 printerlog = os.path.join(ramdiskPath, "sl1fw.log")
@@ -25,6 +27,7 @@ usbUpdateCommand = os.path.join(scriptDir, "rsync_usb.sh")
 netUpdateCommand = os.path.join(scriptDir, "rsync_net.sh")
 netUpdateVersionURL = "http://cloud.3dwarf.net/3dwarfsoftware/sl1fw.txt"
 hostnameCommand = os.path.join(scriptDir, "set_hostname.sh")
+flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
 
 webDisplayPort = 16384
 qtDisplayPort = 32768
