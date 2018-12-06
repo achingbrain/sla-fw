@@ -990,13 +990,14 @@ class PageSetupHW(Page):
                 }
         self.changed = {}
         self.temp = {}
-        self.temp["screwmm"] = self.display.hwConfig.screwMm
-        self.temp["towcorr"] = 0.0
-        self.temp["tiltheight"] = self.display.hwConfig.tiltHeight
     #enddef
 
 
     def show(self):
+        self.temp["screwmm"] = self.display.hwConfig.screwMm
+        self.temp["towcorr"] = 0.0
+        self.temp["tiltheight"] = self.display.hwConfig.tiltHeight
+
         self.items["state1g1"] = 1 if self.display.hwConfig.fanCheck else 0
         self.items["state1g2"] = 1 if self.display.hwConfig.coverCheck else 0
         self.items["state1g3"] = 1 if self.display.hwConfig.nextionRotate else 0

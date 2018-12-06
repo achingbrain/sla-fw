@@ -366,8 +366,7 @@ class Hardware(object):
 
 
     def shutdown(self):
-        #self._commMC("!shdn", 5)
-        self._commMC("!shdn", 12)
+        self._commMC("!shdn", 5)
     #enddef
 
 
