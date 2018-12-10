@@ -62,6 +62,7 @@ class SocketServer(multiprocessing.Process):
 
 
     def formatMessage(self, data):
+        self.logger.debug("data: '%s'", str(data))
         self.newClientData = data
         return data
     #enddef

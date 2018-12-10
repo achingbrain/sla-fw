@@ -463,11 +463,11 @@ class PageSysInfo(Page):
                 "line4" : "Firwmare version: %s" % defines.swVersion,
                 }
         self.callbackPeriod = 2
-        self.oldValues = {}
     #enddef
 
 
     def show(self):
+        self.oldValues = {}
         self.items["line5"] = "Controller version: %s" % self.display.hw.getControllerVersion()
         self.items["line6"] = "Controller number: %s" % self.display.hw.getControllerSerial()
         super(PageSysInfo, self).show()
@@ -998,20 +998,25 @@ class PageSetupHW(Page):
         self.temp["towcorr"] = 0.0
         self.temp["tiltheight"] = self.display.hwConfig.tiltHeight
 
-        self.items["state1g1"] = 1 if self.display.hwConfig.fanCheck else 0
-        self.items["state1g2"] = 1 if self.display.hwConfig.coverCheck else 0
-        self.items["state1g3"] = 1 if self.display.hwConfig.nextionRotate else 0
+        self.items["value2g1"] = str(self.temp["screwmm"])
+        self.items["value2g2"] = str(self.temp["towcorr"])
+        self.items["value2g3"] = str(self.temp["tiltheight"])
 
-        self.items["value2g1"] = str(self.display.hwConfig.screwMm)
-        self.items["value2g2"] = "0.0"
-        self.items["value2g3"] = str(self.display.hwConfig.tiltHeight)
+        self.temp["fancheck"] = self.display.hwConfig.fanCheck
+        self.temp["covercheck"] = self.display.hwConfig.coverCheck
+        self.temp["nextionrotate"] = self.display.hwConfig.nextionRotate
+
+        self.items["state1g1"] = 1 if self.temp["fancheck"] else 0
+        self.items["state1g2"] = 1 if self.temp["covercheck"] else 0
+        self.items["state1g3"] = 1 if self.temp["nextionrotate"] else 0
 
         super(PageSetupHW, self).show()
     #enddef
 
 
-    def _onOff(self, val):
-        return "off" if val else "on"
+    def _onOff(self, val, name):
+        self.temp[val] = not self.temp[val]
+        self.showItems(**{ name : 1 if self.temp[val] else 0 })
     #enddef
 
 
@@ -1050,17 +1055,17 @@ class PageSetupHW(Page):
 
 
     def state1g1ButtonRelease(self):
-        self.changed["fancheck"] = self._onOff(self.display.hwConfig.fanCheck)
+        self._onOff("fancheck", "state1g1")
     #enddef
 
 
     def state1g2ButtonRelease(self):
-        self.changed["covercheck"] = self._onOff(self.display.hwConfig.coverCheck)
+        self._onOff("covercheck", "state1g2")
     #enddef
 
 
     def state1g3ButtonRelease(self):
-        self.changed["nextionrotate"] = self._onOff(self.display.hwConfig.nextionRotate)
+        self._onOff("nextionrotate", "state1g3")
     #enddef
 
 
@@ -1777,7 +1782,12 @@ class PageState(Page):
                 "back" : "Back",
                 }
         self.callbackPeriod = 0.5
+    #enddef
+
+
+    def show(self):
         self.oldValues = {}
+        super(PageState, self).show()
     #enddef
 
 
