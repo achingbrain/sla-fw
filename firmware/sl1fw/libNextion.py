@@ -490,7 +490,7 @@ class NextionDisplay(object):
 
 
     def _flashRaw(self, design, rotate, path):
-        filename = "%s%s-%s-%s.tft" % (path, self.model, design, "rot" if rotate else "nor")
+        filename = "%s/%s-%s-%s.tft" % (path, self.model, design, "rot" if rotate else "nor")
         try:
             fsize = os.path.getsize(filename)
             self.logger.info('filesize: %d', fsize)
