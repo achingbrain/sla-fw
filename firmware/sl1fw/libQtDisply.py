@@ -13,9 +13,27 @@ class QtDisplayServer(SocketServer):
     def __init__(self, port, commands, events):
         self.logger = logging.getLogger(__name__)
         super(QtDisplayServer, self).__init__(port, commands, events)
+        self.newClientData['command'] = "showPage"
+        self.newClientData['page'] = "home"
     #enddef
 
-    # TODO formatMessage() pro updaty self.newClientData
+
+    def formatMessage(self, data):
+        try:
+            if data['command'] == "showPage":
+                self.newClientData = data
+            elif data['command'] == "showItems":
+                self.newClientData.update({ x: data[x] for x in data if x != 'command' })
+#            elif data['command'] == "change":  TODO jako showItems?
+            else:
+                self.logger.warning("unknown command '%s'", data['command'])
+            #endif
+        except Exception:
+            self.logger.exception("exception")
+        #endtry
+
+        return data
+    #enddef
 
 #endclass
 

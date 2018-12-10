@@ -16,6 +16,8 @@ class WebDisplayServer(SocketServer):
         self.logger = logging.getLogger(__name__)
         super(WebDisplayServer, self).__init__(port, commands, events)
         self.jinja = jinja2.Environment(loader = jinja2.FileSystemLoader(defines.templates))
+        self.newClientData['command'] = "showPage"
+        self.newClientData['page'] = "home"
     #enddef
 
 
