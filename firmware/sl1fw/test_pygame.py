@@ -2,6 +2,7 @@
 
 import os
 from time import sleep
+import pygame.image
 
 import logging
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
@@ -18,7 +19,7 @@ from libScreen import Screen
 
 logging.debug("after import")
 
-screen = Screen(hwConfig, defines.ramdiskPath)
+screen = Screen(hwConfig, "test.dwz")
 
 logging.debug("after init")
 
@@ -39,6 +40,16 @@ for box in areas:
 #endfor
 
 screen.createCalibrationOverlay(areas, 4, 1.25)
-screen.testBlit()
+screen.createMask()
+
+obr = pygame.image.load("zaba.png").convert()
+screen.testBlit(obr, 'calibPad')
+sleep(2)
+screen.testBlit(obr, 'calib')
 sleep(2)
 
+obr = pygame.image.load("white.png").convert()
+screen.testBlit(obr)
+sleep(2)
+screen.testBlit(obr, 'mask')
+sleep(6)
