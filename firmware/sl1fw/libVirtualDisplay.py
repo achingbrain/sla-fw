@@ -80,10 +80,5 @@ class VirtualDisplay(object):
     #enddef
 
 
-    def hasFirmware(self):
-        return False
-    #enddef
-
-
 #endclass
 

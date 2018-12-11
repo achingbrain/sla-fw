@@ -92,20 +92,6 @@ class Display(object):
     #enddef
 
 
-    def flashDisplays(self, design, path):
-        for device in self.devices:
-            if device.hasFirmware():
-                flashOK = device.flash(design, path)
-                if not flashOK:
-                    self.logger.error("Flash error on device '%s'", device.type)
-                    self.hw.beepAlarm(5)
-                #endif
-            #endif
-        #endfor
-        self.hw.beepRepeat(2) # ready beep
-    #enddef
-
-
     def doMenu(self, startPage, callback = None, callbackPeriod = 0.1):
         self.pageStack = list()
         if startPage is not None:

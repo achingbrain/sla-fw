@@ -67,7 +67,7 @@ class Page(object):
         self.display.page_confirm.setParams(
                 continueFce = self.display.exitus,
                 line1 = "Do you really want to",
-                line2 = "turn of the printer?")
+                line2 = "turn off the printer?")
         return "confirm"
     #enddef
 
@@ -895,9 +895,8 @@ class PageAdmin(Page):
                 "button3" : "State",
                 "button4" : "Setup HW",
 
-                "button6" : "Flash Nextion",
-                "button7" : "Flash MC",
-                "button8" : "USB update",
+                "button6" : "Flash MC",
+                "button7" : "USB update",
 
                 "button11" : "Change hostname",
                 "button12" : "Setup WiFi",
@@ -929,12 +928,6 @@ class PageAdmin(Page):
 
 
     def button6ButtonRelease(self):
-        self.display.flashDisplays(self.display.hwConfig.design, defines.dataPath)
-        return "_SELF_"
-    #enddef
-
-
-    def button7ButtonRelease(self):
         pageWait = PageWait(self.display, line2 = "Flashing Motion Controler")
         pageWait.show()
         self.display.hw.flashMC()
@@ -942,7 +935,7 @@ class PageAdmin(Page):
     #enddef
 
 
-    def button8ButtonRelease(self):
+    def button7ButtonRelease(self):
         return self.display.usbUpdate()
     #enddef
 
@@ -979,7 +972,6 @@ class PageSetupHW(Page):
         self.items = {
                 "label1g1" : "Fan check",
                 "label1g2" : "Cover check",
-                "label1g3" : "Nextion rotate",
 
                 "label2g1" : "Screw mm/rot",
                 "label2g2" : "Tower corr. (mm)",
@@ -1004,11 +996,9 @@ class PageSetupHW(Page):
 
         self.temp["fancheck"] = self.display.hwConfig.fanCheck
         self.temp["covercheck"] = self.display.hwConfig.coverCheck
-        self.temp["nextionrotate"] = self.display.hwConfig.nextionRotate
 
         self.items["state1g1"] = 1 if self.temp["fancheck"] else 0
         self.items["state1g2"] = 1 if self.temp["covercheck"] else 0
-        self.items["state1g3"] = 1 if self.temp["nextionrotate"] else 0
 
         super(PageSetupHW, self).show()
     #enddef
@@ -1061,11 +1051,6 @@ class PageSetupHW(Page):
 
     def state1g2ButtonRelease(self):
         self._onOff("covercheck", "state1g2")
-    #enddef
-
-
-    def state1g3ButtonRelease(self):
-        self._onOff("nextionrotate", "state1g3")
     #enddef
 
 

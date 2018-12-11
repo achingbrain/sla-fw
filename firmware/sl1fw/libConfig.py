@@ -249,7 +249,6 @@ class HwConfig(FileConfig):
     def _parseData(self):
         self.sn = self._parseString("sn", "999999")
         self.design = self._parseString("design", "prusa")
-        self.nextionRotate = self._parseBool("nextionrotate", True)
         self.fanCheck = self._parseBool("fancheck", False)
         self.coverCheck = self._parseBool("covercheck", False)
         self.screwMm = self._parseInt("screwmm", 4)

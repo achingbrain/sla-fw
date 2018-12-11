@@ -32,13 +32,8 @@ class Printer(object):
         from libHardware import Hardware
         self.hw = Hardware(self.hwConfig, self.config)
 
-        from libNextion import NextionDisplay
-        nextion = NextionDisplay(self.hwConfig, self.hw)
-        nextion.bootProgress(92)
-
         from libInternet import Internet
         self.inet = Internet()
-        nextion.bootProgress(94)
 
         from libQtDisply import QtDisplay
         qtdisplay = QtDisplay()
@@ -46,8 +41,7 @@ class Printer(object):
         from libWebDisplay import WebDisplay
         webdisplay = WebDisplay()
 
-        devices = list((nextion, qtdisplay, webdisplay))
-        nextion.bootProgress(96)
+        devices = list((qtdisplay, webdisplay))
 
         from libDisplay import Display
         self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet)
@@ -55,7 +49,6 @@ class Printer(object):
 
         self.logger.info("Software version: %s", defines.swVersion)
         self.hwConfig.logAllItems()
-        nextion.bootProgress(98)
 
         # pokud neni usb storage, nic neprecte a bude vsude default
         self.config.parseFile(os.path.join(defines.usbPath, defines.configFile))
@@ -64,7 +57,6 @@ class Printer(object):
         self.checkPage = libPages.PageWait(self.display)
 
         self.hw.powerLed("normal")
-        nextion.bootProgress(100)
 
         self.logger.info("Start time: " + str(time() - startTime))
     #endclass

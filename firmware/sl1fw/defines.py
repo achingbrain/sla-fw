@@ -4,7 +4,7 @@
 
 import os
 
-swVersion = "Gen3-181-206"
+swVersion = "Gen3-181-211"
 reqMcVersion = "SLA-control 0.9.1-152"
 
 home = "/home/root"
@@ -34,7 +34,5 @@ webDisplayPort = 16384
 qtDisplayPort = 32768
 debugPort = 49152
 templates = '/srv/http/intranet/templates'
-
-nextionDevice = "/dev/ttyS1"
 
 motionControlDevice = "/dev/ttyS2"
