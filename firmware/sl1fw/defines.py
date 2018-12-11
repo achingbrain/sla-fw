@@ -18,6 +18,7 @@ jobCounter = os.path.join(home, "jobs.log")
 hwConfigFile = "/etc/sl1fw/hardware.cfg"
 
 configFile = "config.ini"
+maskFilename = "mask.png"
 
 sysWiFiConfig = "/etc/wpa_supplicant/wpa_supplicant.conf"
 

@@ -14,6 +14,8 @@ import numpy
 import zipfile
 from cStringIO import StringIO
 
+import defines
+
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
@@ -28,7 +30,7 @@ class ImagePreloader(threading.Thread):
             self.zf = zipfile.ZipFile(source, 'r')
         except Exception as e:
             self.logger.exception("zip read exception:")
-        #endif
+        #endtry
         self.overlays = overlays
         self.workQueue = workQueue
         self.resultQueue = resultQueue
@@ -39,13 +41,18 @@ class ImagePreloader(threading.Thread):
         #self.logger.debug("thread started")
         while not self.stoprequest.isSet():
             try:
-                (filename, overlay) = self.workQueue.get(timeout = 0.1)
+                (filename, overlayName) = self.workQueue.get(timeout = 0.1)
                 #self.logger.debug("preload of %s started", filename)
                 filedata = self.zf.read(filename)
                 filedata_io = StringIO(filedata)
                 obr = pygame.image.load(filedata_io, filename).convert()
-                if self.overlays is not None and overlay is not None:
-                    obr.blit(self.overlays[overlay], (0,0))
+                overlay = self.overlays.get(overlayName, None)
+                if overlay:
+                    obr.blit(overlay, (0,0))
+                #endif
+                overlay = self.overlays.get('mask', None)
+                if overlay:
+                    obr.blit(overlay, (0,0))
                 #endif
                 #self.logger.debug("pixelcount of %s started", filename)
                 pixels = pygame.surfarray.pixels3d(obr)
@@ -79,7 +86,7 @@ class Screen(object):
     drm = SimpleDrm(conn="HDMI-A-1", format='XR24')
 
     def __init__(self, hwConfig, source):
-        #self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
         os.environ['SDL_NOMOUSE'] = '1'
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
         pygame.display.init()
@@ -94,7 +101,7 @@ class Screen(object):
         self.width = di.current_w
         self.height = di.current_h
         #self.logger.debug("screen size is %dx%d pixels", self.width, self.height)
-        self.calibOverlays = None
+        self.overlays = dict()
         self.imagePreloaderStarted = False
     #enddef
 
@@ -112,7 +119,7 @@ class Screen(object):
     def startPreloader(self):
         self.workQueue = Queue.Queue()
         self.resultQueue = Queue.Queue()
-        self.imagePreloader = ImagePreloader(self.basepath, self.calibOverlays, self.workQueue, self.resultQueue)
+        self.imagePreloader = ImagePreloader(self.basepath, self.overlays, self.workQueue, self.resultQueue)
         self.imagePreloader.start()
         self.imagePreloaderStarted = True
     #enddef
@@ -132,6 +139,7 @@ class Screen(object):
         image.convert('RGBX')
         Screen.drm.image.paste(image)
         Screen.drm.flush()
+    #enddef
 
     def getImg(self, filename, base = None):
         # obrazky jsou rozbalene nebo zkopirovane do ramdisku
@@ -146,8 +154,8 @@ class Screen(object):
         #self.logger.debug("view of %s done", base + filename)
     #enddef
 
-    def preloadImg(self, filename, drawOverlay):
-        self.workQueue.put((filename, drawOverlay))
+    def preloadImg(self, filename, overlayName):
+        self.workQueue.put((filename, overlayName))
     #enddef
 
     def blitImg(self):
@@ -172,10 +180,26 @@ class Screen(object):
         self.writefb()
     #enddef
 
+    def createMask(self):
+        try:
+            zf = zipfile.ZipFile(self.basepath, 'r')
+        except Exception as e:
+            self.logger.exception("zip read exception:")
+            return
+        #endtry
+        try:
+            filedata = zf.read(defines.maskFilename)
+        except KeyError as e:
+            self.logger.info("No mask picture in the project")
+            return
+        #endtry
+        filedata_io = StringIO(filedata)
+        self.overlays['mask'] = pygame.image.load(filedata_io, defines.maskFilename).convert_alpha()
+    #enddef
+
     def createCalibrationOverlay(self, areas, baseTime, timeStep):
-        self.calibOverlays = list()
-        self.calibOverlays.append(pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha())
-        self.calibOverlays.append(pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha())
+        self.overlays['calibPad'] = pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha()
+        self.overlays['calib'] = pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha()
         spacingX = 1.5
         spacingY = 1.5
         for area in areas:
@@ -192,17 +216,18 @@ class Screen(object):
             startX = int(area[0][0] + ((area[1][0] - padX) / 2))
             startY = area[0][1]
             #self.logger.debug("startX:%d startY:%d", startX, startY)
-            self.calibOverlays[0].fill((255,255,255), ((startX, startY), (padX, padY)))
-            self.calibOverlays[1].blit(surf, (startX + ofsetX, startY + ofsetY))
+            self.overlays['calibPad'].fill((255,255,255), ((startX, startY), (padX, padY)))
+            self.overlays['calib'].blit(surf, (startX + ofsetX, startY + ofsetY))
             baseTime += timeStep
         #endfor
     #enddef
 
-    def testBlit(self):
-        obr = pygame.image.load("zaba.png").convert()
+    def testBlit(self, obr, overlayName = None):
         self.screen.blit(obr, (0,0))
-        self.screen.blit(self.calibOverlays[0], (0,0))
-        self.screen.blit(self.calibOverlays[1], (0,0))
+        overlay = self.overlays.get(overlayName, None)
+        if overlay:
+            self.screen.blit(overlay, (0,0))
+        #endif
         pygame.display.flip()
         self.writefb()
     #enddef

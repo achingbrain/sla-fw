@@ -23,9 +23,9 @@ class ExposureThread(threading.Thread):
     #enddef
 
 
-    def doFrame(self, picture, position, exposureTime, overlay):
+    def doFrame(self, picture, position, exposureTime, overlayName):
         if picture is not None:
-            self.expo.screen.preloadImg(picture, overlay)
+            self.expo.screen.preloadImg(picture, overlayName)
         #endif
         if self.config.tilt:
             self.expo.hw.towerMoveAbsoluteWait(position)
@@ -237,17 +237,17 @@ class ExposureThread(threading.Thread):
                         self.expo.actualLayer, totalLayers, config.toPrint[i], step, time)
 
                 if i < 2:
-                    overlay = 0
+                    overlayName = 'calibPad'
                 elif i < config.calibrateInfoLayers + 2:
-                    overlay = 1
+                    overlayName = 'calib'
                 else:
-                    overlay = None
+                    overlayName = None
                 #endif
 
                 whitePixels = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                         self.expo.position,
                         time,
-                        overlay)
+                        overlayName)
                 # /1000 - chceme cm3 (=ml) nikoliv mm3
                 self.expo.resinCount += whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000
                 self.logger.debug("resinCount: %f" % self.expo.resinCount)
@@ -295,6 +295,7 @@ class Exposure(object):
         self.display = display
         self.hw = hw
         self.screen = Screen(hwConfig, self.config.zipName)
+        self.screen.createMask()
         self.position = 0
         self.actualLayer = 0
         self.checkPage = libPages.PageWait(display)
@@ -321,7 +322,7 @@ class Exposure(object):
 
     def startPreload(self):
         self.screen.startPreloader()
-        self.screen.preloadImg(self.config.toPrint[0], 0)
+        self.screen.preloadImg(self.config.toPrint[0], 'calibPad')
     #enddef
 
 
