@@ -206,6 +206,18 @@ class Display(object):
     #enddef
 
 
+    def mc2net(self):
+        import subprocess
+        pageWait = libPages.PageWait(self,
+            line1 = "Master is down",
+            line2 = "MC is redirected to port %d" % defines.socatPort,
+            line3 = 'Type "!shdn 0" to continue ;-)')
+        pageWait.show()
+        pid = subprocess.Popen([defines.Mc2NetCommand, defines.motionControlDevice, str(defines.socatPort)]).pid
+        self.shutDown(False)
+    #enddef
+
+
     def netUpdate(self):
         import libConfig
         # check network connection
@@ -427,16 +439,12 @@ class Display(object):
         self.hw.uvLed(False)
         self.hw.motorsRelease()
 
-        if not doShutDown:
-            self.logger.debug("No shutdown requested, waiting forever...")
-            while (True):
-                sleep(1)
-            #endwhile
+        if doShutDown:
+            self.hw.shutdown()
+            self.logger.debug("poweroff")
+            os.system("poweroff")
         #endif
 
-        self.hw.shutdown()
-        self.logger.debug("poweroff")
-        os.system("poweroff")
         sys.exit()
     #enddef
 
