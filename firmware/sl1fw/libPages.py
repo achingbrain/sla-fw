@@ -896,7 +896,8 @@ class PageAdmin(Page):
                 "button4" : "Setup HW",
 
                 "button6" : "Flash MC",
-                "button7" : "USB update",
+                "button7" : "MC2Net (socat)",
+                #"button8" : "USB update",
 
                 "button11" : "Change hostname",
                 "button12" : "Setup WiFi",
@@ -936,7 +937,14 @@ class PageAdmin(Page):
 
 
     def button7ButtonRelease(self):
-        return self.display.usbUpdate()
+        self.display.mc2net()
+        return "_BACK_"
+    #enddef
+
+
+    def button8ButtonRelease(self):
+        pass
+        #return self.display.usbUpdate()
     #enddef
 
 

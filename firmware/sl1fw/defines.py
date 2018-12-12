@@ -29,6 +29,7 @@ netUpdateCommand = os.path.join(scriptDir, "rsync_net.sh")
 netUpdateVersionURL = "http://cloud.3dwarf.net/3dwarfsoftware/sl1fw.txt"
 hostnameCommand = os.path.join(scriptDir, "set_hostname.sh")
 flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
+Mc2NetCommand = os.path.join(scriptDir, "MC2Net.sh")
 
 webDisplayPort = 16384
 qtDisplayPort = 32768
@@ -36,3 +37,4 @@ debugPort = 49152
 templates = '/srv/http/intranet/templates'
 
 motionControlDevice = "/dev/ttyS2"
+socatPort = 8192
