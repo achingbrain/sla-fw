@@ -103,6 +103,7 @@ class FileConfig(object):
     # values must be strings!!!
     def update(self, **kwargs):
         for key,val in kwargs.iteritems():
+            self._logger.debug("update: %s = %s", key, str(val))
             self._data[key.lower()] = val
         #endfor
         newLines = list()
