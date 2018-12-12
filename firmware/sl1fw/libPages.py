@@ -1006,6 +1006,7 @@ class PageSetupHW(Page):
 
     def _onOff(self, val, name):
         self.temp[val] = not self.temp[val]
+        self.changed[val] = "on" if self.temp[val] else "off"
         self.showItems(**{ name : 1 if self.temp[val] else 0 })
     #enddef
 
