@@ -206,14 +206,19 @@ class Display(object):
     #enddef
 
 
-    def mc2net(self):
+    def mc2net(self, bootloader = False):
         import subprocess
+        baudrate = 19200 if bootloader else 115200
         pageWait = libPages.PageWait(self,
-            line1 = "Master is down",
-            line2 = "MC is redirected to port %d" % defines.socatPort,
-            line3 = 'Type "!shdn 0" to continue ;-)')
+            line1 = "Master is down. Baudrate is %d" % baudrate,
+            line2 = "Serial line is redirected to port %d" % defines.socatPort,
+            line3 = "Press reset to continue ;-)" if bootloader else 'Type "!shdn 0" to power off ;-)')
         pageWait.show()
-        pid = subprocess.Popen([defines.Mc2NetCommand, defines.motionControlDevice, str(defines.socatPort)]).pid
+        pid = subprocess.Popen([
+            defines.Mc2NetCommand,
+            defines.motionControlDevice,
+            str(defines.socatPort),
+            str(baudrate)]).pid
         self.shutDown(False)
     #enddef
 
