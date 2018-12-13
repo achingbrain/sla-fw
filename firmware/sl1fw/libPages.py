@@ -980,6 +980,7 @@ class PageSetupHW(Page):
         self.items = {
                 "label1g1" : "Fan check",
                 "label1g2" : "Cover check",
+                "label1g3" : "MC version check",
 
                 "label2g1" : "Screw mm/rot",
                 "label2g2" : "Tower corr. (mm)",
@@ -1004,9 +1005,11 @@ class PageSetupHW(Page):
 
         self.temp["fancheck"] = self.display.hwConfig.fanCheck
         self.temp["covercheck"] = self.display.hwConfig.coverCheck
+        self.temp["mcversioncheck"] = self.display.hwConfig.MCversionCheck
 
         self.items["state1g1"] = 1 if self.temp["fancheck"] else 0
         self.items["state1g2"] = 1 if self.temp["covercheck"] else 0
+        self.items["state1g3"] = 1 if self.temp["mcversioncheck"] else 0
 
         super(PageSetupHW, self).show()
     #enddef
@@ -1060,6 +1063,11 @@ class PageSetupHW(Page):
 
     def state1g2ButtonRelease(self):
         self._onOff("covercheck", "state1g2")
+    #enddef
+
+
+    def state1g3ButtonRelease(self):
+        self._onOff("mcversioncheck", "state1g3")
     #enddef
 
 

@@ -252,6 +252,7 @@ class HwConfig(FileConfig):
         self.design = self._parseString("design", "prusa")
         self.fanCheck = self._parseBool("fancheck", False)
         self.coverCheck = self._parseBool("covercheck", False)
+        self.MCversionCheck = self._parseBool("mcversioncheck", True)
         self.screwMm = self._parseInt("screwmm", 4)
         self.microStepsMM = 200 * 16 / self.screwMm
         self.pixelSize = self._parseFloat("pixelsize", 0.046875, True)    # 5.5" LCD
