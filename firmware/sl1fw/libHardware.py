@@ -177,7 +177,7 @@ class Hardware(object):
 
     def _firmwareCheck(self):
         self.MCversion = self._commMC("?ver")
-        if self.MCversion is None or self.MCversion != defines.reqMcVersion:
+        if self.hwConfig.MCversionCheck and (self.MCversion is None or self.MCversion != defines.reqMcVersion):
             self.logger.warning("Wrong MC firmware version, flash forced.")
 
             if not self._flashMC():
