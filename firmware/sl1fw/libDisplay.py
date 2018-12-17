@@ -46,6 +46,7 @@ class Display(object):
         self.page_tiltprofiles = libPages.PageTiltProfiles(self)
         self.page_towerprofiles = libPages.PageTowerProfiles(self)
         self.page_state = libPages.PageState(self)
+        self.page_keyboard = libPages.PageKeyboard(self)
 
         self.noBackPages = set(("error", "confirm"))
         self.actualPage = self.page_intro

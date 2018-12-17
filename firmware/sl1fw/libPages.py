@@ -15,9 +15,14 @@ class Page(object):
     def __init__(self, display):
         self.logger = logging.getLogger(__name__)
         self.display = display
-        self.items = {}
         self.autorepeat = {}
         self.callbackPeriod = None
+        self.fill()
+    #enddef
+
+
+    def fill(self):
+        self.items = { "image_version" : self.display.hwConfig.os.versionId, "page_title" : self.pageTitle }
     #enddef
 
 
@@ -117,14 +122,16 @@ class Page(object):
 class PageWait(Page):
 
     def __init__(self, display, **kwargs):
-        super(PageWait, self).__init__(display)
         self.pageUI = "wait"
-        self.items = kwargs
+        self.pageTitle = "Wait"
+        super(PageWait, self).__init__(display)
+        self.items.update(kwargs)
     #enddef
 
 
     def fill(self, **kwargs):
-        self.items = kwargs
+        super(PageWait, self).fill()
+        self.items.update(kwargs)
     #enddef
 
 #endclass
@@ -133,15 +140,17 @@ class PageWait(Page):
 class PageConfirm(Page):
 
     def __init__(self, display):
-        super(PageConfirm, self).__init__(display)
         self.pageUI = "confirm"
+        self.pageTitle = "Confirm"
+        super(PageConfirm, self).__init__(display)
     #enddef
 
 
     def setParams(self, **kwargs):
         self.continueFce = kwargs.pop("continueFce", None)
         self.continueParmas = kwargs.pop("continueParmas", dict())
-        self.items = kwargs
+        self.fill()
+        self.items.update(kwargs)
     #enddef
 
 
@@ -159,8 +168,9 @@ class PageConfirm(Page):
 class PageIntro(Page):
 
     def __init__(self, display):
-        super(PageIntro, self).__init__(display)
         self.pageUI = "intro"
+        self.pageTitle = "Intro"
+        super(PageIntro, self).__init__(display)
     #enddef
 
 #endclass
@@ -169,8 +179,9 @@ class PageIntro(Page):
 class PageStart(Page):
 
     def __init__(self, display):
-        super(PageStart, self).__init__(display)
         self.pageUI = "start"
+        self.pageTitle = "Start"
+        super(PageStart, self).__init__(display)
     #enddef
 
 #endclass
@@ -179,8 +190,9 @@ class PageStart(Page):
 class PageHome(Page):
 
     def __init__(self, display):
-        super(PageHome, self).__init__(display)
         self.pageUI = "home"
+        self.pageTitle = "Home"
+        super(PageHome, self).__init__(display)
         # meni se i z libPrinter!
         self.firstRun = True
     #enddef
@@ -220,8 +232,9 @@ class PageHome(Page):
 class PageControl(Page):
 
     def __init__(self, display):
-        super(PageControl, self).__init__(display)
         self.pageUI = "control"
+        self.pageTitle = "Control"
+        super(PageControl, self).__init__(display)
         self.autorepeat = { "up" : (1, 1) }
     #enddef
 
@@ -281,8 +294,9 @@ class PageControl(Page):
 class PageSettings(Page):
 
     def __init__(self, display):
-        super(PageSettings, self).__init__(display)
         self.pageUI = "settings"
+        self.pageTitle = "Settings"
+        super(PageSettings, self).__init__(display)
     #enddef
 
 
@@ -306,8 +320,9 @@ class PageSettings(Page):
 class PagePrint(Page):
 
     def __init__(self, display):
-        super(PagePrint, self).__init__(display)
         self.pageUI = "print"
+        self.pageTitle = "Print"
+        super(PagePrint, self).__init__(display)
     #enddef
 
 
@@ -321,9 +336,10 @@ class PagePrint(Page):
 class PageHomePrint(Page):
 
     def __init__(self, display, expo):
+        self.pageUI = "homeprint"
+        self.pageTitle = "Print Home"
         super(PageHomePrint, self).__init__(display)
         self.expo = expo
-        self.pageUI = "homeprint"
     #enddef
 
 
@@ -375,8 +391,9 @@ class PageHomePrint(Page):
 class PageProjSett(Page):
 
     def __init__(self, display):
-        super(PageProjSett, self).__init__(display)
         self.pageUI = "projsettings"
+        self.pageTitle = "Project Settings"
+        super(PageProjSett, self).__init__(display)
     #enddef
 
 
@@ -414,8 +431,9 @@ class PageProjSett(Page):
 class PageChange(Page):
 
     def __init__(self, display):
-        super(PageChange, self).__init__(display)
         self.pageUI = "change"
+        self.pageTitle = "Change Exposure Time"
+        super(PageChange, self).__init__(display)
         self.autorepeat = { "addsecond" : (5, 1), "subsecond" : (5, 1) }
     #enddef
 
@@ -454,14 +472,15 @@ class PageChange(Page):
 class PageSysInfo(Page):
 
     def __init__(self, display):
-        super(PageSysInfo, self).__init__(display)
         self.pageUI = "sysinfo"
-        self.items = {
+        self.pageTitle = "System Information"
+        super(PageSysInfo, self).__init__(display)
+        self.items.update({
                 "line1" : "Serial number: %s" % self.display.hwConfig.sn,
                 "line2" : "System: %s" % self.display.hwConfig.os.name,
                 "line3" : "System version: %s" % self.display.hwConfig.os.version,
                 "line4" : "Firwmare version: %s" % defines.swVersion,
-                }
+                })
         self.callbackPeriod = 2
     #enddef
 
@@ -490,8 +509,9 @@ class PageSysInfo(Page):
 class PageNetInfo(Page):
 
     def __init__(self, display):
-        super(PageNetInfo, self).__init__(display)
         self.pageUI = "netinfo"
+        self.pageTitle = "Network Information"
+        super(PageNetInfo, self).__init__(display)
     #enddef
 
 
@@ -516,7 +536,7 @@ class PageNetInfo(Page):
 
 
     def show(self):
-        self.items = self.fillData()
+        self.items.update(self.fillData())
         super(PageNetInfo, self).show()
     #enddef
 
@@ -531,14 +551,15 @@ class PageNetInfo(Page):
 class PageAbout(Page):
 
     def __init__(self, display):
-        super(PageAbout, self).__init__(display)
         self.pageUI = "about"
-        self.items = {
+        self.pageTitle = "About"
+        super(PageAbout, self).__init__(display)
+        self.items.update({
                 "line1" : "(c) 2018 Prusa Research s.r.o.",
                 "line2" : "www.prusa3d.com",
 #                "qr1" : "https://www.prusa3d.com",
                 "qr1" : "MECARD:N:Prusa Research s.r.o.;URL:www.prusa3d.com;EMAIL:info@prusa3d.com;;",
-                }
+                })
     #enddef
 
 
@@ -552,8 +573,9 @@ class PageAbout(Page):
 class PageSrcSelect(Page):
 
     def __init__(self, display):
-        super(PageSrcSelect, self).__init__(display)
         self.pageUI = "sourceselect"
+        self.pageTitle = "Source Select"
+        super(PageSrcSelect, self).__init__(display)
     #enddef
 
 
@@ -620,11 +642,37 @@ class PageSrcSelect(Page):
 #endclass
 
 
+class PageKeyboard(Page):
+
+    def __init__(self, display):
+        self.pageUI = "keyboard_edit"
+        self.pageTitle = "Keyboard"
+        super(PageKeyboard, self).__init__(display)
+        self.items.update({
+            'text' : "initial text",
+            'line1' : "Item",
+            })
+    #enddef
+
+
+    def acceptButtonRelease(self):
+        return super(PageKeyboard, self).backButtonRelease()
+    #enddef
+
+
+    def cancelButtonRelease(self):
+        return super(PageKeyboard, self).backButtonRelease()
+    #enddef
+
+#endclass
+
+
 class PageError(Page):
 
     def __init__(self, display):
-        super(PageError, self).__init__(display)
         self.pageUI = "error"
+        self.pageTitle = "Error"
+        super(PageError, self).__init__(display)
     #enddef
 
 
@@ -636,7 +684,8 @@ class PageError(Page):
 
 
     def setParams(self, **kwargs):
-        self.items = kwargs
+        self.fill()
+        self.items.update(kwargs)
     #enddef
 
 
@@ -657,9 +706,10 @@ class PageError(Page):
 class PageControlHW(Page):
 
     def __init__(self, display):
-        super(PageControlHW, self).__init__(display)
         self.pageUI = "admin"
-        self.items = {
+        self.pageTitle = "Admin - Hardware control"
+        super(PageControlHW, self).__init__(display)
+        self.items.update({
                 "button1" : "Tilt home",
                 "button2" : "Tilt move",
                 "button3" : "Tilt man. calib.",
@@ -674,7 +724,7 @@ class PageControlHW(Page):
 #                "button12" : "Recalib. endstops",
 
                 "back" : "Back",
-                }
+                })
     #enddef
 
 
@@ -779,9 +829,10 @@ class PageControlHW(Page):
 class PagePatterns(Page):
 
     def __init__(self, display):
-        super(PagePatterns, self).__init__(display)
         self.pageUI = "admin"
-        self.items = {
+        self.pageTitle = "Admin - Display Test"
+        super(PagePatterns, self).__init__(display)
+        self.items.update({
                 "button1" : "Chess 8",
                 "button2" : "Chess 16",
                 "button3" : "Grid 8",
@@ -795,7 +846,7 @@ class PagePatterns(Page):
 
                 "button14" : "UV on",
                 "back" : "Back",
-                }
+                })
         self.uvIsOn = False
     #enddef
 
@@ -887,9 +938,10 @@ class PagePatterns(Page):
 class PageAdmin(Page):
 
     def __init__(self, display):
-        super(PageAdmin, self).__init__(display)
         self.pageUI = "admin"
-        self.items = {
+        self.pageTitle = "Admin - Main Page"
+        super(PageAdmin, self).__init__(display)
+        self.items.update({
                 "button1" : "Control HW",
                 "button2" : "Display test",
                 "button3" : "State",
@@ -903,9 +955,10 @@ class PageAdmin(Page):
                 "button11" : "Change hostname",
                 "button12" : "Setup WiFi",
                 "button13" : "Network",
+                "button14" : "Keyboard test",
 
                 "back" : "Back",
-                }
+                })
     #enddef
 
 
@@ -971,20 +1024,27 @@ class PageAdmin(Page):
         return "netinfo"
     #enddef
 
+
+    def button14ButtonRelease(self):
+        return "keyboard"
+    #enddef
+
+
 #endclass
 
 
 class PageSetupHW(Page):
 
     def __init__(self, display):
-        super(PageSetupHW, self).__init__(display)
         self.pageUI = "setup"
+        self.pageTitle = "Admin - Hardware Setup"
+        super(PageSetupHW, self).__init__(display)
         self.autorepeat = {
                 "minus2g1" : (5, 1), "plus2g1" : (5, 1),
                 "minus2g2" : (5, 1), "plus2g2" : (5, 1),
                 "minus2g3" : (5, 1), "plus2g3" : (5, 1),
                 }
-        self.items = {
+        self.items.update({
                 "label1g1" : "Fan check",
                 "label1g2" : "Cover check",
                 "label1g3" : "MC version check",
@@ -995,7 +1055,7 @@ class PageSetupHW(Page):
 
                 "button4" : "Save",
                 "back" : "Back",
-                }
+                })
         self.changed = {}
         self.temp = {}
     #enddef
@@ -1113,13 +1173,15 @@ class PageSetupHW(Page):
 class PageException(Page):
 
     def __init__(self, display):
-        super(PageException, self).__init__(display)
         self.pageUI = "exception"
+        self.pageTitle = "System Fatal Error"
+        super(PageException, self).__init__(display)
     #enddef
 
 
     def setParams(self, **kwargs):
-        self.items = kwargs
+        self.fill()
+        self.items.update(kwargs)
     #enddef
 
 #endclass
@@ -1172,8 +1234,9 @@ class MovePage(Page):
 class PageTowerMove(MovePage):
 
     def __init__(self, display):
-        super(PageTowerMove, self).__init__(display)
         self.pageUI = "towermove"
+        self.pageTitle = "Tower Move"
+        super(PageTowerMove, self).__init__(display)
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
         self.setProfiles = True
     #enddef
@@ -1234,8 +1297,9 @@ class PageTowerMove(MovePage):
 class PageTowerCalib(MovePage):
 
     def __init__(self, display):
-        super(PageTowerCalib, self).__init__(display)
         self.pageUI = "towermove"
+        self.pageTitle = "Tower Calibration"
+        super(PageTowerCalib, self).__init__(display)
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
     #enddef
 
@@ -1334,8 +1398,9 @@ class PageTowerCalib(MovePage):
 class PageTiltMove(MovePage):
 
     def __init__(self, display):
-        super(PageTiltMove, self).__init__(display)
         self.pageUI = "tiltmove"
+        self.pageTitle = "Tilt Move"
+        super(PageTiltMove, self).__init__(display)
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
         self.setProfiles = True
     #enddef
@@ -1396,8 +1461,9 @@ class PageTiltMove(MovePage):
 class PageTiltCalib(MovePage):
 
     def __init__(self, display):
-        super(PageTiltCalib, self).__init__(display)
         self.pageUI = "tiltmove"
+        self.pageTitle = "Tilt Calibration"
+        super(PageTiltCalib, self).__init__(display)
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
     #enddef
 
@@ -1470,8 +1536,8 @@ class PageTiltCalib(MovePage):
 class ProfilesPage(Page):
 
     def __init__(self, display):
-        super(ProfilesPage, self).__init__(display)
         self.pageUI = "setup"
+        super(ProfilesPage, self).__init__(display)
         self.autorepeat = {
                 "minus2g1" : (5, 1), "plus2g1" : (5, 1),
                 "minus2g2" : (5, 1), "plus2g2" : (5, 1),
@@ -1481,7 +1547,7 @@ class ProfilesPage(Page):
                 "minus2g6" : (5, 1), "plus2g6" : (5, 1),
                 "minus2g7" : (5, 1), "plus2g7" : (5, 1),
                 }
-        self.items = {
+        self.items.update({
                 "label1g1" : self.profilesNames[0],
                 "label1g2" : self.profilesNames[1],
                 "label1g3" : self.profilesNames[2],
@@ -1504,7 +1570,7 @@ class ProfilesPage(Page):
                 "button3" : "Test",
                 "button4" : "Save",
                 "back" : "Back",
-                }
+                })
         self.actualProfile = 0
     #enddef
 
@@ -1679,6 +1745,7 @@ class PageTiltProfiles(ProfilesPage):
         self.profilesFilename = "tilt_profiles.json"
         self.profilesNames = display.hw.getTiltProfilesNames()
         self.profiles = display.hw.getTiltProfiles()
+        self.pageTitle = "Admin - Tilt Profiles"
         super(PageTiltProfiles, self).__init__(display)
     #enddef
 
@@ -1720,6 +1787,7 @@ class PageTowerProfiles(ProfilesPage):
         self.profilesFilename = "tower_profiles.json"
         self.profilesNames = display.hw.getTowerProfilesNames()
         self.profiles = display.hw.getTowerProfiles()
+        self.pageTitle = "Admin - Tower Profiles"
         super(PageTowerProfiles, self).__init__(display)
     #enddef
 
@@ -1758,8 +1826,9 @@ class PageTowerProfiles(ProfilesPage):
 class PageState(Page):
 
     def __init__(self, display):
-        super(PageState, self).__init__(display)
         self.pageUI = "setup"
+        self.pageTitle = "Admin - State"
+        super(PageState, self).__init__(display)
 #        self.autorepeat = {
 #                "minus2g1" : (5, 1), "plus2g1" : (5, 1),
 #                "minus2g2" : (5, 1), "plus2g2" : (5, 1),
@@ -1770,7 +1839,7 @@ class PageState(Page):
 #                "minus2g7" : (5, 1), "plus2g7" : (5, 1),
 #                "minus2g8" : (5, 1), "plus2g8" : (5, 1),
 #                }
-        self.items = {
+        self.items.update({
                 "label1g1" : "Fan 1",
                 "label1g2" : "Fan 2",
                 "label1g3" : "Fan 3",
@@ -1789,7 +1858,7 @@ class PageState(Page):
                 "label2g7" : "CPU core temperature",
 
                 "back" : "Back",
-                }
+                })
         self.callbackPeriod = 0.5
     #enddef
 

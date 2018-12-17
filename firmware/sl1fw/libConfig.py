@@ -284,6 +284,7 @@ class OsConfig(FileConfig):
         self.id = self._parseString("id")
         self.name = self._parseString("name", "unknown")
         self.version = self._parseString("version", "unknown")
+        self.versionId = self._parseString("version_id", "unknown")
     #enddef
 
 #endclass
