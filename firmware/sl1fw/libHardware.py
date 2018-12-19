@@ -137,9 +137,13 @@ class Hardware(object):
 
         self.portLock.acquire()
 
-        if self.port.inWaiting():
-            self.logger.warning("data on serial line: '%s'", self.port.read(256))
-        #endif
+        while self.port.inWaiting():
+            try:
+                self.logger.info("extra line '%s'", self.port.readline().strip().decode("ascii").encode())
+            except Exception:
+                self.logger.exception("exception:")
+            #endtry
+        #endwhile
 
         params = " ".join(str(x) for x in args)
         self.logger.debug("write '%s'", params)
