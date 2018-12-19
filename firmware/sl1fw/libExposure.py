@@ -208,27 +208,27 @@ class ExposureThread(threading.Thread):
                 if i < 3:
                     step = config.layerMicroSteps
                     time = config.expTimeFirst
-                    self.expo.hw.setTiltProfile('firstLayer')
+                    #self.expo.hw.setTiltProfile('firstLayer')
                 # dalsich config.fadeLayers je prechod config.expTimeFirst -> config.expTime
                 elif i < config.fadeLayers + 3:
                     step = config.layerMicroSteps
                     time = config.expTimeFirst - (i - 2) * timeLoss
-                    self.expo.hw.setTiltProfile('firstLayer')
+                    #self.expo.hw.setTiltProfile('firstLayer')
                 # do prvniho zlomu standardni parametry
                 elif i + 1 < config.slice2:
                     step = config.layerMicroSteps
                     time = config.expTime
-                    self.expo.hw.setTiltProfile('layer')
+                    #self.expo.hw.setTiltProfile('layer')
                 # do druheho zlomu parametry2
                 elif i + 1 < config.slice3:
                     step = config.layerMicroSteps2
                     time = config.expTime2
-                    self.expo.hw.setTiltProfile('layer')
+                    #self.expo.hw.setTiltProfile('layer')
                 # a pak uz parametry3
                 else:
                     step = config.layerMicroSteps3
                     time = config.expTime3
-                    self.expo.hw.setTiltProfile('layer')
+                    #self.expo.hw.setTiltProfile('layer')
                 #endif
 
                 self.expo.actualLayer = i + 1

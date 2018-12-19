@@ -281,40 +281,66 @@ class Printer(object):
                     continue
                 #endtry
 
+                # FIXME better format!
+                coLog = "(%s)job:%s+act=%s+exp=%.1f/%d+step=%d" % (
+                        self.config.loadSrc,
+                        self.config.projectName,
+                        self.config.action,
+                        self.config.expTime,
+                        int(self.config.expTimeFirst),
+                        self.config.layerMicroSteps)
+                self.jobLog("\n%s" % (coLog))
+
+                self.hw.checkCoverStatus(self.checkPage, pageWait)  # FIXME status vlakno?
+                self.hw.uvLed(True)
+
+                if self.config.startDelay > 0:
+                    for sd in xrange(0, self.config.startDelay):
+                        pageWait.showItems(line2 = "Start delay %s minute(s)" % self.config.startDelay - sd)
+                        sleep(60)
+                    #endfor
+                #endif
+
+                pageWait.showItems(line2 = "Moving platform to top")
+                self.hw.towerSync()
+                while not self.display.hw.isTowerSynced():
+                    sleep(0.25)
+                    pageWait.showItems(line3 = self.display.hw.getTowerPosition())
+                #endwhile
+                if self.hw.towerSyncFailed():
+                    self.hw.uvLed(False)
+                    self.hw.motorsRelease()
+                    self.display.page_error.setParams(
+                            line1 = "Tower homing failed!",
+                            line2 = "Check printer's hardware.",
+                            line3 = "Job was canceled.")
+                    self.display.doMenu("error")
+                    # nepipat na strance home
+                    self.display.page_home.firstRun = False
+                    continue
+                #endif
+
+                pageWait.showItems(line2 = "Homing tank", line3 = "")
+                if not self.hw.tiltSyncWait(retries = 2):
+                    self.hw.uvLed(False)
+                    self.hw.motorsRelease()
+                    self.display.page_error.setParams(
+                            line1 = "Tilt homing failed!",
+                            line2 = "Check printer's hardware.",
+                            line3 = "Job was canceled.")
+                    self.display.doMenu("error")
+                    # nepipat na strance home
+                    self.display.page_home.firstRun = False
+                    continue
+                #endif
+
+                self.expo.hw.setTiltProfile('layer')
+                self.hw.tiltDownWait()
+                self.hw.tiltUpWait()
+
                 break
 
             #endwhile
-
-            # FIXME better format!
-            coLog = "(%s)job:%s+act=%s+exp=%.1f/%d+step=%d" % (
-                    self.config.loadSrc,
-                    self.config.projectName,
-                    self.config.action,
-                    self.config.expTime,
-                    int(self.config.expTimeFirst),
-                    self.config.layerMicroSteps)
-            self.jobLog("\n%s" % (coLog))
-
-            self.hw.checkCoverStatus(self.checkPage, pageWait)  # FIXME status vlakno?
-            self.hw.uvLed(True)
-
-            if self.config.startDelay > 0:
-                for sd in xrange(0, self.config.startDelay):
-                    pageWait.showItems(line2 = "Start delay %s minute(s)" % self.config.startDelay - sd)
-                    sleep(60)
-                #endfor
-            #endif
-
-            pageWait.showItems(line2 = "Homing platform")
-            self.hw.towerSync()
-            while not self.display.hw.isTowerSynced():
-                sleep(0.25)
-                pageWait.showItems(line3 = self.display.hw.getTowerPosition())
-            #endwhile
-            pageWait.showItems(line2 = "Homing tank", line3 = "")
-            self.hw.tiltSyncWait()
-            self.expo.hw.setTiltProfile('layer')
-            self.hw.tiltUpWait()
 
             # TODO - kontrola hladiny resinu atd.
 

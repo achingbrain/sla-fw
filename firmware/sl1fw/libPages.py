@@ -26,6 +26,11 @@ class Page(object):
     #enddef
 
 
+    def prepare(self):
+        pass
+    #enddef
+
+
     def show(self):
         for device in self.display.devices:
             device.setPage(self.pageUI)
@@ -114,6 +119,33 @@ class Page(object):
             #endif
             self.oldValues[index] = value
         #endif
+    #enddef
+
+
+    def _syncTower(self, pageWait):
+        self.display.hw.towerSync()
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+            pageWait.showItems(line3 = self.display.hw.getTowerPosition())
+        #endwhile
+        if self.display.hw.towerSyncFailed():
+            self.display.page_error.setParams(
+                    line1 = "Tower homing failed!",
+                    line2 = "Check printer's hardware.")
+            return "error"
+        #endif
+        return "_SELF_"
+    #enddef
+
+
+    def _syncTilt(self):
+        if not self.display.hw.tiltSyncWait(retries = 2):
+            self.display.page_error.setParams(
+                    line1 = "Tilt homing failed!",
+                    line2 = "Check printer's hardware.")
+            return "error"
+        #endif
+        return "_SELF_"
     #enddef
 
 #endclass
@@ -249,14 +281,10 @@ class PageControl(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = "Moving platform to top")
         pageWait.show()
-        self.display.hw.towerSync()
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-            pageWait.showItems(line3 = self.display.hw.getTowerPosition())
-        #endwhile
+        retc = self._syncTower(pageWait)
         self.display.hw.motorsRelease()
         self.display.hw.powerLed("normal")
-        return "_SELF_"
+        return retc
     #enddef
 
 
@@ -282,7 +310,14 @@ class PageControl(Page):
         pageWait = PageWait(self.display, line2 = "Tank reset")
         pageWait.show()
         self.display.hw.checkCoverStatus(PageWait(self.display), pageWait)
-        self.display.hw.tiltReset()
+        retc = self._syncTilt()
+        if retc == "error":
+            self.display.hw.motorsRelease()
+            return retc
+        #endif
+        self.display.hw.setTiltProfile('layer')
+        self.display.hw.tiltDownWait()
+        self.display.hw.tiltUpWait()
         self.display.hw.motorsRelease()
         self.display.hw.powerLed("normal")
         return "_SELF_"
@@ -397,27 +432,29 @@ class PageProjSett(Page):
     #enddef
 
 
-    def show(self):
-        config = self.display.config
-        self.checkConfFile(config.configFile)
-        if config.zipError is None:
-            self.items["line2"] = "Layers: %d at a height of %.3f mm" % (config.totalLayers, self.display.hwConfig.calcMM(config.layerMicroSteps))
-            if config.calibrateRegions:
-                self.items["line1"] = "Calibration[%d]: %s" % (config.calibrateRegions, config.projectName)
-                self.items["line3"] = "Exposure times: %d s / %.1f s (+%.1f)" % (int(config.expTimeFirst), config.expTime, config.calibrateTime)
-            else:
-                self.items["line1"] = "Project: %s" % config.projectName
-                self.items["line3"] = "Exposure times: %d s / %.1f s" % (int(config.expTimeFirst), config.expTime)
-            #endif
-            super(PageProjSett, self).show()
-        else:
+    def prepare(self):
+        self.checkConfFile(self.display.config.configFile)
+        if self.display.config.zipError:
             sleep(0.5)
-            self.items["line1"] = "Your project has a problem:"
-            self.items["line2"] = config.zipError
-            self.items["line3"] = "Regenerate it and try again."
-            super(PageProjSett, self).show()
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                    line1 = "Your project has a problem:",
+                    line2 = self.display.config.zipError,
+                    line3 = "Regenerate it and try again.")
+            return "error"
         #endif
+    #enddef
+
+
+    def show(self):
+        self.items["line2"] = "Layers: %d at a height of %.3f mm" % (self.display.config.totalLayers, self.display.hwConfig.calcMM(self.display.config.layerMicroSteps))
+        if self.display.config.calibrateRegions:
+            self.items["line1"] = "Calibration[%d]: %s" % (self.display.config.calibrateRegions, self.display.config.projectName)
+            self.items["line3"] = "Exposure times: %d s / %.1f s (+%.1f)" % (int(self.display.config.expTimeFirst), self.display.config.expTime, self.display.config.calibrateTime)
+        else:
+            self.items["line1"] = "Project: %s" % self.display.config.projectName
+            self.items["line3"] = "Exposure times: %d s / %.1f s" % (int(self.display.config.expTimeFirst), self.display.config.expTime)
+        #endif
+        super(PageProjSett, self).show()
     #enddef
 
 
@@ -732,10 +769,9 @@ class PageControlHW(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = "Tilt home")
         pageWait.show()
-        self.display.hw.tiltSyncWait()
-        self.display.hw.beepEcho()
+        retc = self._syncTilt()
         self.display.hw.powerLed("normal")
-        return "_SELF_"
+        return retc
     #enddef
 
 
@@ -751,9 +787,19 @@ class PageControlHW(Page):
 
     def button4ButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = "Tilt down")
+        pageWait = PageWait(self.display, line2 = "Tilt sync")
         pageWait.show()
-        self.display.hw.tiltSyncWait()
+        retc = self._syncTilt()
+        if retc == "error":
+            return retc
+        #endif
+        self.display.hw.beepEcho()
+        sleep(1)
+        pageWait.showItems(line2 = "Tilt up")
+        self.display.hw.tiltUpWait()
+        self.display.hw.beepEcho()
+        sleep(1)
+        pageWait.showItems(line2 = "Tilt down")
         self.display.hw.tiltDownWait()
         self.display.hw.beepEcho()
         sleep(1)
@@ -772,15 +818,11 @@ class PageControlHW(Page):
 
     def button6ButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = "Moving platform home")
+        pageWait = PageWait(self.display, line2 = "Moving platform to top")
         pageWait.show()
-        self.display.hw.towerSync()
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-            pageWait.showItems(line3 = self.display.hw.getTowerPosition())
-        #endwhile
+        retc = self._syncTower(pageWait)
         self.display.hw.powerLed("normal")
-        return "_SELF_"
+        return retc
     #enddef
 
 
@@ -798,11 +840,10 @@ class PageControlHW(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = "Moving platform to top")
         pageWait.show()
-        self.display.hw.towerSync()
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-            pageWait.showItems(line3 = self.display.hw.getTowerPosition())
-        #endwhile
+        retc = self._syncTower(pageWait)
+        if retc == "error":
+            return retc
+        #endif
         pageWait.showItems(line2 = "Moving platform to zero")
         self.display.hw.towerZero()
         while not self.display.hw.isTowerOnZero():
@@ -851,15 +892,22 @@ class PagePatterns(Page):
     #enddef
 
 
-    def show(self):
+    def prepare(self):
         try:
             from libScreen import Screen
             self.screen = Screen(self.display.hwConfig, defines.dataPath)
-            self.button1ButtonRelease()
         except Exception:
             self.logger.exception("screen exception:")
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                    line1 = "Display init failed!",
+                    line2 = "Check printer's hardware.")
+            return "error"
         #endtry
+    #enddef
+
+
+    def show(self):
+        self.button1ButtonRelease()
         super(PagePatterns, self).show()
     #enddef
 
@@ -1304,17 +1352,19 @@ class PageTowerCalib(MovePage):
     #enddef
 
 
-    def show(self):
+    def prepare(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = "Moving platform up")
+        pageWait = PageWait(self.display, line2 = "Moving platform to top")
         pageWait.show()
-        self.display.hw.towerSync()
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-            pageWait.showItems(line3 = self.display.hw.getTowerPosition())
-        #endwhile
+        retc = self._syncTower(pageWait)
+        if retc == "error":
+            return retc
+        #endif
         pageWait.showItems(line2 = "Moving tank to start", line3 = "")
-        self.display.hw.tiltSyncWait()
+        retc = self._syncTilt()
+        if retc == "error":
+            return retc
+        #endif
         self.display.hw.tiltUpWait()
         pageWait.showItems(line2 = "Moving platform down")
         self.display.hw.setTowerProfile('calibration')
@@ -1327,7 +1377,6 @@ class PageTowerCalib(MovePage):
         self.display.hw.setTowerZero()
         self.items["value"] = self.display.hw.getTowerPosition()
         self.moving = False
-        super(PageTowerCalib, self).show()
     #enddef
 
 
@@ -1468,15 +1517,20 @@ class PageTiltCalib(MovePage):
     #enddef
 
 
-    def show(self):
+    def prepare(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = "Tank start position")
+        pageWait = PageWait(self.display, line2 = "Moving tank to start")
         pageWait.show()
-        self.display.hw.tiltReset()
+        retc = self._syncTilt()
+        if retc == "error":
+            return retc
+        #endif
+        self.display.hw.setTiltProfile('layer')
+        self.display.hw.tiltDownWait()
+        self.display.hw.tiltUpWait()
         self.display.hw.powerLed("normal")
         self.items["value"] = self.display.hw.getTiltPosition()
         self.moving = False
-        super(PageTiltCalib, self).show()
     #enddef
 
 
@@ -1617,6 +1671,17 @@ class ProfilesPage(Page):
         ''' import '''
         try:
             with open(os.path.join(defines.usbPath, self.profilesFilename), "r") as f:
+                self.profiles = json.loads(f.read())
+            #endwith
+            self._setProfile()
+            return
+        except Exception:
+            self.logger.exception("import exception:")
+            self.display.hw.beepAlarm(3)
+        #endtry
+
+        try:
+            with open(os.path.join(defines.dataPath, self.profilesFilename), "r") as f:
                 self.profiles = json.loads(f.read())
             #endwith
             self._setProfile()
