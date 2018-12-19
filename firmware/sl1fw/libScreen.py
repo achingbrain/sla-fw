@@ -13,13 +13,9 @@ import pygame.font
 import numpy
 import zipfile
 from cStringIO import StringIO
+from subprocess import call
 
 import defines
-
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
-from pydrm import *
 
 class ImagePreloader(threading.Thread):
 
@@ -83,12 +79,12 @@ class ImagePreloader(threading.Thread):
 
 
 class Screen(object):
-    drm = SimpleDrm(conn="HDMI-A-1", format='XR24')
 
     def __init__(self, hwConfig, source):
         self.logger = logging.getLogger(__name__)
         os.environ['SDL_NOMOUSE'] = '1'
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
+        call(['/usr/sbin/fbset', '-fb', '/dev/fb0 1440x2560-0'])
         pygame.display.init()
         pygame.font.init()
         self.screen = pygame.display.set_mode((1440,2560), pygame.FULLSCREEN, 32)
@@ -135,10 +131,8 @@ class Screen(object):
     #enddef
 
     def writefb(self):
-        image = Image.frombytes(mode='RGB', size=(self.screen.get_size()), data=pygame.image.tostring(self.screen,'RGB'))
-        image.convert('RGBX')
-        Screen.drm.image.paste(image)
-        Screen.drm.flush()
+        with open('/dev/fb0', 'wb') as fb:
+            fb.write(self.screen.get_buffer())
     #enddef
 
     def getImg(self, filename, base = None):
