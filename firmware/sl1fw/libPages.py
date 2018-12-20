@@ -6,6 +6,7 @@ import os
 import logging
 from time import sleep
 import json
+import subprocess
 
 import defines
 import libConfig
@@ -75,10 +76,17 @@ class Page(object):
 
     def turnoffButtonRelease(self):
         self.display.page_confirm.setParams(
-                continueFce = self.display.exitus,
+                continueFce = self.turnoffContinue,
                 line1 = "Do you really want to",
                 line2 = "turn off the printer?")
         return "confirm"
+    #enddef
+
+
+    def turnoffContinue(self):
+        pageWait = PageWait(self.display, line2 = "Shutting down")
+        pageWait.show()
+        self.display.shutDown(self.display.config.autoOff)
     #enddef
 
 
@@ -106,6 +114,24 @@ class Page(object):
 
     def netChange(self):
         pass
+    #enddef
+
+
+    def _onOff(self, index, val):
+        self.temp[val] = not self.temp[val]
+        self.changed[val] = "on" if self.temp[val] else "off"
+        self.showItems(**{ 'state1g%d' % (index + 1) : 1 if self.temp[val] else 0 })
+    #enddef
+
+
+    def _value(self, index, val, valmin, valmax, change):
+        if valmin <= self.temp[val] + change <= valmax:
+            self.temp[val] += change
+            self.changed[val] = str(self.temp[val])
+            self.showItems(**{ 'value2g%d' % (index + 1) : str(self.temp[val]) })
+        else:
+            self.display.hw.beepAlarm(1)
+        #endif
     #enddef
 
 
@@ -521,28 +547,52 @@ class PageSysInfo(Page):
         self.pageTitle = "System Information"
         super(PageSysInfo, self).__init__(display)
         self.items.update({
-                "line1" : "Serial number: %s" % self.display.hwConfig.sn,
-                "line2" : "System: %s" % self.display.hwConfig.os.name,
-                "line3" : "System version: %s" % self.display.hwConfig.os.version,
-                "line4" : "Firwmare version: %s" % defines.swVersion,
+                'line1' : "Serial number: %s" % self.display.hwConfig.sn,
+                'line2' : "System: %s" % self.display.hwConfig.os.name,
+                'line3' : "System version: %s" % self.display.hwConfig.os.version,
+                'line4' : "Firwmare version: %s" % defines.swVersion,
                 })
+    #enddef
+
+
+    def show(self):
+        self.items['line5'] = "Controller version: %s" % self.display.hw.getControllerVersion()
+        self.items['line6'] = "Controller number: %s" % self.display.hw.getControllerSerial()
+        super(PageSysInfo, self).show()
+    #enddef
+
+#endclass
+
+
+class PageHardwareInfo(Page):
+
+    def __init__(self, display):
+        self.pageUI = "sysinfo"
+        self.pageTitle = "Hardware Information"
+        super(PageHardwareInfo, self).__init__(display)
         self.callbackPeriod = 2
     #enddef
 
 
     def show(self):
         self.oldValues = {}
-        self.items["line5"] = "Controller version: %s" % self.display.hw.getControllerVersion()
-        self.items["line6"] = "Controller number: %s" % self.display.hw.getControllerSerial()
-        super(PageSysInfo, self).show()
+        self.items['line1'] = "Tower height: %d (%.2f mm)" % (self.display.hwConfig.towerHeight, self.display.hwConfig.calcMM(self.display.hwConfig.towerHeight))
+        self.items['line2'] = "Tilt height: %d" % self.display.hwConfig.tiltHeight
+
+        super(PageHardwareInfo, self).show()
     #enddef
 
 
     def menuCallback(self):
         items = {}
-        self._setItem(items, "line7", "Tower height: %.2f mm" % self.display.hwConfig.calcMM(self.display.hwConfig.towerHeight))
-        self._setItem(items, "line8", "SYS temperature: %.1f C" % self.display.hw.getTemperatureSystem())
-        self._setItem(items, "line9", "LED temperature: %.1f C" % self.display.hw.getTemperatureUVLED())
+        self._setItem(items, 'line3', "Fans [RPM]:  %s" % "  ".join(self.display.hw.getFansRpm()))
+        self._setItem(items, 'line4', "Temperatures [C]:  %s" % "  ".join(self.display.hw.getTemperatures()))
+        # cpu temp
+        self._setItem(items, 'line5', "UV LED voltages [V]:  %s" % "  ".join(self.display.hw.getUvLedVoltages()))
+        # resin sensor
+        # cover state
+        # power button state
+
         if len(items):
             self.showItems(**items)
         #endif
@@ -562,15 +612,44 @@ class PageNetInfo(Page):
 
     def fillData(self):
         items = {}
-        ip = self.display.inet.getIp()
-        items["line1"] = "IP address: %s" % ip
-        items["line2"] = "Hostname: %s" % self.display.inet.getHostname()
-        if ip != "none":
-            items["qr1label"] = "Remote access"
-            items["qr1"] = "http://%s" % ip
-            items["qr2label"] = "Debug"
-            items["qr2"] = "http://%s/debug" % ip
+        devices = self.display.inet.getDevices()
+        if devices:
+            if "ap0" in devices:
+                # AP mode
+                try:
+                    with open(defines.wifiSetupFile, "r") as f:
+                        wifiData = json.loads(f.read())
+                    #endwith
+                    ip = self.display.inet.getIp("ap0")
+                    items["line1"] = "SSID: %s  password: %s" % (wifiData['ssid'], wifiData['psk'])
+                    items["line2"] = "Setup URL: %s%s" % (ip, defines.wifiSetupURI)
+                    items["qr1label"] = "WiFi"
+                    items["qr1"] = "WIFI:S:%s;T:WPA;P:%s;H:false;" % (wifiData['ssid'], wifiData['psk'])
+                    items["qr2label"] = "Setup URL"
+                    items["qr2"] = "http://%s%s" % (ip, defines.wifiSetupURI)
+                except Exception:
+                    self.logger.exception("wifi setup file exception:")
+                    items["line1"] = "Error reading WiFi setup!"
+                    items["line2"] = ""
+                    items["qr1label"] = ""
+                    items["qr1"] = ""
+                    items["qr2label"] = ""
+                    items["qr2"] = ""
+                #endtry
+            else:
+                # client mode
+                ip = self.display.inet.getIp()
+                items["line1"] = "IP address: %s" % ip
+                items["line2"] = "Hostname: %s" % self.display.inet.getHostname()
+                items["qr1label"] = "Logfile"
+                items["qr1"] = "http://%s/log" % ip
+                items["qr2label"] = "MC debug"
+                items["qr2"] = "http://%s/debug" % ip
+            #endif
         else:
+            # no internet connection
+            items["line1"] = "Not connected to network"
+            items["line2"] = ""
             items["qr1label"] = ""
             items["qr1"] = ""
             items["qr2label"] = ""
@@ -621,18 +700,36 @@ class PageSrcSelect(Page):
         self.pageUI = "sourceselect"
         self.pageTitle = "Source Select"
         super(PageSrcSelect, self).__init__(display)
+        try:
+            with open(defines.octoprintAuthFile, "r") as f:
+                self.octoprintAuth = f.read()
+            #endwith
+        except Exception:
+            self.logger.exception("octoprintAuthFile exception:")
+            self.octoprintAuth = None
+        #endtry
     #enddef
 
 
     def show(self):
         self.items["line1"] = "Please select project source"
-        self.items["line2"] = "IP: %s" % self.display.inet.getIp()
+        ip = self.display.inet.getIp()
+        if ip != "none" and self.octoprintAuth:
+            self.items["line2"] = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
+        else:
+            self.items["line2"] = "Not connected to network"
+        #endif
         super(PageSrcSelect, self).show()
     #enddef
 
 
     def netChange(self):
-        self.showItems(line2 = "IP: %s" % self.display.inet.getIp())
+        ip = self.display.inet.getIp()
+        if ip != "none" and self.octoprintAuth:
+            self.showItems(line2, "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth))
+        else:
+            self.showItems(line2, "Not connected to network")
+        #endif
     #enddef
 
 
@@ -748,25 +845,25 @@ class PageError(Page):
 #endclass
 
 
-class PageControlHW(Page):
+class PageTiltTower(Page):
 
     def __init__(self, display):
         self.pageUI = "admin"
-        self.pageTitle = "Admin - Hardware control"
-        super(PageControlHW, self).__init__(display)
+        self.pageTitle = "Admin - Tilt & Tower"
+        super(PageTiltTower, self).__init__(display)
         self.items.update({
-                "button1" : "Tilt home",
-                "button2" : "Tilt move",
-                "button3" : "Tilt test",
-                "button4" : "Tilt profiles",
-                "button6" : "Tower home",
-                "button7" : "Tower move",
-                "button8" : "Tower test",
-                "button9" : "Tower profiles",
-                "button11" : "Aret. off",
-                "button13" : "Calibrate printer",
+                'button1' : "Tilt home",
+                'button2' : "Tilt move",
+                'button3' : "Tilt test",
+                'button4' : "Tilt profiles",
+                'button6' : "Tower home",
+                'button7' : "Tower move",
+                'button8' : "Tower test",
+                'button9' : "Tower profiles",
+                'button11' : "Turn motors off",
+                'button13' : "Calibrate printer",
 
-                "back" : "Back",
+                'back' : "Back",
                 })
     #enddef
 
@@ -868,28 +965,26 @@ class PageControlHW(Page):
 #endclass
 
 
-class PagePatterns(Page):
+class PageDisplay(Page):
 
     def __init__(self, display):
         self.pageUI = "admin"
-        self.pageTitle = "Admin - Display Test"
-        super(PagePatterns, self).__init__(display)
+        self.pageTitle = "Admin - Display"
+        super(PageDisplay, self).__init__(display)
         self.items.update({
-                "button1" : "Chess 8",
-                "button2" : "Chess 16",
-                "button3" : "Grid 8",
-                "button4" : "Grid 16",
-                "button5" : "Maze",
+                'button1' : "Chess 8",
+                'button2' : "Chess 16",
+                'button3' : "Grid 8",
+                'button4' : "Grid 16",
+                'button5' : "Maze",
 
-                "button6" : "USB:/test.png",
+                'button6' : "USB:/test.png",
 
-                "button11" : "Black",
-                "button12" : "Inverse",
+                'button11' : "Black",
+                'button12' : "Inverse",
 
-                "button14" : "UV on",
-                "back" : "Back",
+                'back' : "Back",
                 })
-        self.uvIsOn = False
     #enddef
 
 
@@ -908,8 +1003,9 @@ class PagePatterns(Page):
 
 
     def show(self):
-        self.button1ButtonRelease()
-        super(PagePatterns, self).show()
+        self.items['button14'] = "UV off" if self.display.hw.getUvLedState() else "UV on"
+        self.button2ButtonRelease()
+        super(PageDisplay, self).show()
     #enddef
 
 
@@ -959,18 +1055,14 @@ class PagePatterns(Page):
 
 
     def button14ButtonRelease(self):
-        if self.uvIsOn:
-            self.uvIsOn = False
-            self.showItems(button14 = "UV on")
-        else:
-            self.uvIsOn = True
-            self.showItems(button14 = "UV off")
-        #endif
-        self.display.hw.uvLed(self.uvIsOn)
+        state = not self.display.hw.getUvLedState()
+        self.showItems(button14 = "UV off" if state else "UV on")
+        self.display.hw.uvLed(state)
     #enddef
 
 
     def backButtonRelease(self):
+        self.display.hw.uvLed(False)
         try:
             self.screen.exit()
             del self.screen
@@ -978,7 +1070,7 @@ class PagePatterns(Page):
             self.logger.exception("screen exception:")
             self.display.hw.beepAlarm(3)
         #endtry
-        return super(PagePatterns, self).backButtonRelease()
+        return super(PageDisplay, self).backButtonRelease()
     #enddef
 
 #endclass
@@ -991,86 +1083,250 @@ class PageAdmin(Page):
         self.pageTitle = "Admin - Main Page"
         super(PageAdmin, self).__init__(display)
         self.items.update({
-                "button1" : "Control HW",
-                "button2" : "Display test",
-                "button3" : "State",
-                "button4" : "Setup HW",
+                'button1' : "Tilt & Tower",
+                'button2' : "Display",
+                'button3' : "Fans & LEDs",
+                'button4' : "Setup",
+                'button5' : "Hardware Info",
 
-                "button6" : "Flash MC",
-                "button7" : "MC2Net (bootloader)",
-                "button8" : "MC2Net (firmware)",
-                #"button10" : "USB update",
+                'button6' : "Flash MC",
+                'button7' : "Erase MC EEPROM",
+                'button8' : "MC2Net (bootloader)",
+                'button9' : "MC2Net (firmware)",
 
-                "button11" : "Change hostname",
-                "button12" : "Setup WiFi",
-                "button13" : "Network",
-                "button14" : "Keyboard test",
+                'button11' : "Networking",
+                'button12' : "USB update",
+                'button13' : "Net update",
+                'button14' : "Keyboard test",
 
-                "back" : "Back",
+                'back' : "Back",
                 })
     #enddef
 
 
     def button1ButtonRelease(self):
-        return "controlhw"
+        return "tilttower"
     #enddef
 
 
     def button2ButtonRelease(self):
-        return "patterns"
+        return "display"
     #enddef
 
 
     def button3ButtonRelease(self):
-        return "state"
+        return "fansleds"
     #enddef
 
 
     def button4ButtonRelease(self):
-        return "setuphw"
+        return "setup"
+    #enddef
+
+
+    def button5ButtonRelease(self):
+        return "hwinfo"
     #enddef
 
 
     def button6ButtonRelease(self):
-        pageWait = PageWait(self.display, line2 = "Flashing Motion Controler")
+        self.display.page_confirm.setParams(
+                continueFce = self.button6Continue,
+                line1 = "This overwrites the motion",
+                line2 = "controller with supplied firmware.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def button6Continue(self):
+        pageWait = PageWait(self.display, line2 = "Overwriting the motion controller")
         pageWait.show()
         self.display.hw.flashMC()
-        return "_SELF_"
+        return "_BACK_"
     #enddef
 
 
     def button7ButtonRelease(self):
-        self.display.mc2net(bootloader = True)
+        self.display.page_confirm.setParams(
+                continueFce = self.button7Continue,
+                line1 = "This will erase all profiles",
+                line2 = "and other MC settings.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def button7Continue(self):
+        pageWait = PageWait(self.display, line2 = "Erasing EEPROM")
+        pageWait.show()
+        self.display.hw.eraseEeprom()
         return "_BACK_"
     #enddef
 
 
     def button8ButtonRelease(self):
-        self.display.mc2net(bootloader = False)
-        return "_BACK_"
+        self.display.page_confirm.setParams(
+                continueFce = self.mc2net,
+                continueParmas = { 'bootloader' : True },
+                line1 = "This shuts down GUI and connect",
+                line2 = "the MC bootloader to TCP port.",
+                line3 = "Are you sure?")
+        return "confirm"
     #enddef
 
 
-    def button10ButtonRelease(self):
-        pass
-        #return self.display.usbUpdate()
+    def button9ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.mc2net,
+                continueParmas = { 'bootloader' : False },
+                line1 = "This shuts down GUI and connect",
+                line2 = "the motion controller to TCP port.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def mc2net(self, bootloader = False):
+        baudrate = 19200 if bootloader else 115200
+        pageWait = PageWait(self.display,
+            line1 = "Master is down. Baudrate is %d" % baudrate,
+            line2 = "Serial line is redirected to port %d" % defines.socatPort,
+            line3 = "Power the printer off to continue ;-)" if bootloader else 'Type "!shdn 0" to power off ;-)')
+        pageWait.show()
+        if bootloader:
+            self.display.hw.resetMc()
+        #endif
+        pid = subprocess.Popen([
+            defines.Mc2NetCommand,
+            defines.motionControlDevice,
+            str(defines.socatPort),
+            str(baudrate)]).pid
+        self.display.shutDown(False)
     #enddef
 
 
     def button11ButtonRelease(self):
-        self.checkConfFile(self.display.config.configFile)
-        return self.display.changeHostname()
+        return "networking"
     #enddef
 
 
     def button12ButtonRelease(self):
-        self.checkConfFile(self.display.config.configFile)
-        return self.display.setupWiFi()
+        # check new firmware defines
+        osConfig = libConfig.OsConfig(os.path.join(defines.usbUpdatePath, "etc/os-release"))
+        osConfig.logAllItems()
+        fwConfig = libConfig.FwConfig(os.path.join(defines.usbUpdatePath + defines.swPath, "defines.py"))
+        fwConfig.logAllItems()
+        if fwConfig.version.startswith("Gen3"):
+            self.display.page_confirm.setParams(
+                    continueFce = self.performUpdate,
+                    continueParmas = { 'updateCommand' : defines.usbUpdateCommand },
+                    line1 = "Image release: " + osConfig.versionId,
+                    line2 = "Firmware version: " + fwConfig.version,
+                    line3 = "Proceed update?")
+            return "confirm"
+        else:
+            message = "Wrong firmware signature"
+        #endif
+
+        self.logger.warning(message)
+        self.display.page_error.setParams(line1 = "USB update was rejected:", line2 = message)
+        return "error"
     #enddef
 
 
     def button13ButtonRelease(self):
-        return "netinfo"
+        # check network connection
+        if self.display.inet.getIp() != "none":
+            # download version info
+            configText = self.display.inet.httpRequestEX(defines.netUpdateVersionURL)
+            if configText is not None:
+                netConfig = libConfig.NetConfig()
+                netConfig.parseText(configText)
+                netConfig.logAllItems()
+                # check versions
+                if netConfig.firmware.startswith("Gen3"):
+                    if netConfig.firmware != defines.swVersion or netConfig.image != self.display.hwConfig.versionId:
+                        self.display.page_confirm.setParams(
+                                continueFce = self.performUpdate,
+                                continueParmas = { 'updateCommand' : defines.netUpdateCommand },
+                                line1 = "Image release: " + netConfig.image,
+                                line2 = "Firmware version: " + netConfig.firmware,
+                                line3 = "Proceed update?")
+                        return "confirm"
+                    else:
+                        message = "System is up to date"
+                    #endif
+                else:
+                    message = "Wrong firmware signature"
+                #endif
+            else:
+                message = "Network read error"
+            #endif
+        else:
+            message = "Network is not avaiable"
+        #endif
+
+        self.logger.warning(message)
+        self.display.page_error.setParams(line1 = "Net update was rejected:", line2 = message)
+        return "error"
+    #enddef
+
+
+    def performUpdate(self, updateCommand):
+        import shutil
+
+        pageWait = PageWait(self.display, line1 = "Updating")
+        pageWait.show()
+
+        process = subprocess.Popen(updateCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        while True:
+            line = process.stdout.readline()
+            retc = process.poll()
+            if line == '' and retc is not None:
+                break
+            #endif
+            if line:
+                line = line.strip()
+                if line == "":
+                    continue
+                #endif
+                # TODO lepe osetrit cteni vstupu! obcas se vrati radek na kterem
+                # to hodi vyjimku
+                eq_index = line.find('=')
+                if eq_index > 0:
+                    eq_index2 = line[eq_index + 1:].find("/")
+                    if eq_index2 > 0:
+                        togo = int(line[eq_index + 1 : eq_index + eq_index2 + 1])
+                        total = int(line[eq_index + eq_index2 + 2 : -1])
+                        actual = total - togo
+                        percent = int(100 * actual / total)
+                        pageWait.showItems(line2 = "%d/%d" % (actual, total))
+                        continue
+                    #endif
+                #endif
+                self.logger.info("rsync output: '%s'", line)
+            #endif
+        #endwhile
+
+        try:
+            shutil.copyfile(defines.printerlog, os.path.join(defines.home, "update.log"))
+        except Exception:
+            self.logger.exception("copyfile exception:")
+        #endtry
+
+        if retc:
+            pageWait.showItems(
+                    line1 = "Something went wrong!",
+                    line2 = "The firmware is probably damaged",
+                    line3 = "and maybe does not start :(")
+            self.display.shutDown(False)
+        else:
+            pageWait.showItems(
+                    line1 = "Update done",
+                    line2 = "Shutting down")
+            self.display.shutDown(self.display.config.autoOff)
+        #endif
     #enddef
 
 
@@ -1078,34 +1334,33 @@ class PageAdmin(Page):
         return "keyboard"
     #enddef
 
-
 #endclass
 
 
-class PageSetupHW(Page):
+class PageSetup(Page):
 
     def __init__(self, display):
         self.pageUI = "setup"
-        self.pageTitle = "Admin - Hardware Setup"
-        super(PageSetupHW, self).__init__(display)
+        self.pageTitle = "Admin - Setup"
+        super(PageSetup, self).__init__(display)
         self.autorepeat = {
-                "minus2g1" : (5, 1), "plus2g1" : (5, 1),
-                "minus2g2" : (5, 1), "plus2g2" : (5, 1),
-                "minus2g3" : (5, 1), "plus2g3" : (5, 1),
+                'minus2g1' : (5, 1), 'plus2g1' : (5, 1),
+                'minus2g2' : (5, 1), 'plus2g2' : (5, 1),
+                'minus2g3' : (5, 1), 'plus2g3' : (5, 1),
                 }
         self.items.update({
-                "label1g1" : "Fan check",
-                "label1g2" : "Cover check",
-                "label1g3" : "MC version check",
+                'label1g1' : "Fan check",
+                'label1g2' : "Cover check",
+                'label1g3' : "MC version check",
 
-                "label2g1" : "Screw (mm/rot)",
-                "label2g2" : "Tower msteps",
-                "label2g3" : "Tilt msteps",
+                'label2g1' : "Screw (mm/rot)",
+                'label2g2' : "Tower msteps",
+                'label2g3' : "Tilt msteps",
 
-                "button1" : "Export",
-                "button2" : "Import",
-                "button4" : "Save",
-                "back" : "Back",
+                'button1' : "Export",
+                'button2' : "Import",
+                'button4' : "Save",
+                'back' : "Back",
                 })
         self.changed = {}
         self.temp = {}
@@ -1114,41 +1369,23 @@ class PageSetupHW(Page):
 
 
     def show(self):
-        self.temp["screwmm"] = self.display.hwConfig.screwMm
-        self.temp["towerheight"] = self.display.hwConfig.towerHeight
-        self.temp["tiltheight"] = self.display.hwConfig.tiltHeight
+        self.temp['screwmm'] = self.display.hwConfig.screwMm
+        self.temp['towerheight'] = self.display.hwConfig.towerHeight
+        self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
 
-        self.items["value2g1"] = str(self.temp["screwmm"])
-        self.items["value2g2"] = str(self.temp["towerheight"])
-        self.items["value2g3"] = str(self.temp["tiltheight"])
+        self.items['value2g1'] = str(self.temp['screwmm'])
+        self.items['value2g2'] = str(self.temp['towerheight'])
+        self.items['value2g3'] = str(self.temp['tiltheight'])
 
-        self.temp["fancheck"] = self.display.hwConfig.fanCheck
-        self.temp["covercheck"] = self.display.hwConfig.coverCheck
-        self.temp["mcversioncheck"] = self.display.hwConfig.MCversionCheck
+        self.temp['fancheck'] = self.display.hwConfig.fanCheck
+        self.temp['covercheck'] = self.display.hwConfig.coverCheck
+        self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
 
-        self.items["state1g1"] = 1 if self.temp["fancheck"] else 0
-        self.items["state1g2"] = 1 if self.temp["covercheck"] else 0
-        self.items["state1g3"] = 1 if self.temp["mcversioncheck"] else 0
+        self.items['state1g1'] = 1 if self.temp['fancheck'] else 0
+        self.items['state1g2'] = 1 if self.temp['covercheck'] else 0
+        self.items['state1g3'] = 1 if self.temp['mcversioncheck'] else 0
 
-        super(PageSetupHW, self).show()
-    #enddef
-
-
-    def _onOff(self, val, name):
-        self.temp[val] = not self.temp[val]
-        self.changed[val] = "on" if self.temp[val] else "off"
-        self.showItems(**{ name : 1 if self.temp[val] else 0 })
-    #enddef
-
-
-    def _value(self, valmin, valmax, val, change, name):
-        if valmin <= self.temp[val] + change <= valmax:
-            self.temp[val] += change
-            self.changed[val] = str(self.temp[val])
-            self.showItems(**{ name : str(self.temp[val]) })
-        else:
-            self.display.hw.beepAlarm(1)
-        #endif
+        super(PageSetup, self).show()
     #enddef
 
 
@@ -1190,52 +1427,52 @@ class PageSetupHW(Page):
             self.display.hw.beepAlarm(3)
         #endif
         self.display.config._parseData()
-        return super(PageSetupHW, self).backButtonRelease()
+        return super(PageSetup, self).backButtonRelease()
     #endif
 
 
     def state1g1ButtonRelease(self):
-        self._onOff("fancheck", "state1g1")
+        self._onOff(0, 'fancheck')
     #enddef
 
 
     def state1g2ButtonRelease(self):
-        self._onOff("covercheck", "state1g2")
+        self._onOff(1, 'covercheck')
     #enddef
 
 
     def state1g3ButtonRelease(self):
-        self._onOff("mcversioncheck", "state1g3")
+        self._onOff(2, 'mcversioncheck')
     #enddef
 
 
     def minus2g1Button(self):
-        return self._value(2, 8, "screwmm", -1, "value2g1")
+        return self._value(0, 'screwmm', 2, 8, -1)
     #enddef
 
 
     def plus2g1Button(self):
-        return self._value(2, 8, "screwmm", 1, "value2g1")
+        return self._value(0, 'screwmm', 2, 8, 1)
     #enddef
 
 
     def minus2g2Button(self):
-        return self._value(-10, 10, "towerheight", 1, "value2g2")
+        return self._value(1, 'towerheight', -10, 10, 1)
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(-10, 10, "towerheight", 1, "value2g2")
+        return self._value(1, 'towerheight', -10, 10, 1)
     #enddef
 
 
     def minus2g3Button(self):
-        return self._value(1, 1600, "tiltheight", -1, "value2g3")
+        return self._value(2, 'tiltheight', 1, 1600, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(1, 1600, "tiltheight", 1, "value2g3")
+        return self._value(2, 'tiltheight', 1, 1600, 1)
     #enddef
 
 #endclass
@@ -1663,10 +1900,10 @@ class ProfilesPage(Page):
     #enddef
 
 
-    def _value(self, valmin, valmax, idx, change):
-        if valmin <= self.profiles[self.actualProfile][idx] + change <= valmax:
-            self.profiles[self.actualProfile][idx] += change
-            self.showItems(**{ "value2g%d" % (idx + 1) : str(self.profiles[self.actualProfile][idx]) })
+    def _value(self, index, valmin, valmax, change):
+        if valmin <= self.profiles[self.actualProfile][index] + change <= valmax:
+            self.profiles[self.actualProfile][index] += change
+            self.showItems(**{ 'value2g%d' % (index + 1) : str(self.profiles[self.actualProfile][index]) })
         else:
             self.display.hw.beepAlarm(1)
         #endif
@@ -1767,72 +2004,72 @@ class ProfilesPage(Page):
 
 
     def minus2g1Button(self):
-        return self._value(100, 22000, 0, -10)
+        return self._value(0, 100, 22000, -10)
     #enddef
 
 
     def plus2g1Button(self):
-        return self._value(100, 22000, 0, 10)
+        return self._value(0, 100, 22000, 10)
     #enddef
 
 
     def minus2g2Button(self):
-        return self._value(100, 22000, 1, -10)
+        return self._value(1, 100, 22000, -10)
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(100, 22000, 1, 10)
+        return self._value(1, 100, 22000, 10)
     #enddef
 
 
     def minus2g3Button(self):
-        return self._value(12, 800, 2, -1)
+        return self._value(2, 12, 800, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(12, 800, 2, 1)
+        return self._value(2, 12, 800, 1)
     #enddef
 
 
     def minus2g4Button(self):
-        return self._value(12, 800, 3, -1)
+        return self._value(3, 12, 800, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        return self._value(12, 800, 3, 1)
+        return self._value(3, 12, 800, 1)
     #enddef
 
 
     def minus2g5Button(self):
-        return self._value(0, 63, 4, -1)
+        return self._value(4, 0, 63, -1)
     #enddef
 
 
     def plus2g5Button(self):
-        return self._value(0, 63, 4, 1)
+        return self._value(4, 0, 63, 1)
     #enddef
 
 
     def minus2g6Button(self):
-        return self._value(-128, 127, 5, -1)
+        return self._value(5, -128, 127, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        return self._value(-128, 127, 5, 1)
+        return self._value(5, -128, 127, 1)
     #enddef
 
 
     def minus2g7Button(self):
-        return self._value(0, 10000, 6, -10)
+        return self._value(6, 0, 10000, -10)
     #enddef
 
 
     def plus2g7Button(self):
-        return self._value(0, 10000, 6, 10)
+        return self._value(6, 0, 10000, 10)
     #enddef
 
 #endclass
@@ -1922,72 +2159,77 @@ class PageTowerProfiles(ProfilesPage):
 #endclass
 
 
-class PageState(Page):
+class PageFansLeds(Page):
 
     def __init__(self, display):
         self.pageUI = "setup"
-        self.pageTitle = "Admin - State"
-        super(PageState, self).__init__(display)
+        self.pageTitle = "Admin - Fans & LEDs"
+        super(PageFansLeds, self).__init__(display)
         self.autorepeat = {
-                "minus2g1" : (5, 1), "plus2g1" : (5, 1),
-                "minus2g2" : (5, 1), "plus2g2" : (5, 1),
-                "minus2g3" : (5, 1), "plus2g3" : (5, 1),
-                "minus2g4" : (5, 1), "plus2g4" : (5, 1),
-#                "minus2g5" : (5, 1), "plus2g5" : (5, 1),
-#                "minus2g6" : (5, 1), "plus2g6" : (5, 1),
-#                "minus2g7" : (5, 1), "plus2g7" : (5, 1),
-#                "minus2g8" : (5, 1), "plus2g8" : (5, 1),
+                'minus2g1' : (5, 1), 'plus2g1' : (5, 1),
+                'minus2g2' : (5, 1), 'plus2g2' : (5, 1),
+                'minus2g3' : (5, 1), 'plus2g3' : (5, 1),
+                'minus2g4' : (5, 1), 'plus2g4' : (5, 1),
+                'minus2g5' : (5, 1), 'plus2g5' : (5, 1),
+                'minus2g6' : (5, 1), 'plus2g6' : (5, 1),
+                'minus2g7' : (5, 1), 'plus2g7' : (5, 1),
+#                'minus2g8' : (5, 1), 'plus2g8' : (5, 1),
                 }
         self.items.update({
-                "label1g1" : "Fan 1",
-                "label1g2" : "Fan 2",
-                "label1g3" : "Fan 3",
-                "label1g4" : "Fan 4",
-                "label1g5" : "UV LED",
-                "label1g6" : "Cam LED",
-                "label1g7" : "Power LED",
-                "label1g8" : "Cover",
+                'label1g1' : "Fan 1",
+                'label1g2' : "Fan 2",
+                'label1g3' : "Fan 3",
+                'label1g4' : "Fan 4",
+                'label1g5' : "UV LED",
+                'label1g6' : "Cam LED",
 
-                "label2g1" : "Fan 1 PWM",
-                "label2g2" : "Fan 2 PWM",
-                "label2g3" : "Fan 3 PWM",
-                "label2g4" : "Fan 4 PWM",
-                "label2g5" : "UV LED temperature",
-                "label2g6" : "Ambient temperature",
-                "label2g7" : "CPU core temperature",
+                'label2g1' : "Fan 1 PWM",
+                'label2g2' : "Fan 2 PWM",
+                'label2g3' : "Fan 3 PWM",
+                'label2g4' : "Fan 4 PWM",
+                'label2g5' : "UV LED PWM",
+                'label2g6' : "Power LED PWM",
+                'label2g7' : "Power LED mode",
 
-                "back" : "Back",
+                'button4' : "Save",
+                'back' : "Back",
                 })
         self.callbackPeriod = 0.5
-        self.fans = list()
-        self.pwms = list()
+        self.changed = {}
+        self.temp = {}
+        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'fan4pwm', 'uvledpwm', 'pwrledpwm'))
     #enddef
 
 
     def show(self):
         self.oldValues = {}
-        super(PageState, self).show()
+        super(PageFansLeds, self).show()
     #enddef
 
 
     def menuCallback(self):
         items = {}
-        self.fans = self.display.hw.getFans()
-        self._setItem(items, "state1g1", self.fans[0])
-        self._setItem(items, "state1g2", self.fans[1])
-        self._setItem(items, "state1g3", self.fans[2])
-        self._setItem(items, "state1g4", self.fans[3])
-        self._setItem(items, "state1g5", self.display.hw.getUvLedState())
-        self._setItem(items, "state1g6", self.display.hw.getCameraLedState())
-        self._setItem(items, "state1g7", self.display.hw.getPowerLedState())
-        self._setItem(items, "state1g8", self.display.hw.getCoverState())
-        self.pwms = self.display.hw.getPWMs()
-        self._setItem(items, "value2g1", self.pwms[0])
-        self._setItem(items, "value2g2", self.pwms[1])
-        self._setItem(items, "value2g3", self.pwms[2])
-        self._setItem(items, "value2g4", self.pwms[3])
-        self._setItem(items, "value2g5", self.display.hw.getTemperatureUVLED())
-        self._setItem(items, "value2g6", self.display.hw.getTemperatureSystem())
+        self.temp['fs1'], self.temp['fs2'], self.temp['fs3'], self.temp['fs4'] = self.display.hw.getFans()
+        self.temp['uls'] = self.display.hw.getUvLedState()
+        self.temp['cls'] = self.display.hw.getCameraLedState()
+        self._setItem(items, 'state1g1', self.temp['fs1'])
+        self._setItem(items, 'state1g2', self.temp['fs2'])
+        self._setItem(items, 'state1g3', self.temp['fs3'])
+        self._setItem(items, 'state1g4', self.temp['fs4'])
+        self._setItem(items, 'state1g5', self.temp['uls'])
+        self._setItem(items, 'state1g6', self.temp['cls'])
+
+        self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm'] = self.display.hw.getFansPwm()
+        self.temp['uvledpwm'] = self.display.hw.getUvLedPwm()
+        self.temp['pwrledpwm'] = self.display.hw.getPowerLedPwm()
+        self.temp['pwrledstt'] = self.display.hw.getPowerLedState()
+        self._setItem(items, 'value2g1', self.temp['fan1pwm'])
+        self._setItem(items, 'value2g2', self.temp['fan2pwm'])
+        self._setItem(items, 'value2g3', self.temp['fan3pwm'])
+        self._setItem(items, 'value2g4', self.temp['fan4pwm'])
+        self._setItem(items, 'value2g5', self.temp['uvledpwm'])
+        self._setItem(items, 'value2g6', self.temp['pwrledpwm'])
+        self._setItem(items, 'value2g7', self.temp['pwrledstt'])
 
         if len(items):
             self.showItems(**items)
@@ -1995,139 +2237,284 @@ class PageState(Page):
     #enddef
 
 
-    def _value(self, valmin, valmax, idx, change):
-        if valmin <= self.pwms[idx] + change <= valmax:
-            self.pwms[idx] += change
-            self.display.hw.setPWMs(self.pwms)
-            self.showItems(**{ "value2g%d" % (idx + 1) : self.pwms[idx] })
-        else:
-            self.display.hw.beepAlarm(1)
+    def button4ButtonRelease(self):
+        ''' save '''
+        # filter only wanted items
+        filtered = { k : v for k, v in filter(lambda t: t[0] in self.valuesToSave, self.changed.iteritems()) }
+        self.display.hwConfig.update(**filtered)
+        if not self.display.hwConfig.writeFile():
+            self.display.hw.beepAlarm(3)
+            sleep(1)
+            self.display.hw.beepAlarm(3)
         #endif
-    #enddef
+        self.display.config._parseData()
+        return super(PageFansLeds, self).backButtonRelease()
+    #endif
 
 
     def state1g1ButtonRelease(self):
-        self.fans[0] = not self.fans[0]
-        self.display.hw.setFans(self.fans)
+        self._onOff(0, 'fs1')
+        self.display.hw.setFans({ 0 : self.temp['fs1'] })
     #enddef
 
 
     def state1g2ButtonRelease(self):
-        self.fans[1] = not self.fans[1]
-        self.display.hw.setFans(self.fans)
+        self._onOff(1, 'fs2')
+        self.display.hw.setFans({ 1 : self.temp['fs2'] })
     #enddef
 
 
     def state1g3ButtonRelease(self):
-        self.fans[2] = not self.fans[2]
-        self.display.hw.setFans(self.fans)
+        self._onOff(2, 'fs3')
+        self.display.hw.setFans({ 2 : self.temp['fs3'] })
     #enddef
 
 
     def state1g4ButtonRelease(self):
-        self.fans[3] = not self.fans[3]
-        self.display.hw.setFans(self.fans)
+        self._onOff(3, 'fs4')
+        self.display.hw.setFans({ 3 : self.temp['fs4'] })
     #enddef
 
 
     def state1g5ButtonRelease(self):
-        self.display.hw.uvLed(not self.display.hw.getUvLedState())
+        self._onOff(4, 'uls')
+        self.display.hw.uvLed(self.temp['uls'])
     #enddef
 
 
     def state1g6ButtonRelease(self):
-        self.display.hw.cameraLed(not self.display.hw.getCameraLedState())
-    #enddef
-
-
-    def state1g7ButtonRelease(self):
-        self.display.hw.powerLed("warn" if self.display.hw.getPowerLedState() else "normal")
-    #enddef
-
-
-    def state1g8ButtonRelease(self):
-        self.showItems(state1g8 = 1 if self.display.hw.getCoverState() else 0)
-        self.display.hw.beepAlarm(3)
+        self._onOff(5, 'cls')
+        self.display.hw.cameraLed(self.temp['cls'])
     #enddef
 
 
     def minus2g1Button(self):
-        return self._value(0, 100, 0, -5)
+        self._value(0, 'fan1pwm', 0, 100, -5)
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
     #enddef
 
 
     def plus2g1Button(self):
-        return self._value(0, 100, 0, 5)
+        self._value(0, 'fan1pwm', 0, 100, 5)
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
     #enddef
 
 
     def minus2g2Button(self):
-        return self._value(0, 100, 1, -5)
+        self._value(1, 'fan2pwm', 0, 100, -5)
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(0, 100, 1, 5)
+        self._value(1, 'fan2pwm', 0, 100, 5)
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
     #enddef
 
 
     def minus2g3Button(self):
-        return self._value(0, 100, 2, -5)
+        self._value(2, 'fan3pwm', 0, 100, -5)
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(0, 100, 2, 5)
+        self._value(2, 'fan3pwm', 0, 100, 5)
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
     #enddef
 
 
     def minus2g4Button(self):
-        return self._value(0, 100, 3, -5)
+        self._value(3, 'fan4pwm', 0, 100, -5)
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
     #enddef
 
 
     def plus2g4Button(self):
-        return self._value(0, 100, 3, 5)
+        self._value(3, 'fan4pwm', 0, 100, 5)
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
     #enddef
 
 
     def minus2g5Button(self):
-        self.display.hw.beepAlarm(3)
+        self._value(4, 'uvledpwm', 0, 100, -5)
+        self.display.hw.setUvLedPwm(self.temp['uvledpwm'])
     #enddef
 
 
     def plus2g5Button(self):
-        self.display.hw.beepAlarm(3)
+        self._value(4, 'uvledpwm', 0, 100, 5)
+        self.display.hw.setUvLedPwm(self.temp['uvledpwm'])
     #enddef
 
 
     def minus2g6Button(self):
-        self.display.hw.beepAlarm(3)
+        self._value(5, 'pwrledpwm', 0, 100, -5)
+        self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
     #enddef
 
 
     def plus2g6Button(self):
-        self.display.hw.beepAlarm(3)
+        self._value(5, 'pwrledpwm', 0, 100, 5)
+        self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
     #enddef
 
 
     def minus2g7Button(self):
-        self.display.hw.beepAlarm(3)
+        self._value(6, 'pwrledstt', 0, 2, -1)
+        self.display.hw.powerLedRaw(self.temp['pwrledstt'])
     #enddef
 
 
     def plus2g7Button(self):
-        self.display.hw.beepAlarm(3)
+        self._value(6, 'pwrledstt', 0, 2, 1)
+        self.display.hw.powerLedRaw(self.temp['pwrledstt'])
+    #enddef
+
+#endclass
+
+
+class PageNetworking(Page):
+
+    def __init__(self, display):
+        self.pageUI = "admin"
+        self.pageTitle = "Admin - Networking"
+        super(PageNetworking, self).__init__(display)
+        self.items.update({
+                'button1' : "WiFi AP (once)",
+                'button2' : "WiFi Client (once)",
+                'button3' : "WiFi Off (once)",
+
+                'button6' : "WiFi AP (always)",
+                'button7' : "WiFi Client (always)",
+                'button8' : "WiFi Off (always)",
+
+                'button11' : "Netinfo",
+                'button12' : "State",
+
+                'back' : "Back",
+                })
     #enddef
 
 
-    def minus2g8Button(self):
-        self.display.hw.beepAlarm(3)
+    def button1ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.setWifi,
+                continueParmas = { 'mode' : 'ap', 'scope' : 'on' },
+                line1 = "This switches WiFi to access point mode",
+                line2 = "only until printer's reboot.",
+                line3 = "Are you sure?")
+        return "confirm"
     #enddef
 
 
-    def plus2g8Button(self):
-        self.display.hw.beepAlarm(3)
+    def button2ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.setWifi,
+                continueParmas = { 'mode' : 'cl', 'scope' : 'on' },
+                line1 = "This switches WiFi client (normal) mode",
+                line2 = "only until printer's reboot.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def button3ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.setWifi,
+                continueParmas = { 'mode' : 'of', 'scope' : 'on' },
+                line1 = "This turns WiFi off",
+                line2 = "only until printer's reboot.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def button6ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.setWifi,
+                continueParmas = { 'mode' : 'ap', 'scope' : 'al' },
+                line1 = "This switches WiFi to access point mode",
+                line2 = "and sets it as default after printer's reboot.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def button7ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.setWifi,
+                continueParmas = { 'mode' : 'cl', 'scope' : 'al' },
+                line1 = "This switches WiFi client (normal) mode",
+                line2 = "and sets it as default after printer's reboot.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def button8ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.setWifi,
+                continueParmas = { 'mode' : 'of', 'scope' : 'al' },
+                line1 = "This turns WiFi off and it will be",
+                line2 = "disabled after printer's reboot.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def setWifi(self, mode, scope):
+        retc = subprocess.call([defines.WiFiCommand, mode, scope])
+        if retc:
+            self.logger.error("%s failed with code %d", defines.WiFiCommand, retc)
+            self.display.page_error.setParams(line1 = "WiFi mode change failed!")
+            return "error"
+        #endif
+        return "_BACK_"
+    #enddef
+
+
+    def button11ButtonRelease(self):
+        return "netinfo"
+    #enddef
+
+
+    def button12ButtonRelease(self):
+        return "networkstate"
+    #enddef
+
+#endclass
+
+
+class PageNetworkState(Page):
+
+    def __init__(self, display):
+        self.pageUI = "sysinfo"
+        self.pageTitle = "Network State"
+        super(PageNetworkState, self).__init__(display)
+    #enddef
+
+
+    # TODO net state - mode, all ip with devices, all uri (log, debug, display, octoprint)
+    def fillData(self):
+        items = {}
+        devlist = list()
+        for addr, dev in self.display.inet.devices.iteritems():
+            devlist.append("%s (%s)" % (addr, dev))
+        #endfor
+        items["line1"] = ", ".join(devlist)
+        return items
+    #enddef
+
+
+    def show(self):
+        self.items.update(self.fillData())
+        super(PageNetworkState, self).show()
+    #enddef
+
+
+    def netChange(self):
+        self.showItems(**self.fillData())
     #enddef
 
 #endclass

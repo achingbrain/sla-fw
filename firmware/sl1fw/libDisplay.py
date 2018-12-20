@@ -34,10 +34,10 @@ class Display(object):
         self.page_about = libPages.PageAbout(self)
         self.page_sourceselect = libPages.PageSrcSelect(self)
         self.page_error = libPages.PageError(self)
-        self.page_controlhw = libPages.PageControlHW(self)
-        self.page_patterns = libPages.PagePatterns(self)
+        self.page_tilttower = libPages.PageTiltTower(self)
+        self.page_display = libPages.PageDisplay(self)
         self.page_admin = libPages.PageAdmin(self)
-        self.page_setuphw = libPages.PageSetupHW(self)
+        self.page_setup = libPages.PageSetup(self)
         self.page_exception = libPages.PageException(self)
         self.page_towermove = libPages.PageTowerMove(self)
         self.page_tiltmove = libPages.PageTiltMove(self)
@@ -45,8 +45,11 @@ class Display(object):
         self.page_tiltcalib = libPages.PageTiltCalib(self)
         self.page_tiltprofiles = libPages.PageTiltProfiles(self)
         self.page_towerprofiles = libPages.PageTowerProfiles(self)
-        self.page_state = libPages.PageState(self)
+        self.page_fansleds = libPages.PageFansLeds(self)
+        self.page_hwinfo = libPages.PageHardwareInfo(self)
         self.page_keyboard = libPages.PageKeyboard(self)
+        self.page_networking = libPages.PageNetworking(self)
+        self.page_networkstate = libPages.PageNetworkState(self)
 
         self.noBackPages = set(("error", "confirm"))
         self.actualPage = self.page_intro
@@ -205,211 +208,7 @@ class Display(object):
     #enddef
 
 
-    def exitus(self):
-        pageWait = libPages.PageWait(self, line2 = "Shutting down")
-        pageWait.show()
-        self.shutDown(self.config.autoOff)
-    #enddef
-
-
-    def mc2net(self, bootloader = False):
-        import subprocess
-        baudrate = 19200 if bootloader else 115200
-        pageWait = libPages.PageWait(self,
-            line1 = "Master is down. Baudrate is %d" % baudrate,
-            line2 = "Serial line is redirected to port %d" % defines.socatPort,
-            line3 = "Press reset to continue ;-)" if bootloader else 'Type "!shdn 0" to power off ;-)')
-        pageWait.show()
-        pid = subprocess.Popen([
-            defines.Mc2NetCommand,
-            defines.motionControlDevice,
-            str(defines.socatPort),
-            str(baudrate)]).pid
-        self.shutDown(False)
-    #enddef
-
-
-    def netUpdate(self):
-        import libConfig
-        # check network connection
-        if self.inet.getIp() != "none":
-            # download version info
-            configText = self.inet.httpRequestEX(defines.netUpdateVersionURL)
-            if configText is not None:
-                netConfig = libConfig.NetConfig()
-                netConfig.parseText(configText)
-                netConfig.logAllItems()
-                # check versions
-                if netConfig.firmware.startswith("Gen3"):
-                    if netConfig.firmware != defines.swVersion:
-                        self.updateCommand = defines.netUpdateCommand
-                        self.page_confirm.setParams(
-                                continueFce = self.performUpdate,
-                                line1 = "Firmware version: " + netConfig.firmware,
-                                line3 = "Proceed update?")
-                        return "confirm"
-                    else:
-                        message = "System is up to date"
-                    #endif
-                else:
-                    message = "Wrong firmware signature"
-                #endif
-            else:
-                message = "Network read error"
-            #endif
-        else:
-            message = "Network is not avaiable"
-        #endif
-
-        self.logger.warning(message)
-        self.page_error.setParams(line1 = "Net update was rejected:", line2 = message)
-        return "error"
-    #enddef
-
-
-    def usbUpdate(self):
-        import libConfig
-        # check new firmware defines
-        fwConfig = libConfig.FwConfig(os.path.join(defines.usbUpdatePath + defines.swPath, "defines.py"))
-        fwConfig.logAllItems()
-        if fwConfig.version.startswith("Gen3"):
-            self.updateCommand = defines.usbUpdateCommand
-            self.page_confirm.setParams(
-                    continueFce = self.performUpdate,
-                    line1 = "Firmware version: " + fwConfig.version,
-                    line3 = "Proceed update?")
-            return "confirm"
-        else:
-            message = "Wrong firmware signature"
-        #endif
-
-        self.logger.warning(message)
-        self.page_error.setParams(line1 = "USB update was rejected:", line2 = message)
-        return "error"
-    #enddef
-
-
-    def performUpdate(self):
-        import subprocess
-        import shutil
-
-        pageWait = libPages.PageWait(self, line1 = "Updating")
-        pageWait.show()
-
-        if not self.remountBoot("rw"):
-            pageWait.showItems(line1 = "Something went wrong!", line2 = "Can't write to system")
-            self.shutDown(False)
-        #endif
-
-        process = subprocess.Popen(self.updateCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-        while True:
-            line = process.stdout.readline()
-            retc = process.poll()
-            if line == '' and retc is not None:
-                break
-            #endif
-            if line:
-                line = line.strip()
-                if line == "":
-                    continue
-                #endif
-                # TODO lepe osetrit cteni vstupu! obcas se vrati radek na kterem
-                # to hodi vyjimku
-                eq_index = line.find('=')
-                if eq_index > 0:
-                    eq_index2 = line[eq_index + 1:].find("/")
-                    if eq_index2 > 0:
-                        togo = int(line[eq_index + 1 : eq_index + eq_index2 + 1])
-                        total = int(line[eq_index + eq_index2 + 2 : -1])
-                        actual = total - togo
-                        percent = int(100 * actual / total)
-                        pageWait.showItems(line2 = "%d/%d" % (actual, total))
-                        continue
-                    #endif
-                #endif
-                self.logger.info("rsync output: '%s'", line)
-            #endif
-        #endwhile
-
-        self.remountBoot("ro")
-
-        try:
-            shutil.copyfile(defines.printerlog, os.path.join(defines.home, "update.log"))
-        except Exception:
-            self.logger.exception("copyfile exception:")
-        #endtry
-
-        if retc:
-            pageWait.showItems(
-                    line1 = "Something went wrong!",
-                    line2 = "The firmware is probably damaged",
-                    line3 = "and maybe does not start :(")
-            self.shutDown(False)
-        else:
-            pageWait.showItems(
-                    line1 = "Update done",
-                    line2 = "Shutting down")
-            self.shutDown(self.config.autoOff)
-        #endif
-    #enddef
-
-
-    def remountBoot(self, mode):
-        retc = os.system("mount -o remount,%s /boot" % mode)
-        if retc:
-            self.logger.error("remount %s failed with code %d", mode, retc)
-            return False
-        #endif
-        return True
-    #enddef
-
-
-    def changeHostname(self):
-        self.page_confirm.setParams(
-                continueFce = self.performChangeHostname,
-                line1 = "New hostname: %s" % self.config.newHostname)
-        return "confirm"
-    #enddef
-
-    def performChangeHostname(self):
-        self.logger.info('new hostname: %s', self.config.newHostname)
-        retc = os.system('%s "%s"' % (defines.hostnameCommand, self.config.newHostname))
-        if retc:
-            self.logger.error("%s failed with code %d", defines.hostnameCommand, retc)
-        #endif
-        return "_BACK_"
-    #enddef
-
-
-    def setupWiFi(self):
-        if self.config.ssid:
-            if self.config.password:
-                self.message = None
-                self.page_confirm.setParams(
-                        continueFce = self.performSetupWifi,
-                        line1 = "WiFi SSID: %s" % self.config.ssid,
-                        line2 = "WiFi password: %s" % self.config.password)
-                return "confirm"
-            else:
-                self.message = "Password is empty!"
-            #endif
-        else:
-            self.message = "SSID is empty!"
-        #endif
-
-        self.logger.error(self.message)
-        self.page_error.setParams(line1 = "Can't setup WiFi:", line2 = self.message)
-        return "error"
-    #enddef
-
-    def performSetupWifi(self):
-        pageWait = libPages.PageWait(self, line1 = "Setting WiFi")
-        pageWait.show()
-        self.message = self.inet.setupWireless(self.config.ssid, self.config.password)
-        return "_BACK_"
-    #enddef
-
-
+    # TODO presunout pryc
     def shutDown(self, doShutDown):
         self.hw.uvLed(False)
         self.hw.motorsRelease()
