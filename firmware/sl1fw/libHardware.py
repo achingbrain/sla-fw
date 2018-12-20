@@ -89,7 +89,8 @@ class Hardware(object):
         self._tiltEnd = 1600
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerMax = self.hwConfig.calcMicroSteps(310)
-        self._towerEnd = self.hwConfig.calcMicroSteps(150)
+        self.towerEnd = self.hwConfig.calcMicroSteps(150)
+        self.towerCalibPos = self.hwConfig.calcMicroSteps(2)
 
         self.port = serial.Serial(port = defines.motionControlDevice,
                 baudrate = 115200,
@@ -587,8 +588,8 @@ class Hardware(object):
     #enddef
 
 
-    def setTowerZero(self):
-        self._commMC("!twpo", 0)
+    def setTowerOnMax(self):
+        self._commMC("!twpo", self.towerEnd)
     #enddef
 
 
@@ -611,7 +612,7 @@ class Hardware(object):
     def isTowerOnMax(self):
         onPosition = self.isTowerOnPosition()
         if onPosition:
-            self._commMC("!twpo", self._towerEnd)
+            self.setTowerOnMax()
         #endif
         return onPosition
     #enddef

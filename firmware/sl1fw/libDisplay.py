@@ -410,42 +410,6 @@ class Display(object):
     #enddef
 
 
-    def towerMeasure(self):
-
-        # FIXME
-
-        self.page_confirm.setParams(
-                continueFce = self.performTowerMeasure,
-                line1 = "Tower is not calibrated.",
-                line2 = "On next page zero the platform",
-                line3 = "and then press OK button.")
-        return self.doMenu("confirm")
-    #endif
-
-
-    def performTowerMeasure(self):
-
-        # FIXME
-
-
-        pageWait = libPages.PageWait(self)
-        self.hw.powerLed("warn")
-        pageWait.show()
-        pageWait.showItems(line2 = "Tank start position")
-        self.hw.tiltReset()
-        self.hw.powerLed("normal")
-        self.doMenu("towermove")
-        self.hw.powerLed("warn")
-        pageWait.show()
-        pageWait.showItems(line2 = "Measuring")
-        towerHeight = self.hw.measureTower()
-        self.hwConfig.update(towerheight = str(towerHeight), calibrated = "yes")
-        #self.hwConfig.writeFile()
-        self.hw.powerLed("normal")
-        return "_EXIT_MENU_"
-    #enddef
-
-
     def shutDown(self, doShutDown):
         self.hw.uvLed(False)
         self.hw.motorsRelease()

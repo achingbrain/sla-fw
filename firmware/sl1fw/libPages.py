@@ -250,12 +250,20 @@ class PageHome(Page):
 
 
     def printButtonRelease(self):
-        # FIXME
-#        if not self.display.hwConfig.calibrated and not self.display.towerMeasure():
-#            return "home"
-#        #endif
+        if not self.display.hwConfig.calibrated:
+            self.display.page_confirm.setParams(
+                    continueFce = self.printContinue,
+                    line1 = "Printer is not calibrated!",
+                    line2 = "Calibrate now?")
+            return "confirm"
+        #endif
 
         return "sourceselect"
+    #enddef
+
+
+    def printContinue(self):
+        return "tiltcalib"
     #enddef
 
 #endclass
@@ -749,16 +757,14 @@ class PageControlHW(Page):
         self.items.update({
                 "button1" : "Tilt home",
                 "button2" : "Tilt move",
-                "button3" : "Tilt man. calib.",
-                "button4" : "Tilt test",
-                "button5" : "Tilt profiles",
+                "button3" : "Tilt test",
+                "button4" : "Tilt profiles",
                 "button6" : "Tower home",
                 "button7" : "Tower move",
-                "button8" : "Tower man. calib.",
-                "button9" : "Tower test",
-                "button10" : "Tower profiles",
+                "button8" : "Tower test",
+                "button9" : "Tower profiles",
                 "button11" : "Aret. off",
-#                "button12" : "Recalib. endstops",
+                "button13" : "Calibrate printer",
 
                 "back" : "Back",
                 })
@@ -781,11 +787,6 @@ class PageControlHW(Page):
 
 
     def button3ButtonRelease(self):
-        return "tiltcalib"
-    #enddef
-
-
-    def button4ButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = "Tilt sync")
         pageWait.show()
@@ -811,7 +812,7 @@ class PageControlHW(Page):
     #enddef
 
 
-    def button5ButtonRelease(self):
+    def button4ButtonRelease(self):
         return "tiltprofiles"
     #enddef
 
@@ -832,11 +833,6 @@ class PageControlHW(Page):
 
 
     def button8ButtonRelease(self):
-        return "towercalib"
-    #enddef
-
-
-    def button9ButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = "Moving platform to top")
         pageWait.show()
@@ -855,13 +851,18 @@ class PageControlHW(Page):
     #enddef
 
 
-    def button10ButtonRelease(self):
+    def button9ButtonRelease(self):
         return "towerprofiles"
     #enddef
 
 
     def button11ButtonRelease(self):
         self.display.hw.motorsRelease()
+    #enddef
+
+
+    def button13ButtonRelease(self):
+        return "tiltcalib"
     #enddef
 
 #endclass
@@ -1346,7 +1347,7 @@ class PageTowerCalib(MovePage):
 
     def __init__(self, display):
         self.pageUI = "towermove"
-        self.pageTitle = "Tower Calibration"
+        self.pageTitle = "Platform Calibration"
         super(PageTowerCalib, self).__init__(display)
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
     #enddef
@@ -1354,12 +1355,17 @@ class PageTowerCalib(MovePage):
 
     def prepare(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = "Moving platform to top")
+        pageWait = PageWait(self.display,
+            line1 = "Platform calibration",
+            line2 = "Moving platform to top")
         pageWait.show()
         retc = self._syncTower(pageWait)
         if retc == "error":
             return retc
         #endif
+
+        # measure from top not from bottom with different profile
+        self.display.hw.setTowerOnMax()
         pageWait.showItems(line2 = "Moving tank to start", line3 = "")
         retc = self._syncTilt()
         if retc == "error":
@@ -1367,44 +1373,42 @@ class PageTowerCalib(MovePage):
         #endif
         self.display.hw.tiltUpWait()
         pageWait.showItems(line2 = "Moving platform down")
-        self.display.hw.setTowerProfile('calibration')
-        self.display.hw.towerZero()
-        while not self.display.hw.isTowerOnZero():
+        self.display.hw.setTowerProfile('moveFast')
+        self.display.hw.towerMoveAbsolute(self.display.hw.towerCalibPos) # move quickly to safe distance
+        while not self.display.hw.isTowerOnPosition():
             sleep(0.25)
             pageWait.showItems(line3 = self.display.hw.getTowerPosition())
         #endwhile
-        self.display.hw.powerLed("normal")
-        self.display.hw.setTowerZero()
         self.items["value"] = self.display.hw.getTowerPosition()
+        self.display.hw.powerLed("normal")
         self.moving = False
     #enddef
 
 
     def backButtonRelease(self):
-        self.display.hw.setTowerZero()
-        self.display.hw.setTowerProfile('calibration')
-        self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = "Measuring")
-        pageWait.show()
-        self.display.hw.towerToMax()
-        # isTowerOnMax sets the position and we don't want it here
-        while not self.display.hw.isTowerOnPosition():
-            sleep(0.25)
-            pageWait.showItems(line3 = self.display.hw.getTowerPosition())
-        #endwhile
         position = self.display.hw.getTowerPositionMicroSteps()
-        if position is not None:
-            self.display.hwConfig.update(towerheight = position)
+        if position is None:
+            self.logger.error("Invalid tower position to save!")
+            self.display.hw.beepAlarm(3)
+        else:
+            towerHeight = self.display.hw.towerEnd - self.display.hw.getTowerPositionMicroSteps()
+            self.logger.debug("Tower height: %d", towerHeight)
+            self.display.hwConfig.update(towerheight = towerHeight, calibrated = "yes")
             if not self.display.hwConfig.writeFile():
                 self.display.hw.beepAlarm(3)
                 sleep(1)
                 self.display.hw.beepAlarm(3)
             #endif
-        else:
-            self.logger.error("Invalid tower position to save!")
-            self.display.hw.beepAlarm(3)
+            pageWait = PageWait(self.display,
+                line1 = "Calibration done!",
+                line2 = "Moving platform to top")
+            pageWait.show()
+            retc = self._syncTower(pageWait)
+            if retc == "error":
+                return retc
+            #endif
         #endif
-        return super(PageTowerCalib, self).backButtonRelease()
+        self.display.goBack(2)
     #endif
 
 
@@ -1511,7 +1515,7 @@ class PageTiltCalib(MovePage):
 
     def __init__(self, display):
         self.pageUI = "tiltmove"
-        self.pageTitle = "Tilt Calibration"
+        self.pageTitle = "Tank Calibration"
         super(PageTiltCalib, self).__init__(display)
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
     #enddef
@@ -1519,12 +1523,20 @@ class PageTiltCalib(MovePage):
 
     def prepare(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = "Moving tank to start")
+        pageWait = PageWait(self.display,
+            line1 = "Tank calibration",
+            line2 = "Moving platform to top")
         pageWait.show()
+        retc = self._syncTower(pageWait)
+        if retc == "error":
+            return retc
+        #endif
+        pageWait.showItems(line2 = "Moving tank to start", line3 = "")
         retc = self._syncTilt()
         if retc == "error":
             return retc
         #endif
+        pageWait.showItems(line2 = "Moving tank to base position",)
         self.display.hw.setTiltProfile('layer')
         self.display.hw.tiltDownWait()
         self.display.hw.tiltUpWait()
@@ -1536,18 +1548,18 @@ class PageTiltCalib(MovePage):
 
     def backButtonRelease(self):
         position = self.display.hw.getTiltPositionMicroSteps()
-        if position is not None:
+        if position is None:
+            self.logger.error("Invalid tilt position to save!")
+            self.display.hw.beepAlarm(3)
+        else:
             self.display.hwConfig.update(tiltheight = position)
             if not self.display.hwConfig.writeFile():
                 self.display.hw.beepAlarm(3)
                 sleep(1)
                 self.display.hw.beepAlarm(3)
             #endif
-        else:
-            self.logger.error("Invalid tilt position to save!")
-            self.display.hw.beepAlarm(3)
         #endif
-        return super(PageTiltCalib, self).backButtonRelease()
+        return "towercalib"
     #endif
 
 
