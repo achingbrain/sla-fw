@@ -17,7 +17,7 @@ class SocketServer(multiprocessing.Process):
         self.commands = commands
         self.events = events
         self.stoprequest = multiprocessing.Event()
-        self.server = WebsocketServer(port, host="0.0.0.0", loglevel=logging.DEBUG) # TODO smazat host= pro poslouchani pouze na localhostu
+        self.server = WebsocketServer(port)
         self.thread = Thread(None, self.server.run_forever, "SLA Socket Server")
         self.server.set_fn_new_client(self._onNewClient)
         self.server.set_fn_client_left(self._onClientLeft)
