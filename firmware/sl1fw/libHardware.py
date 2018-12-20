@@ -120,7 +120,7 @@ class Hardware(object):
         self._firmwareCheck()
 
         self.motorsRelease()
-        self.fans(True, True, True, True)  # all on - safety
+        self.setFans((True, True, True, True))  # all on - safety
     #enddef
 
 
@@ -406,7 +406,7 @@ class Hardware(object):
     #enddef
 
 
-    def fans(self, *fans):
+    def setFans(self, fans):
         self._fansRequested = 0
         for i in xrange(len(fans)):
             self._fansRequested += pow(2, i) if fans[i] else 0
@@ -417,16 +417,16 @@ class Hardware(object):
 
 
     def getFans(self):
+        retVal = list((False, False, False, False))
         state = self._commMC("?fans")
         try:
             binState = int(state)
-            retVal = ()
             for i in xrange(4):
-                retVal += (True,) if binState & (1 << i) else (False,)
+                retVal[i] = True if binState & (1 << i) else False
             #endfor
             return retVal
         except Exception:
-            return (False, False, False, False)
+            pass
         #endtry
     #enddef
 
@@ -438,6 +438,28 @@ class Hardware(object):
         except Exception:
             return False
         #endtry
+    #enddef
+
+
+    def setPWMs(self, pwms):
+        self.logger.debug("'%s'", pwms)
+        self._commMC("!fpwm", " ".join(map(lambda x: str(x / 5), pwms)))
+    #enddef
+
+
+    def getPWMs(self):
+        retval = list((0, 0, 0, 0))
+        rpms = self._commMC("?fpwm")
+        try:
+            i = 0
+            for val in map(lambda x: int(x), rpms.split(" ")):
+                retval[i] = val * 5
+                i += 1
+            #endfor
+        except Exception:
+            pass
+        #endtry
+        return retval
     #enddef
 
 

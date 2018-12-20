@@ -1894,16 +1894,16 @@ class PageState(Page):
         self.pageUI = "setup"
         self.pageTitle = "Admin - State"
         super(PageState, self).__init__(display)
-#        self.autorepeat = {
-#                "minus2g1" : (5, 1), "plus2g1" : (5, 1),
-#                "minus2g2" : (5, 1), "plus2g2" : (5, 1),
-#                "minus2g3" : (5, 1), "plus2g3" : (5, 1),
-#                "minus2g4" : (5, 1), "plus2g4" : (5, 1),
+        self.autorepeat = {
+                "minus2g1" : (5, 1), "plus2g1" : (5, 1),
+                "minus2g2" : (5, 1), "plus2g2" : (5, 1),
+                "minus2g3" : (5, 1), "plus2g3" : (5, 1),
+                "minus2g4" : (5, 1), "plus2g4" : (5, 1),
 #                "minus2g5" : (5, 1), "plus2g5" : (5, 1),
 #                "minus2g6" : (5, 1), "plus2g6" : (5, 1),
 #                "minus2g7" : (5, 1), "plus2g7" : (5, 1),
 #                "minus2g8" : (5, 1), "plus2g8" : (5, 1),
-#                }
+                }
         self.items.update({
                 "label1g1" : "Fan 1",
                 "label1g2" : "Fan 2",
@@ -1914,10 +1914,10 @@ class PageState(Page):
                 "label1g7" : "Power LED",
                 "label1g8" : "Cover",
 
-                "label2g1" : "Fan 1 RPM",
-                "label2g2" : "Fan 2 RPM",
-                "label2g3" : "Fan 3 RPM",
-                "label2g4" : "Fan 4 RPM",
+                "label2g1" : "Fan 1 PWM",
+                "label2g2" : "Fan 2 PWM",
+                "label2g3" : "Fan 3 PWM",
+                "label2g4" : "Fan 4 PWM",
                 "label2g5" : "UV LED temperature",
                 "label2g6" : "Ambient temperature",
                 "label2g7" : "CPU core temperature",
@@ -1925,6 +1925,8 @@ class PageState(Page):
                 "back" : "Back",
                 })
         self.callbackPeriod = 0.5
+        self.fans = list()
+        self.pwms = list()
     #enddef
 
 
@@ -1936,20 +1938,20 @@ class PageState(Page):
 
     def menuCallback(self):
         items = {}
-        fan1, fan2, fan3, fan4 = self.display.hw.getFans()
-        self._setItem(items, "state1g1", fan1)
-        self._setItem(items, "state1g2", fan2)
-        self._setItem(items, "state1g3", fan3)
-        self._setItem(items, "state1g4", fan4)
+        self.fans = self.display.hw.getFans()
+        self._setItem(items, "state1g1", self.fans[0])
+        self._setItem(items, "state1g2", self.fans[1])
+        self._setItem(items, "state1g3", self.fans[2])
+        self._setItem(items, "state1g4", self.fans[3])
         self._setItem(items, "state1g5", self.display.hw.getUvLedState())
         self._setItem(items, "state1g6", self.display.hw.getCameraLedState())
         self._setItem(items, "state1g7", self.display.hw.getPowerLedState())
         self._setItem(items, "state1g8", self.display.hw.getCoverState())
-        rpm1, rpm2, rpm3, rpm4 = self.display.hw.getRPMs()
-        self._setItem(items, "value2g1", rpm1)
-        self._setItem(items, "value2g2", rpm2)
-        self._setItem(items, "value2g3", rpm3)
-        self._setItem(items, "value2g4", rpm4)
+        self.pwms = self.display.hw.getPWMs()
+        self._setItem(items, "value2g1", self.pwms[0])
+        self._setItem(items, "value2g2", self.pwms[1])
+        self._setItem(items, "value2g3", self.pwms[2])
+        self._setItem(items, "value2g4", self.pwms[3])
         self._setItem(items, "value2g5", self.display.hw.getTemperatureUVLED())
         self._setItem(items, "value2g6", self.display.hw.getTemperatureSystem())
 
@@ -1959,31 +1961,38 @@ class PageState(Page):
     #enddef
 
 
+    def _value(self, valmin, valmax, idx, change):
+        if valmin <= self.pwms[idx] + change <= valmax:
+            self.pwms[idx] += change
+            self.display.hw.setPWMs(self.pwms)
+            self.showItems(**{ "value2g%d" % (idx + 1) : self.pwms[idx] })
+        else:
+            self.display.hw.beepAlarm(1)
+        #endif
+    #enddef
+
+
     def state1g1ButtonRelease(self):
-        fan1, fan2, fan3, fan4 = self.display.hw.getFans()
-        fan1 = not fan1
-        self.display.hw.fans(fan1, fan2, fan3, fan4)
+        self.fans[0] = not self.fans[0]
+        self.display.hw.setFans(self.fans)
     #enddef
 
 
     def state1g2ButtonRelease(self):
-        fan1, fan2, fan3, fan4 = self.display.hw.getFans()
-        fan2 = not fan2
-        self.display.hw.fans(fan1, fan2, fan3, fan4)
+        self.fans[1] = not self.fans[1]
+        self.display.hw.setFans(self.fans)
     #enddef
 
 
     def state1g3ButtonRelease(self):
-        fan1, fan2, fan3, fan4 = self.display.hw.getFans()
-        fan3 = not fan3
-        self.display.hw.fans(fan1, fan2, fan3, fan4)
+        self.fans[2] = not self.fans[2]
+        self.display.hw.setFans(self.fans)
     #enddef
 
 
     def state1g4ButtonRelease(self):
-        fan1, fan2, fan3, fan4 = self.display.hw.getFans()
-        fan4 = not fan4
-        self.display.hw.fans(fan1, fan2, fan3, fan4)
+        self.fans[3] = not self.fans[3]
+        self.display.hw.setFans(self.fans)
     #enddef
 
 
@@ -2009,42 +2018,42 @@ class PageState(Page):
 
 
     def minus2g1Button(self):
-        self.display.hw.beepAlarm(3)
+        return self._value(0, 100, 0, -5)
     #enddef
 
 
     def plus2g1Button(self):
-        self.display.hw.beepAlarm(3)
+        return self._value(0, 100, 0, 5)
     #enddef
 
 
     def minus2g2Button(self):
-        self.display.hw.beepAlarm(3)
+        return self._value(0, 100, 1, -5)
     #enddef
 
 
     def plus2g2Button(self):
-        self.display.hw.beepAlarm(3)
+        return self._value(0, 100, 1, 5)
     #enddef
 
 
     def minus2g3Button(self):
-        self.display.hw.beepAlarm(3)
+        return self._value(0, 100, 2, -5)
     #enddef
 
 
     def plus2g3Button(self):
-        self.display.hw.beepAlarm(3)
+        return self._value(0, 100, 2, 5)
     #enddef
 
 
     def minus2g4Button(self):
-        self.display.hw.beepAlarm(3)
+        return self._value(0, 100, 3, -5)
     #enddef
 
 
     def plus2g4Button(self):
-        self.display.hw.beepAlarm(3)
+        return self._value(0, 100, 3, 5)
     #enddef
 
 
