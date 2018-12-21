@@ -4,7 +4,7 @@
 
 import os
 
-swVersion = "Gen3-181-220-3"
+swVersion = "Gen3-181-221"
 reqMcVersion = "SLA-control 0.9.3-212b"
 
 home = "/home/root"
@@ -15,7 +15,8 @@ usbPath = "/mnt/usb"
 ramdiskPath = "/run/sl1fw"
 printerlog = os.path.join(ramdiskPath, "sl1fw.log")
 jobCounter = os.path.join(home, "jobs.log")
-hwConfigFile = "/etc/sl1fw/hardware.cfg"
+hwConfigFileName = "hardware.cfg"
+hwConfigFile = os.path.join("/etc/sl1fw", hwConfigFileName)
 
 configFile = "config.ini"
 maskFilename = "mask.png"

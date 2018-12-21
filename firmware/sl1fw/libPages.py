@@ -1098,25 +1098,28 @@ class PageSetupHW(Page):
                 "label1g2" : "Cover check",
                 "label1g3" : "MC version check",
 
-                "label2g1" : "Screw mm/rot",
-                "label2g2" : "Tower corr. (mm)",
-                "label2g3" : "Tilt height (msteps)",
+                "label2g1" : "Screw (mm/rot)",
+                "label2g2" : "Tower msteps",
+                "label2g3" : "Tilt msteps",
 
+                "button1" : "Export",
+                "button2" : "Import",
                 "button4" : "Save",
                 "back" : "Back",
                 })
         self.changed = {}
         self.temp = {}
+        self.backupFilename = os.path.join(defines.usbPath, defines.hwConfigFileName)
     #enddef
 
 
     def show(self):
         self.temp["screwmm"] = self.display.hwConfig.screwMm
-        self.temp["towcorr"] = 0.0
+        self.temp["towerheight"] = self.display.hwConfig.towerHeight
         self.temp["tiltheight"] = self.display.hwConfig.tiltHeight
 
         self.items["value2g1"] = str(self.temp["screwmm"])
-        self.items["value2g2"] = str(self.temp["towcorr"])
+        self.items["value2g2"] = str(self.temp["towerheight"])
         self.items["value2g3"] = str(self.temp["tiltheight"])
 
         self.temp["fancheck"] = self.display.hwConfig.fanCheck
@@ -1149,17 +1152,36 @@ class PageSetupHW(Page):
     #enddef
 
 
+    def button1ButtonRelease(self):
+        ''' export '''
+        if not self.display.hwConfig.writeFile(self.backupFilename):
+            self.display.hw.beepAlarm(3)
+        #endif
+    #enddef
+
+
+    def button2ButtonRelease(self):
+        ''' import '''
+        try:
+            with open(self.backupFilename, "r") as f:
+                self.display.hwConfig.parseText(f.read())
+            #endwith
+        except Exception:
+            self.logger.exception("import exception:")
+            self.display.hw.beepAlarm(3)
+            return
+        #endtry
+
+        if not self.display.hwConfig.writeFile(defines.hwConfigFile):
+            self.display.hw.beepAlarm(4)
+        #endif
+
+        self.show()
+    #enddef
+
+
     def button4ButtonRelease(self):
         ''' save '''
-
-        # FIXME hnus, pryc jak to bude mozne...
-        if "towcorr" in self.changed:
-            corr = self.display.hwConfig.calcMicroSteps(self.temp["towcorr"])
-            self.logger.debug("tower correction", corr)
-            del self.changed["towcorr"]
-            self.changed["towerheight"] = self.display.hwConfig.towerHeight + corr
-        #endif
-        # az sem
 
         self.display.hwConfig.update(**self.changed)
         if not self.display.hwConfig.writeFile():
@@ -1198,12 +1220,12 @@ class PageSetupHW(Page):
 
 
     def minus2g2Button(self):
-        return self._value(-10, 10, "towcorr", -0.1, "value2g2")
+        return self._value(-10, 10, "towerheight", 1, "value2g2")
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(-10, 10, "towcorr", 0.1, "value2g2")
+        return self._value(-10, 10, "towerheight", 1, "value2g2")
     #enddef
 
 
@@ -1676,7 +1698,7 @@ class ProfilesPage(Page):
             self.logger.exception("export exception:")
             self.display.hw.beepAlarm(3)
         #endtry
-    #endif
+    #enddef
 
 
     def button2ButtonRelease(self):
@@ -1701,7 +1723,7 @@ class ProfilesPage(Page):
             self.logger.exception("import exception:")
             self.display.hw.beepAlarm(3)
         #endtry
-    #endif
+    #enddef
 
 
     def state1g1ButtonRelease(self):
