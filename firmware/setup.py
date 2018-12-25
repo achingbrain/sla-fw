@@ -1,5 +1,9 @@
 from setuptools import setup, find_packages
 from glob import glob
+from os import chmod
+from stat import S_IRUSR
+
+chmod('sl1fw/scripts/rsync-key', S_IRUSR)
 
 setup(
     name="sl1fw",

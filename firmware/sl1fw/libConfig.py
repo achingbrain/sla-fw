@@ -260,6 +260,13 @@ class HwConfig(FileConfig):
         self.calibrated = self._parseBool("calibrated", False)
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(128)) # safe value
         self.tiltHeight = self._parseInt("tiltheight", 1600) # 100 steps 16 microsteps each
+
+        self.fan1Pwm = self._parseInt("fan1pwm", 100)
+        self.fan2Pwm = self._parseInt("fan2pwm", 100)
+        self.fan3Pwm = self._parseInt("fan3pwm", 100)
+        self.fan4Pwm = self._parseInt("fan4pwm", 100)
+        self.uvLedPwm = self._parseInt("uvledpwm", 100)
+        self.pwrLedPwm = self._parseInt("pwrledpwm", 100)
     #enddef
 
     def calcMicroSteps(self, mm):
@@ -312,6 +319,7 @@ class NetConfig(FileConfig):
     #enddef
 
     def _parseData(self):
+        self.image = self._parseString("image")
         self.firmware = self._parseString("firmware")
     #enddef
 
@@ -445,10 +453,6 @@ class PrintConfig(FileConfig):
         self.direct = self._parseBool("direct", False)
 
         self.autoOff = self._parseBool("autooff", False if self._hwConfig.sn == "123456" else True)
-
-        self.newHostname = self._parseString("hostname", "sl1printer")
-        self.ssid = self._parseString("ssid")
-        self.password = self._parseString("password")
 
         self.expTime = self._parseFloat("exptime", 8.0)
         self.expTime2 = self._parseFloat("exptime2", self.expTime)

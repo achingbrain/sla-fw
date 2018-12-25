@@ -32,25 +32,27 @@ class Hardware(object):
         self._fansRequested = 0
         self._tiltToPosition = 0
 
+        self._powerLedStates= { 'normal' : 1, 'warn' : 0, 'error' : 2 }
+
         self._tiltProfiles = {
-                "homingFast"    : 0,
-                "homingSlow"    : 1,
-                "moveFast"      : 2,
-                "moveSlow"      : 3,
-                "layer"         : 4,
-                "hold"          : 5,
-                "release"       : 6,
-                "calibration"   : 7,
+                'homingFast'    : 0,
+                'homingSlow'    : 1,
+                'moveFast'      : 2,
+                'moveSlow'      : 3,
+                'layer'         : 4,
+                'hold'          : 5,
+                'release'       : 6,
+                'calibration'   : 7,
                 }
         self._towerProfiles = {
-                "homingFast"    : 0,
-                "homingSlow"    : 1,
-                "moveFast"      : 2,
-                "moveSlow"      : 3,
-                "layer"         : 4,
-                "hold"          : 5,
-                "release"       : 6,
-                "calibration"   : 7,
+                'homingFast'    : 0,
+                'homingSlow'    : 1,
+                'moveFast'      : 2,
+                'moveSlow'      : 3,
+                'layer'         : 4,
+                'hold'          : 5,
+                'release'       : 6,
+                'calibration'   : 7,
                 }
         # get sorted profiles names
         self._tiltProfileNames = map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1]))
@@ -111,17 +113,21 @@ class Hardware(object):
         self.commOKStr = re.compile('^(.*)ok$')
         self.commErrStr = re.compile('^e(.)$')
         self.commErrors = {
-                "1" : "unspecified failure",
-                "2" : "busy",
-                "3" : "syntax error",
-                "4" : "parameter out of range",
-                "5" : "operation not permitted",
+                '1' : "unspecified failure",
+                '2' : "busy",
+                '3' : "syntax error",
+                '4' : "parameter out of range",
+                '5' : "operation not permitted",
                 }
 
         self._firmwareCheck()
 
         self.motorsRelease()
-        self.setFans((True, True, True, True))  # all on - safety
+        self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm, self.hwConfig.fan4Pwm))
+        self.setFans({ 0 : True, 1 : True, 2 : True, 3 : True })
+        #self.setFans({ 0 : False, 1 : False, 2 : False, 3 : False })  # all off
+        self.setUvLedPwm(self.hwConfig.uvLedPwm)
+        self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
     #enddef
 
 
@@ -222,15 +228,9 @@ class Hardware(object):
 
     def _flashMC(self):
         import subprocess
-        import gpio
 
         self.portLock.acquire()
-
-        # RESET MC
-        gpio.setup(131, gpio.OUT)
-        gpio.set(131, 1)
-        sleep(1/1000000)
-        gpio.set(131, 0)
+        self.resetMc()
 
         process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         while True:
@@ -249,7 +249,7 @@ class Hardware(object):
         #endwhile
 
         if retc:
-            self.logger.error("%s failed with code %d", defines.hostnameCommand, retc)
+            self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
         #endif
 
         sleep(2)
@@ -266,6 +266,21 @@ class Hardware(object):
 
     def getControllerSerial(self):
         return self.MCserial
+    #enddef
+
+
+    def resetMc(self):
+        import gpio
+        gpio.setup(131, gpio.OUT)
+        gpio.set(131, 1)
+        sleep(1/1000000)
+        gpio.set(131, 0)
+    #enddef
+
+
+    def eraseEeprom(self):
+        self._commMC("!eecl")
+        self._commMC("!rst")    # FIXME MC issue
     #enddef
 
 
@@ -368,12 +383,32 @@ class Hardware(object):
 
 
     def powerLed(self, state):
-        self._commMC("!pled", 1 if state == "normal" else 0)
+        self.powerLedRaw(self._powerLedStates.get(state, 0))
+    #enddef
+
+
+    def powerLedRaw(self, value):
+        self._commMC("!pled", value)
     #enddef
 
 
     def getPowerLedState(self):
-        return self._commMC("?pled") == "1"
+        return self._intOrNone(self._commMC("?pled"))
+    #enddef
+
+
+    def setPowerLedPwm(self, pwm):
+        self._commMC("!ppwm", pwm / 5)
+    #enddef
+
+
+    def getPowerLedPwm(self):
+        state = self._commMC("?ppwm")
+        try:
+            return int(state) * 5
+        except Exception:
+            return -1
+        #endtry
     #enddef
 
 
@@ -389,6 +424,35 @@ class Hardware(object):
 
     def getUvLedState(self):
         return self._commMC("?uled") == "1"
+    #enddef
+
+
+    def setUvLedPwm(self, pwm):
+        # TODO az bude v MC
+        self.logger.debug("setUvLedPwm() - TODO")
+    #enddef
+
+
+    def getUvLedPwm(self):
+        # TODO az bude v MC
+        self.logger.debug("getUvLedPwm() - TODO")
+        return -10
+    #enddef
+
+
+    def getUvLedVoltages(self):
+        retval = list(("0", "0", "0"))
+        volts = self._commMC("?volt")
+        try:
+            i = 0
+            for val in map(lambda x: int(x), volts.split(" ")):
+                retval[i] = str(val / 1000.0)
+                i += 1
+            #endfor
+        except Exception:
+            pass
+        #endtry
+        return retval
     #enddef
 
 
@@ -408,11 +472,13 @@ class Hardware(object):
 
 
     def setFans(self, fans):
-        self._fansRequested = 0
-        for i in xrange(len(fans)):
-            self._fansRequested += pow(2, i) if fans[i] else 0
+        for fan, state in fans.iteritems():
+            if state:
+                self._fansRequested |= 1 << fan
+            else:
+                self._fansRequested &= ~(1 << fan)
+            #endif
         #endfor
-        self.logger.debug("fans: '%s' '%s'", self._fansRequested, fans)
         self._commMC("!fans", self._fansRequested)
     #enddef
 
@@ -433,6 +499,9 @@ class Hardware(object):
 
 
     def getFanState(self):
+        if not self._fansRequested:
+            return True
+        #endif
         state = self._commMC("?fans")
         try:
             return int(state) & self._fansRequested
@@ -442,18 +511,17 @@ class Hardware(object):
     #enddef
 
 
-    def setPWMs(self, pwms):
-        self.logger.debug("'%s'", pwms)
+    def setFansPwm(self, pwms):
         self._commMC("!fpwm", " ".join(map(lambda x: str(x / 5), pwms)))
     #enddef
 
 
-    def getPWMs(self):
+    def getFansPwm(self):
         retval = list((0, 0, 0, 0))
-        rpms = self._commMC("?fpwm")
+        pwms = self._commMC("?fpwm")
         try:
             i = 0
-            for val in map(lambda x: int(x), rpms.split(" ")):
+            for val in map(lambda x: int(x), pwms.split(" ")):
                 retval[i] = val * 5
                 i += 1
             #endfor
@@ -464,13 +532,29 @@ class Hardware(object):
     #enddef
 
 
-    def getRPMs(self):
-        retval = list((0, 0, 0, 0))
+    def getFansRpm(self):
+        retval = list(("0", "0", "0", "0"))
         rpms = self._commMC("?frpm")
         try:
             i = 0
             for val in map(lambda x: int(x), rpms.split(" ")):
-                retval[i] = val
+                retval[i] = str(val * 10)
+                i += 1
+            #endfor
+        except Exception:
+            pass
+        #endtry
+        return retval
+    #enddef
+
+
+    def getTemperatures(self):
+        retval = list(("-273.15", "-273.15", "-273.15", "-273.15"))
+        temps = self._commMC("?temp")
+        try:
+            i = 0
+            for val in map(lambda x: int(x), temps.split(" ")):
+                retval[i] = str(val / 10.0)
                 i += 1
             #endfor
         except Exception:
