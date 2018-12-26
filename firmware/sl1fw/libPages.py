@@ -1246,7 +1246,7 @@ class PageAdmin(Page):
                 netConfig.logAllItems()
                 # check versions
                 if netConfig.firmware.startswith("Gen3"):
-                    if netConfig.firmware != defines.swVersion or netConfig.image != self.display.hwConfig.versionId:
+                    if netConfig.firmware != defines.swVersion or netConfig.image != self.display.hwConfig.os.versionId:
                         self.display.page_confirm.setParams(
                                 continueFce = self.performUpdate,
                                 continueParmas = { 'updateCommand' : defines.netUpdateCommand },
