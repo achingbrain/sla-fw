@@ -2,7 +2,6 @@
 
 import os
 from time import sleep
-import pygame.image
 
 import logging
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
@@ -19,7 +18,7 @@ from libScreen import Screen
 
 logging.debug("after import")
 
-screen = Screen(hwConfig, "test.dwz")
+screen = Screen(hwConfig)
 
 logging.debug("after init")
 
@@ -33,23 +32,21 @@ areas = list((
         ((720,1280), (720,640)),
         ((720,1920), (720,640))))
 
-x = 64
-for box in areas:
-    screen.fillArea(box, x)
-    x += 32
-#endfor
-
-screen.createCalibrationOverlay(areas, 4, 1.25)
+screen.createCalibrationOverlay(areas = areas, baseTime = 4, timeStep = 1.25)
+screen.openZip(filename = "test.dwz")
 screen.createMask()
 
-obr = pygame.image.load("zaba.png").convert()
-screen.testBlit(obr, 'calibPad')
-sleep(2)
-screen.testBlit(obr, 'calib')
+screen.testBlit(filename = "zaba.png", overlayName = 'calibPad')
+
+sleep(1)
+for box in areas:
+    sleep(1)
+    screen.fillArea(area = box)
+#endfor
+
+screen.testBlit(filename = "zaba.png", overlayName = 'calib')
 sleep(2)
 
-obr = pygame.image.load("white.png").convert()
-screen.testBlit(obr)
-sleep(2)
-screen.testBlit(obr, 'mask')
-sleep(6)
+screen.testBlit(filename = "white.png")
+sleep(1)
+screen.testBlit(filename = "white.png", overlayName = 'mask')

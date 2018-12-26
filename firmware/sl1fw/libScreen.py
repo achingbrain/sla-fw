@@ -3,186 +3,193 @@
 # 2018 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
+import sys
+import signal
 import logging
-import threading, Queue
-import pygame.display
-import pygame.image
-import pygame.mouse
-import pygame.surfarray
-import pygame.font
-import numpy
-import zipfile
+import multiprocessing
+from Queue import Empty
 from cStringIO import StringIO
-from subprocess import call
+import subprocess
+import zipfile
+import lazy_import
+
+lazy_import.lazy_module("pygame")
+import pygame
+lazy_import.lazy_module("numpy")
+import numpy
 
 import defines
 
-class ImagePreloader(threading.Thread):
 
-    def __init__(self, source, overlays, workQueue, resultQueue):
-        super(ImagePreloader, self).__init__()
+class ScreenServer(multiprocessing.Process):
+
+    def __init__(self, hwConfig, commands, results):
+        super(ScreenServer, self).__init__()
         self.logger = logging.getLogger(__name__)
-        try:
-            self.zf = zipfile.ZipFile(source, 'r')
-        except Exception as e:
-            self.logger.exception("zip read exception:")
-        #endtry
-        self.overlays = overlays
-        self.workQueue = workQueue
-        self.resultQueue = resultQueue
-        self.stoprequest = threading.Event()
+        self.hwConfig = hwConfig
+        self.commands = commands
+        self.results = results
+        self.stoprequest = multiprocessing.Event()
     #enddef
 
-    def run(self):
-        #self.logger.debug("thread started")
-        while not self.stoprequest.isSet():
-            try:
-                (filename, overlayName) = self.workQueue.get(timeout = 0.1)
-                #self.logger.debug("preload of %s started", filename)
-                filedata = self.zf.read(filename)
-                filedata_io = StringIO(filedata)
-                obr = pygame.image.load(filedata_io, filename).convert()
-                overlay = self.overlays.get(overlayName, None)
-                if overlay:
-                    obr.blit(overlay, (0,0))
-                #endif
-                overlay = self.overlays.get('mask', None)
-                if overlay:
-                    obr.blit(overlay, (0,0))
-                #endif
-                #self.logger.debug("pixelcount of %s started", filename)
-                pixels = pygame.surfarray.pixels3d(obr)
-                hist = numpy.histogram(pixels, [0, 51, 102, 153, 204, 255])
-                del pixels
-                whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4]) / 3
-                #self.logger.debug("pixelcount of %s done, whitePixels: %f", filename, whitePixels)
-                self.resultQueue.put((obr, whitePixels))
-                #self.logger.debug("preload of %s done", filename)
-            except Queue.Empty:
-                continue
-            except Exception:
-                self.logger.exception("ImagePreloader exception")
-                self.resultQueue.put((None, None, None))
-                break
-            #endtry
-        #endwhile
-        self.zf.close()
-        #self.logger.debug("thread ended")
+
+    def signalHandler(self, signum, frame):
+        self.logger.debug("signal received")
+        self.stoprequest.set()
     #enddef
+
 
     def join(self, timeout = None):
         self.stoprequest.set()
-        super(ImagePreloader, self).join(timeout)
+        super(ScreenServer, self).join(timeout)
     #enddef
 
-#endclass
 
-
-class Screen(object):
-
-    def __init__(self, hwConfig, source):
-        self.logger = logging.getLogger(__name__)
+    def run(self):
+        self.logger.debug("process started")
+        signal.signal(signal.SIGTERM, self.signalHandler)
         os.environ['SDL_NOMOUSE'] = '1'
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
-        call(['/usr/sbin/fbset', '-fb', '/dev/fb0 1440x2560-0'])
-        pygame.display.init()
-        pygame.font.init()
+        subprocess.call(['/usr/sbin/fbset', '-fb', '/dev/fb0', '1440x2560-0'])
+        pygame.init()
         self.screen = pygame.display.set_mode((1440,2560), pygame.FULLSCREEN, 32)
         self.screen.set_alpha(None)
         pygame.mouse.set_visible(False)
         self.getImgBlack()
-        self.font = pygame.font.SysFont(None, int(5 / hwConfig.pixelSize))
-        self.basepath = source
+        self.font = pygame.font.SysFont(None, int(5 / self.hwConfig.pixelSize))
         di = pygame.display.Info()
         self.width = di.current_w
         self.height = di.current_h
         #self.logger.debug("screen size is %dx%d pixels", self.width, self.height)
         self.overlays = dict()
-        self.imagePreloaderStarted = False
-    #enddef
+        self.zf = None
 
-    def __del__(self):
-        self.exit()
-    #enddef
+        while not self.stoprequest.is_set():
+            result = False
+            try:
+                commandData = self.commands.get(timeout = 0.1)
+                fce = commandData.pop("fce", None)
+                if fce:
+                    method = getattr(self, fce, None)
+                    if method:
+                        result = method(**commandData)
+                    else:
+                        self.logger.error("There is no fce '%s'", fce)
+                    #endif
+                else:
+                    self.logger.error("Message with no 'fce' field")
+                #endif
+            except Empty:
+                continue
+            except Exception:
+                self.logger.exception("ScreenServer exception")
+                continue
+            #endtry
+            if result is not None:
+                self.results.put(result)
+            #enddef
+        #endwhile
 
-    def exit(self):
-        if self.imagePreloaderStarted:
-            self.imagePreloader.join()
+        if self.zf:
+            self.zf.close()
         #endif
+
         pygame.quit()
+        self.logger.debug("process ended")
     #enddef
 
-    def startPreloader(self):
-        self.workQueue = Queue.Queue()
-        self.resultQueue = Queue.Queue()
-        self.imagePreloader = ImagePreloader(self.basepath, self.overlays, self.workQueue, self.resultQueue)
-        self.imagePreloader.start()
-        self.imagePreloaderStarted = True
+
+    def _writefb(self):
+        with open('/dev/fb0', 'wb') as fb:
+            fb.write(self.screen.get_buffer())
+        #endwith
     #enddef
+
+
+    def getResolution(self):
+        return (self.width, self.height)
+    #enddef
+
 
     def getImgBlack(self):
         self.screen.fill((0,0,0))
         pygame.display.flip()
-        self.writefb()
+        self._writefb()
     #enddef
 
-    def fillArea(self, area, color = (0,0,0)):
-        pygame.display.update(self.screen.fill(color, area))
+
+    def fillArea(self, area):
+        pygame.display.update(self.screen.fill((0,0,0), area))
+        self._writefb()
     #enddef
 
-    def writefb(self):
-        with open('/dev/fb0', 'wb') as fb:
-            fb.write(self.screen.get_buffer())
-    #enddef
 
-    def getImg(self, filename, base = None):
-        # obrazky jsou rozbalene nebo zkopirovane do ramdisku
-        if base is None:
-            base = self.basepath
-        #endif
-        #self.logger.debug("view of %s started", base + filename)
-        obr = pygame.image.load(os.path.join(base, filename)).convert()
-        self.screen.blit(obr, (0,0))
+    def getImg(self, filename):
+        self.logger.debug("view of %s started", filename)
+        image = pygame.image.load(filename).convert()
+        self.screen.blit(image, (0,0))
         pygame.display.flip()
-        self.writefb()
-        #self.logger.debug("view of %s done", base + filename)
+        self._writefb()
+        self.logger.debug("view of %s done", filename)
     #enddef
+
+
+    def openZip(self, filename):
+        try:
+            self.zf = zipfile.ZipFile(filename, 'r')
+            return True
+        except Exception as e:
+            self.logger.exception("zip read exception:")
+            return False
+        #endtry
+    #enddef
+
 
     def preloadImg(self, filename, overlayName):
-        self.workQueue.put((filename, overlayName))
+        self.logger.debug("preload of %s started", filename)
+        filedata = self.zf.read(filename)
+        filedata_io = StringIO(filedata)
+        self.nextImage = pygame.image.load(filedata_io, filename).convert()
+        overlay = self.overlays.get(overlayName, None)
+        if overlay:
+            self.nextImage.blit(overlay, (0,0))
+        #endif
+        overlay = self.overlays.get('mask', None)
+        if overlay:
+            self.nextImage.blit(overlay, (0,0))
+        #endif
+        self.logger.debug("pixelcount of %s started", filename)
+        pixels = pygame.surfarray.pixels3d(self.nextImage)
+        hist = numpy.histogram(pixels, [0, 51, 102, 153, 204, 255])
+        del pixels
+        self.whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4]) / 3
+        self.logger.debug("pixelcount of %s done, whitePixels: %f", filename, self.whitePixels)
+        self.logger.debug("preload of %s done", filename)
     #enddef
+
 
     def blitImg(self):
-        (obr, whitePixels) = self.resultQueue.get()
-        if obr is None:
-            raise Exception("ImagePreloader exception")
-        #endif
-
-        #self.logger.debug("blit started")
-        self.screen.blit(obr, (0,0))
+        self.logger.debug("blit started")
+        self.screen.blit(self.nextImage, (0,0))
         pygame.display.flip()
-        self.writefb()
-        #self.logger.debug("blit done")
-        return whitePixels
+        self._writefb()
+        self.logger.debug("blit done")
+        return self.whitePixels
     #enddef
+
 
     def inverse(self):
         pixels = pygame.surfarray.pixels3d(self.screen)
         pixels ^= 2 ** 32 - 1
         del pixels
         pygame.display.flip()
-        self.writefb()
+        self._writefb()
     #enddef
+
 
     def createMask(self):
         try:
-            zf = zipfile.ZipFile(self.basepath, 'r')
-        except Exception as e:
-            self.logger.exception("zip read exception:")
-            return
-        #endtry
-        try:
-            filedata = zf.read(defines.maskFilename)
+            filedata = self.zf.read(defines.maskFilename)
         except KeyError as e:
             self.logger.info("No mask picture in the project")
             return
@@ -190,6 +197,7 @@ class Screen(object):
         filedata_io = StringIO(filedata)
         self.overlays['mask'] = pygame.image.load(filedata_io, defines.maskFilename).convert_alpha()
     #enddef
+
 
     def createCalibrationOverlay(self, areas, baseTime, timeStep):
         self.overlays['calibPad'] = pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha()
@@ -216,14 +224,98 @@ class Screen(object):
         #endfor
     #enddef
 
-    def testBlit(self, obr, overlayName = None):
-        self.screen.blit(obr, (0,0))
+
+    def testBlit(self, filename, overlayName = None):
+        image = pygame.image.load(filename).convert()
+        self.screen.blit(image, (0,0))
         overlay = self.overlays.get(overlayName, None)
         if overlay:
             self.screen.blit(overlay, (0,0))
         #endif
         pygame.display.flip()
-        self.writefb()
+        self._writefb()
+    #enddef
+
+#endclass
+
+
+class Screen(object):
+
+    def __init__(self, hwConfig):
+        self.logger = logging.getLogger(__name__)
+        self.commands = multiprocessing.Queue()
+        self.results = multiprocessing.Queue()
+        self.server = ScreenServer(hwConfig, self.commands, self.results)
+        self.server.start()
+    #enddef
+
+
+    def __del__(self):
+        self.server.join()
+    #enddef
+
+
+    def getResolution(self):
+        self.commands.put({ 'fce' : "getResolution" })
+        return self.results.get()
+    #enddef
+
+
+    def getImgBlack(self):
+        self.commands.put({ 'fce' : "getImgBlack" })
+    #enddef
+
+
+    def fillArea(self, **kwargs):
+        kwargs['fce'] = 'fillArea'
+        self.commands.put(kwargs)
+    #enddef
+
+
+    def getImg(self, **kwargs):
+        kwargs['fce'] = 'getImg'
+        self.commands.put(kwargs)
+    #enddef
+
+
+    def openZip(self, **kwargs):
+        kwargs['fce'] = 'openZip'
+        self.commands.put(kwargs)
+        return self.results.get()
+    #enddef
+
+
+    def preloadImg(self, **kwargs):
+        kwargs['fce'] = 'preloadImg'
+        self.commands.put(kwargs)
+    #enddef
+
+
+    def blitImg(self):
+        self.commands.put({ 'fce' : "blitImg" })
+        return self.results.get()
+    #enddef
+
+
+    def inverse(self):
+        self.commands.put({ 'fce' : "inverse" })
+    #enddef
+
+
+    def createMask(self):
+        self.commands.put({ 'fce' : "createMask" })
+    #enddef
+
+
+    def createCalibrationOverlay(self, **kwargs):
+        kwargs['fce'] = 'createCalibrationOverlay'
+        self.commands.put(kwargs)
+    #enddef
+
+
+    def testBlit(self, **kwargs):
+        kwargs['fce'] = 'testBlit'
+        self.commands.put(kwargs)
     #enddef
 
 #endclass
