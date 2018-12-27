@@ -598,7 +598,7 @@ class Hardware(object):
 
 
     def towerSync(self, retries = 2):
-        ''' home is at top position '''
+        ''' home is at top position, retries = None is infinity '''
         self._towerSyncRetries = retries
         self.setTowerProfile('homingFast')
         self._commMC("!twho")
@@ -616,8 +616,10 @@ class Hardware(object):
         else:
             self.logger.warning("Tower homing failed!")
             self.beepAlarm(3)
-            if self._towerSyncRetries:
-                self._towerSyncRetries -= 1
+            if self._towerSyncRetries is None or self._towerSyncRetries:
+                if self._towerSyncRetries:
+                    self._towerSyncRetries -= 1
+                #endif
                 self.setTowerProfile('homingFast')
                 self._commMC("!twho")
                 return False
@@ -797,8 +799,7 @@ class Hardware(object):
                 # repeat count, None is infinity
                 if retries is None:
                     continue
-                #endif
-                if retries:
+                elif retries:
                     retries -= 1
                     continue
                 else:
