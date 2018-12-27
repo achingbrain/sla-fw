@@ -56,26 +56,19 @@ class ExposureThread(threading.Thread):
 
 
     def doUpAndDown(self):
-        bottomReserve = self.expo.hwConfig.calcMicroSteps(1)
-
-        ms = self.getUpPosition()
+        actualPosition = self.expo.hw.getTowerPositionMicroSteps()
         self.expo.hw.powerLed("warn")
-        if self.expo.position < bottomReserve:
-            self.logger.warn("Wrong platform position for up&down")
-            pageWait = libPages.PageWait(self.expo.display,
-                    line2 = "Up and down is avaiable only",
-                    line3 = "above %d mm of height" % self.expo.hwConfig.calcMM(bottomReserve))
+        if actualPosition is None:
+            self.logger.warn("Wrong position from MC")
+            pageWait = libPages.PageWait(self.expo.display, line2 = "Can't get tower position.")
             pageWait.show()
             self.expo.hw.beepAlarm(3)
             sleep(5)
         else:
-            mm = self.expo.hwConfig.calcMM(ms)
-            self.logger.info("up and down to %d mm", mm)
-
-            pageWait = libPages.PageWait(self.expo.display, line2 = "Going to %d mm" % mm)
+            pageWait = libPages.PageWait(self.expo.display, line2 = "Going to top")
             pageWait.show()
-            self.expo.hw.towerMoveAbsolute(ms)
-            while not self.expo.hw.isTowerOnPosition():
+            self.expo.hw.towerSync(retries = None)
+            while not self.expo.hw.isTowerSynced():
                 sleep(0.25)
                 pageWait.showItems(line3 = self.expo.hw.getTowerPosition())
             #endwhile
@@ -92,37 +85,20 @@ class ExposureThread(threading.Thread):
                 #endif
             #endfor
 
-            ms = self.expo.position - bottomReserve
-            pageWait.showItems(line2 = "Going to %d mm" % self.expo.hwConfig.calcMM(ms))
-            self.expo.hw.tiltDownWait()
-            self.expo.hw.towerMoveAbsolute(ms)
-            while not self.expo.hw.isTowerOnPosition():
-                sleep(0.25)
-                pageWait.showItems(line3 = self.expo.hw.getTowerPosition())
-            #endwhile
-            sleep(0.5)
-            pageWait.showItems(line2 = "Going to %d mm" % self.expo.hwConfig.calcMM(self.expo.position))
-            self.expo.hw.towerMoveAbsolute(self.expo.position)
-            while not self.expo.hw.isTowerOnPosition():
-                sleep(0.25)
-                pageWait.showItems(line3 = self.expo.hw.getTowerPosition())
-            #endwhile
-
             pageWait.showItems(line2 = "Tank reset", line3 = "")
             self.expo.hw.tiltUpWait()
             self.expo.hw.tiltDownWait()
             self.expo.hw.tiltUpWait()
+            self.expo.hw.tiltDownWait()
+
+            pageWait.showItems(line2 = "Going back")
+            self.expo.hw.towerMoveAbsolute(actualPosition)
+            while not self.expo.hw.isTowerOnPosition():
+                sleep(0.25)
+                pageWait.showItems(line3 = self.expo.hw.getTowerPosition())
+            #endwhile
         #endif
         self.expo.hw.powerLed("normal")
-    #endif
-
-
-    def getUpPosition(self):
-        ms = int(self.expo.position + self.expo.config.finishUp)
-        if ms > self.expo.hwConfig.towerHeight:
-            ms = self.expo.hwConfig.towerHeight
-        #endif
-        return ms
     #endif
 
 
@@ -272,9 +248,10 @@ class ExposureThread(threading.Thread):
                     percent = "100%",
                     progress = 100)
 
-            ms = self.getUpPosition()
-            self.logger.info("go up to %d micro steps", ms)
-            self.expo.hw.towerMoveAbsoluteWait(ms)
+            self.expo.hw.towerSync()
+            while not self.expo.hw.isTowerSynced():
+                sleep(0.25)
+            #endwhile
 
             actualPage.showItems(line2 = "Please wait", line3 = "Shutting down", line4 = "")
 

@@ -53,9 +53,6 @@ prodleva mezi osvitem a sklopením tiltu [s]
 ### tiltDelayAfter = 0.0
 prodleva mezi přiklopením tiltu a osvitem [s]
 
-### finishUp = 50
-zvednutí platformy po ukončení tisku a pro up&down [mm]
-
 ### upAndDownWait = 10
 doba čekání při up&down [s]
 

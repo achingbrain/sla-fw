@@ -482,7 +482,6 @@ class PrintConfig(FileConfig):
         self.startDelay = self._parseInt("startdelay", 0)
         self.tiltDelayBefore = self._parseFloat("tiltdelaybefore", 0.0)
         self.tiltDelayAfter = self._parseFloat("tiltdelayafter", 0.0)
-        self.finishUp = self._hwConfig.calcMicroSteps(self._parseInt("finishup", 50))
         self.upAndDownWait = self._parseInt("upanddownwait", 10)
         self.upAndDownEveryLayer = self._parseInt("upanddowneverylayer", 0)
         self.tilt = self._parseBool("tilt", True)
