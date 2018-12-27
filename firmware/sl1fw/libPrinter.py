@@ -44,8 +44,11 @@ class Printer(object):
 #        devices = list((qtdisplay, webdisplay))
         devices = list((qtdisplay, ))
 
+        from libScreen import Screen
+        self.screen = Screen(self.hwConfig)
+
         from libDisplay import Display
-        self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet)
+        self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen)
         self.inet.startNetMonitor(self.display.assignNetActive)
 
         self.logger.info("Software version: %s", defines.swVersion)
@@ -270,11 +273,10 @@ class Printer(object):
 
                 try:
                     from libExposure import Exposure
-                    self.expo = Exposure(self.hwConfig, self.config, self.display, self.hw)
-                    self.expo.startPreload()
+                    self.expo = Exposure(self.hwConfig, self.config, self.display, self.hw, self.screen)
                     self.display.initExpoPages(self.expo)
                 except Exception:
-                    self.logger.exception("screen exception:")
+                    self.logger.exception("exposure exception:")
                     self.display.page_error.setParams(line2 = "Can't init exposure display")
                     self.display.doMenu("error")
                     # nepipat na strance home

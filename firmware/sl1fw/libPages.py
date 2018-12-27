@@ -988,20 +988,6 @@ class PageDisplay(Page):
     #enddef
 
 
-    def prepare(self):
-        try:
-            from libScreen import Screen
-            self.screen = Screen(self.display.hwConfig, defines.dataPath)
-        except Exception:
-            self.logger.exception("screen exception:")
-            self.display.page_error.setParams(
-                    line1 = "Display init failed!",
-                    line2 = "Check printer's hardware.")
-            return "error"
-        #endtry
-    #enddef
-
-
     def show(self):
         self.items['button14'] = "UV off" if self.display.hw.getUvLedState() else "UV on"
         self.button2ButtonRelease()
@@ -1010,33 +996,33 @@ class PageDisplay(Page):
 
 
     def button1ButtonRelease(self):
-        self.screen.getImg("sachovnice8_1440x2560.png")
+        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice8_1440x2560.png"))
     #enddef
 
 
     def button2ButtonRelease(self):
-        self.screen.getImg("sachovnice16_1440x2560.png")
+        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
     #enddef
 
 
     def button3ButtonRelease(self):
-        self.screen.getImg("mrizka8_1440x2560.png")
+        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "mrizka8_1440x2560.png"))
     #enddef
 
 
     def button4ButtonRelease(self):
-        self.screen.getImg("mrizka16_1440x2560.png")
+        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "mrizka16_1440x2560.png"))
     #enddef
 
 
     def button5ButtonRelease(self):
-        self.screen.getImg("bludiste_1440x2560.png")
+        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "bludiste_1440x2560.png"))
     #enddef
 
 
     def button6ButtonRelease(self):
         try:
-            self.screen.getImg("test.png", defines.usbPath)
+            self.display.screen.getImg(filename = os.path.join(defines.usbPath, "test.png"))
         except Exception:
             self.logger.exception("export exception:")
             self.display.hw.beepAlarm(3)
@@ -1045,12 +1031,12 @@ class PageDisplay(Page):
 
 
     def button11ButtonRelease(self):
-        self.screen.getImgBlack()
+        self.display.screen.getImgBlack()
     #enddef
 
 
     def button12ButtonRelease(self):
-        self.screen.inverse()
+        self.display.screen.inverse()
     #enddef
 
 
@@ -1063,13 +1049,6 @@ class PageDisplay(Page):
 
     def backButtonRelease(self):
         self.display.hw.uvLed(False)
-        try:
-            self.screen.exit()
-            del self.screen
-        except Exception:
-            self.logger.exception("screen exception:")
-            self.display.hw.beepAlarm(3)
-        #endtry
         return super(PageDisplay, self).backButtonRelease()
     #enddef
 

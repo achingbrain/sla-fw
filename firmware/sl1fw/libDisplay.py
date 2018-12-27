@@ -12,13 +12,14 @@ import libPages
 
 class Display(object):
 
-    def __init__(self, hwConfig, config, devices, hw, inet):
+    def __init__(self, hwConfig, config, devices, hw, inet, screen):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.config = config
         self.devices = devices
         self.hw = hw
         self.inet = inet
+        self.screen = screen
         self.page_confirm = libPages.PageConfirm(self)
         self.page_systemwait = libPages.PageWait(self)
         self.page_intro = libPages.PageIntro(self)

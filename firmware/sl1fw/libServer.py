@@ -2,6 +2,7 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018 Prusa Research s.r.o. - www.prusa3d.com
 
+import signal
 import logging
 import multiprocessing
 import json
@@ -26,9 +27,24 @@ class SocketServer(multiprocessing.Process):
     #enddef
 
 
+    def signalHandler(self, signum, frame):
+        self.logger.debug("signal received")
+        self.server.shutdown()
+        self.stoprequest.set()
+    #enddef
+
+
+    def join(self, timeout = None):
+        self.server.shutdown()
+        self.stoprequest.set()
+        super(SocketServer, self).join(timeout)
+    #enddef
+
+
     def run(self):
         self.logger.debug("process started")
         self.thread.start()
+        signal.signal(signal.SIGTERM, self.signalHandler)
 
         while not self.stoprequest.is_set():
 
@@ -51,13 +67,6 @@ class SocketServer(multiprocessing.Process):
         #endwhile
 
         self.logger.debug("process ended")
-    #enddef
-
-
-    def join(self, timeout = None):
-        self.server.shutdown()
-        self.stoprequest.set()
-        super(SocketServer, self).join(timeout)
     #enddef
 
 

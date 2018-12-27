@@ -25,7 +25,7 @@ class ExposureThread(threading.Thread):
 
     def doFrame(self, picture, position, exposureTime, overlayName):
         if picture is not None:
-            self.expo.screen.preloadImg(picture, overlayName)
+            self.expo.screen.preloadImg(filename = picture, overlayName = overlayName)
         #endif
         if self.config.tilt:
             self.expo.hw.towerMoveAbsoluteWait(position)
@@ -36,17 +36,17 @@ class ExposureThread(threading.Thread):
         #endif
         sleep(self.config.tiltDelayAfter)
         whitePixels = self.expo.screen.blitImg()
-        #self.logger.debug("exposure started")
+        self.logger.debug("exposure started")
         sleep(exposureTime)
         if self.calibAreas is not None:
             for box in self.calibAreas:
-                self.expo.screen.fillArea(box)
-                #self.logger.debug("blank area")
+                self.expo.screen.fillArea(area = box)
+                self.logger.debug("blank area")
                 sleep(self.expo.config.calibrateTime)
             #endfor
         #endif
         self.expo.screen.getImgBlack()
-        #self.logger.debug("exposure done")
+        self.logger.debug("exposure done")
         sleep(self.config.tiltDelayBefore)
         if self.config.tilt:
             self.expo.hw.tiltDownWait()
@@ -139,7 +139,9 @@ class ExposureThread(threading.Thread):
                 else:
                     divide = self.expo.areaMap[config.calibrateRegions]
 
-                    if self.expo.screen.width > self.expo.screen.height:
+                    width, height = self.expo.screen.getResolution()
+
+                    if width > height:
                         x = 0
                         y = 1
                     else:
@@ -147,8 +149,8 @@ class ExposureThread(threading.Thread):
                         y = 0
                     #endif
 
-                    stepW = self.expo.screen.width / divide[x]
-                    stepH = self.expo.screen.height / divide[y]
+                    stepW = width / divide[x]
+                    stepH = height / divide[y]
 
                     self.calibAreas = list()
                     lw = 0
@@ -164,7 +166,7 @@ class ExposureThread(threading.Thread):
                         lw = w
                     #endfor
 
-                    self.expo.screen.createCalibrationOverlay(self.calibAreas, config.expTime, config.calibrateTime)
+                    self.expo.screen.createCalibrationOverlay(areas = self.calibAreas, baseTime = config.expTime, timeStep = config.calibrateTime)
 
                     # posledni oblast neni potreba, smaze se cely obraz
                     self.calibAreas.pop()
@@ -248,8 +250,11 @@ class ExposureThread(threading.Thread):
                         self.expo.position,
                         time,
                         overlayName)
-                # /1000 - chceme cm3 (=ml) nikoliv mm3
-                self.expo.resinCount += whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000
+                # whitePixels can be False
+                if whitePixels:
+                    # /1000 - we want cm3 (=ml) not mm3
+                    self.expo.resinCount += whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000
+                #endif
                 self.logger.debug("resinCount: %f" % self.expo.resinCount)
 
             #endfor
@@ -278,7 +283,6 @@ class ExposureThread(threading.Thread):
         except Exception as e:
             self.logger.exception("run() exception:")
             self.expo.exception = e
-            self.Screen.exit()
         #endtry
     #enddef
 
@@ -287,15 +291,18 @@ class ExposureThread(threading.Thread):
 
 class Exposure(object):
 
-    def __init__(self, hwConfig, config, display, hw):
-        from libScreen import Screen
+    def __init__(self, hwConfig, config, display, hw, screen):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.config = config
         self.display = display
         self.hw = hw
-        self.screen = Screen(hwConfig, self.config.zipName)
+        self.screen = screen
+        # FIXME test return value!
+        self.screen.openZip(filename = self.config.zipName)
+        # here ^^^
         self.screen.createMask()
+        self.screen.preloadImg(filename = self.config.toPrint[0], overlayName = 'calibPad')
         self.position = 0
         self.actualLayer = 0
         self.checkPage = libPages.PageWait(display)
@@ -311,18 +318,6 @@ class Exposure(object):
                 8 : (4,2),
                 9 : (3,3),
                 }
-    #enddef
-
-
-    def __del__(self):
-        self.screen.exit()
-        del self.screen
-    #enddef
-
-
-    def startPreload(self):
-        self.screen.startPreloader()
-        self.screen.preloadImg(self.config.toPrint[0], 'calibPad')
     #enddef
 
 
