@@ -142,7 +142,7 @@ class ExposureThread(threading.Thread):
                         lw = w
                     #endfor
 
-                    self.expo.screen.createCalibrationOverlay(areas = self.calibAreas, baseTime = config.expTime, timeStep = config.calibrateTime)
+                    self.expo.screen.createCalibrationOverlay(areas = list(self.calibAreas), baseTime = config.expTime, timeStep = config.calibrateTime)
 
                     # posledni oblast neni potreba, smaze se cely obraz
                     self.calibAreas.pop()

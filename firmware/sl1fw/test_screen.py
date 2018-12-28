@@ -22,30 +22,60 @@ screen = Screen(hwConfig)
 
 logging.debug("after init")
 
-areas = list((
-        ((0,0), (720,640)),
-        ((0,640), (720,640)),
-        ((0,1280), (720,640)),
-        ((0,1920), (720,640)),
-        ((720,0), (720,640)),
-        ((720,640), (720,640)),
-        ((720,1280), (720,640)),
-        ((720,1920), (720,640))))
+areaMap = {
+        2 : (2,1),
+        4 : (2,2),
+        6 : (3,2),
+        8 : (4,2),
+        9 : (3,3),
+        }
 
-screen.createCalibrationOverlay(areas = areas, baseTime = 4, timeStep = 1.25)
+divide = areaMap[8]
+width, height = screen.getResolution()
+
+if width > height:
+    x = 0
+    y = 1
+else:
+    x = 1
+    y = 0
+#endif
+
+stepW = width / divide[x]
+stepH = height / divide[y]
+
+calibAreas = list()
+lw = 0
+for i in xrange(divide[x]):
+    lh = 0
+    for j in xrange(divide[y]):
+        w = (i+1) * stepW
+        h = (j+1) * stepH
+        logging.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)
+        calibAreas.append(((lw,lh),(stepW,stepH)))
+        lh = h
+    #endfor
+    lw = w
+#endfor
+
+screen.createCalibrationOverlay(areas = list(calibAreas), baseTime = 4, timeStep = 1.25)
+
+# posledni oblast neni potreba, smaze se cely obraz
+calibAreas.pop()
+
 screen.openZip(filename = "test.dwz")
 screen.createMask()
 
 screen.testBlit(filename = "zaba.png", overlayName = 'calibPad')
 
-sleep(1)
-for box in areas:
+sleep(5)
+for box in calibAreas:
     sleep(1)
     screen.fillArea(area = box)
 #endfor
 
 screen.testBlit(filename = "zaba.png", overlayName = 'calib')
-sleep(2)
+sleep(5)
 
 screen.testBlit(filename = "white.png")
 sleep(1)
