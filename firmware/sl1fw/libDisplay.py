@@ -96,6 +96,8 @@ class Display(object):
                     return (event.get('id', None), event.get('pressed', None))
                 #endif
                 self.logger.warning("event page (%s) and actual page (%s) differ", event['page'], self.actualPage.pageUI)
+            elif event.get('client_type', None) == "prusa_sla_client_qt":
+                self.page_sysinfo.items['line7'] = "QT GUI version: %s" % event.get('client_version', "unknown")
             #endif
         #endfor
         return (None, None)

@@ -551,6 +551,7 @@ class PageSysInfo(Page):
                 'line2' : "System: %s" % self.display.hwConfig.os.name,
                 'line3' : "System version: %s" % self.display.hwConfig.os.version,
                 'line4' : "Firwmare version: %s" % defines.swVersion,
+                'line7' : "", # will be filled from getEvent()
                 })
     #enddef
 
