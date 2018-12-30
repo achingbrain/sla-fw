@@ -32,7 +32,7 @@ class Hardware(object):
         self._fansRequested = 0
         self._tiltToPosition = 0
 
-        self._powerLedStates= { 'normal' : 1, 'warn' : 0, 'error' : 2 }
+        self._powerLedStates= { 'normal' : 1, 'warn' : 2, 'error' : 3 }
 
         self._tiltProfiles = {
                 'homingFast'    : 0,
@@ -52,7 +52,7 @@ class Hardware(object):
                 'layer'         : 4,
                 'hold'          : 5,
                 'release'       : 6,
-                'calibration'   : 7,
+                'resinSensor'   : 7,
                 }
         # get sorted profiles names
         self._tiltProfileNames = map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1]))
@@ -93,6 +93,10 @@ class Hardware(object):
         self._towerMax = self.hwConfig.calcMicroSteps(310)
         self.towerEnd = self.hwConfig.calcMicroSteps(150)
         self.towerCalibPos = self.hwConfig.calcMicroSteps(2)
+        self._towerResinStartPos = self.hwConfig.calcMicroSteps(40)
+        self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
+        self._towerResinMin = self.hwConfig.calcMicroSteps(3.5) # cca 50 ml
+        self._towerResinMax = self.hwConfig.calcMicroSteps(14)  # cca 200 ml
 
         self.port = serial.Serial(port = defines.motionControlDevice,
                 baudrate = 115200,
@@ -468,6 +472,16 @@ class Hardware(object):
     #enddef
 
 
+    def resinSensor(self, state):
+        self._commMC("!rsen", 1 if state else 0)
+    #enddef
+
+
+    def getResinSensor(self):
+        return self._commMC("?rsen") == "1"
+    #enddef
+
+
     def getCoverState(self):
         return self._commMC("?covs") == "1"
     #enddef
@@ -750,6 +764,28 @@ class Hardware(object):
             else:
                 self.logger.error("Invalid tower profile '%s'", profile)
             #endif
+        #endif
+    #enddef
+
+
+    def getResinVolume(self):
+        self.setTowerProfile('moveFast')
+        self.towerMoveAbsoluteWait(self._towerResinStartPos) # move quickly to safe distance
+        self.resinSensor(False)
+        sleep(0.1)
+        self.resinSensor(True)
+        sleep(0.1)
+        self.setTowerProfile('resinSensor')
+        self._commMC("!rsme", self._towerResinStartPos - self._towerResinEndPos) # relative movement!
+        while not self.isTowerOnPosition():
+            sleep(0.1)
+        #endwhile
+        position = self.getTowerPositionMicroSteps()
+        if not position or position == self._towerResinEndPos:
+            return 0
+        else:
+            volume = position * 150 / (self._towerResinMax - self._towerResinMin)
+            return int(round(volume / 10.0) * 10)
         #endif
     #enddef
 

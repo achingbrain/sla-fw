@@ -209,18 +209,38 @@ class Printer(object):
         self.logger.debug(height)
         percent = int(100 * self.lastLayer / self.config.totalLayers)
         self.logger.debug("Percent: %d", percent)
-        resinCount = "(%.1f ml)" % self.expo.resinCount
+
+        if self.expo.resinVolume:
+            remain = self.expo.resinVolume - int(self.expo.resinCount)
+            if remain < defines.resinFeedWait:
+                self.expo.doFeedMe()
+                return "feedme"
+            #endif
+            if remain < defines.resinLowWarn:
+                self.hw.beepAlarm(1)
+                line4 = "Low resin (%d ml)" % remain
+            else:
+                line4 = "remain %d ml" % remain
+            #endif
+        else:
+            line4 = "%.1f ml" % self.expo.resinCount
+        #endif
+
+        items = {
+                'timeremain' : timeRemain,
+                'timeelaps' : timeElapsed,
+                'line1' : layer,
+                'line2' : height,
+                'line3' : self.config.projectName,
+                'line4' : line4,
+                'percent' : "%d%%" % percent,
+                'progress' : percent,
+                }
 
         if actualPage.pageUI == "print":
-            actualPage.showItems(
-                    timeremain = timeRemain,
-                    timeelaps = timeElapsed,
-                    line1 = layer,
-                    line2 = height,
-                    line3 = self.config.projectName,
-                    line4 = resinCount,
-                    percent = "%d%%" % percent,
-                    progress = percent)
+            actualPage.showItems(**items)
+        else:
+            self.display.page_print.setItems(**items)
         #endif
 
     #enddef
@@ -247,8 +267,6 @@ class Printer(object):
                     self.logger.warning("unknown action '%s'", action)
                     self.display.page_error.setParams(line1 = "Invalid project file")
                     self.display.doMenu("error")
-                    # nepipat na strance home
-                    self.display.page_home.firstRun = False
                     continue
                 #endif
 
@@ -256,8 +274,6 @@ class Printer(object):
                 pageWait.show()
 
                 if not self.copyZip(pageWait):
-                    # nepipat na strance home
-                    self.display.page_home.firstRun = False
                     self.dataCleanup()
                     continue
                 #endif
@@ -265,8 +281,6 @@ class Printer(object):
                 if self.checkZipErrors():
                     pageWait.showItems(line2 = "Project data OK")
                 else:
-                    # nepipat na strance home
-                    self.display.page_home.firstRun = False
                     self.dataCleanup()
                     continue
                 #endif
@@ -279,8 +293,6 @@ class Printer(object):
                     self.logger.exception("exposure exception:")
                     self.display.page_error.setParams(line2 = "Can't init exposure display")
                     self.display.doMenu("error")
-                    # nepipat na strance home
-                    self.display.page_home.firstRun = False
                     continue
                 #endtry
 
@@ -295,14 +307,6 @@ class Printer(object):
                 self.jobLog("\n%s" % (coLog))
 
                 self.hw.checkCoverStatus(self.checkPage, pageWait)  # FIXME status vlakno?
-                self.hw.uvLed(True)
-
-                if self.config.startDelay > 0:
-                    for sd in xrange(0, self.config.startDelay):
-                        pageWait.showItems(line2 = "Start delay %s minute(s)" % self.config.startDelay - sd)
-                        sleep(60)
-                    #endfor
-                #endif
 
                 pageWait.showItems(line2 = "Moving platform to top")
                 self.hw.towerSync()
@@ -311,75 +315,108 @@ class Printer(object):
                     pageWait.showItems(line3 = self.display.hw.getTowerPosition())
                 #endwhile
                 if self.hw.towerSyncFailed():
-                    self.hw.uvLed(False)
                     self.hw.motorsRelease()
                     self.display.page_error.setParams(
                             line1 = "Tower homing failed!",
                             line2 = "Check printer's hardware.",
                             line3 = "Job was canceled.")
                     self.display.doMenu("error")
-                    # nepipat na strance home
-                    self.display.page_home.firstRun = False
                     continue
                 #endif
 
                 pageWait.showItems(line2 = "Homing tank", line3 = "")
                 if not self.hw.tiltSyncWait(retries = 2):
-                    self.hw.uvLed(False)
                     self.hw.motorsRelease()
                     self.display.page_error.setParams(
                             line1 = "Tilt homing failed!",
                             line2 = "Check printer's hardware.",
                             line3 = "Job was canceled.")
                     self.display.doMenu("error")
-                    # nepipat na strance home
-                    self.display.page_home.firstRun = False
                     continue
                 #endif
 
-                self.expo.hw.setTiltProfile('layer')
+                self.hw.setTiltProfile('layer')
                 self.hw.tiltDownWait()
                 self.hw.tiltUpWait()
+
+                if self.display.hwConfig.resinSensor:
+                    pageWait.showItems(line2 = "Measuring resin volume")
+                    volume = self.hw.getResinVolume()
+                    fail = True
+
+                    if not volume:
+                        self.display.page_error.setParams(
+                                line1 = "Resin measure failed!",
+                                line2 = "Is tank filled and secured",
+                                line3 = "with both screws?")
+                    elif volume < defines.resinMinVolume:
+                        self.display.page_error.setParams(
+                                line1 = "Resin volume is too low!",
+                                line2 = "Add resin and try again.")
+                    elif volume > defines.resinMaxVolume:
+                        self.display.page_error.setParams(
+                                line1 = "Resin volume is too high!",
+                                line2 = "Remove some resin from tank",
+                                line3 = "and try again.")
+                    else:
+                        fail = False
+                    #endif
+
+                    if fail:
+                        self.hw.motorsRelease()
+                        self.display.doMenu("error")
+                        continue
+                    #endif
+
+                    pageWait.showItems(line2 = "Measured resin volume: %d ml" % volume)
+                    self.expo.setResinVolume(volume)
+                else:
+                    pageWait.showItems(line2 = "Resin volume measurement is turned off")
+                #endif
 
                 break
 
             #endwhile
 
-            # TODO - kontrola hladiny resinu atd.
+            self.hw.uvLed(True)
 
-            pageWait.showItems(line2 = "Moving tank down")
+            if self.hwConfig.warmUp > 0:
+                for sd in xrange(0, self.hwConfig.warmUp):
+                    pageWait.showItems(line3 = "Warm up: %d minute(s)" % (self.hwConfig.warmUp - sd))
+                    sleep(60)
+                #endfor
+            #endif
+
+            pageWait.showItems(line3 = "Moving tank down")
             self.hw.tiltDownWait()
-            pageWait.showItems(line2 = "Moving platform down")
+            pageWait.showItems(line3 = "Moving platform down")
             self.hw.setTowerProfile('layer')
-            self.hw.towerToPosition(1)
+            self.hw.towerToPosition(0.05)
             while not self.display.hw.isTowerOnPosition():
                 sleep(0.25)
-                pageWait.showItems(line3 = self.display.hw.getTowerPosition())
             #endwhile
 
-            pageWait.showItems(line3 = "")
-
             if self.config.tilt:
-                pageWait.showItems(line2 = "Tank calibration 1/3")
+                pageWait.showItems(line3 = "Tank calibration 1/3")
                 tiltStartTime = time()
                 self.hw.tiltUpWait()
                 self.hw.tiltDownWait()
                 tiltTime1 = time() - tiltStartTime
-                sleep(1)
+                sleep(0.5)
 
-                pageWait.showItems(line2 = "Tank calibration 2/3")
+                pageWait.showItems(line3 = "Tank calibration 2/3")
                 tiltStartTime = time()
                 self.hw.tiltUpWait()
                 self.hw.tiltDownWait()
                 tiltTime2 = time() - tiltStartTime
-                sleep(1)
+                sleep(0.5)
 
-                pageWait.showItems(line2 = "Tank calibration 3/3")
+                pageWait.showItems(line3 = "Tank calibration 3/3")
                 tiltStartTime = time()
                 self.hw.tiltUpWait()
                 self.hw.tiltDownWait()
                 tiltTime3 = time() - tiltStartTime
-                sleep(1)
+                sleep(0.5)
 
                 self.timePlus = round((tiltTime1 + tiltTime2 + tiltTime3) / 3, 3)
                 self.logger.debug("tilt time plus: %.3f (%.3f, %.3f, %.3f)",
@@ -388,7 +425,7 @@ class Printer(object):
                 self.timePlus = 5 # TODO cca, nutno doladit podle rychlosti sroubu
             #endif
 
-            self.hw.towerMoveAbsoluteWait(0)    # up move for first layer
+            self.hw.towerMoveAbsoluteWait(0)    # first layer will move up
 
             self.totalHeight = self.config.totalLayers * self.hwConfig.calcMM(self.config.layerMicroSteps)   # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
             self.lastLayer = 0

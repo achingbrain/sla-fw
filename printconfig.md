@@ -1,9 +1,13 @@
 ## action = print
-### direct = on
-rovnou zahájí tisk
 
-### autoOff = off
-po ukončení nevypíná tiskárnu
+### jobdir = "no project"
+jméno projektu
+
+### direct = off
+on - rovnou zahájí tisk
+
+### autoOff = on
+off - po ukončení nevypíná tiskárnu
 
 ### expTime = 8.0
 doba osvitu [s]
@@ -44,9 +48,6 @@ vrstva přechodu na parametry 3
 ### numFade = 10 [3;20]
 počet přechodných vrstev mezi expTimeFirst a expTime [vrstvy]
 
-### startDelay = 0
-odložení zahájení tisku [s]
-
 ### tiltDelayBefore = 0.0
 prodleva mezi osvitem a sklopením tiltu [s]
 
@@ -73,31 +74,3 @@ počet vteřin, kolik se přidá na každé kalibrační oblasti, může být fl
 
 ### calibrateInfoLayers = 10
 počet vrstev od začátku, do kterých se bude generovat informace o době osvitu (pad se nepočítá?)
-
-## action = admin
-spustí admin obrazovku (lze z ní přejít na všechny ostatní akce)
-
-## action = controlhw
-spustí obrazovku kontroly a řízení hardware
-
-## action = changehostname
-### hostname = 3dwarf
-nastaví požadované hostname
-
-## action = setupwifi
-### ssid = 
-### password = 
-nastaví wifi, ssid musí být v dosahu
-
-## action = flashdisplay
-flashne Nextion display z usb disku; soubor NX4827T043\_011R-design-orientace.tft;
-podle konfigurace design = cworks / dwarf3; orientace = nor / rot
-
-## action = update
-stejné jako usbupdate
-
-## action = usbupdate
-update systému z image uloženého na USB disku stejně jako na SD po RPi
-
-## action = netupdate
-update systému ze sítě

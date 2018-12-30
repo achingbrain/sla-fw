@@ -4,8 +4,8 @@
 
 import os
 
-swVersion = "Gen3-190-101"
-reqMcVersion = "SLA-control 0.9.4-226"
+swVersion = "Gen3-190-104"
+reqMcVersion = "SLA-control 0.9.4-232"
 
 home = "/home/root"
 
@@ -44,3 +44,8 @@ wifiSetupFile = "/etc/hostapd.secrets.json"
 
 octoprintURI = ":8000"
 octoprintAuthFile = os.path.join(configDir, "slicer-upload-api.key")
+
+resinMinVolume = 50
+resinMaxVolume = 200
+resinLowWarn = 40
+resinFeedWait = 30
