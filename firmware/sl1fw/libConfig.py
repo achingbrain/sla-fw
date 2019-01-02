@@ -265,7 +265,7 @@ class HwConfig(FileConfig):
         self.fan2Pwm = self._parseInt("fan2pwm", 100)
         self.fan3Pwm = self._parseInt("fan3pwm", 100)
         self.fan4Pwm = self._parseInt("fan4pwm", 100)
-        self.uvLedPwm = self._parseInt("uvledpwm", 100)
+        self.uvLedPwm = self._parseFloat("uvledpwm", 100.0)
         self.pwrLedPwm = self._parseInt("pwrledpwm", 100)
     #enddef
 

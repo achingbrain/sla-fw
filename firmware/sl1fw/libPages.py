@@ -2317,13 +2317,13 @@ class PageFansLeds(Page):
 
 
     def minus2g5Button(self):
-        self._value(4, 'uvledpwm', 0, 100, -5)
+        self._value(4, 'uvledpwm', 0, 100, -0.4)
         self.display.hw.setUvLedPwm(self.temp['uvledpwm'])
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 'uvledpwm', 0, 100, 5)
+        self._value(4, 'uvledpwm', 0, 100, 0.4)
         self.display.hw.setUvLedPwm(self.temp['uvledpwm'])
     #enddef
 
