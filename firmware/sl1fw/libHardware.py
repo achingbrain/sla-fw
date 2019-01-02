@@ -403,9 +403,9 @@ class Hardware(object):
 
 
     def getPowerLedPwm(self):
-        state = self._commMC("?ppwm")
+        pwm = self._commMC("?ppwm")
         try:
-            return int(state) * 5
+            return int(pwm) * 5
         except Exception:
             return -1
         #endtry
@@ -428,15 +428,17 @@ class Hardware(object):
 
 
     def setUvLedPwm(self, pwm):
-        # TODO az bude v MC
-        self.logger.debug("setUvLedPwm() - TODO")
+        self._commMC("!upwm", int(pwm * 2.5))
     #enddef
 
 
     def getUvLedPwm(self):
-        # TODO az bude v MC
-        self.logger.debug("getUvLedPwm() - TODO")
-        return -10
+        pwm = self._commMC("?upwm")
+        try:
+            return int(pwm) / 2.5
+        except Exception:
+            return -1
+        #endtry
     #enddef
 
 
