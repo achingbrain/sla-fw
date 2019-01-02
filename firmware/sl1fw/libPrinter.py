@@ -38,11 +38,10 @@ class Printer(object):
         from libQtDisply import QtDisplay
         qtdisplay = QtDisplay()
 
-#        from libWebDisplay import WebDisplay
-#        webdisplay = WebDisplay()
+        from libWebDisplay import WebDisplay
+        webdisplay = WebDisplay()
 
-#        devices = list((qtdisplay, webdisplay))
-        devices = list((qtdisplay, ))
+        devices = list((qtdisplay, webdisplay))
 
         from libScreen import Screen
         self.screen = Screen(self.hwConfig)
