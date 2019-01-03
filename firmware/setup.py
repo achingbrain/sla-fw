@@ -1,22 +1,29 @@
 from setuptools import setup, find_packages
 from glob import glob
-from os import chmod
+from os import chmod, walk, path
 from stat import S_IRUSR
+
+
 
 chmod('sl1fw/scripts/rsync-key', S_IRUSR)
 
+data_files=[]
+data_files.append(('/usr/share/sl1fw/scripts', glob('sl1fw/scripts/*')))
+data_files.append(('/etc/sl1fw', ['sl1fw/hardware.cfg']))
+data_files.append(('/usr/lib/systemd/system', ['systemd/sl1fw.service']))
+data_files.append(('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']))
+data_files.append(('/etc/nginx/sites-available', ['nginx/sl1fw']))
+
+for root, dirs, files in walk('sl1fw/intranet'):
+	data_files.append((path.join("/srv/http/intranet/", path.relpath(root, 'sl1fw/intranet')), [path.join(root, filename) for filename in files]))
+
+print(data_files)
+
 setup(
-    name="sl1fw",
-    version="0.1",
-    packages=find_packages(),
-    scripts=['sl1fw/main.py'],
-    package_data={'sl1fw': ['data/*']},
-    data_files=[('/usr/share/sl1fw/scripts', glob('sl1fw/scripts/*')),
-                ('/etc/sl1fw', ['sl1fw/hardware.cfg']),
-                ('/srv/http/intranet', glob('sl1fw/intranet/*.html')),
-                ('/srv/http/intranet/templates', glob('sl1fw/intranet/templates/*.html')),
-                ('/srv/http/intranet/static', glob('sl1fw/intranet/static/*')),
-                ('/usr/lib/systemd/system', ['systemd/sl1fw.service']),
-                ('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']),
-                ('/etc/nginx/sites-available', ['nginx/sl1fw'])]
+	name="sl1fw",
+	version="0.1",
+	packages=find_packages(),
+	scripts=['sl1fw/main.py'],
+	package_data={'sl1fw': ['data/*']},
+	data_files=data_files
 )

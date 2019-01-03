@@ -1,10 +1,8 @@
-<div class="print">
-  <p class="big" id="percent">{{ items.get('percent', "") }}</p>
-  <div id="elaps" id="timeelaps">{{ items.get('timeelaps', "") }}</div>
-  <div id="progress"><div class="{{ design }}" id="bar" style="width:{{ items.get('progress', "0") }}%;"></div></div>
-  <div id="remain">{{ items.get('timeremain', "") }}</div>
-  <p id="line1">{{ items.get('line1', "") }}</p>
-  <p id="line2">{{ items.get('line2', "") }}</p>
-  <p id="line3">{{ items.get('line3', "") }}</p>
-  <p id="line4">{{ items.get('line4', "") }}</p>
-</div>
+<div class="row" id="precent">{{ items.get('percent', "") }}</div>
+<div class="row" id="timeelaps">{{ items.get('timeelaps', "") }}</div>
+<div class="row" id="progress" id="bar">{{ items.get('progress', "0") }}</div>
+<div class="row" id="remain">{{ items.get('line4', "") }}</div>
+<div class="row" id="line1">{{ items.get('line1', "") }}</div>
+<div class="row" id="line2">{{ items.get('line2', "") }}</div>
+<div class="row" id="line3">{{ items.get('line3', "") }}</div>
+<div class="row" id="line4">{{ items.get('line4', "") }}</div>

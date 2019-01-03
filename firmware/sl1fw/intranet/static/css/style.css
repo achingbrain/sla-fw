@@ -1,0 +1,159 @@
+@font-face {
+    font-family: 'AtlasGrotesk-Light';
+    src: url('../fonts/AtlasGrotesk-Light.otf');
+}
+
+body  {
+  font-family: "AtlasGrotesk-Light";
+  font-size: 24px;
+  background: black;
+  color: white;
+}
+
+/*********************
+ * Header (top menu) *
+ *********************/
+
+.header .button {
+	flex-direction: column;
+}
+
+.header .button div.frame {
+	width: 64px;
+    height: 64px;
+	align-items: center;
+    justify-content: center;
+}
+.header .button div.frame:hover {
+	background-color: orange;
+}
+
+.header .button div.image {
+	width: 50%;
+	height: 50%;
+	background-position: center;
+    background-repeat: no-repeat;
+	background-size: contain;
+}
+
+.header #page {
+	text-transform: capitalize;
+}
+
+
+
+/************************************
+ * Horizontal menu (like home page) *
+ ************************************/
+div.menu div.button {
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+div.menu div.button div.frame {
+	width: 128px;
+	height: 128px;
+	border-radius: 7px;
+	background-color: grey;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+	align-items: center;
+	justify-content: center;
+}
+div.menu div.button.yes div.frame {
+	background-color: green;
+}
+div.menu div.button.no div.frame {
+	background-color: red;
+}
+div.menu div.button div.frame:hover {
+	background-color: orange !important;
+}
+
+div.menu div.button div.image {
+	width: 50%;
+	height: 50%;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+	text-align: center;
+}
+
+div.menu.small div.button div.image {
+	width: 100% !important;
+	height: 100% !important;
+}
+
+div.menu div.button div.title {
+	text-align: center;
+	text-transform: capitalize;
+	margin: 7px;
+}
+
+div.menu div.button div.frame.back {
+	width: 172px;
+	height: 64px;
+	background-color: transparent;
+}
+
+div.menu div.button div.frame.exposure {
+	width: 64px;
+	height: 64px;
+}
+
+div.menu.small div.button div.frame {
+	width: 256px;
+	height: 32px;
+}
+
+
+/*****************************
+ * Text with confirm buttons *
+ *****************************/
+div.confirm {
+	display: flex;
+	flex-direction: column;
+}
+
+
+/*****************
+ * Button images *
+ *****************/
+
+/** Generic back */
+#back div.frame.back div.image {
+	background-image:url('../img/buttons/back_white.svg');	
+}
+
+/* Confirm dialog */
+#cont div.image {
+	background-image:url('../img/buttons/yes_color.svg');	
+}
+
+#back div.image {
+	background-image:url('../img/buttons/no_color.svg');	
+}
+
+/* Home */
+#print div.image {
+	background-image:url('../img/buttons/print_color.svg');
+}
+
+#control div.image { 
+	background-image:url('../img/buttons/control_color.svg');
+}
+
+#settings div.image {
+	background-image:url('../img/buttons/settings_color.svg');
+}
+
+#turnoff div.image {
+	background-image:url('../img/buttons/turn_off_color.svg');
+}
+
+/* Control */
+#tankres div.image {
+	background-image:url('../img/buttons/tank_reset_color.svg');
+}

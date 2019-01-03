@@ -1,13 +1,24 @@
-<div class="textframe">
-  <div>
-    <p class="center" id="line1">{{ items.get('line1', "") }}</p>
-    <p class="center" id="line2">{{ items.get('line2', "") }}</p>
-    <p class="center" id="line3">{{ items.get('line3', "") }}</p>
-  </div>
+<div class="row" id="line1">{{ items.get('line1', "") }}</div>
+<div class="row justify-content-begin menu">
+	<div class="col-md-auto button d-flex click" id="usb">
+		<div class="frame d-flex">
+			<div class="image"></div>
+		</div>
+		<div class="title">USB</div>
+	</div>
+	<div class="col-md-auto button d-flex click" id="lan">
+		<div class="frame d-flex">
+			<div class="image"></div>
+		</div>
+		<div class="title">LAN</div>
+	</div>
 </div>
-<div class="left gray click" id="usb">
-  <img src="static/B_usb.svg" alt="USB">
-</div>
-<div class="right {{ design }} click" id="lan">
-  <img src="static/B_lan.svg" alt="LAN">
+<div class="row" id="line2">{{ items.get('line2', "") }}</div>
+<div class="row" id="line3">{{ items.get('line3', "") }}</div>
+<div class="row justify-content-end menu">
+	<div class="col-md-auto button d-flex click" id="back">
+		<div class="frame back d-flex">
+			<div class="image"> </div>
+		</div>
+	</div>
 </div>

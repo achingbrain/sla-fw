@@ -25,17 +25,20 @@ class WebDisplayServer(SocketServer):
         #self.logger.debug("data: '%s'", str(data))
         output = dict()
 
-        design = "dwarf3"   # TODO
-
         try:
 
             if data['command'] == "showPage":
 
                 self.newClientData = data
                 page = data['page']
-                content = self.jinja.get_template("_%sC.html" % page).render(items = data, design = design)
-                header = self.jinja.get_template("_%sH.html" % page).render(design = design)
-                html = self.jinja.get_template('layout.html').render(content = content, header = header, design = design, page = page)
+                content = self.jinja.get_template("_%sC.html" % page).render(items = data)
+                try:
+                    header_template = self.jinja.get_template("_%sH.html" % page)
+                except:
+                    header_template = self.jinja.get_template("_head.html")
+                header = header_template.render(items = data, page = page)
+                
+                html = self.jinja.get_template('layout.html').render(content = content, header = header, page = page)
                 #self.logger.debug("HTML: '%s'", html.replace("\n", " | "))
                 output['type'] = "page"
                 output['content'] = html

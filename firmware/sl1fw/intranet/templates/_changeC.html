@@ -1,13 +1,21 @@
-<div class="left lightgray click" id="addsecond">
-  <img src="static/B_secondadd.svg" alt="Second +">
+<div class="row justify-content-center">Exposure [seconds]</div>
+<div class="row justify-content-center align-items-center menu">
+	<div class="col-md-auto button d-flex click" id="subsecond">
+		<div class="frame exposure d-flex">
+			<div class="image"></div>
+		</div>
+	</div>
+	<div class="col-md-auto" id="timeexpos">{{ items.get('timeexpos', "") }}</div>
+	<div class="col-md-auto button d-flex click" id="addsecond">
+		<div class="frame exposure d-flex">
+			<div class="image"></div>
+		</div>
+	</div>
 </div>
-<div class="right black">
-  <p class="timeexpos">{{ items.get('timeexpos', "") }}</p>
-  <img src="static/B_exposuretime.svg" alt="Exposure time">
-</div>
-<div class="left gray click" id="subsecond">
-  <img src="static/B_secondsub.svg" alt="Second -">
-</div>
-<div class="right {{ design }} click" id="back">
-  <img src="static/B_back.svg" alt="Back">
+<div class="row justify-content-end menu">
+	<div class="col-md-auto button d-flex click" id="back">
+		<div class="frame back d-flex">
+			<div class="image"> </div>
+		</div>
+	</div>
 </div>

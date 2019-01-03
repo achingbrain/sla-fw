@@ -1,12 +1,10 @@
-<div class="systext">
-  <p id="line1">{{ items.get('line1', "") }}</p>
-  <p id="line2">{{ items.get('line2', "") }}</p>
-  <p id="line3">{{ items.get('line3', "") }}</p>
-  <p id="line4">{{ items.get('line4', "") }}</p>
-  <p id="line5">{{ items.get('line5', "") }}</p>
-  <p id="line6">{{ items.get('line6', "") }}</p>
-  <p id="line7">{{ items.get('line7', "") }}</p>
-  <p id="line8">{{ items.get('line8', "") }}</p>
-  <p id="line9">{{ items.get('line9', "") }}</p>
-  <p id="line10">{{ items.get('line10', "") }}</p>
+{% for item in range(10) -%}
+<div class="row" id="line{{ item }}">{{ items.get('line' + item|string, "") }}</div>
+{%- endfor %}
+<div class="row justify-content-end menu">
+	<div class="col-md-auto button d-flex click" id="back">
+		<div class="frame back d-flex">
+			<div class="image"> </div>
+		</div>
+	</div>
 </div>

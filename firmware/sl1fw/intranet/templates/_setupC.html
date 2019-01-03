@@ -1,0 +1,28 @@
+{% for item in range(1, 8) -%}
+<div class="row form-group">
+	<div class="col-lg-4">{{ items.get('label1g' + item|string, "") }}</div>
+	<div class="col-1 btn-group-toggle click" data-toggle="buttons" id="state1g{{ item }}">
+		<label class="btn btn-outline-secondary logic {%- if items.get('state1g' + item|string, "0") %} active {% endif %}">
+			<input type="checkbox" autocomplete="off">
+		</label>
+	</div>
+	<div class="col-lg-4">{{ items.get('label2g' + item|string, "") }}</div>
+	<button class="col-md-auto btn btn-primary click" type="submit" id="minus2g{{ item }}">-</button>
+	<div class="col-2 text-center" id="value2g{{ item }}">{{ items.get('value2g' + item|string, "") }}</div>
+	<button class="col-md-auto btn btn-primary click" type="submit" id="plus2g{{ item }}">+</button>
+</div>
+{%- endfor %}
+
+<div class="row justify-content-around form-group">
+	{% for item in range(1, 5) -%}
+	<button class="col-md-auto form-group btn btn-primary click" type="submit" id="button{{ item }}">{{ items.get('button' + item|string, "") }}</button>
+	{%- endfor %}
+</div>
+
+<div class="row justify-content-end menu">
+	<div class="col-md-auto button d-flex click" id="back">
+		<div class="frame back d-flex">
+			<div class="image"> </div>
+		</div>
+	</div>
+</div>

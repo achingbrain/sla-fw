@@ -1,12 +1,22 @@
-<div class="left black click" id="top">
-  <img src="static/B_up5mm.svg" alt="Up 5 mm">
+<div class="row justify-content-start menu">
+	<div class="col-md-auto button d-flex click" id="top">
+		<div class="frame d-flex">
+			<div class="image"> </div>
+		</div>
+		<div class="title">homing platform</div>
+	</div>
+	<div class="col-md-auto button d-flex click" id="tankres">
+		<div class="frame d-flex">
+			<div class="image"> </div>
+		</div>
+		<div class="title">homing resin tank</div>
+	</div>
 </div>
-<div class="right gray click" id="tankres">
-  <img src="static/B_tankreset.svg" alt="Tank reset">
-</div>
-<div class="left gray click" id="up">
-  <img src="static/B_up50mm.svg" alt="Up 50 mm">
-</div>
-<div class="right {{ design }} click" id="back">
-  <img src="static/B_back.svg" alt="Back">
+<div class="row justify-content-end menu">
+	<div class="col">{{ items.get("image_version", "") }}</div>
+	<div class="col-md-auto button d-flex click" id="back">
+		<div class="frame back d-flex">
+			<div class="image"> </div>
+		</div>
+	</div>
 </div>

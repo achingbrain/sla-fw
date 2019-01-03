@@ -1,7 +1,4 @@
-<div class="page">
-  <div id="page" style="display: none;">{{ page }}</div>
-  <div id="logo"><img src="static/logo_{{ design }}.svg" alt="{{ design }} logo"></div>
-  <div id="header">{{ header|safe }}</div>
-  <hr />
-  <div id="content">{{ content|safe }}</div>
+<div id="page" class="page container" data-page="{{ page }}" class="page-{{ page }}">
+{{ header|safe }}
+{{ content|safe }}
 </div>
