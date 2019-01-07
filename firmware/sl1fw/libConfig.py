@@ -248,8 +248,6 @@ class HwConfig(FileConfig):
     #enddef
 
     def _parseData(self):
-        self.sn = self._parseString("sn", "999999")
-        self.design = self._parseString("design", "prusa")
         self.fanCheck = self._parseBool("fancheck", False)
         self.coverCheck = self._parseBool("covercheck", False)
         self.MCversionCheck = self._parseBool("mcversioncheck", True)
@@ -260,6 +258,8 @@ class HwConfig(FileConfig):
         self.calibrated = self._parseBool("calibrated", False)
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(128)) # safe value
         self.tiltHeight = self._parseInt("tiltheight", 1600) # 100 steps 16 microsteps each
+        self.resinSensor = self._parseBool("resinsensor", False)
+        self.warmUp = self._parseInt("warmup", 0)
 
         self.fan1Pwm = self._parseInt("fan1pwm", 100)
         self.fan2Pwm = self._parseInt("fan2pwm", 100)
@@ -451,8 +451,7 @@ class PrintConfig(FileConfig):
         self.action = self._parseString("action")
         self.projectName = self._parseString("jobdir", "no project")
         self.direct = self._parseBool("direct", False)
-
-        self.autoOff = self._parseBool("autooff", False if self._hwConfig.sn == "123456" else True)
+        self.autoOff = self._parseBool("autooff", True)
 
         self.expTime = self._parseFloat("exptime", 8.0)
         self.expTime2 = self._parseFloat("exptime2", self.expTime)
@@ -479,7 +478,6 @@ class PrintConfig(FileConfig):
         self.slice3 = self._parseInt("slice3", 9999999) # vrstva prechodu na parametry3
         self.fadeLayers = self._parseIntMinMax("numfade", 10, 3, 200)
 
-        self.startDelay = self._parseInt("startdelay", 0)
         self.tiltDelayBefore = self._parseFloat("tiltdelaybefore", 0.0)
         self.tiltDelayAfter = self._parseFloat("tiltdelayafter", 0.0)
         self.upAndDownWait = self._parseInt("upanddownwait", 10)

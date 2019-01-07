@@ -18,6 +18,7 @@ class Page(object):
         self.display = display
         self.autorepeat = {}
         self.callbackPeriod = None
+        self.stack = True
         self.fill()
     #enddef
 
@@ -46,6 +47,11 @@ class Page(object):
         for device in self.display.devices:
             device.showItems(kwargs)
         #endfor
+    #enddef
+
+
+    def setItems(self, **kwargs):
+        self.items.update(kwargs)
     #enddef
 
 
@@ -201,6 +207,7 @@ class PageConfirm(Page):
         self.pageUI = "confirm"
         self.pageTitle = "Confirm"
         super(PageConfirm, self).__init__(display)
+        self.stack = False
     #enddef
 
 
@@ -547,7 +554,7 @@ class PageSysInfo(Page):
         self.pageTitle = "System Information"
         super(PageSysInfo, self).__init__(display)
         self.items.update({
-                'line1' : "Serial number: %s" % self.display.hwConfig.sn,
+                'line1' : "Serial number: %s" % "#TODO#",   # read from A64 board
                 'line2' : "System: %s" % self.display.hwConfig.os.name,
                 'line3' : "System version: %s" % self.display.hwConfig.os.version,
                 'line4' : "Firwmare version: %s" % defines.swVersion,
@@ -680,7 +687,7 @@ class PageAbout(Page):
         self.pageTitle = "About"
         super(PageAbout, self).__init__(display)
         self.items.update({
-                "line1" : "(c) 2018 Prusa Research s.r.o.",
+                "line1" : "2018-2019 Prusa Research s.r.o.",
                 "line2" : "www.prusa3d.com",
 #                "qr1" : "https://www.prusa3d.com",
                 "qr1" : "MECARD:N:Prusa Research s.r.o.;URL:www.prusa3d.com;EMAIL:info@prusa3d.com;;",
@@ -816,6 +823,7 @@ class PageError(Page):
         self.pageUI = "error"
         self.pageTitle = "Error"
         super(PageError, self).__init__(display)
+        self.stack = False
     #enddef
 
 
@@ -892,6 +900,7 @@ class PageTiltTower(Page):
         if retc == "error":
             return retc
         #endif
+        self.display.hw.setTiltProfile('layer')
         self.display.hw.beepEcho()
         sleep(1)
         pageWait.showItems(line2 = "Tilt up")
@@ -1073,10 +1082,11 @@ class PageAdmin(Page):
                 'button7' : "Erase MC EEPROM",
                 'button8' : "MC2Net (bootloader)",
                 'button9' : "MC2Net (firmware)",
+                'button10' : "Networking",
 
-                'button11' : "Networking",
-                'button12' : "USB update",
-                'button13' : "Net update",
+                'button11' : "USB update",
+                'button12' : "Net update",
+                'button13' : "Resin sensor test",
                 'button14' : "Keyboard test",
 
                 'back' : "Back",
@@ -1186,12 +1196,12 @@ class PageAdmin(Page):
     #enddef
 
 
-    def button11ButtonRelease(self):
+    def button10ButtonRelease(self):
         return "networking"
     #enddef
 
 
-    def button12ButtonRelease(self):
+    def button11ButtonRelease(self):
         # check new firmware defines
         osConfig = libConfig.OsConfig(os.path.join(defines.usbUpdatePath, "etc/os-release"))
         osConfig.logAllItems()
@@ -1215,7 +1225,7 @@ class PageAdmin(Page):
     #enddef
 
 
-    def button13ButtonRelease(self):
+    def button12ButtonRelease(self):
         # check network connection
         if self.display.inet.getIp() != "none":
             # download version info
@@ -1310,6 +1320,52 @@ class PageAdmin(Page):
     #enddef
 
 
+    def button13ButtonRelease(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display, line2 = "Moving platform to top")
+        pageWait.show()
+        retc = self._syncTower(pageWait)
+        if retc == "error":
+            return retc
+        #endif
+        pageWait.showItems(line2 = "Tilt home", line3 = "")
+        pageWait.show()
+        retc = self._syncTilt()
+        if retc == "error":
+            return retc
+        #endif
+        self.display.hw.tiltUpWait()
+        self.display.hw.powerLed("normal")
+
+        self.display.page_confirm.setParams(
+                continueFce = self.button13Continue,
+                line1 = "Is tank filled and secured",
+                line2 = "with both screws?")
+        return "confirm"
+    #enddef
+
+
+    def button13Continue(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display, line2 = "Measuring")
+        pageWait.show()
+        volume = self.display.hw.getResinVolume()
+        self.display.hw.powerLed("normal")
+        if not volume:
+            self.display.page_error.setParams(
+                    line1 = "Resin measure failed!",
+                    line2 = "Is tank filled and secured",
+                    line3 = "with both screws?")
+            return "error"
+        #endif
+
+        self.display.page_confirm.setParams(
+                continueFce = self.backButtonRelease,
+                line1 = "Measured resin volume: %d ml" % volume)
+        return "confirm"
+    #enddef
+
+
     def button14ButtonRelease(self):
         return "keyboard"
     #enddef
@@ -1332,10 +1388,12 @@ class PageSetup(Page):
                 'label1g1' : "Fan check",
                 'label1g2' : "Cover check",
                 'label1g3' : "MC version check",
+                'label1g4' : "Use resin sensor",
 
                 'label2g1' : "Screw (mm/rot)",
                 'label2g2' : "Tower msteps",
                 'label2g3' : "Tilt msteps",
+                'label2g4' : "Warm up mins",
 
                 'button1' : "Export",
                 'button2' : "Import",
@@ -1352,18 +1410,22 @@ class PageSetup(Page):
         self.temp['screwmm'] = self.display.hwConfig.screwMm
         self.temp['towerheight'] = self.display.hwConfig.towerHeight
         self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
+        self.temp['warmup'] = self.display.hwConfig.warmUp
 
         self.items['value2g1'] = str(self.temp['screwmm'])
         self.items['value2g2'] = str(self.temp['towerheight'])
         self.items['value2g3'] = str(self.temp['tiltheight'])
+        self.items['value2g4'] = str(self.temp['warmup'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
         self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
+        self.temp['resinsensor'] = self.display.hwConfig.resinSensor
 
         self.items['state1g1'] = 1 if self.temp['fancheck'] else 0
         self.items['state1g2'] = 1 if self.temp['covercheck'] else 0
         self.items['state1g3'] = 1 if self.temp['mcversioncheck'] else 0
+        self.items['state1g4'] = 1 if self.temp['resinsensor'] else 0
 
         super(PageSetup, self).show()
     #enddef
@@ -1426,6 +1488,11 @@ class PageSetup(Page):
     #enddef
 
 
+    def state1g4ButtonRelease(self):
+        self._onOff(3, 'resinsensor')
+    #enddef
+
+
     def minus2g1Button(self):
         return self._value(0, 'screwmm', 2, 8, -1)
     #enddef
@@ -1453,6 +1520,16 @@ class PageSetup(Page):
 
     def plus2g3Button(self):
         return self._value(2, 'tiltheight', 1, 1600, 1)
+    #enddef
+
+
+    def minus2g4Button(self):
+        return self._value(3, 'warmup', 0, 30, -1)
+    #enddef
+
+
+    def plus2g4Button(self):
+        return self._value(3, 'warmup', 0, 30, 1)
     #enddef
 
 #endclass
@@ -2162,6 +2239,7 @@ class PageFansLeds(Page):
                 'label1g4' : "Fan 4",
                 'label1g5' : "UV LED",
                 'label1g6' : "Cam LED",
+                'label1g8' : "Resin sensor",
 
                 'label2g1' : "Fan 1 PWM",
                 'label2g2' : "Fan 2 PWM",
@@ -2192,12 +2270,14 @@ class PageFansLeds(Page):
         self.temp['fs1'], self.temp['fs2'], self.temp['fs3'], self.temp['fs4'] = self.display.hw.getFans()
         self.temp['uls'] = self.display.hw.getUvLedState()
         self.temp['cls'] = self.display.hw.getCameraLedState()
+        self.temp['rsr'] = self.display.hw.getResinSensor()
         self._setItem(items, 'state1g1', self.temp['fs1'])
         self._setItem(items, 'state1g2', self.temp['fs2'])
         self._setItem(items, 'state1g3', self.temp['fs3'])
         self._setItem(items, 'state1g4', self.temp['fs4'])
         self._setItem(items, 'state1g5', self.temp['uls'])
         self._setItem(items, 'state1g6', self.temp['cls'])
+        self._setItem(items, 'state1g8', self.temp['rsr'])
 
         self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm'] = self.display.hw.getFansPwm()
         self.temp['uvledpwm'] = self.display.hw.getUvLedPwm()
@@ -2265,6 +2345,12 @@ class PageFansLeds(Page):
     def state1g6ButtonRelease(self):
         self._onOff(5, 'cls')
         self.display.hw.cameraLed(self.temp['cls'])
+    #enddef
+
+
+    def state1g8ButtonRelease(self):
+        self._onOff(7, 'rsr')
+        self.display.hw.resinSensor(self.temp['rsr'])
     #enddef
 
 
@@ -2341,13 +2427,13 @@ class PageFansLeds(Page):
 
 
     def minus2g7Button(self):
-        self._value(6, 'pwrledstt', 0, 2, -1)
+        self._value(6, 'pwrledstt', 0, 3, -1)
         self.display.hw.powerLedRaw(self.temp['pwrledstt'])
     #enddef
 
 
     def plus2g7Button(self):
-        self._value(6, 'pwrledstt', 0, 2, 1)
+        self._value(6, 'pwrledstt', 0, 3, 1)
         self.display.hw.powerLedRaw(self.temp['pwrledstt'])
     #enddef
 
@@ -2495,6 +2581,56 @@ class PageNetworkState(Page):
 
     def netChange(self):
         self.showItems(**self.fillData())
+    #enddef
+
+#endclass
+
+
+class PageFeedMe(Page):
+
+    def __init__(self, display, expo):
+        self.pageUI = "error"
+        self.pageTitle = "Feed me"
+        super(PageFeedMe, self).__init__(display)
+        self.expo = expo
+        self.items.update({
+            'line1' : "The resin came off.",
+            'line2' : "Fill the tank and press back.",
+            })
+    #enddef
+
+
+    def show(self):
+        super(PageFeedMe, self).show()
+        self.display.hw.powerLed("error")
+    #enddef
+
+
+    def backButtonRelease(self):
+        self.display.hw.powerLed("normal")
+        self.expo.setResinVolume(350)
+        self.expo.doContinue()
+        return super(PageFeedMe, self).backButtonRelease()
+    #enddef
+
+
+    def turnoffButtonRelease(self):
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+                continueFce = self.exitPrint,
+                line1 = "Do you really want to",
+                line2 = "cancel actual job",
+                line3 = "and turn off the printer?")
+        return "confirm"
+    #enddef
+
+
+    def exitPrint(self):
+        self.expo.doExitPrint()
+        self.display.page_systemwait.fill(
+                line2 = "Job will be canceled",
+                line3 = "after layer finish")
+        return "systemwait"
     #enddef
 
 #endclass

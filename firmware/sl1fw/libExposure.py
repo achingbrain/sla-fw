@@ -11,6 +11,7 @@ from time import sleep
 import defines
 
 import libPages
+import libDisplay
 
 class ExposureThread(threading.Thread):
 
@@ -173,6 +174,43 @@ class ExposureThread(threading.Thread):
                     break
                 #endif
 
+                if command == "feedme":
+                    self.expo.hw.powerLed("warn")
+                    command = None
+                    breakFree = set(("exit", "continue"))
+                    while not command:
+                        self.expo.hw.beepAlarm(3)
+                        sleep(1)
+
+                        try:
+                            command = self.commands.get_nowait()
+                        except Queue.Empty:
+                            command = None
+                        except Exception:
+                            self.logger.exception("getCommand exception")
+                            command = None
+                        #endtry
+
+                        if command in breakFree:
+                            break
+                        #endif
+                    #endwhile
+
+                    if command == "exit":
+                        break
+                    #endif
+
+                    pageWait = libPages.PageWait(self.expo.display, line2 = "Tank reset")
+                    pageWait.show()
+                    self.expo.hw.tiltUpWait()
+                    self.expo.hw.tiltDownWait()
+                    self.expo.hw.tiltUpWait()
+                    self.expo.hw.tiltDownWait()
+
+                    self.expo.hw.powerLed("normal")
+                    self.expo.display.actualPage.show()
+                #endif
+
                 if config.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % config.upAndDownEveryLayer:
                     self.doUpAndDown()
                     self.expo.display.actualPage.show()
@@ -244,7 +282,7 @@ class ExposureThread(threading.Thread):
                     line1 = "Job " + ("is finished" if self.expo.actualLayer == totalLayers else "was canceled"),
                     line2 = "Total height %.3f mm" % self.expo.hwConfig.calcMM(self.expo.position),
                     line3 = "%s" % config.projectName,
-                    line4 = "(%.1f ml)" % self.expo.resinCount,
+                    line4 = "",
                     percent = "100%",
                     progress = 100)
 
@@ -287,6 +325,7 @@ class Exposure(object):
         self.expoThread = ExposureThread(self.expoCommands, self)
         self.exception = None
         self.resinCount = 0.0
+        self.resinVolume = None
         self.pixelSize = self.hwConfig.pixelSize ** 2
         self.areaMap = {
                 2 : (2,1),
@@ -320,6 +359,22 @@ class Exposure(object):
 
     def doExitPrint(self):
         self.expoCommands.put("exit")
+    #enddef
+
+
+    def doFeedMe(self):
+        self.expoCommands.put("feedme")
+    #enddef
+
+
+    def doContinue(self):
+        self.expoCommands.put("continue")
+    #enddef
+
+
+    def setResinVolume(self, volume):
+        self.resinCount = 0.0
+        self.resinVolume = volume
     #enddef
 
 #endclass

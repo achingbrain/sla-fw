@@ -52,13 +52,13 @@ class Display(object):
         self.page_networking = libPages.PageNetworking(self)
         self.page_networkstate = libPages.PageNetworkState(self)
 
-        self.noBackPages = set(("error", "confirm"))
         self.actualPage = self.page_intro
     #enddef
 
 
     def initExpoPages(self, expo):
         self.page_homeprint = libPages.PageHomePrint(self, expo)
+        self.page_feedme = libPages.PageFeedMe(self, expo)
     #enddef
 
 
@@ -97,7 +97,7 @@ class Display(object):
                 #endif
                 self.logger.warning("event page (%s) and actual page (%s) differ", event['page'], self.actualPage.pageUI)
             elif event.get('client_type', None) == "prusa_sla_client_qt":
-                self.page_sysinfo.items['line7'] = "QT GUI version: %s" % event.get('client_version', "unknown")
+                self.page_sysinfo.setItems(line7 = "QT GUI version: %s" % event.get('client_version', "unknown"))
             #endif
         #endfor
         return (None, None)
@@ -119,8 +119,15 @@ class Display(object):
             # old style callbacks (TODO:remove)
             if callback is not None and (now - callbackTimeOld).total_seconds() > callbackPeriod:
                 callbackTimeOld = now
-                if callback(self.actualPage) == "_EXIT_MENU_":
+                newPage = callback(self.actualPage)
+                if newPage == "_EXIT_MENU_":
                     break
+                elif newPage is not None:
+                    if self.actualPage.stack:
+                        self.pageStack.append(self.actualPage)
+                    #endif
+                    self.setPage(newPage)
+                    continue
                 #endif
             #endif
 
@@ -171,7 +178,7 @@ class Display(object):
                     elif newPage == "_EXIT_MENU_":
                         return True
                     elif newPage is not None:
-                        if self.actualPage.pageUI not in self.noBackPages:
+                        if self.actualPage.stack:
                             self.pageStack.append(self.actualPage)
                         #endif
                         autorepeatFce = None
