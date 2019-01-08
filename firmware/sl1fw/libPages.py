@@ -1389,6 +1389,7 @@ class PageSetup(Page):
                 'label1g2' : "Cover check",
                 'label1g3' : "MC version check",
                 'label1g4' : "Use resin sensor",
+                'label1g5' : "Log tilt load",
 
                 'label2g1' : "Screw (mm/rot)",
                 'label2g2' : "Tower msteps",
@@ -1421,11 +1422,13 @@ class PageSetup(Page):
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
         self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
         self.temp['resinsensor'] = self.display.hwConfig.resinSensor
+        self.temp['logtiltload'] = self.display.hwConfig.logTiltLoad
 
         self.items['state1g1'] = 1 if self.temp['fancheck'] else 0
         self.items['state1g2'] = 1 if self.temp['covercheck'] else 0
         self.items['state1g3'] = 1 if self.temp['mcversioncheck'] else 0
         self.items['state1g4'] = 1 if self.temp['resinsensor'] else 0
+        self.items['state1g5'] = 1 if self.temp['logtiltload'] else 0
 
         super(PageSetup, self).show()
     #enddef
@@ -1490,6 +1493,11 @@ class PageSetup(Page):
 
     def state1g4ButtonRelease(self):
         self._onOff(3, 'resinsensor')
+    #enddef
+
+
+    def state1g5ButtonRelease(self):
+        self._onOff(4, 'logtiltload')
     #enddef
 
 
@@ -2137,7 +2145,7 @@ class PageTiltProfiles(ProfilesPage):
     def __init__(self, display):
         self.profilesFilename = "tilt_profiles.json"
         self.profilesNames = display.hw.getTiltProfilesNames()
-        self.profiles = display.hw.getTiltProfiles()
+        self.profiles = None
         self.pageTitle = "Admin - Tilt Profiles"
         super(PageTiltProfiles, self).__init__(display)
     #enddef
@@ -2145,6 +2153,9 @@ class PageTiltProfiles(ProfilesPage):
 
     def show(self):
         super(PageTiltProfiles, self).show()
+        if not self.profiles:
+            self.profiles = self.display.hw.getTiltProfiles()
+        #endif
         self._setProfile()
         self.display.page_tiltmove.changeProfiles(False)
     #enddef
@@ -2161,13 +2172,14 @@ class PageTiltProfiles(ProfilesPage):
         ''' save '''
         self.display.page_tiltmove.changeProfiles(True)
         self.display.hw.setTiltProfiles(self.profiles)
+        self.profiles = None
         return super(PageTiltProfiles, self).backButtonRelease()
     #enddef
 
 
     def backButtonRelease(self):
         self.display.page_tiltmove.changeProfiles(True)
-        self.profiles = self.display.hw.getTiltProfiles()
+        self.profiles = None
         return super(PageTiltProfiles, self).backButtonRelease()
     #endif
 
@@ -2179,7 +2191,7 @@ class PageTowerProfiles(ProfilesPage):
     def __init__(self, display):
         self.profilesFilename = "tower_profiles.json"
         self.profilesNames = display.hw.getTowerProfilesNames()
-        self.profiles = display.hw.getTowerProfiles()
+        self.profiles = None
         self.pageTitle = "Admin - Tower Profiles"
         super(PageTowerProfiles, self).__init__(display)
     #enddef
@@ -2187,6 +2199,9 @@ class PageTowerProfiles(ProfilesPage):
 
     def show(self):
         super(PageTowerProfiles, self).show()
+        if not self.profiles:
+            self.profiles = self.display.hw.getTowerProfiles()
+        #endif
         self._setProfile()
         self.display.page_towermove.changeProfiles(False)
     #enddef
@@ -2203,13 +2218,14 @@ class PageTowerProfiles(ProfilesPage):
         ''' save '''
         self.display.page_towermove.changeProfiles(True)
         self.display.hw.setTowerProfiles(self.profiles)
+        self.profiles = None
         return super(PageTowerProfiles, self).backButtonRelease()
     #enddef
 
 
     def backButtonRelease(self):
         self.display.page_towermove.changeProfiles(True)
-        self.profiles = self.display.hw.getTowerProfiles()
+        self.profiles = None
         return super(PageTowerProfiles, self).backButtonRelease()
     #enddef
 

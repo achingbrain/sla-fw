@@ -259,6 +259,7 @@ class HwConfig(FileConfig):
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(128)) # safe value
         self.tiltHeight = self._parseInt("tiltheight", 1600) # 100 steps 16 microsteps each
         self.resinSensor = self._parseBool("resinsensor", False)
+        self.logTiltLoad = self._parseBool("logtiltload", False)
         self.warmUp = self._parseInt("warmup", 0)
 
         self.fan1Pwm = self._parseInt("fan1pwm", 100)
