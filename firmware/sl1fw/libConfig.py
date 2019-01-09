@@ -347,6 +347,7 @@ class PrintConfig(FileConfig):
         self._name = "PrintConfig"
         self._hwConfig = hwConfig
         self.final = False
+        self.zipName = None
         super(PrintConfig, self).__init__(configFile)
     #enddef
 
@@ -355,75 +356,43 @@ class PrintConfig(FileConfig):
         raise Exception("Not implemented!")
     #enddef
 
-    def parseFile(self, configFile):
-        super(PrintConfig, self).parseFile(configFile)
+    def parseFile(self, zipFile):
+        super(PrintConfig, self).parseFile(zipFile)
+        self._logger.debug("Trying DWZ file'%s'", zipFile)
 
-        self.zipName = None
-        self.loadSrc = "USB"
-
-        if configFile is not None:
-            if not self.configFound:
-                # kdyz nemame config.ini, zkusime jeste novy format projektu
-                try:
-                    dirName = os.path.dirname(configFile)
-                    self._logger.debug("Looking for DWZ files in '%s'", dirName)
-                    for infile in [ f for f in os.listdir(dirName) if os.path.isfile(os.path.join(dirName, f)) ]:
-                        fName, fExt = os.path.splitext(infile)
-                        if fExt.lower() == ".dwz":
-                            projFullName = os.path.join(dirName, infile)
-                            projFile = zipfile.ZipFile(projFullName)
-                            self.parseText(projFile.read(defines.configFile))
-                            if len(self.action):
-                                self._logger.debug("Found DWZ file '%s'", projFullName)
-                                self.zipName = projFullName
-                                self.configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
-                                self.configFound = True
-                                if dirName == defines.ramdiskPath:
-                                    # soubor je v ramdisku -> nahrano po LAN
-                                    self.loadSrc = "LAN"
-                                #endif
-                                break
-                            #endif
-                        #endif
-                    #endfor
-                except OSError:
-                    pass
-                except Exception as e:
-                    self._logger.exception("DWZ lookup exception:")
-                #endtry
-            else:
-                # nalezeni zip souboru pro variantu s externim config.ini
-                dirName = os.path.dirname(self.configFile)
-                # config na USB, ale ne v jeho rootu
-                zipDir = dirName
-                if dirName == defines.ramdiskPath:
-                    # config je v ramdisku -> nahrano po LAN
-                    self.loadSrc = "LAN"
-                elif dirName == defines.usbPath:
-                    # config v rootu USB, nutno pridat projectName
-                    zipDir = os.path.join(dirName, self.projectName)
-                #endif
-
-                self._logger.debug("Looking for ZIP files in '%s'", zipDir)
-                try:
-                    for infile in [ f for f in os.listdir(zipDir) if os.path.isfile(os.path.join(zipDir, f)) ]:
-                        fName, fExt = os.path.splitext(infile)
-                        if fExt.lower() == ".zip" and fName == self.projectName:
-                            self.zipName = os.path.join(zipDir, infile)
-                            self._logger.debug("Found ZIP file '%s'", self.zipName)
-                            break
-                        #endif
-                    #endfor
-                except OSError:
-                    pass
-                except Exception as e:
-                    self._logger.exception("ZIP lookup exception:")
-                #endtry
-
-            #endif
-            self.readZipFile()
+        # ????
+        if zipFile is None:
+            return
         #endif
-    #enddef
+
+        if not os.path.isfile(zipFile):
+            self._logger.exception("DWZ lookup exception: file not exits: " + zipFile)
+        #endif
+
+        try:
+            projFile = zipfile.ZipFile(zipFile)
+            self.parseText(projFile.read(defines.configFile))
+
+            if len(self.action):
+                self._logger.debug("Found DWZ file '%s'", zipFile)
+
+                # Set paths
+                dirName = os.path.dirname(zipFile)
+                self.configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
+                self.configFound = True
+                self.zipName = zipFile
+                self.loadSrc = "Direct file"
+
+                self.readZipFile()
+            else:
+                self._logger.exception("No action")
+            #endif
+
+        except OSError:
+            pass
+        except Exception as e:
+            self._logger.exception("DWZ lookup exception:")
+        #endtry
 
     def readZipFile(self):
         self.totalLayers = 0

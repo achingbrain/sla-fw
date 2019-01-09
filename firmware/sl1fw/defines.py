@@ -14,6 +14,7 @@ dataPath = os.path.join(swPath, "data")
 usbPath = "/mnt/usb"
 ramdiskPath = "/run/sl1fw"
 printerlog = os.path.join(ramdiskPath, "sl1fw.log")
+mediaRootPath = "/run/media/root"
 jobCounter = os.path.join(home, "jobs.log")
 MCcommLog = os.path.join(ramdiskPath, "sl1fw-mc.log")
 tiltLoad = os.path.join(home, "tiltLoad")
@@ -23,6 +24,7 @@ hwConfigFile = os.path.join(configDir, hwConfigFileName)
 
 configFile = "config.ini"
 maskFilename = "mask.png"
+projectExtension = ".dwz"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 usbUpdatePath = "/mnt/rootfs"

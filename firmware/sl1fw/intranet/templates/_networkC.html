@@ -1,0 +1,68 @@
+{% include 'back.html' %}
+
+<div class="row">
+	<h2 class="col">WIFI Client</h2>
+	<div class="col" >
+		<input id="client-settings-control" class="btn btn-primary" type="checkbox" data-toggle="toggle" data-linked data-linked-collapse="#client-settings" data-linked-off="#ap-settings-control" {% if items['wifi_mode'] == "client" %}checked{% endif %} data-target="#client-settings" value="Wifi Client" >
+	</div>
+</div>
+
+<div class="collapse{% if items['wifi_mode'] == "client" %} show{% endif %}" id="client-settings">
+	<div class="row scrollbar scrollbar-primary" style="max-height: 20em; overflow-y: auto">
+		<ul class="list-group w-100">
+			{% for ap in items['aps'] %}
+			<li class="list-group-item list-group-item-action">
+				<div class="d-flex justify-content-start align-items-center hidden-connect">
+					<img src="static/img/symbols/wifi_on_color.svg" style="width: 3em; height: 3em;">
+					<div class="d-flex justify-content-between flex-column wifi-ap-entry">
+						<span class="ssid" >{{ ap['ssid'] }}</span>
+						<span>{{ ap['mac'] }}</span>
+						<div class="collapse">
+							<label>Password:</label>
+							{% if ap['psk_required'] %}
+							<input class="psk" type="password" name="psk">
+							{% endif %}
+							<input class="wifi-connect" type="submit" value="Connect">
+						</div>
+					</div>
+				</div>
+			</li>
+			{% endfor %}
+			<li class="list-group-item list-group-item-action">
+				<div class="d-flex justify-content-start align-items-center hidden-connect">
+					<img src="static/img/symbols/wifi_on_color.svg" style="width: 3em; height: 3em;">
+					<div class="d-flex justify-content-between flex-column wifi-ap-entry">
+						<div>
+							<label>Network ssid:</label>
+							<input class="ssid" type="text" name="ssid">
+						</div>
+						<div>
+							<label>Password:</label>
+							<input class="psk" type="password" name="psk">
+							<input class="wifi-connect" type="submit" value="Connect">
+						</div>
+					</div>
+				</div>
+			</li>
+		</ul>
+	</div>
+</div>
+
+<div class="row">
+	<h2 class="col">WIFI AP</h2>
+	<div class="col">
+		<input id="ap-settings-control" class="btn btn-primary" type="checkbox" data-toggle="toggle" data-linked data-linked-collapse="#ap-settings" data-linked-off="#client-settings-control" {% if items['wifi_mode'] == "ap" %}checked{% endif %} data-target="#client-settings" value="Wifi AP">
+	</div>
+</div>
+<div class="collapse{% if items['wifi_mode'] == "ap" %} show{% endif %}" id="ap-settings">
+	<div class="row">
+		<label class="col-sm-2">AP SSID:</label><input class="col-sm-4 data" id="ap-ssid" type="text" name="ssid" value="{{ items['ap_ssid'] }}">
+	</div>
+	<div class="row">
+		<label class="col-sm-2">Password:</label><input class="col-sm-3 data" id="ap-psk" type="text" name="psk" value="{{ items['ap_psk'] }}">
+		<input id="apset" class="col-sm-1 click" type="submit" name="connect" value="Set">
+	</div>
+</div>
+
+<h2>Network info</h2>
+<div class="row" id="line1">{{ items.get('line1', "") }}</div>

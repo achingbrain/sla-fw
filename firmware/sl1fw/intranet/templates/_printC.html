@@ -6,3 +6,9 @@
 <div class="row" id="line2">{{ items.get('line2', "") }}</div>
 <div class="row" id="line3">{{ items.get('line3', "") }}</div>
 <div class="row" id="line4">{{ items.get('line4', "") }}</div>
+
+{% set buttons = [
+	{"id": "setup", "title": "Setup"}
+] -%}
+
+{% include 'buttons.html' %}

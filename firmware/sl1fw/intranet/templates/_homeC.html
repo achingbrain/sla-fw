@@ -1,29 +1,8 @@
-<div class="row justify-content-center menu">
-	<div class="col-md-auto button d-flex click" id="print">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">Print</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="control">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">Control</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="settings">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">Settings</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="turnoff">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">Off</div>
-	</div>
-</div>
-<div class="row justify-content-begin header">
-	<div class="col">{{ items.get("image_version", "") }}</div>
-</div>
+{% set buttons = [
+	{"id": "print", "title": "Print"},
+	{"id": "control", "title": "Control"},
+	{"id": "settings", "title": "Settings"},
+	{"id": "turnoff", "title": "Off"}
+] -%}
+
+{% include 'buttons.html' %}

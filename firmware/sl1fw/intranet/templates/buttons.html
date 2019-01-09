@@ -1,19 +1,5 @@
 <div class="row justify-content-center menu">
 	{% for button in buttons -%}
-	<div class="col-md-auto button d-flex click" id="{{ button['id'] }}">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">{{ button['title'] }}</div>
-	</div>
+	{% include 'button.html' %}
 	{%- endfor %}
-</div>
-
-<div class="row justify-content-end menu">
-	<div class="col">{{ items.get("image_version", "") }}</div>
-	<div class="col-md-auto button d-flex click" id="back">
-		<div class="frame back d-flex">
-			<div class="image"> </div>
-		</div>
-	</div>
 </div>

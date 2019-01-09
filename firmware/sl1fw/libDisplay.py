@@ -50,9 +50,16 @@ class Display(object):
         self.page_fansleds = libPages.PageFansLeds(self)
         self.page_hwinfo = libPages.PageHardwareInfo(self)
         self.page_keyboard = libPages.PageKeyboard(self)
+        self.page_network = libPages.PageNetwork(self)
         self.page_networking = libPages.PageNetworking(self)
         self.page_networkstate = libPages.PageNetworkState(self)
         self.page_support = libPages.PageSupport(self)
+        self.page_firmwareupdate = libPages.PageFirmwareUpdate(self)
+        self.page_printpreview = libPages.PagePrintPreview(self)
+        self.page_printstart = libPages.PagePrintStart(self)
+        self.page_manual = libPages.PageManual(self)
+        self.page_videos = libPages.PageVideos(self)
+        self.page_qrcode = libPages.PageQRCode(self)
 
         self.actualPage = self.page_intro
     #enddef
@@ -95,14 +102,14 @@ class Display(object):
             if event.get('page', None) is not None:
                 if event['page'] == self.actualPage.pageUI:
                     # FIXME nejdrive se vycte drivejsi zarizeni, je to OK?
-                    return (event.get('id', None), event.get('pressed', None))
+                    return (event.get('id', None), event.get('pressed', None), event.get('data', None))
                 #endif
                 self.logger.warning("event page (%s) and actual page (%s) differ", event['page'], self.actualPage.pageUI)
             elif event.get('client_type', None) == "prusa_sla_client_qt":
                 self.page_sysinfo.setItems(line7 = "QT GUI version: %s" % event.get('client_version', "unknown"))
             #endif
         #endfor
-        return (None, None)
+        return (None, None, None)
     #enddef
 
 
@@ -141,7 +148,7 @@ class Display(object):
                 #endif
             #endif
 
-            button, pressed = self.getEvent()
+            button, pressed, data = self.getEvent()
             if button is not None:
                 if pressed:
                     self.hw.beepEcho()
@@ -154,8 +161,11 @@ class Display(object):
                     else:
                         autorepeatFce = None
                         autorepeatDelay = 1
+                        submitFce = getattr(self.actualPage, button + "ButtonSubmit", None)
                         releaseFce = getattr(self.actualPage, button + "ButtonRelease", None)
-                        if releaseFce:
+                        if submitFce:
+                            submitFce(data)
+                        elif releaseFce:
                             releaseFce()
                         #endif
                     #endif
@@ -165,7 +175,14 @@ class Display(object):
                         pressFce()
                     #endif
                 else:
-                    newPage = getattr(self.actualPage, button + "ButtonRelease", self.actualPage.emptyButtonRelease)()
+                    submitFce = getattr(self.actualPage, button + "ButtonSubmit", None)
+                    releaseFce = getattr(self.actualPage, button + "ButtonRelease", self.actualPage.emptyButtonRelease)
+                    if submitFce:
+                        newPage = submitFce(data)
+                    elif releaseFce:
+                        newPage = releaseFce()
+                    # endif
+
                     if newPage == "_BACK_":
                         if not self.goBack():
                             return False

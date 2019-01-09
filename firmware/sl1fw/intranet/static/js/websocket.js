@@ -35,10 +35,18 @@ function wsInit(dir) {
 
 	ws.onmessage = function(e) {
 		var data = JSON.parse(e.data);
-		console.log(e, data)
+		console.log("Incoming WebSocket message: ", e, data)
 		if (data.type == "page") {
 			document.body.innerHTML = data.content;
+
+
 			hookOnClick();
+			$('input[type=checkbox][data-toggle^=toggle]').bootstrapToggle();
+			hookLinkedControls();
+			hookHiddenConnect();
+			hookWifiConnect();
+			hookWifiBothOffCheck();
+
 		} else if (data.type == "items") {
 			var i;
 			for (i in data.content) {
@@ -52,6 +60,7 @@ function wsInit(dir) {
 
 	ws.onclose = function() {
 		alert("Connection closed");
+		location.reload();
 	};
 
 	ws.onerror = function(e) {
