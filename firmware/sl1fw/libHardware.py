@@ -33,7 +33,8 @@ class Hardware(object):
         self._tiltToPosition = 0
         self._towerToPosition = 0
 
-        self._powerLedStates= { 'normal' : 1, 'warn' : 2, 'error' : 3 }
+        # (mode, speed)
+        self._powerLedStates= { 'normal' : (2, 3), 'warn' : (3, 16), 'error' : (3, 48) }
 
         self._tiltProfiles = {
                 'homingFast'    : 0,
@@ -378,19 +379,19 @@ class Hardware(object):
     #enddef
 
 
-    # TODO "pspd" - PowerLedSpeed
-
     def powerLed(self, state):
-        self.powerLedRaw(self._powerLedStates.get(state, 0))
+        mode, speed = self._powerLedStates.get(state, (1, 1))
+        self.powerLedMode(mode)
+        self.setPowerLedSpeed(speed)
     #enddef
 
 
-    def powerLedRaw(self, value):
+    def powerLedMode(self, value):
         self._commMC("!pled", value)
     #enddef
 
 
-    def getPowerLedState(self):
+    def getPowerLedMode(self):
         return self._intOrNone(self._commMC("?pled"))
     #enddef
 
@@ -407,6 +408,16 @@ class Hardware(object):
         except Exception:
             return -1
         #endtry
+    #enddef
+
+
+    def setPowerLedSpeed(self, speed):
+        self._commMC("!pspd", speed)
+    #enddef
+
+
+    def getPowerLedSpeed(self):
+        return self._intOrNone(self._commMC("?pspd"))
     #enddef
 
 
@@ -501,10 +512,10 @@ class Hardware(object):
             for i in xrange(4):
                 retVal[i] = True if binState & (1 << i) else False
             #endfor
-            return retVal
         except Exception:
             pass
         #endtry
+        return retVal
     #enddef
 
 

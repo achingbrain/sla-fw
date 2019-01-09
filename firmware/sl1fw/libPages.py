@@ -2247,7 +2247,7 @@ class PageFansLeds(Page):
                 'minus2g5' : (5, 1), 'plus2g5' : (5, 1),
                 'minus2g6' : (5, 1), 'plus2g6' : (5, 1),
                 'minus2g7' : (5, 1), 'plus2g7' : (5, 1),
-#                'minus2g8' : (5, 1), 'plus2g8' : (5, 1),
+                'minus2g8' : (5, 1), 'plus2g8' : (5, 1),
                 }
         self.items.update({
                 'label1g1' : "Fan 1",
@@ -2265,6 +2265,7 @@ class PageFansLeds(Page):
                 'label2g5' : "UV LED PWM",
                 'label2g6' : "Power LED PWM",
                 'label2g7' : "Power LED mode",
+                'label2g8' : "Power LED speed",
 
                 'button4' : "Save",
                 'back' : "Back",
@@ -2299,14 +2300,16 @@ class PageFansLeds(Page):
         self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm'] = self.display.hw.getFansPwm()
         self.temp['uvledpwm'] = self.display.hw.getUvLedPwm()
         self.temp['pwrledpwm'] = self.display.hw.getPowerLedPwm()
-        self.temp['pwrledstt'] = self.display.hw.getPowerLedState()
+        self.temp['pwrledmd'] = self.display.hw.getPowerLedMode()
+        self.temp['pwrledspd'] = self.display.hw.getPowerLedSpeed()
         self._setItem(items, 'value2g1', self.temp['fan1pwm'])
         self._setItem(items, 'value2g2', self.temp['fan2pwm'])
         self._setItem(items, 'value2g3', self.temp['fan3pwm'])
         self._setItem(items, 'value2g4', self.temp['fan4pwm'])
         self._setItem(items, 'value2g5', self.temp['uvledpwm'])
         self._setItem(items, 'value2g6', self.temp['pwrledpwm'])
-        self._setItem(items, 'value2g7', self.temp['pwrledstt'])
+        self._setItem(items, 'value2g7', self.temp['pwrledmd'])
+        self._setItem(items, 'value2g8', self.temp['pwrledspd'])
 
         if len(items):
             self.showItems(**items)
@@ -2444,14 +2447,26 @@ class PageFansLeds(Page):
 
 
     def minus2g7Button(self):
-        self._value(6, 'pwrledstt', 0, 3, -1)
-        self.display.hw.powerLedRaw(self.temp['pwrledstt'])
+        self._value(6, 'pwrledmd', 0, 3, -1)
+        self.display.hw.powerLedMode(self.temp['pwrledmd'])
     #enddef
 
 
     def plus2g7Button(self):
-        self._value(6, 'pwrledstt', 0, 3, 1)
-        self.display.hw.powerLedRaw(self.temp['pwrledstt'])
+        self._value(6, 'pwrledmd', 0, 3, 1)
+        self.display.hw.powerLedMode(self.temp['pwrledmd'])
+    #enddef
+
+
+    def minus2g8Button(self):
+        self._value(7, 'pwrledspd', 1, 64, -1)
+        self.display.hw.setPowerLedSpeed(self.temp['pwrledspd'])
+    #enddef
+
+
+    def plus2g8Button(self):
+        self._value(7, 'pwrledspd', 1, 64, 1)
+        self.display.hw.setPowerLedSpeed(self.temp['pwrledspd'])
     #enddef
 
 #endclass
