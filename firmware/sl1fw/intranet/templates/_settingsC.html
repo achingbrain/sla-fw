@@ -1,34 +1,8 @@
-<div class="row justify-content-start menu">
-	<div class="col-md-auto button d-flex click" id="change">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">change</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="projsett">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">project settings</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="sysinfo">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">system info</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="info">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">about</div>
-	</div>
-</div>
-<div class="row justify-content-end menu">
-	<div class="col">{{ items.get("image_version", "") }}</div>
-	<div class="col-md-auto button d-flex click" id="back">
-		<div class="frame back d-flex">
-			<div class="image"> </div>
-		</div>
-	</div>
-</div>
+{% set buttons = [
+	{"id": "network", "title": "Network"},
+	{"id": "recalibration", "title": "Recalibration"},
+	{"id": "advancedsettings", "title": "Advanced Settings"},
+	{"id": "support", "title": "Support"}
+] -%}
+
+{% include 'buttons.html' %}

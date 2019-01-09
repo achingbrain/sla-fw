@@ -27,6 +27,7 @@ class Display(object):
         self.page_home = libPages.PageHome(self)
         self.page_control = libPages.PageControl(self)
         self.page_settings = libPages.PageSettings(self)
+        self.page_advancedsettings = libPages.PageAdvancedSettings(self)
         self.page_print = libPages.PagePrint(self)
         self.page_projsettings = libPages.PageProjSett(self)
         self.page_change = libPages.PageChange(self)
@@ -51,6 +52,7 @@ class Display(object):
         self.page_keyboard = libPages.PageKeyboard(self)
         self.page_networking = libPages.PageNetworking(self)
         self.page_networkstate = libPages.PageNetworkState(self)
+        self.page_support = libPages.PageSupport(self)
 
         self.actualPage = self.page_intro
     #enddef

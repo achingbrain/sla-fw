@@ -376,21 +376,83 @@ class PageSettings(Page):
     #enddef
 
 
-    def projsettButtonRelease(self):
-        return "projsettings"
+    def networkButtonRelease(self):
+        return "network"
     #enddef
 
 
-    def sysinfoButtonRelease(self):
-        return "sysinfo"
+    def recalibrationButtonRelease(self):
+        return "recalibration"
     #enddef
 
 
-    def changeButtonRelease(self):
-        return "change"
+    def advancedsettingsButtonRelease(self):
+        return "advancedsettings"
+    #enddef
+
+    def supportButtonRelease(self):
+        return "support"
     #enddef
 
 #endclass
+
+
+class PageAdvancedSettings(Page):
+
+    def __init__(self, display):
+        self.pageUI = "advancedsettings"
+        self.pageTitle = "Advanced Settings"
+        super(PageAdvancedSettings, self).__init__(display)
+    #enddef
+
+
+    def towermoveButtonRelease(self):
+        return "towermove"
+    #enddef
+
+
+    def tiltmoveButtonRelease(self):
+        return "tiltmove"
+    #enddef
+
+
+    def firmwareupdateButtonRelease(self):
+        return "firmwareupdate"
+    #enddef
+    
+    def adminButtonRelease(self):
+        return "admin"
+    #enddef
+
+#endclass
+
+
+class PageSupport(Page):
+
+    def __init__(self, display):
+        self.pageUI = "support"
+        self.pageTitle = "Support"
+        super(PageSupport, self).__init__(display)
+    # enddef
+
+    def manualButtonRelease(self):
+        return "manual"
+    # enddef
+
+    def videosButtonRelease(self):
+        return "videos"
+    # enddef
+
+    def sysinfoButtonRelease(self):
+        return "sysinfo"
+    # enddef
+
+    def aboutButtonRelease(self):
+        return "about"
+    # enddef
+
+
+# endclass
 
 
 class PagePrint(Page):
