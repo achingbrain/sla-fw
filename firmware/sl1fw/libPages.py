@@ -1346,6 +1346,7 @@ class PageAdmin(Page):
 
 
     def button13Continue(self):
+        # TODO vyzadovat zavreny kryt po celou dobu!
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = "Measuring")
         pageWait.show()
