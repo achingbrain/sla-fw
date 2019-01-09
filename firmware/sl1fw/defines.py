@@ -4,8 +4,8 @@
 
 import os
 
-swVersion = "Gen3-190-104"
-reqMcVersion = "SLA-control 0.9.4-232"
+swVersion = "Gen3-190-107"
+reqMcVersion = "SLA-control 0.9.5-244b"
 
 home = "/home/root"
 
@@ -15,6 +15,7 @@ usbPath = "/mnt/usb"
 ramdiskPath = "/run/sl1fw"
 printerlog = os.path.join(ramdiskPath, "sl1fw.log")
 jobCounter = os.path.join(home, "jobs.log")
+tiltLoad = os.path.join(home, "tiltLoad")
 configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)

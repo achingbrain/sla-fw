@@ -58,34 +58,6 @@ class Hardware(object):
         self._tiltProfileNames = map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1]))
         self._towerProfileNames = map(lambda x: x[0], sorted(self._towerProfiles.items(), key=lambda kv: kv[1]))
 
-        # FIXME spatne hodnoty pro min a mozna i max (opsano z doc)
-        # sr0 (starting steprate 0..22000 [steps/s])
-        # srm (maximum steprate 0..22000 [steps/s])
-        # acc (acceleration 0..800 [256xsteps/s^2])
-        # dec (deceleration 0..800 [256xsteps/s^2])
-        # cur (current 0..63 [aprox. 1/64A])
-        # sgt (stallguard threshold -128..127)
-        # cst (coolstep threshold 0..10000 [T])
-
-        #                            960, 1280, 12, 12, 24,  8, 1500
-        self.XXX_tiltProfiles = {
-                'slowMove' :        (120,  480, 12, 12, 32,  4, 1500),
-                'fastMove' :        (960, 1280, 12, 12, 32,  8, 1500),
-                'safeSlowMove' :    (120,  480, 12, 12,  8,  2, 1500),
-                'safeFastMove' :    (960, 1280, 12, 12,  8,  2, 1500),
-                'layer' :           (100,  400, 12, 12, 32,  8, 2000),
-                'firstLayer' :      (100,  200, 12, 12, 32,  8, 2000),
-                }
-        #                            3200, 17600, 250, 250, 34,  6, 1500
-        self.XXX_towerProfiles = {
-                'slowMove' :        ( 800,  1600, 100, 100, 17,  3, 2000),
-                'fastMove' :        (3200, 15000, 250, 250, 30,  4, 1500),
-                'safeSlowMove' :    ( 800,  4400, 200, 200, 17,  3, 2000),
-                'safeFastMove' :    (3200, 15000, 250, 250, 17,  4, 1500),
-                'layer' :           (3200,  9600, 200, 200, 34,  6, 2000),
-                'calibration' :     (3200,  4400, 200, 200, 17,  3, 2000),
-                }
-
         self._tiltMin = -3210        # whole turn
         self._tiltMax = 3210
         self._tiltEnd = 1600
@@ -301,21 +273,20 @@ class Hardware(object):
 
 
     def getTiltProfiles(self):
-        return self.getProfiles("!tics", "?ticf")
+        return self.getProfiles("?ticf")
     #enddef
 
 
     def getTowerProfiles(self):
-        return self.getProfiles("!twcs", "?twcf")
+        return self.getProfiles("?twcf")
     #enddef
 
 
-    def getProfiles(self, setProfileCmd, getProfileDataCmd):
+    def getProfiles(self, getProfileDataCmd):
         profiles = []
         for profId in xrange(8):
             try:
-                self._commMC(setProfileCmd, profId)
-                profData = self._commMC(getProfileDataCmd).split(" ")
+                profData = self._commMC(getProfileDataCmd, profId).split(" ")
                 profiles.append(map(lambda x: int(x), profData))
             except Exception:
                 self.logger.exception("parse profile:")
@@ -360,6 +331,25 @@ class Hardware(object):
     #enddef
 
 
+    def getStallguardBuffer(self):
+        samplesList = list()
+        samplesCount = self._intOrNone(self._commMC("?sgbc"))
+        while samplesCount:
+            samples = self._commMC("?sgbd")
+            try:
+                for val in map(lambda x: int(x, 16), samples.split(" ")):
+                    samplesList.append(val)
+                    samplesCount -= 1
+                #endfor
+            except Exception:
+                self.logger.exception("exception:")
+                break
+            #endtry
+        #endwhile
+        return samplesList
+    #enddef
+
+
     def beep(self, frequency, lenght):
         self._commMC("!beep", frequency, int(lenght * 1000))
     #enddef
@@ -385,6 +375,8 @@ class Hardware(object):
         #endfor
     #enddef
 
+
+    # TODO "pspd" - PowerLedSpeed
 
     def powerLed(self, state):
         self.powerLedRaw(self._powerLedStates.get(state, 0))
