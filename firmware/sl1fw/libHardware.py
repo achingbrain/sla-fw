@@ -66,10 +66,10 @@ class Hardware(object):
         self._towerMax = self.hwConfig.calcMicroSteps(310)
         self.towerEnd = self.hwConfig.calcMicroSteps(150)
         self.towerCalibPos = self.hwConfig.calcMicroSteps(2)
-        self._towerResinStartPos = self.hwConfig.calcMicroSteps(40)
+        self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
-        self._towerResinMin = self.hwConfig.calcMicroSteps(3.5) # cca 50 ml
-        self._towerResinMax = self.hwConfig.calcMicroSteps(14)  # cca 200 ml
+        self._towerResinMin = self.hwConfig.calcMicroSteps(3.75) # cca 50 ml
+        self._towerResinMax = self.hwConfig.calcMicroSteps(16)  # cca 200 ml
 
         self.port = serial.Serial(port = defines.motionControlDevice,
                 baudrate = 115200,
@@ -105,6 +105,7 @@ class Hardware(object):
         #self.setFans({ 0 : False, 1 : False, 2 : False, 3 : False })  # all off
         self.setUvLedPwm(self.hwConfig.uvLedPwm)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
+        self.resinSensor(False)
     #enddef
 
 
@@ -787,16 +788,15 @@ class Hardware(object):
     def getResinVolume(self):
         self.setTowerProfile('moveFast')
         self.towerMoveAbsoluteWait(self._towerResinStartPos) # move quickly to safe distance
-        self.resinSensor(False)
-        sleep(0.1)
         self.resinSensor(True)
-        sleep(0.1)
+        sleep(1)
         self.setTowerProfile('resinSensor')
         self._commMC("!rsme", self._towerResinStartPos - self._towerResinEndPos) # relative movement!
         while self.isTowerMoving():
             sleep(0.1)
         #endwhile
         position = self.getTowerPositionMicroSteps()
+        self.resinSensor(False)
         if not position or position == self._towerResinEndPos:
             return 0
         else:
