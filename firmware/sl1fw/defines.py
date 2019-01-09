@@ -4,7 +4,7 @@
 
 import os
 
-swVersion = "Gen3-190-107"
+swVersion = "Gen3-190-109"
 reqMcVersion = "SLA-control 0.9.5-244b"
 
 home = "/home/root"
