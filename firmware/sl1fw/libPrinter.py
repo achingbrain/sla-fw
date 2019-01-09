@@ -339,6 +339,7 @@ class Printer(object):
                 self.hw.tiltUpWait()
 
                 if self.display.hwConfig.resinSensor:
+                    # TODO vyzadovat zavreny kryt po celou dobu!
                     pageWait.showItems(line2 = "Measuring resin volume")
                     volume = self.hw.getResinVolume()
                     fail = True

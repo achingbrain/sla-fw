@@ -31,6 +31,7 @@ class Hardware(object):
 
         self._fansRequested = 0
         self._tiltToPosition = 0
+        self._towerToPosition = 0
 
         self._powerLedStates= { 'normal' : 1, 'warn' : 2, 'error' : 3 }
 
@@ -639,6 +640,14 @@ class Hardware(object):
     #enddef
 
 
+    def towerSyncWait(self):
+        self.towerSync(None)
+        while not self.isTowerSynced():
+            pass
+        #endwhile
+    #enddef
+
+
     def towerSyncFailed(self):
         return self._towerSyncRetries == 0
     #enddef
@@ -653,6 +662,7 @@ class Hardware(object):
 
 
     def towerMoveAbsolute(self, position):
+        self._towerToPosition = position
         self._commMC("!twma", position)
     #enddef
 
@@ -667,8 +677,28 @@ class Hardware(object):
     #enddef
 
 
+    def isTowerMoving(self):
+        return self._commMC("?mot") != "0"
+    #enddef
+
+
     def isTowerOnPosition(self):
-        return self._commMC("?mot") == "0"
+        if self.isTowerMoving():
+            return False
+        #endif
+        while self._towerToPosition != self.getTowerPositionMicroSteps():
+            self.logger.warning("Tower is not on required position! Sync forced.")
+            self.beepAlarm(3)
+            profileBackup = self._lastTowerProfile
+            self.towerSyncWait()
+            self.setTowerProfile(profileBackup)
+            self.towerMoveAbsolute(self._towerToPosition)
+            while self.isTowerMoving():
+                sleep(0.1)
+            #endwhile
+        #endwhile
+
+        return True
     #enddef
 
 
@@ -692,23 +722,17 @@ class Hardware(object):
     #enddef
 
 
-    # TODO smazat, nepouzito
-    def isTowerOnTop(self):
-        return self.isTowerOnPosition()
-    #enddef
-
-
     def towerToMax(self):
         self.towerMoveAbsolute(self._towerMax)
     #enddef
 
 
     def isTowerOnMax(self):
-        onPosition = self.isTowerOnPosition()
-        if onPosition:
+        stopped = not self.isTowerMoving()
+        if stopped:
             self.setTowerOnMax()
         #endif
-        return onPosition
+        return stopped
     #enddef
 
 
@@ -718,11 +742,11 @@ class Hardware(object):
 
 
     def isTowerOnMin(self):
-        onPosition = self.isTowerOnPosition()
-        if onPosition:
+        stopped = not self.isTowerMoving()
+        if stopped:
             self._commMC("!twpo", 0)
         #endif
-        return onPosition
+        return stopped
     #enddef
 
 
@@ -769,7 +793,7 @@ class Hardware(object):
         sleep(0.1)
         self.setTowerProfile('resinSensor')
         self._commMC("!rsme", self._towerResinStartPos - self._towerResinEndPos) # relative movement!
-        while not self.isTowerOnPosition():
+        while self.isTowerMoving():
             sleep(0.1)
         #endwhile
         position = self.getTowerPositionMicroSteps()
