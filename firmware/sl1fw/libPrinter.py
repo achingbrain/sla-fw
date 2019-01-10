@@ -378,6 +378,7 @@ class Printer(object):
 
             #endwhile
 
+            self.screen.getImgBlack()
             self.hw.uvLed(True)
 
             if self.hwConfig.warmUp > 0:

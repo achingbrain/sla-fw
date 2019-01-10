@@ -1058,6 +1058,7 @@ class PageDisplay(Page):
 
     def backButtonRelease(self):
         self.display.hw.uvLed(False)
+        self.display.screen.getImgBlack()
         return super(PageDisplay, self).backButtonRelease()
     #enddef
 
