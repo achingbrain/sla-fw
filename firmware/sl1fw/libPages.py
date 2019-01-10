@@ -356,7 +356,7 @@ class PageControl(Page):
             self.display.hw.motorsRelease()
             return retc
         #endif
-        self.display.hw.setTiltProfile('layer')
+        self.display.hw.setTiltProfile('layerMove')
         self.display.hw.tiltDownWait()
         self.display.hw.tiltUpWait()
         self.display.hw.motorsRelease()
@@ -900,19 +900,18 @@ class PageTiltTower(Page):
         if retc == "error":
             return retc
         #endif
-        self.display.hw.setTiltProfile('layer')
         self.display.hw.beepEcho()
         sleep(1)
         pageWait.showItems(line2 = "Tilt up")
-        self.display.hw.tiltUpWait()
+        self.display.hw.tiltLayerUpWait()
         self.display.hw.beepEcho()
         sleep(1)
         pageWait.showItems(line2 = "Tilt down")
-        self.display.hw.tiltDownWait()
+        self.display.hw.tiltLayerDownWait()
         self.display.hw.beepEcho()
         sleep(1)
         pageWait.showItems(line2 = "Tilt up")
-        self.display.hw.tiltUpWait()
+        self.display.hw.tiltLayerUpWait()
         self.display.hw.beepEcho()
         self.display.hw.powerLed("normal")
         return "_SELF_"
@@ -1384,6 +1383,10 @@ class PageSetup(Page):
                 'minus2g1' : (5, 1), 'plus2g1' : (5, 1),
                 'minus2g2' : (5, 1), 'plus2g2' : (5, 1),
                 'minus2g3' : (5, 1), 'plus2g3' : (5, 1),
+                'minus2g4' : (5, 1), 'plus2g4' : (5, 1),
+                'minus2g5' : (5, 1), 'plus2g5' : (5, 1),
+                'minus2g6' : (5, 1), 'plus2g6' : (5, 1),
+                'minus2g7' : (5, 1), 'plus2g7' : (5, 1),
                 }
         self.items.update({
                 'label1g1' : "Fan check",
@@ -1395,7 +1398,10 @@ class PageSetup(Page):
                 'label2g1' : "Screw (mm/rot)",
                 'label2g2' : "Tower msteps",
                 'label2g3' : "Tilt msteps",
-                'label2g4' : "Warm up mins",
+                'label2g4' : "Tilt init msteps",
+                'label2g5' : "Tilt break msteps",
+                'label2g6' : "Tilt ret.sl. msteps",
+                'label2g7' : "Warm up mins",
 
                 'button1' : "Export",
                 'button2' : "Import",
@@ -1412,12 +1418,18 @@ class PageSetup(Page):
         self.temp['screwmm'] = self.display.hwConfig.screwMm
         self.temp['towerheight'] = self.display.hwConfig.towerHeight
         self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
+        self.temp['tiltinitsteps'] = self.display.hwConfig.tiltInitSteps
+        self.temp['tiltbreaksteps'] = self.display.hwConfig.tiltBreakSteps
+        self.temp['tiltreturnslowsteps'] = self.display.hwConfig.tiltReturnSlowSteps
         self.temp['warmup'] = self.display.hwConfig.warmUp
 
         self.items['value2g1'] = str(self.temp['screwmm'])
         self.items['value2g2'] = str(self.temp['towerheight'])
         self.items['value2g3'] = str(self.temp['tiltheight'])
-        self.items['value2g4'] = str(self.temp['warmup'])
+        self.items['value2g4'] = str(self.temp['tiltinitsteps'])
+        self.items['value2g5'] = str(self.temp['tiltbreaksteps'])
+        self.items['value2g6'] = str(self.temp['tiltreturnslowsteps'])
+        self.items['value2g7'] = str(self.temp['warmup'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
@@ -1533,12 +1545,42 @@ class PageSetup(Page):
 
 
     def minus2g4Button(self):
-        return self._value(3, 'warmup', 0, 30, -1)
+        return self._value(3, 'tiltinitsteps', 1, 300, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        return self._value(3, 'warmup', 0, 30, 1)
+        return self._value(3, 'tiltinitsteps', 1, 300, 1)
+    #enddef
+
+
+    def minus2g5Button(self):
+        return self._value(4, 'tiltbreaksteps', 1, 800, -1)
+    #enddef
+
+
+    def plus2g5Button(self):
+        return self._value(4, 'tiltbreaksteps', 1, 800, 1)
+    #enddef
+
+
+    def minus2g6Button(self):
+        return self._value(5, 'tiltreturnslowsteps', 1, 1000, -1)
+    #enddef
+
+
+    def plus2g6Button(self):
+        return self._value(5, 'tiltreturnslowsteps', 1, 1000, 1)
+    #enddef
+
+
+    def minus2g7Button(self):
+        return self._value(6, 'warmup', 0, 30, -1)
+    #enddef
+
+
+    def plus2g7Button(self):
+        return self._value(6, 'warmup', 0, 30, 1)
     #enddef
 
 #endclass
@@ -1862,7 +1904,7 @@ class PageTiltCalib(MovePage):
             return retc
         #endif
         pageWait.showItems(line2 = "Moving tank to base position",)
-        self.display.hw.setTiltProfile('layer')
+        self.display.hw.setTiltProfile('layerMove')
         self.display.hw.tiltDownWait()
         self.display.hw.tiltUpWait()
         self.display.hw.powerLed("normal")
@@ -2262,7 +2304,7 @@ class PageFansLeds(Page):
                 'label2g2' : "Fan 2 PWM",
                 'label2g3' : "Fan 3 PWM",
                 'label2g4' : "Fan 4 PWM",
-                'label2g5' : "UV LED PWM",
+                'label2g5' : "UV current [mA]",
                 'label2g6' : "Power LED PWM",
                 'label2g7' : "Power LED mode",
                 'label2g8' : "Power LED speed",
@@ -2273,7 +2315,7 @@ class PageFansLeds(Page):
         self.callbackPeriod = 0.5
         self.changed = {}
         self.temp = {}
-        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'fan4pwm', 'uvledpwm', 'pwrledpwm'))
+        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'fan4pwm', 'uvcurrent', 'pwrledpwm'))
     #enddef
 
 
@@ -2298,7 +2340,7 @@ class PageFansLeds(Page):
         self._setItem(items, 'state1g8', self.temp['rsr'])
 
         self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm'] = self.display.hw.getFansPwm()
-        self.temp['uvledpwm'] = self.display.hw.getUvLedPwm()
+        self.temp['uvcurrent'] = self.display.hw.getUvLedCurrent()
         self.temp['pwrledpwm'] = self.display.hw.getPowerLedPwm()
         self.temp['pwrledmd'] = self.display.hw.getPowerLedMode()
         self.temp['pwrledspd'] = self.display.hw.getPowerLedSpeed()
@@ -2306,7 +2348,7 @@ class PageFansLeds(Page):
         self._setItem(items, 'value2g2', self.temp['fan2pwm'])
         self._setItem(items, 'value2g3', self.temp['fan3pwm'])
         self._setItem(items, 'value2g4', self.temp['fan4pwm'])
-        self._setItem(items, 'value2g5', self.temp['uvledpwm'])
+        self._setItem(items, 'value2g5', self.temp['uvcurrent'])
         self._setItem(items, 'value2g6', self.temp['pwrledpwm'])
         self._setItem(items, 'value2g7', self.temp['pwrledmd'])
         self._setItem(items, 'value2g8', self.temp['pwrledspd'])
@@ -2423,14 +2465,14 @@ class PageFansLeds(Page):
 
 
     def minus2g5Button(self):
-        self._value(4, 'uvledpwm', 0, 100, -0.4)
-        self.display.hw.setUvLedPwm(self.temp['uvledpwm'])
+        self._value(4, 'uvcurrent', 0, 800.1, -3.2)
+        self.display.hw.setUvLedCurrent(self.temp['uvcurrent'])
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 'uvledpwm', 0, 100, 0.4)
-        self.display.hw.setUvLedPwm(self.temp['uvledpwm'])
+        self._value(4, 'uvcurrent', 0, 800.1, 3.2)
+        self.display.hw.setUvLedCurrent(self.temp['uvcurrent'])
     #enddef
 
 

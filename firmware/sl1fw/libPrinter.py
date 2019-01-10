@@ -334,7 +334,7 @@ class Printer(object):
                     continue
                 #endif
 
-                self.hw.setTiltProfile('layer')
+                self.hw.setTiltProfile('layerMove')
                 self.hw.tiltDownWait()
                 self.hw.tiltUpWait()
 
@@ -399,22 +399,22 @@ class Printer(object):
             if self.config.tilt:
                 pageWait.showItems(line3 = "Tank calibration 1/3")
                 tiltStartTime = time()
-                self.hw.tiltUpWait()
-                self.hw.tiltDownWait()
+                self.hw.tiltLayerUpWait()
+                self.hw.tiltLayerDownWait()
                 tiltTime1 = time() - tiltStartTime
                 sleep(0.5)
 
                 pageWait.showItems(line3 = "Tank calibration 2/3")
                 tiltStartTime = time()
-                self.hw.tiltUpWait()
-                self.hw.tiltDownWait()
+                self.hw.tiltLayerUpWait()
+                self.hw.tiltLayerDownWait()
                 tiltTime2 = time() - tiltStartTime
                 sleep(0.5)
 
                 pageWait.showItems(line3 = "Tank calibration 3/3")
                 tiltStartTime = time()
-                self.hw.tiltUpWait()
-                self.hw.tiltDownWait()
+                self.hw.tiltLayerUpWait()
+                self.hw.tiltLayerDownWait()
                 tiltTime3 = time() - tiltStartTime
                 sleep(0.5)
 

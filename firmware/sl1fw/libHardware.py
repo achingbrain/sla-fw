@@ -41,10 +41,10 @@ class Hardware(object):
                 'homingSlow'    : 1,
                 'moveFast'      : 2,
                 'moveSlow'      : 3,
-                'layer'         : 4,
-                'hold'          : 5,
-                'release'       : 6,
-                'calibration'   : 7,
+                'layerInit'     : 4,
+                'layerBreak'    : 5,
+                'layerMove'     : 6,
+                '<reserverd>'   : 7,
                 }
         self._towerProfiles = {
                 'homingFast'    : 0,
@@ -52,8 +52,8 @@ class Hardware(object):
                 'moveFast'      : 2,
                 'moveSlow'      : 3,
                 'layer'         : 4,
-                'hold'          : 5,
-                'release'       : 6,
+                '<reserved1>'   : 5,
+                '<reserved2>'   : 6,
                 'resinSensor'   : 7,
                 }
         # get sorted profiles names
@@ -104,7 +104,7 @@ class Hardware(object):
         self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm, self.hwConfig.fan4Pwm))
         self.setFans({ 0 : True, 1 : True, 2 : True, 3 : True })
         #self.setFans({ 0 : False, 1 : False, 2 : False, 3 : False })  # all off
-        self.setUvLedPwm(self.hwConfig.uvLedPwm)
+        self.setUvLedCurrent(self.hwConfig.uvCurrent)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
         self.resinSensor(False)
     #enddef
@@ -436,15 +436,15 @@ class Hardware(object):
     #enddef
 
 
-    def setUvLedPwm(self, pwm):
-        self._commMC("!upwm", int(pwm * 2.5))
+    def setUvLedCurrent(self, current):
+        self._commMC("!upwm", int(round(current / 3.2)))
     #enddef
 
 
-    def getUvLedPwm(self):
-        pwm = self._commMC("?upwm")
+    def getUvLedCurrent(self):
+        raw = self._commMC("?upwm")
         try:
-            return int(pwm) / 2.5
+            return int(raw) * 3.2
         except Exception:
             return -1
         #endtry
@@ -857,7 +857,7 @@ class Hardware(object):
                     releaseFrom = 0
                 #endif
 
-                self.setTiltProfile('release')
+                self.setTiltProfile('layerBreak')
                 self.setTiltPosition(releaseFrom)
                 self._commMC("!tima", 800)
                 while self.isTiltMoving():
@@ -982,6 +982,33 @@ class Hardware(object):
             self.setTiltPosition(0)
         #endif
         return stopped
+    #enddef
+
+
+    def tiltLayerDownWait(self):
+        self.setTiltProfile('layerInit')
+        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tiltInitSteps)
+        while not self.isTiltOnPosition():
+            sleep(0.1)
+        #endwhile
+        self.setTiltProfile('layerBreak')
+        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tiltInitSteps - self.hwConfig.tiltBreakSteps)
+        while not self.isTiltOnPosition():
+            sleep(0.1)
+        #endwhile
+        self.setTiltProfile('layerMove')
+        self.tiltDownWait()
+    #enddef
+
+
+    def tiltLayerUpWait(self):
+        self.setTiltProfile('layerMove')
+        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tiltReturnSlowSteps)
+        while not self.isTiltOnPosition():
+            sleep(0.1)
+        #endwhile
+        self.setTiltProfile('layerInit')
+        self.tiltUpWait()
     #enddef
 
 
