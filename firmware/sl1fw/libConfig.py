@@ -212,6 +212,16 @@ class FileConfig(object):
         #endtry
     #enddef
 
+    def _parseFloatMinMax(self, key, default, minval, maxval):
+        val = self._parseFloat(key, default);
+        if val > maxval:
+            val = maxval
+        elif val < minval:
+            val = minval
+        #endif
+        return val
+    #enddef
+
     def _parseBool(self, key, default = False):
         try:
             val = self._data.get(key, "").lower()
@@ -258,16 +268,19 @@ class HwConfig(FileConfig):
         self.calibrated = self._parseBool("calibrated", False)
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(128)) # safe value
         self.tiltHeight = self._parseInt("tiltheight", 1600) # 100 steps 16 microsteps each
+        self.tiltInitSteps = self._parseInt("tiltinitsteps", 50)
+        self.tiltBreakSteps = self._parseInt("tiltbreaksteps", 500)
+        self.tiltReturnSlowSteps = self._parseInt("tiltreturnslowsteps", 100)
         self.resinSensor = self._parseBool("resinsensor", False)
         self.logTiltLoad = self._parseBool("logtiltload", False)
         self.warmUp = self._parseInt("warmup", 0)
 
-        self.fan1Pwm = self._parseInt("fan1pwm", 100)
-        self.fan2Pwm = self._parseInt("fan2pwm", 100)
-        self.fan3Pwm = self._parseInt("fan3pwm", 100)
-        self.fan4Pwm = self._parseInt("fan4pwm", 100)
-        self.uvLedPwm = self._parseFloat("uvledpwm", 100.0)
-        self.pwrLedPwm = self._parseInt("pwrledpwm", 100)
+        self.fan1Pwm = self._parseIntMinMax("fan1pwm", 100, 0, 100)
+        self.fan2Pwm = self._parseIntMinMax("fan2pwm", 100, 0, 100)
+        self.fan3Pwm = self._parseIntMinMax("fan3pwm", 100, 0, 100)
+        self.fan4Pwm = self._parseIntMinMax("fan4pwm", 100, 0, 100)
+        self.uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)
+        self.pwrLedPwm = self._parseIntMinMax("pwrledpwm", 100, 0, 100)
     #enddef
 
     def calcMicroSteps(self, mm):

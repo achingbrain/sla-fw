@@ -32,7 +32,7 @@ class ExposureThread(threading.Thread):
         #endif
         if self.config.tilt:
             self.expo.hw.towerMoveAbsoluteWait(position)
-            self.expo.hw.tiltUpWait()
+            self.expo.hw.tiltLayerUpWait()
 
             if self.expo.hwConfig.logTiltLoad:
                 self.logTiltLoad("up", self.expo.hw.getStallguardBuffer())
@@ -57,7 +57,7 @@ class ExposureThread(threading.Thread):
         self.logger.debug("exposure done")
         sleep(self.config.tiltDelayBefore)
         if self.config.tilt:
-            self.expo.hw.tiltDownWait()
+            self.expo.hw.tiltLayerDownWait()
 
             if self.expo.hwConfig.logTiltLoad:
                 self.logTiltLoad("down", self.expo.hw.getStallguardBuffer())
@@ -115,10 +115,10 @@ class ExposureThread(threading.Thread):
             #endfor
 
             pageWait.showItems(line2 = "Tank reset", line3 = "")
-            self.expo.hw.tiltUpWait()
-            self.expo.hw.tiltDownWait()
-            self.expo.hw.tiltUpWait()
-            self.expo.hw.tiltDownWait()
+            self.expo.hw.tiltLayerUpWait()
+            self.expo.hw.tiltLayerDownWait()
+            self.expo.hw.tiltLayerUpWait()
+            self.expo.hw.tiltLayerDownWait()
 
             pageWait.showItems(line2 = "Going back")
             self.expo.hw.towerMoveAbsolute(actualPosition)
@@ -242,10 +242,10 @@ class ExposureThread(threading.Thread):
 
                     pageWait = libPages.PageWait(self.expo.display, line2 = "Tank reset")
                     pageWait.show()
-                    self.expo.hw.tiltUpWait()
-                    self.expo.hw.tiltDownWait()
-                    self.expo.hw.tiltUpWait()
-                    self.expo.hw.tiltDownWait()
+                    self.expo.hw.tiltLayerUpWait()
+                    self.expo.hw.tiltLayerDownWait()
+                    self.expo.hw.tiltLayerUpWait()
+                    self.expo.hw.tiltLayerDownWait()
 
                     self.expo.hw.powerLed("normal")
                     self.expo.display.actualPage.show()
@@ -264,27 +264,22 @@ class ExposureThread(threading.Thread):
                 if i < 3:
                     step = config.layerMicroSteps
                     time = config.expTimeFirst
-                    #self.expo.hw.setTiltProfile('firstLayer')
                 # dalsich config.fadeLayers je prechod config.expTimeFirst -> config.expTime
                 elif i < config.fadeLayers + 3:
                     step = config.layerMicroSteps
                     time = config.expTimeFirst - (i - 2) * timeLoss
-                    #self.expo.hw.setTiltProfile('firstLayer')
                 # do prvniho zlomu standardni parametry
                 elif i + 1 < config.slice2:
                     step = config.layerMicroSteps
                     time = config.expTime
-                    #self.expo.hw.setTiltProfile('layer')
                 # do druheho zlomu parametry2
                 elif i + 1 < config.slice3:
                     step = config.layerMicroSteps2
                     time = config.expTime2
-                    #self.expo.hw.setTiltProfile('layer')
                 # a pak uz parametry3
                 else:
                     step = config.layerMicroSteps3
                     time = config.expTime3
-                    #self.expo.hw.setTiltProfile('layer')
                 #endif
 
                 self.expo.actualLayer = i + 1
