@@ -631,12 +631,13 @@ class Hardware(object):
         if homingStatus > 0:    # not done and not error
             return False
         elif not homingStatus:
-            self._commMC("!twpo", self.hwConfig.towerHeight)
+            self.setTowerPosition(self.hwConfig.towerHeight)
             self._towerSynced = True
             return True
         else:
             self.logger.warning("Tower homing failed!")
             self.beepAlarm(3)
+            self.debug.showItems(towerFailed = "homing Fast/Slow")
             if self._towerSyncRetries is None or self._towerSyncRetries:
                 if self._towerSyncRetries:
                     self._towerSyncRetries -= 1
@@ -701,6 +702,7 @@ class Hardware(object):
         while self._towerToPosition != self.getTowerPositionMicroSteps():
             self.logger.warning("Tower is not on required position! Sync forced.")
             self.beepAlarm(3)
+            self.debug.showItems(towerFailed = self._lastTowerProfile)
             profileBackup = self._lastTowerProfile
             self.towerSyncWait()
             self.setTowerProfile(profileBackup)
@@ -725,7 +727,7 @@ class Hardware(object):
 
 
     def setTowerOnMax(self):
-        self._commMC("!twpo", self.towerEnd)
+        self.setTowerPosition(self.towerEnd)
     #enddef
 
 
@@ -756,15 +758,20 @@ class Hardware(object):
     def isTowerOnMin(self):
         stopped = not self.isTowerMoving()
         if stopped:
-            self._commMC("!twpo", 0)
+            self.setTowerPosition(0)
         #endif
         return stopped
     #enddef
 
 
+    def setTowerPosition(self, position):
+        self._commMC("!twpo", position)
+        self.debug.showItems(towerPositon = position)
+    #enddef
+
+
     def getTowerPosition(self):
-        steps = self._commMC("?twpo")
-        self.debug.showItems(towerPositon = steps)
+        steps = self.getTowerPositionMicroSteps()
         try:
             return "%.3f mm" % self.hwConfig.calcMM(int(steps))
         except Exception:
@@ -774,9 +781,9 @@ class Hardware(object):
 
 
     def getTowerPositionMicroSteps(self):
-        steps = self._commMC("?twpo")
+        steps = self._intOrNone(self._commMC("?twpo"))
         self.debug.showItems(towerPositon = steps)
-        return self._intOrNone(steps)
+        return steps
     #enddef
 
 
@@ -832,13 +839,14 @@ class Hardware(object):
             #endwhile
             # test homing result
             if not homingStatus:
-                self._commMC("!tipo", 0)
+                self.setTiltPosition(0)
                 self._tiltSynced = True
                 return True
             else:
                 self.logger.warning("Tilt homing failed!")
                 self.beepAlarm(3)
-                position = self._intOrNone(self._commMC("?tipo"))
+                self.debug.showItems(tiltFailed = "homing Fast/Slow")
+                position = self.getTiltPositionMicroSteps()
                 if position is None:
                     continue
                 elif position > 800:
@@ -850,7 +858,7 @@ class Hardware(object):
                 #endif
 
                 self.setTiltProfile('release')
-                self._commMC("!tipo", releaseFrom)
+                self.setTiltPosition(releaseFrom)
                 self._commMC("!tima", 800)
                 while self.isTiltMoving():
                     sleep(0.1)
@@ -899,6 +907,7 @@ class Hardware(object):
         while self._tiltToPosition != self.getTiltPositionMicroSteps():
             self.logger.warning("Tilt is not on required position! Sync forced.")
             self.beepAlarm(3)
+            self.debug.showItems(tiltFailed = self._lastTiltProfile)
             profileBackup = self._lastTiltProfile
             self.tiltSyncWait()
             self.setTiltProfile(profileBackup)
@@ -956,7 +965,7 @@ class Hardware(object):
     def isTiltOnMax(self):
         stopped = not self.isTiltMoving()
         if stopped:
-            self._commMC("!tipo", self._tiltEnd)
+            self.setTiltPosition(self._tiltEnd)
         #endif
         return stopped
     #enddef
@@ -970,15 +979,20 @@ class Hardware(object):
     def isTiltOnMin(self):
         stopped = not self.isTiltMoving()
         if stopped:
-            self._commMC("!tipo", 0)
+            self.setTiltPosition(0)
         #endif
         return stopped
     #enddef
 
 
+    def setTiltPosition(self, position):
+        self._commMC("!tipo", position)
+        self.debug.showItems(tiltPosition = position)
+    #enddef
+
+
     def getTiltPosition(self):
-        steps = self._commMC("?tipo")
-        self.debug.showItems(tiltPosition = steps)
+        steps = self.getTiltPositionMicroSteps()
         if steps is None:
             return "ERROR"
         #endif
@@ -987,9 +1001,9 @@ class Hardware(object):
 
 
     def getTiltPositionMicroSteps(self):
-        steps = self._commMC("?tipo")
+        steps = self._intOrNone(self._commMC("?tipo"))
         self.debug.showItems(tiltPosition = steps)
-        return self._intOrNone(steps)
+        return steps
     #enddef
 
 

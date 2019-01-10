@@ -57,10 +57,12 @@ class Debug(object):
         self.server = DebugServer(defines.debugPort, self.commands)
         self.server.start()
         self.setup = {
-                "towerProfile" : ("Tower profile: ", "line1"),
-                "towerPositon" : ("Tower position: ", "line2"),
-                "tiltProfile" : ("Tilt profile: ", "line3"),
-                "tiltPosition" : ("Tilt position: ", "line4"),
+                "towerProfile" : ("Actual tower profile: ", "line1"),
+                "towerFailed" : ("Last failed tower profile: ", "line2"),
+                "towerPositon" : ("Actual tower position: ", "line3"),
+                "tiltProfile" : ("Actual tilt profile: ", "line4"),
+                "tiltFailed" : ("Last failed tilt Profile: ", "line5"),
+                "tiltPosition" : ("Actual tilt position: ", "line6"),
                 }
         self.logLines = deque(maxlen = 30)
     #enddef
