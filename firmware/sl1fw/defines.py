@@ -4,7 +4,7 @@
 
 import os
 
-swVersion = "Gen3-190-110"
+swVersion = "Gen3-190-117"
 reqMcVersion = "SLA-control 0.9.5-252a"
 
 home = "/home/root"
@@ -13,8 +13,11 @@ swPath = "/usr/lib/python2.7/site-packages/sl1fw"
 dataPath = os.path.join(swPath, "data")
 usbPath = "/mnt/usb"
 ramdiskPath = "/run/sl1fw"
-printerlog = os.path.join(ramdiskPath, "sl1fw.log")
+#printerlog = os.path.join(ramdiskPath, "sl1fw.log")    # TODO temporarily moved
+printerlog = os.path.join(home, "sl1fw.log")
 jobCounter = os.path.join(home, "jobs.log")
+#MCcommLog = os.path.join(ramdiskPath, "sl1fw-mc.log")  # TODO temporarily moved
+MCcommLog = os.path.join(home, "sl1fw-mc.log")
 tiltLoad = os.path.join(home, "tiltLoad")
 configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"

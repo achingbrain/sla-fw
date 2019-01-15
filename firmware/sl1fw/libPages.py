@@ -593,10 +593,10 @@ class PageHardwareInfo(Page):
 
     def menuCallback(self):
         items = {}
-        self._setItem(items, 'line3', "Fans [RPM]:  %s" % "  ".join(self.display.hw.getFansRpm()))
-        self._setItem(items, 'line4', "Temperatures [C]:  %s" % "  ".join(self.display.hw.getTemperatures()))
+        self._setItem(items, 'line3', "Fans [RPM]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getFansRpm())))
+        self._setItem(items, 'line4', "Temperatures [C]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getTemperatures())))
         # cpu temp
-        self._setItem(items, 'line5', "UV LED voltages [V]:  %s" % "  ".join(self.display.hw.getUvLedVoltages()))
+        self._setItem(items, 'line5', "UV LED voltages [V]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getUvLedVoltages())))
         # resin sensor
         # cover state
         # power button state
@@ -998,8 +998,10 @@ class PageDisplay(Page):
 
 
     def show(self):
-        self.items['button14'] = "UV off" if self.display.hw.getUvLedState() else "UV on"
-        self.button2ButtonRelease()
+        self.display.screen.getImgBlack()
+        self.display.screen.inverse()
+        self.display.hw.uvLed(True)
+        self.items['button14'] = "UV off"
         super(PageDisplay, self).show()
     #enddef
 
@@ -1050,7 +1052,7 @@ class PageDisplay(Page):
 
 
     def button14ButtonRelease(self):
-        state = not self.display.hw.getUvLedState()
+        state = not self.display.hw.getUvLedState()[0]
         self.showItems(button14 = "UV off" if state else "UV on")
         self.display.hw.uvLed(state)
     #enddef
@@ -1395,6 +1397,7 @@ class PageSetup(Page):
                 'label1g3' : "MC version check",
                 'label1g4' : "Use resin sensor",
                 'label1g5' : "Log tilt load",
+                'label1g6' : "Blink exposure",
 
                 'label2g1' : "Screw (mm/rot)",
                 'label2g2' : "Tower msteps",
@@ -1437,12 +1440,14 @@ class PageSetup(Page):
         self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
         self.temp['resinsensor'] = self.display.hwConfig.resinSensor
         self.temp['logtiltload'] = self.display.hwConfig.logTiltLoad
+        self.temp['blinkexposure'] = self.display.hwConfig.blinkExposure
 
         self.items['state1g1'] = 1 if self.temp['fancheck'] else 0
         self.items['state1g2'] = 1 if self.temp['covercheck'] else 0
         self.items['state1g3'] = 1 if self.temp['mcversioncheck'] else 0
         self.items['state1g4'] = 1 if self.temp['resinsensor'] else 0
         self.items['state1g5'] = 1 if self.temp['logtiltload'] else 0
+        self.items['state1g6'] = 1 if self.temp['blinkexposure'] else 0
 
         super(PageSetup, self).show()
     #enddef
@@ -1512,6 +1517,11 @@ class PageSetup(Page):
 
     def state1g5ButtonRelease(self):
         self._onOff(4, 'logtiltload')
+    #enddef
+
+
+    def state1g6ButtonRelease(self):
+        self._onOff(5, 'blinkexposure')
     #enddef
 
 
@@ -2296,7 +2306,6 @@ class PageFansLeds(Page):
                 'label1g1' : "Fan 1",
                 'label1g2' : "Fan 2",
                 'label1g3' : "Fan 3",
-                'label1g4' : "Fan 4",
                 'label1g5' : "UV LED",
                 'label1g6' : "Cam LED",
                 'label1g8' : "Resin sensor",
@@ -2304,7 +2313,6 @@ class PageFansLeds(Page):
                 'label2g1' : "Fan 1 PWM",
                 'label2g2' : "Fan 2 PWM",
                 'label2g3' : "Fan 3 PWM",
-                'label2g4' : "Fan 4 PWM",
                 'label2g5' : "UV current [mA]",
                 'label2g6' : "Power LED PWM",
                 'label2g7' : "Power LED mode",
@@ -2316,7 +2324,7 @@ class PageFansLeds(Page):
         self.callbackPeriod = 0.5
         self.changed = {}
         self.temp = {}
-        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'fan4pwm', 'uvcurrent', 'pwrledpwm'))
+        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'uvcurrent', 'pwrledpwm'))
     #enddef
 
 
@@ -2328,19 +2336,18 @@ class PageFansLeds(Page):
 
     def menuCallback(self):
         items = {}
-        self.temp['fs1'], self.temp['fs2'], self.temp['fs3'], self.temp['fs4'] = self.display.hw.getFans()
-        self.temp['uls'] = self.display.hw.getUvLedState()
+        self.temp['fs1'], self.temp['fs2'], self.temp['fs3'] = self.display.hw.getFans()
+        self.temp['uls'] = self.display.hw.getUvLedState()[0]
         self.temp['cls'] = self.display.hw.getCameraLedState()
         self.temp['rsr'] = self.display.hw.getResinSensor()
         self._setItem(items, 'state1g1', self.temp['fs1'])
         self._setItem(items, 'state1g2', self.temp['fs2'])
         self._setItem(items, 'state1g3', self.temp['fs3'])
-        self._setItem(items, 'state1g4', self.temp['fs4'])
         self._setItem(items, 'state1g5', self.temp['uls'])
         self._setItem(items, 'state1g6', self.temp['cls'])
         self._setItem(items, 'state1g8', self.temp['rsr'])
 
-        self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm'] = self.display.hw.getFansPwm()
+        self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'] = self.display.hw.getFansPwm()
         self.temp['uvcurrent'] = self.display.hw.getUvLedCurrent()
         self.temp['pwrledpwm'] = self.display.hw.getPowerLedPwm()
         self.temp['pwrledmd'] = self.display.hw.getPowerLedMode()
@@ -2348,7 +2355,6 @@ class PageFansLeds(Page):
         self._setItem(items, 'value2g1', self.temp['fan1pwm'])
         self._setItem(items, 'value2g2', self.temp['fan2pwm'])
         self._setItem(items, 'value2g3', self.temp['fan3pwm'])
-        self._setItem(items, 'value2g4', self.temp['fan4pwm'])
         self._setItem(items, 'value2g5', self.temp['uvcurrent'])
         self._setItem(items, 'value2g6', self.temp['pwrledpwm'])
         self._setItem(items, 'value2g7', self.temp['pwrledmd'])
@@ -2377,25 +2383,19 @@ class PageFansLeds(Page):
 
     def state1g1ButtonRelease(self):
         self._onOff(0, 'fs1')
-        self.display.hw.setFans({ 0 : self.temp['fs1'] })
+        self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
     def state1g2ButtonRelease(self):
         self._onOff(1, 'fs2')
-        self.display.hw.setFans({ 1 : self.temp['fs2'] })
+        self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
     def state1g3ButtonRelease(self):
         self._onOff(2, 'fs3')
-        self.display.hw.setFans({ 2 : self.temp['fs3'] })
-    #enddef
-
-
-    def state1g4ButtonRelease(self):
-        self._onOff(3, 'fs4')
-        self.display.hw.setFans({ 3 : self.temp['fs4'] })
+        self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
@@ -2419,49 +2419,37 @@ class PageFansLeds(Page):
 
     def minus2g1Button(self):
         self._value(0, 'fan1pwm', 0, 100, -5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def plus2g1Button(self):
         self._value(0, 'fan1pwm', 0, 100, 5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def minus2g2Button(self):
         self._value(1, 'fan2pwm', 0, 100, -5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def plus2g2Button(self):
         self._value(1, 'fan2pwm', 0, 100, 5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def minus2g3Button(self):
         self._value(2, 'fan3pwm', 0, 100, -5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def plus2g3Button(self):
         self._value(2, 'fan3pwm', 0, 100, 5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
-    #enddef
-
-
-    def minus2g4Button(self):
-        self._value(3, 'fan4pwm', 0, 100, -5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
-    #enddef
-
-
-    def plus2g4Button(self):
-        self._value(3, 'fan4pwm', 0, 100, 5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'], self.temp['fan4pwm']))
+        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 

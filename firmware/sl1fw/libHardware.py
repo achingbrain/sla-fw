@@ -29,9 +29,13 @@ class Hardware(object):
         self._lastTiltProfile = None
         self._lastTowerProfile = None
 
-        self._fansRequested = 0
         self._tiltToPosition = 0
         self._towerToPosition = 0
+
+        self._fansMask = 0b011 # last fan is broken
+        self._fanFailed = False
+        self._coolDownCounter = 0
+        self._ledTempIdx = 0
 
         # (mode, speed)
         self._powerLedStates= { 'normal' : (2, 3), 'warn' : (3, 16), 'error' : (3, 48) }
@@ -84,10 +88,6 @@ class Hardware(object):
                 dsrdtr = False,
                 interCharTimeout = None)
 
-        # fan status
-        self.current_milli_time = lambda: int(round(time() * 1000)) # FIXME WTF?
-        self.coolDownCounter = 0
-
         self.commOKStr = re.compile('^(.*)ok$')
         self.commErrStr = re.compile('^e(.)$')
         self.commErrors = {
@@ -101,9 +101,8 @@ class Hardware(object):
         self._firmwareCheck()
 
         self.motorsRelease()
-        self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm, self.hwConfig.fan4Pwm))
-        self.setFans({ 0 : True, 1 : True, 2 : True, 3 : True })
-        #self.setFans({ 0 : False, 1 : False, 2 : False, 3 : False })  # all off
+        self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm))
+        self.setFans((True, True, True))
         self.setUvLedCurrent(self.hwConfig.uvCurrent)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
         self.resinSensor(False)
@@ -125,14 +124,13 @@ class Hardware(object):
 
         while self.port.inWaiting():
             try:
-                self.logger.info("extra line '%s'", self.port.readline().strip().decode("ascii").encode())
+                self.debug.log("| %s" % self.port.readline().strip().decode("ascii").encode())
             except Exception:
                 self.logger.exception("exception:")
             #endtry
         #endwhile
 
         params = " ".join(str(x) for x in args)
-        self.logger.debug("write '%s'", params)
         self.debug.log("> %s" % params)
 
         try:
@@ -140,7 +138,6 @@ class Hardware(object):
 
             while True:
                 line = self.port.readline().strip().decode("ascii").encode()
-                self.logger.debug("read '%s'", line)
                 self.debug.log("< %s" % line)
 
                 if line == '':
@@ -159,7 +156,7 @@ class Hardware(object):
                     self.logger.error("error: '%s'", err)
                     return None
                 else:
-                    self.logger.debug("debug: '%s'", line)
+                    self.debug.log("| %s" % line)
                 #endif
             #endwhile
 
@@ -426,13 +423,25 @@ class Hardware(object):
     #enddef
 
 
-    def uvLed(self, state):
-        self._commMC("!uled", 1 if state else 0)
+    def uvLed(self, state, time = 0):
+        self._commMC("!uled", 1 if state else 0, int(time))
     #enddef
 
 
     def getUvLedState(self):
-        return self._commMC("?uled") == "1"
+        state = False
+        time = 0
+        raw = self._commMC("?uled")
+        try:
+            values = raw.split(" ")
+            state = values[0] == "1"
+            if len(values) > 1:
+                time = self._intOrNone(values[1])
+            #endif
+        except Exception:
+            self.logger.exception("exception:")
+        #endtry
+        return (state, time)
     #enddef
 
 
@@ -452,12 +461,12 @@ class Hardware(object):
 
 
     def getUvLedVoltages(self):
-        retval = list(("0", "0", "0"))
+        retval = list((0, 0, 0))
         volts = self._commMC("?volt")
         try:
             i = 0
             for val in map(lambda x: int(x), volts.split(" ")):
-                retval[i] = str(val / 1000.0)
+                retval[i] = val / 1000.0
                 i += 1
             #endfor
         except Exception:
@@ -493,23 +502,24 @@ class Hardware(object):
 
 
     def setFans(self, fans):
-        for fan, state in fans.iteritems():
+        fan = 0
+        out = 0
+        for state in fans:
             if state:
-                self._fansRequested |= 1 << fan
-            else:
-                self._fansRequested &= ~(1 << fan)
+                out |= 1 << fan
             #endif
+            fan += 1
         #endfor
-        self._commMC("!fans", self._fansRequested)
+        self._commMC("!fans", out)
     #enddef
 
 
     def getFans(self):
-        retVal = list((False, False, False, False))
+        retVal = list((False, False, False))
         state = self._commMC("?fans")
         try:
             binState = int(state)
-            for i in xrange(4):
+            for i in xrange(3):
                 retVal[i] = True if binState & (1 << i) else False
             #endfor
         except Exception:
@@ -519,26 +529,18 @@ class Hardware(object):
     #enddef
 
 
-    def getFanState(self):
-        if not self._fansRequested:
-            return True
-        #endif
-        state = self._commMC("?fans")
-        try:
-            return int(state) & self._fansRequested
-        except Exception:
-            return False
-        #endtry
+    def getFansError(self):
+        return self._intOrNone(self._commMC("?fane")) & self._fansMask
     #enddef
 
 
     def setFansPwm(self, pwms):
-        self._commMC("!fpwm", " ".join(map(lambda x: str(x / 5), pwms)))
+        self._commMC("!fpwm", " ".join(map(lambda x: str(x / 5), pwms)), 0) # FIXME remove 0 after done in MC
     #enddef
 
 
     def getFansPwm(self):
-        retval = list((0, 0, 0, 0))
+        retval = list((0, 0, 0))
         pwms = self._commMC("?fpwm")
         try:
             i = 0
@@ -554,12 +556,12 @@ class Hardware(object):
 
 
     def getFansRpm(self):
-        retval = list(("0", "0", "0", "0"))
+        retval = list((0, 0, 0))
         rpms = self._commMC("?frpm")
         try:
             i = 0
             for val in map(lambda x: int(x), rpms.split(" ")):
-                retval[i] = str(val * 10)
+                retval[i] = val * 10
                 i += 1
             #endfor
         except Exception:
@@ -570,38 +572,18 @@ class Hardware(object):
 
 
     def getTemperatures(self):
-        retval = list(("-273.15", "-273.15", "-273.15", "-273.15"))
+        retval = list((-273.15, -273.15, -273.15, -273.15))
         temps = self._commMC("?temp")
         try:
             i = 0
             for val in map(lambda x: int(x), temps.split(" ")):
-                retval[i] = str(val / 10.0)
+                retval[i] = val / 10.0
                 i += 1
             #endfor
         except Exception:
             pass
         #endtry
         return retval
-    #enddef
-
-
-    def getTemperatureSystem(self):
-        temp = self._commMC("?tems")
-        try:
-            return int(temp) / 100.0
-        except Exception:
-            return -273.15
-        #endtry
-    #enddef
-
-
-    def getTemperatureUVLED(self):
-        temp = self._commMC("?temu")
-        try:
-            return int(temp) / 100.0
-        except Exception:
-            return -273.15
-        #endtry
     #enddef
 
 
@@ -1052,18 +1034,24 @@ class Hardware(object):
 
     # --- generic ---
 
+    def getCurrentMiliTime(self):
+        return int(round(time() * 1000))
+    #enddef
+
+
     def checkFanStatus(self, errorPage, returnPage):
         #self.logger.debug("checkFanStatus started")
         if not self.hwConfig.fanCheck:
             #self.logger.debug("checkFanStatus disable return")
             return
         #endif
-        if (self.current_milli_time() - self.coolDownCounter) < ((1000 * 60) * 15):
-            #self.logger.debug("checkFanStatus time return")
-            return
-        #endif
-        if not self.getFanState():
-            self.coolDownCounter = self.current_milli_time()
+        if self.getFansError():
+            if self._fanFailed and self.getCurrentMiliTime() - self._coolDownCounter < 1000 * 60 * 15:
+                #self.logger.debug("checkFanStatus time return")
+                return
+            #endif
+            self._fanFailed = True
+            self._coolDownCounter = self.getCurrentMiliTime()
             counter = 0
             self.powerLed("error")
             errorPage.show()
@@ -1080,6 +1068,8 @@ class Hardware(object):
             errorPage.showItems(line3 = "")
             returnPage.show()
             self.powerLed("normal")
+        else:
+            self._fanFailed = False
         #endif
         #self.logger.debug("checkFanStatus done")
     #enddef
@@ -1118,12 +1108,18 @@ class Hardware(object):
     #enddef
 
 
+    def logTemp(self, temps):
+        self.logger.info("Temperatures [C]: %s", " ".join(map(lambda x: str(x), temps)))
+    #enddef
+
+
     def checkTemp(self, errorPage, returnPage, forceFail = False):
-        # TODO
-        return
         #self.logger.debug("checkTemp started")
-        if self.getTemperatureUVLED() < 0:
-            if forceFail or not self.hwConfig.fanCheck or not self.getFanState():
+        temps = self.getTemperatures()
+        self.logTemp(temps)
+        temp = temps[self._ledTempIdx]
+        if temp < 0:
+            if forceFail or not self.hwConfig.fanCheck or self.getFansError():
                 self.uvLed(False)
                 self.logger.critical("EMERGENCY STOP - LED temperature")
                 self.powerLed("error")
@@ -1142,7 +1138,7 @@ class Hardware(object):
             #endif
         #endif
 
-        if forceFail or self.getTemperatureUVLED() < 80:
+        if forceFail or temp < 60:
             return
         #endif
 
@@ -1150,12 +1146,15 @@ class Hardware(object):
         self.powerLed("error")
         errorPage.show()
         errorPage.showItems(line2 = "OVERHEAT!")
-        while(self.getTemperatureUVLED() > 60): # hystereze
+        while(temp > 40): # hystereze
             errorPage.showItems(line3 = "Cooling down...")
             self.beepAlarm(3)
             sleep(1)
-            errorPage.showItems(line3 = "Temperature is %.1f C" % self.getTemperatureUVLED())
+            errorPage.showItems(line3 = "Temperature is %.1f C" % temp)
             sleep(1)
+            temps = self.getTemperatures()
+            self.logTemp(temps)
+            temp = temps[self._ledTempIdx]
         #endwhile
 
         errorPage.showItems(line2 = "")
@@ -1166,14 +1165,6 @@ class Hardware(object):
         self.uvLed(True)
 
         #self.logger.debug("checkTemp done")
-    #enddef
-
-
-    def logTemp(self):
-        # TODO
-        return
-        self.logger.info("SYS: %.1f C  LED: %.1f C",
-                self.getTemperatureSystem(), self.getTemperatureUVLED())
     #enddef
 
 #endclass
