@@ -43,16 +43,52 @@ class ExposureThread(threading.Thread):
             self.towerMoveAbsoluteWait(position)
         #endif
         sleep(self.config.tiltDelayAfter)
-        whitePixels = self.expo.screen.blitImg()
         self.logger.debug("exposure started")
-        sleep(exposureTime)
-        if self.calibAreas is not None:
-            for box in self.calibAreas:
-                self.expo.screen.fillArea(area = box)
-                self.logger.debug("blank area")
-                sleep(self.expo.config.calibrateTime)
-            #endfor
+        whitePixels = self.expo.screen.blitImg()
+
+        if self.expo.hwConfig.blinkExposure:
+
+            if self.calibAreas is not None:
+                time = 1000 * (exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2])
+                self.expo.hw.uvLed(True, time)
+
+                for area in self.calibAreas:
+                    while time > 1000 * (self.calibAreas[-1][2] - area[2]):
+                        sleep(0.005)
+                        UVIsOn, time = self.expo.hw.getUvLedState()
+                        if not UVIsOn:
+                            break
+                        #endif
+                    #endwhile
+
+                    if not UVIsOn:
+                        break
+                    #endif
+
+                    self.expo.screen.fillArea(area = (area[0], area[1]))
+                    self.logger.debug("blank area")
+                #endfor
+            else:
+                self.expo.hw.uvLed(True, 1000 * exposureTime)
+                UVIsOn = True
+                while UVIsOn:
+                    sleep(0.1)
+                    UVIsOn, time = self.expo.hw.getUvLedState()
+                #endwhile
+            #endif
+        else:
+            sleep(exposureTime)
+            if self.calibAreas is not None:
+                lastArea = self.calibAreas[0]
+                for area in self.calibAreas[1:]:
+                    self.expo.screen.fillArea(area = (lastArea[0], lastArea[1]))
+                    self.logger.debug("blank area")
+                    sleep(area[2] - lastArea[2])
+                    lastArea = area
+                #endfor
+            #endif
         #endif
+
         self.expo.screen.getImgBlack()
         self.logger.debug("exposure done")
         sleep(self.config.tiltDelayBefore)
@@ -159,22 +195,21 @@ class ExposureThread(threading.Thread):
 
                     self.calibAreas = list()
                     lw = 0
+                    time = config.expTime
                     for i in xrange(divide[x]):
                         lh = 0
                         for j in xrange(divide[y]):
                             w = (i+1) * stepW
                             h = (j+1) * stepH
                             #self.logger.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)
-                            self.calibAreas.append(((lw,lh),(stepW,stepH)))
+                            self.calibAreas.append(((lw, lh), (stepW, stepH), time))
+                            time += config.calibrateTime
                             lh = h
                         #endfor
                         lw = w
                     #endfor
 
-                    self.expo.screen.createCalibrationOverlay(areas = list(self.calibAreas), baseTime = config.expTime, timeStep = config.calibrateTime)
-
-                    # posledni oblast neni potreba, smaze se cely obraz
-                    self.calibAreas.pop()
+                    self.expo.screen.createCalibrationOverlay(areas = self.calibAreas)
                 #endif
             #endif
 

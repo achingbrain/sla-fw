@@ -46,22 +46,22 @@ stepH = height / divide[y]
 
 calibAreas = list()
 lw = 0
+time = 4.0
+timeStep = 1.0
 for i in xrange(divide[x]):
     lh = 0
     for j in xrange(divide[y]):
         w = (i+1) * stepW
         h = (j+1) * stepH
         logging.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)
-        calibAreas.append(((lw,lh),(stepW,stepH)))
+        calibAreas.append(((lw, lh), (stepW, stepH), time))
+        time += timeStep
         lh = h
     #endfor
     lw = w
 #endfor
 
-screen.createCalibrationOverlay(areas = list(calibAreas), baseTime = 4, timeStep = 1.25)
-
-# posledni oblast neni potreba, smaze se cely obraz
-calibAreas.pop()
+screen.createCalibrationOverlay(areas = calibAreas)
 
 screen.openZip(filename = "test.dwz")
 screen.createMask()
@@ -69,10 +69,16 @@ screen.createMask()
 screen.testBlit(filename = "zaba.png", overlayName = 'calibPad')
 
 sleep(5)
-for box in calibAreas:
-    sleep(1)
-    screen.fillArea(area = box)
+lastArea = calibAreas[0]
+for area in calibAreas[1:]:
+    screen.fillArea(area = (lastArea[0], lastArea[1]))
+    logging.debug("blank area")
+    sleep(area[2] - lastArea[2])
+    lastArea = area
 #endfor
+
+screen.getImgBlack()
+sleep(1)
 
 screen.testBlit(filename = "zaba.png", overlayName = 'calib')
 sleep(5)

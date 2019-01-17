@@ -187,7 +187,6 @@ class Printer(object):
         #endif
 
         self.lastLayer = self.expo.actualLayer
-        self.hw.logTemp()
 
         # FIXME nepocita s prvnimi delsimi casy!
         timeRemain = self.m2hm(int(round(
@@ -257,7 +256,7 @@ class Printer(object):
         try:
             while True:
                 if not self.config.direct:
-                    self.display.doMenu("home", self.homeCallback, 5)
+                    self.display.doMenu("home", self.homeCallback, 30)
                 #endif
 
                 # akce co nejsou print neresime
@@ -430,6 +429,10 @@ class Printer(object):
 
             self.totalHeight = self.config.totalLayers * self.hwConfig.calcMM(self.config.layerMicroSteps)   # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
             self.lastLayer = 0
+
+            if self.hwConfig.blinkExposure:
+                self.hw.uvLed(False)
+            #endif
 
             self.printStartTime = time()
             self.logger.debug("printStartTime: " + str(self.printStartTime))

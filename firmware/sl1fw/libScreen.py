@@ -199,13 +199,13 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def createCalibrationOverlay(self, areas, baseTime, timeStep):
+    def createCalibrationOverlay(self, areas):
         self.overlays['calibPad'] = pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha()
         self.overlays['calib'] = pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha()
         spacingX = 1.5
         spacingY = 1.5
         for area in areas:
-            text = "%.2f" % baseTime
+            text = "%.2f" % area[2]
             surf = pygame.transform.flip(self.font.render(text, True, (255,255,255)), True, False).convert_alpha()
             rect = surf.get_rect()
             padX = rect.w * spacingX
@@ -220,7 +220,6 @@ class ScreenServer(multiprocessing.Process):
             #self.logger.debug("startX:%d startY:%d", startX, startY)
             self.overlays['calibPad'].fill((255,255,255), ((startX, startY), (padX, padY)))
             self.overlays['calib'].blit(surf, (startX + ofsetX, startY + ofsetY))
-            baseTime += timeStep
         #endfor
     #enddef
 

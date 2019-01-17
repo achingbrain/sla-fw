@@ -10,7 +10,7 @@ from sl1fw import defines
 
 logging.basicConfig(
         filename = defines.printerlog,
-        filemode = "w",
+        #filemode = "w",
         level = logging.DEBUG,
         format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
