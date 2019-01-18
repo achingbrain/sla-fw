@@ -865,10 +865,12 @@ class PageTiltTower(Page):
                 'button2' : "Tilt move",
                 'button3' : "Tilt test",
                 'button4' : "Tilt profiles",
+                'button5' : "Tilt home calib.",
                 'button6' : "Tower home",
                 'button7' : "Tower move",
                 'button8' : "Tower test",
                 'button9' : "Tower profiles",
+                'button10' : "Tower home calib.",
                 'button11' : "Turn motors off",
                 'button13' : "Calibrate printer",
 
@@ -923,6 +925,16 @@ class PageTiltTower(Page):
     #enddef
 
 
+    def button5ButtonRelease(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display, line2 = "Tilt home calibration")
+        pageWait.show()
+        self.display.hw.tiltHomeCalibrateWait()
+        self.display.hw.powerLed("normal")
+        return "_SELF_"
+    #enddef
+
+
     def button6ButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = "Moving platform to top")
@@ -959,6 +971,16 @@ class PageTiltTower(Page):
 
     def button9ButtonRelease(self):
         return "towerprofiles"
+    #enddef
+
+
+    def button10ButtonRelease(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display, line2 = "Tower home calibration")
+        pageWait.show()
+        self.display.hw.towerHomeCalibrateWait()
+        self.display.hw.powerLed("normal")
+        return "_SELF_"
     #enddef
 
 

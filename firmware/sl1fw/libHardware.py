@@ -600,6 +600,17 @@ class Hardware(object):
     # --- tower ---
 
 
+    def towerHomeCalibrateWait(self):
+        self.setTowerProfile('homingFast')
+        self._commMC("!twhc")
+        homingStatus = 1
+        while homingStatus > 0: # not done and not error
+            homingStatus = self._intOrNone(self._commMC("?twho"))
+            sleep(0.1)
+        #endwhile
+    #enddef
+
+
     def towerSync(self, retries = 2):
         ''' home is at top position, retries = None is infinity '''
         self._towerSyncRetries = retries
@@ -807,6 +818,16 @@ class Hardware(object):
 
 
     # --- tilt ---
+
+    def tiltHomeCalibrateWait(self):
+        self.setTiltProfile('homingFast')
+        self._commMC("!tihc")
+        homingStatus = 1
+        while homingStatus > 0: # not done and not error
+            homingStatus = self._intOrNone(self._commMC("?tiho"))
+            sleep(0.1)
+        #endwhile
+    #enddef
 
 
     def tiltSyncWait(self, retries = None):
