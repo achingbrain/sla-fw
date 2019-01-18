@@ -341,6 +341,12 @@ class ExposureThread(threading.Thread):
                 #endif
                 self.logger.debug("resinCount: %f" % self.expo.resinCount)
 
+                if self.expo.hwConfig.trigger:
+                    self.expo.hw.cameraLed(True)
+                    sleep(self.expo.hwConfig.trigger / 10.0)
+                    self.expo.hw.cameraLed(False)
+                #endif
+
             #endfor
 
             self.expo.hw.uvLed(False)

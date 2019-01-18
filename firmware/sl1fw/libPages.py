@@ -1412,6 +1412,7 @@ class PageSetup(Page):
                 'minus2g5' : (5, 1), 'plus2g5' : (5, 1),
                 'minus2g6' : (5, 1), 'plus2g6' : (5, 1),
                 'minus2g7' : (5, 1), 'plus2g7' : (5, 1),
+                'minus2g8' : (5, 1), 'plus2g8' : (5, 1),
                 }
         self.items.update({
                 'label1g1' : "Fan check",
@@ -1428,6 +1429,7 @@ class PageSetup(Page):
                 'label2g5' : "Tilt break msteps",
                 'label2g6' : "Tilt ret.sl. msteps",
                 'label2g7' : "Warm up mins",
+                'label2g8' : "Layer IR trigger [x0.1s]",
 
                 'button1' : "Export",
                 'button2' : "Import",
@@ -1448,6 +1450,7 @@ class PageSetup(Page):
         self.temp['tiltbreaksteps'] = self.display.hwConfig.tiltBreakSteps
         self.temp['tiltreturnslowsteps'] = self.display.hwConfig.tiltReturnSlowSteps
         self.temp['warmup'] = self.display.hwConfig.warmUp
+        self.temp['trigger'] = self.display.hwConfig.trigger
 
         self.items['value2g1'] = str(self.temp['screwmm'])
         self.items['value2g2'] = str(self.temp['towerheight'])
@@ -1456,6 +1459,7 @@ class PageSetup(Page):
         self.items['value2g5'] = str(self.temp['tiltbreaksteps'])
         self.items['value2g6'] = str(self.temp['tiltreturnslowsteps'])
         self.items['value2g7'] = str(self.temp['warmup'])
+        self.items['value2g8'] = str(self.temp['trigger'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
@@ -1614,6 +1618,16 @@ class PageSetup(Page):
 
     def plus2g7Button(self):
         return self._value(6, 'warmup', 0, 30, 1)
+    #enddef
+
+
+    def minus2g8Button(self):
+        return self._value(7, 'trigger', 0, 20, -1)
+    #enddef
+
+
+    def plus2g8Button(self):
+        return self._value(7, 'trigger', 0, 20, 1)
     #enddef
 
 #endclass

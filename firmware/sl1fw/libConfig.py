@@ -281,6 +281,7 @@ class HwConfig(FileConfig):
         self.fan3Pwm = self._parseIntMinMax("fan3pwm", 100, 0, 100)
         self.uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)
         self.pwrLedPwm = self._parseIntMinMax("pwrledpwm", 100, 0, 100)
+        self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
     #enddef
 
     def calcMicroSteps(self, mm):
