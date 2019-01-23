@@ -1127,7 +1127,7 @@ class PageSrcSelect(Page):
                     self.logger.info(self.currentRoot)
                     return "sourceselect"
                 else:
-                    return self.bothButtons(item['source'], item['fullpath'])
+                    return self.loadProject(item['fullpath'])
 
     def netChange(self):
         ip = self.display.inet.getIp()
@@ -1138,19 +1138,19 @@ class PageSrcSelect(Page):
         #endif
     #enddef
 
-    def bothButtons(self, source, configFileWithPath):
+    def loadProject(self, project_path):
         pageWait = PageWait(self.display, line2="Reading project data...")
         pageWait.show()
 
         self.showItems(line1 = "Reading project data...")
-        self.checkConfFile(configFileWithPath)
+        self.checkConfFile(project_path)
         config = self.display.config
 
         if not config.configFound:
             sleep(0.5)
             self.display.page_error.setParams(
                 line1="Your project has a problem:",
-                line2="%s project not found" % configFileWithPath,
+                line2="%s project not found" % project_path,
                 line3="Regenerate it and try again.")
             return "error"
         elif config.action != "print":
@@ -1171,16 +1171,6 @@ class PageSrcSelect(Page):
 
         return "printpreview"
     #endef
-
-
-    def usbButtonRelease(self):
-        return self.bothButtons("USB", os.path.join(defines.usbPath, defines.configFile))
-    #enddef
-
-
-    def lanButtonRelease(self):
-        return self.bothButtons("LAN", os.path.join(defines.ramdiskPath, defines.configFile))
-    #enddef
 
     def backButtonRelease(self):
         self.currentRoot = "."
