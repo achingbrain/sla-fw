@@ -53,12 +53,6 @@ class Printer(object):
         self.logger.info("Software version: %s", defines.swVersion)
         self.hwConfig.logAllItems()
 
-        # pokud neni usb storage, nic neprecte a bude vsude default
-        # - zbytecne saha na /mnt/usb cimz spousti automounter a zabrani mountovani usb pres udiskie
-        # - predpokladam se ze nebude potreba tady nic nacitat
-        # self.config.parseFile(os.path.join(defines.usbPath, defines.configFile))
-        self.config.logAllItems()
-
         self.checkPage = libPages.PageWait(self.display)
 
         self.hw.powerLed("normal")

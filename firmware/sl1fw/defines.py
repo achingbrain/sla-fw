@@ -3,6 +3,7 @@
 # 2018 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
+import glob
 
 swVersion = "Gen3-190-118"
 reqMcVersion = "SLA-control 0.9.7-270"
@@ -11,7 +12,6 @@ home = "/home/root"
 
 swPath = "/usr/lib/python2.7/site-packages/sl1fw"
 dataPath = os.path.join(swPath, "data")
-usbPath = "/mnt/usb"
 ramdiskPath = "/run/sl1fw"
 printerlog = os.path.join(ramdiskPath, "sl1fw.log")
 mediaRootPath = "/run/media/root"
@@ -53,3 +53,12 @@ resinMinVolume = 50
 resinMaxVolume = 200
 resinLowWarn = 40
 resinFeedWait = 30
+
+# Dynamic USB path, first usb device or None
+def usbPath():
+    usbs = glob.glob(os.path.join(mediaRootPath, '*'))
+
+    if len(usbs) > 0:
+        return usbs[0]
+    else:
+        return None

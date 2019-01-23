@@ -1490,7 +1490,7 @@ class PageDisplay(Page):
 
     def button6ButtonRelease(self):
         try:
-            self.display.screen.getImg(filename = os.path.join(defines.usbPath, "test.png"))
+            self.display.screen.getImg(filename = os.path.join(defines.usbPath(), "test.png"))
         except Exception:
             self.logger.exception("export exception:")
             self.display.hw.beepAlarm(3)
@@ -1815,7 +1815,7 @@ class PageSetup(Page):
                 })
         self.changed = {}
         self.temp = {}
-        self.backupFilename = os.path.join(defines.usbPath, defines.hwConfigFileName)
+        self.backupFilename = os.path.join(defines.usbPath(), defines.hwConfigFileName)
     #enddef
 
 
@@ -2460,7 +2460,7 @@ class ProfilesPage(Page):
     def button1ButtonRelease(self):
         ''' export '''
         try:
-            with open(os.path.join(defines.usbPath, self.profilesFilename), "w") as f:
+            with open(os.path.join(defines.usbPath(), self.profilesFilename), "w") as f:
                 f.write(json.dumps(self.profiles, sort_keys=True, indent=4, separators=(',', ': ')))
             #endwith
         except Exception:
@@ -2473,7 +2473,7 @@ class ProfilesPage(Page):
     def button2ButtonRelease(self):
         ''' import '''
         try:
-            with open(os.path.join(defines.usbPath, self.profilesFilename), "r") as f:
+            with open(os.path.join(defines.usbPath(), self.profilesFilename), "r") as f:
                 self.profiles = json.loads(f.read())
             #endwith
             self._setProfile()
