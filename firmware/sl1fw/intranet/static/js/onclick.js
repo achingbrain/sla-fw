@@ -126,3 +126,16 @@ function hookWifiBothOffCheck() {
         }
     })
 }
+
+function hookFlash() {
+    $('#flash').click(function() {
+        file = $('#fw_file').val()
+
+        id = 'flash'
+        data = {
+            'firmware': file
+        }
+        sendWebSocketEvent(pressed = true, id = id, data = data)
+        sendWebSocketEvent(pressed = false, id = id, data = data)
+    })
+}

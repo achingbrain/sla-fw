@@ -532,11 +532,58 @@ class PageFirmwareUpdate(Page):
         self.pageUI = "firmwareupdate"
         self.pageTitle = "Firmware Update"
         super(PageFirmwareUpdate, self).__init__(display)
+        self.callbackPeriod = 1
     # enddef
 
-    # TODO: No actions currently on this page
+    def fillData(self):
+        # Get list of available firmware files
+        fs_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.rauc"))
+
+        # Get Rauc flasher status and progress
+        operation = None
+        progress = None
+        try:
+            rauc = pydbus.SystemBus().get("de.pengutronix.rauc")
+            operation = rauc.Operation
+            progress = rauc.Progress
+        except Exception as e:
+            self.logger.error("Rauc status read failed: " + str(e))
+
+        return {
+            'firmwares': fs_files,
+            'operation': operation,
+            'progress': progress
+        }
+        # enddef
+
+    def show(self):
+        self.oldValues = {}
+        self.items.update(self.fillData())
+        super(PageFirmwareUpdate, self).show()
+    # enddef
+
+    def menuCallback(self):
+        self.logger.info("Menu callback")
+        items = self.fillData()
+        self.showItems(**items)
+    #enddef
+
+    def flashButtonSubmit(self, data):
+        try:
+            fw_file = data['firmware']
+        except:
+            self.logger.error("Error reading data['firmware']: " + str(e))
+
+        self.logger.info("Flashing: " + fw_file)
+        try:
+            rauc = pydbus.SystemBus().get("de.pengutronix.rauc")
+            rauc.Install(fw_file)
+        except Exception as e:
+            self.logger.error("Rauc install call failed: " + str(e))
+    #enddef
 
 # endclass
+
 
 class PageManual(Page):
 

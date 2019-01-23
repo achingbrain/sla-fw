@@ -46,6 +46,7 @@ function wsInit(dir) {
 			hookHiddenConnect();
 			hookWifiConnect();
 			hookWifiBothOffCheck();
+			hookFlash();
 
 		} else if (data.type == "items") {
 			var i;
