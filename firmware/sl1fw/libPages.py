@@ -251,12 +251,22 @@ class PagePrintPreview(Page):
     def fillData(self):
         config = self.display.config
 
+        if config.calibrateRegions:
+            calibrateRegions = config.calibrateRegions
+            calibration = config.calibrateTime
+        else:
+            calibrateRegions = None
+            calibration = None
+        # endif
+
         return {
             'name': config.projectName,
+            'calibrationRegions': calibrateRegions,
             'date': os.path.getmtime(config.zipName),
             'layers': config.totalLayers,
             'exposure_time_first_sec': config.expTimeFirst,
-            'exposure_time_sec': config.expTime
+            'exposure_time_sec': config.expTime,
+            'calibrate_time_sec': calibration
         }
     #enddef
 
