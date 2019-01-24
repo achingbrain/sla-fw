@@ -240,13 +240,9 @@ class PageConfirm(Page):
 #endclass
 
 
-class PagePrintPreview(Page):
-
+class PagePrintPreviewBase(Page):
     def __init__(self, display):
-        self.pageUI = "printpreview"
-        self.pageTitle = "Project"
-        super(PagePrintPreview, self).__init__(display)
-    #enddef
+        super(PagePrintPreviewBase, self).__init__(display)
 
     def fillData(self):
         config = self.display.config
@@ -268,6 +264,14 @@ class PagePrintPreview(Page):
             'exposure_time_sec': config.expTime,
             'calibrate_time_sec': calibration
         }
+    # enddef
+
+class PagePrintPreview(PagePrintPreviewBase):
+
+    def __init__(self, display):
+        self.pageUI = "printpreview"
+        self.pageTitle = "Project"
+        super(PagePrintPreview, self).__init__(display)
     #enddef
 
     def show(self):
@@ -282,24 +286,12 @@ class PagePrintPreview(Page):
 #endclass
 
 
-class PagePrintStart(Page):
+class PagePrintStart(PagePrintPreviewBase):
 
     def __init__(self, display):
         self.pageUI = "printstart"
         self.pageTitle = "Printing..."
         super(PagePrintStart, self).__init__(display)
-    #enddef
-
-    def fillData(self):
-        config = self.display.config
-
-        return {
-            'name': config.projectName,
-            'date': os.path.getmtime(config.zipName),
-            'layers': config.totalLayers,
-            'exposure_time_first_sec': config.expTimeFirst,
-            'exposure_time_sec': config.expTime
-        }
     #enddef
 
     def show(self):

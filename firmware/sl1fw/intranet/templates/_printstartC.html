@@ -1,4 +1,9 @@
+{% if items['calibrationRegions'] %}
+<h1 class="row" id="line1">Calibration[{{ items['calibrationRegions'] }}]: {{ items['name'] }}</h1>
+{% else %}
 <h1 class="row" id="line1">{{ items['name'] }}</h1>
+{% endif %}
+
 <div class="row justify-content-center menu">
 	{% set button = {'id': 'change', 'title': 'change exposure times'} %}
 	{% include 'button.html' %}
@@ -8,7 +13,11 @@
 		<h2 class="row font-weight-bold">Layers:</h2>
 		<div class="row">{{ items['layers'] }}</div>
 		<h2 class="row font-weight-bold">Exposure times:</h2>
-		<div class="row">{{ items['exposure_time_first_sec'] }} / {{ items['exposure_time_sec'] }} </div>
+		{% if items['calibrate_time_sec'] %}
+		<div class="row">{{ items['exposure_time_first_sec'] }} / {{ items['exposure_time_sec'] }} (+{{ items['calibrate_time_sec'] }})</div>
+		{% else %}
+		<div class="row">{{ items['exposure_time_first_sec'] }} / {{ items['exposure_time_sec'] }}</div>
+		{% endif %}
 	</div>
 	{% set button = {'id': 'cont', 'title': 'start print'} %}
 	{% include 'button.html' %}
