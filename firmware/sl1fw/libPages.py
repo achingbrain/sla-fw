@@ -883,37 +883,83 @@ class PageChange(Page):
         self.pageUI = "change"
         self.pageTitle = "Change Exposure Time"
         super(PageChange, self).__init__(display)
-        self.autorepeat = { "addsecond" : (5, 1), "subsecond" : (5, 1) }
+        self.autorepeat = {
+            "exposaddsecond" : (5, 1),
+            "expossubsecond" : (5, 1),
+            "exposfirstaddsecond": (5, 1),
+            "exposfirstsubsecond": (5, 1),
+            "exposcalibrateaddsecond": (5, 1),
+            "exposcalibratesubsecond": (5, 1),
+        }
+        self.expTime = None
+        self.expTimeFirst = None
+        self.expTimeCalibrate = None
     #enddef
 
 
     def show(self):
         self.expTime = self.display.config.expTime
-        self.items["timeexpos"] = "%.1f" % self.expTime
+        self.expTimeFirst = self.display.config.expTimeFirst
+        if self.display.config.calibrateRegions:
+            self.expTimeCalibrate = self.display.config.calibrateTime
+        else:
+            self.expTimeCalibrate = None
+
+        self.items["timeexpos"] = self.expTime
+        self.items["timeexposfirst"] = self.expTimeFirst
+        self.items["timeexposcalibrate"] = self.expTimeCalibrate
+
         super(PageChange, self).show()
     #enddef
 
-
     def backButtonRelease(self):
         self.display.config.expTime = self.expTime
+        self.display.config.expTimeFirst = self.expTimeFirst
+        self.display.config.calibrateTime = self.expTimeCalibrate
         return super(PageChange, self).backButtonRelease()
     #endif
 
-
-    def addsecondButton(self):
+    def exposaddsecondButton(self):
         if self.expTime < 60:
-            self.expTime += 1
+            self.expTime = round(self.expTime + 0.5, 1)
         #endif
-        self.showItems(timeexpos = "%.1f" % self.expTime)
+        self.showItems(timeexpos = self.expTime)
     #enddef
 
-
-    def subsecondButton(self):
+    def expossubsecondButton(self):
         if self.expTime > 1:
-            self.expTime -= 1
+            self.expTime = round(self.expTime - 0.5, 1)
         #endif
-        self.showItems(timeexpos = "%.1f" % self.expTime)
+        self.showItems(timeexpos = self.expTime)
     #enddef
+
+    def exposfirstaddsecondButton(self):
+        if self.expTimeFirst < 120:
+            self.expTimeFirst = round(self.expTimeFirst + 1, 1)
+        #endif
+        self.showItems(timeexposfirst=self.expTimeFirst)
+    #enddef
+
+    def exposfirstsubsecondButton(self):
+        if self.expTimeFirst > 10:
+            self.expTimeFirst = round(self.expTimeFirst - 1, 1)
+        # endif
+        self.showItems(timeexposfirst=self.expTimeFirst)
+    # enddef
+
+    def exposcalibrateaddsecondButton(self):
+        if self.expTimeCalibrate < 5:
+            self.expTimeCalibrate = round(self.expTimeCalibrate + 0.5, 1)
+        #endif
+        self.showItems(timeexposcalibrate=self.expTimeCalibrate)
+    #enddef
+
+    def exposcalibratesubsecondButton(self):
+        if self.expTimeCalibrate > 0.5:
+            self.expTimeCalibrate = round(self.expTimeCalibrate - 0.5, 1)
+        # endif
+        self.showItems(timeexposcalibrate=self.expTimeCalibrate)
+    # enddef
 
 #endclass
 
