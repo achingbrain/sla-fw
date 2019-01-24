@@ -547,13 +547,13 @@ class PageFirmwareUpdate(Page):
 
     def fillData(self):
         # Get list of available firmware files
-        fs_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.rauc"))
+        fs_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
 
         # Get Rauc flasher status and progress
         operation = None
         progress = None
         try:
-            rauc = pydbus.SystemBus().get("de.pengutronix.rauc")
+            rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
             operation = rauc.Operation
             progress = rauc.Progress
         except Exception as e:
@@ -586,7 +586,7 @@ class PageFirmwareUpdate(Page):
 
         self.logger.info("Flashing: " + fw_file)
         try:
-            rauc = pydbus.SystemBus().get("de.pengutronix.rauc")
+            rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
             rauc.Install(fw_file)
         except Exception as e:
             self.logger.error("Rauc install call failed: " + str(e))
