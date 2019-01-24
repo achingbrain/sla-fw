@@ -53,12 +53,3 @@ resinMinVolume = 50
 resinMaxVolume = 200
 resinLowWarn = 40
 resinFeedWait = 30
-
-# Dynamic USB path, first usb device or None
-def usbPath():
-    usbs = glob.glob(os.path.join(mediaRootPath, '*'))
-
-    if len(usbs) > 0:
-        return usbs[0]
-    else:
-        return None
