@@ -22,6 +22,13 @@ class Page(object):
         self.callbackPeriod = None
         self.stack = True
         self.fill()
+        try:
+            with open(defines.octoprintAuthFile, "r") as f:
+                self.octoprintAuth = f.read()
+            #endwith
+        except Exception:
+            self.logger.exception("octoprintAuthFile exception:")
+            self.octoprintAuth = None
     #enddef
 
 
@@ -976,6 +983,7 @@ class PageSysInfo(Page):
                 'line3' : "System version: %s" % self.display.hwConfig.os.version,
                 'line4' : "Firwmare version: %s" % defines.swVersion,
                 'line7' : "", # will be filled from getEvent()
+                'line8' : "API Key: %s" % self.octoprintAuth
                 })
     #enddef
 
@@ -1162,14 +1170,6 @@ class PageSrcSelect(Page):
         self.currentRoot = "."
         super(PageSrcSelect, self).__init__(display)
         self.stack = False
-        try:
-            with open(defines.octoprintAuthFile, "r") as f:
-                self.octoprintAuth = f.read()
-            #endwith
-        except Exception:
-            self.logger.exception("octoprintAuthFile exception:")
-            self.octoprintAuth = None
-        #endtry
     #enddef
 
     def in_root(self):
