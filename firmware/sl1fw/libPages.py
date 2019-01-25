@@ -903,7 +903,6 @@ class PageChange(Page):
         self.expTimeCalibrate = None
     #enddef
 
-
     def show(self):
         self.expTime = self.display.config.expTime
         self.expTimeFirst = self.display.config.expTimeFirst
@@ -922,7 +921,8 @@ class PageChange(Page):
     def backButtonRelease(self):
         self.display.config.expTime = self.expTime
         self.display.config.expTimeFirst = self.expTimeFirst
-        self.display.config.calibrateTime = self.expTimeCalibrate
+        if self.expTimeCalibrate:
+            self.display.config.calibrateTime = self.expTimeCalibrate
         return super(PageChange, self).backButtonRelease()
     #endif
 
