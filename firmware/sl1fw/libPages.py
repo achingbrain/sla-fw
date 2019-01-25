@@ -1108,8 +1108,8 @@ class PageAdmin(Page):
                 'button9' : "MC2Net (firmware)",
                 'button10' : "Networking",
 
-                'button11' : "USB update",
-                'button12' : "Net update",
+                'button11' : "Rauc update",
+                'button12' : "",
                 'button13' : "Resin sensor test",
                 'button14' : "Keyboard test",
 
@@ -1227,72 +1227,24 @@ class PageAdmin(Page):
 
     def button11ButtonRelease(self):
         # check new firmware defines
-        osConfig = libConfig.OsConfig(os.path.join(defines.usbUpdatePath, "etc/os-release"))
-        osConfig.logAllItems()
-        fwConfig = libConfig.FwConfig(os.path.join(defines.usbUpdatePath + defines.swPath, "defines.py"))
-        fwConfig.logAllItems()
-        if fwConfig.version.startswith("Gen3"):
-            self.display.page_confirm.setParams(
-                    continueFce = self.performUpdate,
-                    continueParmas = { 'updateCommand' : defines.usbUpdateCommand },
-                    line1 = "Image release: " + osConfig.versionId,
-                    line2 = "Firmware version: " + fwConfig.version,
-                    line3 = "Proceed update?")
-            return "confirm"
-        else:
-            message = "Wrong firmware signature"
-        #endif
-
-        self.logger.warning(message)
-        self.display.page_error.setParams(line1 = "USB update was rejected:", line2 = message)
-        return "error"
+        self.display.page_confirm.setParams(
+            continueFce = self.performUpdate,
+            continueParmas = { 'updateCommand' : defines.usbUpdateCommand },
+            line3 = "Proceed update?")
+        return "confirm"
     #enddef
 
 
     def button12ButtonRelease(self):
-        # check network connection
-        if self.display.inet.getIp() != "none":
-            # download version info
-            configText = self.display.inet.httpRequestEX(defines.netUpdateVersionURL)
-            if configText is not None:
-                netConfig = libConfig.NetConfig()
-                netConfig.parseText(configText)
-                netConfig.logAllItems()
-                # check versions
-                if netConfig.firmware.startswith("Gen3"):
-                    if netConfig.firmware != defines.swVersion or netConfig.image != self.display.hwConfig.os.versionId:
-                        self.display.page_confirm.setParams(
-                                continueFce = self.performUpdate,
-                                continueParmas = { 'updateCommand' : defines.netUpdateCommand },
-                                line1 = "Image release: " + netConfig.image,
-                                line2 = "Firmware version: " + netConfig.firmware,
-                                line3 = "Proceed update?")
-                        return "confirm"
-                    else:
-                        message = "System is up to date"
-                    #endif
-                else:
-                    message = "Wrong firmware signature"
-                #endif
-            else:
-                message = "Network read error"
-            #endif
-        else:
-            message = "Network is not avaiable"
-        #endif
-
-        self.logger.warning(message)
-        self.display.page_error.setParams(line1 = "Net update was rejected:", line2 = message)
-        return "error"
+        pass
     #enddef
-
 
     def performUpdate(self, updateCommand):
         import shutil
 
         pageWait = PageWait(self.display, line1 = "Updating")
         pageWait.show()
-
+        self.logger.info(updateCommand)
         process = subprocess.Popen(updateCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         while True:
             line = process.stdout.readline()
@@ -1305,21 +1257,11 @@ class PageAdmin(Page):
                 if line == "":
                     continue
                 #endif
-                # TODO lepe osetrit cteni vstupu! obcas se vrati radek na kterem
-                # to hodi vyjimku
-                eq_index = line.find('=')
-                if eq_index > 0:
-                    eq_index2 = line[eq_index + 1:].find("/")
-                    if eq_index2 > 0:
-                        togo = int(line[eq_index + 1 : eq_index + eq_index2 + 1])
-                        total = int(line[eq_index + eq_index2 + 2 : -1])
-                        actual = total - togo
-                        percent = int(100 * actual / total)
-                        pageWait.showItems(line2 = "%d/%d" % (actual, total))
-                        continue
-                    #endif
+                # TODO lepe osetrit cteni vstupu! obcas se vrati radek na kterem to hodi vyjimku
+                line = line.split(': ')[-1]
+                pageWait.showItems(line2 = line)
                 #endif
-                self.logger.info("rsync output: '%s'", line)
+                self.logger.info("updater output: '%s'", line)
             #endif
         #endwhile
 

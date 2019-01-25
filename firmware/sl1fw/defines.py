@@ -28,7 +28,7 @@ maskFilename = "mask.png"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 usbUpdatePath = "/mnt/rootfs"
-usbUpdateCommand = os.path.join(scriptDir, "rsync_usb.sh")
+usbUpdateCommand = ["/usr/bin/rauc", "install", "/mnt/usb/update.raucb"]
 netUpdateCommand = os.path.join(scriptDir, "rsync_net.sh")
 netUpdateVersionURL = "http://www.futur3d.net/sl1fw.txt"
 flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
