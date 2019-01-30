@@ -929,6 +929,8 @@ class PageChange(Page):
     def exposaddsecondButton(self):
         if self.expTime < 60:
             self.expTime = round(self.expTime + 0.5, 1)
+        else:
+            self.display.hw.beepAlarm(1)
         #endif
         self.showItems(timeexpos = self.expTime)
     #enddef
@@ -936,6 +938,8 @@ class PageChange(Page):
     def expossubsecondButton(self):
         if self.expTime > 1:
             self.expTime = round(self.expTime - 0.5, 1)
+        else:
+            self.display.hw.beepAlarm(1)
         #endif
         self.showItems(timeexpos = self.expTime)
     #enddef
@@ -943,6 +947,8 @@ class PageChange(Page):
     def exposfirstaddsecondButton(self):
         if self.expTimeFirst < 120:
             self.expTimeFirst = round(self.expTimeFirst + 1, 1)
+        else:
+            self.display.hw.beepAlarm(1)
         #endif
         self.showItems(timeexposfirst=self.expTimeFirst)
     #enddef
@@ -950,6 +956,8 @@ class PageChange(Page):
     def exposfirstsubsecondButton(self):
         if self.expTimeFirst > 10:
             self.expTimeFirst = round(self.expTimeFirst - 1, 1)
+        else:
+            self.display.hw.beepAlarm(1)
         # endif
         self.showItems(timeexposfirst=self.expTimeFirst)
     # enddef
@@ -957,6 +965,8 @@ class PageChange(Page):
     def exposcalibrateaddsecondButton(self):
         if self.expTimeCalibrate < 5:
             self.expTimeCalibrate = round(self.expTimeCalibrate + 0.5, 1)
+        else:
+            self.display.hw.beepAlarm(1)
         #endif
         self.showItems(timeexposcalibrate=self.expTimeCalibrate)
     #enddef
@@ -964,6 +974,8 @@ class PageChange(Page):
     def exposcalibratesubsecondButton(self):
         if self.expTimeCalibrate > 0.5:
             self.expTimeCalibrate = round(self.expTimeCalibrate - 0.5, 1)
+        else:
+            self.display.hw.beepAlarm(1)
         # endif
         self.showItems(timeexposcalibrate=self.expTimeCalibrate)
     # enddef
