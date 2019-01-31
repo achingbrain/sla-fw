@@ -51,3 +51,4 @@ resinMinVolume = 50
 resinMaxVolume = 200
 resinLowWarn = 40
 resinFeedWait = 30
+resinFilled = 350

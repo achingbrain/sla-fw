@@ -2649,7 +2649,7 @@ class PageFeedMe(Page):
 
     def backButtonRelease(self):
         self.display.hw.powerLed("normal")
-        self.expo.setResinVolume(350)
+        self.expo.setResinVolume(defines.resinFilled)
         self.expo.doContinue()
         return super(PageFeedMe, self).backButtonRelease()
     #enddef
