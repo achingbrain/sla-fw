@@ -19,8 +19,8 @@ body  {
 }
 
 .header .button div.frame {
-	width: 64px;
-    height: 64px;
+	width: 2em;
+    height: 2em;
 	align-items: center;
     justify-content: center;
 }
@@ -37,7 +37,13 @@ body  {
 }
 
 .header #page {
-	text-transform: capitalize;
+	text-transform: uppercase;
+	font-weight: bold;
+}
+
+.header .icon {
+    height: 1.5em;
+    padding-right: 0 !important;
 }
 
 
@@ -52,9 +58,9 @@ div.menu div.button {
 }
 
 div.menu div.button div.frame {
-	width: 128px;
-	height: 128px;
-	border-radius: 7px;
+	width: 5em;
+	height: 5em;
+	border-radius: 0.3em;
 	background-color: grey;
 	background-position: center;
 	background-repeat: no-repeat;
@@ -89,23 +95,58 @@ div.menu.small div.button div.image {
 div.menu div.button div.title {
 	text-align: center;
 	text-transform: capitalize;
-	margin: 7px;
+	margin: 0.3em;
 }
 
 div.menu div.button div.frame.back {
-	width: 172px;
-	height: 64px;
+	width: 7em;
+	height: 2em;
 	background-color: transparent;
 }
 
 div.menu div.button div.frame.exposure {
-	width: 64px;
-	height: 64px;
+	width: 2em;
+	height: 2em;
 }
 
 div.menu.small div.button div.frame {
-	width: 256px;
-	height: 32px;
+	width: 10em;
+	height: 2em;
+}
+
+
+/*********************************
+* Listings (like source listing) *
+*********************************/
+
+.list-group {
+
+}
+
+.list-group-item {
+    background-color: transparent;
+    color: white;
+    border-bottom: 1px solid white;
+}
+
+.list-group-item h1,
+.list-group-item span {
+    font-weight: bold;
+}
+
+.list-group-item-action:hover {
+    color: black;
+    background-color: white;
+}
+
+.list-group-item img {
+    padding: 1em;
+    border-radius: 0.3em;
+    margin-right: 1em;
+}
+
+.page-sourceselect .list-group-item img {
+    background-color: grey;
 }
 
 
@@ -122,9 +163,19 @@ div.confirm {
  * Button images *
  *****************/
 
+/* Generic dummy */
+div.menu:not(.small) div.image {
+	background-image:url('../img/dummy.svg');
+}
+
 /** Generic back */
 #back div.frame.back div.image {
 	background-image:url('../img/buttons/back_white.svg');	
+}
+
+/** Header wifi */
+#wifi div.frame div.image {
+	background-image:url('../img/buttons/wifi_on_color.svg');
 }
 
 /* Confirm dialog */
@@ -156,4 +207,57 @@ div.confirm {
 /* Control */
 #tankres div.image {
 	background-image:url('../img/buttons/tank_reset_color.svg');
+}
+
+/* Settings */
+#network div.image {
+	background-image:url('../img/buttons/lan_color.svg');
+}
+
+#recalibration div.image {
+	background-image:url('../img/buttons/calibration_color.svg');
+}
+
+#advancedsettings div.image {
+	background-image:url('../img/buttons/settings_color.svg');
+}
+
+/* Support */
+#sysinfo div.image {
+	background-image:url('../img/buttons/system_info_color.svg');
+}
+
+#about div.image {
+	background-image:url('../img/buttons/about_us_color.svg');
+}
+
+/*************
+* Page icons *
+*************/
+div.page .header .icon {
+    content:url("../img/dummy.svg");
+}
+
+div.page-sourceselect .header .icon {
+    content:url("../img/icons/projects_small_white.svg");
+}
+
+div.page-printpreview .header .icon,
+div.page-printstart .header .icon,
+div.page-printhome .header .icon {
+    content:url("../img/icons/print_small_white.svg");
+}
+
+div.page-settings .header .icon,
+div.page-advancedsettings .header .icon,
+div.page-admin .header .icon{
+    content:url("../img/icons/settings_small_white.svg");
+}
+
+div.page-control .header .icon {
+    content:url("../img/icons/control_small_white.svg")
+}
+
+div.page-network .header .icon {
+    content:url("../img/icons/lan_small_white.svg")
 }

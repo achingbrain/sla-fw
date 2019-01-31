@@ -3,6 +3,7 @@
 # 2018 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
+import glob
 
 swVersion = "Gen3-190-118"
 reqMcVersion = "SLA-control 0.9.7-270"
@@ -11,9 +12,9 @@ home = "/home/root"
 
 swPath = "/usr/lib/python2.7/site-packages/sl1fw"
 dataPath = os.path.join(swPath, "data")
-usbPath = "/mnt/usb"
 ramdiskPath = "/run/sl1fw"
 printerlog = os.path.join(ramdiskPath, "sl1fw.log")
+mediaRootPath = "/run/media/root"
 jobCounter = os.path.join(home, "jobs.log")
 MCcommLog = os.path.join(ramdiskPath, "sl1fw-mc.log")
 tiltLoad = os.path.join(home, "tiltLoad")
@@ -23,6 +24,7 @@ hwConfigFile = os.path.join(configDir, hwConfigFileName)
 
 configFile = "config.ini"
 maskFilename = "mask.png"
+projectExtension = ".dwz"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 usbUpdatePath = "/mnt/rootfs"

@@ -1,0 +1,20 @@
+<div class="row">
+	<select id="fw_file">
+		{% for firmware in items['firmwares'] %}
+		<option>{{ firmware }}</option>
+		{% endfor %}
+    </select>
+
+	<button id="flash" type="button" class="btn btn-primary">Flash !</button>
+</div>
+
+<div class="row" id="operation">
+	<span>Operation:</span>
+	<span class="value">{{ items['operation'] }}</span>
+</div>
+<div class="row" id="progress">
+	<span>Progress:</span>
+	<span class="value">{{ items['progress'] }}</span>
+</div>
+
+{% include 'back.html' %}

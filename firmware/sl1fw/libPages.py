@@ -7,6 +7,8 @@ import logging
 from time import sleep
 import json
 import subprocess
+import glob
+import pydbus
 
 import defines
 import libConfig
@@ -20,6 +22,13 @@ class Page(object):
         self.callbackPeriod = None
         self.stack = True
         self.fill()
+        try:
+            with open(defines.octoprintAuthFile, "r") as f:
+                self.octoprintAuth = f.read()
+            #endwith
+        except Exception:
+            self.logger.exception("octoprintAuthFile exception:")
+            self.octoprintAuth = None
     #enddef
 
 
@@ -122,6 +131,14 @@ class Page(object):
         pass
     #enddef
 
+    # Dynamic USB path, first usb device or None
+    def getSavePath(self):
+        usbs = glob.glob(os.path.join(defines.mediaRootPath, '*'))
+
+        if len(usbs) > 0:
+            return usbs[0]
+        else:
+            return None
 
     def _onOff(self, index, val):
         self.temp[val] = not self.temp[val]
@@ -225,6 +242,75 @@ class PageConfirm(Page):
         else:
             return self.continueFce(**self.continueParmas)
         #endif
+    #enddef
+
+#endclass
+
+
+class PagePrintPreviewBase(Page):
+    def __init__(self, display):
+        super(PagePrintPreviewBase, self).__init__(display)
+
+    def fillData(self):
+        config = self.display.config
+
+        if config.calibrateRegions:
+            calibrateRegions = config.calibrateRegions
+            calibration = config.calibrateTime
+        else:
+            calibrateRegions = None
+            calibration = None
+        # endif
+
+        return {
+            'name': config.projectName,
+            'calibrationRegions': calibrateRegions,
+            'date': os.path.getmtime(config.zipName),
+            'layers': config.totalLayers,
+            'exposure_time_first_sec': config.expTimeFirst,
+            'exposure_time_sec': config.expTime,
+            'calibrate_time_sec': calibration
+        }
+    # enddef
+
+class PagePrintPreview(PagePrintPreviewBase):
+
+    def __init__(self, display):
+        self.pageUI = "printpreview"
+        self.pageTitle = "Project"
+        super(PagePrintPreview, self).__init__(display)
+    #enddef
+
+    def show(self):
+        self.items.update(self.fillData())
+        super(PagePrintPreview, self).show()
+    #enddef
+
+    def contButtonRelease(self):
+        return "printstart"
+    #enddef
+
+#endclass
+
+
+class PagePrintStart(PagePrintPreviewBase):
+
+    def __init__(self, display):
+        self.pageUI = "printstart"
+        self.pageTitle = "Printing..."
+        super(PagePrintStart, self).__init__(display)
+    #enddef
+
+    def show(self):
+        self.items.update(self.fillData())
+        super(PagePrintStart, self).show()
+    #enddef
+
+    def changeButtonRelease(self):
+        return "change"
+
+    def contButtonRelease(self):
+        return "_EXIT_MENU_"
     #enddef
 
 #endclass
@@ -375,22 +461,314 @@ class PageSettings(Page):
         super(PageSettings, self).__init__(display)
     #enddef
 
-
-    def projsettButtonRelease(self):
-        return "projsettings"
+    def networkButtonRelease(self):
+        return "network"
     #enddef
 
-
-    def sysinfoButtonRelease(self):
-        return "sysinfo"
+    def recalibrationButtonRelease(self):
+        self.display.page_confirm.setParams(
+            continueFce=self.calibrateContinue,
+            line1="Calibrate printer now?")
+        return "confirm"
     #enddef
 
+    def advancedsettingsButtonRelease(self):
+        return "advancedsettings"
+    #enddef
 
-    def changeButtonRelease(self):
-        return "change"
+    def supportButtonRelease(self):
+        return "support"
+    #enddef
+
+    def calibrateContinue(self):
+        return "tiltcalib"
     #enddef
 
 #endclass
+
+
+class PageAdvancedSettings(Page):
+
+    def __init__(self, display):
+        self.pageUI = "advancedsettings"
+        self.pageTitle = "Advanced Settings"
+        super(PageAdvancedSettings, self).__init__(display)
+    #enddef
+
+
+    def towermoveButtonRelease(self):
+        return "towermove"
+    #enddef
+
+
+    def tiltmoveButtonRelease(self):
+        return "tiltmove"
+    #enddef
+
+
+    def firmwareupdateButtonRelease(self):
+        return "firmwareupdate"
+    #enddef
+    
+    def adminButtonRelease(self):
+        return "admin"
+    #enddef
+
+#endclass
+
+
+class PageSupport(Page):
+
+    def __init__(self, display):
+        self.pageUI = "support"
+        self.pageTitle = "Support"
+        super(PageSupport, self).__init__(display)
+    # enddef
+
+    def manualButtonRelease(self):
+        return "manual"
+    # enddef
+
+    def videosButtonRelease(self):
+        return "videos"
+    # enddef
+
+    def sysinfoButtonRelease(self):
+        return "sysinfo"
+    # enddef
+
+    def aboutButtonRelease(self):
+        return "about"
+    # enddef
+
+# endclass
+
+class PageFirmwareUpdate(Page):
+
+    def __init__(self, display):
+        self.pageUI = "firmwareupdate"
+        self.pageTitle = "Firmware Update"
+        super(PageFirmwareUpdate, self).__init__(display)
+        self.callbackPeriod = 1
+    # enddef
+
+    def fillData(self):
+        # Get list of available firmware files
+        fs_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
+
+        # Get Rauc flasher status and progress
+        operation = None
+        progress = None
+        try:
+            rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
+            operation = rauc.Operation
+            progress = rauc.Progress
+        except Exception as e:
+            self.logger.error("Rauc status read failed: " + str(e))
+
+        return {
+            'firmwares': fs_files,
+            'operation': operation,
+            'progress': progress
+        }
+        # enddef
+
+    def show(self):
+        self.oldValues = {}
+        self.items.update(self.fillData())
+        super(PageFirmwareUpdate, self).show()
+    # enddef
+
+    def menuCallback(self):
+        self.logger.info("Menu callback")
+        items = self.fillData()
+        self.showItems(**items)
+    #enddef
+
+    def flashButtonSubmit(self, data):
+        try:
+            fw_file = data['firmware']
+        except:
+            self.logger.error("Error reading data['firmware']: " + str(e))
+
+        self.logger.info("Flashing: " + fw_file)
+        try:
+            rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
+            rauc.Install(fw_file)
+        except Exception as e:
+            self.logger.error("Rauc install call failed: " + str(e))
+    #enddef
+
+# endclass
+
+
+class PageManual(Page):
+
+    def __init__(self, display):
+        self.pageUI = "manual"
+        self.pageTitle = "Manual"
+        super(PageManual, self).__init__(display)
+    # enddef
+
+    # TODO: No actions currently on this page
+
+# endclass
+
+class PageVideos(Page):
+
+    def __init__(self, display):
+        self.pageUI = "videos"
+        self.pageTitle = "Videos"
+        super(PageVideos, self).__init__(display)
+    # enddef
+
+    # TODO: No actions currently on this page
+
+# endclass
+
+class PageNetwork(Page):
+
+    def __init__(self, display):
+        self.pageUI = "network"
+        self.pageTitle = "Network"
+        super(PageNetwork, self).__init__(display)
+    # enddef
+
+    # TODO net state - mode, all ip with devices, all uri (log, debug, display, octoprint)
+    def fillData(self):
+        items = {}
+        devlist = list()
+        for addr, dev in self.display.inet.devices.iteritems():
+            devlist.append("%s (%s)" % (addr, dev))
+        #endfor
+        items["line1"] = ", ".join(devlist)
+
+        # Fill in wifi state and config
+        wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+        items['wifi_mode'] = wifisetup.WifiMode
+        items['client_ssid'] = wifisetup.ClientSSID
+        items['client_psk'] = wifisetup.ClientPSK
+        items['ap_ssid'] = wifisetup.APSSID
+        items['ap_psk'] = wifisetup.APPSK
+        items['aps'] = wifisetup.GetAPs()
+
+        return items
+    #enddef
+
+    def show(self):
+        self.items.update(self.fillData())
+        super(PageNetwork, self).show()
+    #enddef
+
+    def netChange(self):
+        self.showItems(**self.fillData())
+    #enddef
+
+    def clientconnectButtonSubmit(self, data):
+        self.display.page_confirm.setParams(
+            continueFce=self.setclient,
+            continueParmas={'ssid': data['client-ssid'], 'psk': data['client-psk']},
+            line1="Do you really want to",
+            line2="set wifi to client mode?",
+            line3 = "It may disconnect web client.")
+        return "confirm"
+
+    def apsetButtonSubmit(self, data):
+        self.display.page_confirm.setParams(
+            continueFce=self.setap,
+            continueParmas={'ssid': data['ap-ssid'], 'psk': data['ap-psk']},
+            line1="Do you really want to",
+            line2="set wifi to ap mode?",
+            line3 = "It may disconnect web client.")
+        return "confirm"
+
+    def wifioffButtonSubmit(self, data):
+        self.display.page_confirm.setParams(
+            continueFce=self.wifioff,
+            line1="Do you really want to",
+            line2="turn off wifi?",
+            line3="It may disconnect web client.")
+        return "confirm"
+
+    def wifioff(self):
+        try:
+            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+            wifisetup.StopWifi()
+            wifisetup.DisableWifi()
+        except:
+            self.logger.error("Turning wifi off failed")
+        return "_BACK_"
+
+    def setclient(self, ssid, psk):
+        pageWait = PageWait(self.display, line2="Setting interface params...")
+        pageWait.show()
+
+        try:
+            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+            wifisetup.ClientSSID = ssid
+            wifisetup.ClientPSK = psk
+            wifisetup.StartClient()
+            wifisetup.EnableClient()
+        except:
+            self.logger.error("Setting wifi client params failed: ssid:%s psk:%s", (ssid, psk))
+
+        # Connecting...
+        pageWait.showItems(line2="Connecting...")
+        for i in range(1, 10):
+            sleep(1)
+            for addr, dev in self.display.inet.devices.iteritems():
+                if dev == "wlan0":
+                    # Connection "ok"
+                    return "_BACK_"
+
+        # Connection fail
+        self.display.page_error.setParams(
+            line2="Connection failed")
+        return "error"
+
+    def setap(self, ssid, psk):
+        pageWait = PageWait(self.display, line2="Setting interface params...")
+        pageWait.show()
+
+        try:
+            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+            wifisetup.APSSID = ssid
+            wifisetup.APPSK = psk
+            wifisetup.StartAP()
+            wifisetup.EnableAP()
+        except:
+            self.logger.error("Setting wifi AP params failed: ssid:%s psk:%s", (ssid, psk))
+
+        # Starting AP...
+        pageWait.showItems(line2="Starting AP...")
+        for i in range(1, 10):
+            sleep(1)
+            for addr, dev in self.display.inet.devices.iteritems():
+                if dev == "ap0":
+                    # AP "ok"
+                    return "_BACK_"
+
+        # Connection fail
+        self.display.page_error.setParams(
+            line2="AP failed")
+        return "error"
+# endclass
+
+class PageQRCode(Page):
+
+    def __init__(self, display):
+        self.pageUI = "qrcode"
+        self.pageTitle = "QR Code"
+        super(PageQRCode, self).__init__(display)
+    # enddef
+
+    # TODO: Display parametric qrcode passed from previous page
+
+    def connectButtonRelease(self):
+        return "_BACK_"
+    # enddef
+
+# endclass
 
 
 class PagePrint(Page):
@@ -439,7 +817,7 @@ class PageHomePrint(Page):
 
 
     def settingsButtonRelease(self):
-        return "settings"
+        return "change"
     #enddef
 
 
@@ -512,37 +890,95 @@ class PageChange(Page):
         self.pageUI = "change"
         self.pageTitle = "Change Exposure Time"
         super(PageChange, self).__init__(display)
-        self.autorepeat = { "addsecond" : (5, 1), "subsecond" : (5, 1) }
+        self.autorepeat = {
+            "exposaddsecond" : (5, 1),
+            "expossubsecond" : (5, 1),
+            "exposfirstaddsecond": (5, 1),
+            "exposfirstsubsecond": (5, 1),
+            "exposcalibrateaddsecond": (5, 1),
+            "exposcalibratesubsecond": (5, 1),
+        }
+        self.expTime = None
+        self.expTimeFirst = None
+        self.expTimeCalibrate = None
     #enddef
-
 
     def show(self):
         self.expTime = self.display.config.expTime
-        self.items["timeexpos"] = "%.1f" % self.expTime
+        self.expTimeFirst = self.display.config.expTimeFirst
+        if self.display.config.calibrateRegions:
+            self.expTimeCalibrate = self.display.config.calibrateTime
+        else:
+            self.expTimeCalibrate = None
+
+        self.items["timeexpos"] = self.expTime
+        self.items["timeexposfirst"] = self.expTimeFirst
+        self.items["timeexposcalibrate"] = self.expTimeCalibrate
+
         super(PageChange, self).show()
     #enddef
 
-
     def backButtonRelease(self):
         self.display.config.expTime = self.expTime
+        self.display.config.expTimeFirst = self.expTimeFirst
+        if self.expTimeCalibrate:
+            self.display.config.calibrateTime = self.expTimeCalibrate
         return super(PageChange, self).backButtonRelease()
     #endif
 
-
-    def addsecondButton(self):
+    def exposaddsecondButton(self):
         if self.expTime < 60:
-            self.expTime += 1
+            self.expTime = round(self.expTime + 0.5, 1)
+        else:
+            self.display.hw.beepAlarm(1)
         #endif
-        self.showItems(timeexpos = "%.1f" % self.expTime)
+        self.showItems(timeexpos = self.expTime)
     #enddef
 
-
-    def subsecondButton(self):
+    def expossubsecondButton(self):
         if self.expTime > 1:
-            self.expTime -= 1
+            self.expTime = round(self.expTime - 0.5, 1)
+        else:
+            self.display.hw.beepAlarm(1)
         #endif
-        self.showItems(timeexpos = "%.1f" % self.expTime)
+        self.showItems(timeexpos = self.expTime)
     #enddef
+
+    def exposfirstaddsecondButton(self):
+        if self.expTimeFirst < 120:
+            self.expTimeFirst = round(self.expTimeFirst + 1, 1)
+        else:
+            self.display.hw.beepAlarm(1)
+        #endif
+        self.showItems(timeexposfirst=self.expTimeFirst)
+    #enddef
+
+    def exposfirstsubsecondButton(self):
+        if self.expTimeFirst > 10:
+            self.expTimeFirst = round(self.expTimeFirst - 1, 1)
+        else:
+            self.display.hw.beepAlarm(1)
+        # endif
+        self.showItems(timeexposfirst=self.expTimeFirst)
+    # enddef
+
+    def exposcalibrateaddsecondButton(self):
+        if self.expTimeCalibrate < 5:
+            self.expTimeCalibrate = round(self.expTimeCalibrate + 0.5, 1)
+        else:
+            self.display.hw.beepAlarm(1)
+        #endif
+        self.showItems(timeexposcalibrate=self.expTimeCalibrate)
+    #enddef
+
+    def exposcalibratesubsecondButton(self):
+        if self.expTimeCalibrate > 0.5:
+            self.expTimeCalibrate = round(self.expTimeCalibrate - 0.5, 1)
+        else:
+            self.display.hw.beepAlarm(1)
+        # endif
+        self.showItems(timeexposcalibrate=self.expTimeCalibrate)
+    # enddef
 
 #endclass
 
@@ -559,6 +995,7 @@ class PageSysInfo(Page):
                 'line3' : "System version: %s" % self.display.hwConfig.os.version,
                 'line4' : "Firwmare version: %s" % defines.swVersion,
                 'line7' : "", # will be filled from getEvent()
+                'line8' : "API Key: %s" % self.octoprintAuth
                 })
     #enddef
 
@@ -702,34 +1139,110 @@ class PageAbout(Page):
 #endclass
 
 
-class PageSrcSelect(Page):
+class SourceDir:
+    def __init__(self, root, name):
+        self.root = root
+        self.name = name
 
+    def list(self, current_root):
+        path = os.path.join(self.root, current_root)
+
+        if not os.path.isdir(path):
+            return
+
+        for item in os.listdir(path):
+            if item.startswith('.'):
+                continue
+            full_path = os.path.join(path, item)
+            if os.path.isdir(full_path):
+                yield {
+                    'type': 'dir',
+                    'name': item,
+                    'path': item,
+                    'fullpath': full_path,
+                    'numitems': len(os.listdir(full_path))
+                }
+            else:
+                (name, extension) = os.path.splitext(item)
+                if extension == defines.projectExtension:
+                    yield {
+                        'type': 'project',
+                        'name': name,
+                        'fullpath': full_path,
+                        'source': self.name,
+                        'filename': item,
+                        'time': os.path.getmtime(full_path)
+                    }
+
+
+class PageSrcSelect(Page):
     def __init__(self, display):
         self.pageUI = "sourceselect"
-        self.pageTitle = "Source Select"
+        self.pageTitle = "Projects"
+        self.currentRoot = "."
         super(PageSrcSelect, self).__init__(display)
-        try:
-            with open(defines.octoprintAuthFile, "r") as f:
-                self.octoprintAuth = f.read()
-            #endwith
-        except Exception:
-            self.logger.exception("octoprintAuthFile exception:")
-            self.octoprintAuth = None
-        #endtry
+        self.stack = False
     #enddef
 
+    def in_root(self):
+        return self.currentRoot is "."
+
+    def source_list(self):
+        content = []
+        sourceDirs = \
+            [SourceDir(defines.ramdiskPath, "ramdisk")] + \
+            [SourceDir(path, "usb") for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
+
+        # Get content items
+        for source_dir in sourceDirs:
+            content += source_dir.list(self.currentRoot)
+
+        # Add <up> virtual directory
+        if not self.in_root():
+            content.append({
+                'type': 'dir',
+                'name': '<up>',
+                'path': '..'
+            })
+
+        # Number items as choice#
+        cnt = 0
+        for i, item in enumerate(content):
+            item['choice'] = "choice%d" % i
+
+        return content
 
     def show(self):
         self.items["line1"] = "Please select project source"
+
         ip = self.display.inet.getIp()
         if ip != "none" and self.octoprintAuth:
             self.items["line2"] = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
         else:
             self.items["line2"] = "Not connected to network"
         #endif
+
+        # List sources in self.currentRoot
+        self.items["sources"] = self.source_list()
+        self.logger.info(self.items['sources'])
+
         super(PageSrcSelect, self).show()
     #enddef
 
+    def sourceButtonSubmit(self, data):
+        self.logger.info(data)
+
+        for item in self.items['sources']:
+            if item['choice'] == data['choice']:
+                if item['type'] == 'dir':
+                    self.logger.info(self.currentRoot)
+                    self.currentRoot = os.path.join(self.currentRoot, item['path'])
+                    self.logger.info(self.currentRoot)
+                    self.currentRoot = os.path.normpath(self.currentRoot)
+                    self.logger.info(self.currentRoot)
+                    return "sourceselect"
+                else:
+                    return self.loadProject(item['fullpath'])
 
     def netChange(self):
         ip = self.display.inet.getIp()
@@ -740,22 +1253,28 @@ class PageSrcSelect(Page):
         #endif
     #enddef
 
-
-    def bothButtons(self, source, configFileWithPath):
+    def loadProject(self, project_path):
+        pageWait = PageWait(self.display, line2="Reading project data...")
+        pageWait.show()
 
         self.showItems(line1 = "Reading project data...")
-        self.checkConfFile(configFileWithPath)
+        self.checkConfFile(project_path)
         config = self.display.config
 
         if not config.configFound:
             sleep(0.5)
-            self.showItems(line1 = "%s project not found" % source)
-            self.display.hw.beepAlarm(3)
-            return
+            self.display.page_error.setParams(
+                line1="Your project has a problem:",
+                line2="%s project not found" % project_path,
+                line3="Regenerate it and try again.")
+            return "error"
         elif config.action != "print":
-            self.showItems(line1 = "Invalid project file")
-            self.display.hw.beepAlarm(3)
-            return
+            sleep(0.5)
+            self.display.page_error.setParams(
+                line1="Your project has a problem:",
+                line2="Invalid project file",
+                line3="Regenerate it and try again.")
+            return "error"
         elif config.zipError is not None:
             sleep(0.5)
             self.display.page_error.setParams(
@@ -765,28 +1284,12 @@ class PageSrcSelect(Page):
             return "error"
         #endif
 
-        if config.calibrateRegions:
-            self.display.page_confirm.setParams(
-                    line1 = "Calibration[%d]: %s" % (config.calibrateRegions, config.projectName),
-                    line2 = "Layers: %d at a height of %.3f mm" % (config.totalLayers, self.display.hwConfig.calcMM(config.layerMicroSteps)),
-                    line3 = "Exposure times: %d s / %.1f s (+%.1f)" % (int(config.expTimeFirst), config.expTime, config.calibrateTime))
-        else:
-            self.display.page_confirm.setParams(
-                    line1 = "Project: %s" % config.projectName,
-                    line2 = "Layers: %d at a height of %.3f mm" % (config.totalLayers, self.display.hwConfig.calcMM(config.layerMicroSteps)),
-                    line3 = "Exposure times: %d s / %.1f s" % (int(config.expTimeFirst), config.expTime))
-        #endif
-        return "confirm"
+        return "printpreview"
     #endef
 
-
-    def usbButtonRelease(self):
-        return self.bothButtons("USB", os.path.join(defines.usbPath, defines.configFile))
-    #enddef
-
-
-    def lanButtonRelease(self):
-        return self.bothButtons("LAN", os.path.join(defines.ramdiskPath, defines.configFile))
+    def backButtonRelease(self):
+        self.currentRoot = "."
+        return super(PageSrcSelect, self).backButtonRelease()
     #enddef
 
 #endclass
@@ -1055,7 +1558,7 @@ class PageDisplay(Page):
 
     def button6ButtonRelease(self):
         try:
-            self.display.screen.getImg(filename = os.path.join(defines.usbPath, "test.png"))
+            self.display.screen.getImg(filename = os.path.join(self.getSavePath(), "test.png"))
         except Exception:
             self.logger.exception("export exception:")
             self.display.hw.beepAlarm(3)
@@ -1380,7 +1883,6 @@ class PageSetup(Page):
                 })
         self.changed = {}
         self.temp = {}
-        self.backupFilename = os.path.join(defines.usbPath, defines.hwConfigFileName)
     #enddef
 
 
@@ -1423,7 +1925,7 @@ class PageSetup(Page):
 
     def button1ButtonRelease(self):
         ''' export '''
-        if not self.display.hwConfig.writeFile(self.backupFilename):
+        if not self.display.hwConfig.writeFile(os.path.join(self.getSavePath(), defines.hwConfigFileName)):
             self.display.hw.beepAlarm(3)
         #endif
     #enddef
@@ -1432,7 +1934,7 @@ class PageSetup(Page):
     def button2ButtonRelease(self):
         ''' import '''
         try:
-            with open(self.backupFilename, "r") as f:
+            with open(os.path.join(self.getSavePath(), defines.hwConfigFileName), "r") as f:
                 self.display.hwConfig.parseText(f.read())
             #endwith
         except Exception:
@@ -2025,7 +2527,7 @@ class ProfilesPage(Page):
     def button1ButtonRelease(self):
         ''' export '''
         try:
-            with open(os.path.join(defines.usbPath, self.profilesFilename), "w") as f:
+            with open(os.path.join(self.getSavePath(), self.profilesFilename), "w") as f:
                 f.write(json.dumps(self.profiles, sort_keys=True, indent=4, separators=(',', ': ')))
             #endwith
         except Exception:
@@ -2038,7 +2540,7 @@ class ProfilesPage(Page):
     def button2ButtonRelease(self):
         ''' import '''
         try:
-            with open(os.path.join(defines.usbPath, self.profilesFilename), "r") as f:
+            with open(os.path.join(self.getSavePath(), self.profilesFilename), "r") as f:
                 self.profiles = json.loads(f.read())
             #endwith
             self._setProfile()

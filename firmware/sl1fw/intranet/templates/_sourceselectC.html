@@ -1,20 +1,41 @@
-<div class="row" id="line1">{{ items.get('line1', "") }}</div>
-<div class="row justify-content-begin menu">
-	<div class="col-md-auto button d-flex click" id="usb">
-		<div class="frame d-flex">
-			<div class="image"></div>
-		</div>
-		<div class="title">USB</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="lan">
-		<div class="frame d-flex">
-			<div class="image"></div>
-		</div>
-		<div class="title">LAN</div>
-	</div>
+<div class="row justify-content-begin">
+	<ul class="list-group w-100">
+		{% for source in items.get('sources') -%}
+		<li class="list-group-item list-group-item-action {{ source['source'] }} click select" data-id="source" data-choice="{{ source['choice'] }}">
+			<div class="d-flex justify-content-start align-items-center">
+				{% if source['type'] == 'dir' %}
+					{% if source['path'] == '..' %}
+					<img src="static/img/buttons/no_color.svg" style="width: 5em; height: 5em;">
+					<div class="d-flex justify-content-between flex-column">
+						<h1 style="text-transform: capitalize;">-Up-</h1>
+					</div>
+					{% else %}
+					<img src="static/img/icons/projects_small_white.svg" style="width: 5em; height: 5em;">
+					<div class="d-flex justify-content-between flex-column">
+						<h1 style="text-transform: capitalize;">{{ source['name'] }}</h1>
+						<span>{{ source['numitems'] }} files</span>
+					</div>
+					{% endif %}
+				{% else %}
+				<img src="static/img/dummy.svg" style="width: 5em; height: 5em;">
+				<div class="d-flex justify-content-between flex-column">
+					<h1 style="text-transform: capitalize;">{{ source['name'] }}</h1>
+					<span>{{ source['filename'] }}</span>
+					<span>??h ??m ??s</span>
+				</div>
+				{% endif %}
+			</div>
+		</li>
+		{%- endfor %}
+	</ul>
 </div>
-<div class="row" id="line2">{{ items.get('line2', "") }}</div>
-<div class="row" id="line3">{{ items.get('line3', "") }}</div>
+
+<div class="row justify-content-around form-group">
+	{% for item in range(1, 4) -%}
+	<div class="col-md-auto" id="line{{ item }}">{{ items.get('line' + item|string, "") }}</div>
+	{%- endfor %}
+</div>
+
 <div class="row justify-content-end menu">
 	<div class="col-md-auto button d-flex click" id="back">
 		<div class="frame back d-flex">

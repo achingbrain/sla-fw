@@ -1,3 +1,4 @@
+<!--
 <div class="row" id="precent">{{ items.get('percent', "") }}</div>
 <div class="row" id="timeelaps">{{ items.get('timeelaps', "") }}</div>
 <div class="row" id="progress" id="bar">{{ items.get('progress', "0") }}</div>
@@ -6,3 +7,35 @@
 <div class="row" id="line2">{{ items.get('line2', "") }}</div>
 <div class="row" id="line3">{{ items.get('line3', "") }}</div>
 <div class="row" id="line4">{{ items.get('line4', "") }}</div>
+-->
+
+<!--
+{% if items['calibrationRegions'] %}
+<h1 class="row" id="line1">Calibration[{{ items['calibrationRegions'] }}]: {{ items['name'] }}</h1>
+{% else %}
+<h1 class="row" id="line1">{{ items['name'] }}</h1>
+{% endif %}
+
+-->
+
+<h1 class="row" id="line3">{{ items['line3'] }}</h1>
+
+<div class="row justify-content-center align-items-center menu">
+	<!-- <img class="col" src="static/img/dummy.svg"> -->
+	<h1 class="col text-center" id="percent">{{ items.get('percent', "") }}</h1>
+	<div class="col">
+		<h2 class="row font-weight-bold">Date:</h2>
+		<div class="row"><!--{{ items['date'] }}--></div>
+		<h2 class="row font-weight-bold">Layers:</h2>
+		<div class="row" id="line1">{{ items['line1'] }}</div>
+		<h2 class="row font-weight-bold">Height:</h2>
+		<div class="row" id="line2">{{ items['line2'] }}</div>
+		<!--{% if items['calibrate_time_sec'] %}
+		<div class="row">{{ items['exposure_time_first_sec'] }} / {{ items['exposure_time_sec'] }} (+{{ items['calibrate_time_sec'] }})</div>
+		{% else %}
+		<div class="row">{{ items['exposure_time_first_sec'] }} / {{ items['exposure_time_sec'] }}</div>
+		{% endif %} -->
+	</div>
+	{% set button = {'id': 'setup', 'title': 'Change Settings'} %}
+	{% include 'button.html' %}
+</div>
