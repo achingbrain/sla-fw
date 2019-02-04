@@ -5,14 +5,15 @@
 # 2018 Prusa Research s.r.o. - www.prusa3d.com
 
 import logging
-from sl1fw import libPrinter
-from sl1fw import defines
+from systemd.journal import JournalHandler
 
-logging.basicConfig(
-        filename = defines.printerlog,
-        #filemode = "w",
-        level = logging.DEBUG,
-        format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+from sl1fw import libPrinter
+
+handler = JournalHandler(SYSLOG_IDENTIFIER = 'SL1FW')
+handler.setFormatter(logging.Formatter("%(levelname)s - %(name)s - %(message)s"))
+logger = logging.getLogger('')
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 printer = libPrinter.Printer()
 printer.start()
