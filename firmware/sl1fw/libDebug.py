@@ -65,14 +65,6 @@ class Debug(object):
                 "tiltPosition" : ("Actual tilt position: ", "line6"),
                 }
         self.logLines = deque(maxlen = 30)
-
-        # extra logging file for logging MC communication
-        self.extraLogger = logging.getLogger(__name__ + "-comm")
-        self.extraLogger.propagate = False
-        handler = logging.FileHandler(defines.MCcommLog)
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
-        self.extraLogger.addHandler(handler)
     #enddef
 
 
@@ -99,7 +91,7 @@ class Debug(object):
 
 
     def log(self, message):
-        self.extraLogger.info(message)
+        self.logger.info(message)
         self.logLines.append(message)
         try:
             self.commands.put_nowait( { 'log' : "\n".join(self.logLines) } )

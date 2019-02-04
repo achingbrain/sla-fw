@@ -74,16 +74,13 @@ class Printer(object):
 
     def dataCleanup(self):
         self.logger.info("removing project files")
-        logfile = os.path.basename(defines.printerlog)
         for infile in [ f for f in os.listdir(defines.ramdiskPath) if os.path.isfile(os.path.join(defines.ramdiskPath, f)) ]:
-            if infile != logfile:
-                self.logger.debug("removing '%s'", infile)
-                try:
-                    os.remove(os.path.join(defines.ramdiskPath, infile))
-                except Exception as e:
-                    self.logger.exception("dataCleanup() exception:")
-                #endtry
-            #endif
+            self.logger.debug("removing '%s'", infile)
+            try:
+                os.remove(os.path.join(defines.ramdiskPath, infile))
+            except Exception as e:
+                self.logger.exception("dataCleanup() exception:")
+            #endtry
         #endfor
     #enddef
 

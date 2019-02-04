@@ -993,7 +993,7 @@ class PageSysInfo(Page):
                 'line1' : "Serial number: %s" % "#TODO#",   # read from A64 board
                 'line2' : "System: %s" % self.display.hwConfig.os.name,
                 'line3' : "System version: %s" % self.display.hwConfig.os.version,
-                'line4' : "Firwmare version: %s" % defines.swVersion,
+                'line4' : "Firmware version: %s" % defines.swVersion,
                 'line7' : "", # will be filled from getEvent()
                 'line8' : "API Key: %s" % self.octoprintAuth
                 })
@@ -1743,7 +1743,6 @@ class PageAdmin(Page):
     #enddef
 
     def performUpdate(self, updateCommand):
-        import shutil
 
         pageWait = PageWait(self.display, line1 = "Updating")
         pageWait.show()
@@ -1767,12 +1766,6 @@ class PageAdmin(Page):
                 self.logger.info("updater output: '%s'", line)
             #endif
         #endwhile
-
-        try:
-            shutil.copyfile(defines.printerlog, os.path.join(defines.home, "update.log"))
-        except Exception:
-            self.logger.exception("copyfile exception:")
-        #endtry
 
         if retc:
             pageWait.showItems(
