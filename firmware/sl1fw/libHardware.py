@@ -351,7 +351,8 @@ class Hardware(object):
 
 
     def beep(self, frequency, lenght):
-        self._commMC("!beep", frequency, int(lenght * 1000))
+        if not self.hwConfig.mute:
+            self._commMC("!beep", frequency, int(lenght * 1000))
     #enddef
 
 
