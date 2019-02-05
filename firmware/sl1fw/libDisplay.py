@@ -28,7 +28,10 @@ class Display(object):
         self.page_control = libPages.PageControl(self)
         self.page_settings = libPages.PageSettings(self)
         self.page_advancedsettings = libPages.PageAdvancedSettings(self)
-        self.page_print = libPages.PagePrint(self)
+        self.page_settime = libPages.PageSetTime(self)
+        self.page_settimezone = libPages.PageSetTimezone(self)
+        self.page_sethostname = libPages.PageSetHostname(self)
+        self.page_setlanguage = libPages.PageSetLanguage(self)
         self.page_projsettings = libPages.PageProjSett(self)
         self.page_change = libPages.PageChange(self)
         self.page_sysinfo = libPages.PageSysInfo(self)
@@ -63,12 +66,15 @@ class Display(object):
         self.page_manual = libPages.PageManual(self)
         self.page_videos = libPages.PageVideos(self)
         self.page_qrcode = libPages.PageQRCode(self)
+        self.page_image = libPages.PageImage(self)
+        self.page_video = libPages.PageVideo(self)
 
         self.actualPage = self.page_intro
     #enddef
 
 
     def initExpoPages(self, expo):
+        self.page_print = libPages.PagePrint(self, expo)
         self.page_homeprint = libPages.PageHomePrint(self, expo)
         self.page_feedme = libPages.PageFeedMe(self, expo)
     #enddef

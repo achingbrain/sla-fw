@@ -1,0 +1,21 @@
+<div class="row">
+	<div class="col">
+		<label>Timezone</label>
+		<select id="timezone" class="data">
+			{% for region in items['timezones'] %}
+			{% for city in items['timezones'][region] %}
+			{% if region == items['region'] and city == items['city'] %}
+			<option selected value="{{ region }}/{{ city }}">{{ region }}/{{ city }}</option>
+			{% else %}
+			<option value="{{ region }}/{{ city }}">{{ region }}/{{ city }}</option>
+			{% endif %}
+			{% endfor %}
+			{% endfor %}
+		</select>
+	</div>
+	<div class="menu">
+	{% set button = {'id': "settimezone", 'title': "Ok"} %}
+	{% include 'button.html' %}
+	</div>
+</div>
+{% include 'back.html' %}

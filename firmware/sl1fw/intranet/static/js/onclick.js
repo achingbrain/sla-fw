@@ -8,6 +8,11 @@ function sendWebSocketEvent(pressed, id, data) {
     ws.send(JSON.stringify(message));
 }
 
+function sendWebSocketAction(id, data) {
+    sendWebSocketEvent(pressed = true, id = id, data = data)
+    sendWebSocketEvent(pressed = false, id = id, data = data)
+}
+
 function hookOnClick() {
 	var event = function(element, pressed) {
 		data = {}
@@ -21,7 +26,7 @@ function hookOnClick() {
 			value = $(this).attr('data-value')
 
 			// Try to read input value
-			if (typeof value === typeof undefined && $(this).is('input')) {
+			if (typeof value === typeof undefined && ( $(this).is('input') || $(this).is('select'))) {
 				value = $(this).val()
 			}
 
@@ -30,8 +35,6 @@ function hookOnClick() {
 				value = $(this).text()
 			}
 
-			console.log(value)
-			
 			data[id] = value
 		})
 		
@@ -44,7 +47,6 @@ function hookOnClick() {
 			id = $(element).attr('data-id')
 		}
 		
-		console.log("data: ", data)
 		sendWebSocketEvent(pressed, id, data)
 	}
 	
@@ -58,13 +60,9 @@ function hookOnClick() {
 
 function hookLinkedControls() {
     $('input[data-linked]').change(function() {
-        console.log('Toggle: ' + $(this).prop('checked'))
-
         checked = $(this).prop('checked')
         collapse = $(this).attr('data-linked-collapse')
         off = $(this).attr('data-linked-off')
-
-        console.log(checked, collapse, off)
 
         if(checked) {
             $(collapse).collapse('show')
@@ -108,8 +106,7 @@ function hookWifiConnect() {
             'client-ssid': ssid,
             'client-psk': psk
         }
-        sendWebSocketEvent(pressed = true, id = id, data = data)
-        sendWebSocketEvent(pressed = false, id = id, data = data)
+       sendWebSocketAction(id = id, data = data)
     })
 }
 
@@ -121,8 +118,7 @@ function hookWifiBothOffCheck() {
         if(!client_checked && !ap_checked) {
             // Simulate click on button with ssid, psk data
             id = 'wifioff'
-            sendWebSocketEvent(pressed = true, id = id)
-            sendWebSocketEvent(pressed = false, id = id)
+            sendWebSocketAction(id = id)
         }
     })
 }
@@ -135,7 +131,41 @@ function hookFlash() {
         data = {
             'firmware': file
         }
-        sendWebSocketEvent(pressed = true, id = id, data = data)
-        sendWebSocketEvent(pressed = false, id = id, data = data)
+        sendWebSocketAction(id = id, data = data)
     })
+}
+
+function hookTimeSet() {
+    // React to ntp/custom time switch changes
+    $('#ntp-control').change(function() {
+        checked = $(this).prop('checked')
+
+        if(checked) {
+            sendWebSocketAction(id = "ntpenable")
+            $("#time-settings").collapse('hide')
+        } else {
+            sendWebSocketAction(id = "ntpdisable")
+            $("#time-settings").collapse('show')
+        }
+    })
+
+    // Set inital time setter values
+    time_settings = $("#time-settings")
+    unix_timestamp_sec = $('#unix_timestamp_sec').text()
+    timezone = $('unix_timestamp_sec').data('timezone')
+
+    date = new Date(unix_timestamp_sec * 1000);
+    $('#hour').val(date.getHours())
+    $('#minute').val(date.getMinutes())
+
+    // Process time setter changes and store resulting timestamp
+    $('#time-settings').find('select').change(function() {
+        date = new Date(unix_timestamp_sec * 1000);
+        date.setHours($('#hour').val())
+        date.setMinutes($('#minute').val())
+
+        $('#unix_timestamp_sec').text(date.getTime() / 1000)
+    })
+
+
 }

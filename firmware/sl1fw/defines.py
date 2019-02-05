@@ -59,3 +59,5 @@ resinFilled = 350
 towerHoldCurrent = 12
 tiltHoldCurrent = 20
 tiltCalibCurrent = 40
+
+multimediaRootPath = "/usr/share/sl1fw/multimedia"

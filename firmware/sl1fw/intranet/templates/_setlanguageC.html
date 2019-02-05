@@ -1,0 +1,11 @@
+<div class="row">
+	<div class="col">
+		<label>Locale</label>
+		<input id="locale" class="data" name="locale" value="{{ items['locale'] }}">
+	</div>
+	<div class="menu">
+	{% set button = {'id': "setlocale", 'title': "Ok"} %}
+	{% include 'button.html' %}
+	</div>
+</div>
+{% include 'back.html' %}

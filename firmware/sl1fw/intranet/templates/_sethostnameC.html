@@ -1,0 +1,11 @@
+<div class="row">
+	<div class="col">
+		<label>Hostname</label>
+		<input id="hostname" class="data" name="hostname" value="{{ items['hostname'] }}">
+	</div>
+	<div class="menu">
+	{% set button = {'id': "sethostname", 'title': "Ok"} %}
+	{% include 'button.html' %}
+	</div>
+</div>
+{% include 'back.html' %}
