@@ -2310,7 +2310,7 @@ class PageTowerCalib(MovePage):
     #enddef
 
 
-    def backButtonRelease(self):
+    def okButtonRelease(self):
         position = self.display.hw.getTowerPositionMicroSteps()
         if position is None:
             self.logger.error("Invalid tower position to save!")
@@ -2519,7 +2519,7 @@ class PageTiltCalib(MovePage):
     #enddef
 
 
-    def backButtonRelease(self):
+    def okButtonRelease(self):
         position = self.display.hw.getTiltPositionMicroSteps()
         if position is None:
             self.logger.error("Invalid tilt position to save!")
