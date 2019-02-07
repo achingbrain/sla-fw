@@ -1960,6 +1960,7 @@ class PageSetup(Page):
                 'label2g4' : "Warm up mins",
                 'label2g5' : "Layer IR trigger [x0.1s]",
                 'label2g6' : "Calib. tower offset [um]",
+                'label2g7' : "MC board version",
 
                 'button1' : "Export",
                 'button2' : "Import",
@@ -1978,6 +1979,7 @@ class PageSetup(Page):
         self.temp['warmup'] = self.display.hwConfig.warmUp
         self.temp['trigger'] = self.display.hwConfig.trigger
         self.temp['calibtoweroffset'] = self.display.hwConfig.calibTowerOffset
+        self.temp['mcboardversion'] = self.display.hwConfig.MCBoardVersion
 
         self.items['value2g1'] = str(self.temp['screwmm'])
         self.items['value2g2'] = str(self.temp['towerheight'])
@@ -1985,6 +1987,7 @@ class PageSetup(Page):
         self.items['value2g4'] = str(self.temp['warmup'])
         self.items['value2g5'] = str(self.temp['trigger'])
         self.items['value2g6'] = str(self.temp['calibtoweroffset'])
+        self.items['value2g7'] = str(self.temp['mcboardversion'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
@@ -2126,6 +2129,16 @@ class PageSetup(Page):
 
     def plus2g6Button(self):
         return self._value(5, 'calibtoweroffset', 0, 1000, 10)
+    #enddef
+
+
+    def minus2g7Button(self):
+        return self._value(6, 'mcboardversion', 4, 5, -1)
+    #enddef
+
+
+    def plus2g7Button(self):
+        return self._value(6, 'mcboardversion', 4, 5, 1)
     #enddef
 
 #endclass
