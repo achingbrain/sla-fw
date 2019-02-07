@@ -261,6 +261,7 @@ class HwConfig(FileConfig):
         self.fanCheck = self._parseBool("fancheck", False)
         self.coverCheck = self._parseBool("covercheck", False)
         self.MCversionCheck = self._parseBool("mcversioncheck", True)
+        self.MCBoardVersion = self._parseInt("mcboardversion", 4)
         self.screwMm = self._parseInt("screwmm", 4)
         self.microStepsMM = 200 * 16 / self.screwMm
         self.pixelSize = self._parseFloat("pixelsize", 0.046875, True)    # 5.5" LCD

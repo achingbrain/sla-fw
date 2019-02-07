@@ -211,7 +211,7 @@ class Hardware(object):
         self.portLock.acquire()
         self.resetMc()
 
-        process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, str(self.hwConfig.MCBoardVersion), defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         while True:
             line = process.stdout.readline()
             retc = process.poll()
