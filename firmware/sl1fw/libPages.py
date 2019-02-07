@@ -9,6 +9,7 @@ import json
 import subprocess
 import glob
 import pydbus
+from copy import deepcopy
 
 import defines
 import libConfig
@@ -1375,6 +1376,7 @@ class PageTiltTower(Page):
                 'button9' : "Tower profiles",
                 'button10' : "Tower home calib.",
                 'button11' : "Turn motors off",
+                'button12' : "Tune tilt",
                 'button13' : "Calibrate printer",
 
                 'back' : "Back",
@@ -1429,12 +1431,46 @@ class PageTiltTower(Page):
 
 
     def button5ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.button5Continue,
+                line1 = "Printer will search for tilt homing profiles.",
+                line2 = "Please remove the tank from tilt.")
+        return "confirm"
+    #enddef
+
+    def button5Continue(self):
+        pageWait = PageWait(self.display,
+            line1 = "Searching for homingFast profile",
+            line2 = "Please wait...",
+            line3 = "")
+        pageWait.show()
+        profileFast = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingFast"], True, 2000, 75, 10, 24, 4, 10)
+        pageWait = PageWait(self.display,
+            line1 = "Searching for homingSlow profile",
+            line2 = "Please wait...",
+            line3 = "")
+        pageWait.show()
+        profileSlow = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingSlow"], False, 1200, 30, 10, 24, 3, 12)
+        if (profileSlow == None) or (profileFast == None):
+            resultMsg = "not found"
+        else:
+            resultMsg = "found"
+        self.display.page_confirm.setParams(
+                continueFce = self.button5Continue2,
+                line1 = "Fast: %s" % profileFast,
+                line2 = "Slow: %s" % profileSlow,
+                line3 = "Tilt profiles %s" % resultMsg)
+        return "confirm"
+    #enddef
+
+
+    def button5Continue2(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = "Tilt home calibration")
         pageWait.show()
         self.display.hw.tiltHomeCalibrateWait()
         self.display.hw.powerLed("normal")
-        return "_SELF_"
+        return "_BACK_"
     #enddef
 
 
@@ -1489,6 +1525,11 @@ class PageTiltTower(Page):
 
     def button11ButtonRelease(self):
         self.display.hw.motorsRelease()
+    #enddef
+
+
+    def button12ButtonRelease(self):
+        return "tunetilt"
     #enddef
 
 
@@ -1857,8 +1898,7 @@ class PageSetup(Page):
                 'label1g2' : "Cover check",
                 'label1g3' : "MC version check",
                 'label1g4' : "Use resin sensor",
-                'label1g5' : "Log tilt load",
-                'label1g6' : "Blink exposure",
+                'label1g5' : "Blink exposure",
 
                 'label2g1' : "Screw (mm/rot)",
                 'label2g2' : "Tower msteps",
@@ -1902,15 +1942,13 @@ class PageSetup(Page):
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
         self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
         self.temp['resinsensor'] = self.display.hwConfig.resinSensor
-        self.temp['logtiltload'] = self.display.hwConfig.logTiltLoad
         self.temp['blinkexposure'] = self.display.hwConfig.blinkExposure
 
         self.items['state1g1'] = 1 if self.temp['fancheck'] else 0
         self.items['state1g2'] = 1 if self.temp['covercheck'] else 0
         self.items['state1g3'] = 1 if self.temp['mcversioncheck'] else 0
         self.items['state1g4'] = 1 if self.temp['resinsensor'] else 0
-        self.items['state1g5'] = 1 if self.temp['logtiltload'] else 0
-        self.items['state1g6'] = 1 if self.temp['blinkexposure'] else 0
+        self.items['state1g5'] = 1 if self.temp['blinkexposure'] else 0
 
         super(PageSetup, self).show()
     #enddef
@@ -1979,12 +2017,7 @@ class PageSetup(Page):
 
 
     def state1g5ButtonRelease(self):
-        self._onOff(4, 'logtiltload')
-    #enddef
-
-
-    def state1g6ButtonRelease(self):
-        self._onOff(5, 'blinkexposure')
+        self._onOff(4, 'blinkexposure')
     #enddef
 
 
@@ -2452,7 +2485,7 @@ class PageTiltCalib(MovePage):
 
 class ProfilesPage(Page):
 
-    def __init__(self, display):
+    def __init__(self, display, items = None):
         self.pageUI = "setup"
         super(ProfilesPage, self).__init__(display)
         self.autorepeat = {
@@ -2464,7 +2497,7 @@ class ProfilesPage(Page):
                 "minus2g6" : (5, 1), "plus2g6" : (5, 1),
                 "minus2g7" : (5, 1), "plus2g7" : (5, 1),
                 }
-        self.items.update({
+        self.items.update(items if items else {
                 "label1g1" : self.profilesNames[0],
                 "label1g2" : self.profilesNames[1],
                 "label1g3" : self.profilesNames[2],
@@ -2489,13 +2522,19 @@ class ProfilesPage(Page):
                 "back" : "Back",
                 })
         self.actualProfile = 0
+        self.nameIndexes = set()
+        self.profileItems = 7
     #enddef
 
 
     def _value(self, index, valmin, valmax, change):
         if valmin <= self.profiles[self.actualProfile][index] + change <= valmax:
             self.profiles[self.actualProfile][index] += change
-            self.showItems(**{ 'value2g%d' % (index + 1) : str(self.profiles[self.actualProfile][index]) })
+            if index in self.nameIndexes:
+                self.showItems(**{ 'value2g%d' % (index + 1) : str(self.profilesNames[self.profiles[self.actualProfile][index]]) })
+            else:
+                self.showItems(**{ 'value2g%d' % (index + 1) : str(self.profiles[self.actualProfile][index]) })
+            #endif
         else:
             self.display.hw.beepAlarm(1)
         #endif
@@ -2509,8 +2548,12 @@ class ProfilesPage(Page):
         data = { "state1g1" : 0, "state1g2" : 0, "state1g3" : 0, "state1g4" : 0, "state1g5" : 0, "state1g6" : 0, "state1g7" : 0, "state1g8" : 0 }
         data["state1g%d" % (self.actualProfile + 1)] = 1
 
-        for i in xrange(7):
-            data["value2g%d" % (i + 1)] = str(self.profiles[self.actualProfile][i])
+        for i in xrange(self.profileItems):
+            if i in self.nameIndexes:
+                data["value2g%d" % (i + 1)] = str(self.profilesNames[int(self.profiles[self.actualProfile][i])])
+            else:
+                data["value2g%d" % (i + 1)] = str(self.profiles[self.actualProfile][i])
+            #endif
         #endfor
 
         self.showItems(**data)
@@ -2596,42 +2639,42 @@ class ProfilesPage(Page):
 
 
     def minus2g1Button(self):
-        return self._value(0, 100, 22000, -10)
+        return self._value(0, 100, 20000, -10)
     #enddef
 
 
     def plus2g1Button(self):
-        return self._value(0, 100, 22000, 10)
+        return self._value(0, 100, 20000, 10)
     #enddef
 
 
     def minus2g2Button(self):
-        return self._value(1, 100, 22000, -10)
+        return self._value(1, 100, 20000, -10)
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(1, 100, 22000, 10)
+        return self._value(1, 100, 20000, 10)
     #enddef
 
 
     def minus2g3Button(self):
-        return self._value(2, 12, 800, -1)
+        return self._value(2, 12, 600, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(2, 12, 800, 1)
+        return self._value(2, 12, 600, 1)
     #enddef
 
 
     def minus2g4Button(self):
-        return self._value(3, 12, 800, -1)
+        return self._value(3, 12, 600, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        return self._value(3, 12, 800, 1)
+        return self._value(3, 12, 600, 1)
     #enddef
 
 
@@ -2656,12 +2699,12 @@ class ProfilesPage(Page):
 
 
     def minus2g7Button(self):
-        return self._value(6, 0, 10000, -10)
+        return self._value(6, 0, 4000, -10)
     #enddef
 
 
     def plus2g7Button(self):
-        return self._value(6, 0, 10000, 10)
+        return self._value(6, 0, 4000, 10)
     #enddef
 
 #endclass
@@ -3167,6 +3210,175 @@ class PageFeedMe(Page):
                 line2 = "Job will be canceled",
                 line3 = "after layer finish")
         return "systemwait"
+    #enddef
+
+#endclass
+
+
+class PageTuneTilt(ProfilesPage):
+
+    def __init__(self, display):
+        self.profilesFilename = "tune_tilt_profiles.json"
+        self.profilesNames = display.hw.getTiltProfilesNames()
+        self.pageTitle = "Admin - Tilt Tune"
+        super(PageTuneTilt, self).__init__(display, items = {
+                "label1g1" : 'tilt down large fill',
+                "label1g2" : 'tilt down small fill',
+                "label1g3" : 'tilt up',
+
+                "label2g1" : "slow profile",
+                "label2g2" : "slow steps",
+                "label2g3" : "slow sleep",
+                "label2g4" : "slow repeat",
+                "label2g5" : "fast profile",
+                "label2g6" : "area fill [%]",
+
+                "button1" : "Export",
+                "button2" : "Import",
+                "button4" : "Save",
+                "back" : "Back",
+                })
+        self.nameIndexes = set((0,4))
+        self.profileItems = 6
+    #enddef
+
+
+    def show(self):
+        super(PageTuneTilt, self).show()
+        self.profiles = deepcopy(self.display.hwConfig.tuneTilt)
+        self._setProfile()
+    #enddef
+
+
+    def button4ButtonRelease(self):
+        ''' save '''
+        self.display.hwConfig.update(
+            tiltdownlargefill = ' '.join(str(n) for n in self.profiles[0]),
+            tiltdownsmallfill = ' '.join(str(n) for n in self.profiles[1]),
+            tiltup = ' '.join(str(n) for n in self.profiles[2])
+        )
+        if not self.display.hwConfig.writeFile():
+            self.display.hw.beepAlarm(3)
+            sleep(1)
+            self.display.hw.beepAlarm(3)
+        #endif
+        self.display.hwConfig._parseData()
+        return super(PageTuneTilt, self).backButtonRelease()
+    #enddef
+
+
+    def backButtonRelease(self):
+        self.display.page_tiltmove.changeProfiles(True)
+        return super(PageTuneTilt, self).backButtonRelease()
+    #endif
+
+
+    def state1g4ButtonRelease(self):
+        pass
+    #enddef
+
+
+    def state1g5ButtonRelease(self):
+        pass
+    #enddef
+
+
+    def state1g6ButtonRelease(self):
+        pass
+    #enddef
+
+
+    def state1g7ButtonRelease(self):
+        pass
+    #enddef
+
+
+    def state1g8ButtonRelease(self):
+        pass
+    #enddef
+
+
+    def minus2g1Button(self):
+        return self._value(0, 0, 7, -1)
+    #enddef
+
+
+    def plus2g1Button(self):
+        return self._value(0, 0, 7, 1)
+    #enddef
+
+
+    def minus2g2Button(self):
+        return self._value(1, 10, 2000, -10)
+    #enddef
+
+
+    def plus2g2Button(self):
+        return self._value(1, 10, 2000, 10)
+    #enddef
+
+
+    def minus2g3Button(self):
+        return self._value(2, 0, 4000, -100)
+    #enddef
+
+
+    def plus2g3Button(self):
+        return self._value(2, 0, 4000, 100)
+    #enddef
+
+
+    def minus2g4Button(self):
+        return self._value(3, 1, 10, -1)
+    #enddef
+
+
+    def plus2g4Button(self):
+        return self._value(3, 1, 10, 1)
+    #enddef
+
+
+    def minus2g5Button(self):
+        return self._value(4, 0, 7, -1)
+    #enddef
+
+
+    def plus2g5Button(self):
+        return self._value(4, 0, 7, 1)
+    #enddef
+
+
+    def minus2g6Button(self):
+        if self.profiles[self.actualProfile][5] > 0:
+            for i in xrange(len(self.profiles)):
+                self.profiles[i][5] -= 1
+            #endfor
+            self.showItems(**{ 'value2g6' : str(self.profiles[self.actualProfile][5]) })
+        else:
+            self.display.hw.beepAlarm(1)
+        #endif
+    #enddef
+
+
+    def plus2g6Button(self):
+        if self.profiles[self.actualProfile][5] < 100:
+            for i in xrange(len(self.profiles)):
+                self.profiles[i][5] += 1
+            #endfor
+            self.showItems(**{ 'value2g6' : str(self.profiles[self.actualProfile][5]) })
+        else:
+            self.display.hw.beepAlarm(1)
+        #endif
+    #enddef
+
+
+    def minus2g7Button(self):
+        pass
+    #enddef
+
+
+    def plus2g7Button(self):
+        pass
     #enddef
 
 #endclass

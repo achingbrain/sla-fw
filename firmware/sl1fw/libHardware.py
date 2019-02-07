@@ -38,17 +38,17 @@ class Hardware(object):
         self._ledTempIdx = 0
 
         # (mode, speed)
-        self._powerLedStates= { 'normal' : (2, 3), 'warn' : (3, 16), 'error' : (3, 48) }
+        self._powerLedStates= { 'normal' : (1, 2), 'warn' : (2, 10), 'error' : (3, 15) }
 
         self._tiltProfiles = {
                 'homingFast'    : 0,
                 'homingSlow'    : 1,
                 'moveFast'      : 2,
                 'moveSlow'      : 3,
-                'layerInit'     : 4,
-                'layerBreak'    : 5,
-                'layerMove'     : 6,
-                '<reserverd>'   : 7,
+                'layerMove'     : 4,
+                'layerRelease'  : 5,
+                '<reserverd1>'  : 6,
+                '<reserverd2>'  : 7,
                 }
         self._towerProfiles = {
                 'homingFast'    : 0,
@@ -64,9 +64,12 @@ class Hardware(object):
         self._tiltProfileNames = map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1]))
         self._towerProfileNames = map(lambda x: x[0], sorted(self._towerProfiles.items(), key=lambda kv: kv[1]))
 
-        self._tiltMin = -3210        # whole turn
-        self._tiltMax = 3210
-        self._tiltEnd = 1600
+        self._tiltMin = -12840        # whole turn
+        self._tiltMax = 12840
+        self._tiltEnd = 5600
+        self._tiltReleaseTo = 400
+        self._tiltFindProfileMinSteps = 640
+        self._tiltFindProfileMaxSteps = 1200
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerMax = self.hwConfig.calcMicroSteps(310)
         self.towerEnd = self.hwConfig.calcMicroSteps(150)
@@ -680,7 +683,7 @@ class Hardware(object):
 
 
     def towerStop(self):
-        self._commMC("!mot 0")
+        self._commMC("!mot", 0)
     #enddef
 
 
@@ -782,18 +785,23 @@ class Hardware(object):
 
 
     def setTowerProfile(self, profile):
-        if profile == self._lastTowerProfile:
-            return
+        self._lastTowerProfile = profile
+        profileId = self._towerProfiles.get(profile, None)
+        if profileId is not None:
+            self.debug.showItems(towerProfile = profile)
+            self._commMC("!twcs", profileId)
         else:
-            self._lastTowerProfile = profile
-            profileId = self._towerProfiles.get(profile, None)
-            if profileId is not None:
-                self.debug.showItems(towerProfile = profile)
-                self._commMC("!twcs", profileId)
-            else:
-                self.logger.error("Invalid tower profile '%s'", profile)
-            #endif
+            self.logger.error("Invalid tower profile '%s'", profile)
         #endif
+    #enddef
+
+
+    def setTowerCurrent(self, current):
+        current = int(current)
+        if 0 <= current <= 63:
+            self._commMC("!twcu", current)
+        else:
+            self.logger.error("Invalid tower current %d", current)
     #enddef
 
 
@@ -861,7 +869,7 @@ class Hardware(object):
                     releaseFrom = 0
                 #endif
 
-                self.setTiltProfile('layerBreak')
+                self.setTiltProfile('layerRelease')
                 self.setTiltPosition(releaseFrom)
                 self._commMC("!tima", 800)
                 while self.isTiltMoving():
@@ -895,7 +903,7 @@ class Hardware(object):
 
 
     def tiltStop(self):
-        self._commMC("!mot 0")
+        self._commMC("!mot", 0)
     #enddef
 
 
@@ -989,30 +997,80 @@ class Hardware(object):
     #enddef
 
 
-    def tiltLayerDownWait(self):
-        self.setTiltProfile('layerInit')
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tiltInitSteps)
-        while not self.isTiltOnPosition():
+    def tiltLayerDownWait(self, whitePixels = 0):
+        if whitePixels > (1440 * 2560) * (self.hwConfig.tuneTilt[0][5] / 100.0):
+            self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[0][0]])
+            for i in xrange(self.hwConfig.tuneTilt[0][3]):
+                self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - self.hwConfig.tuneTilt[0][1])
+                while self.isTiltMoving():
+                    sleep(0.1)
+                #endwhile
+                sleep(self.hwConfig.tuneTilt[0][2] / 1000.0)
+            #endfor
+            self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[0][4]])
+        else:
+            self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[1][0]])
+            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - self.hwConfig.tuneTilt[1][1])
+            while self.isTiltMoving():
+                sleep(0.1)
+            #endwhile
+            sleep(self.hwConfig.tuneTilt[1][2] / 1000.0)
+            self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[1][4]])
+        #endif
+        self.tiltMoveAbsolute(self._tiltReleaseTo)
+        while self.isTiltMoving():
             sleep(0.1)
         #endwhile
-        self.setTiltProfile('layerBreak')
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tiltInitSteps - self.hwConfig.tiltBreakSteps)
-        while not self.isTiltOnPosition():
-            sleep(0.1)
-        #endwhile
-        self.setTiltProfile('layerMove')
-        self.tiltDownWait()
+        self.tiltLayerCheckPosition()
+        self.setTiltCurrent(20)
     #enddef
 
 
     def tiltLayerUpWait(self):
-        self.setTiltProfile('layerMove')
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tiltReturnSlowSteps)
-        while not self.isTiltOnPosition():
+        self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[2][4]])
+        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tuneTilt[2][1])
+        while self.isTiltMoving():
             sleep(0.1)
         #endwhile
-        self.setTiltProfile('layerInit')
-        self.tiltUpWait()
+        sleep(self.hwConfig.tuneTilt[2][2] / 1000.0)
+        self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[2][0]])
+        self.tiltUp()
+        while self.isTiltMoving():
+            sleep(0.1)
+        #endwhile
+        self.tiltLayerCheckPosition()
+        self.setTiltCurrent(20)
+    #enddef
+
+
+    def tiltLayerCheckPosition(self):
+        if self._tiltToPosition != self.getTiltPositionMicroSteps():
+            self.logger.warning("Forcing release. Target pos: %d, actual pos: %d", self._tiltToPosition, self.getTiltPositionMicroSteps())
+            self.beepAlarm(3)
+            self.setTiltProfile('layerRelease')
+            #simulate another release movement
+            for i in xrange(3):
+                self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - 200)
+                while self.isTiltMoving():
+                    sleep(0.1)
+                #endwhile
+                sleep(1)
+            #endfor
+            for i in xrange(3):
+                if not self.tiltSyncWait():
+                    self.setTiltPosition(800)
+                    self.setTiltProfile('layerRelease')
+                    self.tiltMoveAbsolute(0)
+                    while self.isTiltMoving():
+                        sleep(0.1)
+                    #endwhile
+                else:
+                    return
+                #endif
+            #endfor
+            self.logger.error("Printer is stuck. Shutting down")
+            self.shutdown()
+        #endif
     #enddef
 
 
@@ -1039,18 +1097,23 @@ class Hardware(object):
 
 
     def setTiltProfile(self, profile):
-        if profile == self._lastTiltProfile:
-            return
+        self._lastTiltProfile = profile
+        profileId = self._tiltProfiles.get(profile, None)
+        if profileId is not None:
+            self.debug.showItems(tiltProfile = profile)
+            self._commMC("!tics", profileId)
         else:
-            self._lastTiltProfile = profile
-            profileId = self._tiltProfiles.get(profile, None)
-            if profileId is not None:
-                self.debug.showItems(tiltProfile = profile)
-                self._commMC("!tics", profileId)
-            else:
-                self.logger.error("Invalid tilt profile '%s'", profile)
-            #endif
+            self.logger.error("Invalid tilt profile '%s'", profile)
         #endif
+    #enddef
+
+
+    def setTiltCurrent(self, current):
+        current = int(current)
+        if 0 <= current <= 63:
+            self._commMC("!ticu", current)
+        else:
+            self.logger.error("Invalid tilt current %d", current)
     #enddef
 
 
@@ -1188,5 +1251,113 @@ class Hardware(object):
 
         #self.logger.debug("checkTemp done")
     #enddef
+
+
+    def findTiltProfile(self, profileNo, skipStep, defaultPos, threshold, currMin, currMax, sgtMin, sgtMax):
+        tiltProfiles = self.getTiltProfiles()
+        profileDef = tiltProfiles[self._tiltProfiles["homingFast"]] #use default homingFast profile for undone movements
+        profileTmp = tiltProfiles[profileNo]
+        self.setTiltTempProfile(profileDef)
+        self.setTiltPosition(self._tiltMax)
+        self.tiltDown()
+        while self.isTiltMoving():
+            sleep(0.1)
+        #endwhile
+
+        for current in xrange(currMin, currMax):
+            profileTmp[4] = current
+            for sgThreshold in xrange(sgtMin, sgtMax):
+                profileTmp[5] = sgThreshold
+                result = self.tryProfile( profileDef, profileTmp, skipStep, defaultPos, threshold)
+                if result == 0:
+                    for i in xrange(10):
+                        resultTry = self.tryProfile(profileDef, profileTmp, skipStep, defaultPos, threshold)
+                        self.logger.debug("try %d. Profile: %s, result: %d", i, profileTmp, resultTry)
+                        if resultTry != 0:
+                            break
+                        #endif
+                    #endfor
+                    if resultTry == -2:    #try next current
+                        break
+                    #endif
+                    if i == 9:
+                        tiltProfiles[profileNo] = profileTmp
+                        self.setTiltProfiles(tiltProfiles)
+                        return profileTmp
+                    #endif
+                elif result == -2:
+                    break
+                #endif
+            #endfor
+        #endfor
+    #enddef
+
+
+    def tryProfile(self, profileDef, profileTmp, skipStep, defaultPos, threshold):
+        self.setTiltTempProfile(profileDef)
+        self.setTiltPosition(0)
+        self.tiltMoveAbsolute(defaultPos)
+        while self.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+
+        self.setTiltTempProfile(profileTmp)
+        self._commMC("!sgbd")   #reset buffer
+        self.setTiltPosition(defaultPos + 1200)
+        self.tiltDown()
+        while self.isTiltMoving():
+            sleep(0.1)
+        #endwhile
+        position = int(self.getTiltPositionMicroSteps())
+        stepsCheck = False
+        if skipStep:
+            if (position > self._tiltFindProfileMinSteps) and (position < self._tiltFindProfileMaxSteps):
+                stepsCheck = True
+            #endif
+        else:
+            if (position >= self._tiltFindProfileMaxSteps - 256) and (position <= self._tiltFindProfileMaxSteps):
+                stepsCheck = True
+            #endif
+        #endif
+        if stepsCheck:
+            sgData = list()
+            while int(self._commMC("?sgbc")) > 0:
+                sg = self._commMC("?sgbd")
+                sgData.extend([int(hex, 16) for hex in sg.split(" ")])
+            #endwhile
+            del sgData[:5]
+            average = (sum(sgData[:-5])* 1.0)/(len(sgData[:-5]) * 1.0)
+            variance = sum([(xi - average)**2.0 for xi in sgData[:-5]]) / (len(sgData[:-5]) - 1)
+            stdev = variance**(1/2.0)
+            sgDataTail = sgData[-5:]
+            self.logger.debug("data %s", sgData)
+            if skipStep:
+                minCount = sum(value < (average - 5 * stdev) for value in sgDataTail)
+                if average > threshold:
+                    if 0 < minCount < 4:
+                        return 0 #profile OK
+                    #endif
+                #endif
+            else:
+                minCount = sum(value < (average - 2 * stdev) for value in sgDataTail)
+                if average > threshold:
+                    if minCount == 0:
+                        return 0 #profile OK
+                    #endif
+                #endif
+            #endif
+        #endif
+        self.setTiltTempProfile(profileDef)
+        self.setTiltPosition(position)
+        self.tiltDown()
+        while self.isTiltMoving():
+            sleep(0.1)
+        #endwhile
+        if (position < 800):
+            return -2 #try next current. SGT too insensitive
+        #endif
+        return -1 #try next sgt. SGT too sensitive
+    #enddef
+
 
 #endclass
