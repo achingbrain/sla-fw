@@ -688,7 +688,9 @@ class Hardware(object):
 
 
     def isTowerMoving(self):
-        return self._commMC("?mot") != "0"
+        if int(self._commMC("?mot")) & 1:
+            return 1
+        #endif
     #enddef
 
 
@@ -825,7 +827,6 @@ class Hardware(object):
         #endif
     #enddef
 
-
     # --- tilt ---
 
     def tiltHomeCalibrateWait(self):
@@ -908,7 +909,9 @@ class Hardware(object):
 
 
     def isTiltMoving(self):
-        return self._commMC("?mot") != "0"
+        if int(self._commMC("?mot")) & 2:
+            return 1
+        #endif
     #enddef
 
 

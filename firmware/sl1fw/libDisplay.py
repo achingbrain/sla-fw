@@ -46,6 +46,7 @@ class Display(object):
         self.page_towercalib = libPages.PageTowerCalib(self)
         self.page_tiltcalib = libPages.PageTiltCalib(self)
         self.page_tiltprofiles = libPages.PageTiltProfiles(self)
+        self.page_calibration = libPages.PageCalibration(self)
         self.page_tunetilt = libPages.PageTuneTilt(self)
         self.page_towerprofiles = libPages.PageTowerProfiles(self)
         self.page_fansleds = libPages.PageFansLeds(self)
