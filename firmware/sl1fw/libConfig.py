@@ -274,6 +274,7 @@ class HwConfig(FileConfig):
         self.resinSensor = self._parseBool("resinsensor", False)
         self.warmUp = self._parseInt("warmup", 0)
         self.blinkExposure = self._parseBool("blinkexposure", False)
+        self.calibTowerOffset = self._parseInt("calibtoweroffset", 300)
 
         self.fan1Pwm = self._parseIntMinMax("fan1pwm", 100, 0, 100)
         self.fan2Pwm = self._parseIntMinMax("fan2pwm", 100, 0, 100)

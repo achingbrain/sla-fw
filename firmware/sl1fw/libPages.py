@@ -383,7 +383,7 @@ class PageHome(Page):
 
 
     def printContinue(self):
-        return "tiltcalib"
+        return "calibration"
     #enddef
 
 #endclass
@@ -482,7 +482,7 @@ class PageSettings(Page):
     #enddef
 
     def calibrateContinue(self):
-        return "tiltcalib"
+        return "calibration"
     #enddef
 
 #endclass
@@ -1377,7 +1377,8 @@ class PageTiltTower(Page):
                 'button10' : "Tower home calib.",
                 'button11' : "Turn motors off",
                 'button12' : "Tune tilt",
-                'button13' : "Calibrate printer",
+
+                'button14' : "Calibrate printer",
 
                 'back' : "Back",
                 })
@@ -1533,8 +1534,8 @@ class PageTiltTower(Page):
     #enddef
 
 
-    def button13ButtonRelease(self):
-        return "tiltcalib"
+    def button14ButtonRelease(self):
+        return "calibration"
     #enddef
 
 #endclass
@@ -1555,6 +1556,7 @@ class PageDisplay(Page):
 
                 'button6' : "USB:/test.png",
 
+                'button10' : "Infinite test",
                 'button11' : "Black",
                 'button12' : "Inverse",
 
@@ -1607,6 +1609,57 @@ class PageDisplay(Page):
     #enddef
 
 
+    def button10ButtonRelease(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = "This never ends. If you need to stop it",
+            line2 = "Please power down the printer")
+        pageWait.show()
+        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
+        self.display.hw.uvLed(True)
+        
+        self.display.hw.towerSync()
+        towerStatus = 0
+        towerCounter = 0
+        tiltCounter = 0
+        tiltMayMove = True
+        #up = 0
+        #above Display = 1
+        #down = 3
+        
+        while True:
+            if not self.display.hw.isTowerMoving():
+                if towerStatus == 0:    #tower moved to top
+                    towerCounter += 1
+                    self.logger.debug("towerCounter: %d, tiltCounter: %d", towerCounter, tiltCounter)
+                    self.display.hw.setTowerPosition(0)
+                    self.display.hw.setTowerProfile('homingFast')
+                    self.display.hw.towerMoveAbsolute(-118000)
+                    towerStatus = 1
+                elif towerStatus == 1:  #tower above the display
+                    tiltMayMove = False
+                    if self.display.hw.isTiltUp():
+                        towerStatus = 2
+                        self.display.hw.setTiltProfile('layerMove')
+                        self.display.hw.setTowerProfile('homingSlow')
+                        self.display.hw.towerToMin()
+                elif towerStatus == 2:
+                    tiltMayMove = True
+                    self.display.hw.towerSync()
+                    towerStatus = 0
+            
+            if not self.display.hw.isTiltMoving():
+                if self.display.hw.getTiltPositionMicroSteps() == 0:
+                    tiltCounter += 1
+                    self.display.hw.setTiltProfile('moveFast')
+                    self.display.hw.tiltUp()
+                else:
+                    if tiltMayMove:
+                        self.display.hw.tiltSyncWait()
+            sleep(0.25)
+    #endder
+
+
     def button11ButtonRelease(self):
         self.display.screen.getImgBlack()
     #enddef
@@ -1629,6 +1682,7 @@ class PageDisplay(Page):
         self.display.screen.getImgBlack()
         return super(PageDisplay, self).backButtonRelease()
     #enddef
+
 
 #endclass
 
@@ -1903,11 +1957,9 @@ class PageSetup(Page):
                 'label2g1' : "Screw (mm/rot)",
                 'label2g2' : "Tower msteps",
                 'label2g3' : "Tilt msteps",
-                'label2g4' : "Tilt init msteps",
-                'label2g5' : "Tilt break msteps",
-                'label2g6' : "Tilt ret.sl. msteps",
-                'label2g7' : "Warm up mins",
-                'label2g8' : "Layer IR trigger [x0.1s]",
+                'label2g4' : "Warm up mins",
+                'label2g5' : "Layer IR trigger [x0.1s]",
+                'label2g6' : "Calib. tower offset [um]",
 
                 'button1' : "Export",
                 'button2' : "Import",
@@ -1923,20 +1975,16 @@ class PageSetup(Page):
         self.temp['screwmm'] = self.display.hwConfig.screwMm
         self.temp['towerheight'] = self.display.hwConfig.towerHeight
         self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
-        self.temp['tiltinitsteps'] = self.display.hwConfig.tiltInitSteps
-        self.temp['tiltbreaksteps'] = self.display.hwConfig.tiltBreakSteps
-        self.temp['tiltreturnslowsteps'] = self.display.hwConfig.tiltReturnSlowSteps
         self.temp['warmup'] = self.display.hwConfig.warmUp
         self.temp['trigger'] = self.display.hwConfig.trigger
+        self.temp['calibtoweroffset'] = self.display.hwConfig.calibTowerOffset
 
         self.items['value2g1'] = str(self.temp['screwmm'])
         self.items['value2g2'] = str(self.temp['towerheight'])
         self.items['value2g3'] = str(self.temp['tiltheight'])
-        self.items['value2g4'] = str(self.temp['tiltinitsteps'])
-        self.items['value2g5'] = str(self.temp['tiltbreaksteps'])
-        self.items['value2g6'] = str(self.temp['tiltreturnslowsteps'])
-        self.items['value2g7'] = str(self.temp['warmup'])
-        self.items['value2g8'] = str(self.temp['trigger'])
+        self.items['value2g4'] = str(self.temp['warmup'])
+        self.items['value2g5'] = str(self.temp['trigger'])
+        self.items['value2g6'] = str(self.temp['calibtoweroffset'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
@@ -2052,52 +2100,32 @@ class PageSetup(Page):
 
 
     def minus2g4Button(self):
-        return self._value(3, 'tiltinitsteps', 1, 300, -1)
+        return self._value(3, 'warmup', 0, 30, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        return self._value(3, 'tiltinitsteps', 1, 300, 1)
+        return self._value(3, 'warmup', 0, 30, 1)
     #enddef
 
 
     def minus2g5Button(self):
-        return self._value(4, 'tiltbreaksteps', 1, 800, -1)
+        return self._value(4, 'trigger', 0, 20, -1)
     #enddef
 
 
     def plus2g5Button(self):
-        return self._value(4, 'tiltbreaksteps', 1, 800, 1)
+        return self._value(4, 'trigger', 0, 20, 1)
     #enddef
 
 
     def minus2g6Button(self):
-        return self._value(5, 'tiltreturnslowsteps', 1, 1000, -1)
+        return self._value(5, 'calibtoweroffset', 0, 1000, -10)
     #enddef
 
 
     def plus2g6Button(self):
-        return self._value(5, 'tiltreturnslowsteps', 1, 1000, 1)
-    #enddef
-
-
-    def minus2g7Button(self):
-        return self._value(6, 'warmup', 0, 30, -1)
-    #enddef
-
-
-    def plus2g7Button(self):
-        return self._value(6, 'warmup', 0, 30, 1)
-    #enddef
-
-
-    def minus2g8Button(self):
-        return self._value(7, 'trigger', 0, 20, -1)
-    #enddef
-
-
-    def plus2g8Button(self):
-        return self._value(7, 'trigger', 0, 20, 1)
+        return self._value(5, 'calibtoweroffset', 0, 1000, 10)
     #enddef
 
 #endclass
@@ -2395,38 +2423,86 @@ class PageTiltMove(MovePage):
 #endclass
 
 
-class PageTiltCalib(MovePage):
-
+class PageCalibration(Page):
     def __init__(self, display):
-        self.pageUI = "tiltmove"
-        self.pageTitle = "Tank Calibration"
-        super(PageTiltCalib, self).__init__(display)
-        self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
+        self.pageUI = "home"
+        self.pageTitle = "Calibration"
+        super(PageCalibration, self).__init__(display)
+        self.stack = False
     #enddef
 
 
     def prepare(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
-            line1 = "Tank calibration",
-            line2 = "Moving platform to top")
+            line1 = "Printer homing",
+            line2 = "Please wait...")
         pageWait.show()
-        retc = self._syncTower(pageWait)
-        if retc == "error":
-            return retc
-        #endif
-        pageWait.showItems(line2 = "Moving tank to start", line3 = "")
-        retc = self._syncTilt()
-        if retc == "error":
-            return retc
-        #endif
-        pageWait.showItems(line2 = "Moving tank to base position",)
-        self.display.hw.setTiltProfile('layerMove')
-        self.display.hw.tiltDownWait()
-        self.display.hw.tiltUpWait()
+        
+        self.display.hw.tiltSyncWait()
+        self.display.hw.towerSync()
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
         self.display.hw.powerLed("normal")
+        
+        self.display.page_confirm.setParams(
+            continueFce = self.recalibrateStep3,
+            line1 = "Loosen small screws on console",
+            line2 = "and screw down the platform",
+            line3 = "with the big black knob.")
+        return "confirm"
+    #enddef
+
+
+    def recalibrateStep3(self):
+        self.display.page_confirm.setParams(
+            continueFce = self.recalibrateStep4,
+            line1 = "Unscrew the tank, remove the bolts, turn it by 90 degrees",
+            line2 = "and lay it down on the base so it is across tilt.",
+            line3 = "")
+        return "confirm"
+    #enddef
+
+
+    def recalibrateStep4(self):
+        self.display.hw.powerLed("warn")
+        self.display.hw.tiltSyncWait()
+        self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd - 1500)
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+            continueFce = self.recalibrateStep5,
+            line1 = "Move tilt up until the tank",
+            line2 = "gets lifted by 0.1 mm above the base.",
+            line3 = "")
+        return "confirm"
+    #enddef
+
+
+    def recalibrateStep5(self):
+        return "tiltcalib"
+    #endef
+
+#endclass
+
+class PageTiltCalib(MovePage):
+
+    def __init__(self, display):
+        self.pageUI = "tiltmove"
+        self.pageTitle = "Tank Calibration"
+        super(PageTiltCalib, self).__init__(display)
+        self.stack = False
+        self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
+    #enddef
+
+
+    def show(self):
         self.items["value"] = self.display.hw.getTiltPosition()
         self.moving = False
+        super(PageTiltCalib, self).show()
     #enddef
 
 
@@ -2436,48 +2512,204 @@ class PageTiltCalib(MovePage):
             self.logger.error("Invalid tilt position to save!")
             self.display.hw.beepAlarm(3)
         else:
-            self.display.hwConfig.update(tiltheight = position)
-            if not self.display.hwConfig.writeFile():
-                self.display.hw.beepAlarm(3)
-                sleep(1)
-                self.display.hw.beepAlarm(3)
-            #endif
+            self.display.hwConfig.tiltHeight = position
         #endif
-        return "towercalib"
+        self.display.page_confirm.setParams(
+            continueFce = self.recalibrateStep2,
+            line1 = "Leave tank across tilt.",
+            line2 = "Make sure platform is as horizontal as possible.",
+            line3 = "")
+        return "confirm"
     #endif
 
 
     def _up(self, slowMoving):
-        if not self.moving:
-            self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'moveFast')
-            self.display.hw.tiltToMax()
-            self.moving = True
+        if self.display.hw.getTiltPosition() < self.display.hw._tiltEnd:
+            self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'moveSlow')
+            self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd)
         else:
-            if self.display.hw.isTiltOnMax():
-                self.display.hw.beepAlarm(1)
-            #endif
-            self.showItems(value = self.display.hw.getTiltPosition())
+            self.display.hw.beepAlarm(1)
         #endif
+        self.showItems(value = self.display.hw.getTiltPosition())
     #enddef
 
 
     def _down(self, slowMoving):
-        if not self.moving:
-            self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'moveFast')
-            self.display.hw.tiltToMin()
-            self.moving = True
+        if self.display.hw.getTiltPosition() > self.display.hw._tiltEnd - 1500:
+            self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'moveSlow')
+            self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd - 1500)
         else:
-            if self.display.hw.isTiltOnMin():
-                self.display.hw.beepAlarm(1)
-            #endif
-            self.showItems(value = self.display.hw.getTiltPosition())
+            self.display.hw.beepAlarm(1)
         #endif
+        self.showItems(value = self.display.hw.getTiltPosition())
     #enddef
 
 
     def _stop(self):
         self.display.hw.tiltStop()
         self.moving = False
+    #enddef
+
+
+    def recalibrateStep2(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = "Platform calibration",
+            line2 = "Keep it as horizontal as possible...",
+            line3 = "")
+        pageWait.show()
+        self.display.hw.tiltSyncWait()
+        self.display.hw.setTiltProfile('moveSlow')
+        self.display.hw.setTowerPosition(0)
+        self.display.hw.setTowerProfile('homingFast')
+        self.display.hw.towerMoveAbsoluteWait(self.display.hwConfig.calcMicroSteps(-110))
+        self.display.hw.setTowerProfile('homingSlow')
+        self.display.hw.towerToMin()
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps()+5*800)
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.towerToMin()
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.setTowerProfile('homingFast')
+        self.display.hw.setTowerPosition(0)
+        offset = self.display.hwConfig.calcMicroSteps(self.display.hwConfig.calibTowerOffset / 1000.0)
+        self.logger.debug("Tower calibration offset: %d, %f, %d", self.display.hwConfig.calibTowerOffset, self.display.hwConfig.calibTowerOffset / 1000.0, offset)
+        self.display.hw.towerMoveAbsoluteWait(offset)
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+            continueFce = self.recalibrateStep3,
+            line1 = "Check if platform is aligned",
+            line2 = "with exposition display.",
+            line3 = "")
+        return "confirm"
+    #enddef
+
+    def recalibrateStep3(self):
+        self.display.page_confirm.setParams(
+            continueFce = self.recalibrateStep4,
+            line1 = "Tighten small srews on the console litle by little.",
+            line2 = "",
+            line3 = "")
+        return "confirm"
+    #enddef
+
+
+    def recalibrateStep4(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = "Tower calibration",
+            line2 = "Please wait...",
+            line3 = "")
+        pageWait.show()
+        self.display.hw.towerSync()
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.tiltUpWait()
+        self.display.hw.setTiltProfile('moveSlow')
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+            continueFce = self.recalibrateStep5,
+            line1 = "Make sure the platform, tank and tilt are perfectly clean.",
+            line2 = "Screw down the tank.",
+            line3 = "")
+        return "confirm"
+    #enddef
+
+
+    def recalibrateStep5(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = "Tower calibration",
+            line2 = "Please wait...")
+        pageWait.show()
+        
+        self.display.hw.towerSync()
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
+
+        iterationCount = 6
+        towerSteps = list()
+        for i in xrange(iterationCount):
+            pageWait.showItems(line2 = "Run %d/%d" % (i+1, iterationCount))
+            self.display.hw.setTowerPosition(0)
+            self.display.hw.setTowerProfile('homingFast')
+            self.display.hw.towerMoveAbsoluteWait(self.display.hwConfig.calcMicroSteps(-145))
+            self.display.hw.setTowerProfile('homingSlow')
+            self.display.hw.towerToMin()
+            while self.display.hw.isTowerMoving():
+                sleep(0.25)
+            #endwhile
+            towerSteps.append(self.display.hw.getTowerPositionMicroSteps())
+            self.display.hw.towerSync()
+            while not self.display.hw.isTowerSynced():
+                sleep(0.25)
+            #endwhile
+            commonSteps = max(set(towerSteps), key=towerSteps.count)
+            if towerSteps.count(commonSteps) > 2:   #if same results are found earlier break loop
+                break
+            #endif
+        #endfor
+        self.logger.debug("Tower steps: %s", towerSteps)
+        #pick result with highest number of occurrences
+        if towerSteps.count(commonSteps) < 3:
+            self.display.hwConfig.update(
+                towerheight = 0,
+                tiltheight = 0,
+                calibrated = "no")
+            if not self.display.hwConfig.writeFile():
+                self.display.hw.beepAlarm(3)
+                sleep(1)
+                self.display.hw.beepAlarm(3)
+            #endif
+            self.display.hw.motorsRelease()
+            self.display.hw.setTiltProfile('moveFast')
+            self.display.hw.setTowerProfile('moveFast')
+            self.display.page_confirm.setParams(
+                continueFce = self.recalibrateStep6,
+                line1 = "Tower length cannot be measured properly.",
+                line2 = "Please calibrate printer again.",
+                line3 = "")
+            return "confirm"
+        #endif
+        commonSteps = int(-1 * commonSteps - ((self.display.hwConfig.calibTowerOffset / 1000.0) * 800))
+        self.display.hwConfig.towerHeight = commonSteps
+        self.display.hwConfig.calibrated = True
+        self.display.hwConfig.update(
+            towerheight = self.display.hwConfig.towerHeight,
+            tiltheight = self.display.hwConfig.tiltHeight,
+            calibrated = "yes")
+        if not self.display.hwConfig.writeFile():
+            self.display.hw.beepAlarm(3)
+            sleep(1)
+            self.display.hw.beepAlarm(3)
+        #endif
+        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.setTowerProfile('moveFast')
+        self.display.hw.motorsRelease()
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+            continueFce = self.recalibrateStep6,
+            line1 = "All done,",
+            line2 = "happy printing!",
+            line3 = "")
+        return "confirm"
+    #enddef
+
+
+    def recalibrateStep6(self):
+        return "_BACK_"
     #enddef
 
 #endclass
