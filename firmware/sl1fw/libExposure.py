@@ -33,14 +33,12 @@ class ExposureThread(threading.Thread):
         if self.config.tilt:
             self.expo.hw.towerMoveAbsoluteWait(position)
             self.expo.hw.tiltLayerUpWait()
-
-            if self.expo.hwConfig.logTiltLoad:
-                self.logTiltLoad("up", self.expo.hw.getStallguardBuffer())
-            #endif
-
+            self.expo.hw.setTowerCurrent(12)
         else:
+            self.expo.hw.setTowerProfile('layer')
             self.towerMoveAbsoluteWait(position + self.config.fakeTiltUp)
             self.towerMoveAbsoluteWait(position)
+            self.expo.hw.setTowerCurrent(12)
         #endif
         sleep(self.config.tiltDelayAfter)
         self.logger.debug("exposure started")
@@ -93,30 +91,10 @@ class ExposureThread(threading.Thread):
         self.logger.debug("exposure done")
         sleep(self.config.tiltDelayBefore)
         if self.config.tilt:
-            self.expo.hw.tiltLayerDownWait()
-
-            if self.expo.hwConfig.logTiltLoad:
-                self.logTiltLoad("down", self.expo.hw.getStallguardBuffer())
-            #endif
-
+            self.expo.hw.setTowerProfile('layer')
+            self.expo.hw.tiltLayerDownWait(whitePixels)
         #endif
         return whitePixels
-    #enddef
-
-
-    def logTiltLoad(self, when, tiltData):
-        if self.tiltLoadDir:
-            filename = os.path.join(self.tiltLoadDir, "%04d-%s" % (self.expo.actualLayer, when))
-            try:
-                with open(filename, "w") as f:
-                    f.write(";".join(str(x) for x in tiltData))
-                #endwith
-            except Exception:
-                self.logger.exception("logTiltLoad() exception")
-            #endtry
-        else:
-            self.logger.warning("dir for tilt load saving is not set!")
-        #endif
     #enddef
 
 
@@ -216,18 +194,6 @@ class ExposureThread(threading.Thread):
             totalLayers = config.totalLayers
             timeLoss = (config.expTimeFirst - config.expTime) / float(config.fadeLayers)
             self.logger.debug("timeLoss: %0.3f", timeLoss)
-
-            if self.expo.hwConfig.logTiltLoad:
-                tiltLoadDir = os.path.join(defines.tiltLoad, self.expo.config.projectName + datetime.now().strftime("-%y%m%d_%H%M%S"))
-                try:
-                    os.makedirs(tiltLoadDir)
-                    self.tiltLoadDir = tiltLoadDir
-                    self.logTiltLoad("start", self.expo.hw.getStallguardBuffer())
-                except Exception:
-                    self.logger.exception("Tilt load logging init exception")
-                    self.logger.warning("Tilt load logging is DISABLED!")
-                #endtry
-            #endif
 
             for i in xrange(totalLayers):
 

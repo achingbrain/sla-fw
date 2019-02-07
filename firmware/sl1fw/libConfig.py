@@ -267,12 +267,11 @@ class HwConfig(FileConfig):
 
         self.calibrated = self._parseBool("calibrated", False)
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(128)) # safe value
-        self.tiltHeight = self._parseInt("tiltheight", 1600) # 100 steps 16 microsteps each
+        self.tiltHeight = self._parseInt("tiltheight", 6400) # 100 steps 64 microsteps each
         self.tiltInitSteps = self._parseInt("tiltinitsteps", 50)
         self.tiltBreakSteps = self._parseInt("tiltbreaksteps", 500)
         self.tiltReturnSlowSteps = self._parseInt("tiltreturnslowsteps", 100)
         self.resinSensor = self._parseBool("resinsensor", False)
-        self.logTiltLoad = self._parseBool("logtiltload", False)
         self.warmUp = self._parseInt("warmup", 0)
         self.blinkExposure = self._parseBool("blinkexposure", False)
 
@@ -283,6 +282,11 @@ class HwConfig(FileConfig):
         self.pwrLedPwm = self._parseIntMinMax("pwrledpwm", 100, 0, 100)
         self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
         self.mute = self._parseBool("mute", False)
+
+        self.tuneTilt = list()
+        self.tuneTilt.append([int(n) for n in self._parseString("tiltdownlargefill", "5 240 500 3 4 45").split()])
+        self.tuneTilt.append([int(n) for n in self._parseString("tiltdownsmallfill", "5 1000 500 1 4 45").split()])
+        self.tuneTilt.append([int(n) for n in self._parseString("tiltup", "5 280 0 1 4 45").split()])
     #enddef
 
     def calcMicroSteps(self, mm):
