@@ -1,6 +1,6 @@
 # part of SL1 firmware
 # 2014-2018 Futur3d - www.futur3d.net
-# 2018 Prusa Research s.r.o. - www.prusa3d.com
+# 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
 import logging
@@ -132,6 +132,7 @@ class Page(object):
         pass
     #enddef
 
+
     # Dynamic USB path, first usb device or None
     def getSavePath(self):
         usbs = glob.glob(os.path.join(defines.mediaRootPath, '*'))
@@ -140,6 +141,9 @@ class Page(object):
             return usbs[0]
         else:
             return None
+        #endif
+    #enddef
+
 
     def _onOff(self, index, val):
         self.temp[val] = not self.temp[val]
@@ -249,8 +253,11 @@ class PageConfirm(Page):
 
 
 class PagePrintPreviewBase(Page):
+
     def __init__(self, display):
         super(PagePrintPreviewBase, self).__init__(display)
+    #enddef
+
 
     def fillData(self):
         config = self.display.config
@@ -261,7 +268,7 @@ class PagePrintPreviewBase(Page):
         else:
             calibrateRegions = None
             calibration = None
-        # endif
+        #endif
 
         return {
             'name': config.projectName,
@@ -272,7 +279,10 @@ class PagePrintPreviewBase(Page):
             'exposure_time_sec': config.expTime,
             'calibrate_time_sec': calibration
         }
-    # enddef
+    #enddef
+
+#endclass
+
 
 class PagePrintPreview(PagePrintPreviewBase):
 
@@ -282,10 +292,12 @@ class PagePrintPreview(PagePrintPreviewBase):
         super(PagePrintPreview, self).__init__(display)
     #enddef
 
+
     def show(self):
         self.items.update(self.fillData())
         super(PagePrintPreview, self).show()
     #enddef
+
 
     def contButtonRelease(self):
         return "printstart"
@@ -302,13 +314,17 @@ class PagePrintStart(PagePrintPreviewBase):
         super(PagePrintStart, self).__init__(display)
     #enddef
 
+
     def show(self):
         self.items.update(self.fillData())
         super(PagePrintStart, self).show()
     #enddef
 
+
     def changeButtonRelease(self):
         return "change"
+    #enddef
+
 
     def contButtonRelease(self):
         return "_EXIT_MENU_"
@@ -524,25 +540,30 @@ class PageSupport(Page):
         self.pageUI = "support"
         self.pageTitle = "Support"
         super(PageSupport, self).__init__(display)
-    # enddef
+    #enddef
+
 
     def manualButtonRelease(self):
         return "manual"
-    # enddef
+    #enddef
+
 
     def videosButtonRelease(self):
         return "videos"
-    # enddef
+    #enddef
+
 
     def sysinfoButtonRelease(self):
         return "sysinfo"
-    # enddef
+    #enddef
+
 
     def aboutButtonRelease(self):
         return "about"
-    # enddef
+    #enddef
 
-# endclass
+#endclass
+
 
 class PageFirmwareUpdate(Page):
 
@@ -551,7 +572,8 @@ class PageFirmwareUpdate(Page):
         self.pageTitle = "Firmware Update"
         super(PageFirmwareUpdate, self).__init__(display)
         self.callbackPeriod = 1
-    # enddef
+    #enddef
+
 
     def fillData(self):
         # Get list of available firmware files
@@ -566,19 +588,22 @@ class PageFirmwareUpdate(Page):
             progress = rauc.Progress
         except Exception as e:
             self.logger.error("Rauc status read failed: " + str(e))
+        #endtry
 
         return {
             'firmwares': fs_files,
             'operation': operation,
             'progress': progress
         }
-        # enddef
+    #enddef
+
 
     def show(self):
         self.oldValues = {}
         self.items.update(self.fillData())
         super(PageFirmwareUpdate, self).show()
-    # enddef
+    #enddef
+
 
     def menuCallback(self):
         self.logger.info("Menu callback")
@@ -586,11 +611,13 @@ class PageFirmwareUpdate(Page):
         self.showItems(**items)
     #enddef
 
+
     def flashButtonSubmit(self, data):
         try:
             fw_file = data['firmware']
         except:
             self.logger.error("Error reading data['firmware']: " + str(e))
+        #endtry
 
         self.logger.info("Flashing: " + fw_file)
         try:
@@ -598,9 +625,10 @@ class PageFirmwareUpdate(Page):
             rauc.Install(fw_file)
         except Exception as e:
             self.logger.error("Rauc install call failed: " + str(e))
+        #endtry
     #enddef
 
-# endclass
+#endclass
 
 
 class PageManual(Page):
@@ -609,11 +637,12 @@ class PageManual(Page):
         self.pageUI = "manual"
         self.pageTitle = "Manual"
         super(PageManual, self).__init__(display)
-    # enddef
+    #enddef
 
     # TODO: No actions currently on this page
 
-# endclass
+#endclass
+
 
 class PageVideos(Page):
 
@@ -621,11 +650,12 @@ class PageVideos(Page):
         self.pageUI = "videos"
         self.pageTitle = "Videos"
         super(PageVideos, self).__init__(display)
-    # enddef
+    #enddef
 
     # TODO: No actions currently on this page
 
-# endclass
+#endclass
+
 
 class PageNetwork(Page):
 
@@ -633,7 +663,8 @@ class PageNetwork(Page):
         self.pageUI = "network"
         self.pageTitle = "Network"
         super(PageNetwork, self).__init__(display)
-    # enddef
+    #enddef
+
 
     # TODO net state - mode, all ip with devices, all uri (log, debug, display, octoprint)
     def fillData(self):
@@ -656,14 +687,17 @@ class PageNetwork(Page):
         return items
     #enddef
 
+
     def show(self):
         self.items.update(self.fillData())
         super(PageNetwork, self).show()
     #enddef
 
+
     def netChange(self):
         self.showItems(**self.fillData())
     #enddef
+
 
     def clientconnectButtonSubmit(self, data):
         self.display.page_confirm.setParams(
@@ -673,6 +707,8 @@ class PageNetwork(Page):
             line2="set wifi to client mode?",
             line3 = "It may disconnect web client.")
         return "confirm"
+    #enddef
+
 
     def apsetButtonSubmit(self, data):
         self.display.page_confirm.setParams(
@@ -682,6 +718,8 @@ class PageNetwork(Page):
             line2="set wifi to ap mode?",
             line3 = "It may disconnect web client.")
         return "confirm"
+    #enddef
+
 
     def wifioffButtonSubmit(self, data):
         self.display.page_confirm.setParams(
@@ -690,6 +728,8 @@ class PageNetwork(Page):
             line2="turn off wifi?",
             line3="It may disconnect web client.")
         return "confirm"
+    #enddef
+
 
     def wifioff(self):
         try:
@@ -698,7 +738,10 @@ class PageNetwork(Page):
             wifisetup.DisableWifi()
         except:
             self.logger.error("Turning wifi off failed")
+        #endtry
         return "_BACK_"
+    #enddef
+
 
     def setclient(self, ssid, psk):
         pageWait = PageWait(self.display, line2="Setting interface params...")
@@ -712,6 +755,7 @@ class PageNetwork(Page):
             wifisetup.EnableClient()
         except:
             self.logger.error("Setting wifi client params failed: ssid:%s psk:%s", (ssid, psk))
+        #endtry
 
         # Connecting...
         pageWait.showItems(line2="Connecting...")
@@ -721,11 +765,16 @@ class PageNetwork(Page):
                 if dev == "wlan0":
                     # Connection "ok"
                     return "_BACK_"
+                #endif
+            #endfor
+        #endfor
 
         # Connection fail
         self.display.page_error.setParams(
             line2="Connection failed")
         return "error"
+    #enddef
+
 
     def setap(self, ssid, psk):
         pageWait = PageWait(self.display, line2="Setting interface params...")
@@ -739,6 +788,7 @@ class PageNetwork(Page):
             wifisetup.EnableAP()
         except:
             self.logger.error("Setting wifi AP params failed: ssid:%s psk:%s", (ssid, psk))
+        #endtry
 
         # Starting AP...
         pageWait.showItems(line2="Starting AP...")
@@ -748,12 +798,18 @@ class PageNetwork(Page):
                 if dev == "ap0":
                     # AP "ok"
                     return "_BACK_"
+                #endif
+            #endfor
+        #endfor
 
         # Connection fail
         self.display.page_error.setParams(
             line2="AP failed")
         return "error"
-# endclass
+    #enddef
+
+#endclass
+
 
 class PageQRCode(Page):
 
@@ -761,15 +817,15 @@ class PageQRCode(Page):
         self.pageUI = "qrcode"
         self.pageTitle = "QR Code"
         super(PageQRCode, self).__init__(display)
-    # enddef
+    #enddef
 
     # TODO: Display parametric qrcode passed from previous page
 
     def connectButtonRelease(self):
         return "_BACK_"
-    # enddef
+    #enddef
 
-# endclass
+#endclass
 
 
 class PagePrint(Page):
@@ -904,6 +960,7 @@ class PageChange(Page):
         self.expTimeCalibrate = None
     #enddef
 
+
     def show(self):
         self.expTime = self.display.config.expTime
         self.expTimeFirst = self.display.config.expTimeFirst
@@ -911,6 +968,7 @@ class PageChange(Page):
             self.expTimeCalibrate = self.display.config.calibrateTime
         else:
             self.expTimeCalibrate = None
+        #endif
 
         self.items["timeexpos"] = self.expTime
         self.items["timeexposfirst"] = self.expTimeFirst
@@ -919,6 +977,7 @@ class PageChange(Page):
         super(PageChange, self).show()
     #enddef
 
+
     def backButtonRelease(self):
         self.display.config.expTime = self.expTime
         self.display.config.expTimeFirst = self.expTimeFirst
@@ -926,6 +985,7 @@ class PageChange(Page):
             self.display.config.calibrateTime = self.expTimeCalibrate
         return super(PageChange, self).backButtonRelease()
     #endif
+
 
     def exposaddsecondButton(self):
         if self.expTime < 60:
@@ -936,6 +996,7 @@ class PageChange(Page):
         self.showItems(timeexpos = self.expTime)
     #enddef
 
+
     def expossubsecondButton(self):
         if self.expTime > 1:
             self.expTime = round(self.expTime - 0.5, 1)
@@ -944,6 +1005,7 @@ class PageChange(Page):
         #endif
         self.showItems(timeexpos = self.expTime)
     #enddef
+
 
     def exposfirstaddsecondButton(self):
         if self.expTimeFirst < 120:
@@ -954,14 +1016,16 @@ class PageChange(Page):
         self.showItems(timeexposfirst=self.expTimeFirst)
     #enddef
 
+
     def exposfirstsubsecondButton(self):
         if self.expTimeFirst > 10:
             self.expTimeFirst = round(self.expTimeFirst - 1, 1)
         else:
             self.display.hw.beepAlarm(1)
-        # endif
+        #endif
         self.showItems(timeexposfirst=self.expTimeFirst)
-    # enddef
+    #enddef
+
 
     def exposcalibrateaddsecondButton(self):
         if self.expTimeCalibrate < 5:
@@ -972,14 +1036,15 @@ class PageChange(Page):
         self.showItems(timeexposcalibrate=self.expTimeCalibrate)
     #enddef
 
+
     def exposcalibratesubsecondButton(self):
         if self.expTimeCalibrate > 0.5:
             self.expTimeCalibrate = round(self.expTimeCalibrate - 0.5, 1)
         else:
             self.display.hw.beepAlarm(1)
-        # endif
+        #endif
         self.showItems(timeexposcalibrate=self.expTimeCalibrate)
-    # enddef
+    #enddef
 
 #endclass
 
@@ -1141,19 +1206,24 @@ class PageAbout(Page):
 
 
 class SourceDir:
+
     def __init__(self, root, name):
         self.root = root
         self.name = name
+    #enddef
+
 
     def list(self, current_root):
         path = os.path.join(self.root, current_root)
 
         if not os.path.isdir(path):
             return
+        #endif
 
         for item in os.listdir(path):
             if item.startswith('.'):
                 continue
+            #endif
             full_path = os.path.join(path, item)
             if os.path.isdir(full_path):
                 yield {
@@ -1174,9 +1244,16 @@ class SourceDir:
                         'filename': item,
                         'time': os.path.getmtime(full_path)
                     }
+                #endif
+            #endif
+        #endfor
+    #enddef
+
+#endclass
 
 
 class PageSrcSelect(Page):
+
     def __init__(self, display):
         self.pageUI = "sourceselect"
         self.pageTitle = "Projects"
@@ -1185,8 +1262,11 @@ class PageSrcSelect(Page):
         self.stack = False
     #enddef
 
+
     def in_root(self):
         return self.currentRoot is "."
+    #enddef
+
 
     def source_list(self):
         content = []
@@ -1197,6 +1277,7 @@ class PageSrcSelect(Page):
         # Get content items
         for source_dir in sourceDirs:
             content += source_dir.list(self.currentRoot)
+        #endfor
 
         # Add <up> virtual directory
         if not self.in_root():
@@ -1205,13 +1286,17 @@ class PageSrcSelect(Page):
                 'name': '<up>',
                 'path': '..'
             })
+        #endif
 
         # Number items as choice#
         cnt = 0
         for i, item in enumerate(content):
             item['choice'] = "choice%d" % i
+        #endfor
 
         return content
+    #enddef
+
 
     def show(self):
         self.items["line1"] = "Please select project source"
@@ -1230,6 +1315,7 @@ class PageSrcSelect(Page):
         super(PageSrcSelect, self).show()
     #enddef
 
+
     def sourceButtonSubmit(self, data):
         self.logger.info(data)
 
@@ -1244,6 +1330,11 @@ class PageSrcSelect(Page):
                     return "sourceselect"
                 else:
                     return self.loadProject(item['fullpath'])
+                #enddef
+            #endif
+        #endfor
+    #enddef
+
 
     def netChange(self):
         ip = self.display.inet.getIp()
@@ -1253,6 +1344,7 @@ class PageSrcSelect(Page):
             self.showItems(line2, "Not connected to network")
         #endif
     #enddef
+
 
     def loadProject(self, project_path):
         pageWait = PageWait(self.display, line2="Reading project data...")
@@ -1287,6 +1379,7 @@ class PageSrcSelect(Page):
 
         return "printpreview"
     #endef
+
 
     def backButtonRelease(self):
         self.currentRoot = "."
@@ -1439,6 +1532,7 @@ class PageTiltTower(Page):
         return "confirm"
     #enddef
 
+
     def button5Continue(self):
         pageWait = PageWait(self.display,
             line1 = "Searching for homingFast profile",
@@ -1456,6 +1550,7 @@ class PageTiltTower(Page):
             resultMsg = "not found"
         else:
             resultMsg = "found"
+        #endif
         self.display.page_confirm.setParams(
                 continueFce = self.button5Continue2,
                 line1 = "Fast: %s" % profileFast,
@@ -1643,10 +1738,13 @@ class PageDisplay(Page):
                         self.display.hw.setTiltProfile('layerMove')
                         self.display.hw.setTowerProfile('homingSlow')
                         self.display.hw.towerToMin()
+                    #endif
                 elif towerStatus == 2:
                     tiltMayMove = True
                     self.display.hw.towerSync()
                     towerStatus = 0
+                #endif
+            #endif
             
             if not self.display.hw.isTiltMoving():
                 if self.display.hw.getTiltPositionMicroSteps() == 0:
@@ -1656,8 +1754,12 @@ class PageDisplay(Page):
                 else:
                     if tiltMayMove:
                         self.display.hw.tiltSyncWait()
+                    #endif
+                #endif
+            #endif
             sleep(0.25)
-    #endder
+        #endwhile
+    #enddef
 
 
     def button11ButtonRelease(self):
@@ -1836,6 +1938,7 @@ class PageAdmin(Page):
     def button12ButtonRelease(self):
         pass
     #enddef
+
 
     def performUpdate(self, updateCommand):
 
@@ -2501,6 +2604,7 @@ class PageCalibration(Page):
 
 #endclass
 
+
 class PageTiltCalib(MovePage):
 
     def __init__(self, display):
@@ -2605,6 +2709,7 @@ class PageTiltCalib(MovePage):
             line3 = "")
         return "confirm"
     #enddef
+
 
     def recalibrateStep3(self):
         self.display.page_confirm.setParams(

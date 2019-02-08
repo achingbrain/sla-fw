@@ -1,6 +1,6 @@
 # part of SL1 firmware
 # 2014-2018 Futur3d - www.futur3d.net
-# 2018 Prusa Research s.r.o. - www.prusa3d.com
+# 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import logging
 import serial
@@ -827,7 +827,9 @@ class Hardware(object):
         #endif
     #enddef
 
+
     # --- tilt ---
+
 
     def tiltHomeCalibrateWait(self):
         self.setTiltProfile('homingFast')
@@ -1122,6 +1124,7 @@ class Hardware(object):
 
     # --- generic ---
 
+
     def getCurrentMiliTime(self):
         return int(round(time() * 1000))
     #enddef
@@ -1361,6 +1364,5 @@ class Hardware(object):
         #endif
         return -1 #try next sgt. SGT too sensitive
     #enddef
-
 
 #endclass
