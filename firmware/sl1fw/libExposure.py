@@ -33,13 +33,12 @@ class ExposureThread(threading.Thread):
         if self.config.tilt:
             self.expo.hw.towerMoveAbsoluteWait(position)
             self.expo.hw.tiltLayerUpWait()
-            self.expo.hw.setTowerCurrent(12)
         else:
             self.expo.hw.setTowerProfile('layer')
             self.towerMoveAbsoluteWait(position + self.config.fakeTiltUp)
             self.towerMoveAbsoluteWait(position)
-            self.expo.hw.setTowerCurrent(12)
         #endif
+        self.expo.hw.setTowerCurrent(defines.towerHoldCurrent)
         sleep(self.config.tiltDelayAfter)
         self.logger.debug("exposure started")
         whitePixels = self.expo.screen.blitImg()
@@ -110,8 +109,8 @@ class ExposureThread(threading.Thread):
         else:
             pageWait = libPages.PageWait(self.expo.display, line2 = "Going to top")
             pageWait.show()
-            self.expo.hw.towerSync(retries = None)
-            while not self.expo.hw.isTowerSynced():
+            self.expo.hw.towerToTop()
+            while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
                 pageWait.showItems(line3 = self.expo.hw.getTowerPosition())
             #endwhile
@@ -128,12 +127,8 @@ class ExposureThread(threading.Thread):
                 #endif
             #endfor
 
-            pageWait.showItems(line2 = "Tank reset", line3 = "")
-            self.expo.hw.tiltLayerUpWait()
-            self.expo.hw.tiltLayerDownWait()
-            self.expo.hw.tiltLayerUpWait()
-            self.expo.hw.tiltLayerDownWait()
-
+            pageWait.showItems(line2 = "Resin stirring", line3 = "")
+            self.expo.hw.stirResin()
             pageWait.showItems(line2 = "Going back")
             self.expo.hw.towerMoveAbsolute(actualPosition)
             while not self.expo.hw.isTowerOnPosition():
@@ -217,6 +212,7 @@ class ExposureThread(threading.Thread):
 
                 if command == "feedme":
                     self.expo.hw.powerLed("warn")
+                    self.expo.hw.tiltLayerUpWait()
                     command = None
                     breakFree = set(("exit", "continue"))
                     while not command:
@@ -241,13 +237,10 @@ class ExposureThread(threading.Thread):
                         break
                     #endif
 
-                    pageWait = libPages.PageWait(self.expo.display, line2 = "Tank reset")
+                    pageWait = libPages.PageWait(self.expo.display, line2 = "Resin stirring")
                     pageWait.show()
-                    self.expo.hw.tiltLayerUpWait()
-                    self.expo.hw.tiltLayerDownWait()
-                    self.expo.hw.tiltLayerUpWait()
-                    self.expo.hw.tiltLayerDownWait()
-
+                    self.expo.hw.tiltDownWait()
+                    self.expo.hw.stirResin()
                     self.expo.hw.powerLed("normal")
                     self.expo.display.actualPage.show()
                 #endif
@@ -328,8 +321,8 @@ class ExposureThread(threading.Thread):
                     percent = "100%",
                     progress = 100)
 
-            self.expo.hw.towerSync()
-            while not self.expo.hw.isTowerSynced():
+            self.expo.hw.towerToTop()
+            while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
             #endwhile
 

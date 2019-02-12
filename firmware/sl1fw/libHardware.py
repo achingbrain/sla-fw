@@ -715,7 +715,7 @@ class Hardware(object):
     #enddef
 
 
-    def towerZero(self):
+    def towerToZero(self):
         self.towerMoveAbsolute(0)
     #enddef
 
@@ -725,13 +725,18 @@ class Hardware(object):
     #enddef
 
 
-    def setTowerOnMax(self):
-        self.setTowerPosition(self.towerEnd)
+    def towerToTop(self):
+        self.towerMoveAbsolute(self.hwConfig.towerHeight)
     #enddef
 
 
-    def towerTop(self):
-        self.towerMoveAbsolute(self.hwConfig.towerHeight)
+    def isTowerOnTop(self):
+        return self.isTowerOnPosition()
+    #enddef
+
+
+    def setTowerOnMax(self):
+        self.setTowerPosition(self.towerEnd)
     #enddef
 
 
@@ -1027,7 +1032,7 @@ class Hardware(object):
             sleep(0.1)
         #endwhile
         self.tiltLayerCheckPosition()
-        self.setTiltCurrent(20)
+        self.setTiltCurrent(defines.tiltHoldCurrent)
     #enddef
 
 
@@ -1044,7 +1049,7 @@ class Hardware(object):
             sleep(0.1)
         #endwhile
         self.tiltLayerCheckPosition()
-        self.setTiltCurrent(20)
+        self.setTiltCurrent(defines.tiltHoldCurrent)
     #enddef
 
 
@@ -1119,6 +1124,15 @@ class Hardware(object):
             self._commMC("!ticu", current)
         else:
             self.logger.error("Invalid tilt current %d", current)
+    #enddef
+
+
+    def stirResin(self):
+        self.setTiltProfile('moveFast')
+        for i in xrange(3):
+            self.tiltUpWait()
+            self.tiltDownWait()
+        #endfor
     #enddef
 
 

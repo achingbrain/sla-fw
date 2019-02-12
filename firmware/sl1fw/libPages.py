@@ -854,6 +854,13 @@ class PageHomePrint(Page):
     #enddef
 
 
+    def feedmeButtonRelease(self):
+        self.display.page_feedme.setItems(line1 = "Wait for layer finish please.")
+        self.expo.doFeedMe()
+        return "feedme"
+    #enddef
+
+
     def updownButtonRelease(self):
         self.display.page_confirm.setParams(
                 continueFce = self.doUpAndDown,
@@ -1594,7 +1601,7 @@ class PageTiltTower(Page):
             return retc
         #endif
         pageWait.showItems(line2 = "Moving platform to zero")
-        self.display.hw.towerZero()
+        self.display.hw.towerToZero()
         while not self.display.hw.isTowerOnZero():
             sleep(0.25)
             pageWait.showItems(line3 = self.display.hw.getTowerPosition())
@@ -2008,7 +2015,7 @@ class PageAdmin(Page):
     def button13Continue(self):
         # TODO vyzadovat zavreny kryt po celou dobu!
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = "Measuring")
+        pageWait = PageWait(self.display, line2 = "Measuring", line3 = "Do NOT TOUCH the printer")
         pageWait.show()
         volume = self.display.hw.getResinVolume()
         self.display.hw.powerLed("normal")
@@ -3523,7 +3530,6 @@ class PageFeedMe(Page):
         super(PageFeedMe, self).__init__(display)
         self.expo = expo
         self.items.update({
-            'line1' : "The resin came off.",
             'line2' : "Fill the tank and press back.",
             })
     #enddef

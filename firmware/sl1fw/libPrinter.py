@@ -204,6 +204,7 @@ class Printer(object):
         if self.expo.resinVolume:
             remain = self.expo.resinVolume - int(self.expo.resinCount)
             if remain < defines.resinFeedWait:
+                self.display.page_feedme.setItems(line1 = "The resin came off.")
                 self.expo.doFeedMe()
                 return "feedme"
             #endif
@@ -332,7 +333,7 @@ class Printer(object):
 
                 if self.display.hwConfig.resinSensor:
                     # TODO vyzadovat zavreny kryt po celou dobu!
-                    pageWait.showItems(line2 = "Measuring resin volume")
+                    pageWait.showItems(line2 = "Measuring resin volume", line3 = "Do NOT TOUCH the printer")
                     volume = self.hw.getResinVolume()
                     fail = True
 
