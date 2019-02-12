@@ -615,7 +615,7 @@ class PageFirmwareUpdate(Page):
     def flashButtonSubmit(self, data):
         try:
             fw_file = data['firmware']
-        except:
+        except Exception as e:
             self.logger.error("Error reading data['firmware']: " + str(e))
         #endtry
 
