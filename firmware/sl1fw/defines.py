@@ -5,7 +5,7 @@
 import os
 import glob
 
-swVersion = "Gen3-190-207"
+swVersion = "Gen3-190-212"
 reqMcVersion = "SLA-control 0.9.8-319"
 
 home = "/home/root"
@@ -52,3 +52,6 @@ resinMaxVolume = 200
 resinLowWarn = 40
 resinFeedWait = 30
 resinFilled = 350
+
+towerHoldCurrent = 12
+tiltHoldCurrent = 20
