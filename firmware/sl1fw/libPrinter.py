@@ -146,7 +146,8 @@ class Printer(object):
                 raise Exception("Not enough free space in the ramdisk!")
             #endif
             newZipName = os.path.join(defines.ramdiskPath, filename)
-            shutil.copyfile(self.config.zipName, newZipName)
+            if os.path.normpath(newZipName) != os.path.normpath(self.config.zipName):
+                shutil.copyfile(self.config.zipName, newZipName)
             self.config.zipName = newZipName
         except Exception:
             self.logger.exception("copyfile exception:")
