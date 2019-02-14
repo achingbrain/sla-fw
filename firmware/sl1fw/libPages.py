@@ -1914,7 +1914,7 @@ class PageAdmin(Page):
             line3 = "Power the printer off to continue ;-)" if bootloader else 'Type "!shdn 0" to power off ;-)')
         pageWait.show()
         if bootloader:
-            self.display.hw.resetMc()
+            self.display.hw.mcc.reset()
         #endif
         pid = subprocess.Popen([
             defines.Mc2NetCommand,
