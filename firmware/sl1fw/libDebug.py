@@ -91,7 +91,6 @@ class Debug(object):
 
 
     def log(self, message):
-        self.logger.info(message)
         self.logLines.append(message)
         try:
             self.commands.put_nowait( { 'log' : "\n".join(self.logLines) } )

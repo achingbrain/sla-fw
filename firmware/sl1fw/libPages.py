@@ -1861,9 +1861,7 @@ class PageAdmin(Page):
 
 
     def button6Continue(self):
-        pageWait = PageWait(self.display, line2 = "Overwriting the motion controller")
-        pageWait.show()
-        self.display.hw.flashMC()
+        self.display.hw.flashMC(self.display.page_systemwait, self.display.actualPage)
         return "_BACK_"
     #enddef
 

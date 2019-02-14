@@ -12,16 +12,276 @@ from libDebug import Debug
 
 import defines
 
+
+class MotConCom(object):
+
+    portLock = Lock()
+    debug = Debug()
+    port = serial.Serial(port = defines.motionControlDevice,
+            baudrate = 115200,
+            bytesize = 8,
+            parity = 'N',
+            stopbits = 1,
+            timeout = 1.0,
+            writeTimeout = 1.0,
+            xonxoff = False,
+            rtscts = False,
+            dsrdtr = False,
+            interCharTimeout = None)
+    MCversion = ""
+    MCserial = ""
+
+    commOKStr = re.compile('^(.*)ok$')
+    commErrStr = re.compile('^e(.)$')
+    commErrors = {
+            '1' : "unspecified failure",
+            '2' : "busy",
+            '3' : "syntax error",
+            '4' : "parameter out of range",
+            '5' : "operation not permitted",
+            }
+
+    selfCheckErrors = {
+            1 : "Application flash checksum",
+            2 : "Bootloader flash checksum",
+            3 : "Serial number check",
+            4 : "Fuse bit settings",
+            5 : "Boot-section lock",
+            6 : "GPIO SPI",
+            7 : "TMC SPI",
+            8 : "TMC wiring/signals",
+            9 : "UV-led",
+            }
+
+    resetFlags = {
+            0 : "power-on",
+            1 : "external",
+            2 : "brown-out",
+            3 : "watchdog",
+            4 : "jtag",
+            7 : "stack overflow",
+            }
+
+
+    def __init__(self, instance_name):
+        super(MotConCom, self).__init__()
+        self.logger = logging.getLogger(instance_name)
+    #enddef
+
+
+    def connect(self, MCversionCheck):
+        stateBits = self.doGetBoolList(bitCount = 16, args = ("?",))
+        if not stateBits or len(stateBits) != 16:
+            self.logger.error("State bits count not match! (%s)", str(stateBits))
+            return "Communication failed"
+        #endif
+
+        if stateBits[15]:
+            errorCode = self.doGetInt("?err")
+            error = "%s has failed!" % self.selfCheckErrors.get(errorCode, "Something unknown")
+            return error
+        #endif
+
+        if stateBits[13]:
+            resetBits = self.doGetBoolList(bitCount = 8, args = ("?rst",))
+            bit = 0
+            for val in resetBits:
+                if val:
+                    self.logger.info("motion controller reset flag: %s", self.resetFlags.get(bit, "unknown"))
+                #endif
+                bit += 1
+            #endfor
+        #endif
+
+        self.MCversion = self.do("?ver")
+        if MCversionCheck and self.MCversion != defines.reqMcVersion:
+            return "Wrong motion controller firmware version"
+        else:
+            self.logger.info("motion controller firmware version: %s", self.MCversion)
+        #endif
+
+        self.MCserial = self.doGetHexedString("?ser")
+        if self.MCserial:
+            self.logger.info("motion controller serial number: %s", self.MCserial)
+        #endif
+
+        return None
+    #enddef
+
+
+    def doGetInt(self, *args):
+        try:
+            return int(self.do(*args))
+        except Exception:
+            self.logger.exception("exception:")
+            return None
+        #endtry
+    #enddef
+
+
+    def doGetIntList(self, base = 10, multiply = 1, args = ()):
+        try:
+            return map(lambda x: int(x, base) * multiply, self.do(*args).split(" "))
+        except Exception:
+            self.logger.exception("exception:")
+            return None
+        #endtry
+    #enddef
+
+
+    def doGetBool(self, *args):
+        try:
+            return self.do(*args) == "1"
+        except Exception:
+            self.logger.exception("exception:")
+            return None
+        #endtry
+    #enddef
+
+
+    def doGetBoolList(self, bitCount, args = ()):
+        bits = list()
+        try:
+            num = int(self.do(*args))
+            for i in xrange(bitCount):
+                bits.append(True if num & (1 << i) else False)
+            #endfor
+            return bits
+        except Exception:
+            self.logger.exception("exception:")
+            return None
+        #endtry
+    #enddef
+
+
+    def doGetHexedString(self, *args):
+        try:
+            return self.do(*args).decode("hex")
+        except Exception:
+            self.logger.exception("exception:")
+            return None
+        #endtry
+    #enddef
+
+
+    def doSetBoolList(self, command, bits):
+        bit = 0
+        out = 0
+        for val in bits:
+            out |= 1 << bit if val else 0
+            bit += 1
+        #endfor
+        self.do(command, out)
+    #enddef
+
+
+    def do(self, *args):
+        self.portLock.acquire()
+        while self.port.inWaiting():
+            try:
+                msg = "| %s" % self.port.readline().strip().decode("ascii").encode()
+                self.logger.debug(msg)
+                self.debug.log(msg)
+            except Exception:
+                self.logger.exception("exception:")
+            #endtry
+        #endwhile
+
+        params = " ".join(str(x) for x in args)
+        msg = "> %s" % params
+        self.logger.debug(msg)
+        self.debug.log(msg)
+
+        try:
+            self.port.write('%s\n' % params)
+
+            while True:
+                line = self.port.readline().strip().decode("ascii").encode()
+                msg = "< %s" % line
+                self.logger.debug(msg)
+                self.debug.log(msg)
+
+                if line == '':
+                    return None
+                #endif
+
+                match = self.commOKStr.match(line)
+
+                if match is not None:
+                    return match.group(1).strip() if match.group(1) else True
+                #endif
+
+                match = self.commErrStr.match(line)
+                if match is not None:
+                    err = self.commErrors.get(match.group(1), "unknown error")
+                    self.logger.error("error: '%s'", err)
+                    return None
+                else:
+                    msg = "| %s" % line
+                    self.logger.debug(msg)
+                    self.debug.log(msg)
+                #endif
+            #endwhile
+
+        except Exception:
+            self.logger.exception("exception:")
+            return None
+        finally:
+            self.portLock.release()
+        #endtry
+    #enddef
+
+
+    def flash(self, MCBoardVersion):
+        import subprocess
+
+        self.portLock.acquire()
+        self.reset()
+
+        process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, str(MCBoardVersion), defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        while True:
+            line = process.stdout.readline()
+            retc = process.poll()
+            if line == '' and retc is not None:
+                break
+            #endif
+            if line:
+                line = line.strip()
+                if line == "":
+                    continue
+                #endif
+                self.logger.info("flashMC output: '%s'", line)
+            #endif
+        #endwhile
+
+        if retc:
+            self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
+        #endif
+
+        sleep(2)
+        self.portLock.release()
+
+        return False if retc else True
+    #enddef
+
+
+    def reset(self):
+        import gpio
+        gpio.setup(131, gpio.OUT)
+        gpio.set(131, 1)
+        sleep(1/1000000)
+        gpio.set(131, 0)
+    #enddef
+
+#endclass
+
+
 class Hardware(object):
 
     def __init__(self, hwConfig, config):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.config = config
-        self.MCversion = ""
-        self.MCserial = ""
-        self.portLock = Lock()
-        self.debug = Debug()
 
         self._tiltSynced = False
         self._towerSynced = False
@@ -32,7 +292,6 @@ class Hardware(object):
         self._tiltToPosition = 0
         self._towerToPosition = 0
 
-        self._fansMask = 0b011 # last fan is broken
         self._fanFailed = False
         self._coolDownCounter = 0
         self._ledTempIdx = 0
@@ -47,8 +306,8 @@ class Hardware(object):
                 'moveSlow'      : 3,
                 'layerMove'     : 4,
                 'layerRelease'  : 5,
-                '<reserverd1>'  : 6,
-                '<reserverd2>'  : 7,
+                '<reserved1>'   : 6,
+                '<reserved2>'   : 7,
                 }
         self._towerProfiles = {
                 'homingFast'    : 0,
@@ -79,187 +338,79 @@ class Hardware(object):
         self._towerResinMin = self.hwConfig.calcMicroSteps(3.75) # cca 50 ml
         self._towerResinMax = self.hwConfig.calcMicroSteps(16)  # cca 200 ml
 
-        self.port = serial.Serial(port = defines.motionControlDevice,
-                baudrate = 115200,
-                bytesize = 8,
-                parity = 'N',
-                stopbits = 1,
-                timeout = 1.0,
-                writeTimeout = 1.0,
-                xonxoff = False,
-                rtscts = False,
-                dsrdtr = False,
-                interCharTimeout = None)
+        self.mcc = MotConCom("MC_Main")
+    #enddef
 
-        self.commOKStr = re.compile('^(.*)ok$')
-        self.commErrStr = re.compile('^e(.)$')
-        self.commErrors = {
-                '1' : "unspecified failure",
-                '2' : "busy",
-                '3' : "syntax error",
-                '4' : "parameter out of range",
-                '5' : "operation not permitted",
-                }
 
-        self._firmwareCheck()
+    def connectMC(self, errorPage, returnPage):
+
+        errorMessage = self.mcc.connect(self.hwConfig.MCversionCheck)
+        if errorMessage:
+            self.logger.warning("motion controller error: %s", errorMessage)
+
+            errorPage.fill(
+                    line1 = "Updating motion controller firmware.",
+                    line2 = "Please wait...")
+            errorPage.show()
+
+            if not self.mcc.flash(self.hwConfig.MCBoardVersion):
+                self.ahojBabi(errorPage, "Motion controller update has failed!")
+            #endif
+
+            errorMessage = self.mcc.connect(self.hwConfig.MCversionCheck)
+            if errorMessage:
+                self.logger.error("motion controller error: %s", errorMessage)
+                self.ahojBabi(errorPage, errorMessage)
+            #endif
+
+            returnPage.show()
+        #endif
 
         self.motorsRelease()
         self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm))
         self.setFans((True, True, True))
+        self.setFanCheckMask((True, True, False))   # last fan is broken, don't check it
         self.setUvLedCurrent(self.hwConfig.uvCurrent)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
         self.resinSensor(False)
     #enddef
 
 
-    def _intOrNone(self, string):
-        try:
-            return int(string)
-        except Exception:
-            return None
-        #endtry
-    #enddef
-
-
-    def _commMC(self, *args):
-
-        self.portLock.acquire()
-
-        while self.port.inWaiting():
-            try:
-                self.debug.log("| %s" % self.port.readline().strip().decode("ascii").encode())
-            except Exception:
-                self.logger.exception("exception:")
-            #endtry
-        #endwhile
-
-        params = " ".join(str(x) for x in args)
-        self.debug.log("> %s" % params)
-
-        try:
-            self.port.write('%s\n' % params)
-
-            while True:
-                line = self.port.readline().strip().decode("ascii").encode()
-                self.debug.log("< %s" % line)
-
-                if line == '':
-                    return None
-                #endif
-
-                match = self.commOKStr.match(line)
-
-                if match is not None:
-                    return match.group(1).strip() if match.group(1) else True
-                #endif
-
-                match = self.commErrStr.match(line)
-                if match is not None:
-                    err = self.commErrors.get(match.group(1), "unknown error")
-                    self.logger.error("error: '%s'", err)
-                    return None
-                else:
-                    self.debug.log("| %s" % line)
-                #endif
-            #endwhile
-
-        except Exception:
-            self.logger.exception("exception:")
-            return None
-        finally:
-            self.portLock.release()
-        #endtry
-    #enddef
-
-
-    def _firmwareCheck(self):
-        self.MCversion = self._commMC("?ver")
-        if self.hwConfig.MCversionCheck and (self.MCversion is None or self.MCversion != defines.reqMcVersion):
-            self.logger.warning("Wrong MC firmware version, flash forced.")
-
-            if not self._flashMC():
-                self.logger.critical("Forced flash failed!")
-                raise Exception("MC flash failed!")
-            #endif
-
-            self.MCversion = self._commMC("?ver")
-            if self.MCversion is None or self.MCversion != defines.reqMcVersion:
-                self.logger.critical("Wrong MC firmware!")
-                raise Exception("Wrong MC firmware!")
-            #endif
-
-        else:
-            self.logger.info("MC fw version: %s", self.MCversion)
-        #endif
-
-        self.MCserial = self._commMC("?ser")
-        if self.MCserial:
-            self.logger.info("MC serial number: %s", self.MCserial)
-        #endif
-    #enddef
-
-
-    def flashMC(self):
-        self._flashMC()
-        self._firmwareCheck()
-    #enddef
-
-
-    def _flashMC(self):
-        import subprocess
-
-        self.portLock.acquire()
-        self.resetMc()
-
-        process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, str(self.hwConfig.MCBoardVersion), defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+    def ahojBabi(self, errorPage, message):
+        errorPage.show()
+        errorPage.showItems(line1 = "Fatal error", line2 = message)
         while True:
-            line = process.stdout.readline()
-            retc = process.poll()
-            if line == '' and retc is not None:
-                break
-            #endif
-            if line:
-                line = line.strip()
-                if line == "":
-                    continue
-                #endif
-                self.logger.info("flashMC output: '%s'", line)
-            #endif
+            errorPage.showItems(line3 = "Please call service.")
+            sleep(1)
+            errorPage.showItems(line3 = "")
+            sleep(1)
         #endwhile
+    #enddef
 
-        if retc:
-            self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
-        #endif
 
-        sleep(2)
-        self.portLock.release()
-
-        return False if retc else True
+    def flashMC(self, errorPage, returnPage):
+        errorPage.fill(
+                line1 = "Forced update of motion controller firmware.",
+                line2 = "Please wait...")
+        errorPage.show()
+        self.mcc.flash(self.hwConfig.MCBoardVersion)
+        self.connectMC(errorPage, returnPage)
     #enddef
 
 
     def getControllerVersion(self):
-        return self.MCversion
+        return self.mcc.MCversion
     #enddef
 
 
     def getControllerSerial(self):
-        return self.MCserial
-    #enddef
-
-
-    def resetMc(self):
-        import gpio
-        gpio.setup(131, gpio.OUT)
-        gpio.set(131, 1)
-        sleep(1/1000000)
-        gpio.set(131, 0)
+        return self.mcc.MCserial
     #enddef
 
 
     def eraseEeprom(self):
-        self._commMC("!eecl")
-        self._commMC("!rst")    # FIXME MC issue
+        self.mcc.do("!eecl")
+        self.mcc.do("!rst")    # FIXME MC issue
     #enddef
 
 
@@ -289,7 +440,7 @@ class Hardware(object):
         profiles = []
         for profId in xrange(8):
             try:
-                profData = self._commMC(getProfileDataCmd, profId).split(" ")
+                profData = self.mcc.do(getProfileDataCmd, profId).split(" ")
                 profiles.append(map(lambda x: int(x), profData))
             except Exception:
                 self.logger.exception("parse profile:")
@@ -312,8 +463,8 @@ class Hardware(object):
 
     def setProfiles(self, profiles, setProfileCmd, setProfileDataCmd):
         for profId in xrange(8):
-            self._commMC(setProfileCmd, profId)
-            self._commMC(setProfileDataCmd, *profiles[profId])
+            self.mcc.do(setProfileCmd, profId)
+            self.mcc.do(setProfileDataCmd, *profiles[profId])
         #endfor
     #enddef
 
@@ -329,25 +480,23 @@ class Hardware(object):
 
 
     def setTempProfile(self, profileData, setProfileCmd, setProfileDataCmd):
-        self._commMC(setProfileCmd, -1)
-        self._commMC(setProfileDataCmd, *profileData)
+        self.mcc.do(setProfileCmd, -1)
+        self.mcc.do(setProfileDataCmd, *profileData)
     #enddef
 
 
     def getStallguardBuffer(self):
         samplesList = list()
-        samplesCount = self._intOrNone(self._commMC("?sgbc"))
-        while samplesCount:
-            samples = self._commMC("?sgbd")
-            try:
-                for val in map(lambda x: int(x, 16), samples.split(" ")):
-                    samplesList.append(val)
-                    samplesCount -= 1
-                #endfor
-            except Exception:
-                self.logger.exception("exception:")
+        samplesCount = self.mcc.doGetInt("?sgbc")
+        while samplesCount > 0:
+            samples = self.mcc.doGetIntList(base = 16, args = ("?sgbd",))
+            if samples:
+                samplesCount -= len(samples)
+                samplesList.extend(samples)
+            else:
+                self.logger.warning("Values count not match! (%s)", str(samples))
                 break
-            #endtry
+            #endif
         #endwhile
         return samplesList
     #enddef
@@ -355,7 +504,8 @@ class Hardware(object):
 
     def beep(self, frequency, lenght):
         if not self.hwConfig.mute:
-            self._commMC("!beep", frequency, int(lenght * 1000))
+            self.mcc.do("!beep", frequency, int(lenght * 1000))
+        #endif
     #enddef
 
 
@@ -388,22 +538,22 @@ class Hardware(object):
 
 
     def powerLedMode(self, value):
-        self._commMC("!pled", value)
+        self.mcc.do("!pled", value)
     #enddef
 
 
     def getPowerLedMode(self):
-        return self._intOrNone(self._commMC("?pled"))
+        return self.mcc.doGetInt("?pled")
     #enddef
 
 
     def setPowerLedPwm(self, pwm):
-        self._commMC("!ppwm", pwm / 5)
+        self.mcc.do("!ppwm", pwm / 5)
     #enddef
 
 
     def getPowerLedPwm(self):
-        pwm = self._commMC("?ppwm")
+        pwm = self.mcc.do("?ppwm")
         try:
             return int(pwm) * 5
         except Exception:
@@ -413,49 +563,43 @@ class Hardware(object):
 
 
     def setPowerLedSpeed(self, speed):
-        self._commMC("!pspd", speed)
+        self.mcc.do("!pspd", speed)
     #enddef
 
 
     def getPowerLedSpeed(self):
-        return self._intOrNone(self._commMC("?pspd"))
+        return self.mcc.doGetInt("?pspd")
     #enddef
 
 
     def shutdown(self):
-        self._commMC("!shdn", 5)
+        self.mcc.do("!shdn", 5)
     #enddef
 
 
     def uvLed(self, state, time = 0):
-        self._commMC("!uled", 1 if state else 0, int(time))
+        self.mcc.do("!uled", 1 if state else 0, int(time))
     #enddef
 
 
     def getUvLedState(self):
-        state = False
-        time = 0
-        raw = self._commMC("?uled")
-        try:
-            values = raw.split(" ")
-            state = values[0] == "1"
-            if len(values) > 1:
-                time = self._intOrNone(values[1])
-            #endif
-        except Exception:
-            self.logger.exception("exception:")
-        #endtry
-        return (state, time)
+        uvData = self.mcc.doGetIntList(args = ("?uled",))
+        if uvData and 0 < len(uvData) < 3:
+            return uvData if len(uvData) == 2 else list((uvData[0], 0))
+        else:
+            self.logger.warning("UV data count not match! (%s)", str(uvData))
+            return list((0, 0))
+        #endif
     #enddef
 
 
     def setUvLedCurrent(self, current):
-        self._commMC("!upwm", int(round(current / 3.2)))
+        self.mcc.do("!upwm", int(round(current / 3.2)))
     #enddef
 
 
     def getUvLedCurrent(self):
-        raw = self._commMC("?upwm")
+        raw = self.mcc.do("?upwm")
         try:
             return int(raw) * 3.2
         except Exception:
@@ -465,129 +609,120 @@ class Hardware(object):
 
 
     def getUvLedVoltages(self):
-        retval = list((0, 0, 0))
-        volts = self._commMC("?volt")
-        try:
-            i = 0
-            for val in map(lambda x: int(x), volts.split(" ")):
-                retval[i] = val / 1000.0
-                i += 1
-            #endfor
-        except Exception:
-            pass
-        #endtry
-        return retval
+        volts = self.mcc.doGetIntList(multiply = 0.001, args = ("?volt",))
+        if volts and len(volts) == 3:
+            return volts
+        else:
+            self.logger.warning("Volts count not match! (%s)", str(volts))
+            return list((0, 0, 0))
+        #endif
     #enddef
 
 
     def cameraLed(self, state):
-        self._commMC("!cled", 1 if state else 0)
+        self.mcc.do("!cled", 1 if state else 0)
     #enddef
 
 
     def getCameraLedState(self):
-        return self._commMC("?cled") == "1"
+        return self.mcc.doGetBool("?cled")
     #enddef
 
 
     def resinSensor(self, state):
-        self._commMC("!rsen", 1 if state else 0)
+        self.mcc.do("!rsen", 1 if state else 0)
     #enddef
 
 
     def getResinSensor(self):
-        return self._commMC("?rsen") == "1"
+        return self.mcc.doGetBool("?rsen")
     #enddef
 
 
     def getCoverState(self):
-        return self._commMC("?covs") == "1"
+        return self.mcc.doGetBool("?covs")
     #enddef
 
 
     def setFans(self, fans):
-        fan = 0
-        out = 0
-        for state in fans:
-            if state:
-                out |= 1 << fan
-            #endif
-            fan += 1
-        #endfor
-        self._commMC("!fans", out)
+        self.mcc.doSetBoolList("!fans", fans)
     #enddef
 
 
     def getFans(self):
-        retVal = list((False, False, False))
-        state = self._commMC("?fans")
-        try:
-            binState = int(state)
-            for i in xrange(3):
-                retVal[i] = True if binState & (1 << i) else False
-            #endfor
-        except Exception:
-            pass
-        #endtry
-        return retVal
+        fans = self.mcc.doGetBoolList(bitCount = 3, args = ("?fans",))
+        if fans and len(fans) == 3:
+            return fans
+        else:
+            self.logger.warning("Fans bits count not match! (%s)", str(fans))
+            return list((False, False, False))
+        #endif
     #enddef
 
 
+    def setFanCheckMask(self, mask):
+        self.mcc.doSetBoolList("!fmsk", mask)
+    #enddef
+
+
+    def getFanCheckMask(self):
+        fans = self.mcc.doGetBoolList(bitCount = 3, args = ("?fmsk",))
+        if fans and len(fans) == 3:
+            return fans
+        else:
+            self.logger.warning("Fans check bits count not match! (%s)", str(fans))
+            return list((False, False, False))
+        #endif
+    #enddef
+
+
+    # TODO remove
     def getFansError(self):
-        return self._intOrNone(self._commMC("?fane")) & self._fansMask
+        fans = self.mcc.doGetBoolList(bitCount = 3, args = ("?fane",))
+        if fans and len(fans) == 3:
+            return fans[0] or fans[1] or fans[2]
+        else:
+            self.logger.warning("Fans error bits count not match! (%s)", str(fans))
+            return True
+        #endif
     #enddef
 
 
     def setFansPwm(self, pwms):
-        self._commMC("!fpwm", " ".join(map(lambda x: str(x / 5), pwms)), 0) # FIXME remove 0 after done in MC
+        self.mcc.do("!fpwm", " ".join(map(lambda x: str(x / 5), pwms)), 0) # FIXME remove 0 after done in MC
     #enddef
 
 
     def getFansPwm(self):
-        retval = list((0, 0, 0))
-        pwms = self._commMC("?fpwm")
-        try:
-            i = 0
-            for val in map(lambda x: int(x), pwms.split(" ")):
-                retval[i] = val * 5
-                i += 1
-            #endfor
-        except Exception:
-            pass
-        #endtry
-        return retval
+        pwms = self.mcc.doGetIntList(multiply = 5, args = ("?fpwm",))
+        if pwms and len(pwms) == 4:  # FIXME 3 after done in MC
+            return pwms[0:3]
+        else:
+            self.logger.warning("PWMs count not match! (%s)", str(pwms))
+            return list((0, 0, 0))
+        #endif
     #enddef
 
 
     def getFansRpm(self):
-        retval = list((0, 0, 0))
-        rpms = self._commMC("?frpm")
-        try:
-            i = 0
-            for val in map(lambda x: int(x), rpms.split(" ")):
-                retval[i] = val * 10
-                i += 1
-            #endfor
-        except Exception:
-            pass
-        #endtry
-        return retval
+        rpms = self.mcc.doGetIntList(multiply = 10, args = ("?frpm",))
+        if rpms and len(rpms) == 4: # FIXME 3 after done in MC
+            return rpms[0:3]
+        else:
+            self.logger.warning("RPMs count not match! (%s)", str(rpms))
+            return list((0, 0, 0))
+        #endif
     #enddef
 
 
     def getTemperatures(self):
-        retval = list((-273.15, -273.15, -273.15, -273.15))
-        temps = self._commMC("?temp")
-        try:
-            i = 0
-            for val in map(lambda x: int(x), temps.split(" ")):
-                retval[i] = val / 10.0
-                i += 1
-            #endfor
-        except Exception:
-            pass
-        #endtry
-        return retval
+        temps = self.mcc.doGetIntList(multiply = 0.1, args = ("?temp",))
+        if temps and len(temps) == 4:
+            return temps
+        else:
+            self.logger.warning("TEMPs count not match! (%s)", str(temps))
+            return list((-273.15, -273.15, -273.15, -273.15))
+        #endif
     #enddef
 
 
@@ -595,7 +730,7 @@ class Hardware(object):
 
 
     def motorsRelease(self):
-        self._commMC("!motr")
+        self.mcc.do("!motr")
         self._tiltSynced = False
         self._towerSynced = False
     #enddef
@@ -606,10 +741,10 @@ class Hardware(object):
 
     def towerHomeCalibrateWait(self):
         self.setTowerProfile('homingFast')
-        self._commMC("!twhc")
+        self.mcc.do("!twhc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
-            homingStatus = self._intOrNone(self._commMC("?twho"))
+            homingStatus = self.mcc.doGetInt("?twho")
             sleep(0.1)
         #endwhile
     #enddef
@@ -619,12 +754,12 @@ class Hardware(object):
         ''' home is at top position, retries = None is infinity '''
         self._towerSyncRetries = retries
         self.setTowerProfile('homingFast')
-        self._commMC("!twho")
+        self.mcc.do("!twho")
     #enddef
 
 
     def isTowerSynced(self):
-        homingStatus = self._intOrNone(self._commMC("?twho"))
+        homingStatus = self.mcc.doGetInt("?twho")
         if homingStatus > 0:    # not done and not error
             return False
         elif not homingStatus:
@@ -634,13 +769,13 @@ class Hardware(object):
         else:
             self.logger.warning("Tower homing failed!")
             self.beepAlarm(3)
-            self.debug.showItems(towerFailed = "homing Fast/Slow")
+            self.mcc.debug.showItems(towerFailed = "homing Fast/Slow")
             if self._towerSyncRetries is None or self._towerSyncRetries:
                 if self._towerSyncRetries:
                     self._towerSyncRetries -= 1
                 #endif
                 self.setTowerProfile('homingFast')
-                self._commMC("!twho")
+                self.mcc.do("!twho")
                 return False
             else:
                 self.logger.error("Tower homing max tries reached!")
@@ -673,7 +808,7 @@ class Hardware(object):
 
     def towerMoveAbsolute(self, position):
         self._towerToPosition = position
-        self._commMC("!twma", position)
+        self.mcc.do("!twma", position)
     #enddef
 
 
@@ -683,14 +818,15 @@ class Hardware(object):
 
 
     def towerStop(self):
-        self._commMC("!mot", 0)
+        self.mcc.do("!mot", 0)
     #enddef
 
 
     def isTowerMoving(self):
-        if int(self._commMC("?mot")) & 1:
-            return 1
+        if self.mcc.doGetInt("?mot") & 1:
+            return True
         #endif
+        return False
     #enddef
 
 
@@ -701,7 +837,7 @@ class Hardware(object):
         while self._towerToPosition != self.getTowerPositionMicroSteps():
             self.logger.warning("Tower is not on required position! Sync forced.")
             self.beepAlarm(3)
-            self.debug.showItems(towerFailed = self._lastTowerProfile)
+            self.mcc.debug.showItems(towerFailed = self._lastTowerProfile)
             profileBackup = self._lastTowerProfile
             self.towerSyncWait()
             self.setTowerProfile(profileBackup)
@@ -769,8 +905,8 @@ class Hardware(object):
 
 
     def setTowerPosition(self, position):
-        self._commMC("!twpo", position)
-        self.debug.showItems(towerPositon = position)
+        self.mcc.do("!twpo", position)
+        self.mcc.debug.showItems(towerPositon = position)
     #enddef
 
 
@@ -785,8 +921,8 @@ class Hardware(object):
 
 
     def getTowerPositionMicroSteps(self):
-        steps = self._intOrNone(self._commMC("?twpo"))
-        self.debug.showItems(towerPositon = steps)
+        steps = self.mcc.doGetInt("?twpo")
+        self.mcc.debug.showItems(towerPositon = steps)
         return steps
     #enddef
 
@@ -795,8 +931,8 @@ class Hardware(object):
         self._lastTowerProfile = profile
         profileId = self._towerProfiles.get(profile, None)
         if profileId is not None:
-            self.debug.showItems(towerProfile = profile)
-            self._commMC("!twcs", profileId)
+            self.mcc.debug.showItems(towerProfile = profile)
+            self.mcc.do("!twcs", profileId)
         else:
             self.logger.error("Invalid tower profile '%s'", profile)
         #endif
@@ -804,11 +940,11 @@ class Hardware(object):
 
 
     def setTowerCurrent(self, current):
-        current = int(current)
         if 0 <= current <= 63:
-            self._commMC("!twcu", current)
+            self.mcc.do("!twcu", current)
         else:
             self.logger.error("Invalid tower current %d", current)
+        #endif
     #enddef
 
 
@@ -818,7 +954,7 @@ class Hardware(object):
         self.resinSensor(True)
         sleep(1)
         self.setTowerProfile('resinSensor')
-        self._commMC("!rsme", self._towerResinStartPos - self._towerResinEndPos) # relative movement!
+        self.mcc.do("!rsme", self._towerResinStartPos - self._towerResinEndPos) # relative movement!
         while self.isTowerMoving():
             sleep(0.1)
         #endwhile
@@ -838,10 +974,10 @@ class Hardware(object):
 
     def tiltHomeCalibrateWait(self):
         self.setTiltProfile('homingFast')
-        self._commMC("!tihc")
+        self.mcc.do("!tihc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
-            homingStatus = self._intOrNone(self._commMC("?tiho"))
+            homingStatus = self.mcc.doGetInt("?tiho")
             sleep(0.1)
         #endwhile
     #enddef
@@ -851,10 +987,10 @@ class Hardware(object):
         ''' home at bottom position, retries = None is infinity '''
         while True:
             self.setTiltProfile('homingFast')
-            self._commMC("!tiho")
+            self.mcc.do("!tiho")
             homingStatus = 1
             while homingStatus > 0: # not done and not error
-                homingStatus = self._intOrNone(self._commMC("?tiho"))
+                homingStatus = self.mcc.doGetInt("?tiho")
                 sleep(0.1)
             #endwhile
             # test homing result
@@ -865,7 +1001,7 @@ class Hardware(object):
             else:
                 self.logger.warning("Tilt homing failed!")
                 self.beepAlarm(3)
-                self.debug.showItems(tiltFailed = "homing Fast/Slow")
+                self.mcc.debug.showItems(tiltFailed = "homing Fast/Slow")
                 position = self.getTiltPositionMicroSteps()
                 if position is None:
                     continue
@@ -879,7 +1015,7 @@ class Hardware(object):
 
                 self.setTiltProfile('layerRelease')
                 self.setTiltPosition(releaseFrom)
-                self._commMC("!tima", 800)
+                self.mcc.do("!tima", 800)
                 while self.isTiltMoving():
                     sleep(0.1)
                 #endwhile
@@ -906,19 +1042,20 @@ class Hardware(object):
 
     def tiltMoveAbsolute(self, position):
         self._tiltToPosition = position
-        self._commMC("!tima", position)
+        self.mcc.do("!tima", position)
     #enddef
 
 
     def tiltStop(self):
-        self._commMC("!mot", 0)
+        self.mcc.do("!mot", 0)
     #enddef
 
 
     def isTiltMoving(self):
-        if int(self._commMC("?mot")) & 2:
-            return 1
+        if self.mcc.doGetInt("?mot") & 2:
+            return True
         #endif
+        return False
     #enddef
 
 
@@ -929,7 +1066,7 @@ class Hardware(object):
         while self._tiltToPosition != self.getTiltPositionMicroSteps():
             self.logger.warning("Tilt is not on required position! Sync forced.")
             self.beepAlarm(3)
-            self.debug.showItems(tiltFailed = self._lastTiltProfile)
+            self.mcc.debug.showItems(tiltFailed = self._lastTiltProfile)
             profileBackup = self._lastTiltProfile
             self.tiltSyncWait()
             self.setTiltProfile(profileBackup)
@@ -1085,8 +1222,8 @@ class Hardware(object):
 
 
     def setTiltPosition(self, position):
-        self._commMC("!tipo", position)
-        self.debug.showItems(tiltPosition = position)
+        self.mcc.do("!tipo", position)
+        self.mcc.debug.showItems(tiltPosition = position)
     #enddef
 
 
@@ -1100,8 +1237,8 @@ class Hardware(object):
 
 
     def getTiltPositionMicroSteps(self):
-        steps = self._intOrNone(self._commMC("?tipo"))
-        self.debug.showItems(tiltPosition = steps)
+        steps = self.mcc.doGetInt("?tipo")
+        self.mcc.debug.showItems(tiltPosition = steps)
         return steps
     #enddef
 
@@ -1110,8 +1247,8 @@ class Hardware(object):
         self._lastTiltProfile = profile
         profileId = self._tiltProfiles.get(profile, None)
         if profileId is not None:
-            self.debug.showItems(tiltProfile = profile)
-            self._commMC("!tics", profileId)
+            self.mcc.debug.showItems(tiltProfile = profile)
+            self.mcc.do("!tics", profileId)
         else:
             self.logger.error("Invalid tilt profile '%s'", profile)
         #endif
@@ -1119,11 +1256,11 @@ class Hardware(object):
 
 
     def setTiltCurrent(self, current):
-        current = int(current)
         if 0 <= current <= 63:
-            self._commMC("!ticu", current)
+            self.mcc.do("!ticu", current)
         else:
             self.logger.error("Invalid tilt current %d", current)
+        #endif
     #enddef
 
 
@@ -1159,6 +1296,7 @@ class Hardware(object):
             self._coolDownCounter = self.getCurrentMiliTime()
             counter = 0
             self.powerLed("error")
+
             errorPage.show()
             errorPage.showItems(line3 = "Please call service.")
             while(counter < 10):
@@ -1322,13 +1460,13 @@ class Hardware(object):
         #endwhile
 
         self.setTiltTempProfile(profileTmp)
-        self._commMC("!sgbd")   #reset buffer
+        self.mcc.do("!sgbd")   #reset buffer
         self.setTiltPosition(defaultPos + 1200)
         self.tiltDown()
         while self.isTiltMoving():
             sleep(0.1)
         #endwhile
-        position = int(self.getTiltPositionMicroSteps())
+        position = self.getTiltPositionMicroSteps()
         stepsCheck = False
         if skipStep:
             if (position > self._tiltFindProfileMinSteps) and (position < self._tiltFindProfileMaxSteps):
@@ -1340,15 +1478,11 @@ class Hardware(object):
             #endif
         #endif
         if stepsCheck:
-            sgData = list()
-            while int(self._commMC("?sgbc")) > 0:
-                sg = self._commMC("?sgbd")
-                sgData.extend([int(hex, 16) for hex in sg.split(" ")])
-            #endwhile
+            sgData = self.getStallguardBuffer()
             del sgData[:5]
-            average = (sum(sgData[:-5])* 1.0)/(len(sgData[:-5]) * 1.0)
-            variance = sum([(xi - average)**2.0 for xi in sgData[:-5]]) / (len(sgData[:-5]) - 1)
-            stdev = variance**(1/2.0)
+            average = (sum(sgData[:-5]) * 1.0) / (len(sgData[:-5]) * 1.0)
+            variance = sum([(xi - average) ** 2.0 for xi in sgData[:-5]]) / (len(sgData[:-5]) - 1)
+            stdev = variance ** (1 / 2.0)
             sgDataTail = sgData[-5:]
             self.logger.debug("data %s", sgData)
             if skipStep:

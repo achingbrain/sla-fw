@@ -19,9 +19,11 @@ class Printer(object):
 
         self.logger = logging.getLogger(__name__)
         self.logger.info("Start at " + str(startTime))
+        self.logger.info("Software version: %s", defines.swVersion)
 
         import libConfig
         self.hwConfig = libConfig.HwConfig(defines.hwConfigFile)
+        self.hwConfig.logAllItems()
         self.config = libConfig.PrintConfig(self.hwConfig)
 
         if self.hwConfig.os.id != "prusa":
@@ -48,11 +50,10 @@ class Printer(object):
 
         from libDisplay import Display
         self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen)
+
+        self.hw.connectMC(self.display.page_systemwait, self.display.actualPage)
+
         self.inet.startNetMonitor(self.display.assignNetActive)
-
-        self.logger.info("Software version: %s", defines.swVersion)
-        self.hwConfig.logAllItems()
-
         self.checkPage = libPages.PageWait(self.display)
 
         self.hw.powerLed("normal")
