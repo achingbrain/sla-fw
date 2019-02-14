@@ -277,9 +277,9 @@ class HwConfig(FileConfig):
         self.blinkExposure = self._parseBool("blinkexposure", False)
         self.calibTowerOffset = self._parseInt("calibtoweroffset", 300)
 
-        self.fan1Pwm = self._parseIntMinMax("fan1pwm", 100, 0, 100)
+        self.fan1Pwm = self._parseIntMinMax("fan1pwm", 80, 0, 100)
         self.fan2Pwm = self._parseIntMinMax("fan2pwm", 100, 0, 100)
-        self.fan3Pwm = self._parseIntMinMax("fan3pwm", 100, 0, 100)
+        self.fan3Pwm = self._parseIntMinMax("fan3pwm", 25, 0, 100)
         self.uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)
         self.pwrLedPwm = self._parseIntMinMax("pwrledpwm", 100, 0, 100)
         self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
