@@ -315,7 +315,7 @@ class Hardware(object):
                 'moveFast'      : 2,
                 'moveSlow'      : 3,
                 'layer'         : 4,
-                '<reserved1>'   : 5,
+                'layerMove'     : 5,
                 '<reserved2>'   : 6,
                 'resinSensor'   : 7,
                 }
@@ -325,14 +325,18 @@ class Hardware(object):
 
         self._tiltMin = -12840        # whole turn
         self._tiltMax = 12840
-        self._tiltEnd = 5600
+        self._tiltEnd = 6000    #top deadlock
+        self._tiltCalibStart = 4500 
         self._tiltReleaseTo = 400
         self._tiltFindProfileMinSteps = 640
         self._tiltFindProfileMaxSteps = 1200
+        self._towerCalibMaxOffset = self.hwConfig.calcMicroSteps(0.3)
+        self._towerZHop = self.hwConfig.calcMicroSteps(0.5)
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
+        self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
         self._towerMax = self.hwConfig.calcMicroSteps(310)
         self.towerEnd = self.hwConfig.calcMicroSteps(150)
-        self.towerCalibPos = self.hwConfig.calcMicroSteps(2)
+        self._towerCalibPos = self.hwConfig.calcMicroSteps(1.5)
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
         self._towerResinMin = self.hwConfig.calcMicroSteps(3.75) # cca 50 ml
@@ -1145,7 +1149,7 @@ class Hardware(object):
 
 
     def tiltLayerDownWait(self, whitePixels = 0):
-        if whitePixels > (1440 * 2560) * (self.hwConfig.tuneTilt[0][5] / 100.0):
+        if whitePixels > self.hwConfig.whitePixelsThd:
             self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[0][0]])
             for i in xrange(self.hwConfig.tuneTilt[0][3]):
                 self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - self.hwConfig.tuneTilt[0][1])
@@ -1427,6 +1431,7 @@ class Hardware(object):
             for sgThreshold in xrange(sgtMin, sgtMax):
                 profileTmp[5] = sgThreshold
                 result = self.tryProfile( profileDef, profileTmp, skipStep, defaultPos, threshold)
+                self.logger.debug("init try result: %d", result)
                 if result == 0:
                     for i in xrange(10):
                         resultTry = self.tryProfile(profileDef, profileTmp, skipStep, defaultPos, threshold)
@@ -1467,7 +1472,11 @@ class Hardware(object):
             sleep(0.1)
         #endwhile
         position = self.getTiltPositionMicroSteps()
+        phase = self.mcc.do("?tiph")
+        
         stepsCheck = False
+        self.logger.debug("position: %d", position)
+        self.logger.debug("phase: %s", phase)
         if skipStep:
             if (position > self._tiltFindProfileMinSteps) and (position < self._tiltFindProfileMaxSteps):
                 stepsCheck = True
@@ -1485,15 +1494,16 @@ class Hardware(object):
             stdev = variance ** (1 / 2.0)
             sgDataTail = sgData[-5:]
             self.logger.debug("data %s", sgData)
+            self.logger.debug("average: %f, variance: %f, stdev: %f", average, variance, stdev)
             if skipStep:
-                minCount = sum(value < (average - 5 * stdev) for value in sgDataTail)
+                minCount = sum(value < (average - 5.0 * stdev) for value in sgDataTail)
                 if average > threshold:
                     if 0 < minCount < 4:
                         return 0 #profile OK
                     #endif
                 #endif
             else:
-                minCount = sum(value < (average - 2 * stdev) for value in sgDataTail)
+                minCount = sum(value < (average - 3.8 * stdev) for value in sgDataTail)
                 if average > threshold:
                     if minCount == 0:
                         return 0 #profile OK
