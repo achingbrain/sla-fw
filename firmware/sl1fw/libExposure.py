@@ -26,17 +26,25 @@ class ExposureThread(threading.Thread):
     #enddef
 
 
-    def doFrame(self, picture, position, exposureTime, overlayName):
+    def doFrame(self, picture, position, exposureTime, overlayName, prevWhitePixels):
         if picture is not None:
             self.expo.screen.preloadImg(filename = picture, overlayName = overlayName)
         #endif
         if self.config.tilt:
-            self.expo.hw.towerMoveAbsoluteWait(position)
-            self.expo.hw.tiltLayerUpWait()
+            if self.expo.hwConfig.towerZHop and self.expo.config.layerMicroSteps <= self.expo.hwConfig.calcMicroSteps(0.035) and prevWhitePixels > self.expo.hwConfig.whitePixelsThd:
+                self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hw._towerZHop)
+                self.expo.hw.setTowerProfile('layerMove')
+                self.expo.hw.tiltLayerUpWait()
+                self.expo.hw.towerMoveAbsoluteWait(position)
+                self.expo.hw.setTowerProfile('layer')
+            else:
+                self.expo.hw.towerMoveAbsoluteWait(position)
+                self.expo.hw.tiltLayerUpWait()
+            #endif
         else:
             self.expo.hw.setTowerProfile('layer')
-            self.towerMoveAbsoluteWait(position + self.config.fakeTiltUp)
-            self.towerMoveAbsoluteWait(position)
+            self.expo.hw.towerMoveAbsoluteWait(position + self.config.fakeTiltUp)
+            self.expo.hw.towerMoveAbsoluteWait(position)
         #endif
         self.expo.hw.setTowerCurrent(defines.towerHoldCurrent)
         sleep(self.config.tiltDelayAfter)
@@ -186,6 +194,7 @@ class ExposureThread(threading.Thread):
                 #endif
             #endif
 
+            prevWhitePixels = 0
             totalLayers = config.totalLayers
             timeLoss = (config.expTimeFirst - config.expTime) / float(config.fadeLayers)
             self.logger.debug("timeLoss: %0.3f", timeLoss)
@@ -292,11 +301,15 @@ class ExposureThread(threading.Thread):
                 whitePixels = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                         self.expo.position,
                         time,
-                        overlayName)
+                        overlayName,
+                        prevWhitePixels)
                 # whitePixels can be False
                 if whitePixels:
                     # /1000 - we want cm3 (=ml) not mm3
                     self.expo.resinCount += whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000
+                    prevWhitePixels = whitePixels
+                else:
+                    prevWhitePixels = 0
                 #endif
                 self.logger.debug("resinCount: %f" % self.expo.resinCount)
 

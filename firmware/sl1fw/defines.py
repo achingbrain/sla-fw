@@ -5,7 +5,7 @@
 import os
 import glob
 
-swVersion = "Gen3-190-212"
+swVersion = "Gen3-190-215"
 reqMcVersion = "SLA-control 0.9.8-333"
 
 home = "/home/root"

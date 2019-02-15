@@ -275,7 +275,8 @@ class HwConfig(FileConfig):
         self.resinSensor = self._parseBool("resinsensor", False)
         self.warmUp = self._parseInt("warmup", 0)
         self.blinkExposure = self._parseBool("blinkexposure", False)
-        self.calibTowerOffset = self._parseInt("calibtoweroffset", 300)
+        self.towerZHop = self._parseBool("towerzhop", True)
+        self.calibTowerOffset = self._parseInt("calibtoweroffset", 0)
 
         self.fan1Pwm = self._parseIntMinMax("fan1pwm", 80, 0, 100)
         self.fan2Pwm = self._parseIntMinMax("fan2pwm", 100, 0, 100)
@@ -289,6 +290,7 @@ class HwConfig(FileConfig):
         self.tuneTilt.append([int(n) for n in self._parseString("tiltdownlargefill", "5 240 500 3 4 45").split()])
         self.tuneTilt.append([int(n) for n in self._parseString("tiltdownsmallfill", "5 1000 500 1 4 45").split()])
         self.tuneTilt.append([int(n) for n in self._parseString("tiltup", "5 280 0 1 4 45").split()])
+        self.whitePixelsThd = (1440 * 2560) * (self.tuneTilt[0][5] / 100.0)
     #enddef
 
     def calcMicroSteps(self, mm):
