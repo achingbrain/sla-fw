@@ -148,6 +148,14 @@ class ScreenServer(multiprocessing.Process):
     def preloadImg(self, filename, overlayName):
         self.logger.debug("preload of %s started", filename)
         filedata = self.zf.read(filename)
+        try:
+            with open(defines.livePreviewImage, "w") as f:
+                f.write(filedata)
+            #endwith
+        except Exception as e:
+            self.logger.exception("live preview exception:")
+        #endtry
+
         filedata_io = StringIO(filedata)
         self.nextImage = pygame.image.load(filedata_io, filename).convert()
         overlay = self.overlays.get(overlayName, None)

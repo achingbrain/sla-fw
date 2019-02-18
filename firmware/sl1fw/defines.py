@@ -15,10 +15,10 @@ dataPath = os.path.join(swPath, "data")
 ramdiskPath = "/run/sl1fw"
 mediaRootPath = "/run/media/root"
 jobCounter = os.path.join(home, "jobs.log")
-tiltLoad = os.path.join(home, "tiltLoad")
 configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
+livePreviewImage = os.path.join(ramdiskPath, "live.png")
 
 configFile = "config.ini"
 maskFilename = "mask.png"

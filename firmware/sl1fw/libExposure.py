@@ -22,7 +22,6 @@ class ExposureThread(threading.Thread):
         self.commands = commands
         self.expo = expo
         self.config = self.expo.config
-        self.tiltLoadDir = None
     #enddef
 
 

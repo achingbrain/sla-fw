@@ -77,5 +77,11 @@ server {
 		default_type "text/plain";
 		proxy_pass http://127.0.0.1:19531/entries?_SYSTEMD_UNIT=sl1fw.service;
 	}
+
+	location /live.png {
+		sendfile on;
+		tcp_nopush on;
+		alias /run/sl1fw/live.png;
+	}
 }
 
