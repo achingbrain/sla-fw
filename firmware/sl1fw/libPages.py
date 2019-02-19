@@ -858,6 +858,17 @@ class PageHomePrint(Page):
         self.expo = expo
     #enddef
 
+    def fillData(self):
+       return {
+           'paused': self.expo.paused,
+           'pauseunpause': self._pauseunpause_text()
+       }
+    # enddef
+
+    def show(self):
+        self.items.update(self.fillData())
+        super(PageHomePrint, self).show()
+    # enddef
 
     def feedmeButtonRelease(self):
         self.display.page_feedme.setItems(line1 = "Wait for layer finish please.")
@@ -899,6 +910,17 @@ class PageHomePrint(Page):
         return "confirm"
     #enddef
 
+    def pauseunpauseButtonRelease(self):
+        if self.expo.paused:
+            self.expo.doContinue()
+        else:
+            self.expo.doPause()
+        self.showItems(paused=self.expo.paused, pauseunpause=self._pauseunpause_text())
+    #enddef
+
+    def adminButtonRelease(self):
+        return "admin"
+    #enddef
 
     def exitPrint(self):
         self.expo.doExitPrint()
@@ -907,6 +929,9 @@ class PageHomePrint(Page):
                 line3 = "after layer finish")
         return "systemwait"
     #enddef
+
+    def _pauseunpause_text(self):
+        return 'UnPause' if self.expo.paused else 'Pause'
 
 #endclass
 
