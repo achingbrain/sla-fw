@@ -1093,10 +1093,11 @@ class PageSysInfo(Page):
         self.pageTitle = "System Information"
         super(PageSysInfo, self).__init__(display)
         self.items.update({
-                'line1' : "Serial number: %s" % "#TODO#",   # read from A64 board
-                'line2' : "System: %s" % self.display.hwConfig.os.name,
-                'line3' : "System version: %s" % self.display.hwConfig.os.version,
-                'line4' : "Firmware version: %s" % defines.swVersion,
+                'line1' : "CML serial number: %s" % self.display.hw.getCPUSerial(),
+                'line2' : "CML system: %s" % self.display.hwConfig.os.name,
+                'line3' : "CML system version: %s" % self.display.hwConfig.os.version,
+
+                'line6' : "Python firmware version: %s" % defines.swVersion,
                 'line7' : "", # will be filled from getEvent()
                 'line8' : "API Key: %s" % self.octoprintAuth
                 })
@@ -1104,8 +1105,8 @@ class PageSysInfo(Page):
 
 
     def show(self):
-        self.items['line5'] = "Controller version: %s" % self.display.hw.getControllerVersion()
-        self.items['line6'] = "Controller number: %s" % self.display.hw.getControllerSerial()
+        self.items['line4'] = "MC serial number: %s" % self.display.hw.getControllerSerial()
+        self.items['line5'] = "MC version: %s" % self.display.hw.getControllerVersion()
         super(PageSysInfo, self).show()
     #enddef
 

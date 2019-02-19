@@ -7,6 +7,7 @@ import serial
 import re
 from time import time, sleep
 from multiprocessing import Lock
+import bitstring
 
 from libDebug import Debug
 
@@ -100,7 +101,7 @@ class MotConCom(object):
             self.logger.info("motion controller firmware version: %s", self.MCversion)
         #endif
 
-        self.MCserial = self.doGetHexedString("?ser")
+        self.MCserial = self.do("?ser")
         if self.MCserial:
             self.logger.info("motion controller serial number: %s", self.MCserial)
         #endif
@@ -343,6 +344,7 @@ class Hardware(object):
         self._towerResinMax = self.hwConfig.calcMicroSteps(16)  # cca 200 ml
 
         self.mcc = MotConCom("MC_Main")
+        self.cpuSerial = self.readCpuSerial()
     #enddef
 
 
@@ -409,6 +411,46 @@ class Hardware(object):
 
     def getControllerSerial(self):
         return self.mcc.MCserial
+    #enddef
+
+
+    def getCPUSerial(self):
+        return self.cpuSerial
+    #enddef
+
+
+    def readCpuSerial(self):
+        ot = { 0 : "CZP" }
+        serial = "*INVALID*"
+        try:
+            s = bitstring.BitArray(bytes = open(defines.cpuSNFile, 'rb').read())
+            mac, mcs1, mcs2, snbe = s.unpack('pad:192, bits:48, uint:8, uint:8, pad:224, uintbe:64')
+            mcsc = mac.count(1)
+            if mcsc != mcs1 or mcsc ^ 255 != mcs2:
+                self.logger.error("MAC checksum FAIL (is %02x:%02x, should be %02x:%02x)" % (mcs1, mcs2, mcsc, mcsc ^ 255))
+            else:
+                self.logger.info("MAC: %s (checksum %02x:%02x)", ":".join(map(lambda x: x.encode("hex"), mac.bytes)), mcs1, mcs2)
+
+                # byte order change
+                sn = bitstring.BitArray(length = 64, uintle = snbe)
+
+                scs2, scs1, snnew = sn.unpack('uint:8, uint:8, bits:48')
+                scsc = snnew.count(1)
+                if scsc != scs1 or scsc ^ 255 != scs2:
+                    self.logger.warn("SN checksum FAIL (is %02x:%02x, should be %02x:%02x), getting old SN format" % (scs1, scs2, scsc, scsc ^ 255))
+                    sequence_number, is_kit, ean_pn, year, week, origin = sn.unpack('pad:14, uint:17, bool, uint:10, uint:6, pad:2, uint:6, pad:2, uint:4')
+                    prefix = "*"
+                else:
+                    sequence_number, is_kit, ean_pn, year, week, origin = snnew.unpack('pad:4, uint:17, bool, uint:10, uint:6, uint:6, uint:4')
+                    prefix = ""
+                #endif
+                serial = "%s%3sX%02u%02uX%03uX%c%05u" % (prefix, ot.get(origin, "UNK"), week, year, ean_pn, "K" if is_kit else "C", sequence_number)
+                self.logger.info("SN: %s", serial)
+            #endif
+        except Exception:
+            self.logger.exception("CPU serial:")
+        #endtry
+        return serial
     #enddef
 
 
