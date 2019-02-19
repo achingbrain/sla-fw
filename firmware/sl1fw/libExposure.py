@@ -100,6 +100,7 @@ class ExposureThread(threading.Thread):
             self.expo.hw.setTowerProfile('layer')
             self.expo.hw.tiltLayerDownWait(whitePixels)
         #endif
+
         return whitePixels
     #enddef
 
@@ -145,6 +146,30 @@ class ExposureThread(threading.Thread):
         #endif
         self.expo.hw.powerLed("normal")
     #endif
+
+
+    def doWait(self):
+        command = None
+        breakFree = set(("exit", "continue"))
+        while not command:
+            self.expo.hw.beepAlarm(3)
+            sleep(1)
+
+            try:
+                command = self.commands.get_nowait()
+            except Queue.Empty:
+                command = None
+            except Exception:
+                self.logger.exception("getCommand exception")
+                command = None
+            # endtry
+
+            if command in breakFree:
+                break
+            # endif
+        # endwhile
+
+        return command
 
 
     def run(self):
@@ -221,27 +246,7 @@ class ExposureThread(threading.Thread):
                 if command == "feedme":
                     self.expo.hw.powerLed("warn")
                     self.expo.hw.tiltLayerUpWait()
-                    command = None
-                    breakFree = set(("exit", "continue"))
-                    while not command:
-                        self.expo.hw.beepAlarm(3)
-                        sleep(1)
-
-                        try:
-                            command = self.commands.get_nowait()
-                        except Queue.Empty:
-                            command = None
-                        except Exception:
-                            self.logger.exception("getCommand exception")
-                            command = None
-                        #endtry
-
-                        if command in breakFree:
-                            break
-                        #endif
-                    #endwhile
-
-                    if command == "exit":
+                    if self.doWait() == "exit":
                         break
                     #endif
 
@@ -252,6 +257,9 @@ class ExposureThread(threading.Thread):
                     self.expo.hw.powerLed("normal")
                     self.expo.display.actualPage.show()
                 #endif
+
+                if command == "pause":
+                    self.doWait()
 
                 if config.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % config.upAndDownEveryLayer:
                     self.doUpAndDown()
@@ -381,6 +389,7 @@ class Exposure(object):
                 8 : (4,2),
                 9 : (3,3),
                 }
+        self.paused = False
     #enddef
 
 
@@ -414,8 +423,14 @@ class Exposure(object):
     #enddef
 
 
+    def doPause(self):
+        self.expoCommands.put("pause")
+        self.paused = True
+
+
     def doContinue(self):
         self.expoCommands.put("continue")
+        self.paused = False
     #enddef
 
 
