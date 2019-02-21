@@ -6,7 +6,7 @@ import os
 import glob
 
 swVersion = "Gen3-190-215"
-reqMcVersion = "SLA-control 0.9.8-333"
+reqMcVersion = "SLA-control 0.9.8-359"
 
 home = "/home/root"
 
@@ -23,6 +23,8 @@ livePreviewImage = os.path.join(ramdiskPath, "live.png")
 configFile = "config.ini"
 maskFilename = "mask.png"
 projectExtension = ".dwz"
+
+cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 usbUpdatePath = "/mnt/rootfs"
