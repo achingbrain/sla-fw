@@ -18,8 +18,7 @@ class Printer(object):
         startTime = time()
 
         self.logger = logging.getLogger(__name__)
-        self.logger.info("Start at " + str(startTime))
-        self.logger.info("Software version: %s", defines.swVersion)
+        self.logger.info("SL1 firmware started - version %s", defines.swVersion)
 
         import libConfig
         self.hwConfig = libConfig.HwConfig(defines.hwConfigFile)
@@ -58,7 +57,7 @@ class Printer(object):
 
         self.hw.powerLed("normal")
 
-        self.logger.info("Start time: " + str(time() - startTime))
+        self.logger.info("Start time: %f secs", time() - startTime)
     #endclass
 
 

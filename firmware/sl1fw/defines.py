@@ -20,6 +20,8 @@ hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
 livePreviewImage = os.path.join(ramdiskPath, "live.png")
 
+perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
+
 configFile = "config.ini"
 maskFilename = "mask.png"
 projectExtension = ".dwz"

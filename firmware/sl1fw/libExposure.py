@@ -25,7 +25,7 @@ class ExposureThread(threading.Thread):
     #enddef
 
 
-    def doFrame(self, picture, position, exposureTime, overlayName, prevWhitePixels):
+    def doFrame(self, picture, position, exposureTime, overlayName, prevWhitePixels, second):
         if picture is not None:
             self.expo.screen.preloadImg(filename = picture, overlayName = overlayName)
         #endif
@@ -48,7 +48,7 @@ class ExposureThread(threading.Thread):
         self.expo.hw.setTowerCurrent(defines.towerHoldCurrent)
         sleep(self.config.tiltDelayAfter)
         self.logger.debug("exposure started")
-        whitePixels = self.expo.screen.blitImg()
+        whitePixels = self.expo.screen.blitImg(second = second)
 
         if self.expo.hwConfig.blinkExposure:
 
@@ -309,15 +309,23 @@ class ExposureThread(threading.Thread):
                         self.expo.position,
                         time,
                         overlayName,
-                        prevWhitePixels)
-                # whitePixels can be False
-                if whitePixels:
-                    # /1000 - we want cm3 (=ml) not mm3
-                    self.expo.resinCount += whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000
-                    prevWhitePixels = whitePixels
-                else:
-                    prevWhitePixels = 0
+                        prevWhitePixels,
+                        False)
+
+                # exposure second part too
+                if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
+                    self.doFrame(None,
+                            self.expo.position,
+                            time,
+                            overlayName,
+                            whitePixels,
+                            True)
                 #endif
+
+                prevWhitePixels = whitePixels
+
+                # /1000 - we want cm3 (=ml) not mm3
+                self.expo.resinCount += whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000
                 self.logger.debug("resinCount: %f" % self.expo.resinCount)
 
                 if self.expo.hwConfig.trigger:
@@ -371,7 +379,7 @@ class Exposure(object):
         # FIXME test return value!
         self.screen.openZip(filename = self.config.zipName)
         # here ^^^
-        self.screen.createMask()
+        self.perPartes = self.screen.createMasks()
         self.screen.preloadImg(filename = self.config.toPrint[0], overlayName = 'calibPad')
         self.position = 0
         self.actualLayer = 0
