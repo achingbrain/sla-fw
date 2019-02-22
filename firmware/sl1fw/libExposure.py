@@ -34,16 +34,16 @@ class ExposureThread(threading.Thread):
                 self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hw._towerZHop)
                 self.expo.hw.setTowerProfile('layerMove')
                 self.expo.hw.tiltLayerUpWait()
-                self.expo.hw.towerMoveAbsoluteWait(position)
+                self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.calibTowerOffset)
                 self.expo.hw.setTowerProfile('layer')
             else:
-                self.expo.hw.towerMoveAbsoluteWait(position)
+                self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.calibTowerOffset)
                 self.expo.hw.tiltLayerUpWait()
             #endif
         else:
             self.expo.hw.setTowerProfile('layer')
             self.expo.hw.towerMoveAbsoluteWait(position + self.config.fakeTiltUp)
-            self.expo.hw.towerMoveAbsoluteWait(position)
+            self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.calibTowerOffset)
         #endif
         self.expo.hw.setTowerCurrent(defines.towerHoldCurrent)
 

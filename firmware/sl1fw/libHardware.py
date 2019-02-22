@@ -336,8 +336,8 @@ class Hardware(object):
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
         self._towerMax = self.hwConfig.calcMicroSteps(310)
-        self.towerEnd = self.hwConfig.calcMicroSteps(150)
-        self._towerCalibPos = self.hwConfig.calcMicroSteps(1.5)
+        self._towerEnd = self.hwConfig.calcMicroSteps(150)
+        self._towerCalibPos = self.hwConfig.calcMicroSteps(1)
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
         self._towerResinMin = self.hwConfig.calcMicroSteps(3.75) # cca 50 ml
@@ -953,7 +953,7 @@ class Hardware(object):
 
 
     def setTowerOnMax(self):
-        self.setTowerPosition(self.towerEnd)
+        self.setTowerPosition(self._towerEnd)
     #enddef
 
 
