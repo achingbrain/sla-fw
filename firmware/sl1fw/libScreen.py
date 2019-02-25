@@ -30,6 +30,7 @@ class ScreenServer(multiprocessing.Process):
         self.commands = commands
         self.results = results
         self.stoprequest = multiprocessing.Event()
+        self.perPartes = False
     #enddef
 
 
@@ -81,7 +82,7 @@ class ScreenServer(multiprocessing.Process):
                 #endif
             except Empty:
                 continue
-            except Exception:
+            except Exception as e:
                 self.logger.exception("ScreenServer exception")
                 continue
             #endtry
@@ -157,28 +158,39 @@ class ScreenServer(multiprocessing.Process):
         #endtry
 
         filedata_io = StringIO(filedata)
-        self.nextImage = pygame.image.load(filedata_io, filename).convert()
-        overlay = self.overlays.get(overlayName, None)
-        if overlay:
-            self.nextImage.blit(overlay, (0,0))
-        #endif
-        overlay = self.overlays.get('mask', None)
-        if overlay:
-            self.nextImage.blit(overlay, (0,0))
-        #endif
+        self.nextImage1 = pygame.image.load(filedata_io, filename).convert()
+
         self.logger.debug("pixelcount of %s started", filename)
-        pixels = pygame.surfarray.pixels3d(self.nextImage)
+        pixels = pygame.surfarray.pixels3d(self.nextImage1)
         hist = numpy.histogram(pixels, [0, 51, 102, 153, 204, 255])
         del pixels
         self.whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4]) / 3
         self.logger.debug("pixelcount of %s done, whitePixels: %f", filename, self.whitePixels)
+
+        overlay = self.overlays.get(overlayName, None)
+        if overlay:
+            self.nextImage1.blit(overlay, (0,0))
+        #endif
+        overlay = self.overlays.get('mask', None)
+        if overlay:
+            self.nextImage1.blit(overlay, (0,0))
+        #endif
+        if self.perPartes and self.whitePixels > self.hwConfig.whitePixelsThd:
+            self.nextImage2 = self.nextImage1.copy()
+            self.nextImage1.blit(self.overlays['ppm1'], (0,0))
+            self.nextImage2.blit(self.overlays['ppm2'], (0,0))
+        #endif
         self.logger.debug("preload of %s done", filename)
     #enddef
 
 
-    def blitImg(self):
+    def blitImg(self, second = False):
         self.logger.debug("blit started")
-        self.screen.blit(self.nextImage, (0,0))
+        if second:
+            self.screen.blit(self.nextImage2, (0,0))
+        else:
+            self.screen.blit(self.nextImage1, (0,0))
+        #endif
         pygame.display.flip()
         self._writefb()
         self.logger.debug("blit done")
@@ -195,15 +207,31 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def createMask(self):
+    def createMasks(self):
+        if self.hwConfig.perPartes:
+            try:
+                self.overlays['ppm1'] = pygame.image.load(defines.perPartesMask).convert()
+                self.overlays['ppm2'] = self.overlays['ppm1'].copy()
+                pixels = pygame.surfarray.pixels3d(self.overlays['ppm2'])
+                pixels ^= 2 ** 32 - 1
+                del pixels
+                self.overlays['ppm1'].set_colorkey((255, 255, 255), pygame.RLEACCEL)
+                self.overlays['ppm2'].set_colorkey((255, 255, 255), pygame.RLEACCEL)
+                self.perPartes = True
+            except Exception as e:
+                self.logger.exception("createMasks exception")
+            #endtry
+        #endif
+
         try:
             filedata = self.zf.read(defines.maskFilename)
         except KeyError as e:
             self.logger.info("No mask picture in the project")
-            return
+            return self.perPartes
         #endtry
         filedata_io = StringIO(filedata)
         self.overlays['mask'] = pygame.image.load(filedata_io, defines.maskFilename).convert_alpha()
+        return self.perPartes
     #enddef
 
 
@@ -298,8 +326,9 @@ class Screen(object):
     #enddef
 
 
-    def blitImg(self):
-        self.commands.put({ 'fce' : "blitImg" })
+    def blitImg(self, **kwargs):
+        kwargs['fce'] = 'blitImg'
+        self.commands.put(kwargs)
         return self.results.get()
     #enddef
 
@@ -309,8 +338,9 @@ class Screen(object):
     #enddef
 
 
-    def createMask(self):
-        self.commands.put({ 'fce' : "createMask" })
+    def createMasks(self):
+        self.commands.put({ 'fce' : "createMasks" })
+        return self.results.get()
     #enddef
 
 

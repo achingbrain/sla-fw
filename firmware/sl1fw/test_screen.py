@@ -64,11 +64,11 @@ for i in xrange(divide[x]):
 screen.createCalibrationOverlay(areas = calibAreas)
 
 screen.openZip(filename = "test.dwz")
-screen.createMask()
+screen.createMasks()
 
 screen.testBlit(filename = "zaba.png", overlayName = 'calibPad')
-
 sleep(5)
+
 lastArea = calibAreas[0]
 for area in calibAreas[1:]:
     screen.fillArea(area = (lastArea[0], lastArea[1]))
@@ -83,6 +83,16 @@ sleep(1)
 screen.testBlit(filename = "zaba.png", overlayName = 'calib')
 sleep(5)
 
+screen.getImgBlack()
+sleep(1)
+
+screen.testBlit(filename = "zaba.png", overlayName = 'ppm1')
+sleep(5)
+
+screen.testBlit(filename = "zaba.png", overlayName = 'ppm2')
+sleep(5)
+
 screen.testBlit(filename = "white.png")
 sleep(1)
 screen.testBlit(filename = "white.png", overlayName = 'mask')
+sleep(2)

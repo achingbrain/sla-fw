@@ -2116,7 +2116,8 @@ class PageSetup(Page):
                 'label1g3' : "MC version check",
                 'label1g4' : "Use resin sensor",
                 'label1g5' : "Blink exposure",
-                'label1g6' : "Tower Z hop",
+                'label1g6' : "Per-Partes expos.",
+                'label1g7' : "Tower Z hop",
 
                 'label2g1' : "Screw (mm/rot)",
                 'label2g2' : "Tower msteps",
@@ -2158,6 +2159,7 @@ class PageSetup(Page):
         self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
         self.temp['resinsensor'] = self.display.hwConfig.resinSensor
         self.temp['blinkexposure'] = self.display.hwConfig.blinkExposure
+        self.temp['perpartesexposure'] = self.display.hwConfig.perPartes
         self.temp['towerzhop'] = self.display.hwConfig.towerZHop
 
         self.items['state1g1'] = 1 if self.temp['fancheck'] else 0
@@ -2165,7 +2167,8 @@ class PageSetup(Page):
         self.items['state1g3'] = 1 if self.temp['mcversioncheck'] else 0
         self.items['state1g4'] = 1 if self.temp['resinsensor'] else 0
         self.items['state1g5'] = 1 if self.temp['blinkexposure'] else 0
-        self.items['state1g6'] = 1 if self.temp['towerzhop'] else 0
+        self.items['state1g6'] = 1 if self.temp['perpartesexposure'] else 0
+        self.items['state1g7'] = 1 if self.temp['towerzhop'] else 0
 
         super(PageSetup, self).show()
     #enddef
@@ -2239,7 +2242,12 @@ class PageSetup(Page):
 
 
     def state1g6ButtonRelease(self):
-        self._onOff(5, 'towerzhop')
+        self._onOff(5, 'perpartesexposure')
+    #enddef
+
+
+    def state1g7ButtonRelease(self):
+        self._onOff(6, 'towerzhop')
     #enddef
 
     def minus2g1Button(self):
