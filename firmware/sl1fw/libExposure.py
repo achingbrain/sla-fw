@@ -26,9 +26,9 @@ class ExposureThread(threading.Thread):
 
 
     def doFrame(self, picture, position, exposureTime, overlayName, prevWhitePixels, second):
-        if picture is not None:
-            self.expo.screen.preloadImg(filename = picture, overlayName = overlayName)
-        #endif
+
+        self.expo.screen.screenshot(second = second)
+
         if self.config.tilt:
             if self.expo.hwConfig.towerZHop and self.expo.config.layerMicroSteps <= self.expo.hwConfig.calcMicroSteps(0.035) and prevWhitePixels > self.expo.hwConfig.whitePixelsThd:
                 self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hw._towerZHop)
@@ -46,12 +46,14 @@ class ExposureThread(threading.Thread):
             self.expo.hw.towerMoveAbsoluteWait(position)
         #endif
         self.expo.hw.setTowerCurrent(defines.towerHoldCurrent)
+
+        self.expo.screen.screenshotRename()
+
         sleep(self.config.tiltDelayAfter)
         self.logger.debug("exposure started")
         whitePixels = self.expo.screen.blitImg(second = second)
 
         if self.expo.hwConfig.blinkExposure:
-
             if self.calibAreas is not None:
                 time = 1000 * (exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2])
                 self.expo.hw.uvLed(True, time)
@@ -95,6 +97,11 @@ class ExposureThread(threading.Thread):
 
         self.expo.screen.getImgBlack()
         self.logger.debug("exposure done")
+
+        if picture is not None:
+            self.expo.screen.preloadImg(filename = picture, overlayName = overlayName)
+        #endif
+
         sleep(self.config.tiltDelayBefore)
         if self.config.tilt:
             self.expo.hw.setTowerProfile('layer')
@@ -294,8 +301,8 @@ class ExposureThread(threading.Thread):
 
                 self.expo.actualLayer = i + 1
                 self.expo.position += step
-                self.logger.debug("LAYER %04d/%04d (%s)  step: %d  time: %.3f",
-                        self.expo.actualLayer, totalLayers, config.toPrint[i], step, time)
+                self.logger.debug("LAYER %04d/%04d (%s)  steps: %d  position: %d  time: %.3f",
+                        self.expo.actualLayer, totalLayers, config.toPrint[i], step, self.expo.position, time)
 
                 if i < 2:
                     overlayName = 'calibPad'
@@ -314,7 +321,7 @@ class ExposureThread(threading.Thread):
 
                 # exposure second part too
                 if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
-                    self.doFrame(None,
+                    self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                             self.expo.position,
                             time,
                             overlayName,
