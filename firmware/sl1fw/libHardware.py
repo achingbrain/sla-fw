@@ -329,6 +329,8 @@ class Hardware(object):
         self._tiltEnd = 6000    #top deadlock
         self._tiltCalibStart = 4500 
         self._tiltReleaseTo = 400
+        self._tiltHomeOffset = 0
+        self.tiltHomeCounter = 3
         self._tiltFindProfileMinSteps = 640
         self._tiltFindProfileMaxSteps = 1200
         self._towerCalibMaxOffset = self.hwConfig.calcMicroSteps(0.3)
@@ -1226,80 +1228,105 @@ class Hardware(object):
 
 
     def tiltLayerDownWait(self, whitePixels = 0):
-        if whitePixels > self.hwConfig.whitePixelsThd:
-            self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[0][0]])
-            for i in xrange(self.hwConfig.tuneTilt[0][3]):
-                self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - self.hwConfig.tuneTilt[0][1])
-                while self.isTiltMoving():
-                    sleep(0.1)
-                #endwhile
-                sleep(self.hwConfig.tuneTilt[0][2] / 1000.0)
-            #endfor
-            self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[0][4]])
-        else:
-            self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[1][0]])
-            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - self.hwConfig.tuneTilt[1][1])
+        self.setTiltProfile('layerRelease')
+        self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - self.hwConfig.tiltTune[0][0])
+        while self.isTiltMoving():
+            sleep(0.1)
+        #endwhile
+        self.setTiltProfile('layerMove')
+        sleep(self.hwConfig.tiltTune[0][1] / 1000.0)
+        movePerCycle = int((self.getTiltPositionMicroSteps() - self._tiltReleaseTo) / self.hwConfig.tiltTune[0][2])
+        for i in xrange(1, self.hwConfig.tiltTune[0][2]):
+            self.logger.debug("release cycle %d", i)
+            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
             while self.isTiltMoving():
                 sleep(0.1)
             #endwhile
-            sleep(self.hwConfig.tuneTilt[1][2] / 1000.0)
-            self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[1][4]])
-        #endif
+            sleep(self.hwConfig.tiltTune[0][3] / 1000.0)
+        #endfor
         self.tiltMoveAbsolute(self._tiltReleaseTo)
         while self.isTiltMoving():
             sleep(0.1)
         #endwhile
-        self.tiltLayerCheckPosition()
+        self.setTiltProfile('homingSlow')
+        self.tiltMoveAbsolute(self._tiltMin)
+        while self.isTiltMoving():
+            sleep(0.1)
+        #endwhile
+        result = self.tiltLayerCheckPosition()
         self.setTiltCurrent(defines.tiltHoldCurrent)
+        return result
     #enddef
 
 
     def tiltLayerUpWait(self):
-        self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[2][4]])
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tuneTilt[2][1])
+        self.setTiltProfile('moveFast')
+        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tiltTune[1][0])
         while self.isTiltMoving():
             sleep(0.1)
         #endwhile
-        sleep(self.hwConfig.tuneTilt[2][2] / 1000.0)
-        self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[2][0]])
-        self.tiltUp()
+        sleep(self.hwConfig.tiltTune[1][1]/1000.0)
+        self.setTiltProfile('layerRelease')
+        self.tiltMoveAbsolute(self.hwConfig.tiltHeight)
         while self.isTiltMoving():
             sleep(0.1)
         #endwhile
-        self.tiltLayerCheckPosition()
         self.setTiltCurrent(defines.tiltHoldCurrent)
     #enddef
 
 
     def tiltLayerCheckPosition(self):
-        if self._tiltToPosition != self.getTiltPositionMicroSteps():
-            self.logger.warning("Forcing release. Target pos: %d, actual pos: %d", self._tiltToPosition, self.getTiltPositionMicroSteps())
-            self.beepAlarm(3)
-            self.setTiltProfile('layerRelease')
-            #simulate another release movement
-            for i in xrange(3):
-                self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - 200)
-                while self.isTiltMoving():
+        if self.getTiltPositionMicroSteps() < (self._tiltHomeOffset - self.hwConfig.tiltTune[0][4]) or self.getTiltPositionMicroSteps() > (self._tiltHomeOffset + self.hwConfig.tiltTune[0][4]):   #tilt was not successfull
+            self.logger.warning("Forcing rehome. Actual pos: %d", self.getTiltPositionMicroSteps())
+            self.tiltHomeCounter -= 1
+            for i in xrange(self.hwConfig.tiltTune[0][5]):
+                self.beepAlarm(5)
+                self.setTiltProfile('homingFast')
+                self.mcc.do("!tiho")
+                homingStatus = 1
+                while homingStatus > 0: # not done and not error
+                    homingStatus = self.mcc.doGetInt("?tiho")
                     sleep(0.1)
                 #endwhile
-                sleep(1)
-            #endfor
-            for i in xrange(3):
-                if not self.tiltSyncWait():
-                    self.setTiltPosition(800)
-                    self.setTiltProfile('layerRelease')
-                    self.tiltMoveAbsolute(0)
+                self.setTiltPosition(0)
+                if homingStatus == 0: #success
+                    self._tiltSynced = True
+                    self.logger.debug("Succesfully rehomed")
+                    if self.tiltHomeCounter < 1:
+                        self.tiltSaveHomeOffset()
+                        self.tiltHomeCounter = 3
+                    return True
+                else:   #tilt stuck
+                    self.logger.warning("Tilt homing failed!")
+                    self.setTiltProfile('layerMove')
+                    self.mcc.do("!tima", -500)
                     while self.isTiltMoving():
                         sleep(0.1)
                     #endwhile
-                else:
-                    return
-                #endif
             #endfor
-            self.logger.error("Printer is stuck. Shutting down")
-            self.shutdown()
+            self.logger.error("Printer is stuck...")
+            return False
         #endif
+        if self.tiltHomeCounter < 3:
+            self.tiltHomeCounter += 1
+        return True
     #enddef
+
+
+    def tiltSaveHomeOffset(self):
+        self.tiltMoveAbsolute(self._tiltReleaseTo)
+        while self.isTiltMoving():
+            sleep(0.1)
+        #endwhile
+        self.setTiltProfile('homingSlow')
+        self.tiltMoveAbsolute(self._tiltMin)
+        while self.isTiltMoving():
+            sleep(0.1)
+        #endwhile
+        self._tiltHomeOffset = self.getTiltPositionMicroSteps()
+        self.logger.debug("self._tiltHomeOffset %d", self._tiltHomeOffset)
+        return self._tiltHomeOffset
+        #endif
 
 
     def setTiltPosition(self, position):

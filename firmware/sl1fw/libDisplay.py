@@ -75,7 +75,6 @@ class Display(object):
 
     def initExpoPages(self, expo):
         self.page_print = libPages.PagePrint(self, expo)
-        self.page_homeprint = libPages.PageHomePrint(self, expo)
         self.page_feedme = libPages.PageFeedMe(self, expo)
     #enddef
 

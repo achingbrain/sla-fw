@@ -34,16 +34,16 @@ class ExposureThread(threading.Thread):
                 self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hw._towerZHop)
                 self.expo.hw.setTowerProfile('layerMove')
                 self.expo.hw.tiltLayerUpWait()
-                self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.calibTowerOffset)
+                self.expo.hw.towerMoveAbsoluteWait(position)
                 self.expo.hw.setTowerProfile('layer')
             else:
-                self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.calibTowerOffset)
+                self.expo.hw.towerMoveAbsoluteWait(position)
                 self.expo.hw.tiltLayerUpWait()
             #endif
         else:
             self.expo.hw.setTowerProfile('layer')
             self.expo.hw.towerMoveAbsoluteWait(position + self.config.fakeTiltUp)
-            self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.calibTowerOffset)
+            self.expo.hw.towerMoveAbsoluteWait(position)
         #endif
         self.expo.hw.setTowerCurrent(defines.towerHoldCurrent)
 
@@ -105,7 +105,10 @@ class ExposureThread(threading.Thread):
         sleep(self.config.tiltDelayBefore)
         if self.config.tilt:
             self.expo.hw.setTowerProfile('layer')
-            self.expo.hw.tiltLayerDownWait(whitePixels)
+            tiltDown = self.expo.hw.tiltLayerDownWait(whitePixels)
+        #endif
+        if tiltDown != True:
+            self.expo.doPause()
         #endif
 
         return whitePixels
@@ -313,7 +316,7 @@ class ExposureThread(threading.Thread):
                 #endif
 
                 whitePixels = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
-                        self.expo.position,
+                        self.expo.position + self.expo.hwConfig.calibTowerOffset,
                         time,
                         overlayName,
                         prevWhitePixels,
@@ -322,7 +325,7 @@ class ExposureThread(threading.Thread):
                 # exposure second part too
                 if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
                     self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
-                            self.expo.position,
+                            self.expo.position + self.expo.hwConfig.calibTowerOffset,
                             time,
                             overlayName,
                             whitePixels,

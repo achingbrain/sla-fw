@@ -259,6 +259,282 @@ class PageConfirm(Page):
 #endclass
 
 
+class PageWizard(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = "Printer setup"
+        super(PageWizard, self).__init__(display)
+        self.stack = False
+    #enddef
+
+
+    def prepare(self):
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep1,
+            line1 = "Your printer will now be set up.",
+            line2 = "Continue?")
+        return "confirm"
+    #enddef
+
+
+    def wizardStep1(self):
+        pageWait = PageWait(self.display,
+            line1 = "Please wait...",
+            line2 = "",
+            line3 = "")
+        pageWait.show()
+        self.display.hw.towerSync()
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep2,
+            line1 = "Insert the platform, tighten with black knob",
+            line2 = "and remove the tank.")
+        return "confirm"
+    #enddef
+
+
+    def wizardStep2(self):
+        #tilt homing
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = "Tilt homing test",
+            line2 = "",
+            line3 = "STATUS: in progress...")
+        pageWait.show()
+
+        tiltProfiles = self.display.hw.getTiltProfiles()
+        profile = tiltProfiles[self.display.hw._tiltProfiles["homingFast"]]
+        pageWait.showItems(line3 = "STATUS: testing fast profile")
+        result = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingFast"], True, 2000, 60, profile[4], profile[4] + 1, profile[5], profile[5] + 1)
+        if result == None:
+            pageWait.showItems(line3 = "STATUS: searching for fast profile")
+            profile = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingFast"], True, 2000, 75, 10, 24, 4, 10)
+            if profile == None:
+                self.display.page_error.setParams(
+                    line1 = "Tilt homingFast profile not found!",
+                    line2 = "Please adjust it manually",
+                    line3 = "and run wizard again.")
+                return "error"
+            #endif
+        #endif
+        profile = tiltProfiles[self.display.hw._tiltProfiles["homingSlow"]]
+        pageWait.showItems(line3 = "STATUS: testing slow profile")
+        result = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingSlow"], False, 1200, 20, profile[4], profile[4] + 1, profile[5], profile[5] + 1)
+        if result == None:
+            pageWait.showItems(line3 = "STATUS: searching for slow profile")
+            profile = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingSlow"], False, 1200, 30, 10, 24, 3, 12)
+            if profile == None:
+                self.display.page_error.setParams(
+                    line1 = "Tilt homingSlow profile not found!",
+                    line2 = "Please adjust it manually",
+                    line3 = "and run wizard again.")
+                return "error"
+            #endif
+        #endif
+        pageWait.showItems(line3 = "STATUS: searching for motor phase")
+        self.display.hw.tiltHomeCalibrateWait()
+        
+        #tilt measure
+        pageWait.showItems(line1 = "Tilt measuring max distance")
+        pageWait.showItems(line3 = "STATUS: in progress...")
+        self.display.hw.tiltSyncWait()
+        self.display.hw.setTiltPosition(0)
+        self.display.hw.setTiltProfile("homingFast")
+        self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd + 1000)
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+            pageWait.showItems(line2 = "%d steps" % self.display.hw.getTiltPosition())
+        #endwhile
+        if self.display.hw.getTiltPosition() < self.display.hw._tiltEnd:
+            self.display.page_error.setParams(
+                line1 = "Tilt height is too small.",
+                line2 = "Please check if tilting mechanism",
+                line3 = "so it can move in whole range.")
+            return "error"
+        #endif
+        self.display.hw.tiltSyncWait()
+
+        #tower homing
+        pageWait.showItems(line1 = "Tower homing test")
+        pageWait.showItems(line3 = "STATUS: in progress...")
+        for i in xrange(10):
+            pageWait.showItems(line2 = "Run %d/10" % i)
+            self.display.hw.towerSync()
+            while self.display.hw.isTowerMoving():
+                sleep(0.25)
+            #endwhile
+            result = self.display.hw.towerSyncStatus()
+            if result != 0:
+                self.display.hw.powerLed("error")
+                #TODO find homing profiles for tower
+                self.display.page_error.setParams(
+                    line1 = "Tower home test failed!",
+                    line2 = "Please adjust tower homing profiles manually",
+                    line3 = "and run wizard again.")
+                return "error"
+            #endif
+        #endfor
+        
+        #fan check
+        self.display.hw.uvLed(False)
+        pageWait.showItems(line1 = "Fan check")
+        pageWait.showItems(line2 = "")
+        pageWait.showItems(line3 = "STATUS: in progress...")
+        self.display.hwConfig.fanCheck = False
+        self.display.hw.setFansPwm((0, 0, 0))
+        self.display.hw.setFans((True, True, True))
+        sleep(6)
+        rpm = self.display.hw.getFansRpm()
+        #TODO add control for fan3
+        if rpm[0] != 0 or rpm[1] != 0:
+            self.display.page_error.setParams(
+                line1 = "RPM detected even when fans off",
+                line2 = "data: %s" % rpm)
+            return "error"
+        #endif
+        fanLimits = [
+            #pwm    fan1            fan2
+            [30,    [[20, 60],      [120, 190]]],
+            [60,    [[120, 160],    [500, 620]]],
+            [100,   [[300, 400],    [1100, 1300]]]
+        ]
+        for values in fanLimits:
+            result = list()
+            pageWait.showItems(line3 = "STATUS: pwm %d" % values[0])
+            self.display.hw.setFansPwm((values[0], values[0], values[0]))
+            sleep(6)
+            for i in xrange(15):
+                rpm = self.display.hw.getFansRpm()
+                result.append(rpm)
+                self.display.hw.setFansPwm((values[0] + 4, values[0] + 4, values[0]) + 4)
+                sleep(0.5)
+                self.display.hw.setFansPwm((values[0], values[0], values[0]))
+                sleep(0.5)
+            #end
+            self.logger.debug("limits: %s", values)
+            self.logger.debug("pwm: %s", values[0])
+            self.logger.debug("rpm: %s", result)
+            for i in xrange(len(values[1])):
+                self.logger.debug("inside for i: %d, rpm: %s", i, rpm)
+                if rpm[i] < values[1][i][0] or rpm[i] > values[1][i][1]:
+                    if i == 0:
+                        fanName = "UV led"
+                    elif i == 1:
+                        fanName = "blower"
+                    #endif
+                    self.display.hw.setFansPwm((0, 0, 0))
+                    self.display.page_error.setParams(
+                        line1 = "RPM of %s fan not in range." % fanName,
+                        line2 = "Please check if the fan is connected correctly.",
+                        line3 = "PWM: %d, RPM: %s" % (values[0], rpm))
+                    return "error"
+                #endif
+            #endfor
+        #endfor
+        self.display.hwConfig.fanCheck = True
+        self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm, self.display.hwConfig.fan2Pwm, self.display.hwConfig.fan3Pwm))
+        
+        
+        #uv led VA
+        pageWait.showItems(line1 = "UV LED VA check")
+        pageWait.showItems(line3 = "STATUS: in progress...")
+        self.display.hw.setUvLedCurrent(0)
+        self.display.hw.uvLed(True)
+        
+        for current in xrange(0,800,100):
+            result = list()
+            pageWait.showItems(line3 = "STATUS: current %d mA" % current)
+            self.display.hw.setUvLedCurrent(current)
+            for i in xrange(15):
+                voltage = self.display.hw.getVoltages()
+                result.append(voltage)
+                sleep(1)
+            #endfor
+            self.logger.debug("voltages: %s", result)
+        #endfor
+        
+        self.display.hw.setUvLedCurrent(0)
+        self.display.hw.uvLed(False)
+
+        #uv led temp
+        pageWait.showItems(line1 = "UV LED temperature check")
+        pageWait.showItems(line3 = "STATUS: in progress...")
+        self.display.hwConfig.fanCheck = False
+        self.display.hw.setFansPwm((0, 0, 0))
+        self.display.hw.setUvLedCurrent(0)
+        self.display.hw.uvLed(True)
+        self.display.hw.setUvLedCurrent(700)
+        result = list()
+        for time in xrange(240, 0, -1):
+            pageWait.showItems(line3 = "STATUS: remaining time %d s" % time)
+            result.append([self.display.hw.getVoltages(), self.display.hw.getTemperatures()])
+            pageWait.showItems(line2 = "temperature %f" % result[-1][1][0])
+            sleep(1)
+        #endfor
+        self.logger.debug("UV LED temperatures: %s", result)
+        self.display.hw.setUvLedCurrent(0)
+        self.display.hw.uvLed(False)
+        self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm, self.display.hwConfig.fan2Pwm, self.display.hwConfig.fan3Pwm))
+        sleep(6)
+        self.display.hwConfig.fanCheck = True
+        self.display.hw.powerLed("normal")
+    #enddef
+
+#endclass
+
+
+class PageFindTiltProfiles(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = "Find tilt profiles"
+        super(PageFindTiltProfiles, self).__init__(display)
+        self.stack = False
+    #enddef
+
+
+    def show(self):
+        pageWait = PageWait(self.display,
+            line1 = "Searching for homingFast profile",
+            line2 = "Please wait...",
+            line3 = "")
+        pageWait.show()
+        profileFast = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingFast"], True, 2000, 75, 10, 24, 4, 10)
+        pageWait = PageWait(self.display,
+            line1 = "Searching for homingSlow profile",
+            line2 = "Please wait...",
+            line3 = "")
+        pageWait.show()
+        profileSlow = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingSlow"], False, 1200, 30, 10, 24, 3, 12)
+        if (profileSlow == None) or (profileFast == None):
+            resultMsg = "not found"
+        else:
+            resultMsg = "found"
+        #endif
+        self.display.page_confirm.setParams(
+                continueFce = self.findTiltProfilesStep1,
+                line1 = "Fast: %s" % profileFast,
+                line2 = "Slow: %s" % profileSlow,
+                line3 = "Tilt profiles %s" % resultMsg)
+        return "confirm"
+    #enddef
+
+
+    def findTiltProfilesStep1(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display, line2 = "Tilt home calibration")
+        pageWait.show()
+        self.display.hw.tiltHomeCalibrateWait()
+        self.display.hw.powerLed("normal")
+        return "_BACK_"
+    #enddef
+
+#endclass
+
+
 class PagePrintPreviewBase(Page):
 
     def __init__(self, display):
@@ -1042,12 +1318,14 @@ class PageQRCode(Page):
 #endclass
 
 
-class PagePrintBase(Page):
+class PagePrint(Page):
 
     def __init__(self, display, expo):
-        super(PagePrintBase, self).__init__(display)
+        self.pageUI = "print"
+        self.pageTitle = "Print"
         self.expo = expo
-        # enddef
+        super(PagePrint, self).__init__(display)
+    #enddef
 
 
     def fillData(self):
@@ -1060,7 +1338,7 @@ class PagePrintBase(Page):
 
     def show(self):
         self.items.update(self.fillData())
-        super(PageHomePrint, self).show()
+        super(PagePrint, self).show()
     #enddef
 
 
@@ -1091,7 +1369,7 @@ class PagePrintBase(Page):
         return "change"
     #enddef
 
-    def upoffButtonRelease(self):
+    def turnoffButtonRelease(self):
         self.display.page_confirm.setParams(
             continueFce=self.exitPrint,
             line1 = "Do you really want to",
@@ -1127,34 +1405,6 @@ class PagePrintBase(Page):
 
     def _pauseunpause_text(self):
         return 'UnPause' if self.expo.paused else 'Pause'
-    #enddef
-
-#endclass
-
-
-class PagePrint(PagePrintBase):
-
-    def __init__(self, display, expo):
-        self.pageUI = "print"
-        self.pageTitle = "Print"
-        super(PagePrint, self).__init__(display, expo)
-    #enddef
-
-
-    def setupButtonRelease(self):
-        return "homeprint"
-    #enddef
-
-#endclass
-
-
-class PageHomePrint(PagePrintBase):
-
-    def __init__(self, display, expo):
-        self.pageUI = "homeprint"
-        self.pageTitle = "Print Home"
-        super(PageHomePrint, self).__init__(display, expo)
-        self.expo = expo
     #enddef
 
 #endclass
@@ -1334,7 +1584,7 @@ class PageSysInfo(Page):
                 'line6' : "Python firmware version: %s" % defines.swVersion,
                 'line7' : "", # will be filled from getEvent()
                 'line8' : "API Key: %s" % self.octoprintAuth,
-                'serial_number': "#TODO",
+                'serial_number': self.display.hw.getCPUSerial(),
                 'system_name': self.display.hwConfig.os.name,
                 'system_version': self.display.hwConfig.os.version,
                 'firmware_version': defines.swVersion,
@@ -1344,8 +1594,8 @@ class PageSysInfo(Page):
 
 
     def show(self):
-        self.items['line5'] = "Controller version: %s" % self.display.hw.getControllerVersion()
-        self.items['line6'] = "Controller number: %s" % self.display.hw.getControllerSerial()
+        self.items['line4'] = "MC serial number: %s" % self.display.hw.getControllerSerial()
+        self.items['line5'] = "MC version: %s" % self.display.hw.getControllerVersion()
         self.items['controller_version'] = self.display.hw.getControllerVersion()
         self.items['controller_serial'] = self.display.hw.getControllerSerial()
         super(PageSysInfo, self).show()
@@ -1772,7 +2022,7 @@ class PageTiltTower(Page):
                 'button2' : "Tilt move",
                 'button3' : "Tilt test",
                 'button4' : "Tilt profiles",
-                'button5' : "Tilt home calib.",
+                'button5' : "Tilt profil calib.",
                 'button6' : "Tower home",
                 'button7' : "Tower move",
                 'button8' : "Tower test",
@@ -1845,6 +2095,39 @@ class PageTiltTower(Page):
 
 
     def button5Continue(self):
+        timeout = 60
+        self.display.hw.mcc.do("!ena", 3)
+        self.display.hw.setTiltProfile('layerRelease')
+        pageWait = PageWait(self.display,
+            line1 = "Printer warming up",
+            line2 = "Time remaining %d s" % timeout,
+            line3 = "Please wait...")
+        pageWait.show()
+        while timeout:
+            sleep(1)
+            timeout -= 1
+            pageWait.showItems(line2 = "Time remaining %d s" % timeout)
+        #endwhile
+        timeout = 10
+        self.display.hw.motorsRelease()
+        pageWait = PageWait(self.display,
+            line1 = "Printer cooling down",
+            line2 = "Time remaining %d s" % timeout,
+            line3 = "Please wait...")
+        pageWait.show()
+        while timeout:
+            sleep(1)
+            timeout -= 1
+            pageWait.showItems(line2 = "Time remaining %d s" % timeout)
+        #endwhile
+        '''
+        pageWait = PageWait(self.display,
+            line1 = "Searching for layerMove profile",
+            line2 = "Please wait...",
+            line3 = "")
+        pageWait.show()
+        layerMove = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["layerMove"], False, 2000, 100, 56, 60, 20, 29)
+        '''
         pageWait = PageWait(self.display,
             line1 = "Searching for homingFast profile",
             line2 = "Please wait...",
@@ -1857,16 +2140,15 @@ class PageTiltTower(Page):
             line3 = "")
         pageWait.show()
         profileSlow = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingSlow"], False, 1200, 30, 10, 24, 3, 12)
+        '''if (profileSlow == None) or (profileFast == None) or (layerMove == None):'''
         if (profileSlow == None) or (profileFast == None):
-            resultMsg = "not found"
+            resultMsg = "not found. Please adjust them manually."
         else:
-            resultMsg = "found"
+            resultMsg = "found."
         #endif
         self.display.page_confirm.setParams(
                 continueFce = self.button5Continue2,
-                line1 = "Fast: %s" % profileFast,
-                line2 = "Slow: %s" % profileSlow,
-                line3 = "Tilt profiles %s" % resultMsg)
+                line1 = "Tilt profiles %s" % resultMsg)
         return "confirm"
     #enddef
 
@@ -1876,6 +2158,7 @@ class PageTiltTower(Page):
         pageWait = PageWait(self.display, line2 = "Tilt home calibration")
         pageWait.show()
         self.display.hw.tiltHomeCalibrateWait()
+        self.display.hw.motorsRelease()
         self.display.hw.powerLed("normal")
         return "_BACK_"
     #enddef
@@ -2391,15 +2674,16 @@ class PageSetup(Page):
                 'label1g4' : "Use resin sensor",
                 'label1g5' : "Blink exposure",
                 'label1g6' : "Per-Partes expos.",
-                'label1g7' : "Tower Z hop",
+                'label1g8' : "Tower Z hop",
 
                 'label2g1' : "Screw (mm/rot)",
                 'label2g2' : "Tower msteps",
                 'label2g3' : "Tilt msteps",
                 'label2g4' : "Warm up mins",
                 'label2g5' : "Layer IR trigger [x0.1s]",
-                'label2g6' : "Calib. tower offset [um]",
+                'label2g6' : "Calib. tower offset [mm]",
                 'label2g7' : "MC board version",
+                'label2g8' : "Z hop layer fill [%]",
 
                 'button1' : "Export",
                 'button2' : "Import",
@@ -2419,14 +2703,16 @@ class PageSetup(Page):
         self.temp['trigger'] = self.display.hwConfig.trigger
         self.temp['calibtoweroffset'] = self.display.hwConfig.calibTowerOffset
         self.temp['mcboardversion'] = self.display.hwConfig.MCBoardVersion
+        self.temp['layerfill'] = self.display.hwConfig.layerFill
 
         self.items['value2g1'] = str(self.temp['screwmm'])
         self.items['value2g2'] = str(self.temp['towerheight'])
         self.items['value2g3'] = str(self.temp['tiltheight'])
         self.items['value2g4'] = str(self.temp['warmup'])
         self.items['value2g5'] = str(self.temp['trigger'])
-        self.items['value2g6'] = round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3)
+        self.items['value2g6'] = str(round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3))
         self.items['value2g7'] = str(self.temp['mcboardversion'])
+        self.items['value2g8'] = str(self.temp['layerfill'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
@@ -2442,7 +2728,7 @@ class PageSetup(Page):
         self.items['state1g4'] = 1 if self.temp['resinsensor'] else 0
         self.items['state1g5'] = 1 if self.temp['blinkexposure'] else 0
         self.items['state1g6'] = 1 if self.temp['perpartesexposure'] else 0
-        self.items['state1g7'] = 1 if self.temp['towerzhop'] else 0
+        self.items['state1g8'] = 1 if self.temp['towerzhop'] else 0
 
         super(PageSetup, self).show()
     #enddef
@@ -2520,8 +2806,8 @@ class PageSetup(Page):
     #enddef
 
 
-    def state1g7ButtonRelease(self):
-        self._onOff(6, 'towerzhop')
+    def state1g8ButtonRelease(self):
+        self._onOff(7, 'towerzhop')
     #enddef
 
     def minus2g1Button(self):
@@ -2576,14 +2862,14 @@ class PageSetup(Page):
 
     def minus2g6Button(self):
         self._value(5, 'calibtoweroffset', -400, 400, -1)
-        self.showItems(value2g6 = round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3))
+        self.showItems(value2g6 = str(round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3)))
         return
     #enddef
 
 
     def plus2g6Button(self):
         self._value(5, 'calibtoweroffset', -400, 400, 1)
-        self.showItems(value2g6 = round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3))
+        self.showItems(value2g6 = str(round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3)))
         return
     #enddef
 
@@ -2595,6 +2881,16 @@ class PageSetup(Page):
 
     def plus2g7Button(self):
         return self._value(6, 'mcboardversion', 4, 5, 1)
+    #enddef
+
+
+    def minus2g8Button(self):
+        return self._value(7, 'layerfill', 0, 100, -1)
+    #enddef
+
+
+    def plus2g8Button(self):
+        return self._value(7, 'layerfill', 0, 100, 1)
     #enddef
 
 #endclass
@@ -2914,12 +3210,11 @@ class PageCalibration(Page):
             sleep(0.25)
         #endwhile
         self.display.hw.powerLed("normal")
-        
+
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep2,
-            imageName = "01_loosen_screws.jpg",
-            line1 = "Loosen small screws on console.",
-            line2 = "Be careful not to unscrew them completely.")
+            imageName = "06_tighten_knob.jpg",
+            line1 = "Insert the platfom and secure it with black knob.")
         return "confirm"
     #enddef
 
@@ -2927,8 +3222,8 @@ class PageCalibration(Page):
     def recalibrateStep2(self):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep3,
-            #TODO add image
-            line1 = "Insert the platfom and secure it with black knob.")
+            imageName = "01_loosen_screws.jpg",
+            line1 = "Loosen small screws on the console. Be careful not to unscrew them completely.")
         return "confirm"
     #enddef
 
@@ -2937,8 +3232,7 @@ class PageCalibration(Page):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep4,
             imageName = "02_place_bed.jpg",
-            line1 = "Unscrew the tank, remove the bolts, turn it by 90 degrees",
-            line2 = "and lay it down on the base so it is across tilt.")
+            line1 = "Unscrew the tank and turn it 90 degrees on the base so it lies across tilt.")
         return "confirm"
     #enddef
 
@@ -2953,8 +3247,7 @@ class PageCalibration(Page):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep5,
             imageName = "03_proper_aligment.jpg",
-            line1 = "Move tilt up until the tank",
-            line2 = "gets lifted by 0.1 mm above the base.")
+            line1 = "Move tilt up until the tank gets lifted by 0.1 mm above the base.")
         return "confirm"
     #enddef
 
@@ -2995,7 +3288,7 @@ class PageTiltCalib(MovePage):
         #endif
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep2,
-            #TODO add image
+            imageName = "08_clean.jpg",
             line1 = "Make sure the platform, tank and tilt are perfectly clean.")
         return "confirm"
     #endif
@@ -3037,8 +3330,7 @@ class PageTiltCalib(MovePage):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep3,
             imageName = "04_tighten_screws.jpg",
-            line1 = "Screw down the tank.",
-            line2 = "Make sure you tighten both screws evenly.")
+            line1 = "Screw down the tank. Make sure you tighten both screws evenly.")
         return "confirm"
     #enddef
 
@@ -3046,7 +3338,7 @@ class PageTiltCalib(MovePage):
     def recalibrateStep3(self):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep4,
-            #TODO add image
+            imageName = "06_tighten_knob.jpg",
             line1 = "Check if the platform is properly secured with black knob.")
         return "confirm"
     #enddef
@@ -3087,7 +3379,7 @@ class PageTiltCalib(MovePage):
             sleep(0.25)
         #endwhile
         self.logger.debug("tower position min: %d", self.display.hw.getTowerPositionMicroSteps())
-        if self.display.hw.getTowerPositionMicroSteps() == self.display.hw._towerMin or self.display.hw.getTowerPositionMicroSteps() < (- self.display.hw._towerEnd - self.display.hwConfig.calcMicroSteps(2.7)):
+        if self.display.hw.getTowerPositionMicroSteps() <= self.display.hw._towerMin:
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSync()
             while not self.display.hw.isTowerSynced():
@@ -3119,8 +3411,7 @@ class PageTiltCalib(MovePage):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep5,
             imageName = "05_align_platform.jpg",
-            line1 = "Turn the platform so it is aligned",
-            line2 = "with exposition display.")
+            line1 = "Turn the platform to align it with exposition display.")
         return "confirm"
     #enddef
 
@@ -3128,8 +3419,8 @@ class PageTiltCalib(MovePage):
     def recalibrateStep5(self):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep6,
-            #TODO add image
-            line1 = "Tighten small srews on the console litle by little.")
+            imageName = "07_tighten_screws.jpg",
+            line1 = "Tighten small srews on the console litle by little. Be careful to tighten them evenly as much as possible.")
         return "confirm"
     #enddef
 
@@ -3993,34 +4284,33 @@ class PageFeedMe(Page):
 class PageTuneTilt(ProfilesPage):
 
     def __init__(self, display):
-        self.profilesFilename = "tune_tilt_profiles.json"
+        self.profilesFilename = "tilt_tune_profiles.json"
         self.profilesNames = display.hw.getTiltProfilesNames()
         self.pageTitle = "Admin - Tilt Tune"
         super(PageTuneTilt, self).__init__(display, items = {
-                "label1g1" : 'tilt down large fill',
-                "label1g2" : 'tilt down small fill',
-                "label1g3" : 'tilt up',
+                "label1g1" : 'tilt down',
+                "label1g2" : 'tilt up',
 
-                "label2g1" : "slow profile",
-                "label2g2" : "slow steps",
-                "label2g3" : "slow sleep",
-                "label2g4" : "slow repeat",
-                "label2g5" : "fast profile",
-                "label2g6" : "area fill [%]",
+                "label2g1" : "offset steps",
+                "label2g2" : "offset delay [ms]",
+                "label2g3" : "release cycles",
+                "label2g4" : "release delay [ms]",
+                "label2g5" : "homing tolerance",
+                "label2g6" : "homing cycles",
 
                 "button1" : "Export",
                 "button2" : "Import",
                 "button4" : "Save",
                 "back" : "Back",
                 })
-        self.nameIndexes = set((0,4))
+        self.nameIndexes = set()
         self.profileItems = 6
     #enddef
 
 
     def show(self):
         super(PageTuneTilt, self).show()
-        self.profiles = deepcopy(self.display.hwConfig.tuneTilt)
+        self.profiles = deepcopy(self.display.hwConfig.tiltTune)
         self._setProfile()
     #enddef
 
@@ -4028,9 +4318,8 @@ class PageTuneTilt(ProfilesPage):
     def button4ButtonRelease(self):
         ''' save '''
         self.display.hwConfig.update(
-            tiltdownlargefill = ' '.join(str(n) for n in self.profiles[0]),
-            tiltdownsmallfill = ' '.join(str(n) for n in self.profiles[1]),
-            tiltup = ' '.join(str(n) for n in self.profiles[2])
+            tilttunedown = ' '.join(str(n) for n in self.profiles[0]),
+            tilttuneup = ' '.join(str(n) for n in self.profiles[1])
         )
         if not self.display.hwConfig.writeFile():
             self.display.hw.beepAlarm(3)
@@ -4046,6 +4335,11 @@ class PageTuneTilt(ProfilesPage):
         self.display.page_tiltmove.changeProfiles(True)
         return super(PageTuneTilt, self).backButtonRelease()
     #endif
+
+
+    def state1g3ButtonRelease(self):
+        pass
+    #enddef
 
 
     def state1g4ButtonRelease(self):
@@ -4073,86 +4367,72 @@ class PageTuneTilt(ProfilesPage):
     #enddef
 
 
+    #offset steps
     def minus2g1Button(self):
-        return self._value(0, 0, 7, -1)
+        return self._value(0, 0, 2000, -1)
     #enddef
 
 
     def plus2g1Button(self):
-        return self._value(0, 0, 7, 1)
+        return self._value(0, 0, 2000, 1)
     #enddef
 
 
+    #offset delay [ms]
     def minus2g2Button(self):
-        return self._value(1, 10, 2000, -10)
+        return self._value(1, 0, 4000, -10)
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(1, 10, 2000, 10)
+        return self._value(1, 10, 4000, 10)
     #enddef
 
-
+    #release cycles
     def minus2g3Button(self):
-        return self._value(2, 0, 4000, -100)
+        return self._value(2, 0, 10, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(2, 0, 4000, 100)
+        return self._value(2, 0, 10, 1)
     #enddef
 
-
+    #release delay [ms]
     def minus2g4Button(self):
-        return self._value(3, 1, 10, -1)
+        return self._value(3, 0, 4000, -10)
     #enddef
 
 
     def plus2g4Button(self):
-        return self._value(3, 1, 10, 1)
+        return self._value(3, 0, 4000, 10)
     #enddef
 
-
+    #homing tolerance
     def minus2g5Button(self):
-        return self._value(4, 0, 7, -1)
+        return self._value(4, 0, 512, -1)
     #enddef
 
 
     def plus2g5Button(self):
-        return self._value(4, 0, 7, 1)
+        return self._value(4, 0, 512, 1)
     #enddef
 
-
+    #homing cycles
     def minus2g6Button(self):
-        if self.profiles[self.actualProfile][5] > 0:
-            for i in xrange(len(self.profiles)):
-                self.profiles[i][5] -= 1
-            #endfor
-            self.showItems(**{ 'value2g6' : str(self.profiles[self.actualProfile][5]) })
-        else:
-            self.display.hw.beepAlarm(1)
-        #endif
+        return self._value(5, 0, 10, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        if self.profiles[self.actualProfile][5] < 100:
-            for i in xrange(len(self.profiles)):
-                self.profiles[i][5] += 1
-            #endfor
-            self.showItems(**{ 'value2g6' : str(self.profiles[self.actualProfile][5]) })
-        else:
-            self.display.hw.beepAlarm(1)
-        #endif
+        return self._value(5, 0, 10, 1)
     #enddef
 
-
-    def minus2g7Button(self):
+    def minus2g8Button(self):
         pass
     #enddef
-
-
-    def plus2g7Button(self):
+    
+    def plus2g8Button(self):
         pass
     #enddef
 
