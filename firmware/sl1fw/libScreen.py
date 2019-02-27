@@ -6,6 +6,7 @@ import os
 import sys
 import signal
 import logging
+from time import time
 import multiprocessing
 from Queue import Empty
 from cStringIO import StringIO
@@ -26,11 +27,10 @@ class ScreenServer(multiprocessing.Process):
     def __init__(self, hwConfig, commands, results):
         super(ScreenServer, self).__init__()
         self.logger = logging.getLogger(__name__)
-        self.hwConfig = hwConfig
+        self.hwConfig = hwConfig    # FIXME - changes from admin are not taken here until reboot!
         self.commands = commands
         self.results = results
         self.stoprequest = multiprocessing.Event()
-        self.perPartes = False
     #enddef
 
 
@@ -64,6 +64,9 @@ class ScreenServer(multiprocessing.Process):
         #self.logger.debug("screen size is %dx%d pixels", self.width, self.height)
         self.overlays = dict()
         self.zf = None
+        self.perPartes = False
+        self.nextImage1 = None
+        self.nextImage2 = None
 
         while not self.stoprequest.is_set():
             result = False
@@ -136,6 +139,8 @@ class ScreenServer(multiprocessing.Process):
 
 
     def openZip(self, filename):
+        self.nextImage1 = None
+        self.nextImage2 = None
         try:
             self.zf = zipfile.ZipFile(filename, 'r')
             return True
@@ -147,54 +152,92 @@ class ScreenServer(multiprocessing.Process):
 
 
     def preloadImg(self, filename, overlayName):
-        self.logger.debug("preload of %s started", filename)
-        filedata = self.zf.read(filename)
+
+        if self.nextImage2:
+            self.logger.debug("second part of image exist - no preloading")
+            return
+        #endif
+
         try:
-            with open(defines.livePreviewImage, "w") as f:
-                f.write(filedata)
-            #endwith
+            self.logger.debug("preload of %s started", filename)
+
+            startTimeFirst = time()
+            filedata = self.zf.read(filename)
+            filedata_io = StringIO(filedata)
+            self.nextImage1 = pygame.image.load(filedata_io, filename).convert()
+            self.logger.debug("load time: %f secs", time() - startTimeFirst)
+
+            startTime = time()
+            pixels = pygame.surfarray.pixels3d(self.nextImage1)
+            hist = numpy.histogram(pixels, [0, 51, 102, 153, 204, 255])
+            del pixels
+            self.whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4]) / 3
+            self.logger.debug("pixelcount time: %f secs, whitePixels: %f", time() - startTime, self.whitePixels)
+
+            overlay = self.overlays.get(overlayName, None)
+            if overlay:
+                self.nextImage1.blit(overlay, (0,0))
+            #endif
+            overlay = self.overlays.get('mask', None)
+            if overlay:
+                self.nextImage1.blit(overlay, (0,0))
+            #endif
+            if self.perPartes and self.whitePixels > self.hwConfig.whitePixelsThd:
+                self.nextImage2 = self.nextImage1.copy()
+                self.nextImage1.blit(self.overlays['ppm1'], (0,0))
+                self.nextImage2.blit(self.overlays['ppm2'], (0,0))
+            else:
+                self.nextImage2 = None
+            #endif
+
+            self.logger.debug("preload of %s done in %f secs", filename, time() - startTimeFirst)
         except Exception as e:
-            self.logger.exception("live preview exception:")
+            self.logger.exception("preload exception:")
         #endtry
-
-        filedata_io = StringIO(filedata)
-        self.nextImage1 = pygame.image.load(filedata_io, filename).convert()
-
-        self.logger.debug("pixelcount of %s started", filename)
-        pixels = pygame.surfarray.pixels3d(self.nextImage1)
-        hist = numpy.histogram(pixels, [0, 51, 102, 153, 204, 255])
-        del pixels
-        self.whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4]) / 3
-        self.logger.debug("pixelcount of %s done, whitePixels: %f", filename, self.whitePixels)
-
-        overlay = self.overlays.get(overlayName, None)
-        if overlay:
-            self.nextImage1.blit(overlay, (0,0))
-        #endif
-        overlay = self.overlays.get('mask', None)
-        if overlay:
-            self.nextImage1.blit(overlay, (0,0))
-        #endif
-        if self.perPartes and self.whitePixels > self.hwConfig.whitePixelsThd:
-            self.nextImage2 = self.nextImage1.copy()
-            self.nextImage1.blit(self.overlays['ppm1'], (0,0))
-            self.nextImage2.blit(self.overlays['ppm2'], (0,0))
-        #endif
-        self.logger.debug("preload of %s done", filename)
     #enddef
 
 
     def blitImg(self, second = False):
+	startTime = time()
         self.logger.debug("blit started")
         if second:
             self.screen.blit(self.nextImage2, (0,0))
+            self.nextImage2 = None
         else:
             self.screen.blit(self.nextImage1, (0,0))
+            self.nextImage1 = None
         #endif
         pygame.display.flip()
         self._writefb()
-        self.logger.debug("blit done")
+	self.logger.debug("blit done in %f secs", time() - startTime)
         return self.whitePixels
+    #enddef
+
+
+    def screenshot(self, second):
+        screen = self.nextImage2 if second else self.nextImage1
+        if screen:
+            try:
+                startTime = time()
+                pygame.image.save(screen, defines.livePreviewImage + "-tmp.png")
+                self.logger.debug("screenshot time: %f secs", time() - startTime)
+            except Exception as e:
+                self.logger.exception("screenshot exception:")
+            #endtry
+        else:
+            self.logger.warning("try to shot epmty screen %d", 2 if second else 1)
+        #endif
+    #enddef
+
+
+    def screenshotRename(self):
+	startTime = time()
+        try:
+            os.rename(defines.livePreviewImage + "-tmp.png", defines.livePreviewImage)
+        except Exception as e:
+            self.logger.exception("screenshotRename exception:")
+        #endtry
+	self.logger.debug("rename time: %f secs", time() - startTime)
     #enddef
 
 
@@ -330,6 +373,17 @@ class Screen(object):
         kwargs['fce'] = 'blitImg'
         self.commands.put(kwargs)
         return self.results.get()
+    #enddef
+
+
+    def screenshot(self, **kwargs):
+        kwargs['fce'] = 'screenshot'
+        self.commands.put(kwargs)
+    #enddef
+
+
+    def screenshotRename(self):
+        self.commands.put({ 'fce' : "screenshotRename" })
     #enddef
 
 
