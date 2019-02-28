@@ -24,7 +24,7 @@ perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 
 configFile = "config.ini"
 maskFilename = "mask.png"
-projectExtension = ".dwz"
+projectExtensions = set((".dwz", ".sl1"))
 
 cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
 
