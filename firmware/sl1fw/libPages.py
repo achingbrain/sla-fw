@@ -1273,7 +1273,7 @@ class SourceDir:
                 }
             else:
                 (name, extension) = os.path.splitext(item)
-                if extension == defines.projectExtension:
+                if extension in defines.projectExtensions:
                     yield {
                         'type': 'project',
                         'name': name,
@@ -3088,42 +3088,42 @@ class ProfilesPage(Page):
 
 
     def minus2g1Button(self):
-        return self._value(0, 100, 20000, -10)
+        return self._value(0, 0, 20000, -10)
     #enddef
 
 
     def plus2g1Button(self):
-        return self._value(0, 100, 20000, 10)
+        return self._value(0, 0, 20000, 10)
     #enddef
 
 
     def minus2g2Button(self):
-        return self._value(1, 100, 20000, -10)
+        return self._value(1, 0, 20000, -10)
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(1, 100, 20000, 10)
+        return self._value(1, 0, 20000, 10)
     #enddef
 
 
     def minus2g3Button(self):
-        return self._value(2, 12, 600, -1)
+        return self._value(2, 0, 600, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(2, 12, 600, 1)
+        return self._value(2, 0, 600, 1)
     #enddef
 
 
     def minus2g4Button(self):
-        return self._value(3, 12, 600, -1)
+        return self._value(3, 0, 600, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        return self._value(3, 12, 600, 1)
+        return self._value(3, 0, 600, 1)
     #enddef
 
 

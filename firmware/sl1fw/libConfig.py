@@ -368,7 +368,7 @@ class PrintConfig(FileConfig):
 
     def parseFile(self, zipFile):
         super(PrintConfig, self).parseFile(zipFile)
-        self._logger.debug("Trying DWZ file'%s'", zipFile)
+        self._logger.debug("Trying project file'%s'", zipFile)
 
         # ????
         if zipFile is None:
@@ -376,7 +376,7 @@ class PrintConfig(FileConfig):
         #endif
 
         if not os.path.isfile(zipFile):
-            self._logger.exception("DWZ lookup exception: file not exits: " + zipFile)
+            self._logger.exception("Project lookup exception: file not exits: " + zipFile)
         #endif
 
         try:
@@ -384,7 +384,7 @@ class PrintConfig(FileConfig):
             self.parseText(projFile.read(defines.configFile))
 
             if len(self.action):
-                self._logger.debug("Found DWZ file '%s'", zipFile)
+                self._logger.debug("Found project file '%s'", zipFile)
 
                 # Set paths
                 dirName = os.path.dirname(zipFile)
@@ -401,7 +401,7 @@ class PrintConfig(FileConfig):
         except OSError:
             pass
         except Exception as e:
-            self._logger.exception("DWZ lookup exception:")
+            self._logger.exception("Project lookup exception:")
         #endtry
 
     def readZipFile(self):
