@@ -310,6 +310,42 @@ class Page(object):
     #enddef
 
 
+    def writeToFactory(self, saveFce):
+        try:
+            self.logger.info("Remounting factory partition rw")
+            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", defines.factoryMountPoint])
+            saveFce()
+        except:
+            self.logger.exception("Failed to save to factory partition")
+            return False
+        finally:
+            try:
+                self.logger.info("Remounting factory partition ro")
+                subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", defines.factoryMountPoint])
+            except:
+                self.logger.exception("Failed to remount factory partion ro")
+            #endtry
+        #endtry
+        return True
+    #enddef
+
+
+    def saveDefaultsFile(self):
+        defaults = {
+            'fan1pwm': self.display.hwConfig.fan1Pwm,
+            'fan2pwm': self.display.hwConfig.fan2Pwm,
+            'fan3pwm': self.display.hwConfig.fan3Pwm,
+            'uvcurrent': self.display.hwConfig.uvCurrent,
+        }
+
+        with open(defines.hwConfigFactoryDefaultsFile, "w") as file:
+            toml.dump(defaults, file)
+        #endwith
+
+        self.display.hwConfig._defaults = defaults
+    #enddef
+
+
     def _onOff(self, index, val):
         if isinstance(self.temp[val], libConfig.MyBool):
             self.temp[val].inverse()
@@ -547,7 +583,7 @@ Please contact tech support!
             return "error"
         #endif
 
-        if temp > self.display.hw._maxUVTemp:
+        if temp > defines.maxUVTemp:
             if expoInProgress:
                 self.display.expo.doPause()
             else:
@@ -557,7 +593,7 @@ Please contact tech support!
             pageWait = PageWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down..."))
             pageWait.show()
             self.display.hw.beepAlarm(3)
-            while(temp > self.display.hw._maxUVTemp - 10): # hystereze
+            while(temp > defines.maxUVTemp - 10): # hystereze
                 pageWait.showItems(line3 = _("Temperature is %.1f C") % temp)
                 sleep(10)
                 temp = self.display.hw.getUvLedTemperature()
@@ -617,14 +653,14 @@ Please contact tech support!
         self.checkOverTempSkip = 0
 
         A64temperature = self.display.hw.getCpuTemperature()
-        if A64temperature > self.display.hw._maxA64Temp - 10: # 60 C
+        if A64temperature > defines.maxA64Temp - 10: # 60 C
             self.logger.warning("Printer is overheating! Measured %.1f °C on A64.", A64temperature)
             self.display.hw.startFans()
             #self.checkCooling = True #shouldn't this start the fan check also?
         #endif
         '''
         do not shut down the printer for now
-        if A64temperature > self.display.hw._maxA64Temp: # 70 C
+        if A64temperature > defines.maxA64Temp: # 70 C
             self.logger.warning("Printer is shuting down due to overheat! Measured %.1f °C on A64.", A64temperature)
             self.display.page_error.setParams(
                 text = _(u"""Printers temperature is too high. Measured: %.1f °C!
@@ -664,6 +700,14 @@ Shutting down in 10 seconds...""") % A64temperature)
                 self.logger.exception("ramdiskCleanup() exception:")
             #endtry
         #endfor
+    #enddef
+
+
+    def allOff(self):
+        self.display.screen.getImgBlack()
+        self.display.hw.uvLed(False)
+        self.display.hw.stopFans()
+        self.display.hw.motorsRelease()
     #enddef
 
 #endclass
@@ -731,6 +775,56 @@ class PageConfirm(Page):
             return super(PageConfirm, self).backButtonRelease()
         else:
             return self.backFce(**self.backParams)
+        #endif
+    #enddef
+
+#endclass
+
+
+class PageYesNo(Page):
+
+    def __init__(self, display):
+        self.pageUI = "yesno"
+        self.pageTitle = _("Make your choice")
+        super(PageYesNo, self).__init__(display)
+        self.stack = False
+    #enddef
+
+
+    def setParams(self, **kwargs):
+        self.yesFce = kwargs.pop("yesFce", None)
+        self.yesParams = kwargs.pop("yesParams", dict())
+        self.noFce = kwargs.pop("noFce", None)
+        self.noParams = kwargs.pop("noParams", dict())
+        self.beep = kwargs.pop("beep", False)
+        self.pageTitle = kwargs.pop("pageTitle", _("Make your choice"))
+        self.fill()
+        self.items.update(kwargs)
+    #enddef
+
+
+    def show(self):
+        super(PageYesNo, self).show()
+        if self.beep:
+            self.display.hw.beepAlarm(1)
+        #endif
+    #enddef
+
+
+    def yesButtonRelease(self):
+        if self.yesFce is None:
+            return "_OK_"
+        else:
+            return self.yesFce(**self.yesParams)
+        #endif
+    #enddef
+
+
+    def noButtonRelease(self):
+        if self.noFce is None:
+            return "_NOK_"
+        else:
+            return self.noFce(**self.noParams)
         #endif
     #enddef
 
@@ -862,7 +956,7 @@ Please check if temperature sensors are connected correctly.""") % self.display.
             #endif
         #endfor
 
-        if temperatures[1] < self.display.hw._minAmbientTemp:
+        if temperatures[1] < defines.minAmbientTemp:
             self.display.page_confirm.setParams(
                     continueFce = self.contButtonContinue1,
                     text = _("""Ambient temperature is under recommended value.
@@ -873,7 +967,7 @@ Do you want to continue?"""))
             return "confirm"
         #endif
 
-        if temperatures[1] > self.display.hw._maxAmbientTemp:
+        if temperatures[1] > defines.maxAmbientTemp:
             self.display.page_confirm.setParams(
                     continueFce = self.contButtonContinue1,
                     text = _("""Ambient temperature is over recommended value.
@@ -989,8 +1083,7 @@ Check if fans are connected properly and can rotate without resistance.""" % ", 
     #enddef
 
     def backButtonRelease(self):
-        self.display.hw.motorsRelease()
-        self.display.hw.stopFans()
+        self.allOff()
         self.ramdiskCleanup()
         self.display.goBack(2)
     #enddef
@@ -1033,8 +1126,7 @@ Resin will have to be added during this print job."""),
 
 
     def backButtonRelease(self):
-        self.display.hw.motorsRelease()
-        self.display.hw.stopFans()
+        self.allOff()
         self.ramdiskCleanup()
         self.display.goBack(3)
     #enddef
@@ -3563,7 +3655,7 @@ class PageDisplay(Page):
                 'button5' : _("Maze"),
 
                 'button6' : "USB:/test.png",
-                'button7' : "Prusa logo",
+                'button7' : _("Prusa logo"),
                 'button8' : "",
                 'button9' : "",
                 'button10' : _("Infinite test"),
@@ -3571,21 +3663,10 @@ class PageDisplay(Page):
                 'button11' : _("Black"),
                 'button12' : _("Inverse"),
                 'button13' : "",
-                'button14' : "",
-                'button15' : "",
+                'button14' : _("UV on"),
+                'button15' : _("UV calibration"),
                 })
         self.checkCooling = True
-    #enddef
-
-
-    def show(self):
-        self.display.hw.startFans()
-        self.display.screen.getImgBlack()
-        self.display.screen.inverse()
-        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
-        self.display.hw.uvLed(True)
-        self.items['button14'] = _("UV off")
-        super(PageDisplay, self).show()
     #enddef
 
 
@@ -3723,15 +3804,363 @@ class PageDisplay(Page):
     def button14ButtonRelease(self):
         state = not self.display.hw.getUvLedState()[0]
         self.showItems(button14 = _("UV off") if state else _("UV on"))
+        if state:
+            self.display.hw.startFans()
+            self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        else:
+            self.display.hw.stopFans()
+        #endif
+
         self.display.hw.uvLed(state)
     #enddef
 
 
+    def button15ButtonRelease(self):
+        return "uvcalibrationtest"
+    #enddef
+
+
     def backButtonRelease(self):
-        self.display.hw.uvLed(False)
-        self.display.screen.getImgBlack()
-        self.display.hw.stopFans()
+        self.allOff()
         return super(PageDisplay, self).backButtonRelease()
+    #enddef
+
+#endclass
+
+
+class PageUvCalibration(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("UV LED calibration")
+        super(PageUvCalibration, self).__init__(display)
+        self.checkCooling = True
+    #enddef
+
+
+    def show(self):
+        self.items.update({
+            'text' : _(u"This will calibrate the UV LED current for intensity "
+            u"%(int)d on temperature %(temp)d °C.\n\nCalibrated UV LED meter "
+            u"connected to the USB port will be required after warm up.")
+            % { 'int' : self.display.hwConfig.uvCalibIntensity, 'temp' : self.display.hwConfig.uvCalibTemp }})
+        super(PageUvCalibration, self).show()
+    #enddef
+
+
+    def contButtonRelease(self):
+        pageWait = PageWait(self.display,
+            line1 = _("UV calibration"),
+            line2 = _(u"Warming up to %d °C") % self.display.hwConfig.uvCalibTemp)
+        pageWait.show()
+
+        self.display.hw.startFans()
+        self.display.hw.setUvLedCurrent(defines.uvLedMeasMaxCurr)
+        self.display.screen.getImgBlack()
+        self.display.screen.inverse()
+        self.display.hw.uvLed(True)
+
+        retc = self._syncTilt()
+        if retc == "error":
+            return retc
+        #endif
+        self.display.hw.tiltLayerUpWait()
+
+        temp = -1
+        while temp < self.display.hwConfig.uvCalibTemp:
+            temp = self.display.hw.getUvLedTemperature()
+            pageWait.showItems(line3 = _(u"Actual temperature: %.1f °C") % temp)
+            sleep(1)
+        #endwhile
+
+        self.display.page_confirm.setParams(
+                continueFce = self.contButtonContinue,
+                text = _("Connect the UV LED meter and wait few seconds."))
+        return "confirm"
+    #enddef
+
+
+    def contButtonContinue(self):
+        return "uvmeter"
+    #enddef
+
+
+    def off(self):
+        self.allOff()
+        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+    #enddef
+
+
+    def _EXIT_(self):
+        self.off()
+        return "_EXIT_"
+    #enddef
+
+
+    def _BACK_(self):
+        self.off()
+        return "_BACK_"
+    #enddef
+
+#endclass
+
+
+class PageUvMeterShow(Page):
+
+    def __init__(self, display):
+        self.pageUI = "picture"
+        self.pageTitle = _("UV LED calibration")
+        super(PageUvMeterShow, self).__init__(display)
+        self.checkCooling = True
+        from sl1fw.libUvLedMeter import UvLedMeter
+        self.uvmeter = UvLedMeter()
+    #enddef
+
+
+    def generatePicture(self, data):
+        imagePath = os.path.join(defines.ramdiskPath, "uvcalib.png")
+        self.uvmeter.savePic(800, 400, "%.1f mA" % data['uvFoundCurrent'], imagePath, data)
+        self.setItems(image_path = "file://%s" % imagePath)
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+
+    def _BACK_(self):
+        return "_BACK_"
+    #enddef
+
+#enddef
+
+
+class PageUvCalibrationTest(PageUvMeterShow):
+
+    def prepare(self):
+        if self.display.wizardData.uvFoundCurrent < 0:
+            return "uvcalibration"
+        #enddef
+        self.generatePicture(self.display.wizardData.getDict())
+    #enddef
+
+
+    def backButtonRelease(self):
+        self.display.page_yesno.setParams(
+                yesFce = self.toCalibration,
+                pageTitle = "Recalibrate?",
+                text = _("The UV LED is already calibrated.\n\n"
+                    "Would you like to recalibrate?"))
+        return "yesno"
+    #enddef
+
+
+    def toCalibration(self):
+        return "uvcalibration"
+    #enddef
+
+
+    def _NOK_(self):
+        return "_BACK_"
+    #enddef
+
+#endclass
+
+
+class PageUvMeter(PageUvMeterShow):
+
+    def prepare(self):
+        pageWait = PageWait(self.display,
+            line1 = _("UV calibration"),
+            line2 = _("Connecting to the UV LED meter"))
+        pageWait.show()
+
+        if not self.uvmeter.connect():
+            self.display.page_error.setParams(text = _("The UV LED meter is not "
+                "detected.\n\nCheck the connection and try again."))
+            self.allOff()
+            return "error"
+        #endif
+
+        pageWait.showItems(line2 = _("Reading data..."))
+        if not self.uvmeter.read():
+            self.display.page_error.setParams(text = _("Cannot read data from the UV LED meter."
+                "\n\nCheck the connection and try again."))
+            self.allOff()
+            return "error"
+        #endif
+
+        realCurrent = self.display.hw.getUvLedCurrent()
+        data = self.uvmeter.getData()
+        self.logger.info("UV calibration - current:%.1f  data:%s", realCurrent, str(data))
+
+        if data['uvMean'] < self.display.hwConfig.uvCalibIntensity:
+            self.display.page_error.setParams(text = _("Requested intensity "
+                "cannot be reached by max. allowed current.\n\nChange the "
+                "values and try again."))
+            self.allOff()
+            return "error"
+        #endif
+
+        imagePath = os.path.join(defines.ramdiskPath, "uvcalib-%.1f.png" % realCurrent)
+        self.uvmeter.savePic(800, 400, "%.1f mA" % realCurrent, imagePath, data)
+        self.setItems(image_path = "file://%s" % imagePath)
+
+        self.topCurrent = defines.uvLedMeasMaxCurr
+        self.bottomCurrent = defines.uvLedMeasMinCurr
+        self.testCurrent = self.bottomCurrent
+        self.display.hw.setUvLedCurrent(self.testCurrent)
+        self.lastCallback = datetime.now()
+        self.iterCnt = 15
+    #enddef
+
+
+    def callback(self):
+        retc = super(PageUvMeter, self).callback()
+        if retc:
+            return retc
+        #endif
+
+        if (datetime.now() - self.lastCallback).total_seconds() < 3:
+            return
+        #endif
+
+        realCurrent = self.display.hw.getUvLedCurrent()
+        if not self.uvmeter.read():
+            self.display.page_error.setParams(text = _("Cannot read data from the UV LED meter."
+                "\n\nCheck the connection and try again."))
+            self.allOff()
+            return "error"
+        #endif
+        data = self.uvmeter.getData()
+        self.logger.info("UV calibration - current:%.1f  data:%s", realCurrent, str(data))
+
+        if int(self.testCurrent) == int(self.bottomCurrent) and data['uvMean'] > self.display.hwConfig.uvCalibIntensity:
+            self.display.page_error.setParams(text = _("Requested intensity "
+                "cannot be reached by min. allowed current.\n\nChange the "
+                "values and try again."))
+            self.allOff()
+            return "error"
+        #endif
+
+        imagePath = os.path.join(defines.ramdiskPath, "uvcalib-%.1f.png" % realCurrent)
+        self.uvmeter.savePic(800, 400, "%.1f mA" % realCurrent, imagePath, data)
+        self.showItems(image_path = "file://%s" % imagePath)
+
+        if int(round(data['uvMean'])) == self.display.hwConfig.uvCalibIntensity:
+            if data['uvStdDev'] > 20.0:
+                self.display.page_error.setParams(text = _("The correct settings "
+                    "was found but standard deviation (%.1f) is greater than "
+                    "allowed value (20.0).\n\nVerify the UV LED meter position "
+                    "and calibration, then try again.") % data['uvStdDev'])
+                self.allOff()
+                return "error"
+            #endif
+
+            self.display.wizardData.update(**data)
+            self.display.wizardData.update(uvFoundCurrent = realCurrent)
+            self.allOff()
+            return "uvcalibrationconfirm"
+        #endif
+
+        self.iterCnt -= 1
+        if not self.iterCnt:
+            self.display.page_error.setParams(text = _("Cannot find the correct "
+                "settings for the specified intensity.\n\nVerify the UV LED "
+                "meter position and calibration or change the values, then try "
+                "again."))
+            self.allOff()
+            return "error"
+        #endif
+
+        if data['uvMean'] < self.display.hwConfig.uvCalibIntensity:
+            self.bottomCurrent = self.testCurrent
+        else:
+            self.topCurrent = self.testCurrent
+        #endif
+
+        self.testCurrent = (self.topCurrent - self.bottomCurrent) / 2 + self.bottomCurrent
+        self.display.hw.setUvLedCurrent(self.testCurrent)
+        self.lastCallback = datetime.now()
+    #enddef
+
+#endclass
+
+
+class PageUvCalibrationConfirm(Page):
+
+    def __init__(self, display):
+        self.pageUI = "yesno"
+        self.pageTitle = _("Show calibration data?")
+        super(PageUvCalibrationConfirm, self).__init__(display)
+        self.checkCooling = True
+    #enddef
+
+
+    def show(self):
+        self.items.update({
+            'text' : _("The result of calibration\nCurrent: %(cur).1f mA\n"
+                "Intensity: %(int).1f\n"
+                "Standard deviation: %(dev).1f\n\n"
+                "Would you like to see the calibration data?")
+            % { 'cur' : self.display.wizardData.uvFoundCurrent,
+                'int' : self.display.wizardData.uvMean,
+                'dev' : self.display.wizardData.uvStdDev,
+                }})
+        super(PageUvCalibrationConfirm, self).show()
+    #enddef
+
+
+    def yesButtonRelease(self):
+        self.display.page_uvmetershow.generatePicture(self.display.wizardData.getDict())
+        return "uvmetershow"
+    #endif
+
+
+    def noButtonRelease(self):
+        self.display.page_yesno.setParams(
+                pageTitle = "Apply calibration?",
+                text = _("Would you like to apply the calibration?"))
+        return "yesno"
+    #endif
+
+
+    def _BACK_(self):
+        return self.noButtonRelease()
+    #enddef
+
+
+    def _OK_(self):
+        self.display.hwConfig.update(uvcurrent = self.display.wizardData.uvFoundCurrent)
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text = _("Cannot save configuration"))
+            return "error"
+        #endif
+        if not self.writeToFactory(self.writeAllDefaults):
+            self.display.page_error.setParams(
+                text = _("!!! Failed to save factory defaults !!!"))
+            return "error"
+        #endif
+        return "_BACK_"
+    #enddef
+
+
+    def writeAllDefaults(self):
+        self.saveDefaultsFile()
+        self.display.wizardData.writeFile()
+    #enddef
+
+
+    def _NOK_(self):
+        self.display.wizardData.parseFile(defines.wizardDataFile)
+        return "_BACK_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
     #enddef
 
 #endclass
@@ -3788,9 +4217,7 @@ Please contact tech support!"""))
 
 
     def leave(self, newPage):
-        self.display.hw.uvLed(False)
-        self.display.screen.getImgBlack()
-        self.display.hw.stopFans()
+        self.allOff()
         return newPage
     #enddef
 
@@ -3806,7 +4233,7 @@ class PageAdmin(Page):
         self.items.update({
                 'button1' : _("Tilt & Tower"),
                 'button2' : _("Display"),
-                'button3' : _("Fans & LEDs"),
+                'button3' : _("Fans & UV LED"),
                 'button4' : _("Hardware setup"),
                 'button5' : _("Exposure setup"),
 
@@ -4277,10 +4704,11 @@ class PageSetupHw(PageSetup):
 
                 'label2g1' : _("Screw (mm/rot)"),
                 'label2g2' : _("Tilt msteps"),
-                'label2g3' : _("Calib. tower offset [mm]"),
-                'label2g4' : _("Measuring moves count"),
-                'label2g5' : _("Stirring moves count"),
-                'label2g6' : _("Delay after stirring [s]"),
+                'label2g3' : _("Measuring moves count"),
+                'label2g4' : _("Stirring moves count"),
+                'label2g5' : _("Delay after stirring [s]"),
+                'label2g6' : _("Power LED intensity"),
+
                 'label2g8' : _("MC board version"),
                 })
     #enddef
@@ -4293,14 +4721,15 @@ class PageSetupHw(PageSetup):
         self.temp['measuringmoves'] = self.display.hwConfig.measuringMoves
         self.temp['stirringmoves'] = self.display.hwConfig.stirringMoves
         self.temp['stirringdelay'] = self.display.hwConfig.stirringDelay
+        self.temp['pwrledpwm'] = self.display.hwConfig.pwrLedPwm
         self.temp['mcboardversion'] = self.display.hwConfig.MCBoardVersion
 
         self.items['value2g1'] = str(self.temp['screwmm'])
         self.items['value2g2'] = str(self.temp['tiltheight'])
-        self.items['value2g3'] = self._strOffset(self.temp['calibtoweroffset'])
-        self.items['value2g4'] = str(self.temp['measuringmoves'])
-        self.items['value2g5'] = str(self.temp['stirringmoves'])
-        self.items['value2g6'] = self._strTenth(self.temp['stirringdelay'])
+        self.items['value2g3'] = str(self.temp['measuringmoves'])
+        self.items['value2g4'] = str(self.temp['stirringmoves'])
+        self.items['value2g5'] = self._strTenth(self.temp['stirringdelay'])
+        self.items['value2g6'] = str(self.temp['pwrledpwm'])
         self.items['value2g8'] = str(self.temp['mcboardversion'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
@@ -4372,42 +4801,44 @@ class PageSetupHw(PageSetup):
 
 
     def minus2g3Button(self):
-        self._value(2, 'calibtoweroffset', -400, 400, -1, self._strOffset)
+        self._value(2, 'measuringmoves', 1, 10, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        self._value(2, 'calibtoweroffset', -400, 400, 1, self._strOffset)
+        self._value(2, 'measuringmoves', 1, 10, 1)
     #enddef
 
 
     def minus2g4Button(self):
-        self._value(3, 'measuringmoves', 1, 10, -1)
+        self._value(3, 'stirringmoves', 1, 10, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        self._value(3, 'measuringmoves', 1, 10, 1)
+        self._value(3, 'stirringmoves', 1, 10, 1)
     #enddef
 
 
     def minus2g5Button(self):
-        self._value(4, 'stirringmoves', 1, 10, -1)
+        self._value(4, 'stirringdelay', 0, 300, -5, self._strTenth)
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 'stirringmoves', 1, 10, 1)
+        self._value(4, 'stirringdelay', 0, 300, 5, self._strTenth)
     #enddef
 
 
     def minus2g6Button(self):
-        self._value(5, 'stirringdelay', 0, 300, -5, self._strTenth)
+        self._value(5, 'pwrledpwm', 0, 100, -5)
+        self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
     #enddef
 
 
     def plus2g6Button(self):
-        self._value(5, 'stirringdelay', 0, 300, 5, self._strTenth)
+        self._value(5, 'pwrledpwm', 0, 100, 5)
+        self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
     #enddef
 
 
@@ -4418,6 +4849,12 @@ class PageSetupHw(PageSetup):
 
     def plus2g8Button(self):
         self._value(7, 'mcboardversion', 5, 6, 1)
+    #enddef
+
+
+    def backButtonRelease(self):
+        self.display.hw.setPowerLedPwm(self.display.hwConfig.pwrLedPwm)
+        return super(PageSetupHw, self).backButtonRelease()
     #enddef
 
 #endclass
@@ -4433,13 +4870,12 @@ class PageSetupExposure(PageSetup):
                 'label1g2' : _("Per-Partes expos."),
                 'label1g3' : _("Use tilt"),
 
-                'label2g2' : _("Layer trigger [s]"),
-                'label2g3' : _("Limit for fast tilt [%]"),
-                'label2g4' : _("Layer tower hop [mm]"),
-                'label2g5' : _("Delay before expos. [s]"),
-                'label2g6' : _("Delay after expos. [s]"),
-                'label2g7' : _("Up&down wait [s]"),
-                'label2g8' : _("Up&down every n-th l."),
+                'label2g1' : _("Layer trigger [s]"),
+                'label2g2' : _("Layer tower hop [mm]"),
+                'label2g3' : _("Delay before expos. [s]"),
+                'label2g4' : _("Delay after expos. [s]"),
+                'label2g5' : _("Up&down wait [s]"),
+                'label2g6' : _("Up&down every n-th l."),
                 })
     #enddef
 
@@ -4453,13 +4889,12 @@ class PageSetupExposure(PageSetup):
         self.temp['upanddownwait'] = self.display.hwConfig.upAndDownWait
         self.temp['upanddowneverylayer'] = self.display.hwConfig.upAndDownEveryLayer
 
-        self.items['value2g2'] = self._strTenth(self.temp['trigger'])
-        self.items['value2g3'] = str(self.temp['limit4fast'])
-        self.items['value2g4'] = self._strZHop(self.temp['layertowerhop'])
-        self.items['value2g5'] = self._strTenth(self.temp['delaybeforeexposure'])
-        self.items['value2g6'] = self._strTenth(self.temp['delayafterexposure'])
-        self.items['value2g7'] = str(self.temp['upanddownwait'])
-        self.items['value2g8'] = str(self.temp['upanddowneverylayer'])
+        self.items['value2g1'] = self._strTenth(self.temp['trigger'])
+        self.items['value2g2'] = self._strZHop(self.temp['layertowerhop'])
+        self.items['value2g3'] = self._strTenth(self.temp['delaybeforeexposure'])
+        self.items['value2g4'] = self._strTenth(self.temp['delayafterexposure'])
+        self.items['value2g5'] = str(self.temp['upanddownwait'])
+        self.items['value2g6'] = str(self.temp['upanddowneverylayer'])
 
         self.temp['blinkexposure'] = self.display.hwConfig.blinkExposure
         self.temp['perpartesexposure'] = self.display.hwConfig.perPartes
@@ -4494,37 +4929,17 @@ class PageSetupExposure(PageSetup):
 
 
     def minus2g1Button(self):
-        pass
+        self._value(0, 'trigger', 0, 20, -1, self._strTenth)
     #enddef
 
 
     def plus2g1Button(self):
-        pass
+        self._value(0, 'trigger', 0, 20, 1, self._strTenth)
     #enddef
 
 
     def minus2g2Button(self):
-        self._value(1, 'trigger', 0, 20, -1, self._strTenth)
-    #enddef
-
-
-    def plus2g2Button(self):
-        self._value(1, 'trigger', 0, 20, 1, self._strTenth)
-    #enddef
-
-
-    def minus2g3Button(self):
-        self._value(2, 'limit4fast', 0, 100, -1)
-    #enddef
-
-
-    def plus2g3Button(self):
-        self._value(2, 'limit4fast', 0, 100, 1)
-    #enddef
-
-
-    def minus2g4Button(self):
-        self._value(3, 'layertowerhop', 0, 8000, -20, self._strZHop)
+        self._value(1, 'layertowerhop', 0, 8000, -20, self._strZHop)
         if not self.temp['tilt'] and not self.temp['layertowerhop']:
             self.temp['tilt'] = True
             self.changed['tilt'] = "on"
@@ -4533,48 +4948,48 @@ class PageSetupExposure(PageSetup):
     #enddef
 
 
+    def plus2g2Button(self):
+        self._value(1, 'layertowerhop', 0, 8000, 20, self._strZHop)
+    #enddef
+
+
+    def minus2g3Button(self):
+        self._value(2, 'delaybeforeexposure', 0, 300, -1, self._strTenth)
+    #enddef
+
+
+    def plus2g3Button(self):
+        self._value(2, 'delaybeforeexposure', 0, 300, 1, self._strTenth)
+    #enddef
+
+
+    def minus2g4Button(self):
+        self._value(3, 'delayafterexposure', 0, 300, -1, self._strTenth)
+    #enddef
+
+
     def plus2g4Button(self):
-        self._value(3, 'layertowerhop', 0, 8000, 20, self._strZHop)
+        self._value(3, 'delayafterexposure', 0, 300, 1, self._strTenth)
     #enddef
 
 
     def minus2g5Button(self):
-        self._value(4, 'delaybeforeexposure', 0, 300, -1, self._strTenth)
+        self._value(4, 'upanddownwait', 0, 600, -1)
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 'delaybeforeexposure', 0, 300, 1, self._strTenth)
+        self._value(4, 'upanddownwait', 0, 600, 1)
     #enddef
 
 
     def minus2g6Button(self):
-        self._value(5, 'delayafterexposure', 0, 300, -1, self._strTenth)
+        self._value(5, 'upanddowneverylayer', 0, 500, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        self._value(5, 'delayafterexposure', 0, 300, 1, self._strTenth)
-    #enddef
-
-
-    def minus2g7Button(self):
-        self._value(6, 'upanddownwait', 0, 600, -1)
-    #enddef
-
-
-    def plus2g7Button(self):
-        self._value(6, 'upanddownwait', 0, 600, 1)
-    #enddef
-
-
-    def minus2g8Button(self):
-        self._value(7, 'upanddowneverylayer', 0, 500, -1)
-    #enddef
-
-
-    def plus2g8Button(self):
-        self._value(7, 'upanddowneverylayer', 0, 500, 1)
+        self._value(5, 'upanddowneverylayer', 0, 500, 1)
     #enddef
 
 #endclass
@@ -5733,7 +6148,7 @@ class PageFansLeds(Page):
 
     def __init__(self, display):
         self.pageUI = "setup"
-        self.pageTitle = _("Fans & LEDs")
+        self.pageTitle = _("Fans & UV LED")
         super(PageFansLeds, self).__init__(display)
         self.autorepeat = {
                 'minus2g1' : (5, 1), 'plus2g1' : (5, 1),
@@ -5756,9 +6171,8 @@ class PageFansLeds(Page):
                 'label2g2' : _("Blower fan PWM"),
                 'label2g3' : _("Rear fan PWM"),
                 'label2g5' : _("UV current [mA]"),
-                'label2g6' : _("Power LED PWM"),
-                'label2g7' : _("Power LED mode"),
-                'label2g8' : _("Power LED speed"),
+                'label2g6' : _("UV calib. temperature"),
+                'label2g7' : _("UV calib. intensity"),
 
                 'button1' : _("Save defaults"),
                 'button3' : _("Defaults"),
@@ -5768,13 +6182,19 @@ class PageFansLeds(Page):
         self.updateDataPeriod = 0.5
         self.changed = {}
         self.temp = {}
-        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'uvcurrent', 'pwrledpwm'))
+        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'uvcurrent', 'uvcalibtemp', 'uvcalibintensity'))
         self.checkCooling = True
     #enddef
 
 
     def show(self):
         self.oldValues = {}
+
+        self.temp['uvcalibtemp'] = self.display.hwConfig.uvCalibTemp
+        self.temp['uvcalibintensity'] = self.display.hwConfig.uvCalibIntensity
+        self.items['value2g6'] = self.temp['uvcalibtemp']
+        self.items['value2g7'] = self.temp['uvcalibintensity']
+
         super(PageFansLeds, self).show()
     #enddef
 
@@ -5792,16 +6212,10 @@ class PageFansLeds(Page):
 
         self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'] = self.display.hw.getFansPwm()
         self.temp['uvcurrent'] = self.display.hw.getUvLedCurrent()
-        self.temp['pwrledpwm'] = self.display.hw.getPowerLedPwm()
-        self.temp['pwrledmd'] = self.display.hw.getPowerLedMode()
-        self.temp['pwrledspd'] = self.display.hw.getPowerLedSpeed()
         self._setItem(items, 'value2g1', self.temp['fan1pwm'])
         self._setItem(items, 'value2g2', self.temp['fan2pwm'])
         self._setItem(items, 'value2g3', self.temp['fan3pwm'])
         self._setItem(items, 'value2g5', self.temp['uvcurrent'])
-        self._setItem(items, 'value2g6', self.temp['pwrledpwm'])
-        self._setItem(items, 'value2g7', self.temp['pwrledmd'])
-        self._setItem(items, 'value2g8', self.temp['pwrledspd'])
 
         if len(items):
             self.showItems(**items)
@@ -5820,34 +6234,13 @@ class PageFansLeds(Page):
 
     def save_defaults(self):
         self._update_config()
-        try:
-            self.logger.info("Remounting factory partition rw")
-            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", defines.factoryMountPoint])
 
-            defaults = {
-                'fan1pwm': self.display.hwConfig.fan1Pwm,
-                'fan2pwm': self.display.hwConfig.fan2Pwm,
-                'fan3pwm': self.display.hwConfig.fan3Pwm,
-                'uvcurrent': self.display.hwConfig.uvCurrent,
-            }
-
-            with open(defines.hwConfigFactoryDefaultsFile, "w") as file:
-                toml.dump(defaults, file)
-            #endwith
-
-            self.display.hwConfig._defaults = defaults
-        except:
-            self.logger.exception("Failed to save factory defaults")
+        if not self.writeToFactory(self.saveDefaultsFile):
             self.display.page_error.setParams(
-                text=_("!!! Failed to save factory defaults !!!"))
+                text = _("!!! Failed to save factory defaults !!!"))
             return "error"
-        finally:
-            try:
-                self.logger.info("Remounting factory partition ro")
-                subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", defines.factoryMountPoint])
-            except:
-                self.logger.exception("Failed to remount factory partion ro")
-        #endtry
+        #else
+
         return "_BACK_"
     #enddef
 
@@ -5903,7 +6296,6 @@ class PageFansLeds(Page):
              self.display.hwConfig.fan2Pwm,
              self.display.hwConfig.fan3Pwm))
         self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
-        self.display.hw.setPowerLedPwm(self.display.hwConfig.pwrLedPwm)
     #enddef
 
 
@@ -6000,38 +6392,22 @@ class PageFansLeds(Page):
 
 
     def minus2g6Button(self):
-        self._value(5, 'pwrledpwm', 0, 100, -5)
-        self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
+        self._value(5, 'uvcalibtemp', 30, 50, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        self._value(5, 'pwrledpwm', 0, 100, 5)
-        self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
+        self._value(5, 'uvcalibtemp', 30, 50, 1)
     #enddef
 
 
     def minus2g7Button(self):
-        self._value(6, 'pwrledmd', 0, 3, -1)
-        self.display.hw.powerLedMode(self.temp['pwrledmd'])
+        self._value(6, 'uvcalibintensity', 80, 200, -1)
     #enddef
 
 
     def plus2g7Button(self):
-        self._value(6, 'pwrledmd', 0, 3, 1)
-        self.display.hw.powerLedMode(self.temp['pwrledmd'])
-    #enddef
-
-
-    def minus2g8Button(self):
-        self._value(7, 'pwrledspd', 1, 64, -1)
-        self.display.hw.setPowerLedSpeed(self.temp['pwrledspd'])
-    #enddef
-
-
-    def plus2g8Button(self):
-        self._value(7, 'pwrledspd', 1, 64, 1)
-        self.display.hw.setPowerLedSpeed(self.temp['pwrledspd'])
+        self._value(6, 'uvcalibintensity', 80, 200, 1)
     #enddef
 
 #endclass
@@ -6710,9 +7086,7 @@ Tower profiles need to be changed."""))
 
 
     def _EXIT_(self):
-        self.display.hw.uvLed(False)
-        self.display.hw.motorsRelease()
-        self.display.hw.stopFans()
+        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -6848,7 +7222,7 @@ RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i] 
         # temperature check
         pageWait.showItems(line1 = _("A64 temperature check"))
         A64temperature = self.display.hw.getCpuTemperature()
-        if A64temperature > self.display.hw._maxA64Temp:
+        if A64temperature > defines.maxA64Temp:
             self.display.page_error.setParams(
                 text = _(u"""A64 temperature is too high. Measured: %.1f °C!
 
@@ -6873,11 +7247,11 @@ Please check if temperature sensors are connected correctly.""") % self.display.
                 return "error"
             #endif
             if i == 0:
-                maxTemp = self.display.hw._maxUVTemp
+                maxTemp = defines.maxUVTemp
             else:
-                maxTemp = self.display.hw._maxAmbientTemp
+                maxTemp = defines.maxAmbientTemp
             #endif
-            if not self.display.hw._minAmbientTemp < temperatures[i] < maxTemp:
+            if not defines.minAmbientTemp < temperatures[i] < maxTemp:
                 self.display.page_error.setParams(
                     text = _(u"""%(sensor)s not in range!
 
@@ -6963,7 +7337,7 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
             pageWait.showItems(line2 = _("Please wait %d s") % countdown)
             sleep(1)
             temp = self.display.hw.getUvLedTemperature()
-            if temp > self.display.hw._maxUVTemp:
+            if temp > defines.maxUVTemp:
                 self.display.page_error.setParams(
                     text = _("""UV LED too hot!
 
@@ -7119,9 +7493,7 @@ Press 'Continue' to exit the wizard, or 'Back' to return to the wizard.""")})
 
 
     def contButtonRelease(self):
-        self.display.hw.uvLed(False)
-        self.display.hw.motorsRelease()
-        self.display.hw.stopFans()
+        self.allOff()
         self.display.hwConfig.update(showwizard = "no")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(

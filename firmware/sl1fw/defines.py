@@ -21,6 +21,7 @@ configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
 hwConfigFactoryDefaultsFile = os.path.join(factoryMountPoint, "hardware.toml")
+wizardDataFile = os.path.join(factoryMountPoint, "wizardData.cfg")  # TODO cfg->toml
 livePreviewImage = os.path.join(ramdiskPath, "live.png")
 livePreviewSize = (288, 512)
 
@@ -67,6 +68,11 @@ tiltCalibCurrent = 40
 fanStartStopTime = 6.0       # in secs
 fanMeasCycles = 20
 
+minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance
+maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some tolerance
+maxA64Temp = 70.0
+maxUVTemp = 50.0
+
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
 manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
 videosURL = "https://www.prusa3d.com/SL1guide/"
@@ -80,3 +86,7 @@ admincheckURL = "https://sl1.prusa3d.com/check-admin"
 admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
 bootFailedStamp = os.path.join(persistentStorage, "failedboot")
 apikeyFile = os.path.join(configDir, "api.key")
+
+uvLedMeterDevice = "/dev/uvmeter"
+uvLedMeasMinCurr = 400.0
+uvLedMeasMaxCurr = 600.0

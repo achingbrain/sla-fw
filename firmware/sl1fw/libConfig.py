@@ -125,8 +125,15 @@ class FileConfig(object):
         '''
 
         for key,val in kwargs.iteritems():
-            self._logger.debug("update: %s = %s", key, str(val))
-            self._data[key.lower()] = None if val is None else str(val)
+            lowerkey = key.lower()
+            if val is None:
+                self._data[lowerkey] = None
+            elif isinstance(val, list):
+                self._data[lowerkey] = " ".join(map(lambda x: str(x), val))
+            else:
+                self._data[lowerkey] = str(val)
+            #endif
+            self._logger.debug("update: %s = %s", lowerkey, self._data[lowerkey])
         #endfor
         newLines = list()
         for key,val in self._lines:
@@ -154,6 +161,16 @@ class FileConfig(object):
 
     def getSourceString(self):
         return "\r\n".join(self._getSourceLines())
+    #enddef
+
+    def getDict(self):
+        out = {}
+        for key, val in vars(self).items():
+            if not key.startswith("_"):
+                out[key] = val
+            #endif
+        #endfor
+        return out
     #enddef
 
     def logAllItems(self):
@@ -221,6 +238,18 @@ class FileConfig(object):
         return val
     #enddef
 
+    def _parseIntList(self, key, count = None, default = list()):
+        try:
+            ret = map(lambda x: int(x), self._data.get(key, "").split())
+            if count and len(ret) != count:
+                return default
+            #endif
+            return ret
+        except Exception:
+            return default
+        #endtry
+    #enddef
+
     def _parseFloat(self, key, default = -1.0, exact = False):
         if key in self._defaults:
             default = self._defaults[key]
@@ -246,6 +275,18 @@ class FileConfig(object):
             val = minval
         #endif
         return val
+    #enddef
+
+    def _parseFloatList(self, key, count = 0, default = list()):
+        try:
+            ret = map(lambda x: float(x), self._data.get(key, "").split())
+            if count and len(ret) != count:
+                return default
+            #endif
+            return ret
+        except Exception:
+            return default
+        #endtry
     #enddef
 
     def _parseBool(self, key, default = False):
@@ -292,6 +333,13 @@ class HwConfig(FileConfig):
     #enddef
 
     def _parseData(self):
+        # Advanced settings
+        self.tiltSensitivity = self._parseInt("tiltsensitivity", 0)
+        self.towerSensitivity = self._parseInt("towersensitivity", 0)
+        self.limit4fast = self._parseIntMinMax("limit4fast", 45, 0, 100)
+        self.whitePixelsThd = (1440 * 2560) * (self.limit4fast / 100.0)
+        self.calibTowerOffset = self._parseInt("calibtoweroffset", 0)
+
         # Hardware setup
         self.fanCheck = self._parseBool("fancheck", True)
         self.coverCheck = self._parseBool("covercheck", True)
@@ -303,10 +351,10 @@ class HwConfig(FileConfig):
         self.screwMm = self._parseInt("screwmm", 4)
         self.microStepsMM = 200 * 16 / self.screwMm
         self.tiltHeight = self._parseInt("tiltheight", defines.defaultTiltHeight) #safe value
-        self.calibTowerOffset = self._parseInt("calibtoweroffset", 0)
         self.stirringMoves = self._parseIntMinMax("stirringmoves", 3, 1, 10)
         self.stirringDelay = self._parseIntMinMax("stirringdelay", 5, 0, 300)
         self.measuringMoves = self._parseIntMinMax("measuringmoves", 3, 1, 10)
+        self.pwrLedPwm = self._parseIntMinMax("pwrledpwm", 100, 0, 100)
 
         self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 6, 5, 6)
 
@@ -316,8 +364,6 @@ class HwConfig(FileConfig):
         self.tilt = self._parseBool("tilt", True)
 
         self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
-        self.limit4fast = self._parseIntMinMax("limit4fast", 45, 0, 100)
-        self.whitePixelsThd = (1440 * 2560) * (self.limit4fast / 100.0)
         self.layerTowerHop = self._parseIntMinMax("layertowerhop", 0, 0, 8000)
         self.delayBeforeExposure = self._parseIntMinMax("delaybeforeexposure", 0, 0, 300)
         self.delayAfterExposure = self._parseIntMinMax("delayafterexposure", 0, 0, 300)
@@ -329,7 +375,8 @@ class HwConfig(FileConfig):
         self.fan2Pwm = self._parseIntMinMax("fan2pwm", 100, 0, 100)
         self.fan3Pwm = self._parseIntMinMax("fan3pwm", 40, 0, 100)
         self.uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)
-        self.pwrLedPwm = self._parseIntMinMax("pwrledpwm", 100, 0, 100)
+        self.uvCalibTemp = self._parseIntMinMax("uvcalibtemp", 40, 30, 50)
+        self.uvCalibIntensity = self._parseIntMinMax("uvcalibintensity", 140, 80, 200)
 
         # Tilt & Tower -> Tilt tune
         self.tuneTilt = list()
@@ -352,8 +399,8 @@ class HwConfig(FileConfig):
         self.showAdmin = self._parseBool("showadmin", False)
         self.showWizard = self._parseBool("showwizard", True)
         self.showUnboxing = self._parseBool("showunboxing", True)
-        self.tiltSensitivity = self._parseInt("tiltsensitivity", 0)
-        self.towerSensitivity = self._parseInt("towersensitivity", 0)
+
+        # TODO move to wizardData
         #following values are measured and saved in initial wizard
         self.wizardUvVoltage = list() #measured voltage on each UV led row
         self.wizardUvVoltage.append([int(n) for n in self._parseString("wizarduvvoltagerow1", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
@@ -395,30 +442,23 @@ class OsConfig(FileConfig):
 #endclass
 
 
-class FwConfig(FileConfig):
+class WizardData(FileConfig):
 
     def __init__(self, configFile = None):
-        self._name = "FwConfig"
-        super(FwConfig, self).__init__(configFile)
+        self._name = "WizardData"
+        super(WizardData, self).__init__(configFile)
     #enddef
 
     def _parseData(self):
-        self.version = self._parseString("swversion")
-    #enddef
-
-#endclass
-
-
-class NetConfig(FileConfig):
-
-    def __init__(self, configFile = None):
-        self._name = "NetConfig"
-        super(NetConfig, self).__init__(configFile)
-    #enddef
-
-    def _parseData(self):
-        self.image = self._parseString("image")
-        self.firmware = self._parseString("firmware")
+        self.uvSensorData = self._parseIntList("uvsensordata")
+        self.uvTemperature = self._parseFloat("uvtemperature", -273.2)
+        self.uvDateTime = self._parseString("uvdatetime", "_NOT_SET_")
+        self.uvMean = self._parseFloat("uvmean")
+        self.uvStdDev = self._parseFloat("uvstddev")
+        self.uvMinValue = self._parseInt("uvminvalue")
+        self.uvMaxValue = self._parseInt("uvmaxvalue")
+        self.uvPercDiff = self._parseFloatList("uvpercdiff")
+        self.uvFoundCurrent = self._parseFloat("uvfoundcurrent")
     #enddef
 
 #endclass

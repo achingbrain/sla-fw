@@ -445,12 +445,6 @@ class Hardware(object):
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
 
-        self._minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance
-        self._maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some tolerance
-        self._maxA64Temp = 70.0
-        self._maxUVTemp = 50.0
-        self._maxTempDiff = 3.0
-
         self.mcc = MotConCom("MC_Main")
         self.cpuSerial = self.readCpuSerial()
     #enddef

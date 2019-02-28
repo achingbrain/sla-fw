@@ -9,6 +9,7 @@ from datetime import datetime
 
 from sl1fw import defines
 from sl1fw import libPages
+from sl1fw.libConfig import WizardData
 
 class Display(object):
 
@@ -21,7 +22,9 @@ class Display(object):
         self.hw = hw
         self.inet = inet
         self.screen = screen
+        self.wizardData = WizardData(defines.wizardDataFile)
         self.page_confirm = libPages.PageConfirm(self)
+        self.page_yesno = libPages.PageYesNo(self)
         self.page_systemwait = libPages.PageWait(self)
         self.page_start = libPages.PageStart(self)
         self.page_home = libPages.PageHome(self)
@@ -42,8 +45,13 @@ class Display(object):
         self.page_sourceselect = libPages.PageSrcSelect(self)
         self.page_error = libPages.PageError(self)
         self.page_tilttower = libPages.PageTiltTower(self)
-        self.page_displaytest = libPages.PageDisplayTest(self)
         self.page_display = libPages.PageDisplay(self)
+        self.page_uvcalibrationtest = libPages.PageUvCalibrationTest(self)
+        self.page_uvcalibration = libPages.PageUvCalibration(self)
+        self.page_uvcalibrationconfirm = libPages.PageUvCalibrationConfirm(self)
+        self.page_uvmeter = libPages.PageUvMeter(self)
+        self.page_uvmetershow = libPages.PageUvMeterShow(self)
+        self.page_displaytest = libPages.PageDisplayTest(self)
         self.page_admin = libPages.PageAdmin(self)
         self.page_netupdate = libPages.PageNetUpdate(self)
         self.page_setuphw = libPages.PageSetupHw(self)
