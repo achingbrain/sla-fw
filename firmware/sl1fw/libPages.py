@@ -858,17 +858,20 @@ class PageHomePrint(Page):
         self.expo = expo
     #enddef
 
+
     def fillData(self):
        return {
            'paused': self.expo.paused,
            'pauseunpause': self._pauseunpause_text()
        }
-    # enddef
+    #enddef
+
 
     def show(self):
         self.items.update(self.fillData())
         super(PageHomePrint, self).show()
-    # enddef
+    #enddef
+
 
     def feedmeButtonRelease(self):
         self.display.page_feedme.setItems(line1 = "Wait for layer finish please.")
@@ -910,17 +913,21 @@ class PageHomePrint(Page):
         return "confirm"
     #enddef
 
+
     def pauseunpauseButtonRelease(self):
         if self.expo.paused:
             self.expo.doContinue()
         else:
             self.expo.doPause()
+        #endif
         self.showItems(paused=self.expo.paused, pauseunpause=self._pauseunpause_text())
     #enddef
+
 
     def adminButtonRelease(self):
         return "admin"
     #enddef
+
 
     def exitPrint(self):
         self.expo.doExitPrint()
@@ -930,8 +937,10 @@ class PageHomePrint(Page):
         return "systemwait"
     #enddef
 
+
     def _pauseunpause_text(self):
         return 'UnPause' if self.expo.paused else 'Pause'
+    #enddef
 
 #endclass
 
@@ -1119,7 +1128,7 @@ class PageHardwareInfo(Page):
         self.pageUI = "sysinfo"
         self.pageTitle = "Hardware Information"
         super(PageHardwareInfo, self).__init__(display)
-        self.callbackPeriod = 2
+        self.callbackPeriod = 0.5
     #enddef
 
 
@@ -1127,24 +1136,36 @@ class PageHardwareInfo(Page):
         self.oldValues = {}
         self.items['line1'] = "Tower height: %d (%.2f mm)" % (self.display.hwConfig.towerHeight, self.display.hwConfig.calcMM(self.display.hwConfig.towerHeight))
         self.items['line2'] = "Tilt height: %d" % self.display.hwConfig.tiltHeight
-
+        self.display.hw.resinSensor(True)
+        self.skip = 11
         super(PageHardwareInfo, self).show()
     #enddef
 
 
     def menuCallback(self):
         items = {}
-        self._setItem(items, 'line3', "Fans [RPM]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getFansRpm())))
-        self._setItem(items, 'line4', "Temperatures [C]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getTemperatures())))
-        # cpu temp
-        self._setItem(items, 'line5', "UV LED voltages [V]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getUvLedVoltages())))
-        # resin sensor
-        # cover state
-        # power button state
+        if self.skip > 10:
+            self._setItem(items, 'line3', "Fans [RPM]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getFansRpm())))
+            self._setItem(items, 'line4', "MC temperatures [C]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getMcTemperatures())))
+            self._setItem(items, 'line5', "CML temperature [C]:  %.1f" % self.display.hw.getCpuTemperature())
+            self._setItem(items, 'line6', "Voltages [V]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getVoltages())))
+            self.skip = 0
+        #endif
+        self._setItem(items, 'line7', "Cover is %s" % ("closed" if self.display.hw.getCoverState() else "opened"))
+        self._setItem(items, 'line8', "Power switch is %s" % ("pressed" if self.display.hw.getPowerswitchState() else "released"))
+        self._setItem(items, 'line9', "Resin surface is %sin detect range" % ("" if self.display.hw.getResinSensorState() else "not "))
 
         if len(items):
             self.showItems(**items)
         #endif
+
+        self.skip += 1
+    #enddef
+
+
+    def backButtonRelease(self):
+        self.display.hw.resinSensor(False)
+        return super(PageHardwareInfo, self).backButtonRelease()
     #enddef
 
 #endclass

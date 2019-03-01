@@ -654,13 +654,13 @@ class Hardware(object):
     #enddef
 
 
-    def getUvLedVoltages(self):
+    def getVoltages(self):
         volts = self.mcc.doGetIntList(multiply = 0.001, args = ("?volt",))
-        if volts and len(volts) == 3:
+        if volts and len(volts) == 4:
             return volts
         else:
             self.logger.warning("Volts count not match! (%s)", str(volts))
-            return list((0, 0, 0))
+            return list((0, 0, 0, 0))
         #endif
     #enddef
 
@@ -685,8 +685,30 @@ class Hardware(object):
     #enddef
 
 
+    def getResinSensorState(self):
+        return self.mcc.doGetBool("?rsst")
+    #enddef
+
+
     def getCoverState(self):
-        return self.mcc.doGetBool("?covs")
+        bits = self.mcc.doGetBoolList(bitCount = 16, args = ("?",))
+        if not bits or len(bits) != 16:
+            self.logger.warning("State bits count not match! (%s)", str(bits))
+            return False
+        else:
+            return bits[7]
+        #endif
+    #enddef
+
+
+    def getPowerswitchState(self):
+        bits = self.mcc.doGetBoolList(bitCount = 16, args = ("?",))
+        if not bits or len(bits) != 16:
+            self.logger.warning("State bits count not match! (%s)", str(bits))
+            return False
+        else:
+            return bits[6]
+        #endif
     #enddef
 
 
@@ -761,14 +783,27 @@ class Hardware(object):
     #enddef
 
 
-    def getTemperatures(self):
+    def getMcTemperatures(self):
         temps = self.mcc.doGetIntList(multiply = 0.1, args = ("?temp",))
         if temps and len(temps) == 4:
             return temps
         else:
             self.logger.warning("TEMPs count not match! (%s)", str(temps))
-            return list((-273.15, -273.15, -273.15, -273.15))
+            return list((-273.2, -273.2, -273.2, -273.2))
         #endif
+    #enddef
+
+
+    def getCpuTemperature(self):
+        temp = -273.2
+        try:
+            with open(defines.cpuTempFile, "r") as f:
+                temp = round((int(f.read()) / 1000.0), 1)
+            #endwith
+        except Exception:
+            self.logger.exception("CPU temperatures exception:")
+        #endtry
+        return temp
     #enddef
 
 
@@ -1404,7 +1439,7 @@ class Hardware(object):
 
     def checkTemp(self, errorPage, returnPage, forceFail = False):
         #self.logger.debug("checkTemp started")
-        temps = self.getTemperatures()
+        temps = self.getMcTemperatures()
         self.logTemp(temps)
         temp = temps[self._ledTempIdx]
         if temp < 0:
@@ -1441,7 +1476,7 @@ class Hardware(object):
             sleep(1)
             errorPage.showItems(line3 = "Temperature is %.1f C" % temp)
             sleep(1)
-            temps = self.getTemperatures()
+            temps = self.getMcTemperatures()
             self.logTemp(temps)
             temp = temps[self._ledTempIdx]
         #endwhile
