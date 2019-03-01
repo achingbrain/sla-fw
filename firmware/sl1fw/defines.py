@@ -27,6 +27,7 @@ maskFilename = "mask.png"
 projectExtensions = set((".dwz", ".sl1"))
 
 cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
+cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 usbUpdatePath = "/mnt/rootfs"
