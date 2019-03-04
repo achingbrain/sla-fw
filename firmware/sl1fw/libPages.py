@@ -4390,12 +4390,12 @@ class PageTuneTilt(ProfilesPage):
 
     #release cycles
     def minus2g3Button(self):
-        return self._value(2, 0, 10, -1)
+        return self._value(2, 1, 10, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(2, 0, 10, 1)
+        return self._value(2, 1, 10, 1)
     #enddef
 
     #release delay [ms]
@@ -4420,12 +4420,12 @@ class PageTuneTilt(ProfilesPage):
 
     #homing cycles
     def minus2g6Button(self):
-        return self._value(5, 0, 10, -1)
+        return self._value(5, 1, 10, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        return self._value(5, 0, 10, 1)
+        return self._value(5, 1, 10, 1)
     #enddef
 
     def minus2g8Button(self):
