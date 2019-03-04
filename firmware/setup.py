@@ -5,8 +5,6 @@ from stat import S_IRUSR
 
 
 
-chmod('sl1fw/scripts/rsync-key', S_IRUSR)
-
 data_files=[]
 data_files.append(('/usr/share/sl1fw/scripts', glob('sl1fw/scripts/*')))
 data_files.append(('/etc/sl1fw', ['sl1fw/hardware.cfg']))

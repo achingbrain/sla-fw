@@ -1102,9 +1102,9 @@ class PageSysInfo(Page):
         self.pageTitle = "System Information"
         super(PageSysInfo, self).__init__(display)
         self.items.update({
-                'line1' : "CML serial number: %s" % self.display.hw.getCPUSerial(),
-                'line2' : "CML system: %s" % self.display.hwConfig.os.name,
-                'line3' : "CML system version: %s" % self.display.hwConfig.os.version,
+                'line1' : "A64 serial number: %s" % self.display.hw.getCPUSerial(),
+                'line2' : "A64 system: %s" % self.display.hwConfig.os.name,
+                'line3' : "A64 system version: %s" % self.display.hwConfig.os.version,
 
                 'line6' : "Python firmware version: %s" % defines.swVersion,
                 'line7' : "", # will be filled from getEvent()
@@ -1147,7 +1147,7 @@ class PageHardwareInfo(Page):
         if self.skip > 10:
             self._setItem(items, 'line3', "Fans [RPM]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getFansRpm())))
             self._setItem(items, 'line4', "MC temperatures [C]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getMcTemperatures())))
-            self._setItem(items, 'line5', "CML temperature [C]:  %.1f" % self.display.hw.getCpuTemperature())
+            self._setItem(items, 'line5', "A64 temperature [C]:  %.1f" % self.display.hw.getCpuTemperature())
             self._setItem(items, 'line6', "Voltages [V]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getVoltages())))
             self.skip = 0
         #endif

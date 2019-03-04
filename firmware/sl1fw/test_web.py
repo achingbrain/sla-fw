@@ -39,7 +39,7 @@ sleep(5)
 lines = { "line1" : "FIRMWARE FAILURE - Something went wrong!", }
 lines.update({
     "line2" : "Please send the contents of %s/log" % "255.255.255.255",
-    "line3" : "to info@futur3d.net - Thank you",
+    "line3" : "to info@prusa3d.com - Thank you",
     })
 display.page_exception.setParams(**lines)
 display.setPage("exception")

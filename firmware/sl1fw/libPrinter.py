@@ -456,7 +456,7 @@ class Printer(object):
             if ip != "none":
                 lines.update({
                     "line2" : "Please send the contents of %s/logf" % ip,
-                    "line3" : "to info@futur3d.net - Thank you",
+                    "line3" : "to info@prusa3d.com - Thank you",
                     "qr1"   : "http://%s/logf" % ip,
                     })
             #endif
