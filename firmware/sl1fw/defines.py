@@ -31,7 +31,7 @@ cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 usbUpdatePath = "/mnt/rootfs"
-usbUpdateCommand = ["/usr/bin/rauc", "install", "/mnt/usb/update.raucb"]
+netUpdateCommand = os.path.join(scriptDir, "net_update.sh")
 flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
 Mc2NetCommand = os.path.join(scriptDir, "MC2Net.sh")
 WiFiCommand = os.path.join(scriptDir, "wifi.sh")
