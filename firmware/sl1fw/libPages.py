@@ -1301,6 +1301,7 @@ class SourceDir:
                         'fullpath': full_path,
                         'source': self.name,
                         'filename': item,
+                        'path': item,
                         'time': os.path.getmtime(full_path)
                     }
                 #endif
@@ -1346,6 +1347,9 @@ class PageSrcSelect(Page):
                 'path': '..'
             })
         #endif
+
+        # Sort items, directory first (.. first) then files
+        content.sort(key=lambda x: (x['type'], 0 if x['path'] is '..' else 0, x['name']))
 
         # Number items as choice#
         cnt = 0
