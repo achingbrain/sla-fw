@@ -1891,7 +1891,7 @@ class PageAdmin(Page):
                 'button9' : "MC2Net (firmware)",
                 'button10' : "Networking",
 
-                'button11' : "Rauc update",
+                'button11' : "Rauc net update",
                 'button12' : "",
                 'button13' : "Resin sensor test",
                 'button14' : "Keyboard test",
@@ -2010,7 +2010,7 @@ class PageAdmin(Page):
         # check new firmware defines
         self.display.page_confirm.setParams(
             continueFce = self.performUpdate,
-            continueParmas = { 'updateCommand' : defines.usbUpdateCommand },
+            continueParmas = { 'updateCommand' : defines.netUpdateCommand },
             line3 = "Proceed update?")
         return "confirm"
     #enddef
