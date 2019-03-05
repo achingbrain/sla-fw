@@ -470,7 +470,7 @@ class PageWizard(Page):
         result = list()
         for time in xrange(240, 0, -1):
             pageWait.showItems(line3 = "STATUS: remaining time %d s" % time)
-            result.append([self.display.hw.getVoltages(), self.display.hw.getTemperatures()])
+            result.append([self.display.hw.getVoltages(), self.display.hw.getMcTemperatures()])
             pageWait.showItems(line2 = "temperature %f" % result[-1][1][0])
             sleep(1)
         #endfor
@@ -1634,9 +1634,9 @@ class PageHardwareInfo(Page):
             self._setItem(items, 'line5', "A64 temperature [C]:  %.1f" % self.display.hw.getCpuTemperature())
             self._setItem(items, 'line6', "Voltages [V]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getVoltages())))
             self._setItem(items, 'fans', {'fan%d_rpm' % i: v for i, v in enumerate(self.display.hw.getFansRpm())})
-            self._setItem(items, 'temps', {'temp%d_celsius' % i: v for i, v in enumerate(self.display.hw.getTemperatures())})
+            self._setItem(items, 'temps', {'temp%d_celsius' % i: v for i, v in enumerate(self.display.hw.getMcTemperatures())})
             self._setItem(items, 'cpu_temp', self.display.hw.getCpuTemperature())
-            self._setItem(items, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getUvLedVoltages())})
+            self._setItem(items, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getVoltages())})
             self.skip = 0
         #endif
         self._setItem(items, 'line7', "Cover is %s" % ("closed" if self.display.hw.getCoverState() else "opened"))
