@@ -335,6 +335,10 @@ class PagePrintStart(PagePrintPreviewBase):
         return "_EXIT_MENU_"
     #enddef
 
+    def backButtonRelease(self):
+        self.display.goBack(2)
+    #enddef
+
 #endclass
 
 
