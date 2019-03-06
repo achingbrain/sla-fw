@@ -1589,6 +1589,7 @@ class PageSrcSelect(Page):
         self.pageUI = "sourceselect"
         self.pageTitle = "Projects"
         self.currentRoot = "."
+        self.old_items = None
         super(PageSrcSelect, self).__init__(display)
         self.stack = False
         self.callbackPeriod = 1
@@ -1642,14 +1643,10 @@ class PageSrcSelect(Page):
             line2 = "Not connected to network"
         # endif
 
-        # List sources in self.currentRoot
-        sources = self.source_list()
-        self.logger.info(sources)
-
         return {
             'line1': line1,
             'line2': line2,
-            'sources': sources
+            'sources': self.source_list()
         }
 
     def show(self):
@@ -1660,7 +1657,9 @@ class PageSrcSelect(Page):
 
     def menuCallback(self):
         items = self.fillData()
-        self.showItems(**items)
+        if self.old_items is None or self.old_items != items:
+            self.showItems(**items)
+        self.old_items = items
     # enddef
 
 
