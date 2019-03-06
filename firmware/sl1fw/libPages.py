@@ -846,7 +846,6 @@ class PageFirmwareUpdate(Page):
 
 
     def menuCallback(self):
-        self.logger.info("Menu callback")
         items = self.fillData()
         self.showItems(**items)
     #enddef
@@ -1592,6 +1591,7 @@ class PageSrcSelect(Page):
         self.currentRoot = "."
         super(PageSrcSelect, self).__init__(display)
         self.stack = False
+        self.callbackPeriod = 1
     #enddef
 
 
@@ -1632,23 +1632,36 @@ class PageSrcSelect(Page):
         return content
     #enddef
 
-
-    def show(self):
-        self.items["line1"] = "Please select project source"
+    def fillData(self):
+        line1 = "Please select project source"
 
         ip = self.display.inet.getIp()
         if ip != "none" and self.octoprintAuth:
-            self.items["line2"] = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
+            line2 = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
         else:
-            self.items["line2"] = "Not connected to network"
-        #endif
+            line2 = "Not connected to network"
+        # endif
 
         # List sources in self.currentRoot
-        self.items["sources"] = self.source_list()
-        self.logger.info(self.items['sources'])
+        sources = self.source_list()
+        self.logger.info(sources)
 
+        return {
+            'line1': line1,
+            'line2': line2,
+            'sources': sources
+        }
+
+    def show(self):
+        self.items = self.fillData()
         super(PageSrcSelect, self).show()
     #enddef
+
+
+    def menuCallback(self):
+        items = self.fillData()
+        self.showItems(**items)
+    # enddef
 
 
     def sourceButtonSubmit(self, data):
