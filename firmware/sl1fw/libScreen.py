@@ -24,12 +24,12 @@ import defines
 
 class ScreenServer(multiprocessing.Process):
 
-    def __init__(self, hwConfig, commands, results):
+    def __init__(self, commands, results, pixelSize):
         super(ScreenServer, self).__init__()
         self.logger = logging.getLogger(__name__)
-        self.hwConfig = hwConfig    # FIXME - changes from admin are not taken here until reboot!
         self.commands = commands
         self.results = results
+        self.pixelSize = pixelSize
         self.stoprequest = multiprocessing.Event()
     #enddef
 
@@ -57,7 +57,7 @@ class ScreenServer(multiprocessing.Process):
         self.screen.set_alpha(None)
         pygame.mouse.set_visible(False)
         self.getImgBlack()
-        self.font = pygame.font.SysFont(None, int(5 / self.hwConfig.pixelSize))
+        self.font = pygame.font.SysFont(None, int(5 / self.pixelSize))
         di = pygame.display.Info()
         self.width = di.current_w
         self.height = di.current_h
@@ -151,7 +151,7 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def preloadImg(self, filename, overlayName):
+    def preloadImg(self, filename, overlayName, whitePixelsThd):
 
         if self.nextImage2:
             self.logger.debug("second part of image exist - no preloading")
@@ -182,7 +182,7 @@ class ScreenServer(multiprocessing.Process):
             if overlay:
                 self.nextImage1.blit(overlay, (0,0))
             #endif
-            if self.perPartes and self.whitePixels > self.hwConfig.whitePixelsThd:
+            if self.perPartes and self.whitePixels > whitePixelsThd:
                 self.nextImage2 = self.nextImage1.copy()
                 self.nextImage1.blit(self.overlays['ppm1'], (0,0))
                 self.nextImage2.blit(self.overlays['ppm2'], (0,0))
@@ -250,8 +250,8 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def createMasks(self):
-        if self.hwConfig.perPartes:
+    def createMasks(self, perPartes):
+        if perPartes:
             try:
                 self.overlays['ppm1'] = pygame.image.load(defines.perPartesMask).convert()
                 self.overlays['ppm2'] = self.overlays['ppm1'].copy()
@@ -323,7 +323,7 @@ class Screen(object):
         self.logger = logging.getLogger(__name__)
         self.commands = multiprocessing.Queue()
         self.results = multiprocessing.Queue()
-        self.server = ScreenServer(hwConfig, self.commands, self.results)
+        self.server = ScreenServer(self.commands, self.results, hwConfig.pixelSize)
         self.server.start()
     #enddef
 
@@ -392,8 +392,9 @@ class Screen(object):
     #enddef
 
 
-    def createMasks(self):
-        self.commands.put({ 'fce' : "createMasks" })
+    def createMasks(self, **kwargs):
+        kwargs['fce'] = 'createMasks'
+        self.commands.put(kwargs)
         return self.results.get()
     #enddef
 

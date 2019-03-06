@@ -111,7 +111,7 @@ class Page(object):
     def turnoffContinue(self):
         pageWait = PageWait(self.display, line2 = "Shutting down")
         pageWait.show()
-        self.display.shutDown(self.display.config.autoOff)
+        self.display.shutDown(self.display.hwConfig.autoOff)
     #enddef
 
 
@@ -161,11 +161,11 @@ class Page(object):
     #enddef
 
 
-    def _value(self, index, val, valmin, valmax, change):
+    def _value(self, index, val, valmin, valmax, change, strFce = str):
         if valmin <= self.temp[val] + change <= valmax:
             self.temp[val] += change
             self.changed[val] = str(self.temp[val])
-            self.showItems(**{ 'value2g%d' % (index + 1) : str(self.temp[val]) })
+            self.showItems(**{ 'value2g%d' % (index + 1) : strFce(self.temp[val]) })
         else:
             self.display.hw.beepAlarm(1)
         #endif
@@ -1934,18 +1934,18 @@ class PageTiltTower(Page):
                 'button3' : "Tilt test",
                 'button4' : "Tilt profiles",
                 'button5' : "Tilt profil calib.",
+
                 'button6' : "Tower home",
                 'button7' : "Tower move",
                 'button8' : "Tower test",
                 'button9' : "Tower profiles",
                 'button10' : "Tower home calib.",
+
                 'button11' : "Turn motors off",
                 'button12' : "Tune tilt",
-
                 'button13' : "Tilt home test",
                 'button14' : "Calibrate printer",
-
-                'back' : "Back",
+                'button15' : "",
                 })
     #enddef
 
@@ -2168,12 +2168,16 @@ class PageDisplay(Page):
                 'button5' : "Maze",
 
                 'button6' : "USB:/test.png",
-
+                'button7' : "",
+                'button8' : "",
+                'button9' : "",
                 'button10' : "Infinite test",
+
                 'button11' : "Black",
                 'button12' : "Inverse",
-
-                'back' : "Back",
+                'button13' : "",
+                'button14' : "",
+                'button15' : "",
                 })
     #enddef
 
@@ -2320,21 +2324,20 @@ class PageAdmin(Page):
                 'button1' : "Tilt & Tower",
                 'button2' : "Display",
                 'button3' : "Fans & LEDs",
-                'button4' : "Setup",
-                'button5' : "Hardware Info",
+                'button4' : "Hardware setup",
+                'button5' : "Exposure setup",
 
                 'button6' : "Flash MC",
                 'button7' : "Erase MC EEPROM",
-                'button8' : "MC2Net (bootloader)",
-                'button9' : "MC2Net (firmware)",
+                'button8' : "",
+                'button9' : "Hardware info",
                 'button10' : "Networking",
 
                 'button11' : "Rauc net update",
                 'button12' : "",
                 'button13' : "Resin sensor test",
                 'button14' : "Keyboard test",
-
-                'back' : "Back",
+                'button15' : "",
                 })
     #enddef
 
@@ -2355,12 +2358,12 @@ class PageAdmin(Page):
 
 
     def button4ButtonRelease(self):
-        return "setup"
+        return "setuphw"
     #enddef
 
 
     def button5ButtonRelease(self):
-        return "hwinfo"
+        return "setupexpo"
     #enddef
 
 
@@ -2398,44 +2401,8 @@ class PageAdmin(Page):
     #enddef
 
 
-    def button8ButtonRelease(self):
-        self.display.page_confirm.setParams(
-                continueFce = self.mc2net,
-                continueParmas = { 'bootloader' : True },
-                line1 = "This shuts down GUI and connect",
-                line2 = "the MC bootloader to TCP port.",
-                line3 = "Are you sure?")
-        return "confirm"
-    #enddef
-
-
     def button9ButtonRelease(self):
-        self.display.page_confirm.setParams(
-                continueFce = self.mc2net,
-                continueParmas = { 'bootloader' : False },
-                line1 = "This shuts down GUI and connect",
-                line2 = "the motion controller to TCP port.",
-                line3 = "Are you sure?")
-        return "confirm"
-    #enddef
-
-
-    def mc2net(self, bootloader = False):
-        baudrate = 19200 if bootloader else 115200
-        pageWait = PageWait(self.display,
-            line1 = "Master is down. Baudrate is %d" % baudrate,
-            line2 = "Serial line is redirected to port %d" % defines.socatPort,
-            line3 = "Power the printer off to continue ;-)" if bootloader else 'Type "!shdn 0" to power off ;-)')
-        pageWait.show()
-        if bootloader:
-            self.display.hw.mcc.reset()
-        #endif
-        pid = subprocess.Popen([
-            defines.Mc2NetCommand,
-            defines.motionControlDevice,
-            str(defines.socatPort),
-            str(baudrate)]).pid
-        self.display.shutDown(False)
+        return "hwinfo"
     #enddef
 
 
@@ -2518,7 +2485,6 @@ class PageSetup(Page):
 
     def __init__(self, display):
         self.pageUI = "setup"
-        self.pageTitle = "Admin - Setup"
         super(PageSetup, self).__init__(display)
         self.autorepeat = {
                 'minus2g1' : (5, 1), 'plus2g1' : (5, 1),
@@ -2531,23 +2497,6 @@ class PageSetup(Page):
                 'minus2g8' : (5, 1), 'plus2g8' : (5, 1),
                 }
         self.items.update({
-                'label1g1' : "Fan check",
-                'label1g2' : "Cover check",
-                'label1g3' : "MC version check",
-                'label1g4' : "Use resin sensor",
-                'label1g5' : "Blink exposure",
-                'label1g6' : "Per-Partes expos.",
-                'label1g8' : "Tower Z hop",
-
-                'label2g1' : "Screw (mm/rot)",
-                'label2g2' : "Tower msteps",
-                'label2g3' : "Tilt msteps",
-                'label2g4' : "Warm up mins",
-                'label2g5' : "Layer IR trigger [x0.1s]",
-                'label2g6' : "Calib. tower offset [mm]",
-                'label2g7' : "MC board version",
-                'label2g8' : "Layer fill [%]",
-
                 'button1' : "Export",
                 'button2' : "Import",
                 'button4' : "Save",
@@ -2555,45 +2504,6 @@ class PageSetup(Page):
                 })
         self.changed = {}
         self.temp = {}
-    #enddef
-
-
-    def show(self):
-        self.temp['screwmm'] = self.display.hwConfig.screwMm
-        self.temp['towerheight'] = self.display.hwConfig.towerHeight
-        self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
-        self.temp['warmup'] = self.display.hwConfig.warmUp
-        self.temp['trigger'] = self.display.hwConfig.trigger
-        self.temp['calibtoweroffset'] = self.display.hwConfig.calibTowerOffset
-        self.temp['mcboardversion'] = self.display.hwConfig.MCBoardVersion
-        self.temp['layerfill'] = self.display.hwConfig.layerFill
-
-        self.items['value2g1'] = str(self.temp['screwmm'])
-        self.items['value2g2'] = str(self.temp['towerheight'])
-        self.items['value2g3'] = str(self.temp['tiltheight'])
-        self.items['value2g4'] = str(self.temp['warmup'])
-        self.items['value2g5'] = str(self.temp['trigger'])
-        self.items['value2g6'] = str(round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3))
-        self.items['value2g7'] = str(self.temp['mcboardversion'])
-        self.items['value2g8'] = str(self.temp['layerfill'])
-
-        self.temp['fancheck'] = self.display.hwConfig.fanCheck
-        self.temp['covercheck'] = self.display.hwConfig.coverCheck
-        self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
-        self.temp['resinsensor'] = self.display.hwConfig.resinSensor
-        self.temp['blinkexposure'] = self.display.hwConfig.blinkExposure
-        self.temp['perpartesexposure'] = self.display.hwConfig.perPartes
-        self.temp['towerzhop'] = self.display.hwConfig.towerZHop
-
-        self.items['state1g1'] = 1 if self.temp['fancheck'] else 0
-        self.items['state1g2'] = 1 if self.temp['covercheck'] else 0
-        self.items['state1g3'] = 1 if self.temp['mcversioncheck'] else 0
-        self.items['state1g4'] = 1 if self.temp['resinsensor'] else 0
-        self.items['state1g5'] = 1 if self.temp['blinkexposure'] else 0
-        self.items['state1g6'] = 1 if self.temp['perpartesexposure'] else 0
-        self.items['state1g8'] = 1 if self.temp['towerzhop'] else 0
-
-        super(PageSetup, self).show()
     #enddef
 
 
@@ -2627,7 +2537,6 @@ class PageSetup(Page):
 
     def button4ButtonRelease(self):
         ''' save '''
-
         self.display.hwConfig.update(**self.changed)
         if not self.display.hwConfig.writeFile():
             self.display.hw.beepAlarm(3)
@@ -2637,6 +2546,51 @@ class PageSetup(Page):
         self.display.config._parseData()
         return super(PageSetup, self).backButtonRelease()
     #endif
+#enddef
+
+
+class PageSetupHw(PageSetup):
+
+    def __init__(self, display):
+        self.pageTitle = "Admin - Hardware Setup"
+        super(PageSetupHw, self).__init__(display)
+        self.items.update({
+                'label1g1' : "Fan check",
+                'label1g2' : "Cover check",
+                'label1g3' : "MC version check",
+                'label1g4' : "Use resin sensor",
+
+                'label2g1' : "Screw (mm/rot)",
+                'label2g2' : "Tilt msteps",
+                'label2g3' : "Calib. tower offset [mm]",
+                'label2g8' : "MC board version",
+                })
+    #enddef
+
+
+    def show(self):
+        self.temp['screwmm'] = self.display.hwConfig.screwMm
+        self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
+        self.temp['calibtoweroffset'] = self.display.hwConfig.calibTowerOffset
+        self.temp['mcboardversion'] = self.display.hwConfig.MCBoardVersion
+
+        self.items['value2g1'] = str(self.temp['screwmm'])
+        self.items['value2g2'] = str(self.temp['tiltheight'])
+        self.items['value2g3'] = self.strOffset(self.temp['calibtoweroffset'])
+        self.items['value2g8'] = str(self.temp['mcboardversion'])
+
+        self.temp['fancheck'] = self.display.hwConfig.fanCheck
+        self.temp['covercheck'] = self.display.hwConfig.coverCheck
+        self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
+        self.temp['resinsensor'] = self.display.hwConfig.resinSensor
+
+        self.items['state1g1'] = 1 if self.temp['fancheck'] else 0
+        self.items['state1g2'] = 1 if self.temp['covercheck'] else 0
+        self.items['state1g3'] = 1 if self.temp['mcversioncheck'] else 0
+        self.items['state1g4'] = 1 if self.temp['resinsensor'] else 0
+
+        super(PageSetupHw, self).show()
+    #enddef
 
 
     def state1g1ButtonRelease(self):
@@ -2659,102 +2613,221 @@ class PageSetup(Page):
     #enddef
 
 
-    def state1g5ButtonRelease(self):
-        self._onOff(4, 'blinkexposure')
-    #enddef
-
-
-    def state1g6ButtonRelease(self):
-        self._onOff(5, 'perpartesexposure')
-    #enddef
-
-
-    def state1g8ButtonRelease(self):
-        self._onOff(7, 'towerzhop')
-    #enddef
-
     def minus2g1Button(self):
-        return self._value(0, 'screwmm', 2, 8, -1)
+        self._value(0, 'screwmm', 2, 8, -1)
     #enddef
 
 
     def plus2g1Button(self):
-        return self._value(0, 'screwmm', 2, 8, 1)
+        self._value(0, 'screwmm', 2, 8, 1)
     #enddef
 
 
     def minus2g2Button(self):
-        return self._value(1, 'towerheight', 1, 123000, -1)
+        self._value(1, 'tiltheight', 1, 6000, -1)
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(1, 'towerheight', 1, 123000, 1)
+        self._value(1, 'tiltheight', 1, 6000, 1)
+    #enddef
+
+
+    def strOffset(self, value):
+        return "%+.3f" % self.display.hwConfig.calcMM(value)
     #enddef
 
 
     def minus2g3Button(self):
-        return self._value(2, 'tiltheight', 1, 6000, -1)
+        self._value(2, 'calibtoweroffset', -400, 400, -1, self.strOffset)
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(2, 'tiltheight', 1, 6000, 1)
-    #enddef
-
-
-    def minus2g4Button(self):
-        return self._value(3, 'warmup', 0, 30, -1)
-    #enddef
-
-
-    def plus2g4Button(self):
-        return self._value(3, 'warmup', 0, 30, 1)
-    #enddef
-
-
-    def minus2g5Button(self):
-        return self._value(4, 'trigger', 0, 20, -1)
-    #enddef
-
-
-    def plus2g5Button(self):
-        return self._value(4, 'trigger', 0, 20, 1)
-    #enddef
-
-
-    def minus2g6Button(self):
-        self._value(5, 'calibtoweroffset', -400, 400, -1)
-        self.showItems(value2g6 = str(round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3)))
-        return
-    #enddef
-
-
-    def plus2g6Button(self):
-        self._value(5, 'calibtoweroffset', -400, 400, 1)
-        self.showItems(value2g6 = str(round(self.display.hwConfig.calcMM(self.temp['calibtoweroffset']), 3)))
-        return
-    #enddef
-
-
-    def minus2g7Button(self):
-        return self._value(6, 'mcboardversion', 4, 5, -1)
-    #enddef
-
-
-    def plus2g7Button(self):
-        return self._value(6, 'mcboardversion', 4, 5, 1)
+        self._value(2, 'calibtoweroffset', -400, 400, 1, self.strOffset)
     #enddef
 
 
     def minus2g8Button(self):
-        return self._value(7, 'layerfill', 0, 100, -1)
+        self._value(7, 'mcboardversion', 4, 5, -1)
     #enddef
 
 
     def plus2g8Button(self):
-        return self._value(7, 'layerfill', 0, 100, 1)
+        self._value(7, 'mcboardversion', 4, 5, 1)
     #enddef
+
+#endclass
+
+
+class PageSetupExposure(PageSetup):
+
+    def __init__(self, display):
+        self.pageTitle = "Admin - Exposure Setup"
+        super(PageSetupExposure, self).__init__(display)
+        self.items.update({
+                'label1g1' : "Blink exposure",
+                'label1g2' : "Per-Partes expos.",
+                'label1g3' : "Use tilt",
+
+                'label2g1' : "Warm up mins",
+                'label2g2' : "Layer trigger [s]",
+                'label2g3' : "Limit for fast tilt [%]",
+                'label2g4' : "Layer tower hop [mm]",
+                'label2g5' : "Delay before expos. [s]",
+                'label2g6' : "Delay after expos. [s]",
+                'label2g7' : "Up&down wait [s]",
+                'label2g8' : "Up&down every n-th l.",
+                })
+    #enddef
+
+
+    def show(self):
+        self.temp['warmup'] = self.display.hwConfig.warmUp
+        self.temp['trigger'] = self.display.hwConfig.trigger
+        self.temp['limit4fast'] = self.display.hwConfig.limit4fast
+        self.temp['layertowerhop'] = self.display.hwConfig.layerTowerHop
+        self.temp['delaybeforeexposure'] = self.display.hwConfig.delayBeforeExposure
+        self.temp['delayafterexposure'] = self.display.hwConfig.delayAfterExposure
+        self.temp['upanddownwait'] = self.display.hwConfig.upAndDownWait
+        self.temp['upanddowneverylayer'] = self.display.hwConfig.upAndDownEveryLayer
+
+        self.items['value2g1'] = str(self.temp['warmup'])
+        self.items['value2g2'] = self.strTenth(self.temp['trigger'])
+        self.items['value2g3'] = str(self.temp['limit4fast'])
+        self.items['value2g4'] = self.strZHop(self.temp['layertowerhop'])
+        self.items['value2g5'] = self.strTenth(self.temp['delaybeforeexposure'])
+        self.items['value2g6'] = self.strTenth(self.temp['delayafterexposure'])
+        self.items['value2g7'] = str(self.temp['upanddownwait'])
+        self.items['value2g8'] = str(self.temp['upanddowneverylayer'])
+
+        self.temp['blinkexposure'] = self.display.hwConfig.blinkExposure
+        self.temp['perpartesexposure'] = self.display.hwConfig.perPartes
+        self.temp['tilt'] = self.display.hwConfig.tilt
+
+        self.items['state1g1'] = 1 if self.temp['blinkexposure'] else 0
+        self.items['state1g2'] = 1 if self.temp['perpartesexposure'] else 0
+        self.items['state1g3'] = 1 if self.temp['tilt'] else 0
+
+        super(PageSetupExposure, self).show()
+    #enddef
+
+
+    def state1g1ButtonRelease(self):
+        self._onOff(0, 'blinkexposure')
+    #enddef
+
+
+    def state1g2ButtonRelease(self):
+        self._onOff(1, 'perpartesexposure')
+    #enddef
+
+
+    def state1g3ButtonRelease(self):
+        self._onOff(2, 'tilt')
+        if not self.temp['tilt'] and not self.temp['layertowerhop']:
+            self.temp['layertowerhop'] = self.display.hwConfig.calcMicroSteps(5)
+            self.changed['layertowerhop'] = str(self.temp['layertowerhop'])
+            self.showItems(**{ 'value2g4' : self.strZHop(self.temp['layertowerhop']) })
+        #endif
+    #enddef
+
+
+    def minus2g1Button(self):
+        self._value(0, 'warmup', 0, 30, -1)
+    #enddef
+
+
+    def plus2g1Button(self):
+        self._value(0, 'warmup', 0, 30, 1)
+    #enddef
+
+
+    def strTenth(self, value):
+        return "%.1f" % (value / 10.0)
+    #enddef
+
+
+    def minus2g2Button(self):
+        self._value(1, 'trigger', 0, 20, -1, self.strTenth)
+    #enddef
+
+
+    def plus2g2Button(self):
+        self._value(1, 'trigger', 0, 20, 1, self.strTenth)
+    #enddef
+
+
+    def minus2g3Button(self):
+        self._value(2, 'limit4fast', 0, 100, -1)
+    #enddef
+
+
+    def plus2g3Button(self):
+        self._value(2, 'limit4fast', 0, 100, 1)
+    #enddef
+
+
+    def strZHop(self, value):
+        return "%.3f" % self.display.hwConfig.calcMM(value)
+    #enddef
+
+
+    def minus2g4Button(self):
+        self._value(3, 'layertowerhop', 0, 8000, -20, self.strZHop)
+        if not self.temp['tilt'] and not self.temp['layertowerhop']:
+            self.temp['tilt'] = True
+            self.changed['tilt'] = "on"
+            self.showItems(**{ 'state1g3' : 1 })
+        #endif
+    #enddef
+
+
+    def plus2g4Button(self):
+        self._value(3, 'layertowerhop', 0, 8000, 20, self.strZHop)
+    #enddef
+
+
+    def minus2g5Button(self):
+        self._value(4, 'delaybeforeexposure', 0, 300, -1, self.strTenth)
+    #enddef
+
+
+    def plus2g5Button(self):
+        self._value(4, 'delaybeforeexposure', 0, 300, 1, self.strTenth)
+    #enddef
+
+
+    def minus2g6Button(self):
+        self._value(5, 'delayafterexposure', 0, 300, -1, self.strTenth)
+    #enddef
+
+
+    def plus2g6Button(self):
+        self._value(5, 'delayafterexposure', 0, 300, 1, self.strTenth)
+    #enddef
+
+
+    def minus2g7Button(self):
+        self._value(6, 'upanddownwait', 0, 600, -1)
+    #enddef
+
+
+    def plus2g7Button(self):
+        self._value(6, 'upanddownwait', 0, 600, 1)
+    #enddef
+
+
+    def minus2g8Button(self):
+        self._value(7, 'upanddowneverylayer', 0, 500, -1)
+    #enddef
+
+
+    def plus2g8Button(self):
+        self._value(7, 'upanddowneverylayer', 0, 500, 1)
+    #enddef
+
+
 
 #endclass
 
@@ -3570,72 +3643,72 @@ class ProfilesPage(Page):
 
 
     def minus2g1Button(self):
-        return self._value(0, 0, 20000, -10)
+        self._value(0, 0, 20000, -10)
     #enddef
 
 
     def plus2g1Button(self):
-        return self._value(0, 0, 20000, 10)
+        self._value(0, 0, 20000, 10)
     #enddef
 
 
     def minus2g2Button(self):
-        return self._value(1, 0, 20000, -10)
+        self._value(1, 0, 20000, -10)
     #enddef
 
 
     def plus2g2Button(self):
-        return self._value(1, 0, 20000, 10)
+        self._value(1, 0, 20000, 10)
     #enddef
 
 
     def minus2g3Button(self):
-        return self._value(2, 0, 600, -1)
+        self._value(2, 0, 600, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        return self._value(2, 0, 600, 1)
+        self._value(2, 0, 600, 1)
     #enddef
 
 
     def minus2g4Button(self):
-        return self._value(3, 0, 600, -1)
+        self._value(3, 0, 600, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        return self._value(3, 0, 600, 1)
+        self._value(3, 0, 600, 1)
     #enddef
 
 
     def minus2g5Button(self):
-        return self._value(4, 0, 63, -1)
+        self._value(4, 0, 63, -1)
     #enddef
 
 
     def plus2g5Button(self):
-        return self._value(4, 0, 63, 1)
+        self._value(4, 0, 63, 1)
     #enddef
 
 
     def minus2g6Button(self):
-        return self._value(5, -128, 127, -1)
+        self._value(5, -128, 127, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        return self._value(5, -128, 127, 1)
+        self._value(5, -128, 127, 1)
     #enddef
 
 
     def minus2g7Button(self):
-        return self._value(6, 0, 4000, -10)
+        self._value(6, 0, 4000, -10)
     #enddef
 
 
     def plus2g7Button(self):
-        return self._value(6, 0, 4000, 10)
+        self._value(6, 0, 4000, 10)
     #enddef
 
 #endclass
@@ -3754,8 +3827,7 @@ class PageFansLeds(Page):
                 'label1g2' : "Fan 2",
                 'label1g3' : "Fan 3",
                 'label1g5' : "UV LED",
-                'label1g6' : "Cam LED",
-                'label1g8' : "Resin sensor",
+                'label1g7' : "Trigger",
 
                 'label2g1' : "Fan 1 PWM",
                 'label2g2' : "Fan 2 PWM",
@@ -3786,13 +3858,11 @@ class PageFansLeds(Page):
         self.temp['fs1'], self.temp['fs2'], self.temp['fs3'] = self.display.hw.getFans()
         self.temp['uls'] = self.display.hw.getUvLedState()[0]
         self.temp['cls'] = self.display.hw.getCameraLedState()
-        self.temp['rsr'] = self.display.hw.getResinSensor()
         self._setItem(items, 'state1g1', self.temp['fs1'])
         self._setItem(items, 'state1g2', self.temp['fs2'])
         self._setItem(items, 'state1g3', self.temp['fs3'])
         self._setItem(items, 'state1g5', self.temp['uls'])
-        self._setItem(items, 'state1g6', self.temp['cls'])
-        self._setItem(items, 'state1g8', self.temp['rsr'])
+        self._setItem(items, 'state1g7', self.temp['cls'])
 
         self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'] = self.display.hw.getFansPwm()
         self.temp['uvcurrent'] = self.display.hw.getUvLedCurrent()
@@ -3852,15 +3922,9 @@ class PageFansLeds(Page):
     #enddef
 
 
-    def state1g6ButtonRelease(self):
-        self._onOff(5, 'cls')
+    def state1g7ButtonRelease(self):
+        self._onOff(6, 'cls')
         self.display.hw.cameraLed(self.temp['cls'])
-    #enddef
-
-
-    def state1g8ButtonRelease(self):
-        self._onOff(7, 'rsr')
-        self.display.hw.resinSensor(self.temp['rsr'])
     #enddef
 
 
@@ -3960,15 +4024,20 @@ class PageNetworking(Page):
                 'button1' : "WiFi AP (once)",
                 'button2' : "WiFi Client (once)",
                 'button3' : "WiFi Off (once)",
+                'button4' : "",
+                'button5' : "MC2Net (bootloader)",
 
                 'button6' : "WiFi AP (always)",
                 'button7' : "WiFi Client (always)",
                 'button8' : "WiFi Off (always)",
+                'button9' : "",
+                'button10' : "MC2Net (firmware)",
 
                 'button11' : "Netinfo",
                 'button12' : "State",
-
-                'back' : "Back",
+                'button13' : "",
+                'button14' : "",
+                'button15' : "",
                 })
     #enddef
 
@@ -4006,6 +4075,36 @@ class PageNetworking(Page):
     #enddef
 
 
+    def button5ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.mc2net,
+                continueParmas = { 'bootloader' : True },
+                line1 = "This shuts down GUI and connect",
+                line2 = "the MC bootloader to TCP port.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def mc2net(self, bootloader = False):
+        baudrate = 19200 if bootloader else 115200
+        pageWait = PageWait(self.display,
+            line1 = "Master is down. Baudrate is %d" % baudrate,
+            line2 = "Serial line is redirected to port %d" % defines.socatPort,
+            line3 = "Power the printer off to continue ;-)" if bootloader else 'Type "!shdn 0" to power off ;-)')
+        pageWait.show()
+        if bootloader:
+            self.display.hw.mcc.reset()
+        #endif
+        pid = subprocess.Popen([
+            defines.Mc2NetCommand,
+            defines.motionControlDevice,
+            str(defines.socatPort),
+            str(baudrate)]).pid
+        self.display.shutDown(False)
+    #enddef
+
+
     def button6ButtonRelease(self):
         self.display.page_confirm.setParams(
                 continueFce = self.setWifi,
@@ -4034,6 +4133,17 @@ class PageNetworking(Page):
                 continueParmas = { 'mode' : 'of', 'scope' : 'al' },
                 line1 = "This turns WiFi off and it will be",
                 line2 = "disabled after printer's reboot.",
+                line3 = "Are you sure?")
+        return "confirm"
+    #enddef
+
+
+    def button10ButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.mc2net,
+                continueParmas = { 'bootloader' : False },
+                line1 = "This shuts down GUI and connect",
+                line2 = "the motion controller to TCP port.",
                 line3 = "Are you sure?")
         return "confirm"
     #enddef
@@ -4232,81 +4342,81 @@ class PageTuneTilt(ProfilesPage):
 
     #init profile
     def minus2g1Button(self):
-        return self._value(0, 0, 7, -1)
+        self._value(0, 0, 7, -1)
     #enddef
 
     def plus2g1Button(self):
-        return self._value(0, 0, 7, 1)
+        self._value(0, 0, 7, 1)
     #enddef
 
 
     #offset steps
     def minus2g2Button(self):
-        return self._value(1, 0, 2000, -10)
+        self._value(1, 0, 2000, -10)
     #enddef
 
     def plus2g2Button(self):
-        return self._value(1, 0, 2000, 10)
+        self._value(1, 0, 2000, 10)
     #enddef
 
 
     #offset delay [ms]
     def minus2g3Button(self):
-        return self._value(2, 0, 4000, -10)
+        self._value(2, 0, 4000, -10)
     #enddef
 
     def plus2g3Button(self):
-        return self._value(2, 0, 4000, 10)
+        self._value(2, 0, 4000, 10)
     #enddef
 
 
     #finish profile
     def minus2g4Button(self):
-        return self._value(3, 0, 7, -1)
+        self._value(3, 0, 7, -1)
     #enddef
 
     def plus2g4Button(self):
-        return self._value(3, 0, 7, 1)
+        self._value(3, 0, 7, 1)
     #enddef
 
 
     #tilt cycles
     def minus2g5Button(self):
-        return self._value(4, 1, 10, -1)
+        self._value(4, 1, 10, -1)
     #enddef
 
     def plus2g5Button(self):
-        return self._value(4, 1, 10, 1)
+        self._value(4, 1, 10, 1)
     #enddef
 
 
     #tilt delay [ms]
     def minus2g6Button(self):
-        return self._value(5, 0, 4000, -10)
+        self._value(5, 0, 4000, -10)
     #enddef
 
     def plus2g6Button(self):
-        return self._value(5, 0, 4000, 10)
+        self._value(5, 0, 4000, 10)
     #enddef
 
 
     #homing tolerance
     def minus2g7Button(self):
-        return self._value(6, 0, 512, -1)
+        self._value(6, 0, 512, -1)
     #enddef
     
     def plus2g7Button(self):
-        return self._value(6, 0, 512, 1)
+        self._value(6, 0, 512, 1)
     #enddef
 
 
     #homing cycles
     def minus2g8Button(self):
-        return self._value(7, 1, 10, -1)
+        self._value(7, 1, 10, -1)
     #enddef
     
     def plus2g8Button(self):
-        return self._value(7, 1, 10, 1)
+        self._value(7, 1, 10, 1)
     #enddef
 
 #endclass

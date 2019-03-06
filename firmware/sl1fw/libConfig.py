@@ -258,35 +258,42 @@ class HwConfig(FileConfig):
     #enddef
 
     def _parseData(self):
-        self.fanCheck = self._parseBool("fancheck", False)
+        # Hardware setup
+        self.fanCheck = self._parseBool("fancheck", True)
         self.coverCheck = self._parseBool("covercheck", False)
         self.MCversionCheck = self._parseBool("mcversioncheck", True)
-        self.MCBoardVersion = self._parseInt("mcboardversion", 4)
+        self.resinSensor = self._parseBool("resinsensor", True)
+
         self.screwMm = self._parseInt("screwmm", 4)
         self.microStepsMM = 200 * 16 / self.screwMm
-        self.pixelSize = self._parseFloat("pixelsize", 0.046875, True)    # 5.5" LCD
-
-        self.calibrated = self._parseBool("calibrated", False)
-        self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(128)) # safe value
         self.tiltHeight = self._parseInt("tiltheight", 6400) # 100 steps 64 microsteps each
-        self.tiltInitSteps = self._parseInt("tiltinitsteps", 50)
-        self.tiltBreakSteps = self._parseInt("tiltbreaksteps", 500)
-        self.tiltReturnSlowSteps = self._parseInt("tiltreturnslowsteps", 100)
-        self.resinSensor = self._parseBool("resinsensor", False)
-        self.warmUp = self._parseInt("warmup", 0)
-        self.blinkExposure = self._parseBool("blinkexposure", False)
-        self.perPartes = self._parseBool("perpartesexposure", False)
-        self.towerZHop = self._parseBool("towerzhop", True)
         self.calibTowerOffset = self._parseInt("calibtoweroffset", 0)
 
+        self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 4, 4, 5)
+
+        # Exposure setup
+        self.blinkExposure = self._parseBool("blinkexposure", True)
+        self.perPartes = self._parseBool("perpartesexposure", False)
+        self.tilt = self._parseBool("tilt", True)
+
+        self.warmUp = self._parseInt("warmup", 0)
+        self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
+        self.limit4fast = self._parseIntMinMax("limit4fast", 45, 0, 100)
+        self.whitePixelsThd = (1440 * 2560) * (self.limit4fast / 100.0)
+        self.layerTowerHop = self._parseIntMinMax("layertowerhop", 0, 0, 8000)
+        self.delayBeforeExposure = self._parseIntMinMax("delaybeforeexposure", 0, 0, 300)
+        self.delayAfterExposure = self._parseIntMinMax("delayafterexposure", 0, 0, 300)
+        self.upAndDownWait = self._parseIntMinMax("upanddownwait", 10, 0, 600)
+        self.upAndDownEveryLayer = self._parseIntMinMax("upanddowneverylayer", 0, 0, 500)
+
+        # Fans & LEDs
         self.fan1Pwm = self._parseIntMinMax("fan1pwm", 80, 0, 100)
         self.fan2Pwm = self._parseIntMinMax("fan2pwm", 100, 0, 100)
         self.fan3Pwm = self._parseIntMinMax("fan3pwm", 25, 0, 100)
         self.uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)
         self.pwrLedPwm = self._parseIntMinMax("pwrledpwm", 100, 0, 100)
-        self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
-        self.mute = self._parseBool("mute", False)
 
+        # Tilt & Tower -> Tilt tune
         self.tuneTilt = list()
         self.tuneTilt.append([int(n) for n in self._parseString("tiltdownlargefill", "5 650 1000 4 1 0 64 3").split()])
         self.tuneTilt.append([int(n) for n in self._parseString("tiltdownsmallfill", "5 0 0 6 1 0 0 0").split()])
@@ -297,8 +304,13 @@ class HwConfig(FileConfig):
             self.tuneTilt[1] = [5, 0, 0, 6, 1, 0, 0, 0]
             self.tuneTilt[2] = [2, 400, 0, 5, 1, 0, 0, 0]
         #endif
-        self.layerFill = self._parseIntMinMax("layerfill", 45, 0, 100)
-        self.whitePixelsThd = (1440 * 2560) * (self.layerFill / 100.0)
+
+        # not adjustable in admin
+        self.pixelSize = self._parseFloat("pixelsize", 0.046875, True)    # 5.5" LCD
+        self.calibrated = self._parseBool("calibrated", False)
+        self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(128)) # safe value
+        self.mute = self._parseBool("mute", False)
+        self.autoOff = self._parseBool("autooff", True)
     #enddef
 
     def calcMicroSteps(self, mm):
@@ -451,17 +463,11 @@ class PrintConfig(FileConfig):
     def _parseData(self):
         self.action = self._parseString("action")
         self.projectName = self._parseString("jobdir", "no project")
-        self.direct = self._parseBool("direct", False)
-        self.autoOff = self._parseBool("autooff", True)
 
         self.expTime = self._parseFloat("exptime", 8.0)
         self.expTime2 = self._parseFloat("exptime2", self.expTime)
         self.expTime3 = self._parseFloat("exptime3", self.expTime)
         self.expTimeFirst = self._parseFloat("exptimefirst", 35.0)
-
-        self.calibrateTime = self._parseFloat("calibratetime", self.expTime)
-        self.calibrateRegions = self._parseInt("calibrateregions", 0)
-        self.calibrateInfoLayers = self._parseInt("calibrateinfolayers", 10)
 
         layerHeight = self._parseFloat("layerheight")
         if layerHeight > 0.0099:
@@ -479,12 +485,9 @@ class PrintConfig(FileConfig):
         self.slice3 = self._parseInt("slice3", 9999999) # vrstva prechodu na parametry3
         self.fadeLayers = self._parseIntMinMax("numfade", 10, 3, 200)
 
-        self.tiltDelayBefore = self._parseFloat("tiltdelaybefore", 0.0)
-        self.tiltDelayAfter = self._parseFloat("tiltdelayafter", 0.0)
-        self.upAndDownWait = self._parseInt("upanddownwait", 10)
-        self.upAndDownEveryLayer = self._parseInt("upanddowneverylayer", 0)
-        self.tilt = self._parseBool("tilt", True)
-        self.fakeTiltUp = self._hwConfig.calcMicroSteps(self._parseInt("faketiltup", 5))
+        self.calibrateTime = self._parseFloat("calibratetime", self.expTime)
+        self.calibrateRegions = self._parseInt("calibrateregions", 0)
+        self.calibrateInfoLayers = self._parseInt("calibrateinfolayers", 10)
     #enddef
 
 #endclass

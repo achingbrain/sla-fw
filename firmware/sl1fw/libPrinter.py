@@ -184,12 +184,13 @@ class Printer(object):
         self.lastLayer = self.expo.actualLayer
 
         # FIXME nepocita s prvnimi delsimi casy!
+        # FIXME nepocita s dvojitym osvitem pri per-partes exposure
         time_remain_min = int(round(
             (self.config.totalLayers - self.lastLayer)
             * (self.config.expTime
                 + self.timePlus
-                + self.config.tiltDelayBefore
-                + self.config.tiltDelayAfter
+                + self.hwConfig.delayBeforeExposure
+                + self.hwConfig.delayAfterExposure
                 + self.config.calibrateRegions * self.config.calibrateTime)
             / 60) + 1)
         timeRemain = self.m2hm(time_remain_min)
@@ -265,9 +266,7 @@ class Printer(object):
 
         try:
             while True:
-                if not self.config.direct:
-                    self.display.doMenu("home", self.homeCallback, 30)
-                #endif
+                self.display.doMenu("home", self.homeCallback, 30)
 
                 # akce co nejsou print neresime
                 action = self.config.action
@@ -396,8 +395,11 @@ class Printer(object):
                 #endfor
             #endif
 
-            pageWait.showItems(line3 = "Moving tank down")
-            self.hw.tiltDownWait()
+            if self.hwConfig.tilt:
+                pageWait.showItems(line3 = "Moving tank down")
+                self.hw.tiltDownWait()
+            #endif
+
             pageWait.showItems(line3 = "Moving platform down")
             self.hw.setTowerProfile('layer')
             self.hw.towerToPosition(0.05)
@@ -405,7 +407,7 @@ class Printer(object):
                 sleep(0.25)
             #endwhile
 
-            if self.config.tilt:
+            if self.hwConfig.tilt:
                 pageWait.showItems(line3 = "Tank calibration 1/3")
                 tiltStartTime = time()
                 self.hw.tiltLayerUpWait()
@@ -459,7 +461,7 @@ class Printer(object):
             self.logger.info("job finished, real printing time is %s", printTime)
             self.jobLog(" - print time: %s  resin: %.1f ml" % (printTime, self.expo.resinCount) )
 
-            self.display.shutDown(self.config.autoOff)
+            self.display.shutDown(self.hwConfig.autoOff)
 
         except Exception:
             self.logger.exception("run() exception:")

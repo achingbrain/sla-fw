@@ -334,7 +334,6 @@ class Hardware(object):
         self._tiltFindProfileMinSteps = 640
         self._tiltFindProfileMaxSteps = 1200
         self._towerCalibMaxOffset = self.hwConfig.calcMicroSteps(0.3)
-        self._towerZHop = self.hwConfig.calcMicroSteps(0.5)
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
         self._towerMax = self.hwConfig.calcMicroSteps(310)
