@@ -519,7 +519,7 @@ class PageControl(Page):
             self.display.hw.motorsRelease()
             return retc
         #endif
-        self.display.hw.setTiltProfile('layerMove')
+        self.display.hw.setTiltProfile('layerMoveFast')
         self.display.hw.tiltDownWait()
         self.display.hw.tiltUpWait()
         self.display.hw.motorsRelease()
@@ -1893,14 +1893,6 @@ class PageTiltTower(Page):
             timeout -= 1
             pageWait.showItems(line2 = "Time remaining %d s" % timeout)
         #endwhile
-        '''
-        pageWait = PageWait(self.display,
-            line1 = "Searching for layerMove profile",
-            line2 = "Please wait...",
-            line3 = "")
-        pageWait.show()
-        layerMove = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["layerMove"], False, 2000, 100, 56, 60, 20, 29)
-        '''
         pageWait = PageWait(self.display,
             line1 = "Searching for homingFast profile",
             line2 = "Please wait...",
@@ -1913,7 +1905,6 @@ class PageTiltTower(Page):
             line3 = "")
         pageWait.show()
         profileSlow = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingSlow"], False, 1200, 30, 10, 24, 3, 12)
-        '''if (profileSlow == None) or (profileFast == None) or (layerMove == None):'''
         if (profileSlow == None) or (profileFast == None):
             resultMsg = "not found. Please adjust them manually."
         else:
@@ -2126,7 +2117,7 @@ class PageDisplay(Page):
                     tiltMayMove = False
                     if self.display.hw.isTiltUp():
                         towerStatus = 2
-                        self.display.hw.setTiltProfile('layerMove')
+                        self.display.hw.setTiltProfile('layerMoveSlow')
                         self.display.hw.setTowerProfile('homingSlow')
                         self.display.hw.towerToMin()
                     #endif
@@ -2456,7 +2447,7 @@ class PageSetup(Page):
                 'label2g5' : "Layer IR trigger [x0.1s]",
                 'label2g6' : "Calib. tower offset [mm]",
                 'label2g7' : "MC board version",
-                'label2g8' : "Z hop layer fill [%]",
+                'label2g8' : "Layer fill [%]",
 
                 'button1' : "Export",
                 'button2' : "Import",
@@ -4061,29 +4052,32 @@ class PageTuneTilt(ProfilesPage):
         self.profilesNames = display.hw.getTiltProfilesNames()
         self.pageTitle = "Admin - Tilt Tune"
         super(PageTuneTilt, self).__init__(display, items = {
-                "label1g1" : 'tilt down',
-                "label1g2" : 'tilt up',
+                "label1g1" : 'down slow',
+                "label1g2" : 'down fast',
+                "label1g3" : 'up',
 
-                "label2g1" : "offset steps",
-                "label2g2" : "offset delay [ms]",
-                "label2g3" : "release cycles",
-                "label2g4" : "release delay [ms]",
-                "label2g5" : "homing tolerance",
-                "label2g6" : "homing cycles",
+                "label2g1" : "init profile",
+                "label2g2" : "offset steps",
+                "label2g3" : "offset delay [ms]",
+                "label2g4" : "finish profile",
+                "label2g5" : "tilt cycles",
+                "label2g6" : "tilt delay [ms]",
+                "label2g7" : "homing tolerance",
+                "label2g8" : "homing cycles",
 
                 "button1" : "Export",
                 "button2" : "Import",
                 "button4" : "Save",
                 "back" : "Back",
                 })
-        self.nameIndexes = set()
-        self.profileItems = 6
+        self.nameIndexes = set((0,3))
+        self.profileItems = 8
     #enddef
 
 
     def show(self):
         super(PageTuneTilt, self).show()
-        self.profiles = deepcopy(self.display.hwConfig.tiltTune)
+        self.profiles = deepcopy(self.display.hwConfig.tuneTilt)
         self._setProfile()
     #enddef
 
@@ -4091,8 +4085,9 @@ class PageTuneTilt(ProfilesPage):
     def button4ButtonRelease(self):
         ''' save '''
         self.display.hwConfig.update(
-            tilttunedown = ' '.join(str(n) for n in self.profiles[0]),
-            tilttuneup = ' '.join(str(n) for n in self.profiles[1])
+            tiltdownlargefill = ' '.join(str(n) for n in self.profiles[0]),
+            tiltdownsmallfill = ' '.join(str(n) for n in self.profiles[1]),
+            tiltup = ' '.join(str(n) for n in self.profiles[2])
         )
         if not self.display.hwConfig.writeFile():
             self.display.hw.beepAlarm(3)
@@ -4108,11 +4103,6 @@ class PageTuneTilt(ProfilesPage):
         self.display.page_tiltmove.changeProfiles(True)
         return super(PageTuneTilt, self).backButtonRelease()
     #endif
-
-
-    def state1g3ButtonRelease(self):
-        pass
-    #enddef
 
 
     def state1g4ButtonRelease(self):
@@ -4140,73 +4130,83 @@ class PageTuneTilt(ProfilesPage):
     #enddef
 
 
-    #offset steps
+    #init profile
     def minus2g1Button(self):
-        return self._value(0, 0, 2000, -1)
+        return self._value(0, 0, 7, -1)
+    #enddef
+
+    def plus2g1Button(self):
+        return self._value(0, 0, 7, 1)
     #enddef
 
 
-    def plus2g1Button(self):
-        return self._value(0, 0, 2000, 1)
+    #offset steps
+    def minus2g2Button(self):
+        return self._value(1, 0, 2000, -10)
+    #enddef
+
+    def plus2g2Button(self):
+        return self._value(1, 0, 2000, 10)
     #enddef
 
 
     #offset delay [ms]
-    def minus2g2Button(self):
-        return self._value(1, 0, 4000, -10)
-    #enddef
-
-
-    def plus2g2Button(self):
-        return self._value(1, 10, 4000, 10)
-    #enddef
-
-    #release cycles
     def minus2g3Button(self):
-        return self._value(2, 1, 10, -1)
+        return self._value(2, 0, 4000, -10)
     #enddef
-
 
     def plus2g3Button(self):
-        return self._value(2, 1, 10, 1)
+        return self._value(2, 0, 4000, 10)
     #enddef
 
-    #release delay [ms]
+
+    #finish profile
     def minus2g4Button(self):
-        return self._value(3, 0, 4000, -10)
+        return self._value(3, 0, 7, -1)
     #enddef
-
 
     def plus2g4Button(self):
-        return self._value(3, 0, 4000, 10)
+        return self._value(3, 0, 7, 1)
     #enddef
 
-    #homing tolerance
+
+    #tilt cycles
     def minus2g5Button(self):
-        return self._value(4, 0, 512, -1)
+        return self._value(4, 1, 10, -1)
     #enddef
-
 
     def plus2g5Button(self):
-        return self._value(4, 0, 512, 1)
+        return self._value(4, 1, 10, 1)
     #enddef
 
-    #homing cycles
+
+    #tilt delay [ms]
     def minus2g6Button(self):
-        return self._value(5, 1, 10, -1)
+        return self._value(5, 0, 4000, -10)
     #enddef
-
 
     def plus2g6Button(self):
-        return self._value(5, 1, 10, 1)
+        return self._value(5, 0, 4000, 10)
     #enddef
 
+
+    #homing tolerance
+    def minus2g7Button(self):
+        return self._value(6, 0, 512, -1)
+    #enddef
+    
+    def plus2g7Button(self):
+        return self._value(6, 0, 512, 1)
+    #enddef
+
+
+    #homing cycles
     def minus2g8Button(self):
-        pass
+        return self._value(7, 1, 10, -1)
     #enddef
     
     def plus2g8Button(self):
-        pass
+        return self._value(7, 1, 10, 1)
     #enddef
 
 #endclass
