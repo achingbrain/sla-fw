@@ -233,15 +233,20 @@ class Display(object):
 
 
     def goBack(self, count = 1):
+        retc = True
+        page = self.actualPage
         for i in xrange(count):
             if len(self.pageStack):
-                self.actualPage = self.pageStack.pop()
+                page = self.pageStack.pop()
             else:
-                return False
+                retc = False
             #endif
         #endfor
-        self.actualPage.show()
-        return True
+        if page != self.actualPage:
+            self.actualPage = page
+            self.actualPage.show()
+        #endif
+        return retc
     #enddef
 
 
