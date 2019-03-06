@@ -810,6 +810,7 @@ class PageFirmwareUpdate(Page):
     def __init__(self, display):
         self.pageUI = "firmwareupdate"
         self.pageTitle = "Firmware Update"
+        self.old_items = None
         super(PageFirmwareUpdate, self).__init__(display)
         self.callbackPeriod = 1
     #enddef
@@ -839,15 +840,16 @@ class PageFirmwareUpdate(Page):
 
 
     def show(self):
-        self.oldValues = {}
-        self.items.update(self.fillData())
+        self.items = self.fillData()
         super(PageFirmwareUpdate, self).show()
     #enddef
 
 
     def menuCallback(self):
         items = self.fillData()
-        self.showItems(**items)
+        if self.old_items != items:
+            self.showItems(**items)
+            self.old_items = items
     #enddef
 
 
@@ -1657,9 +1659,9 @@ class PageSrcSelect(Page):
 
     def menuCallback(self):
         items = self.fillData()
-        if self.old_items is None or self.old_items != items:
+        if self.old_items != items:
             self.showItems(**items)
-        self.old_items = items
+            self.old_items = items
     # enddef
 
 
