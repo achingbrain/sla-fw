@@ -287,13 +287,15 @@ class HwConfig(FileConfig):
         self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
         self.mute = self._parseBool("mute", False)
 
-        self.tiltTune = list()
-        self.tiltTune.append([int(n) for n in self._parseString("tilttunedown", "650 1000 1 0 64 3").split()])
-        self.tiltTune.append([int(n) for n in self._parseString("tilttuneup", "400 0 0 0 0 0").split()])
+        self.tuneTilt = list()
+        self.tuneTilt.append([int(n) for n in self._parseString("tiltdownlargefill", "5 500 1000 4 1 0 64 3").split()])
+        self.tuneTilt.append([int(n) for n in self._parseString("tiltdownsmallfill", "5 0 0 6 1 0 0 0").split()])
+        self.tuneTilt.append([int(n) for n in self._parseString("tiltup", "2 400 0 5 1 0 0 0").split()])
         #hotfix. TODO remove
-        if len(self.tiltTune[0]) != 6:
-            self.tiltTune[0] = [650, 1000, 1, 0, 64, 3]
-            self.tiltTune[1] = [400, 0, 0, 0, 0, 0]
+        if len(self.tuneTilt[0]) != 8 or len(self.tuneTilt[1]) != 8 or len(self.tuneTilt[2]) != 8:
+            self.tuneTilt[0] = [5, 500, 1000, 4, 1, 0, 64, 3]
+            self.tuneTilt[1] = [5, 0, 0, 6, 1, 0, 0, 0]
+            self.tuneTilt[2] = [2, 400, 0, 5, 1, 0, 0, 0]
         #endif
         self.layerFill = self._parseIntMinMax("layerfill", 45, 0, 100)
         self.whitePixelsThd = (1440 * 2560) * (self.layerFill / 100.0)

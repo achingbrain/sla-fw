@@ -56,6 +56,7 @@ class Printer(object):
         self.checkPage = libPages.PageWait(self.display)
 
         self.hw.powerLed("normal")
+        self.hw.uvLed(False)
 
         self.logger.info("Start time: %f secs", time() - startTime)
     #endclass
@@ -396,7 +397,7 @@ class Printer(object):
             #endif
 
             pageWait.showItems(line3 = "Moving tank down")
-            if self.hw.tiltSaveHomeOffset() > 0:
+            if self.hw.tiltCheckHomeOffset(True) > 0:
                 self.display.page_error.setParams(
                         line1 = "Tilt endstop check failed!",
                         line2 = "Check tilt homingSlow profile.",
