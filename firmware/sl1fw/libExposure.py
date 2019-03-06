@@ -246,7 +246,7 @@ class ExposureThread(threading.Thread):
 
                 if command == "updown":
                     self.doUpAndDown()
-                    self.expo.display.goBack(1) # preskoc systemwait a printmenu
+                    self.expo.display.goBack()
                 #endif
 
                 if command == "exit":
