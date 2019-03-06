@@ -230,8 +230,6 @@ class ExposureThread(threading.Thread):
 
             prevWhitePixels = 0
             totalLayers = config.totalLayers
-            timeLoss = (config.expTimeFirst - config.expTime) / float(config.fadeLayers)
-            self.logger.debug("timeLoss: %0.3f", timeLoss)
 
             for i in xrange(totalLayers):
 
@@ -287,6 +285,9 @@ class ExposureThread(threading.Thread):
                 # dalsich config.fadeLayers je prechod config.expTimeFirst -> config.expTime
                 elif i < config.fadeLayers + 3:
                     step = config.layerMicroSteps
+                    # expTimes may be changed during print
+                    timeLoss = (config.expTimeFirst - config.expTime) / float(config.fadeLayers)
+                    self.logger.debug("timeLoss: %0.3f", timeLoss)
                     time = config.expTimeFirst - (i - 2) * timeLoss
                 # do prvniho zlomu standardni parametry
                 elif i + 1 < config.slice2:
