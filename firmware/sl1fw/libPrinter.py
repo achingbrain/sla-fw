@@ -183,17 +183,19 @@ class Printer(object):
         self.lastLayer = self.expo.actualLayer
 
         # FIXME nepocita s prvnimi delsimi casy!
-        timeRemain = self.m2hm(int(round(
+        time_remain_min = int(round(
             (self.config.totalLayers - self.lastLayer)
             * (self.config.expTime
                 + self.timePlus
                 + self.config.tiltDelayBefore
                 + self.config.tiltDelayAfter
                 + self.config.calibrateRegions * self.config.calibrateTime)
-            / 60) + 1))
+            / 60) + 1)
+        timeRemain = self.m2hm(time_remain_min)
         positionMM = self.hwConfig.calcMM(self.expo.position)
         self.logger.debug("TimeRemain: %s", timeRemain)
-        timeElapsed = self.m2hm(int(round((time() - self.printStartTime) / 60)))
+        time_elapsed_min = int(round((time() - self.printStartTime) / 60))
+        timeElapsed = self.m2hm(time_elapsed_min)
         self.logger.debug("TimeElapsed: %s", timeElapsed)
         layer = "Layer: %d/%d" % (self.lastLayer, self.config.totalLayers)
         self.logger.debug(layer)
@@ -202,6 +204,8 @@ class Printer(object):
         percent = int(100 * self.lastLayer / self.config.totalLayers)
         self.logger.debug("Percent: %d", percent)
 
+        remain = None
+        low_resin = False
         if self.expo.resinVolume:
             remain = self.expo.resinVolume - int(self.expo.resinCount)
             if remain < defines.resinFeedWait:
@@ -211,6 +215,7 @@ class Printer(object):
             #endif
             if remain < defines.resinLowWarn:
                 self.hw.beepAlarm(1)
+                low_resin = True
                 line4 = "Low resin (%d ml)" % remain
             else:
                 line4 = "remain %d ml" % remain
@@ -221,13 +226,22 @@ class Printer(object):
 
         items = {
                 'timeremain' : timeRemain,
+                'time_remain_sec': time_remain_min * 60,
                 'timeelaps' : timeElapsed,
+                'time_elapsed_sec': time_elapsed_min * 60,
                 'line1' : layer,
+                'layer' : layer,
                 'line2' : height,
+                'position_mm': positionMM,
+                'total_mm': self.totalHeight,
                 'line3' : self.config.projectName,
+                'project_name' : self.config.projectName,
                 'line4' : line4,
                 'percent' : "%d%%" % percent,
                 'progress' : percent,
+                'resin_used_ml': self.expo.resinCount,
+                'resin_remaining_ml': remain,
+                'resin_low': low_resin
                 }
 
         if actualPage.pageUI == "print":
@@ -328,8 +342,7 @@ class Printer(object):
                     continue
                 #endif
 
-                self.hw.setTiltProfile('layerMove')
-                self.hw.tiltDownWait()
+                self.hw.setTiltProfile('moveFast')
                 self.hw.tiltUpWait()
 
                 if self.display.hwConfig.resinSensor:
@@ -383,7 +396,12 @@ class Printer(object):
             #endif
 
             pageWait.showItems(line3 = "Moving tank down")
-            self.hw.tiltDownWait()
+            if self.hw.tiltSaveHomeOffset() > 0:
+                self.display.page_error.setParams(
+                        line1 = "Tilt endstop check failed!",
+                        line2 = "Check tilt homingSlow profile.",
+                        line3 = "Job was canceled.")
+                self.display.doMenu("error")
             pageWait.showItems(line3 = "Moving platform down")
             self.hw.setTowerProfile('layer')
             self.hw.towerToPosition(0.05)

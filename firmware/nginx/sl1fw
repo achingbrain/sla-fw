@@ -57,6 +57,10 @@ server {
 		proxy_set_header Connection $connection_upgrade;
 	}
 
+	location /multimedia {
+		alias /usr/share/sl1fw/multimedia;
+	}
+
 	location /dbg {
 		proxy_read_timeout 60m;
 		proxy_pass http://debugsocket;

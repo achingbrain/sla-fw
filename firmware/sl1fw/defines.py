@@ -6,7 +6,7 @@ import os
 import glob
 
 swVersion = "Gen3-190-215"
-reqMcVersion = "SLA-control 0.9.8-359"
+reqMcVersion = "SLA-control 0.9.8-359c"
 
 home = "/home/root"
 
@@ -57,4 +57,7 @@ resinFeedWait = 30
 resinFilled = 350
 
 towerHoldCurrent = 12
-tiltHoldCurrent = 20
+tiltHoldCurrent = 15
+tiltCalibCurrent = 40
+
+multimediaRootPath = "/usr/share/sl1fw/multimedia"

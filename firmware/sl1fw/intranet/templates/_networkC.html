@@ -16,7 +16,11 @@
 					<img src="static/img/symbols/wifi_on_color.svg" style="width: 3em; height: 3em;">
 					<div class="d-flex justify-content-between flex-column wifi-ap-entry">
 						<span class="ssid" >{{ ap['ssid'] }}</span>
-						<span>{{ ap['mac'] }}</span>
+						{% if ap['ssid'] == items['wifi_ssid'] %}
+						<span>connected</span>
+						{% else %}
+						<span>not connected</span>
+						{% endif %}
 						<div class="collapse">
 							<label>Password:</label>
 							{% if ap['psk_required'] %}

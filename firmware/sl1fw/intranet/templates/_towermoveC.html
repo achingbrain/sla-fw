@@ -1,16 +1,8 @@
 <div class="row justify-content-start menu">
-	<div class="col-md-auto button d-flex click" id="upfast">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">Fast up</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="upslow">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">Up</div>
-	</div>
+	{% set button = {'id': 'upfast', 'title': 'Fast up'} %}
+	{% include 'button.html' %}
+	{% set button = {'id': 'upslow', 'title': 'Up'} %}
+	{% include 'button.html' %}
 	
 	<div class="col-md-auto">
 		<span>Current value:</span>
@@ -19,18 +11,10 @@
 	<div class="row" id="line{{ item }}">{{ items.get('line' + item|string, "") }}</div>
 </div>
 <div class="row justify-content-start menu">
-	<div class="col-md-auto button d-flex click" id="downfast">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">Fast down</div>
-	</div>
-	<div class="col-md-auto button d-flex click" id="downslow">
-		<div class="frame d-flex">
-			<div class="image"> </div>
-		</div>
-		<div class="title">Down</div>
-	</div>
+	{% set button = {'id': 'downfast', 'title': 'Fast down'} %}
+	{% include 'button.html' %}
+	{% set button = {'id': 'downslow', 'title': 'Down'} %}
+	{% include 'button.html' %}
 </div>
 <div class="row justify-content-end menu">
 	<div class="col-md-auto button d-flex click" id="back">

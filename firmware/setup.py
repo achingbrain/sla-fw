@@ -7,6 +7,7 @@ from stat import S_IRUSR
 
 data_files=[]
 data_files.append(('/usr/share/sl1fw/scripts', glob('sl1fw/scripts/*')))
+data_files.append(('/usr/share/sl1fw/multimedia', glob('sl1fw/multimedia/*')))
 data_files.append(('/etc/sl1fw', ['sl1fw/hardware.cfg']))
 data_files.append(('/usr/lib/systemd/system', ['systemd/sl1fw.service']))
 data_files.append(('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']))

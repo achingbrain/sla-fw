@@ -1,9 +1,7 @@
 <div class="row justify-content-start menu">
-	{% set button = {'id': 'upfast', 'title': 'Fast up'} %}
-	{% include 'button.html' %}
 	{% set button = {'id': 'upslow', 'title': 'Up'} %}
 	{% include 'button.html' %}
-	
+
 	<div class="col-md-auto">
 		<span>Current value:</span>
 		<span id="value">{{ items.get('value', "") }}</span>
@@ -11,9 +9,9 @@
 	<div class="row" id="line{{ item }}">{{ items.get('line' + item|string, "") }}</div>
 </div>
 <div class="row justify-content-start menu">
-	{% set button = {'id': 'downfast', 'title': 'Fast down'} %}
-	{% include 'button.html' %}
 	{% set button = {'id': 'downslow', 'title': 'Down'} %}
+	{% include 'button.html' %}
+	{% set button = {'id': 'ok', 'title': 'ok'} %}
 	{% include 'button.html' %}
 </div>
 <div class="row justify-content-end menu">
