@@ -810,6 +810,7 @@ class PageFirmwareUpdate(Page):
     def __init__(self, display):
         self.pageUI = "firmwareupdate"
         self.pageTitle = "Firmware Update"
+        self.old_items = None
         super(PageFirmwareUpdate, self).__init__(display)
         self.callbackPeriod = 1
     #enddef
@@ -839,16 +840,16 @@ class PageFirmwareUpdate(Page):
 
 
     def show(self):
-        self.oldValues = {}
-        self.items.update(self.fillData())
+        self.items = self.fillData()
         super(PageFirmwareUpdate, self).show()
     #enddef
 
 
     def menuCallback(self):
-        self.logger.info("Menu callback")
         items = self.fillData()
-        self.showItems(**items)
+        if self.old_items != items:
+            self.showItems(**items)
+            self.old_items = items
     #enddef
 
 
@@ -1590,8 +1591,10 @@ class PageSrcSelect(Page):
         self.pageUI = "sourceselect"
         self.pageTitle = "Projects"
         self.currentRoot = "."
+        self.old_items = None
         super(PageSrcSelect, self).__init__(display)
         self.stack = False
+        self.callbackPeriod = 1
     #enddef
 
 
@@ -1632,23 +1635,34 @@ class PageSrcSelect(Page):
         return content
     #enddef
 
-
-    def show(self):
-        self.items["line1"] = "Please select project source"
+    def fillData(self):
+        line1 = "Please select project source"
 
         ip = self.display.inet.getIp()
         if ip != "none" and self.octoprintAuth:
-            self.items["line2"] = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
+            line2 = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
         else:
-            self.items["line2"] = "Not connected to network"
-        #endif
+            line2 = "Not connected to network"
+        # endif
 
-        # List sources in self.currentRoot
-        self.items["sources"] = self.source_list()
-        self.logger.info(self.items['sources'])
+        return {
+            'line1': line1,
+            'line2': line2,
+            'sources': self.source_list()
+        }
 
+    def show(self):
+        self.items = self.fillData()
         super(PageSrcSelect, self).show()
     #enddef
+
+
+    def menuCallback(self):
+        items = self.fillData()
+        if self.old_items != items:
+            self.showItems(**items)
+            self.old_items = items
+    # enddef
 
 
     def sourceButtonSubmit(self, data):
