@@ -12,6 +12,8 @@ import pydbus
 from copy import deepcopy
 import time
 import re
+import urllib2
+import shutil
 
 import defines
 import libConfig
@@ -811,6 +813,7 @@ class PageFirmwareUpdate(Page):
         self.pageUI = "firmwareupdate"
         self.pageTitle = "Firmware Update"
         self.old_items = None
+        self.rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
         super(PageFirmwareUpdate, self).__init__(display)
         self.callbackPeriod = 1
     #enddef
@@ -818,21 +821,20 @@ class PageFirmwareUpdate(Page):
 
     def fillData(self):
         # Get list of available firmware files
-        fs_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
+        fw_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
 
         # Get Rauc flasher status and progress
         operation = None
         progress = None
         try:
-            rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
-            operation = rauc.Operation
-            progress = rauc.Progress
+            operation = self.rauc.Operation
+            progress = self.rauc.Progress
         except Exception as e:
             self.logger.error("Rauc status read failed: " + str(e))
         #endtry
 
         return {
-            'firmwares': fs_files,
+            'firmwares': fw_files,
             'operation': operation,
             'progress': progress
         }
@@ -855,11 +857,78 @@ class PageFirmwareUpdate(Page):
 
     def flashButtonSubmit(self, data):
         try:
-            fw_file = data['firmware']
+            fw_url = data['firmware']
         except Exception as e:
             self.logger.error("Error reading data['firmware']: " + str(e))
         #endtry
 
+        self.display.page_confirm.setParams(
+            continueFce=self.fetchUpdate,
+            continueParmas={'fw_url': fw_url},
+            line1="Do you really want to",
+            line2="update firmware?")
+        return "confirm"
+    #enddef
+
+
+    def fetchUpdate(self, fw_url):
+        """Fetches file specified by url info ramdisk while displaying progress and watching for problems. Once the
+         fetch is finished the doUpdate is called with fetched file.
+
+        This is implemented as chunked copy from source file descriptor to the deestination file descriptor. The
+        progress is updated once the cunk is copied. The source file descriptor is either standard file when the source
+        is mounted USB drive or urlopen result."""
+
+        pageWait = PageWait(self.display, line1="Fetching firmware")
+        pageWait.show()
+
+        try:
+            old_progress = 0
+            if fw_url.startswith("http://") or fw_url.startswith("https://"):
+                # URL is HTTP, source is url
+                self.logger.info("Downloading firmware %s" % fw_url)
+
+                source = urllib2.urlopen(fw_url)
+                file_size = int(source.info().getheaders("Content-Length")[0])
+                block_size = 8 * 1024
+            else:
+                # URL is file, source is file
+                self.logger.info("Copying firmware %s" % fw_url)
+                source = open(fw_url, "rb")
+                file_size = os.path.getsize(fw_url)
+                block_size = 1024 * 1024
+            #endif
+
+            with open(defines.firmwareTempFile, 'wb') as firmware_file:
+                while True:
+                    buffer = source.read(block_size)
+                    if not buffer:
+                        break
+                    #endif
+                    firmware_file.write(buffer)
+
+                    progress = int(100 * firmware_file.tell() / file_size)
+                    if progress != old_progress:
+                        pageWait.showItems(line2="%d%%" % progress)
+                        old_progress = progress
+                    #endif
+                #endwhile
+            #endwith
+
+            source.close()
+        #endtry
+        except Exception as e:
+            self.logger.error("Firmware fetch failed: " + str(e))
+            self.display.page_error.setParams(
+                line2="Firmware fetch failed")
+            return "error"
+        #endexcept
+
+        return self.doUpdate(defines.firmwareTempFile)
+    #enddef
+
+
+    def doUpdate(self, fw_file):
         self.logger.info("Flashing: " + fw_file)
         try:
             rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
@@ -867,6 +936,45 @@ class PageFirmwareUpdate(Page):
         except Exception as e:
             self.logger.error("Rauc install call failed: " + str(e))
         #endtry
+
+        pageWait = PageWait(self.display, line1="Updating firmware")
+        pageWait.show()
+
+        try:
+            while True:
+                operation = self.rauc.Operation
+                progress = self.rauc.Progress
+
+                pageWait.showItems(
+                    line2=progress[1],
+                    line3="%d%%" % progress[0]
+                )
+
+                # Check progress for update done
+                if progress[1] == 'Installing done.':
+                    pageWait.showItems(
+                        line1="Update done",
+                        line2="Shutting down")
+                    sleep(3)
+                    self.display.shutDown(self.display.config.autoOff, reboot=True)
+                # endif
+
+                # Check for operation failure
+                if progress[1] == 'Installing failed.':
+                    raise Exception("Update failed")
+                # endif
+
+                # Wait for a while
+                sleep(1)
+            #endwhile
+        #endtry
+
+        except Exception as e:
+            self.logger.error("Rauc update failed: " + str(e))
+            self.display.page_error.setParams(
+                line2="Update failed")
+            return "error"
+        #endexcept
     #enddef
 
 #endclass
@@ -2323,8 +2431,8 @@ class PageAdmin(Page):
     def button11ButtonRelease(self):
         # check new firmware defines
         self.display.page_confirm.setParams(
-            continueFce = self.performUpdate,
-            continueParmas = { 'updateCommand' : defines.netUpdateCommand },
+            continueFce = self.display.page_firmwareupdate.fetchUpdate,
+            continueParmas = { 'fw_url': defines.currentFirmwareURL },
             line3 = "Proceed update?")
         return "confirm"
     #enddef
@@ -2332,46 +2440,6 @@ class PageAdmin(Page):
 
     def button12ButtonRelease(self):
         pass
-    #enddef
-
-
-    def performUpdate(self, updateCommand):
-
-        pageWait = PageWait(self.display, line1 = "Updating")
-        pageWait.show()
-        self.logger.info(updateCommand)
-        process = subprocess.Popen(updateCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-        while True:
-            line = process.stdout.readline()
-            retc = process.poll()
-            if line == '' and retc is not None:
-                break
-            #endif
-            if line:
-                line = line.strip()
-                if line == "":
-                    continue
-                #endif
-                # TODO lepe osetrit cteni vstupu! obcas se vrati radek na kterem to hodi vyjimku
-                line = line.split(': ')[-1]
-                pageWait.showItems(line2 = line)
-                #endif
-                self.logger.info("updater output: '%s'", line)
-            #endif
-        #endwhile
-
-        if retc:
-            pageWait.showItems(
-                    line1 = "Something went wrong!",
-                    line2 = "The firmware is probably damaged",
-                    line3 = "and maybe does not start :(")
-            self.display.shutDown(False)
-        else:
-            pageWait.showItems(
-                    line1 = "Update done",
-                    line2 = "Shutting down")
-            self.display.shutDown(self.display.config.autoOff)
-        #endif
     #enddef
 
 
