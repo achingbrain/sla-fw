@@ -251,14 +251,18 @@ class Display(object):
 
 
     # TODO presunout pryc
-    def shutDown(self, doShutDown):
+    def shutDown(self, doShutDown, reboot=False):
         self.hw.uvLed(False)
         self.hw.motorsRelease()
 
         if doShutDown:
-            self.hw.shutdown()
-            self.logger.debug("poweroff")
-            os.system("poweroff")
+            if reboot:
+                self.logger.debug("reboot")
+                os.system("reboot")
+            else:
+                self.hw.shutdown()
+                self.logger.debug("poweroff")
+                os.system("poweroff")
         #endif
 
         sys.exit()

@@ -31,7 +31,6 @@ cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 usbUpdatePath = "/mnt/rootfs"
-netUpdateCommand = os.path.join(scriptDir, "net_update.sh")
 flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
 Mc2NetCommand = os.path.join(scriptDir, "MC2Net.sh")
 WiFiCommand = os.path.join(scriptDir, "wifi.sh")
@@ -61,3 +60,5 @@ tiltHoldCurrent = 15
 tiltCalibCurrent = 40
 
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
+firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
+currentFirmwareURL = "http://10.24.10.12/images/current.raucb"
