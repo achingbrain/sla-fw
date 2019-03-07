@@ -1712,30 +1712,46 @@ class PageSrcSelect(Page):
 
 
     def source_list(self):
-        content = []
+        # Get source directories
         sourceDirs = \
             [SourceDir(defines.ramdiskPath, "ramdisk")] + \
             [SourceDir(path, "usb") for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
 
         # Get content items
+        dirs = {}
+        files = []
         for source_dir in sourceDirs:
-            content += source_dir.list(self.currentRoot)
+            for item in source_dir.list(self.currentRoot):
+                if item['type'] is 'dir':
+                    if item['name'] in dirs:
+                        item['numitems'] += dirs[item['name']]['numitems']
+                    dirs[item['name']] = item
+                else:
+                    files.append(item)
+                #endif
         #endfor
+
+        # Flatten dirs, sort by name
+        dirs = sorted(dirs.values(), key=lambda x: x['name'])
 
         # Add <up> virtual directory
         if not self.in_root():
-            content.append({
+            dirs.insert(0, {
                 'type': 'dir',
                 'name': '<up>',
                 'path': '..'
             })
         #endif
 
-        # Sort items, directory first (.. first) then files
-        content.sort(key=lambda x: (x['type'], 0 if x['path'] is '..' else 0, x['name']))
+        # Sort files
+        files.sort(key=lambda x: x['time'])
+        files.reverse()
+
+        # Compose content
+        content = dirs
+        content += files
 
         # Number items as choice#
-        cnt = 0
         for i, item in enumerate(content):
             item['choice'] = "choice%d" % i
         #endfor
