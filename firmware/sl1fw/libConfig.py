@@ -288,12 +288,12 @@ class HwConfig(FileConfig):
         self.mute = self._parseBool("mute", False)
 
         self.tuneTilt = list()
-        self.tuneTilt.append([int(n) for n in self._parseString("tiltdownlargefill", "5 500 1000 4 1 0 64 3").split()])
+        self.tuneTilt.append([int(n) for n in self._parseString("tiltdownlargefill", "5 650 1000 4 1 0 64 3").split()])
         self.tuneTilt.append([int(n) for n in self._parseString("tiltdownsmallfill", "5 0 0 6 1 0 0 0").split()])
         self.tuneTilt.append([int(n) for n in self._parseString("tiltup", "2 400 0 5 1 0 0 0").split()])
         #hotfix. TODO remove
         if len(self.tuneTilt[0]) != 8 or len(self.tuneTilt[1]) != 8 or len(self.tuneTilt[2]) != 8:
-            self.tuneTilt[0] = [5, 500, 1000, 4, 1, 0, 64, 3]
+            self.tuneTilt[0] = [5, 650, 1000, 4, 1, 0, 64, 3]
             self.tuneTilt[1] = [5, 0, 0, 6, 1, 0, 0, 0]
             self.tuneTilt[2] = [2, 400, 0, 5, 1, 0, 0, 0]
         #endif
