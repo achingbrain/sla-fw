@@ -397,12 +397,7 @@ class Printer(object):
             #endif
 
             pageWait.showItems(line3 = "Moving tank down")
-            if self.hw.tiltCheckHomeOffset(True) > 0:
-                self.display.page_error.setParams(
-                        line1 = "Tilt endstop check failed!",
-                        line2 = "Check tilt homingSlow profile.",
-                        line3 = "Job was canceled.")
-                self.display.doMenu("error")
+            self.hw.tiltDownWait()
             pageWait.showItems(line3 = "Moving platform down")
             self.hw.setTowerProfile('layer')
             self.hw.towerToPosition(0.05)

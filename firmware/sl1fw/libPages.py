@@ -2036,13 +2036,13 @@ class PageTiltTower(Page):
             line2 = "Please wait...",
             line3 = "")
         pageWait.show()
-        profileFast = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingFast"], True, 2000, 75, 10, 24, 4, 10)
+        profileFast = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingFast"], True, 2000, 70, 10, 32, 3, 12)
         pageWait = PageWait(self.display,
             line1 = "Searching for homingSlow profile",
             line2 = "Please wait...",
             line3 = "")
         pageWait.show()
-        profileSlow = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingSlow"], False, 1200, 30, 10, 24, 3, 12)
+        profileSlow = self.display.hw.findTiltProfile(self.display.hw._tiltProfiles["homingSlow"], False, 1200, 30, 10, 27, 3, 12)
         if (profileSlow == None) or (profileFast == None):
             resultMsg = "not found. Please adjust them manually."
         else:
@@ -2473,6 +2473,7 @@ class PageAdmin(Page):
         if retc == "error":
             return retc
         #endif
+        self.display.hw.setTiltProfile('layerMoveSlow')
         self.display.hw.tiltUpWait()
         self.display.hw.powerLed("normal")
 
@@ -2910,6 +2911,7 @@ class PageTowerCalib(MovePage):
         if retc == "error":
             return retc
         #endif
+        self.display.hw.setTiltProfile('layerMoveSlow')
         self.display.hw.tiltUpWait()
         pageWait.showItems(line2 = "Moving platform down")
         self.display.hw.setTowerProfile('moveFast')
