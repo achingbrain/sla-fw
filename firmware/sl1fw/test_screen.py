@@ -64,7 +64,7 @@ for i in xrange(divide[x]):
 screen.createCalibrationOverlay(areas = calibAreas)
 
 screen.openZip(filename = "test.dwz")
-screen.createMasks()
+screen.createMasks(perPartes = hwConfig.perPartes)
 
 screen.testBlit(filename = "zaba.png", overlayName = 'calibPad')
 sleep(5)

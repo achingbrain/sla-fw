@@ -29,9 +29,9 @@ class ExposureThread(threading.Thread):
 
         self.expo.screen.screenshot(second = second)
 
-        if self.config.tilt:
-            if self.expo.hwConfig.towerZHop and self.expo.config.layerMicroSteps <= self.expo.hwConfig.calcMicroSteps(0.035) and prevWhitePixels > self.expo.hwConfig.whitePixelsThd:
-                self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hw._towerZHop)
+        if self.expo.hwConfig.tilt:
+            if self.expo.hwConfig.layerTowerHop and prevWhitePixels > self.expo.hwConfig.whitePixelsThd:
+                self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.layerTowerHop)
                 self.expo.hw.setTowerProfile('layerMove')
                 self.expo.hw.tiltLayerUpWait()
                 self.expo.hw.towerMoveAbsoluteWait(position)
@@ -42,14 +42,17 @@ class ExposureThread(threading.Thread):
             #endif
         else:
             self.expo.hw.setTowerProfile('layer')
-            self.expo.hw.towerMoveAbsoluteWait(position + self.config.fakeTiltUp)
+            self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.layerTowerHop)
             self.expo.hw.towerMoveAbsoluteWait(position)
         #endif
         self.expo.hw.setTowerCurrent(defines.towerHoldCurrent)
 
         self.expo.screen.screenshotRename()
 
-        sleep(self.config.tiltDelayAfter)
+        if self.expo.hwConfig.delayBeforeExposure:
+            sleep(self.expo.hwConfig.delayBeforeExposure / 10.0)
+        #endif
+
         self.logger.debug("exposure started")
         whitePixels = self.expo.screen.blitImg(second = second)
 
@@ -99,16 +102,21 @@ class ExposureThread(threading.Thread):
         self.logger.debug("exposure done")
 
         if picture is not None:
-            self.expo.screen.preloadImg(filename = picture, overlayName = overlayName)
+            self.expo.screen.preloadImg(
+                    filename = picture,
+                    overlayName = overlayName,
+                    whitePixelsThd = self.expo.hwConfig.whitePixelsThd)
         #endif
 
-        sleep(self.config.tiltDelayBefore)
-        if self.config.tilt:
-            self.expo.hw.setTowerProfile('layer')
-            tiltDown = self.expo.hw.tiltLayerDownWait(whitePixels)
+        if self.expo.hwConfig.delayAfterExposure:
+            sleep(self.expo.hwConfig.delayAfterExposure / 10.0)
         #endif
-        if tiltDown != True:
-            self.expo.doPause()
+
+        if self.expo.hwConfig.tilt:
+            self.expo.hw.setTowerProfile('layer')
+            if not self.expo.hw.tiltLayerDownWait(whitePixels):
+                self.expo.doPause()
+            #endif
         #endif
 
         return whitePixels
@@ -134,8 +142,8 @@ class ExposureThread(threading.Thread):
             #endwhile
             pageWait.showItems(line3 = "")
 
-            for sec in xrange(self.expo.config.upAndDownWait):
-                pageWait.showItems(line2 = "Waiting... (%d)" % (self.expo.config.upAndDownWait - sec))
+            for sec in xrange(self.expo.hwConfig.upAndDownWait):
+                pageWait.showItems(line2 = "Waiting... (%d)" % (self.expo.hwConfig.upAndDownWait - sec))
                 sleep(1)
                 if self.expo.hwConfig.coverCheck and self.expo.hw.getCoverState():
                     pageWait.showItems(line2 = "Waiting... (cover is open)")
@@ -145,9 +153,11 @@ class ExposureThread(threading.Thread):
                 #endif
             #endfor
 
-            pageWait.showItems(line2 = "Resin stirring", line3 = "")
-            self.expo.hw.stirResin()
-            pageWait.showItems(line2 = "Going back")
+            if self.expo.hwConfig.tilt:
+                pageWait.showItems(line2 = "Resin stirring", line3 = "")
+                self.expo.hw.stirResin()
+            #endif
+            pageWait.showItems(line2 = "Going back", line3 = "")
             self.expo.hw.towerMoveAbsolute(actualPosition)
             while not self.expo.hw.isTowerOnPosition():
                 sleep(0.25)
@@ -258,18 +268,21 @@ class ExposureThread(threading.Thread):
                         break
                     #endif
 
-                    pageWait = libPages.PageWait(self.expo.display, line2 = "Resin stirring")
-                    pageWait.show()
-                    self.expo.hw.tiltDownWait()
-                    self.expo.hw.stirResin()
+                    if self.expo.hwConfig.tilt:
+                        pageWait = libPages.PageWait(self.expo.display, line2 = "Resin stirring")
+                        pageWait.show()
+                        self.expo.hw.tiltDownWait()
+                        self.expo.hw.stirResin()
+                    #endif
                     self.expo.hw.powerLed("normal")
                     self.expo.display.actualPage.show()
                 #endif
 
                 if command == "pause":
                     self.doWait()
+                #endif
 
-                if config.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % config.upAndDownEveryLayer:
+                if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
                     self.doUpAndDown()
                     self.expo.display.actualPage.show()
                 #endif
@@ -390,8 +403,11 @@ class Exposure(object):
         # FIXME test return value!
         self.screen.openZip(filename = self.config.zipName)
         # here ^^^
-        self.perPartes = self.screen.createMasks()
-        self.screen.preloadImg(filename = self.config.toPrint[0], overlayName = 'calibPad')
+        self.perPartes = self.screen.createMasks(perPartes = hwConfig.perPartes)
+        self.screen.preloadImg(
+                filename = self.config.toPrint[0],
+                overlayName = 'calibPad',
+                whitePixelsThd = hwConfig.whitePixelsThd)
         self.position = 0
         self.actualLayer = 0
         self.checkPage = libPages.PageWait(display)
