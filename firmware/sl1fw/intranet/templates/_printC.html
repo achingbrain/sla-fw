@@ -36,6 +36,13 @@
 		<div class="row">{{ items['exposure_time_first_sec'] }} / {{ items['exposure_time_sec'] }}</div>
 		{% endif %} -->
 	</div>
-	{% set button = {'id': 'setup', 'title': 'Change Settings'} %}
-	{% include 'button.html' %}
 </div>
+
+{% set buttons = [
+	{"id": "feedme", "title": "Refill"},
+	{"id": "updown", "title": "Pause Up & down"},
+	{"id": "settings", "title": "Exposure times"},
+	{"id": "turnoff", "title": "Cancel & Power Down"},
+	{"id": "admin", "title": "Admin"}
+] -%}
+{% include 'buttons.html' %}
