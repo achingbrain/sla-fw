@@ -1013,7 +1013,7 @@ class PageFirmwareUpdate(Page):
                         line1="Update done",
                         line2="Shutting down")
                     sleep(3)
-                    self.display.shutDown(self.display.config.autoOff, reboot=True)
+                    self.display.shutDown(self.display.hwConfig.autoOff, reboot=True)
                 # endif
 
                 # Check for operation failure
