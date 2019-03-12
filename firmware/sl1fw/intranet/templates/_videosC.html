@@ -1,12 +1,5 @@
-<div class="row">
-	<h1>TODO: No actions currently on this page.</h1>
+<div class="row justify-content-md-center">
+	<a class="col-md-auto" href="{{ items['videos_url'] }}">{{ items['videos_url'] }}</a>
 </div>
-
-{% set buttons = [
-	{"id": "sampleimage", "title": "Sample Image"},
-	{"id": "samplevideo", "title": "Sample Video"}
-] -%}
-
-{% include 'buttons.html' %}
 
 {% include 'back.html' %}
