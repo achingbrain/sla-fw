@@ -1069,7 +1069,6 @@ class Hardware(object):
 
 
     def calcPercVolume(self, volume):
-        volume += defines.resinMinVolume
         return int(ceil(volume * 0.05) * 10)
     #enddef
 
