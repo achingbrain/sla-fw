@@ -540,9 +540,11 @@ class PageSettings(Page):
         super(PageSettings, self).__init__(display)
     #enddef
 
+
     def networkButtonRelease(self):
         return "network"
     #enddef
+
 
     def recalibrationButtonRelease(self):
         self.display.page_confirm.setParams(
@@ -551,37 +553,20 @@ class PageSettings(Page):
         return "confirm"
     #enddef
 
+
     def advancedsettingsButtonRelease(self):
         return "advancedsettings"
     #enddef
+
 
     def supportButtonRelease(self):
         return "support"
     #enddef
 
+
     def calibrateContinue(self):
         return "calibration"
     #enddef
-
-    def systemsettingsButtonRelease(self):
-        return "systemsettings"
-    #enddef
-
-    def settimeButtonRelease(self):
-        return "settime"
-    # enddef
-
-    def settimezoneButtonRelease(self):
-        return "settimezone"
-    # enddef
-
-    def sethostnameButtonRelease(self):
-        return "sethostname"
-    # enddef
-
-    def setlanguageButtonRelease(self):
-        return "setlanguage"
-    # enddef
 
 #endclass
 
@@ -768,10 +753,31 @@ class PageAdvancedSettings(Page):
     def firmwareupdateButtonRelease(self):
         return "firmwareupdate"
     #enddef
-    
+
+
     def adminButtonRelease(self):
         return "admin"
     #enddef
+
+
+    def settimeButtonRelease(self):
+        return "settime"
+    # enddef
+
+
+    def settimezoneButtonRelease(self):
+        return "settimezone"
+    # enddef
+
+
+    def sethostnameButtonRelease(self):
+        return "sethostname"
+    # enddef
+
+
+    def setlanguageButtonRelease(self):
+        return "setlanguage"
+    # enddef
 
 #endclass
 
@@ -991,7 +997,13 @@ class PageManual(Page):
         super(PageManual, self).__init__(display)
     #enddef
 
-    # TODO: No actions currently on this page
+
+    def show(self):
+        self.items = {
+            'manual_url': defines.manualURL
+        }
+        super(PageManual, self).show()
+    # enddef
 
 #endclass
 
@@ -1004,16 +1016,11 @@ class PageVideos(Page):
         super(PageVideos, self).__init__(display)
     #enddef
 
-    # TODO: Only debug actions currently on this page
-
-    def samplevideoButtonRelease(self):
-        self.display.page_video.setMedia('Original_Prusa_i3_MK3_guide_for_a_new_user.short.mp4')
-        return "video"
-    #enddef
-
-    def sampleimageButtonRelease(self):
-        self.display.page_image.setMedia('SLA.png')
-        return "image"
+    def show(self):
+        self.items = {
+            'videos_url': defines.videosURL
+        }
+        super(PageVideos, self).show()
     # enddef
 
 #endclass
@@ -1649,11 +1656,6 @@ class PageAbout(Page):
 #                "qr1" : "https://www.prusa3d.com",
                 "qr1" : "MECARD:N:Prusa Research s.r.o.;URL:www.prusa3d.com;EMAIL:info@prusa3d.com;;",
                 })
-    #enddef
-
-
-    def adminButtonRelease(self):
-        return "admin"
     #enddef
 
 #endclass
