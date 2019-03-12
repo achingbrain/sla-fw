@@ -1103,6 +1103,17 @@ class PageNetwork(Page):
     #enddef
 
 
+    def wifionButtonSubmit(self, data):
+        try:
+            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+            wifisetup.StartAP()
+            wifisetup.EnableAP()
+        except:
+            self.logger.error("Setting wifi ap mode (wifi on)")
+        # endtry
+    #enddef
+
+
     def wifioff(self):
         try:
             wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')

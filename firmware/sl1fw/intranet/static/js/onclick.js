@@ -76,11 +76,15 @@ function hookLinkedControls() {
 function hookHiddenConnect() {
     $('.hidden-connect').click(function() {
         // Collapse sibling items
-        item = $(this).closest('.list-group-item')
+        item = $(this).closest('.connection')
         item.siblings().find('.collapse').hide()
 
         // Show current item password prompt
         $(this).find('.collapse').show()
+    })
+    $('.hidden-connection').click(function() {
+        item = $(this).data('connection-id')
+        $(item).collapse('toggle')
     })
 }
 
@@ -110,15 +114,14 @@ function hookWifiConnect() {
     })
 }
 
-function hookWifiBothOffCheck() {
-    $('#client-settings-control,#ap-settings-control').change(function() {
-        client_checked = $('#client-settings-control').prop('checked')
-        ap_checked = $('#ap-settings-control').prop('checked')
+function hookWifiOff() {
+    $('#wifi-control').change(function() {
+        checked = $(this).prop('checked')
 
-        if(!client_checked && !ap_checked) {
-            // Simulate click on button with ssid, psk data
-            id = 'wifioff'
-            sendWebSocketAction(id = id)
+        if(checked) {
+            sendWebSocketAction(id = 'wifion')
+        } else {
+            sendWebSocketAction(id = 'wifioff')
         }
     })
 }
