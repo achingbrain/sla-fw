@@ -60,7 +60,8 @@ tiltHoldCurrent = 35
 tiltCalibCurrent = 40
 
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
-manualURL = "TODO: this should be URL to SL1 manual"
-videosURL = "TODO: this should be url to SL1 instruction videos"
+manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
+videosURL = "https://www.prusa3d.com/SL1guide/"
+aboutURL = "https://www.prusa3d.com/about-us/"
 firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
 currentFirmwareURL = "https://www.prusa3d.com/SL1/current.raucb"

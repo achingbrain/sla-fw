@@ -1700,9 +1700,10 @@ class PageAbout(Page):
         super(PageAbout, self).__init__(display)
         self.items.update({
                 "line1" : "2018-2019 Prusa Research s.r.o.",
-                "line2" : "www.prusa3d.com",
+                "line2" : defines.aboutURL,
 #                "qr1" : "https://www.prusa3d.com",
                 "qr1" : "MECARD:N:Prusa Research s.r.o.;URL:www.prusa3d.com;EMAIL:info@prusa3d.com;;",
+                "about_url": defines.aboutURL
                 })
     #enddef
 
