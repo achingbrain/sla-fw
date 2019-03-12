@@ -45,7 +45,7 @@ function wsInit(dir) {
 			hookLinkedControls();
 			hookHiddenConnect();
 			hookWifiConnect();
-			hookWifiBothOffCheck();
+			hookWifiOff();
 			hookFlash();
 			hookTimeSet();
 
