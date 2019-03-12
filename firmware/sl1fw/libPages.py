@@ -1725,9 +1725,18 @@ class SourceDir:
         #endif
 
         for item in os.listdir(path):
+            # Skip . link
             if item.startswith('.'):
                 continue
             #endif
+
+            # Skip files that fail to decode as utf-8
+            try:
+                item.decode('utf-8')
+            except:
+                continue
+
+            # Add file to result
             full_path = os.path.join(path, item)
             if os.path.isdir(full_path):
                 yield {
