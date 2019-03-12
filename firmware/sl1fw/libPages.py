@@ -404,7 +404,7 @@ class PagePrintStart(PagePrintPreviewBase):
 
 
     def show(self):
-        perc = self.display.hw.calcPercVolume(self.display.config.usedMaterial)
+        perc = self.display.hw.calcPercVolume(self.display.config.usedMaterial + defines.resinMinVolume)
         lines = {
                 'name' : self.display.config.projectName,
                 'line1' : "Please fill resin tank",
