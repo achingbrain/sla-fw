@@ -888,7 +888,10 @@ class PageFirmwareUpdate(Page):
                 # URL is HTTP, source is url
                 self.logger.info("Downloading firmware %s" % fw_url)
 
-                source = urllib2.urlopen(fw_url)
+                req = urllib2.Request(fw_url, headers={
+                    'User-Agent': 'Prusa-SL1'
+                })
+                source = urllib2.urlopen(req)
                 file_size = int(source.info().getheaders("Content-Length")[0])
                 block_size = 8 * 1024
             else:
