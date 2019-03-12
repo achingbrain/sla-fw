@@ -372,6 +372,11 @@ class Hardware(object):
             returnPage.show()
         #endif
 
+        self.initDefaults()
+    #enddef
+
+
+    def initDefaults(self):
         self.motorsRelease()
         self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm))
         self.setFans((True, True, True))
@@ -457,6 +462,7 @@ class Hardware(object):
     def eraseEeprom(self):
         self.mcc.do("!eecl")
         self.mcc.do("!rst")    # FIXME MC issue
+        self.initDefaults()
     #enddef
 
 
