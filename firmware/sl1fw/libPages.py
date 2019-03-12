@@ -2017,7 +2017,7 @@ class PageTiltTower(Page):
                 'button11' : "Turn motors off",
                 'button12' : "Tune tilt",
                 'button13' : "Tilt home test",
-                'button14' : "Calibrate printer",
+                'button14' : "Remove calibration",
                 'button15' : "",
                 })
     #enddef
@@ -2221,7 +2221,21 @@ class PageTiltTower(Page):
 
 
     def button14ButtonRelease(self):
-        return "calibration"
+        self.display.page_confirm.setParams(
+            continueFce = self.button14Continue,
+            line1 = "Really remove tower & tilt calibration?")
+        return "confirm"
+    #enddef
+
+
+    def button14Continue(self):
+        self.display.hwConfig.update(towerheight = self.display.hwConfig.calcMicroSteps(128), calibrated = "no")
+        if not self.display.hwConfig.writeFile():
+            self.display.hw.beepAlarm(3)
+            sleep(1)
+            self.display.hw.beepAlarm(3)
+        #endif
+        return "_BACK_"
     #enddef
 
 #endclass
@@ -2616,7 +2630,7 @@ class PageSetup(Page):
             sleep(1)
             self.display.hw.beepAlarm(3)
         #endif
-        self.display.config._parseData()
+        self.display.config._parseData()    # <- WHY? FIXME
         return super(PageSetup, self).backButtonRelease()
     #endif
 #enddef
