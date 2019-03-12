@@ -488,6 +488,10 @@ class PrintConfig(FileConfig):
         self.calibrateTime = self._parseFloat("calibratetime", self.expTime)
         self.calibrateRegions = self._parseInt("calibrateregions", 0)
         self.calibrateInfoLayers = self._parseInt("calibrateinfolayers", 10)
+
+        self.usedMaterial = self._parseFloat("usedmaterial", 150)
+        self.layersSlow = self._parseInt("numslow", 0)
+        self.layersFast = self._parseInt("numfast", 0)
     #enddef
 
 #endclass

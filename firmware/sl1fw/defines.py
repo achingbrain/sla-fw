@@ -49,11 +49,11 @@ wifiSetupFile = "/etc/hostapd.secrets.json"
 octoprintURI = ":8000"
 octoprintAuthFile = os.path.join(configDir, "slicer-upload-api.key")
 
-resinMinVolume = 50
-resinMaxVolume = 200
-resinLowWarn = 40
-resinFeedWait = 30
-resinFilled = 350
+resinMinVolume = 68.5
+resinMaxVolume = 200.0
+resinLowWarn = 60
+resinFeedWait = 50
+resinFilled = 200
 
 towerHoldCurrent = 12
 tiltHoldCurrent = 35

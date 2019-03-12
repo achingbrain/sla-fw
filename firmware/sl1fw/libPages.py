@@ -358,6 +358,36 @@ class PagePrintPreview(PagePrintPreviewBase):
 
 
     def contButtonRelease(self):
+        pageWait = PageWait(self.display, line1 = "Setting start positions")
+        pageWait.show()
+
+        self.display.hw.towerSync()
+        syncRes = self.display.hw.tiltSyncWait(retries = 2)
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
+
+        if self.display.hw.towerSyncFailed():
+            self.display.hw.motorsRelease()
+            self.display.page_error.setParams(
+                    line1 = "Tower homing failed!",
+                    line2 = "Check printer's hardware.",
+                    line3 = "Job was canceled.")
+            return "error"
+        #endif
+
+        if not syncRes:
+            self.display.hw.motorsRelease()
+            self.display.page_error.setParams(
+                    line1 = "Tilt homing failed!",
+                    line2 = "Check printer's hardware.",
+                    line3 = "Job was canceled.")
+            return "error"
+        #endif
+
+        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.tiltUpWait()
+
         return "printstart"
     #enddef
 
@@ -368,13 +398,30 @@ class PagePrintStart(PagePrintPreviewBase):
 
     def __init__(self, display):
         self.pageUI = "printstart"
-        self.pageTitle = "Printing..."
+        self.pageTitle = "Confirm"
         super(PagePrintStart, self).__init__(display)
     #enddef
 
 
     def show(self):
-        self.items.update(self.fillData())
+        perc = self.display.hw.calcPercVolume(self.display.config.usedMaterial)
+        lines = {
+                'name' : self.display.config.projectName,
+                'line1' : "Please fill resin tank",
+                }
+        if perc <= 100:
+            lines.update({
+                    'line2' : "at least at %d %%." % perc,
+                    'line3' : "",
+                    'line4' : "",
+                    })
+        else:
+            lines.update({
+                    'line2' : "to line 100 %.",
+                    'line3' : "Refill will be required",
+                    'line4' : "during printing.",
+                    })
+        self.items.update(lines)
         super(PagePrintStart, self).show()
     #enddef
 
@@ -387,6 +434,7 @@ class PagePrintStart(PagePrintPreviewBase):
     def contButtonRelease(self):
         return "_EXIT_MENU_"
     #enddef
+
 
     def backButtonRelease(self):
         self.display.goBack(2)
@@ -488,7 +536,7 @@ class PageControl(Page):
         pageWait = PageWait(self.display, line2 = "Moving platform to top")
         pageWait.show()
         retc = self._syncTower(pageWait)
-        self.display.hw.motorsRelease()
+        self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
         return retc
     #enddef
@@ -507,7 +555,7 @@ class PageControl(Page):
     def upButtonRelease(self):
         self.display.hw.towerStop()
         self.moving = False
-        self.display.hw.motorsRelease()
+        self.display.hw.motorsHold()
     #enddef
 
 
@@ -518,13 +566,13 @@ class PageControl(Page):
         self.display.hw.checkCoverStatus(PageWait(self.display), pageWait)
         retc = self._syncTilt()
         if retc == "error":
-            self.display.hw.motorsRelease()
+            self.display.hw.motorsHold()
             return retc
         #endif
-        self.display.hw.setTiltProfile('layerMoveFast')
+        self.display.hw.setTiltProfile('moveFast')
         self.display.hw.tiltDownWait()
         self.display.hw.tiltUpWait()
-        self.display.hw.motorsRelease()
+        self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
         return "_SELF_"
     #enddef
@@ -3387,6 +3435,7 @@ class PageTiltCalib(MovePage):
         pageWait.show()
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait(2)
+        self.display.hw.tiltMoveAbsolute(self.display.hwConfig.tiltHeight)
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
         #endwhile
@@ -3402,7 +3451,7 @@ class PageTiltCalib(MovePage):
         #endif
         self.display.hw.setTiltProfile('moveFast')
         self.display.hw.setTowerProfile('moveFast')
-        self.display.hw.motorsRelease()
+        self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep7,
@@ -3453,7 +3502,7 @@ class PageTowerOffset(MovePage):
         #endif
         self.display.hw.setTiltProfile('moveFast')
         self.display.hw.setTowerProfile('moveFast')
-        self.display.hw.motorsRelease()
+        self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
             continueFce = self.towerOffsetStep1,

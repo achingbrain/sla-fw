@@ -8,6 +8,7 @@ import re
 from time import time, sleep
 from multiprocessing import Lock
 import bitstring
+from math import ceil
 
 from libDebug import Debug
 
@@ -341,8 +342,6 @@ class Hardware(object):
         self._towerCalibPos = self.hwConfig.calcMicroSteps(1)
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
-        self._towerResinMin = self.hwConfig.calcMicroSteps(3.75) # cca 50 ml
-        self._towerResinMax = self.hwConfig.calcMicroSteps(16)  # cca 200 ml
 
         self.mcc = MotConCom("MC_Main")
         self.cpuSerial = self.readCpuSerial()
@@ -818,6 +817,12 @@ class Hardware(object):
     #enddef
 
 
+    def motorsHold(self):
+        self.setTiltCurrent(defines.tiltHoldCurrent)
+        self.setTowerCurrent(defines.towerHoldCurrent)
+    #enddef
+
+
     # --- tower ---
 
 
@@ -1030,6 +1035,13 @@ class Hardware(object):
     #enddef
 
 
+    #  5.0 mm -  35 % -  68.5 ml
+    # 10.0 mm -  70 % - 137.0 ml
+    # 14.5 mm - 100 % - 200.0 ml
+
+    # 35 % -  70 % : 1.0 mm = 13.7 ml
+    # 70 % - 100 % : 0.9 mm = 12.5 ml
+
     def getResinVolume(self):
         self.setTowerProfile('moveFast')
         self.towerMoveAbsoluteWait(self._towerResinStartPos) # move quickly to safe distance
@@ -1045,9 +1057,20 @@ class Hardware(object):
         if not position or position == self._towerResinEndPos:
             return 0
         else:
-            volume = position * 150 / (self._towerResinMax - self._towerResinMin)
+            posMM = self.hwConfig.calcMM(position)
+            if posMM < 10:  # cca 137 ml
+                volume = posMM * 13.7
+            else:
+                volume = posMM * 0.9 * 12.5
+            #endif
             return int(round(volume / 10.0) * 10)
         #endif
+    #enddef
+
+
+    def calcPercVolume(self, volume):
+        volume += defines.resinMinVolume
+        return int(ceil(volume * 0.05) * 10)
     #enddef
 
 
@@ -1432,7 +1455,7 @@ class Hardware(object):
 
 
     def stirResin(self):
-        self.setTiltProfile('layerMoveSlow')
+        self.setTiltProfile('moveFast')
         for i in xrange(3):
             self.tiltUpWait()
             self.tiltDownWait()

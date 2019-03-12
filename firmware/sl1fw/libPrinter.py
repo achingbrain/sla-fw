@@ -315,36 +315,6 @@ class Printer(object):
 
                 self.hw.checkCoverStatus(self.checkPage, pageWait)  # FIXME status vlakno?
 
-                pageWait.showItems(line2 = "Moving platform to top")
-                self.hw.towerSync()
-                while not self.display.hw.isTowerSynced():
-                    sleep(0.25)
-                    pageWait.showItems(line3 = self.display.hw.getTowerPosition())
-                #endwhile
-                if self.hw.towerSyncFailed():
-                    self.hw.motorsRelease()
-                    self.display.page_error.setParams(
-                            line1 = "Tower homing failed!",
-                            line2 = "Check printer's hardware.",
-                            line3 = "Job was canceled.")
-                    self.display.doMenu("error")
-                    continue
-                #endif
-
-                pageWait.showItems(line2 = "Homing tank", line3 = "")
-                if not self.hw.tiltSyncWait(retries = 2):
-                    self.hw.motorsRelease()
-                    self.display.page_error.setParams(
-                            line1 = "Tilt homing failed!",
-                            line2 = "Check printer's hardware.",
-                            line3 = "Job was canceled.")
-                    self.display.doMenu("error")
-                    continue
-                #endif
-
-                self.hw.setTiltProfile('moveFast')
-                self.hw.tiltUpWait()
-
                 if self.display.hwConfig.resinSensor:
                     # TODO vyzadovat zavreny kryt po celou dobu!
                     pageWait.showItems(line2 = "Measuring resin volume", line3 = "Do NOT TOUCH the printer")
@@ -375,7 +345,7 @@ class Printer(object):
                         continue
                     #endif
 
-                    pageWait.showItems(line2 = "Measured resin volume: %d ml" % volume)
+                    pageWait.showItems(line2 = "Measured resin volume is approx %d %%" % self.hw.calcPercVolume(volume))
                     self.expo.setResinVolume(volume)
                 else:
                     pageWait.showItems(line2 = "Resin volume measurement is turned off")
