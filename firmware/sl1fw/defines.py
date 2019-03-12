@@ -61,4 +61,4 @@ tiltCalibCurrent = 40
 
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
 firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
-currentFirmwareURL = "http://10.24.10.12/images/current.raucb"
+currentFirmwareURL = "https://www.prusa3d.com/SL1/current.raucb"
