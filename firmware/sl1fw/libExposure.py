@@ -21,7 +21,54 @@ class ExposureThread(threading.Thread):
         self.logger = logging.getLogger(__name__)
         self.commands = commands
         self.expo = expo
-        self.config = self.expo.config
+
+        config = expo.config
+        self.calibAreas = None
+        areaMap = {
+                2 : (2,1),
+                4 : (2,2),
+                6 : (3,2),
+                8 : (4,2),
+                9 : (3,3),
+                }
+        if config.calibrateRegions:
+            if config.calibrateRegions not in areaMap:
+                self.logger.warning("bad value calibrateRegions (%d), calibrate mode disabled", config.calibrateRegions)
+            else:
+                divide = areaMap[config.calibrateRegions]
+
+                width, height = self.expo.screen.getResolution()
+
+                if width > height:
+                    x = 0
+                    y = 1
+                else:
+                    x = 1
+                    y = 0
+                #endif
+
+                stepW = width / divide[x]
+                stepH = height / divide[y]
+
+                self.calibAreas = list()
+                lw = 0
+                time = config.expTime
+                for i in xrange(divide[x]):
+                    lh = 0
+                    for j in xrange(divide[y]):
+                        w = (i+1) * stepW
+                        h = (j+1) * stepH
+                        #self.logger.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)
+                        self.calibAreas.append(((lw, lh), (stepW, stepH), time))
+                        time += config.calibrateTime
+                        lh = h
+                    #endfor
+                    lw = w
+                #endfor
+
+                self.expo.screen.createCalibrationOverlay(areas = self.calibAreas)
+            #endif
+        #endif
     #enddef
 
 
@@ -196,48 +243,6 @@ class ExposureThread(threading.Thread):
         #self.logger.debug("thread started")
         try:
             config = self.expo.config
-
-            self.calibAreas = None
-
-            if config.calibrateRegions:
-                if config.calibrateRegions not in self.expo.areaMap:
-                    self.logger.warning("bad value calibrateRegions (%d), calibrate mode disabled", config.calibrateRegions)
-                else:
-                    divide = self.expo.areaMap[config.calibrateRegions]
-
-                    width, height = self.expo.screen.getResolution()
-
-                    if width > height:
-                        x = 0
-                        y = 1
-                    else:
-                        x = 1
-                        y = 0
-                    #endif
-
-                    stepW = width / divide[x]
-                    stepH = height / divide[y]
-
-                    self.calibAreas = list()
-                    lw = 0
-                    time = config.expTime
-                    for i in xrange(divide[x]):
-                        lh = 0
-                        for j in xrange(divide[y]):
-                            w = (i+1) * stepW
-                            h = (j+1) * stepH
-                            #self.logger.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)
-                            self.calibAreas.append(((lw, lh), (stepW, stepH), time))
-                            time += config.calibrateTime
-                            lh = h
-                        #endfor
-                        lw = w
-                    #endfor
-
-                    self.expo.screen.createCalibrationOverlay(areas = self.calibAreas)
-                #endif
-            #endif
-
             prevWhitePixels = 0
             totalLayers = config.totalLayers
 
@@ -404,26 +409,19 @@ class Exposure(object):
         self.screen.openZip(filename = self.config.zipName)
         # here ^^^
         self.perPartes = self.screen.createMasks(perPartes = hwConfig.perPartes)
-        self.screen.preloadImg(
-                filename = self.config.toPrint[0],
-                overlayName = 'calibPad',
-                whitePixelsThd = hwConfig.whitePixelsThd)
         self.position = 0
         self.actualLayer = 0
         self.checkPage = libPages.PageWait(display)
         self.expoCommands = Queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self)
+        self.screen.preloadImg(
+                filename = self.config.toPrint[0],
+                overlayName = 'calibPad',
+                whitePixelsThd = hwConfig.whitePixelsThd)
         self.exception = None
         self.resinCount = 0.0
         self.resinVolume = None
         self.pixelSize = self.hwConfig.pixelSize ** 2
-        self.areaMap = {
-                2 : (2,1),
-                4 : (2,2),
-                6 : (3,2),
-                8 : (4,2),
-                9 : (3,3),
-                }
         self.paused = False
     #enddef
 
