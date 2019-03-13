@@ -896,7 +896,7 @@ class PageFirmwareUpdate(Page):
 
 
     def show(self):
-        self.items = self.fillData()
+        self.items.update(self.fillData())
         super(PageFirmwareUpdate, self).show()
     #enddef
 
