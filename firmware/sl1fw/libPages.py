@@ -1047,9 +1047,9 @@ class PageManual(Page):
 
 
     def show(self):
-        self.items = {
+        self.items.update({
             'manual_url': defines.manualURL
-        }
+        })
         super(PageManual, self).show()
     # enddef
 
@@ -1065,9 +1065,9 @@ class PageVideos(Page):
     #enddef
 
     def show(self):
-        self.items = {
+        self.items.update({
             'videos_url': defines.videosURL
-        }
+        })
         super(PageVideos, self).show()
     # enddef
 
