@@ -1789,7 +1789,8 @@ class PageSrcSelect(Page):
         # Get source directories
         sourceDirs = \
             [SourceDir(defines.ramdiskPath, "ramdisk")] + \
-            [SourceDir(path, "usb") for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
+            [SourceDir(path, "usb") for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))] + \
+            [SourceDir(defines.internalProjectPath, "internal")]
 
         # Get content items
         dirs = {}
