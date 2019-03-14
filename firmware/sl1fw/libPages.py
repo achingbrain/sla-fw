@@ -13,6 +13,9 @@ from copy import deepcopy
 import time
 import re
 import urllib2
+import tarfile
+
+# TODO: remove?
 import shutil
 
 import defines
@@ -1934,7 +1937,7 @@ class PageSrcSelect(Page):
 
 #endclass
 
-
+# TODO: remove me
 class PageKeyboard(Page):
 
     def __init__(self, display):
@@ -2425,7 +2428,7 @@ class PageAdmin(Page):
                 'button11' : "Rauc net update",
                 'button12' : "",
                 'button13' : "Resin sensor test",
-                'button14' : "Keyboard test",
+                'button14' : "Download examples",
                 'button15' : "",
                 })
     #enddef
@@ -2564,8 +2567,60 @@ class PageAdmin(Page):
 
 
     def button14ButtonRelease(self):
-        return "keyboard"
+        try:
+            if not os.path.isdir(defines.internalProjectPath):
+                os.makedirs(defines.internalProjectPath)
+
+            self.downloadURL(defines.examplesURL, defines.examplesArchivePath, title="Fetching examples")
+
+            pageWait = PageWait(self.display, line1="Decompressing examples")
+            pageWait.show()
+            pageWait.showItems(line1="Extracting examples")
+            with tarfile.open(defines.examplesArchivePath) as tar:
+                tar.extractall(path=defines.internalProjectPath)
+            pageWait.showItems(line1="Cleaning up")
+            os.remove(defines.examplesArchivePath)
+
+            return "_BACK_"
+
+        except Exception as e:
+            self.logger.error("Exaples fetch failed: " + str(e))
+            self.display.page_error.setParams(
+                line2="Examples fetch failed")
+            return "error"
     #enddef
+
+
+    def downloadURL(self, url, dest, title='Fetching'):
+        pageWait = PageWait(self.display, line1=title, line2="0%")
+        pageWait.show()
+
+        self.logger.info("Downloading %s" % url)
+
+        req = urllib2.Request(url)
+        req.add_header('User-Agent', 'Prusa-SL1')
+        source = urllib2.urlopen(req, timeout=10)
+        file_size = int(source.info().getheaders("Content-Length")[0])
+        block_size = 8 * 1024
+
+        with open(dest, 'wb') as file:
+            old_progress = 0
+            while True:
+                buffer = source.read(block_size)
+                if not buffer:
+                    break
+                # endif
+                file.write(buffer)
+
+                progress = int(100 * file.tell() / file_size)
+                if progress != old_progress:
+                    pageWait.showItems(line2="%d%%" % progress)
+                    old_progress = progress
+                # endif
+            # endwhile
+        # endwith
+    #enddef
+
 
 #endclass
 
