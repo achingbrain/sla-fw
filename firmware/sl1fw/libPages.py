@@ -2599,7 +2599,7 @@ class PageAdmin(Page):
 
         req = urllib2.Request(url)
         req.add_header('User-Agent', 'Prusa-SL1')
-        source = urllib2.urlopen(req)
+        source = urllib2.urlopen(req, timeout=10)
         file_size = int(source.info().getheaders("Content-Length")[0])
         block_size = 8 * 1024
 
@@ -2619,8 +2619,6 @@ class PageAdmin(Page):
                 # endif
             # endwhile
         # endwith
-
-        source.close()
     #enddef
 
 
