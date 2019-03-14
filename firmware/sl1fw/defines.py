@@ -65,3 +65,4 @@ videosURL = "https://www.prusa3d.com/SL1guide/"
 aboutURL = "https://www.prusa3d.com/about-us/"
 firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
 currentFirmwareURL = "https://www.prusa3d.com/SL1/current.raucb"
+internalProjectPath = "/var/sl1fw/projects"
