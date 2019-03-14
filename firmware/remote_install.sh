@@ -24,9 +24,10 @@ python2 setup.py sdist --dist-dir=${tmp}
 target_tmp=$(ssh root@${target} "mktemp --directory --tmpdir=/tmp/ sl1fw.XXXX")
 echo "Remote temp is ${target_tmp}"
 
-echo "Installing on target"
+echo "Install on target...start"
 scp -r ${tmp}/* root@${target}:${target_tmp}
 ssh root@${target} "\
+set -o xtrace; \
 cp -f \"$CFG\" \"$CFG.bak\"; \
 cd ${target_tmp}; \
 tar xvf sl1fw*.tar.gz; \
@@ -38,6 +39,7 @@ cp \"$CFG.bak\" \"$CFG\"; \
 systemctl daemon-reload; \
 systemctl restart sl1fw
 "
+echo "Install on target...done"
 
 echo "Removing remote temp"
 ssh root@${target} "rm -rf ${target_tmp}"
