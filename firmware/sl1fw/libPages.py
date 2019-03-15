@@ -1715,9 +1715,14 @@ class PageAbout(Page):
 
 class SourceDir:
 
+    class NotProject(Exception):
+        pass
+    #endclass
+
     def __init__(self, root, name):
         self.root = root
         self.name = name
+        self.logger = logging.getLogger(__name__)
     #enddef
 
 
@@ -1729,42 +1734,57 @@ class SourceDir:
         #endif
 
         for item in os.listdir(path):
-            # Skip . link
-            if item.startswith('.'):
-                continue
-            #endif
-
-            # Skip files that fail to decode as utf-8
             try:
-                item.decode('utf-8')
-            except:
+                yield self.processItem(item, path)
+            except SourceDir.NotProject:
                 continue
-
-            # Add file to result
-            full_path = os.path.join(path, item)
-            if os.path.isdir(full_path):
-                yield {
-                    'type': 'dir',
-                    'name': item,
-                    'path': item,
-                    'fullpath': full_path,
-                    'numitems': len(os.listdir(full_path))
-                }
-            else:
-                (name, extension) = os.path.splitext(item)
-                if extension in defines.projectExtensions:
-                    yield {
-                        'type': 'project',
-                        'name': name,
-                        'fullpath': full_path,
-                        'source': self.name,
-                        'filename': item,
-                        'path': item,
-                        'time': os.path.getmtime(full_path)
-                    }
-                #endif
-            #endif
+            except Exception as e:
+                self.logger.debug("Ignoring source project: %s" % str(e))
+                continue
+            #endtry
         #endfor
+    #enddef
+
+
+    def processItem(self, item, path):
+        # Skip . link
+        if item.startswith('.'):
+            raise SourceDir.NotProject(". dir")
+        # endif
+
+        # Skip files that fail to decode as utf-8
+        try:
+            item.decode('utf-8')
+        except Exception as e:
+            raise Exception('Invalid filename')
+
+        # Add directory to result
+        full_path = os.path.join(path, item)
+        if os.path.isdir(full_path):
+            return {
+                'type': 'dir',
+                'name': item,
+                'path': item,
+                'fullpath': full_path,
+                'numitems': len(os.listdir(full_path))
+            }
+        #endif
+
+        # Add project as result
+        (name, extension) = os.path.splitext(item)
+        if extension in defines.projectExtensions:
+            return {
+                'type': 'project',
+                'name': name,
+                'fullpath': full_path,
+                'source': self.name,
+                'filename': item,
+                'path': item,
+                'time': os.path.getmtime(full_path)
+            }
+        #endif
+
+        raise SourceDir.NotProject("Invalid extension: %s" % name)
     #enddef
 
 #endclass
@@ -1868,16 +1888,12 @@ class PageSrcSelect(Page):
 
 
     def sourceButtonSubmit(self, data):
-        self.logger.info(data)
-
         for item in self.items['sources']:
             if item['choice'] == data['choice']:
                 if item['type'] == 'dir':
-                    self.logger.info(self.currentRoot)
                     self.currentRoot = os.path.join(self.currentRoot, item['path'])
-                    self.logger.info(self.currentRoot)
                     self.currentRoot = os.path.normpath(self.currentRoot)
-                    self.logger.info(self.currentRoot)
+                    self.logger.info("Current project selection root: %s" % self.currentRoot)
                     return "sourceselect"
                 else:
                     return self.loadProject(item['fullpath'])
