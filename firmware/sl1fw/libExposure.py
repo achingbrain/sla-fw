@@ -16,7 +16,7 @@ import libDisplay
 
 class ExposureThread(threading.Thread):
 
-    def __init__(self, commands, expo):
+    def __init__(self, commands, expo, filename):
         super(ExposureThread, self).__init__()
         self.logger = logging.getLogger(__name__)
         self.commands = commands
@@ -66,7 +66,7 @@ class ExposureThread(threading.Thread):
                     lw = w
                 #endfor
 
-                self.expo.screen.createCalibrationOverlay(areas = self.calibAreas)
+                self.expo.screen.createCalibrationOverlay(areas = self.calibAreas, filename = filename, penetration = config.calibratePenetration)
             #endif
         #endif
     #enddef
@@ -122,7 +122,7 @@ class ExposureThread(threading.Thread):
                     #endif
 
                     self.expo.screen.fillArea(area = (area[0], area[1]))
-                    self.logger.debug("blank area")
+                    #self.logger.debug("blank area")
                 #endfor
             else:
                 self.expo.hw.uvLed(True, 1000 * exposureTime)
@@ -138,7 +138,7 @@ class ExposureThread(threading.Thread):
                 lastArea = self.calibAreas[0]
                 for area in self.calibAreas[1:]:
                     self.expo.screen.fillArea(area = (lastArea[0], lastArea[1]))
-                    self.logger.debug("blank area")
+                    #self.logger.debug("blank area")
                     sleep(area[2] - lastArea[2])
                     lastArea = area
                 #endfor
@@ -413,7 +413,7 @@ class Exposure(object):
         self.actualLayer = 0
         self.checkPage = libPages.PageWait(display)
         self.expoCommands = Queue.Queue()
-        self.expoThread = ExposureThread(self.expoCommands, self)
+        self.expoThread = ExposureThread(self.expoCommands, self, self.config.toPrint[0])
         self.screen.preloadImg(
                 filename = self.config.toPrint[0],
                 overlayName = 'calibPad',

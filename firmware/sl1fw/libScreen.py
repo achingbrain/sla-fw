@@ -278,28 +278,47 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def createCalibrationOverlay(self, areas):
+    def createCalibrationOverlay(self, areas, filename, penetration):
         self.overlays['calibPad'] = pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha()
         self.overlays['calib'] = pygame.Surface((self.width, self.height), pygame.SRCALPHA).convert_alpha()
         spacingX = 1.5
         spacingY = 1.5
+
+        filedata = self.zf.read(filename)
+        filedata_io = StringIO(filedata)
+        baseImage = pygame.image.load(filedata_io, filename).convert()
+        pixels = pygame.surfarray.pixels3d(baseImage)
+
         for area in areas:
             text = "%.2f" % area[2]
             surf = pygame.transform.flip(self.font.render(text, True, (255,255,255)), True, False).convert_alpha()
             rect = surf.get_rect()
+            #self.logger.debug("rectW:%d rectH:%d", rect.w, rect.h)
             padX = rect.w * spacingX
             padY = rect.h * spacingY
+            #self.logger.debug("padX:%d padY:%d", padX, padY)
             ofsetX = int((padX - rect.w) / 2)
             ofsetY = int((padY - rect.h) / 2)
-            #self.logger.debug("rectW:%d rectH:%d", rect.w, rect.h)
-            #self.logger.debug("padX:%d padY:%d", padX, padY)
             #self.logger.debug("ofsetX:%d ofsetY:%d", ofsetX, ofsetY)
+            lineX = int(area[0][0] + area[1][0] / 2)
+            lineY = area[0][1]
+            line2Y = area[0][1] + area[1][1] - 1
+            #self.logger.debug("lineX:%d lineY:%d-%d", lineX, lineY, line2Y)
+            line = pixels[lineX:lineX + 1][0][lineY:line2Y]
             startX = int(area[0][0] + ((area[1][0] - padX) / 2))
-            startY = area[0][1]
+            pixpos = line.argmax(axis = 0)[0]
+            if pixpos > (padY - penetration):
+                startY = area[0][1] + pixpos + penetration - padY
+            else:
+                startY = area[0][1]
+            #endif
+            del line
             #self.logger.debug("startX:%d startY:%d", startX, startY)
             self.overlays['calibPad'].fill((255,255,255), ((startX, startY), (padX, padY)))
             self.overlays['calib'].blit(surf, (startX + ofsetX, startY + ofsetY))
         #endfor
+
+        del pixels
     #enddef
 
 

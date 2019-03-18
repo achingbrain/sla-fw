@@ -488,6 +488,7 @@ class PrintConfig(FileConfig):
         self.calibrateTime = self._parseFloat("calibratetime", self.expTime)
         self.calibrateRegions = self._parseInt("calibrateregions", 0)
         self.calibrateInfoLayers = self._parseInt("calibrateinfolayers", 10)
+        self.calibratePenetration = int(self._parseFloat("calibratepenetration", 0.5) / self._hwConfig.pixelSize)
 
         self.usedMaterial = self._parseFloat("usedmaterial", defines.resinMaxVolume - defines.resinMinVolume)
         self.layersSlow = self._parseInt("numslow", 0)
