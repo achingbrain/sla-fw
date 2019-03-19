@@ -948,7 +948,7 @@ class PageFirmwareUpdate(Page):
                 req = urllib2.Request(fw_url, headers={
                     'User-Agent': 'Prusa-SL1'
                 })
-                source = urllib2.urlopen(req)
+                source = urllib2.urlopen(req, timeout=10)
                 file_size = int(source.info().getheaders("Content-Length")[0])
                 block_size = 8 * 1024
             else:
@@ -2441,7 +2441,7 @@ class PageAdmin(Page):
                 'button9' : "Hardware info",
                 'button10' : "Networking",
 
-                'button11' : "Rauc net update",
+                'button11' : "Net update",
                 'button12' : "",
                 'button13' : "Resin sensor test",
                 'button14' : "Download examples",
@@ -2520,12 +2520,7 @@ class PageAdmin(Page):
 
 
     def button11ButtonRelease(self):
-        # check new firmware defines
-        self.display.page_confirm.setParams(
-            continueFce = self.display.page_firmwareupdate.fetchUpdate,
-            continueParmas = { 'fw_url': defines.currentFirmwareURL },
-            line3 = "Proceed update?")
-        return "confirm"
+        return "netupdate"
     #enddef
 
 
@@ -2637,6 +2632,44 @@ class PageAdmin(Page):
         # endwith
     #enddef
 
+
+#endclass
+
+
+class PageNetUpdate(Page):
+
+    def __init__(self, display):
+        self.pageUI = "admin"
+        self.pageTitle = "Admin - Net update"
+        super(PageNetUpdate, self).__init__(display)
+
+        self.firmwares = list(enumerate(defines.netFirmwares.items()))
+
+        # Create items for updating firmwares
+        self.items.update({
+            "button%s" % (i + 1): "Update to %s" % name for (i, (name, url)) in self.firmwares
+        })
+
+        # Create action handlers
+        for (i, (name, url)) in self.firmwares:
+            self.makeUpdateButton(i + 1, name, url)
+        #endfor
+    #enddef
+
+
+    def makeUpdateButton(self, i, name, url):
+        setattr(self.__class__, 'button%dButtonRelease' % i, lambda x: x.update(name, url))
+    #enddef
+
+
+    def update(self, name, url):
+        self.display.page_confirm.setParams(
+            continueFce=self.display.page_firmwareupdate.fetchUpdate,
+            continueParmas={'fw_url': url},
+            line1="Updating to %s" % name,
+            line3="Proceed update?")
+        return "confirm"
+    #enddef
 
 #endclass
 

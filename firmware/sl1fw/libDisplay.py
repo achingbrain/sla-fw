@@ -42,6 +42,7 @@ class Display(object):
         self.page_tilttower = libPages.PageTiltTower(self)
         self.page_display = libPages.PageDisplay(self)
         self.page_admin = libPages.PageAdmin(self)
+        self.page_netupdate = libPages.PageNetUpdate(self)
         self.page_setuphw = libPages.PageSetupHw(self)
         self.page_setupexpo = libPages.PageSetupExposure(self)
         self.page_exception = libPages.PageException(self)

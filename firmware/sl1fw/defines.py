@@ -64,7 +64,11 @@ manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
 videosURL = "https://www.prusa3d.com/SL1guide/"
 aboutURL = "https://www.prusa3d.com/about-us/"
 firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
-currentFirmwareURL = "https://www.prusa3d.com/SL1/current.raucb"
+netFirmwares = {
+    "current": "https://www.prusa3d.com/SL1/current.raucb",
+    "testing": "https://www.prusa3d.com/SL1/testing.raucb",
+    "nightly": "http://10.24.10.12/images/buildserver-latest.raucb"
+}
 internalProjectPath = "/var/sl1fw/projects"
 examplesURL = "https://www.prusa3d.com/SL1/examples.tar.gz"
 examplesArchivePath = os.path.join(internalProjectPath, 'examples.tar.gz')
