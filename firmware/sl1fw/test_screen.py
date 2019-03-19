@@ -30,7 +30,7 @@ areaMap = {
         9 : (3,3),
         }
 
-divide = areaMap[8]
+divide = areaMap[9]
 width, height = screen.getResolution()
 
 if width > height:
@@ -61,38 +61,41 @@ for i in xrange(divide[x]):
     lw = w
 #endfor
 
-screen.createCalibrationOverlay(areas = calibAreas)
+file = "AmeraLabs_Town_Calibration_test_part00000.png"
 
-screen.openZip(filename = "test.dwz")
+screen.openZip(filename = "test.sl1")
 screen.createMasks(perPartes = hwConfig.perPartes)
+screen.createCalibrationOverlay(areas = calibAreas, filename = file, penetration = 0.5 / hwConfig.pixelSize)
+screen.preloadImg(filename = file, overlayName = 'calibPad', whitePixelsThd = 50)
+screen.blitImg()
 
-screen.testBlit(filename = "zaba.png", overlayName = 'calibPad')
+#screen.testBlit(filename = file, overlayName = 'calibPad')
 sleep(5)
-
-lastArea = calibAreas[0]
-for area in calibAreas[1:]:
-    screen.fillArea(area = (lastArea[0], lastArea[1]))
-    logging.debug("blank area")
-    sleep(area[2] - lastArea[2])
-    lastArea = area
-#endfor
-
-screen.getImgBlack()
-sleep(1)
-
-screen.testBlit(filename = "zaba.png", overlayName = 'calib')
-sleep(5)
-
-screen.getImgBlack()
-sleep(1)
-
-screen.testBlit(filename = "zaba.png", overlayName = 'ppm1')
-sleep(5)
-
-screen.testBlit(filename = "zaba.png", overlayName = 'ppm2')
-sleep(5)
-
-screen.testBlit(filename = "white.png")
-sleep(1)
-screen.testBlit(filename = "white.png", overlayName = 'mask')
-sleep(2)
+#
+#lastArea = calibAreas[0]
+#for area in calibAreas[1:]:
+#    screen.fillArea(area = (lastArea[0], lastArea[1]))
+#    logging.debug("blank area")
+#    sleep(area[2] - lastArea[2])
+#    lastArea = area
+##endfor
+#
+#screen.getImgBlack()
+#sleep(1)
+#
+#screen.testBlit(filename = "zaba.png", overlayName = 'calib')
+#sleep(5)
+#
+#screen.getImgBlack()
+#sleep(1)
+#
+#screen.testBlit(filename = "zaba.png", overlayName = 'ppm1')
+#sleep(5)
+#
+#screen.testBlit(filename = "zaba.png", overlayName = 'ppm2')
+#sleep(5)
+#
+#screen.testBlit(filename = "white.png")
+#sleep(1)
+#screen.testBlit(filename = "white.png", overlayName = 'mask')
+#sleep(2)

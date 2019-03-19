@@ -50,3 +50,15 @@ počet vteřin, kolik se přidá na každé kalibrační oblasti, může být fl
 
 ### calibrateInfoLayers = 10
 počet vrstev od začátku, do kterých se bude generovat informace o době osvitu (pad se nepočítá?)
+
+### calibratePenetration = 0.5
+kolik mm má být popisek zanořen do objektu
+
+### usedMaterial = (100%)
+celková spotřeba materiálu v ml (výchozí se počítá tak, aby to ukázalo 100 %)
+
+### numSlow = 0
+počet vrstev větších než definovaná plocha
+
+### numFast = 0
+počet vrstev menších než definovaná plocha
