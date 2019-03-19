@@ -19,6 +19,7 @@ configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
 livePreviewImage = os.path.join(ramdiskPath, "live.png")
+livePreviewSize = (288, 512)
 
 perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 
