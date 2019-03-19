@@ -67,6 +67,7 @@ class ScreenServer(multiprocessing.Process):
         self.perPartes = False
         self.nextImage1 = None
         self.nextImage2 = None
+        self.resizeSurf = pygame.Surface(defines.livePreviewSize).convert()
 
         while not self.stoprequest.is_set():
             result = False
@@ -219,7 +220,10 @@ class ScreenServer(multiprocessing.Process):
         if screen:
             try:
                 startTime = time()
-                pygame.image.save(screen, defines.livePreviewImage + "-tmp.png")
+                pygame.transform.smoothscale(screen, defines.livePreviewSize, self.resizeSurf)
+                self.logger.debug("resize time: %f secs", time() - startTime)
+                startTime = time()
+                pygame.image.save(self.resizeSurf, defines.livePreviewImage + "-tmp.png")
                 self.logger.debug("screenshot time: %f secs", time() - startTime)
             except Exception as e:
                 self.logger.exception("screenshot exception:")
