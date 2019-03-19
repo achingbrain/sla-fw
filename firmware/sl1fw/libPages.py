@@ -2643,16 +2643,16 @@ class PageNetUpdate(Page):
         self.pageTitle = "Admin - Net update"
         super(PageNetUpdate, self).__init__(display)
 
-        self.firmwares = list(enumerate(defines.netFirmwares.items()))
+        self.firmwares = list(enumerate(defines.netFirmwares))
 
         # Create items for updating firmwares
         self.items.update({
-            "button%s" % (i + 1): "Update to %s" % name for (i, (name, url)) in self.firmwares
+            "button%s" % (i + 1): "Update to %s" % firmware['name'] for (i, firmware) in self.firmwares
         })
 
         # Create action handlers
-        for (i, (name, url)) in self.firmwares:
-            self.makeUpdateButton(i + 1, name, url)
+        for (i, firmware) in self.firmwares:
+            self.makeUpdateButton(i + 1, firmware['name'], firmware['url'])
         #endfor
     #enddef
 
