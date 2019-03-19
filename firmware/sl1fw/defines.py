@@ -3,6 +3,8 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
+
+# TODO: remove?
 import glob
 
 swVersion = "Gen3-190-314"
@@ -65,7 +67,11 @@ manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
 videosURL = "https://www.prusa3d.com/SL1guide/"
 aboutURL = "https://www.prusa3d.com/about-us/"
 firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
-currentFirmwareURL = "https://www.prusa3d.com/SL1/current.raucb"
+netFirmwares = [
+    {'name': "current", 'url': "https://www.prusa3d.com/SL1/current.raucb"},
+    {'name': "testing", 'url': "https://www.prusa3d.com/SL1/testing.raucb"},
+    {'name': "nightly", 'url': "http://10.24.10.12/images/buildserver-latest.raucb"}
+]
 internalProjectPath = "/var/sl1fw/projects"
 examplesURL = "https://www.prusa3d.com/SL1/examples.tar.gz"
 examplesArchivePath = os.path.join(internalProjectPath, 'examples.tar.gz')
