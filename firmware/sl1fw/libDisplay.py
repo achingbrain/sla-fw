@@ -55,7 +55,6 @@ class Display(object):
         self.page_tunetilt = libPages.PageTuneTilt(self)
         self.page_towerprofiles = libPages.PageTowerProfiles(self)
         self.page_fansleds = libPages.PageFansLeds(self)
-        self.page_hwinfo = libPages.PageHardwareInfo(self)
         self.page_network = libPages.PageNetwork(self)
         self.page_networking = libPages.PageNetworking(self)
         self.page_networkstate = libPages.PageNetworkState(self)
@@ -114,7 +113,7 @@ class Display(object):
                 #endif
                 self.logger.warning("event page (%s) and actual page (%s) differ", event['page'], self.actualPage.pageUI)
             elif event.get('client_type', None) == "prusa_sla_client_qt":
-                self.page_sysinfo.setItems(line7 = "QT GUI version: %s" % event.get('client_version', "unknown"))
+                self.page_sysinfo.setItems(qt_gui_version=event.get('client_version', "unknown"))
             #endif
         #endfor
         return (None, None, None)

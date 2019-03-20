@@ -1,6 +1,46 @@
-{% for item in range(10) -%}
-<div class="row" id="line{{ item }}">{{ items.get('line' + item|string, "") }}</div>
-{%- endfor %}
+<div class="row">
+	<div class="col"><span>Serial number: </span><span id="serial_number">{{ items['serial_number'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>System name: </span><span id="system_name">{{ items['system_name'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>System name: </span><span id="system_version">{{ items['system_version'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Firmware version: </span><span id="firmware_version">{{ items['firmware_version'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>API Key: </span><span id="api_key">{{ items['api_key'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Controller version: </span><span id="controller_version">{{ items['controller_version'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Controller_serial: </span><span id="controller_serial">{{ items['controller_serial'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Fans: </span><span id="fans">{{ items['fans'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Temperatures: </span><span id="temps">{{ items['temps'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Cpu temperature: </span><span id="cpu_temp">{{ items['cpu_temp'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Leds: </span><span id="leds">{{ items['leds'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Resin sensor state: </span><span id="resin_sensor_state">{{ items['resin_sensor_state'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Cover state: </span><span id="cover_state">{{ items['cover_state'] }}</span></div>
+</div>
+<div class="row">
+	<div class="col"><span>Power switch state: </span><span id="power_switch_state">{{ items['power_switch_state'] }}</span></div>
+</div>
+
 <div class="row justify-content-end menu">
 	<div class="col-md-auto button d-flex click" id="back">
 		<div class="frame back d-flex">

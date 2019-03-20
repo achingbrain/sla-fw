@@ -1515,71 +1515,36 @@ class PageSysInfo(Page):
         self.pageTitle = "System Information"
         super(PageSysInfo, self).__init__(display)
         self.items.update({
-                'line1' : "A64 serial number: %s" % self.display.hw.getCPUSerial(),
-                'line2' : "A64 system: %s" % self.display.hwConfig.os.name,
-                'line3' : "A64 system version: %s" % self.display.hwConfig.os.version,
-
-                'line6' : "Python firmware version: %s" % defines.swVersion,
-                'line7' : "", # will be filled from getEvent()
-                'line8' : "API Key: %s" % self.octoprintAuth,
                 'serial_number': self.display.hw.getCPUSerial(),
                 'system_name': self.display.hwConfig.os.name,
                 'system_version': self.display.hwConfig.os.version,
                 'firmware_version': defines.swVersion,
                 'api_key': self.octoprintAuth
                 })
-    #enddef
-
-
-    def show(self):
-        self.items['line4'] = "MC serial number: %s" % self.display.hw.getControllerSerial()
-        self.items['line5'] = "MC version: %s" % self.display.hw.getControllerVersion()
-        self.items['controller_version'] = self.display.hw.getControllerVersion()
-        self.items['controller_serial'] = self.display.hw.getControllerSerial()
-        super(PageSysInfo, self).show()
-    #enddef
-
-#endclass
-
-
-class PageHardwareInfo(Page):
-
-    def __init__(self, display):
-        self.pageUI = "sysinfo"
-        self.pageTitle = "Hardware Information"
-        super(PageHardwareInfo, self).__init__(display)
         self.callbackPeriod = 0.5
+        self.skip = 11
     #enddef
 
 
     def show(self):
         self.oldValues = {}
-        self.items['line1'] = "Tower height: %d (%.2f mm)" % (self.display.hwConfig.towerHeight, self.display.hwConfig.calcMM(self.display.hwConfig.towerHeight))
-        self.items['line2'] = "Tilt height: %d" % self.display.hwConfig.tiltHeight
+        self.items['controller_version'] = self.display.hw.getControllerVersion()
+        self.items['controller_serial'] = self.display.hw.getControllerSerial()
         self.display.hw.resinSensor(True)
         self.skip = 11
-        self.items['tower_height'] = self.display.hwConfig.towerHeight
-        self.items['tower_height_mm'] = self.display.hwConfig.calcMM(self.display.hwConfig.towerHeight)
-        super(PageHardwareInfo, self).show()
+        super(PageSysInfo, self).show()
     #enddef
 
 
     def menuCallback(self):
         items = {}
         if self.skip > 10:
-            self._setItem(items, 'line3', "Fans [RPM]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getFansRpm())))
-            self._setItem(items, 'line4', "MC temperatures [C]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getMcTemperatures())))
-            self._setItem(items, 'line5', "A64 temperature [C]:  %.1f" % self.display.hw.getCpuTemperature())
-            self._setItem(items, 'line6', "Voltages [V]:  %s" % "  ".join(map(lambda x: str(x), self.display.hw.getVoltages())))
             self._setItem(items, 'fans', {'fan%d_rpm' % i: v for i, v in enumerate(self.display.hw.getFansRpm())})
             self._setItem(items, 'temps', {'temp%d_celsius' % i: v for i, v in enumerate(self.display.hw.getMcTemperatures())})
             self._setItem(items, 'cpu_temp', self.display.hw.getCpuTemperature())
             self._setItem(items, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getVoltages())})
             self.skip = 0
         #endif
-        self._setItem(items, 'line7', "Cover is %s" % ("closed" if self.display.hw.getCoverState() else "opened"))
-        self._setItem(items, 'line8', "Power switch is %s" % ("pressed" if self.display.hw.getPowerswitchState() else "released"))
-        self._setItem(items, 'line9', "Resin surface is %sin detect range" % ("" if self.display.hw.getResinSensorState() else "not "))
         self._setItem(items, 'resin_sensor_state', self.display.hw.getResinSensorState())
         self._setItem(items, 'cover_state', self.display.hw.getCoverState())
         self._setItem(items, 'power_switch_state', self.display.hw.getPowerswitchState())
@@ -1594,7 +1559,7 @@ class PageHardwareInfo(Page):
 
     def backButtonRelease(self):
         self.display.hw.resinSensor(False)
-        return super(PageHardwareInfo, self).backButtonRelease()
+        return super(PageSysInfo, self).backButtonRelease()
     #enddef
 
 #endclass
@@ -2345,7 +2310,7 @@ class PageAdmin(Page):
                 'button6' : "Flash MC",
                 'button7' : "Erase MC EEPROM",
                 'button8' : "",
-                'button9' : "Hardware info",
+                'button9' : "",
                 'button10' : "Networking",
 
                 'button11' : "Net update",
@@ -2417,7 +2382,7 @@ class PageAdmin(Page):
 
 
     def button9ButtonRelease(self):
-        return "hwinfo"
+        pass
     #enddef
 
 
