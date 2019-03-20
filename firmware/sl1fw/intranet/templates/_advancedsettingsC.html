@@ -4,10 +4,13 @@
 	{"id": "firmwareupdate", "title": "Firmware Update"},
 	{"id": "settime", "title": "Set Time"},
 	{"id": "settimezone", "title": "Set Timezone"},
-	{"id": "sethostname", "title": "Set Hostname"},
-	{"id": "admin", "title": "Admin"}
+	{"id": "sethostname", "title": "Set Hostname"}
 ] -%}
 
+{% if items['showAdmin'] == 'yes' %}
+	{% if buttons.append({"id": "admin", "title": "Admin"}) %}
+	{% endif %}
+{% endif %}
 <!-- {"id": "setlanguage", "title": "Set Language"}, -->
 
 {% include 'buttons.html' %}

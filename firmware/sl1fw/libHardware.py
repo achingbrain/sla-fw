@@ -327,8 +327,8 @@ class Hardware(object):
 
         self._tiltMin = -12840        # whole turn
         self._tiltMax = 12840
-        self._tiltEnd = 6000    #top deadlock
-        self._tiltCalibStart = 4500 
+        self._tiltEnd = 5800    #top deadlock
+        self._tiltCalibStart = 4300 
         self._tiltReleaseTo = 400
         self._tiltHomeOffset = 0
         self.tiltRehomeCounter = 3

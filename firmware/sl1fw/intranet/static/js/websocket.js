@@ -48,6 +48,7 @@ function wsInit(dir) {
 			hookWifiOff();
 			hookFlash();
 			hookTimeSet();
+			hookShowAdmin();
 
 		} else if (data.type == "items") {
 			var i;
