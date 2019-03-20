@@ -172,3 +172,16 @@ function hookTimeSet() {
 
 
 }
+
+var clickCounter = 10;
+function hookShowAdmin() {
+    $('.hookShowAdmin').click(function() {
+        clickCounter--;
+        console.log(clickCounter);
+
+        if(clickCounter < 1) {
+          sendWebSocketAction("showadmin", {});
+          clickCounter = 10;
+        }
+    })
+}

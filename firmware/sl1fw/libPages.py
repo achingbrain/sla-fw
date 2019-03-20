@@ -791,6 +791,12 @@ class PageAdvancedSettings(Page):
     #enddef
 
 
+    def show(self):
+        self.items.update({'showAdmin': str(self.display.hwConfig.showAdmin)})
+        super(PageAdvancedSettings, self).show()
+    #enddef
+
+
     def towermoveButtonRelease(self):
         return "towermove"
     #enddef
@@ -1291,6 +1297,7 @@ class PagePrint(Page):
 
 
     def show(self):
+        self.items.update({'showAdmin': str(self.display.hwConfig.showAdmin)})
         self.items.update(self.fillData())
         super(PagePrint, self).show()
     #enddef
@@ -1710,6 +1717,26 @@ class PageAbout(Page):
                 })
     #enddef
 
+
+    def showadminButtonRelease(self):
+        self.display.page_confirm.setParams(
+                continueFce = self.showadminContinue,
+                line1 = "Do you really want to enable admin menu?",
+                line2 = "Wrong settings may damage your printer!")
+        return "confirm"
+    #enddef
+
+
+    def showadminContinue(self):
+        self.display.hwConfig.update(showadmin = "yes")
+        if not self.display.hwConfig.writeFile():
+            self.display.hw.beepAlarm(3)
+            sleep(1)
+            self.display.hw.beepAlarm(3)
+        #endif
+        return "_BACK_"
+    #enddef 
+
 #endclass
 
 
@@ -2038,7 +2065,7 @@ class PageTiltTower(Page):
                 'button11' : "Turn motors off",
                 'button12' : "Tune tilt",
                 'button13' : "Tilt home test",
-                'button14' : "Remove calibration",
+                'button14' : "",
                 'button15' : "",
                 })
     #enddef
@@ -2242,21 +2269,7 @@ class PageTiltTower(Page):
 
 
     def button14ButtonRelease(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.button14Continue,
-            line1 = "Really remove tower & tilt calibration?")
-        return "confirm"
-    #enddef
-
-
-    def button14Continue(self):
-        self.display.hwConfig.update(towerheight = self.display.hwConfig.calcMicroSteps(128), calibrated = "no")
-        if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
-        #endif
-        return "_BACK_"
+        pass
     #enddef
 
 #endclass
@@ -2445,7 +2458,7 @@ class PageAdmin(Page):
                 'button12' : "",
                 'button13' : "Resin sensor test",
                 'button14' : "Download examples",
-                'button15' : "",
+                'button15' : "Factory reset",
                 })
     #enddef
 
@@ -2632,6 +2645,56 @@ class PageAdmin(Page):
         # endwith
     #enddef
 
+
+    def button15ButtonRelease(self):
+        pageWait = PageWait(self.display, line1 = "Please wait...")
+        pageWait.show()
+        self.display.hw.towerSync()
+        self.display.hw.tiltSyncWait(3)
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
+        
+        #move tilt and tower to packing position
+        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.setTowerProfile('moveFast')
+        self.display.hw.towerMoveAbsolute(self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(74))
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        #at this height may be screwed down tank and inserted protective foam
+        self.display.page_confirm.setParams(
+            continueFce = self.button15Continue,
+            line1 = "Do you really want to do factory reset?",
+            line2 = "All settings will be deleted!")
+        return "confirm"
+    #enddef
+
+
+    def button15Continue(self):
+        #slightly press the foam against printers base
+        self.display.hw.towerMoveAbsolute(self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(93))
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hwConfig.update(
+            towerheight = self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight),
+            tiltheight = defines.defaultTiltHeight,
+            calibrated = "no",
+            showadmin = "no"
+            #TODO force wizard
+        )
+        if not self.display.hwConfig.writeFile():
+            self.display.hw.beepAlarm(3)
+            sleep(1)
+            self.display.hw.beepAlarm(3)
+        #endif
+        self.display.shutDown(True)
+    #enddef
 
 #endclass
 

@@ -266,7 +266,7 @@ class HwConfig(FileConfig):
 
         self.screwMm = self._parseInt("screwmm", 4)
         self.microStepsMM = 200 * 16 / self.screwMm
-        self.tiltHeight = self._parseInt("tiltheight", 6400) # 100 steps 64 microsteps each
+        self.tiltHeight = self._parseInt("tiltheight", defines.defaultTiltHeight) #safe value
         self.calibTowerOffset = self._parseInt("calibtoweroffset", 0)
 
         self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 4, 4, 5)
@@ -308,9 +308,10 @@ class HwConfig(FileConfig):
         # not adjustable in admin
         self.pixelSize = self._parseFloat("pixelsize", 0.046875, True)    # 5.5" LCD
         self.calibrated = self._parseBool("calibrated", False)
-        self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(128)) # safe value
+        self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(defines.defaultTowerHeight)) # safe value
         self.mute = self._parseBool("mute", False)
         self.autoOff = self._parseBool("autooff", True)
+        self.showAdmin = self._parseBool("showadmin", False)
     #enddef
 
     def calcMicroSteps(self, mm):

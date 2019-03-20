@@ -58,6 +58,8 @@ resinLowWarn = 60
 resinFeedWait = 50
 resinFilled = 200
 
+defaultTowerHeight = 128    # mm
+defaultTiltHeight = 4900    # usteps
 towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40

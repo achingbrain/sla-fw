@@ -42,7 +42,12 @@
 	{"id": "feedme", "title": "Refill"},
 	{"id": "updown", "title": "Pause Up & down"},
 	{"id": "settings", "title": "Exposure times"},
-	{"id": "turnoff", "title": "Cancel & Power Down"},
-	{"id": "admin", "title": "Admin"}
+	{"id": "turnoff", "title": "Cancel & Power Down"}
 ] -%}
+
+{% if items['showAdmin'] == 'yes' %}
+	{% if buttons.append({"id": "admin", "title": "Admin"}) %}
+	{% endif %}
+{% endif %}
+
 {% include 'buttons.html' %}
