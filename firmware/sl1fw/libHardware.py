@@ -910,6 +910,7 @@ class Hardware(object):
     #enddef
 
 
+    #TODO use !brk instead. Motor might stall at !mot 0
     def towerStop(self):
         self.mcc.do("!mot", 0)
     #enddef
@@ -1231,12 +1232,14 @@ class Hardware(object):
 
 
     def tiltLayerDownWait(self, whitePixels = 0):
+        #use movement settings according to number of white pixels at actual layer
         if whitePixels > self.hwConfig.whitePixelsThd:
             tiltProfile = self.hwConfig.tuneTilt[0]
         else:
             tiltProfile = self.hwConfig.tuneTilt[1]
         #endif
-        
+
+        #initial release movement with optional sleep at the end
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
         self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - tiltProfile[1])
         while self.isTiltMoving():
@@ -1244,27 +1247,33 @@ class Hardware(object):
         #endwhile
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
         sleep(tiltProfile[2] / 1000.0)
+
+        #next movement may be split
         movePerCycle = int((self.getTiltPositionMicroSteps() - self._tiltReleaseTo) / tiltProfile[4])
         for i in xrange(1, tiltProfile[4]):
-            self.logger.debug("tilt down cycle %d", i)
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
             while self.isTiltMoving():
                 sleep(0.1)
             #endwhile
             sleep(tiltProfile[5] / 1000.0)
         #endfor
+
+        #ensure we end up at defined bottom position
         self.tiltMoveAbsolute(self._tiltReleaseTo)
         while self.isTiltMoving():
             sleep(0.1)
         #endwhile
+
+        #when number of white pixels is bigger than threshold, force tilt home
         position = self.getTiltPositionMicroSteps()
         if whitePixels > self.hwConfig.whitePixelsThd:
-            #return tiltLayerCheckPosition(tiltProfile)
             self.logger.warning("Forcing rehome")
+            #repeat defined number of times
             for i in xrange(tiltProfile[7]):
                 self.logger.debug("rehome and release try %d", i)
                 self.setTiltProfile('homingFast')
-                if not self.tiltSyncWait(2):
+                if not self.tiltSyncWait(2):    #home 3x
+                    #if home fails try to release
                     self.setTiltPosition(2000)
                     self.setTiltProfile("layerMoveSlow")
                     self.tiltMoveAbsolute(0)
@@ -1296,6 +1305,8 @@ class Hardware(object):
         while self.isTiltMoving():
             sleep(0.1)
         #endwhile
+
+        #finish move may be also splited in multiple sections
         movePerCycle = int((self.getTiltPositionMicroSteps() - self.hwConfig.tiltHeight) / self.hwConfig.tuneTilt[2][4])
         for i in xrange(1, self.hwConfig.tuneTilt[2][4]):
             self.logger.debug("tilt up cycle %d", i)
@@ -1309,109 +1320,9 @@ class Hardware(object):
         while self.isTiltMoving():
             sleep(0.1)
         #endwhile
+
+        #reduce tilt current to prevent overheat
         self.setTiltCurrent(defines.tiltHoldCurrent)
-    #enddef
-
-    #TODO this function needs to be more accurate. Not used at moment
-    def tiltLayerCheckPosition(self, tiltProfile):
-        self.setTiltProfile('homingSlow')
-        self.mcc.do("!sgbd")   #reset buffer
-        self.tiltMoveAbsolute(self._tiltMin)
-        while self.isTiltMoving():
-            sleep(0.1)
-        #endwhile
-        sgData = self.getStallguardBuffer()
-        self.logger.debug("data %s", sgData)
-        actPos = self.getTiltPositionMicroSteps()
-        if actPos < (self._tiltHomeOffset - tiltProfile[6]) or actPos > (self._tiltHomeOffset + tiltProfile[6]):   #tilt was not successfull
-            tiltProfiles = self.getTiltProfiles()
-            profileDef = tiltProfiles[self._tiltProfiles["homingFast"]] #use default homingFast profile for undone movements
-            profileTmp = tiltProfiles[self._tiltProfiles["homingSlow"]]
-            self.setTiltProfile('homingFast')
-            self.tiltMoveAbsolute(self._tiltMin)
-            while self.isTiltMoving():
-                sleep(0.1)
-            #endwhile
-            if self.tryProfile(profileDef, profileTmp, False, 1200, 20) != 0:
-                self.logger.debug("force search profile homingSlow")
-                profileFound = False
-                for curr in xrange(profileTmp[4] - 1, profileTmp[4] + 2):
-                    profileTmp[4] = curr
-                    for sgt in xrange(profileTmp[5] - 1, profileTmp[5] + 2):
-                        profileTmp[5] = sgt
-                        self.logger.debug("Try curr: %d, sgt: %d", curr, sgt)
-                        if self.tryProfile(profileDef, profileTmp, False, 1200, 30) == 0:
-                            profileFound = True
-                            tiltProfiles[self._tiltProfiles["homingSlow"]] = profileTmp
-                            self.logger.debug("Profile homingSlow changed to:  %s", profileTmp)
-                            self.setTiltProfiles(tiltProfiles)
-                            break
-                        #endif
-                    #endfor
-                    if profileFound:
-                        break
-                    #endif
-                #endfor
-            #endif
-            self.logger.warning("Forcing rehome. Actual position: %d, tiltRehomeCounter: %d", actPos, self.tiltRehomeCounter)
-            self.tiltRehomeCounter -= 1
-            for i in xrange(tiltProfile[7]):
-                self.logger.debug("rehome and release try %d", i)
-                self.beepAlarm(5)
-                self.setTiltProfile('homingFast')
-                if not self.tiltSyncWait(2):
-                    self.setTiltPosition(2000)
-                    self.setTiltProfile("layerMoveSlow")
-                    self.tiltMoveAbsolute(0)
-                    while self.isTiltMoving():
-                        sleep(0.1)
-                    #endwhile
-                else:
-                    if self.tiltRehomeCounter < 1: #if rehomed OK 3x in row, resave home offset. WARNING needs testing (Printer may save new value when its stuck at top position).
-                        actPos = self.tiltCheckHomeOffset(True)
-                        self.tiltRehomeCounter = 3
-                    #endif
-                    self.logger.debug("Succesfully rehomed")
-                    return True
-                #endif
-            #endfor
-            self.logger.error("Printer is stuck...")
-            return False
-        #endif
-        if self.tiltRehomeCounter < 3:
-            self.tiltRehomeCounter += 1
-        #endif
-        return True
-    #enddef
-
-    #TODO this function needs to be more accurate. Not used at moment
-    def tiltCheckHomeOffset(self, save):
-        offset = list()
-        if save:
-            iterations = 5
-        else:
-            iterations = 1
-        #endif
-        for i in xrange(iterations):
-            self.setTiltProfile('moveFast')
-            self.tiltMoveAbsolute(self._tiltReleaseTo)
-            while self.isTiltMoving():
-                sleep(0.1)
-            #endwhile
-            self.setTiltProfile('homingSlow')
-            self.tiltMoveAbsolute(self._tiltMin)
-            while self.isTiltMoving():
-                sleep(0.1)
-            #endwhile
-            offset.append(self.getTiltPositionMicroSteps())
-            self.logger.debug("tilt home offset %d", offset[-1])
-        #enfor
-        if save:
-            self._tiltHomeOffset = max(set(offset), key=offset.count)
-            self.logger.debug("tilt home offset saved %d", self._tiltHomeOffset)
-            return self._tiltHomeOffset
-        else:
-            return offset[-1]
     #enddef
 
 
@@ -1603,106 +1514,6 @@ class Hardware(object):
         self.uvLed(True)
 
         #self.logger.debug("checkTemp done")
-    #enddef
-
-
-    def findTiltProfile(self, profileNo, skipStep, defaultPos, threshold, currMin, currMax, sgtMin, sgtMax):
-        tiltProfiles = self.getTiltProfiles()
-        profileDef = tiltProfiles[self._tiltProfiles["homingFast"]] #use default homingFast profile for undone movements
-        profileTmp = tiltProfiles[profileNo]
-        self.setTiltTempProfile(profileDef)
-        self.setTiltPosition(self._tiltMax)
-        self.tiltDown()
-        while self.isTiltMoving():
-            sleep(0.1)
-        #endwhile
-
-        for current in xrange(currMin, currMax):
-            profileTmp[4] = current
-            for sgThreshold in xrange(sgtMin, sgtMax):
-                profileTmp[5] = sgThreshold
-                result = self.tryProfile( profileDef, profileTmp, skipStep, defaultPos, threshold)
-                self.logger.debug("init try result: %d", result)
-                if result == 0:
-                    for i in xrange(10):
-                        resultTry = self.tryProfile(profileDef, profileTmp, skipStep, defaultPos, threshold)
-                        self.logger.debug("try %d. Profile: %s, result: %d", i, profileTmp, resultTry)
-                        if resultTry != 0:
-                            break
-                        #endif
-                    #endfor
-                    if resultTry == -2:    #try next current
-                        break
-                    #endif
-                    if i == 9:
-                        tiltProfiles[profileNo] = profileTmp
-                        self.logger.debug("Profile No. %d:  %s", profileNo, profileTmp)
-                        self.setTiltProfiles(tiltProfiles)
-                        return profileTmp
-                    #endif
-                elif result == -2:
-                    break
-                #endif
-            #endfor
-        #endfor
-    #enddef
-
-    #TODO needs to be more accurate. Not used at the moment
-    def tryProfile(self, profileDef, profileTmp, skipStep, defaultPos, threshold):
-        self.setTiltTempProfile(profileDef)
-        self.setTiltPosition(0)
-        self.tiltMoveAbsolute(defaultPos)
-        while self.isTiltMoving():
-            sleep(0.25)
-        #endwhile
-
-        self.setTiltPosition(defaultPos + 512)
-        self.mcc.do("!sgbd")   #reset buffer
-        self.setTiltTempProfile(profileTmp)
-        self.tiltDown()
-        while self.isTiltMoving():
-            sleep(0.1)
-        #endwhile
-        position = self.getTiltPositionMicroSteps()
-        phase = self.mcc.do("?tiph")
-        sgData = self.getStallguardBuffer()
-        self.logger.debug("data %s", sgData)
-        stepsCheck = False
-        self.logger.debug("position: %d", position)
-        self.logger.debug("phase: %s", phase)
-        if skipStep:
-            if 512 - 256 <= position <= 512 - 192:
-                stepsCheck = True
-            #endif
-        else:
-            if position >= 512 - 129 and position <= 512 + 129:
-                stepsCheck = True
-            #endif
-        #endif
-        if stepsCheck:
-            self.logger.debug("steps checked")
-            del sgData[:5]
-            average = (sum(sgData[:-5]) * 1.0) / (len(sgData[:-5]) * 1.0)
-            variance = sum([(xi - average) ** 2.0 for xi in sgData[:-5]]) / (len(sgData[:-5]) - 1)
-            stdev = variance ** (1 / 2.0)
-            sgDataTail = sgData[-5:]
-            self.logger.debug("average: %f, variance: %f, stdev: %f", average, variance, stdev)
-            if average > threshold:
-                return 0 #profile OK
-            #endif
-        #endif
-        self.setTiltTempProfile(profileDef)
-        self.setTiltPosition(position + 2000)
-        self.tiltDown() # to zero
-        while self.isTiltMoving():
-            sleep(0.1)
-        #endwhile
-        if (position < 256):
-            self.logger.debug("SGT too insensitive")
-            return -2 #try next current. SGT too insensitive
-        #endif
-        self.logger.debug("SGT too sensitive")
-        return -1 #try next sgt. SGT too sensitive
     #enddef
 
 #endclass
