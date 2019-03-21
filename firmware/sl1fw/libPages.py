@@ -263,6 +263,8 @@ class PageConfirm(Page):
     def setParams(self, **kwargs):
         self.continueFce = kwargs.pop("continueFce", None)
         self.continueParmas = kwargs.pop("continueParmas", dict())
+        self.backFce = kwargs.pop("backFce", None)
+        self.backParmas = kwargs.pop("backParmas", dict())
         self.fill()
         self.items.update(kwargs)
     #enddef
@@ -273,6 +275,15 @@ class PageConfirm(Page):
             return "_EXIT_MENU_"
         else:
             return self.continueFce(**self.continueParmas)
+        #endif
+    #enddef
+
+
+    def backButtonRelease(self):
+        if self.backFce is None:
+            return "_BACK_"
+        else:
+            return self.backFce(**self.backParmas)
         #endif
     #enddef
 
@@ -3175,8 +3186,9 @@ class PageCalibration(Page):
     def recalibrateStep2(self):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep3,
+            backFce = self.prepare,
             imageName = "01_loosen_screws.jpg",
-            line1 = "Loosen small screws on the console. Be careful not to unscrew them completely.")
+            line1 = "Loosen small screws on the cantilever. Be careful not to unscrew them completely.")
         return "confirm"
     #enddef
 
@@ -3184,6 +3196,7 @@ class PageCalibration(Page):
     def recalibrateStep3(self):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep4,
+            backFce = self.recalibrateStep2,
             imageName = "02_place_bed.jpg",
             line1 = "Unscrew the tank and turn it 90 degrees on the base so it lies across tilt.")
         return "confirm"
@@ -3199,8 +3212,9 @@ class PageCalibration(Page):
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep5,
+            backFce = self.recalibrateStep3,
             imageName = "03_proper_aligment.jpg",
-            line1 = "Move tilt up until the tank gets lifted by 0.1 mm above the base.")
+            line1 = "In next step move tilt up until the tank gets lifted. Resin tank needs be in direct contact with tilt, but still lie flat on printer.")
         return "confirm"
     #enddef
 
@@ -3240,11 +3254,17 @@ class PageTiltCalib(MovePage):
             self.display.hwConfig.tiltHeight = position
         #endif
         self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep2,
+            continueFce = self.tiltCalibStep2,
+            backFce = self.tiltCalibAgain,
             imageName = "08_clean.jpg",
-            line1 = "Make sure the platform, tank and tilt are perfectly clean.")
+            line1 = "Make sure the platform, tank and tilt are PERFECTLY clean.")
         return "confirm"
     #endif
+
+
+    def backButtonRelease(self):
+        return "calibration"
+    #enddef
 
 
     def _up(self, slowMoving):
@@ -3279,25 +3299,32 @@ class PageTiltCalib(MovePage):
     #enddef
 
 
-    def recalibrateStep2(self):
+    def tiltCalibAgain(self):
+        return "tiltcalib"
+    #enddef
+
+
+    def tiltCalibStep2(self):
         self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep3,
+            continueFce = self.tiltCalibStep3,
+            backFce = self.okButtonRelease,
             imageName = "04_tighten_screws.jpg",
             line1 = "Screw down the tank. Make sure you tighten both screws evenly.")
         return "confirm"
     #enddef
 
 
-    def recalibrateStep3(self):
+    def tiltCalibStep3(self):
         self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep4,
+            continueFce = self.tiltCalibStep4,
+            backFce = self.tiltCalibStep2,
             imageName = "06_tighten_knob.jpg",
             line1 = "Check if the platform is properly secured with black knob.")
         return "confirm"
     #enddef
 
 
-    def recalibrateStep4(self):
+    def tiltCalibStep4(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = "Platform calibration",
@@ -3362,23 +3389,25 @@ class PageTiltCalib(MovePage):
         self.display.hw.setTowerProfile('homingFast')
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep5,
+            continueFce = self.tiltCalibStep5,
+            backFce = self.tiltCalibStep3,
             imageName = "05_align_platform.jpg",
             line1 = "Turn the platform to align it with exposition display.")
         return "confirm"
     #enddef
 
 
-    def recalibrateStep5(self):
+    def tiltCalibStep5(self):
         self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep6,
+            continueFce = self.tiltCalibStep6,
+            backFce = self.tiltCalibStep4,
             imageName = "07_tighten_screws.jpg",
-            line1 = "Tighten small srews on the console litle by little. Be careful to tighten them evenly as much as possible.")
+            line1 = "Tighten small srews on the cantilever little by little. Be careful to tighten them evenly as much as possible.")
         return "confirm"
     #enddef
 
 
-    def recalibrateStep6(self):
+    def tiltCalibStep6(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = "Please wait...",
@@ -3406,14 +3435,15 @@ class PageTiltCalib(MovePage):
         self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep7,
+            continueFce = self.tiltCalibStep7,
+            backFce = self.tiltCalibStep5,
             line1 = "All done,",
             line2 = "happy printing!")
         return "confirm"
     #enddef
 
 
-    def recalibrateStep7(self):
+    def tiltCalibStep7(self):
         return "_BACK_"
     #enddef
 #endclass
