@@ -101,6 +101,7 @@ class ExposureThread(threading.Thread):
         #endif
 
         self.logger.debug("exposure started")
+        self.expo.display.actualPage.showItems(exposure = exposureTime)
         whitePixels = self.expo.screen.blitImg(second = second)
 
         if self.expo.hwConfig.blinkExposure:
