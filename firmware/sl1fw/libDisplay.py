@@ -265,6 +265,9 @@ class Display(object):
                 os.system("poweroff")
         #endif
 
+        self.screen.exit()
+        for device in self.devices:
+            device.exit()
         sys.exit()
     #enddef
 

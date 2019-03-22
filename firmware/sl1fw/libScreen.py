@@ -352,9 +352,13 @@ class Screen(object):
 
 
     def __del__(self):
-        self.server.join()
+        self.exit()
     #enddef
 
+
+    def exit(self):
+        self.server.join()
+    #enddef
 
     def getResolution(self):
         self.commands.put({ 'fce' : "getResolution" })
