@@ -29,13 +29,11 @@ class SocketServer(multiprocessing.Process):
 
     def signalHandler(self, signum, frame):
         self.logger.debug("signal received")
-        self.server.shutdown()
         self.stoprequest.set()
     #enddef
 
 
     def join(self, timeout = None):
-        self.server.shutdown()
         self.stoprequest.set()
         super(SocketServer, self).join(timeout)
     #enddef
@@ -66,6 +64,8 @@ class SocketServer(multiprocessing.Process):
 
         #endwhile
 
+        self.logger.debug("shutting down server")
+        self.server.shutdown()
         self.logger.debug("process ended")
     #enddef
 
