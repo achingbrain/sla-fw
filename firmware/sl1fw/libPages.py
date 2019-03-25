@@ -114,7 +114,7 @@ class Page(object):
     def turnoffContinue(self):
         pageWait = PageWait(self.display, line2 = "Shutting down")
         pageWait.show()
-        self.display.shutDown(self.display.hwConfig.autoOff)
+        self.display.shutDown(True)
     #enddef
 
 
@@ -999,7 +999,7 @@ class PageFirmwareUpdate(Page):
                         line1="Update done",
                         line2="Shutting down")
                     sleep(3)
-                    self.display.shutDown(self.display.hwConfig.autoOff, reboot=True)
+                    self.display.shutDown(True, reboot=True)
                 # endif
 
                 # Check for operation failure
