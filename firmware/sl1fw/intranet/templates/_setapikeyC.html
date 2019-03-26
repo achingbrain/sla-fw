@@ -1,0 +1,11 @@
+<div class="row">
+	<div class="col">
+		<label>Apikey</label>
+		<input id="api_key" class="data" name="api_key" value="{{ items['api_key'] }}">
+	</div>
+	<div class="menu">
+	{% set button = {'id': "setapikey", 'title': "Ok"} %}
+	{% include 'button.html' %}
+	</div>
+</div>
+{% include 'back.html' %}

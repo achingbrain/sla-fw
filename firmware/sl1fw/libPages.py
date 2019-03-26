@@ -30,13 +30,19 @@ class Page(object):
         self.callbackPeriod = None
         self.stack = True
         self.fill()
+    #enddef
+
+
+    @property
+    def octoprintAuth(self):
         try:
             with open(defines.octoprintAuthFile, "r") as f:
-                self.octoprintAuth = f.read()
+                return f.read()
             #endwith
-        except Exception:
-            self.logger.exception("octoprintAuthFile exception:")
-            self.octoprintAuth = None
+        except IOError as e:
+            self.logger.exception("octoprintAuthFile exception: %s" % str(e))
+            return None
+        #endtry
     #enddef
 
 
@@ -4074,7 +4080,7 @@ class PageNetworking(Page):
                 'button12' : "State",
                 'button13' : "",
                 'button14' : "",
-                'button15' : "",
+                'button15' : "Change API-key",
                 })
     #enddef
 
@@ -4204,6 +4210,10 @@ class PageNetworking(Page):
 
     def button12ButtonRelease(self):
         return "networkstate"
+    #enddef
+
+    def button15ButtonRelease(self):
+        return "setapikey"
     #enddef
 
 #endclass
@@ -4508,3 +4518,38 @@ class PageVideo(PageMedia):
     #enddef
 
 #endclass
+
+
+class PageSetApikey(Page):
+
+    def __init__(self, display):
+        self.pageUI = "setapikey"
+        self.pageTitle = "Set API-key"
+        super(PageSetApikey, self).__init__(display)
+    # enddef
+
+    def fillData(self):
+        return {
+            'api_key': self.octoprintAuth
+        }
+    #enddef
+
+    def show(self):
+        self.items.update(self.fillData())
+        super(PageSetApikey, self).show()
+    #enddef
+
+    def setapikeyButtonSubmit(self, data):
+        apikey = data['api_key']
+
+        try:
+            subprocess.check_call(["/bin/api-keygen.sh", apikey])
+        except subprocess.CalledProcessError as e:
+            self.display.page_error.setParams(
+                line1="Octoprint apikey change failed")
+            return "error"
+
+        return "_BACK_"
+    #enddef
+
+# endclass
