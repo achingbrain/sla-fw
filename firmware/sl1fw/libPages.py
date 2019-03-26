@@ -599,12 +599,12 @@ class PageSettings(Page):
 #endclass
 
 
-class PageSetTime(Page):
+class PageTimeSettings(Page):
     def __init__(self, display):
-        self.pageUI = "settime"
-        self.pageTitle = "Set Time"
+        self.pageUI = "timesettings"
+        self.pageTitle = "Time settings"
         self.timedate = pydbus.SystemBus().get("org.freedesktop.timedate1")
-        super(PageSetTime, self).__init__(display)
+        super(PageTimeSettings, self).__init__(display)
     # enddef
 
     def fillData(self):
@@ -617,7 +617,7 @@ class PageSetTime(Page):
 
     def show(self):
         self.items.update(self.fillData())
-        super(PageSetTime, self).show()
+        super(PageTimeSettings, self).show()
     # enddef
 
     def ntpenableButtonRelease(self):
@@ -626,6 +626,39 @@ class PageSetTime(Page):
 
     def ntpdisableButtonRelease(self):
         self.timedate.SetNTP(False, False)
+    # enddef
+
+    def settimeButtonSubmit(self, data):
+        return "settime"
+    # enddef
+
+    def setdateButtonSubmit(self, data):
+        return "setdate"
+    # enddef
+
+    def settimezoneButtonSubmit(self, data):
+        return "settimezone"
+    # enddef
+
+#endclass
+
+
+class PageSetTimeBase(Page):
+    def __init__(self, display):
+        self.timedate = pydbus.SystemBus().get("org.freedesktop.timedate1")
+        super(PageSetTimeBase, self).__init__(display)
+    # enddef
+
+    def fillData(self):
+        return {
+            "unix_timestamp_sec": time.time(),
+            "timezone": self.timedate.Timezone
+        }
+    # enddef
+
+    def show(self):
+        self.items.update(self.fillData())
+        super(PageSetTimeBase, self).show()
     # enddef
 
     def settimeButtonSubmit(self, data):
@@ -638,9 +671,30 @@ class PageSetTime(Page):
 #endclass
 
 
+class PageSetTime(PageSetTimeBase):
+
+    def __init__(self, display):
+        self.pageUI = "settime"
+        self.pageTitle = "Set Time"
+        super(PageSetTime, self).__init__(display)
+    # enddef
+
+#endclass
+
+
+class PageSetDate(PageSetTimeBase):
+
+    def __init__(self, display):
+        self.pageUI = "setdate"
+        self.pageTitle = "Set Date"
+        super(PageSetDate, self).__init__(display)
+    # enddef
+
+# endclass
+
+
 class PageSetTimezone(Page):
     zoneinfo = "/usr/share/zoneinfo/"
-
 
     def __init__(self, display):
         self.pageUI = "settimezone"
@@ -794,13 +848,8 @@ class PageAdvancedSettings(Page):
     #enddef
 
 
-    def settimeButtonRelease(self):
-        return "settime"
-    # enddef
-
-
-    def settimezoneButtonRelease(self):
-        return "settimezone"
+    def timesettingsButtonRelease(self):
+        return "timesettings"
     # enddef
 
 
