@@ -8,6 +8,7 @@ body  {
   font-size: 24px;
   background: black;
   color: white;
+  margin: 3em;
 }
 
 /*********************
@@ -156,6 +157,22 @@ div.menu.small div.button div.frame {
 div.confirm {
 	display: flex;
 	flex-direction: column;
+}
+
+
+/*************
+* Print page *
+*************/
+.print-info-boxes .box {
+    min-width: 10em;
+}
+
+.print-info-boxes .box .title {
+    color: grey;
+}
+
+.print-info-boxes .box .box-value {
+    font-weight: bold;
 }
 
 

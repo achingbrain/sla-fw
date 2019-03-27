@@ -12,8 +12,11 @@ function wsInit(dir) {
 		var element = $("#" + id);
 		var value = element.find(".value")
 		var btn = element.find(".btn.logic")
-		 
-		if(btn.length > 0) {
+		var trigger = element.hasClass('trigger')
+
+		if(trigger) {
+		    element.trigger('update', [ data ])
+		} else if(btn.length > 0) {
 			// Set button logical state
 			btn.toggleClass("active", data == 1)
 		} else if (value.length > 0) {
@@ -49,6 +52,7 @@ function wsInit(dir) {
 			hookFlash();
 			hookTimeSet();
 			hookShowAdmin();
+			hookUpdate();
 
 		} else if (data.type == "items") {
 			var i;

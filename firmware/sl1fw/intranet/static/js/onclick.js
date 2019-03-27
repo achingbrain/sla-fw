@@ -185,3 +185,39 @@ function hookShowAdmin() {
         }
     })
 }
+
+function hookUpdate() {
+    $('#progress').on('update', function(event, data) {
+        $('#progress-bar').css('width', data + '%');
+        $('#progress').text(data + "%");
+    });
+
+    $('#time_remain_sec').on('update', function(event, data) {
+        reamining = new Date(data * 1000);
+        $(event.target).text(reamining.getUTCHours() + "h " + reamining.getUTCMinutes() + "m");
+
+        now = new Date();
+        end = new Date(now.getTime() + data * 1000);
+
+        $('#estimated-end').text(end.getHours() + ":" + end.getMinutes());
+    });
+
+    $('#time_elapsed_sec').on('update', function(event, data) {
+        elapsed = new Date(data * 1000);
+        $(event.target).text(elapsed.getUTCHours() + "h " + elapsed.getUTCMinutes() + "m");
+    });
+
+    $('.update-fixed-2').on('update', function(event, data) {
+        if (data != null) {
+            $(event.target).text(data.toFixed(2));
+        }
+    });
+
+    $('#current_layer').on('update', function(event, data) {
+        if (data != null) {
+            $(event.target).text(data);
+        }
+
+        $('#live').attr('src', "live.png?layer=" + data);
+    });
+}
