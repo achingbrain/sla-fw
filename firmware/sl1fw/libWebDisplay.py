@@ -4,6 +4,7 @@
 
 import logging
 import jinja2
+import jinja2.exceptions
 
 from libServer import SocketServer
 from libVirtualDisplay import VirtualDisplay
@@ -31,11 +32,19 @@ class WebDisplayServer(SocketServer):
 
                 self.newClientData = data
                 page = data['page']
-                content = self.jinja.get_template("_%sC.html" % page).render(items = data)
+
                 try:
-                    header_template = self.jinja.get_template("_%sH.html" % page)
-                except:
-                    header_template = self.jinja.get_template("_head.html")
+                    content_template = self.jinja.get_template("_%sC.html" % page)
+                except jinja2.exceptions.TemplateNotFound:
+                    content_template = self.jinja.get_template("_default.html")
+                content = content_template.render(items = data)
+
+                for header_filename in ["_%sH.html" % page, "_head_common.html", "_head_default.html"]:
+                    try:
+                        header_template = self.jinja.get_template(header_filename)
+                        break
+                    except jinja2.exceptions.TemplateNotFound:
+                        continue
                 header = header_template.render(items = data, page = page)
                 
                 html = self.jinja.get_template('layout.html').render(content = content, header = header, page = page)
