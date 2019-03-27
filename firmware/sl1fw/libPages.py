@@ -482,6 +482,13 @@ class PageHome(Page):
 
 
     def printButtonRelease(self):
+        if self.display.hwConfig.showWizard:
+            self.display.page_confirm.setParams(
+                    continueFce = self.showWizard,
+                    line1 = "Printer needs to be set up!",
+                    line2 = "Go through wizard now?")
+            return "confirm"
+        #endif
         if not self.display.hwConfig.calibrated:
             self.display.page_confirm.setParams(
                     continueFce = self.printContinue,
@@ -491,6 +498,11 @@ class PageHome(Page):
         #endif
 
         return "sourceselect"
+    #enddef
+
+
+    def showWizard(self):
+        return "wizard"
     #enddef
 
 
@@ -2203,7 +2215,7 @@ class PageDisplay(Page):
                 'button5' : "Maze",
 
                 'button6' : "USB:/test.png",
-                'button7' : "",
+                'button7' : "Prusa logo",
                 'button8' : "",
                 'button9' : "",
                 'button10' : "Infinite test",
@@ -2258,6 +2270,11 @@ class PageDisplay(Page):
             self.logger.exception("export exception:")
             self.display.hw.beepAlarm(3)
         #endtry
+    #enddef
+
+
+    def button7ButtonRelease(self):
+        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "logo_1440x2560.png"))
     #enddef
 
 
@@ -2369,7 +2386,7 @@ class PageAdmin(Page):
                 'button10' : "Networking",
 
                 'button11' : "Net update",
-                'button12' : "",
+                'button12' : "Wizard",
                 'button13' : "Resin sensor test",
                 'button14' : "Download examples",
                 'button15' : "Factory reset",
@@ -2452,7 +2469,7 @@ class PageAdmin(Page):
 
 
     def button12ButtonRelease(self):
-        pass
+        return "wizard"
     #enddef
 
 
@@ -2599,8 +2616,8 @@ class PageAdmin(Page):
             towerheight = self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight),
             tiltheight = defines.defaultTiltHeight,
             calibrated = "no",
-            showadmin = "no"
-            #TODO force wizard
+            showadmin = "no",
+            showwizard = "yes"
         )
         if not self.display.hwConfig.writeFile():
             self.display.hw.beepAlarm(3)
@@ -4553,3 +4570,351 @@ class PageSetApikey(Page):
     #enddef
 
 # endclass
+
+
+class PageWizard(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = "Printer setup"
+        super(PageWizard, self).__init__(display)
+        self.stack = False
+    #enddef
+
+
+    def prepare(self):
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep1,
+            line1 = "Welcome to initial wizard. This procedure will check and set up all features.",
+            line3 = "Continue?")
+        return "confirm"
+    #enddef
+
+
+    def wizardStep1(self):
+        self.display.hwConfig.fanCheck = False
+        self.display.hw.uvLed(False)
+        self.display.hw.powerLed("warn")
+        homeStatus = 0
+
+        #tilt home check
+        pageWait = PageWait(self.display,
+            line1 = "Tilt home check",
+            line2 = "Please wait...")
+        pageWait.show()
+        for i in xrange(3):
+            self.display.hw.mcc.do("!tiho")
+            while self.display.hw.mcc.doGetInt("?tiho") > 0:
+                sleep(0.25)
+            #endwhile
+            homeStatus = self.display.hw.mcc.doGetInt("?tiho")
+            if homeStatus == -2:
+                self.display.page_error.setParams(
+                    line1 = "Tilt endstop not reached!",
+                    line2 = "Please check if tilt motor and optical endstop are connected properly.")
+                self.display.hw.motorsRelease()
+                return "error"
+            elif homeStatus == 0:
+                self.display.hw.tiltHomeCalibrateWait()
+                self.display.hw.setTiltPosition(0)
+                break
+            #endif
+        #endfor
+        if homeStatus == -3:
+            self.display.page_error.setParams(
+                line1 = "Tilt home check failed!",
+                line2 = "Please contact support. Tilt profiles needs to be changed.")
+            self.display.hw.motorsRelease()
+            return "error"
+        #endif
+
+        #tilt length measure
+        pageWait.showItems(line1 = "Tilt axis check")
+        self.display.hw.setTiltProfile("homingFast")
+        self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd)
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.tiltMoveAbsolute(self.display.hw._tiltMin)
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+        #MC moves tilt by 256 steps forward in last step of !tiho
+        if self.display.hw.getTiltPosition() < -256  or self.display.hw.getTiltPosition() > 0:
+            self.display.page_error.setParams(
+                line1 = "Tilt axis check failed! Current position: %d" % self.display.hw.getTiltPosition(),
+                line2 = "Please check if tilting mechanism can move smoothly in whole range.")
+            self.display.hw.motorsRelease()
+            return "error"
+        #endif
+        self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+
+        #tower home check
+        pageWait.showItems(line1 = "Tower home check")
+        for i in xrange(3):
+            self.display.hw.mcc.do("!twho")
+            while self.display.hw.mcc.doGetInt("?twho") > 0:
+                sleep(0.25)
+            #endwhile
+            homeStatus = self.display.hw.mcc.doGetInt("?twho")
+            if homeStatus == -2:
+                self.display.page_error.setParams(
+                    line1 = "Tower endstop not reached!",
+                    line2 = "Please check if tower motor is connected properly.")
+                self.display.hw.motorsRelease()
+                return "error"
+            elif homeStatus == 0:
+                self.display.hw.towerHomeCalibrateWait()
+                self.display.hw.setTowerPosition(self.display.hw._towerEnd)
+                break
+            #endif
+        #endfor
+        if homeStatus == -3:
+            self.display.page_error.setParams(
+                line1 = "Tower home check failed!",
+                line2 = "Please contact support. Tower profiles needs to be changed.")
+            self.display.hw.motorsRelease()
+            return "error"
+        #endif
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep2,
+            line1 = "Screw down the resin tank and remove platform. Make sure the tank is empty and clean.")
+        return "confirm"
+
+    #enddef
+
+
+    def wizardStep2(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = "Tower axis check",
+            line2 = "Please wait...")
+        pageWait.show()
+        self.display.hw.setTowerProfile("homingFast")
+        self.display.hw.towerMoveAbsolute(0)
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        #stop 10 mm before endstop to change sensitive profile
+        self.display.hw.towerMoveAbsolute(self.display.hw._towerEnd - 8000)
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.setTowerProfile("homingSlow")
+        self.display.hw.towerMoveAbsolute(self.display.hw._towerMax)
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        position = self.display.hw.getTowerPositionMicroSteps()
+        #MC moves tower by 1024 steps forward in last step of !twho
+        if position < self.display.hw._towerEnd or position > self.display.hw._towerEnd + 1024 + 127: #add tolerance half fullstep
+            self.display.page_error.setParams(
+                line1 = "Tower axis check failed! Current position: %d" % position,
+                line2 = "Please check if ballscrew can move smoothly in whole range.")
+            self.display.hw.motorsRelease()
+            return "error"
+        #endif
+
+        #fan check
+        self.display.hw.uvLed(False)
+        pageWait.showItems(line1 = "Fan check")
+        self.display.hwConfig.fanCheck = False
+        self.display.hw.setFansPwm((0, 0, 0))
+        self.display.hw.setFans((True, True, True))
+        sleep(6)    #wait for fans to stop
+        rpm = self.display.hw.getFansRpm()
+        if rpm[0] != 0 or rpm[1] != 0 or rpm[2] != 0:
+            self.display.page_error.setParams(
+                line1 = "RPM detected even when fans are off.",
+                line2 = "data: %s" % rpm,
+                line3 = "Check if all fans are properly connected.")
+            return "error"
+        #endif
+                        #fan1        fan2        fan3
+        fanLimits = [[50,150], [1200, 1500], [150, 300]]
+        hwConfig = libConfig.HwConfig()
+        self.display.hw.setFansPwm((hwConfig.fan1Pwm, hwConfig.fan2Pwm, hwConfig.fan3Pwm))   #use default PWM. TODO measure fans in range of values
+        sleep(6)    #let the fans spin up
+        rpm = self.display.hw.getFansRpm()
+        for i in xrange(3):
+            if not fanLimits[i][0] <= rpm[i] <= fanLimits[i][1]:
+                if i == 0:
+                    fanName = "UV LED"
+                elif i == 1:
+                    fanName = "blower"
+                else:
+                    fanName = "back"
+                #endif
+                self.display.page_error.setParams(
+                    line1 = "RPM of %s fan not in range!" % fanName,
+                    line2 = "Please check if the fan is connected correctly.",
+                    line3 = "RPM data: %s" % rpm)
+                self.display.hw.setFansPwm((0, 0, 0))
+                return "error"
+            #endif
+        #endfor
+        self.display.hwConfig.fanCheck = True
+
+        #temperature check
+        pageWait.showItems(line1 = "Temperature check")
+        temperatures = self.display.hw.getMcTemperatures()
+        for i in xrange(2):
+            if not self.display.hw._minAmbientTemp < temperatures[i] < self.display.hw._maxAmbientTemp:
+                if i == 0:
+                    sensorName = "UV LED"
+                else:
+                    sensorName = "ambient"
+                #endif
+                self.display.page_error.setParams(
+                    line1 = "%s temperature not in range! Measured: %.1f" % (sensorName, temperatures[i]),
+                    line2 = "Please check if temperature sensors are connected correctly.",
+                    line3 = "Keep printer at room temperature (15-35C).")
+                return "error"
+            #endif
+        #endfor
+        if abs(temperatures[0] - temperatures[1]) > self.display.hw._maxTempDiff:
+            self.display.page_error.setParams(
+                line1 = "Measured temperatures differ too much! Data: %.1f, %.1f" % (temperatures[0], temperatures[1]),
+                line2 = "Please check if temperature sensor are connected correctly.",
+                line3 = "Keep printer at room temperature (15-35C).")
+            return "error"
+        #endif
+        if self.display.hw.getCpuTemperature() > self.display.hw._maxA64Temp:
+            self.display.page_error.setParams(
+                line1 = "A64 temperature too high! %.1f" % self.display.hw.getCpuTemperature(),
+                line2 = "Shutting down in 10 seconds...")
+            sleep(10)
+            self.display.shutDown(True)
+            return "error"
+        #endif
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep3,
+            line1 = "Please close the orange cover. Make sure the tank is empty and clean.")
+        return "confirm"
+    #enddef
+
+
+    def wizardStep3(self):
+        self.display.hw.powerLed("warn")
+        if not self.display.hw.getCoverState():
+            self.display.page_error.setParams(
+                line1 = "Orange cover not closed!",
+                line2 = "Please check the connection of cover switch.")
+            self.display.hw.uvLed(False)
+            return "error"
+        #endif
+
+        #uv led VA
+        pageWait = PageWait(self.display,
+            line1 = "UV LED check",
+            line2 = "Please wait...")
+        pageWait.show()
+        self.display.hw.setUvLedCurrent(0)
+        self.display.hw.uvLed(True)
+        uvCurrents = [0, 300, 600]
+        #PWM            0           300         600
+        uv1Limit = [[14.0,17.4],[15.6,18.8],[16.1,19.5]]     #uv led 1st row voltage limits
+        uv2Limit = [[13.8,14.7],[15.1,16.7],[15.9,17.7]]     #uv led 2nd row voltage limits
+        uv3Limit = [[13.8,14.1],[14.8,16.2],[15.8,16.9]]     #uv led 3rd row voltage limits
+        for i in xrange(3):
+            self.display.hw.setUvLedCurrent(uvCurrents[i])
+            sleep(3)
+            voltages = self.display.hw.getVoltages()
+            if not (uv1Limit[i][0] < voltages[0] < uv1Limit[i][1] or uv2Limit[i][0] < voltages[1] < uv2Limit[i][1] or uv3Limit[i][0] < voltages[2] < uv3Limit[i][1]):
+                self.display.page_error.setParams(
+                    line1 = "UV LED current out of range!",
+                    line2 = "Please check if UV LED panel is connected propely.",
+                    line3 = "Data: %d, %s" % (i, voltages))
+                self.display.hw.uvLed(False)
+                return "error"
+            #endif
+        #endfor
+
+        #uv led temperature check
+        pageWait.showItems(line1 = "UV LED warmup check")
+        self.display.hw.setUvLedCurrent(700)
+        for countdown in xrange(120, 0, -1):
+            pageWait.showItems(line2 = "Please wait %d s"% countdown)
+            sleep(1)
+            temps = self.display.hw.getMcTemperatures()
+            if temps[self.display.hw._ledTempIdx] > self.display.hw._maxUVTemp:
+                self.display.page_error.setParams(
+                    line1 = "UV LED too hot!",
+                    line2 = "Please check if UV LED panel is connected propely with heatsing.",
+                    line3 = "Voltage data: %s" % rpm)
+                self.display.hw.uvLed(False)
+                return "error"
+            #endif
+        #endfor
+        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        self.display.hw.powerLed("normal")
+
+        #exposure display check
+        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "logo_1440x2560.png"))
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep4,
+            line1 = "Can you see company logo on the exposure display through orange cover? DO NOT open the cover.")
+        return "confirm"
+    #enddef
+
+
+    def wizardStep4(self):
+        self.display.screen.getImgBlack()
+        self.display.hw.uvLed(False)
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep5,
+            line1 = "Leave resin tank screwed in place and insert platform in 60 degree angle.")
+        return "confirm"
+    #enddef
+
+
+    def wizardStep5(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = "Resin sensor check",
+            line2 = "Please wait...",
+            line3 = "DO NOT touch the printer")
+        pageWait.show()
+        self.display.hw.towerSync()
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.setTowerPosition(self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight))
+        volume = self.display.hw.getResinVolume()
+        if not 110 <= volume <= 190:    #to work properly even with loosen rocker brearing
+            self.display.page_error.setParams(
+                line1 = "Resin sensor not working properly!",
+                line2 = "Please check if sensor is properly connected.",
+                line3 = "Measured %d ml." % volume)
+            self.display.hw.motorsRelease()
+            return "error"
+        #endif
+        self.display.hw.towerSync()
+        self.display.hw.tiltSyncWait()
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
+        self.display.hwConfig.update(showwizard = "no")
+        if not self.display.hwConfig.writeFile():
+            self.display.hw.beepAlarm(3)
+            sleep(1)
+            self.display.hw.beepAlarm(3)
+        #endif
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep6,
+            line1 = "Printer is succesfully checked.",
+            line2 = "Continue to calibration?")
+        return "confirm"
+    #enddef
+
+
+    def wizardStep6(self):
+        return "calibration"
+    #enddef
+
+#endclass

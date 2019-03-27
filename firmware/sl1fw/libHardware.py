@@ -343,6 +343,12 @@ class Hardware(object):
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
 
+        self._minAmbientTemp = 13.0 #15C from manual. Capsule is not calibrated, add some tolerance
+        self._maxAmbientTemp = 38.0 #38C from manual. Capsule is not calibrated, add some tolerance
+        self._maxA64Temp = 70.0
+        self._maxUVTemp = 50.0
+        self._maxTempDiff = 1.0
+
         self.mcc = MotConCom("MC_Main")
         self.cpuSerial = self.readCpuSerial()
     #enddef
@@ -1467,7 +1473,7 @@ class Hardware(object):
         temps = self.getMcTemperatures()
         self.logTemp(temps)
         temp = temps[self._ledTempIdx]
-        if temp < 0:
+        if temp < self._minAmbientTemp:
             if forceFail or not self.hwConfig.fanCheck or self.getFansError():
                 self.uvLed(False)
                 self.logger.critical("EMERGENCY STOP - LED temperature")
@@ -1483,11 +1489,11 @@ class Hardware(object):
                     sleep(1)
                 #endwhile
             else:
-                self.logger.warning("LED temperature has not been read correctly!")
+                self.logger.warning("LED temperature too low!")
             #endif
         #endif
 
-        if forceFail or temp < 60:
+        if forceFail or temp < self._maxUVTemp:
             return
         #endif
 
@@ -1495,7 +1501,7 @@ class Hardware(object):
         self.powerLed("error")
         errorPage.show()
         errorPage.showItems(line2 = "OVERHEAT!")
-        while(temp > 40): # hystereze
+        while(temp > self._maxUVTemp - 10): # hystereze
             errorPage.showItems(line3 = "Cooling down...")
             self.beepAlarm(3)
             sleep(1)

@@ -312,6 +312,7 @@ class HwConfig(FileConfig):
         self.mute = self._parseBool("mute", False)
         self.autoOff = self._parseBool("autooff", True)
         self.showAdmin = self._parseBool("showadmin", False)
+        self.showWizard = self._parseBool("showwizard", True)
     #enddef
 
     def calcMicroSteps(self, mm):

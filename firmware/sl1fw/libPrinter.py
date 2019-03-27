@@ -269,6 +269,11 @@ class Printer(object):
 
         try:
             while True:
+                if self.display.hwConfig.showWizard:
+                    self.display.hw.beepRepeat(1)
+                    self.display.doMenu("wizard")
+                    sleep(0.5)    #delay between beep if user selects back from wizard and two beeps at the normal startup
+                #endif
                 self.display.doMenu("home", self.homeCallback, 30)
 
                 # akce co nejsou print neresime
