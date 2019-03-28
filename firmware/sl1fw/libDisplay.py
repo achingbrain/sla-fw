@@ -22,7 +22,6 @@ class Display(object):
         self.screen = screen
         self.page_confirm = libPages.PageConfirm(self)
         self.page_systemwait = libPages.PageWait(self)
-        self.page_intro = libPages.PageIntro(self)
         self.page_start = libPages.PageStart(self)
         self.page_home = libPages.PageHome(self)
         self.page_control = libPages.PageControl(self)
@@ -34,7 +33,6 @@ class Display(object):
         self.page_settimezone = libPages.PageSetTimezone(self)
         self.page_sethostname = libPages.PageSetHostname(self)
         self.page_setlanguage = libPages.PageSetLanguage(self)
-        self.page_projsettings = libPages.PageProjSett(self)
         self.page_change = libPages.PageChange(self)
         self.page_sysinfo = libPages.PageSysInfo(self)
         self.page_netinfo = libPages.PageNetInfo(self)
@@ -58,8 +56,6 @@ class Display(object):
         self.page_towerprofiles = libPages.PageTowerProfiles(self)
         self.page_fansleds = libPages.PageFansLeds(self)
         self.page_network = libPages.PageNetwork(self)
-        self.page_networking = libPages.PageNetworking(self)
-        self.page_networkstate = libPages.PageNetworkState(self)
         self.page_support = libPages.PageSupport(self)
         self.page_firmwareupdate = libPages.PageFirmwareUpdate(self)
         self.page_printpreview = libPages.PagePrintPreview(self)
@@ -72,7 +68,7 @@ class Display(object):
         self.page_setapikey = libPages.PageSetApikey(self)
         self.page_wizard = libPages.PageWizard(self)
 
-        self.actualPage = self.page_intro
+        self.actualPage = self.page_start
     #enddef
 
 
@@ -117,7 +113,7 @@ class Display(object):
                 #endif
                 self.logger.warning("event page (%s) and actual page (%s) differ", event['page'], self.actualPage.pageUI)
             elif event.get('client_type', None) == "prusa_sla_client_qt":
-                self.page_sysinfo.setItems(qt_gui_version=event.get('client_version', "unknown"))
+                self.page_sysinfo.setItems(qt_gui_version = event.get('client_version', _("unknown")))
             #endif
         #endfor
         return (None, None, None)

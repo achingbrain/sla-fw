@@ -20,7 +20,11 @@ class MyBool:
     #enddef
 
     def __str__(self):
-        return "yes" if self.value else "no"
+        return "on" if self.value else "off"
+    #endef
+
+    def __int__(self):
+        return int(self.value)
     #endef
 
     __nonzero__=__bool__
@@ -335,9 +339,9 @@ class OsConfig(FileConfig):
 
     def _parseData(self):
         self.id = self._parseString("id")
-        self.name = self._parseString("name", "unknown")
-        self.version = self._parseString("version", "unknown")
-        self.versionId = self._parseString("version_id", "unknown")
+        self.name = self._parseString("name", _("unknown"))
+        self.version = self._parseString("version", _("unknown"))
+        self.versionId = self._parseString("version_id", _("unknown"))
     #enddef
 
 #endclass
@@ -397,38 +401,35 @@ class PrintConfig(FileConfig):
         #endif
 
         if not os.path.isfile(zipFile):
-            self._logger.exception("Project lookup exception: file not exits: " + zipFile)
+            self._logger.exception("Project lookup exception: file not exists: " + zipFile)
         #endif
 
         try:
             projFile = zipfile.ZipFile(zipFile)
             self.parseText(projFile.read(defines.configFile))
 
-            if len(self.action):
-                self._logger.debug("Found project file '%s'", zipFile)
+            self._logger.debug("Found project file '%s'", zipFile)
 
-                # Set paths
-                dirName = os.path.dirname(zipFile)
-                self.configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
-                self.configFound = True
-                self.zipName = zipFile
-                self.loadSrc = "Direct file"
+            # Set paths
+            dirName = os.path.dirname(zipFile)
+            self.configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
+            self.configFound = True
+            self.zipName = zipFile
+            self.loadSrc = "Direct file"
 
-                self.readZipFile()
-            else:
-                self._logger.exception("No action")
-            #endif
+            self.readZipFile()
 
         except OSError:
             pass
         except Exception as e:
             self._logger.exception("Project lookup exception:")
         #endtry
+    #enddef
 
     def readZipFile(self):
         self.totalLayers = 0
         self.toPrint = []
-        self.zipError = "Can't read project data."
+        self.zipError = _("Can't read project data.")
 
         if self.zipName is None:
             self._logger.error("ZIP file not found")
@@ -456,14 +457,13 @@ class PrintConfig(FileConfig):
 
         self._logger.debug("found %d layers", self.totalLayers)
         if self.totalLayers < 2:
-            self.zipError = "Not enough layers."
+            self.zipError = _("Not enough layers.")
         else:
             self.zipError = None
         #endif
     #enddef
 
     def _parseData(self):
-        self.action = self._parseString("action")
         self.projectName = self._parseString("jobdir", "no project")
 
         self.expTime = self._parseFloat("exptime", 8.0)

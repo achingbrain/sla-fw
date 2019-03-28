@@ -278,6 +278,11 @@ class MotConCom(object):
 #endclass
 
 
+class dummyMotConCom(object):
+    pass
+#endclass
+
+
 class Hardware(object):
 
     def __init__(self, hwConfig, config):
@@ -347,37 +352,38 @@ class Hardware(object):
         self._maxAmbientTemp = 38.0 #38C from manual. Capsule is not calibrated, add some tolerance
         self._maxA64Temp = 70.0
         self._maxUVTemp = 50.0
-        self._maxTempDiff = 1.0
+        self._maxTempDiff = 3.0
 
         self.mcc = MotConCom("MC_Main")
         self.cpuSerial = self.readCpuSerial()
     #enddef
 
 
-    def connectMC(self, errorPage, returnPage):
+    def connectMC(self, waitPage, returnPage):
 
         errorMessage = self.mcc.connect(self.hwConfig.MCversionCheck)
         if errorMessage:
             self.logger.warning("motion controller error: %s", errorMessage)
 
-            errorPage.fill(
-                    line1 = "Updating motion controller firmware.",
-                    line2 = "Please wait...")
-            errorPage.show()
+            waitPage.fill(
+                    line1 = _("Updating motion controller firmware."),
+                    line2 = _("Please wait..."))
+            waitPage.show()
 
             if not self.mcc.flash(self.hwConfig.MCBoardVersion):
-                self.ahojBabi(errorPage, "Motion controller update has failed!")
+                self.ahojBabi(waitPage, _("Motion controller update has failed!"))
             #endif
 
             errorMessage = self.mcc.connect(self.hwConfig.MCversionCheck)
             if errorMessage:
                 self.logger.error("motion controller error: %s", errorMessage)
-                self.ahojBabi(errorPage, errorMessage)
+                self.ahojBabi(waitPage, errorMessage)
             #endif
 
             returnPage.show()
         #endif
 
+        self.dummyMC = False
         self.initDefaults()
     #enddef
 
@@ -393,25 +399,37 @@ class Hardware(object):
     #enddef
 
 
-    def ahojBabi(self, errorPage, message):
-        errorPage.show()
-        errorPage.showItems(line1 = "Fatal error", line2 = message)
+    def ahojBabi(self, waitPage, message):
+        waitPage.show()
+        waitPage.showItems(line1 = _("Fatal error"), line2 = message)
         while True:
-            errorPage.showItems(line3 = "Please call service.")
+            waitPage.showItems(line3 = _("Please call service."))
             sleep(1)
-            errorPage.showItems(line3 = "")
+            waitPage.showItems(line3 = "")
             sleep(1)
         #endwhile
     #enddef
 
 
-    def flashMC(self, errorPage, returnPage):
-        errorPage.fill(
-                line1 = "Forced update of motion controller firmware.",
-                line2 = "Please wait...")
-        errorPage.show()
+    def flashMC(self, waitPage, returnPage):
+        waitPage.fill(
+                line1 = _("Forced update of motion controller firmware."),
+                line2 = _("Please wait..."))
+        waitPage.show()
         self.mcc.flash(self.hwConfig.MCBoardVersion)
-        self.connectMC(errorPage, returnPage)
+        self.connectMC(waitPage, returnPage)
+    #enddef
+
+
+    def switchToDummy(self):
+        self.mcc = dummyMotConCom()
+        self.dummyMC = True
+    #enddef
+
+
+    def switchToMC(self, page_systemwait, actualPage):
+        self.mcc = MotConCom("MC_Main")
+        self.connectMC(page_systemwait, actualPage)
     #enddef
 
 
@@ -561,7 +579,7 @@ class Hardware(object):
 
 
     def beep(self, frequency, lenght):
-        if not self.hwConfig.mute:
+        if not self.hwConfig.mute and not self.dummyMC:
             self.mcc.do("!beep", frequency, int(lenght * 1000))
         #endif
     #enddef
@@ -1393,9 +1411,9 @@ class Hardware(object):
     #enddef
 
 
-    def checkFanStatus(self, errorPage, returnPage):
+    def checkFanStatus(self, waitPage, returnPage):
         #self.logger.debug("checkFanStatus started")
-        if not self.hwConfig.fanCheck:
+        if not self.hwConfig.fanCheck or self.dummyMC:
             #self.logger.debug("checkFanStatus disable return")
             return
         #endif
@@ -1409,18 +1427,18 @@ class Hardware(object):
             counter = 0
             self.powerLed("error")
 
-            errorPage.show()
-            errorPage.showItems(line3 = "Please call service.")
+            waitPage.show()
+            waitPage.showItems(line3 = _("Please call service."))
             while(counter < 10):
-                errorPage.showItems(line2 = "FAN ERROR!")
+                waitPage.showItems(line2 = _("FAN ERROR!"))
                 self.beepAlarm(3)
                 counter += 1
                 sleep(1)
-                errorPage.showItems(line2 = "")
+                waitPage.showItems(line2 = "")
                 sleep(1)
             #endwhile
-            errorPage.showItems(line2 = "")
-            errorPage.showItems(line3 = "")
+            waitPage.showItems(line2 = "")
+            waitPage.showItems(line3 = "")
             returnPage.show()
             self.powerLed("normal")
         else:
@@ -1430,7 +1448,7 @@ class Hardware(object):
     #enddef
 
 
-    def checkCoverStatus(self, errorPage, returnPage):
+    def checkCoverStatus(self, waitPage, returnPage):
         #self.logger.debug("checkCoverStatus started")
         if not self.hwConfig.coverCheck:
             #self.logger.debug("checkCoverStatus disable return")
@@ -1441,22 +1459,22 @@ class Hardware(object):
             return
         #endif
         self.powerLed("warn")
-        errorPage.show()
-        errorPage.showItems(line3 = "to continue!")
+        waitPage.show()
+        waitPage.showItems(line3 = _("to continue!"))
         pocet = 0
         while self.getCoverState():
-            errorPage.showItems(line2 = "Close cover")
+            waitPage.showItems(line2 = _("Close cover"))
             pocet -= 1
             if pocet < 0:
                 pocet = 5
                 self.beepAlarm(3)
             #endif
             sleep(1)
-            errorPage.showItems(line2 = "")
+            waitPage.showItems(line2 = "")
             sleep(1)
         #endwhile
-        errorPage.showItems(line2 = "")
-        errorPage.showItems(line3 = "")
+        waitPage.showItems(line2 = "")
+        waitPage.showItems(line3 = "")
         returnPage.show()
         self.powerLed("normal")
         #self.logger.debug("checkCoverStatus done")
@@ -1468,8 +1486,11 @@ class Hardware(object):
     #enddef
 
 
-    def checkTemp(self, errorPage, returnPage, forceFail = False):
+    def checkTemp(self, waitPage, returnPage, forceFail = False):
         #self.logger.debug("checkTemp started")
+        if self.dummyMC:
+            return
+        #endif
         temps = self.getMcTemperatures()
         self.logTemp(temps)
         temp = temps[self._ledTempIdx]
@@ -1478,14 +1499,14 @@ class Hardware(object):
                 self.uvLed(False)
                 self.logger.critical("EMERGENCY STOP - LED temperature")
                 self.powerLed("error")
-                errorPage.show()
-                errorPage.showItems(line2 = "Emergency stop!")
-                errorPage.showItems(line3 = "Please call service.")
+                waitPage.show()
+                waitPage.showItems(line2 = _("Emergency stop!"))
+                waitPage.showItems(line3 = _("Please call service."))
                 while True:
-                    errorPage.showItems(line1 = "LED temperature sensor failure!")
+                    waitPage.showItems(line1 = _("LED temperature sensor failure!"))
                     self.beepAlarm(3)
                     sleep(1)
-                    errorPage.showItems(line1 = "")
+                    waitPage.showItems(line1 = "")
                     sleep(1)
                 #endwhile
             else:
@@ -1499,21 +1520,21 @@ class Hardware(object):
 
         self.uvLed(False)
         self.powerLed("error")
-        errorPage.show()
-        errorPage.showItems(line2 = "OVERHEAT!")
+        waitPage.show()
+        waitPage.showItems(line2 = _("OVERHEAT!"))
         while(temp > self._maxUVTemp - 10): # hystereze
-            errorPage.showItems(line3 = "Cooling down...")
+            waitPage.showItems(line3 = _("Cooling down..."))
             self.beepAlarm(3)
             sleep(1)
-            errorPage.showItems(line3 = "Temperature is %.1f C" % temp)
+            waitPage.showItems(line3 = _("Temperature is %.1f C") % temp)
             sleep(1)
             temps = self.getMcTemperatures()
             self.logTemp(temps)
             temp = temps[self._ledTempIdx]
         #endwhile
 
-        errorPage.showItems(line2 = "")
-        errorPage.showItems(line3 = "")
+        waitPage.showItems(line2 = "")
+        waitPage.showItems(line3 = "")
         returnPage.show()
         self.powerLed("normal")
         self.beepEcho()

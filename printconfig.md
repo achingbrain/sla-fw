@@ -1,5 +1,3 @@
-## action = print
-
 ### jobdir = "no project"
 jméno projektu
 

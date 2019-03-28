@@ -6,6 +6,7 @@
 
 import logging
 from systemd.journal import JournalHandler
+import gettext
 
 from sl1fw import libPrinter
 
@@ -14,6 +15,16 @@ handler.setFormatter(logging.Formatter("%(levelname)s - %(name)s - %(message)s")
 logger = logging.getLogger('')
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+
+logger.info("%s" % gettext.find('sl1fw', None, ('en', 'fr', 'de'), all))
+
+gettext.install('sl1fw', unicode=1)
+
+#lang1 = gettext.translation('sl1fw', languages=['en'])
+#lang2 = gettext.translation('sl1fw', languages=['fr'])
+#lang3 = gettext.translation('sl1fw', languages=['de'])
+
+#lang1.install()
 
 printer = libPrinter.Printer()
 printer.start()
