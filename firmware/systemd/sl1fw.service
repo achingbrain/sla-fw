@@ -1,6 +1,5 @@
 [Unit]
 Description=SL1 firmware
-Requires=mnt-usb.automount mnt-rootfs.automount
 
 [Service]
 WorkingDirectory=/lib/python2.7/site-packages/sl1fw
