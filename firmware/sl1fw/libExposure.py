@@ -176,12 +176,12 @@ class ExposureThread(threading.Thread):
         self.expo.hw.powerLed("warn")
         if actualPosition is None:
             self.logger.warn("Wrong position from MC")
-            pageWait = libPages.PageWait(self.expo.display, line2 = "Can't get tower position.")
+            pageWait = libPages.PageWait(self.expo.display, line2 = _("Can't get tower position."))
             pageWait.show()
             self.expo.hw.beepAlarm(3)
             sleep(5)
         else:
-            pageWait = libPages.PageWait(self.expo.display, line2 = "Going to top")
+            pageWait = libPages.PageWait(self.expo.display, line2 = _("Going to top"))
             pageWait.show()
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():
@@ -191,10 +191,10 @@ class ExposureThread(threading.Thread):
             pageWait.showItems(line3 = "")
 
             for sec in xrange(self.expo.hwConfig.upAndDownWait):
-                pageWait.showItems(line2 = "Waiting... (%d)" % (self.expo.hwConfig.upAndDownWait - sec))
+                pageWait.showItems(line2 = _("Waiting... (%d)") % (self.expo.hwConfig.upAndDownWait - sec))
                 sleep(1)
                 if self.expo.hwConfig.coverCheck and self.expo.hw.getCoverState():
-                    pageWait.showItems(line2 = "Waiting... (cover is open)")
+                    pageWait.showItems(line2 = _("Waiting... (cover is open)"))
                     while self.expo.hw.getCoverState():
                         sleep(1)
                     #endwhile
@@ -202,10 +202,10 @@ class ExposureThread(threading.Thread):
             #endfor
 
             if self.expo.hwConfig.tilt:
-                pageWait.showItems(line2 = "Resin stirring", line3 = "")
+                pageWait.showItems(line2 = _("Resin stirring"), line3 = "")
                 self.expo.hw.stirResin()
             #endif
-            pageWait.showItems(line2 = "Going back", line3 = "")
+            pageWait.showItems(line2 = _("Going back"), line3 = "")
             self.expo.hw.towerMoveAbsolute(actualPosition)
             while not self.expo.hw.isTowerOnPosition():
                 sleep(0.25)
@@ -275,7 +275,7 @@ class ExposureThread(threading.Thread):
                     #endif
 
                     if self.expo.hwConfig.tilt:
-                        pageWait = libPages.PageWait(self.expo.display, line2 = "Resin stirring")
+                        pageWait = libPages.PageWait(self.expo.display, line2 = _("Resin stirring"))
                         pageWait.show()
                         self.expo.hw.tiltDownWait()
                         self.expo.hw.stirResin()
@@ -370,21 +370,12 @@ class ExposureThread(threading.Thread):
             self.expo.hw.beepRepeat(3)
             actualPage = self.expo.display.setPage("print")
 
-            actualPage.showItems(
-                    timeremain = "0:00",
-                    line1 = "Job " + ("is finished" if self.expo.actualLayer == totalLayers else "was canceled"),
-                    line2 = "Total height %.3f mm" % self.expo.hwConfig.calcMM(self.expo.position),
-                    line3 = "%s" % config.projectName,
-                    line4 = "",
-                    percent = "100%",
-                    progress = 100)
+            # TODO extra page finalPrint
 
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
             #endwhile
-
-            actualPage.showItems(line2 = "Please wait", line3 = "Shutting down", line4 = "")
 
             #self.logger.debug("thread ended")
 

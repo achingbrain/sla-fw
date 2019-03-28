@@ -27,7 +27,7 @@ class Printer(object):
 
         if self.hwConfig.os.id != "prusa":
             self.logger.error("Wrong hardware! ('%s' is not prusa)" % self.hwConfig.os.id)
-            raise Exception("Wrong hardware! ('%s' is not prusa)" % self.hwConfig.os.id)
+            raise Exception(_("Wrong hardware! ('%s' is not prusa)") % self.hwConfig.os.id)
         #endif
 
         from libHardware import Hardware
@@ -94,20 +94,21 @@ class Printer(object):
             zf.close()
             if badfile is not None:
                 self.logger.error("Corrupted file: %s", badfile)
-                message = "Corrupted datafile."
+                message = _("""Your project has corrupted data.
+
+Regenerate it and try again.""")
             #endif
         except Exception as e:
             self.logger.exception("zip read exception:")
-            message = "Can't read project data."
+            message = _("""Can't read data of your project.
+
+Regenerate it and try again.""")
         #endif
 
         if message is None:
             return True
         else:
-            self.display.page_error.setParams(
-                    line1 = "Your project has a problem:",
-                    line2 = message,
-                    line3 = "Regenerate it and try again.")
+            self.display.page_error.setParams(text = message)
             self.display.doMenu("error")
             return False
         #endif
@@ -136,8 +137,9 @@ class Printer(object):
         except Exception:
             self.logger.exception("filesize exception:")
             self.display.page_error.setParams(
-                    line1 = "Can't read from USB drive.",
-                    line2 = "Check it and try again.")
+                    text = _("""Can't read from USB drive.
+
+Check it and try again."""))
             self.display.doMenu("error")
             return False
         #endtry
@@ -154,10 +156,12 @@ class Printer(object):
             self.logger.exception("copyfile exception:")
             self.display.page_confirm.setParams(
                     continueFce = self.copyZipRestore,
-                    continueParmas = { 'returnPage' : returnPage },
-                    line1 = "Can't load the file to the printer.",
-                    line2 = "Project'll be printed directly from",
-                    line3 = "the USB drive. DO NOT take it out!")
+                    continueParams = { 'returnPage' : returnPage },
+                    text = _("""Can't load the file to the printer.
+
+Project'll be printed directly from the USB drive.
+
+DO NOT take it out!"""))
             return self.display.doMenu("confirm")
         #endtry
 
@@ -211,19 +215,14 @@ class Printer(object):
         if self.expo.resinVolume:
             remain = self.expo.resinVolume - int(self.expo.resinCount)
             if remain < defines.resinFeedWait:
-                self.display.page_feedme.setItems(line1 = "The resin came off.")
+                self.display.page_feedme.setItems(text = _("The resin came off."))
                 self.expo.doFeedMe()
                 return "feedme"
             #endif
             if remain < defines.resinLowWarn:
                 self.hw.beepAlarm(1)
                 low_resin = True
-                line4 = "Low resin (%d ml)" % remain
-            else:
-                line4 = "remain %d ml" % remain
             #endif
-        else:
-            line4 = "%.1f ml" % self.expo.resinCount
         #endif
 
         items = {
@@ -231,17 +230,14 @@ class Printer(object):
                 'time_remain_sec': time_remain_min * 60,
                 'timeelaps' : timeElapsed,
                 'time_elapsed_sec': time_elapsed_min * 60,
-                'line1' : layer,
                 'layer' : layer,
                 'current_layer': self.lastLayer,
                 'total_layers': self.config.totalLayers,
                 'layer_height_mm': self.hwConfig.calcMM(self.config.layerMicroSteps),
-                'line2' : height,
+                'height' : height,
                 'position_mm': positionMM,
                 'total_mm': self.totalHeight,
-                'line3' : self.config.projectName,
                 'project_name' : self.config.projectName,
-                'line4' : line4,
                 'percent' : "%d%%" % percent,
                 'progress' : percent,
                 'resin_used_ml': self.expo.resinCount,
@@ -276,16 +272,7 @@ class Printer(object):
                 #endif
                 self.display.doMenu("home", self.homeCallback, 30)
 
-                # akce co nejsou print neresime
-                action = self.config.action
-                if action != "print":
-                    self.logger.warning("unknown action '%s'", action)
-                    self.display.page_error.setParams(line1 = "Invalid project file")
-                    self.display.doMenu("error")
-                    continue
-                #endif
-
-                pageWait = libPages.PageWait(self.display, line1 = "Do not open the cover!", line2 = "Checking project data")
+                pageWait = libPages.PageWait(self.display, line1 = _("Do not open the cover!"), line2 = _("Checking project data"))
                 pageWait.show()
 
                 if not self.copyZip(pageWait):
@@ -294,7 +281,7 @@ class Printer(object):
                 #endif
 
                 if self.checkZipErrors():
-                    pageWait.showItems(line2 = "Project data OK")
+                    pageWait.showItems(line2 = _("Project data OK"))
                 else:
                     self.dataCleanup()
                     continue
@@ -306,16 +293,15 @@ class Printer(object):
                     self.display.initExpoPages(self.expo)
                 except Exception:
                     self.logger.exception("exposure exception:")
-                    self.display.page_error.setParams(line2 = "Can't init exposure display")
+                    self.display.page_error.setParams(text = _("Can't init exposure display"))
                     self.display.doMenu("error")
                     continue
                 #endtry
 
                 # FIXME better format!
-                coLog = "(%s)job:%s+act=%s+exp=%.1f/%d+step=%d" % (
+                coLog = "(%s)job:%s+exp=%.1f/%d+step=%d" % (
                         self.config.loadSrc,
                         self.config.projectName,
-                        self.config.action,
                         self.config.expTime,
                         int(self.config.expTimeFirst),
                         self.config.layerMicroSteps)
@@ -325,24 +311,25 @@ class Printer(object):
 
                 if self.display.hwConfig.resinSensor:
                     # TODO vyzadovat zavreny kryt po celou dobu!
-                    pageWait.showItems(line2 = "Measuring resin volume", line3 = "Do NOT TOUCH the printer")
+                    pageWait.showItems(line2 = _("Measuring resin volume"), line3 = _("Do NOT TOUCH the printer"))
                     volume = self.hw.getResinVolume()
                     fail = True
 
                     if not volume:
                         self.display.page_error.setParams(
-                                line1 = "Resin measure failed!",
-                                line2 = "Is tank filled and secured",
-                                line3 = "with both screws?")
+                                text = _("""Resin measure failed!
+
+Is tank filled and secured with both screws?"""))
                     elif volume < defines.resinMinVolume:
                         self.display.page_error.setParams(
-                                line1 = "Resin volume is too low!",
-                                line2 = "Add resin and try again.")
+                                text = _("""Resin volume is too low!
+
+Add resin and try again."""))
                     elif volume > defines.resinMaxVolume:
                         self.display.page_error.setParams(
-                                line1 = "Resin volume is too high!",
-                                line2 = "Remove some resin from tank",
-                                line3 = "and try again.")
+                                text = _("""Resin volume is too high!
+
+Remove some resin from tank and try again."""))
                     else:
                         fail = False
                     #endif
@@ -353,10 +340,10 @@ class Printer(object):
                         continue
                     #endif
 
-                    pageWait.showItems(line2 = "Measured resin volume is approx %d %%" % self.hw.calcPercVolume(volume))
+                    pageWait.showItems(line2 = _("Measured resin volume is approx %d %%") % self.hw.calcPercVolume(volume))
                     self.expo.setResinVolume(volume)
                 else:
-                    pageWait.showItems(line2 = "Resin volume measurement is turned off")
+                    pageWait.showItems(line2 = _("Resin volume measurement is turned off"))
                 #endif
 
                 break
@@ -368,17 +355,17 @@ class Printer(object):
 
             if self.hwConfig.warmUp > 0:
                 for sd in xrange(0, self.hwConfig.warmUp):
-                    pageWait.showItems(line3 = "Warm up: %d minute(s)" % (self.hwConfig.warmUp - sd))
+                    pageWait.showItems(line3 = _("Warm up: %d minute(s)") % self.hwConfig.warmUp - sd) # TODO ngettext()
                     sleep(60)
                 #endfor
             #endif
 
             if self.hwConfig.tilt:
-                pageWait.showItems(line3 = "Moving tank down")
+                pageWait.showItems(line3 = _("Moving tank down"))
                 self.hw.tiltDownWait()
             #endif
 
-            pageWait.showItems(line3 = "Moving platform down")
+            pageWait.showItems(line3 = _("Moving platform down"))
             self.hw.setTowerProfile('layer')
             self.hw.towerToPosition(0.05)
             while not self.display.hw.isTowerOnPosition():
@@ -386,21 +373,21 @@ class Printer(object):
             #endwhile
 
             if self.hwConfig.tilt:
-                pageWait.showItems(line3 = "Tank calibration 1/3")
+                pageWait.showItems(line3 = _("Tank calibration 1/3"))
                 tiltStartTime = time()
                 self.hw.tiltLayerUpWait()
                 self.hw.tiltLayerDownWait()
                 tiltTime1 = time() - tiltStartTime
                 sleep(0.5)
 
-                pageWait.showItems(line3 = "Tank calibration 2/3")
+                pageWait.showItems(line3 = _("Tank calibration 2/3"))
                 tiltStartTime = time()
                 self.hw.tiltLayerUpWait()
                 self.hw.tiltLayerDownWait()
                 tiltTime2 = time() - tiltStartTime
                 sleep(0.5)
 
-                pageWait.showItems(line3 = "Tank calibration 3/3")
+                pageWait.showItems(line3 = _("Tank calibration 3/3"))
                 tiltStartTime = time()
                 self.hw.tiltLayerUpWait()
                 self.hw.tiltLayerDownWait()
@@ -443,24 +430,28 @@ class Printer(object):
 
         except Exception:
             self.logger.exception("run() exception:")
-            lines = {
-                    "line1" : "FIRMWARE FAILURE - Something went wrong!",
+            items = {
+                    'text' : _("FIRMWARE FAILURE - Something went wrong!"),
                     }
             ip = self.inet.getIp()
             if ip != "none":
-                lines.update({
-                    "line2" : "Please send the contents of %s/logf" % ip,
-                    "line3" : "to info@prusa3d.com - Thank you",
+                items['text'] += _("""
+Please send the contents of %s/logf to info@prusa3d.com
+Thank you""") % ip
+                items.update({
                     "qr1"   : "http://%s/logf" % ip,
+                    "qr1label" : "Logfile",
                     })
             #endif
             self.hw.powerLed("error")
-            self.display.page_exception.setParams(**lines)
+            self.display.page_exception.setParams(**items)
             self.display.setPage("exception")
             if hasattr(self, 'expo') and self.expo.inProgress():
                 self.expo.waitDone()
             #endif
-            self.display.shutDown(False)
+            while True:
+                sleep(10)
+            #endwhile
         #endtry
 
     #enddef

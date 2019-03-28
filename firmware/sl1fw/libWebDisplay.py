@@ -68,7 +68,7 @@ class WebDisplayServer(SocketServer):
         except Exception:
             self.logger.exception("exception")
             output['type'] = "page"
-            output['content'] = "SERVER ERROR!"
+            output['content'] = _("SERVER ERROR!")
         #endtry
 
         return output
