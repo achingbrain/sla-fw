@@ -188,6 +188,8 @@ class Page(object):
             valueType = type(value).__name__
             if valueType == "bool":
                 items[index] = int(value)
+            elif valueType == "dict":
+                items[index] = value
             else:
                 items[index] = str(value)
             #endif
