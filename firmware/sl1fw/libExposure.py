@@ -193,9 +193,9 @@ class ExposureThread(threading.Thread):
             for sec in xrange(self.expo.hwConfig.upAndDownWait):
                 pageWait.showItems(line2 = _("Waiting... (%d)") % (self.expo.hwConfig.upAndDownWait - sec))
                 sleep(1)
-                if self.expo.hwConfig.coverCheck and self.expo.hw.getCoverState():
+                if self.expo.hwConfig.coverCheck and not self.expo.hw.isCoverClosed():
                     pageWait.showItems(line2 = _("Waiting... (cover is open)"))
-                    while self.expo.hw.getCoverState():
+                    while not self.expo.hw.isCoverClosed():
                         sleep(1)
                     #endwhile
                 #endif

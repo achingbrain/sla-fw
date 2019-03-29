@@ -720,7 +720,7 @@ class Hardware(object):
     #enddef
 
 
-    def getCoverState(self):
+    def isCoverClosed(self):
         bits = self.mcc.doGetBoolList(bitCount = 16, args = ("?",))
         if not bits or len(bits) != 16:
             self.logger.warning("State bits count not match! (%s)", str(bits))
@@ -1454,7 +1454,7 @@ class Hardware(object):
             #self.logger.debug("checkCoverStatus disable return")
             return
         #endif
-        if not self.getCoverState():
+        if self.isCoverClosed():
             #self.logger.debug("checkCoverStatus stateOK return")
             return
         #endif
@@ -1462,7 +1462,7 @@ class Hardware(object):
         waitPage.show()
         waitPage.showItems(line3 = _("to continue!"))
         pocet = 0
-        while self.getCoverState():
+        while not self.isCoverClosed():
             waitPage.showItems(line2 = _("Close cover"))
             pocet -= 1
             if pocet < 0:

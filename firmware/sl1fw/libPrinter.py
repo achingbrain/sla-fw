@@ -350,6 +350,8 @@ Remove some resin from tank and try again."""))
 
             #endwhile
 
+            self.hw.checkCoverStatus(self.checkPage, pageWait)  # FIXME status vlakno?
+
             self.screen.getImgBlack()
             self.hw.uvLed(True)
 
