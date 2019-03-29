@@ -1245,7 +1245,7 @@ It may disconnect web client."""))
             wifisetup.StartClient()
             wifisetup.EnableClient()
         except:
-            self.logger.error("Setting wifi client params failed: ssid:%s psk:%s", (ssid, psk))
+            self.logger.error("Setting wifi client params failed: ssid:%s psk:%s", ssid, psk)
         #endtry
 
         # Connecting...
