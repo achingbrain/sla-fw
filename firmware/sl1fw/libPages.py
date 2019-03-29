@@ -1559,7 +1559,7 @@ class PageSysInfo(Page):
             self.skip = 0
         #endif
         self._setItem(items, 'resin_sensor_state', self.display.hw.getResinSensorState())
-        self._setItem(items, 'cover_state', self.display.hw.getCoverState())
+        self._setItem(items, 'cover_state', self.display.hw.isCoverClosed())
         self._setItem(items, 'power_switch_state', self.display.hw.getPowerswitchState())
 
         if len(items):
@@ -4628,7 +4628,7 @@ Make sure the tank is empty and clean."""))
 
     def wizardStep3(self):
         self.display.hw.powerLed("warn")
-        if not self.display.hw.getCoverState():
+        if not self.display.hw.isCoverClosed():
             self.display.page_error.setParams(
                 text = _("""Orange cover not closed!
 

@@ -264,7 +264,7 @@ class HwConfig(FileConfig):
     def _parseData(self):
         # Hardware setup
         self.fanCheck = self._parseBool("fancheck", True)
-        self.coverCheck = self._parseBool("covercheck", False)
+        self.coverCheck = self._parseBool("covercheck", True)
         self.MCversionCheck = self._parseBool("mcversioncheck", True)
         self.resinSensor = self._parseBool("resinsensor", True)
 
