@@ -47,9 +47,8 @@ class Page(object):
 
     def fill(self):
         self.items = {
-                "image_version" : self.display.hwConfig.os.versionId,
-                "page_title" : self.pageTitle,
-                "save_path" : self.getSavePath(),
+                'image_version' : self.display.hwConfig.os.versionId,
+                'page_title' : self.pageTitle,
                 }
     #enddef
 
@@ -60,6 +59,8 @@ class Page(object):
 
 
     def show(self):
+        # renew save path every time when page is shown, it may change
+        self.items['save_path'] = self.getSavePath()
         for device in self.display.devices:
             device.setPage(self.pageUI)
             device.setItems(self.items)
@@ -319,13 +320,13 @@ class PagePrintPreviewBase(Page):
         #endif
 
         return {
-            'name': config.projectName,
-            'calibrationRegions': calibrateRegions,
-            'date': os.path.getmtime(config.zipName),
-            'layers': config.totalLayers,
-            'exposure_time_first_sec': config.expTimeFirst,
-            'exposure_time_sec': config.expTime,
-            'calibrate_time_sec': calibration
+            'name' : config.projectName,
+            'calibrationRegions' : calibrateRegions,
+            'date' : os.path.getmtime(config.zipName),
+            'layers' : config.totalLayers,
+            'exposure_time_first_sec' : config.expTimeFirst,
+            'exposure_time_sec' : config.expTime,
+            'calibrate_time_sec' : calibration,
         }
     #enddef
 
@@ -613,9 +614,9 @@ class PageTimeSettings(Page):
 
     def fillData(self):
         return {
-            "ntp": self.timedate.NTP,
-            "unix_timestamp_sec": time.time(),
-            "timezone": self.timedate.Timezone
+            'ntp' : self.timedate.NTP,
+            'unix_timestamp_sec' : time.time(),
+            'timezone' : self.timedate.Timezone,
         }
     #enddef
 
@@ -663,8 +664,8 @@ class PageSetTimeBase(Page):
 
     def fillData(self):
         return {
-            "unix_timestamp_sec": time.time(),
-            "timezone": self.timedate.Timezone
+            'unix_timestamp_sec' : time.time(),
+            'timezone' : self.timedate.Timezone,
         }
     #enddef
 
@@ -736,10 +737,10 @@ class PageSetTimezone(Page):
             city = "GTM"
 
         return {
-            "timezone": timezone,
-            "region": region,
-            "city": city,
-            "timezones": self.timezones
+            'timezone' : timezone,
+            'region' : region,
+            'city' : city,
+            'timezones' : self.timezones,
         }
     #enddef
 
@@ -776,7 +777,7 @@ class PageSetHostname(Page):
 
     def fillData(self):
         return {
-            "hostname": self.hostname.StaticHostname
+            'hostname' : self.hostname.StaticHostname,
         }
     #enddef
 
@@ -816,7 +817,7 @@ class PageSetLanguage(Page):
             lang = ""
 
         return {
-            "locale": lang
+            'locale' : lang,
         }
     #enddef
 
@@ -949,9 +950,9 @@ class PageFirmwareUpdate(Page):
         #endtry
 
         return {
-            'firmwares': fw_files,
-            'operation': operation,
-            'progress': progress
+            'firmwares' : fw_files,
+            'operation' : operation,
+            'progress' : progress,
         }
     #enddef
 
@@ -1153,15 +1154,15 @@ class PageNetwork(Page):
             aps[ap['ssid']] = ap
 
         return {
-            "devlist": devlist_structured,
-            'wifi_mode': wifisetup.WifiMode,
-            'client_ssid': wifisetup.ClientSSID,
-            'client_psk': wifisetup.ClientPSK,
-            'ap_ssid': wifisetup.APSSID,
-            'ap_psk': wifisetup.APPSK,
-            'aps': aps.values(),
-            'wifi_ssid': wifisetup.WifiConnectedSSID,
-            'wifi_signal': wifisetup.WifiConnectedSignal
+            'devlist' : devlist_structured,
+            'wifi_mode' : wifisetup.WifiMode,
+            'client_ssid' : wifisetup.ClientSSID,
+            'client_psk' : wifisetup.ClientPSK,
+            'ap_ssid' : wifisetup.APSSID,
+            'ap_psk' : wifisetup.APPSK,
+            'aps' : aps.values(),
+            'wifi_ssid' : wifisetup.WifiConnectedSSID,
+            'wifi_signal' : wifisetup.WifiConnectedSignal,
         }
 
         return items
@@ -1331,8 +1332,8 @@ class PagePrint(Page):
 
     def fillData(self):
        return {
-           'paused': self.expo.paused,
-           'pauseunpause': self._pauseunpause_text()
+            'paused' : self.expo.paused,
+            'pauseunpause' : self._pauseunpause_text(),
        }
     #enddef
 
@@ -1599,47 +1600,47 @@ class PageNetInfo(Page):
                         wifiData = json.loads(f.read())
                     #endwith
                     ip = self.display.inet.getIp("ap0")
-                    items["line1"] = _("SSID: %(ssid)s  password: %(pass)s") % { 'ssid' : wifiData['ssid'], 'pass' : wifiData['psk'] }
+                    items['line1'] = _("SSID: %(ssid)s  password: %(pass)s") % { 'ssid' : wifiData['ssid'], 'pass' : wifiData['psk'] }
                     items['mode'] = 'ap'
                     items['ap_ssid'] = wifiData['ssid']
                     items['ap_psk'] = wifiData['psk']
-                    items["line2"] = _("Setup URL: %s") % (ip + defines.wifiSetupURI)
+                    items['line2'] = _("Setup URL: %s") % (ip + defines.wifiSetupURI)
                     items['ap_setup_url'] = "%s%s" % (ip, defines.wifiSetupURI)
-                    items["qr1label"] = _("WiFi")
-                    items["qr1"] = "WIFI:S:%s;T:WPA;P:%s;H:false;" % (wifiData['ssid'], wifiData['psk'])
-                    items["qr2label"] = _("Setup URL")
-                    items["qr2"] = "http://%s%s" % (ip, defines.wifiSetupURI)
+                    items['qr1label'] = _("WiFi")
+                    items['qr1'] = "WIFI:S:%s;T:WPA;P:%s;H:false;" % (wifiData['ssid'], wifiData['psk'])
+                    items['qr2label'] = _("Setup URL")
+                    items['qr2'] = "http://%s%s" % (ip, defines.wifiSetupURI)
                 except Exception:
                     self.logger.exception("wifi setup file exception:")
-                    items["line1"] = _("Error reading WiFi setup!")
-                    items["line2"] = ""
-                    items["qr1label"] = ""
-                    items["qr1"] = ""
-                    items["qr2label"] = ""
-                    items["qr2"] = ""
+                    items['line1'] = _("Error reading WiFi setup!")
+                    items['line2'] = ""
+                    items['qr1label'] = ""
+                    items['qr1'] = ""
+                    items['qr2label'] = ""
+                    items['qr2'] = ""
                 #endtry
             else:
                 # client mode
                 ip = self.display.inet.getIp()
-                items["line1"] = _("IP address: %s") % ip
-                items["line2"] = _("Hostname: %s") % self.display.inet.getHostname()
+                items['line1'] = _("IP address: %s") % ip
+                items['line2'] = _("Hostname: %s") % self.display.inet.getHostname()
                 items['mode'] = "client"
                 items['client_ip'] = ip
                 items['client_hostname'] = self.display.inet.getHostname()
-                items["qr1label"] = _("Logfile")
-                items["qr1"] = "http://%s/log" % ip
-                items["qr2label"] = _("MC debug")
-                items["qr2"] = "http://%s/debug" % ip
+                items['qr1label'] = _("Logfile")
+                items['qr1'] = "http://%s/log" % ip
+                items['qr2label'] = _("MC debug")
+                items['qr2'] = "http://%s/debug" % ip
             #endif
         else:
             # no internet connection
             items['mode'] = None
-            items["line1"] = _("Not connected to network")
-            items["line2"] = ""
-            items["qr1label"] = ""
-            items["qr1"] = ""
-            items["qr2label"] = ""
-            items["qr2"] = ""
+            items['line1'] = _("Not connected to network")
+            items['line2'] = ""
+            items['qr1label'] = ""
+            items['qr1'] = ""
+            items['qr2label'] = ""
+            items['qr2'] = ""
         #endif
         return items
     #enddef
@@ -1692,7 +1693,7 @@ Wrong settings may damage your printer!"""))
             self.display.hw.beepAlarm(3)
         #endif
         return "_BACK_"
-    #enddef 
+    #enddef
 
 #endclass
 
@@ -1854,8 +1855,8 @@ class PageSrcSelect(Page):
         #endif
 
         return {
-            'text': text,
-            'sources': self.source_list()
+            'text' : text,
+            'sources' : self.source_list(),
         }
     #enddef
 
@@ -2266,7 +2267,7 @@ class PageDisplay(Page):
                     towerStatus = 0
                 #endif
             #endif
-            
+
             if not self.display.hw.isTiltMoving():
                 if self.display.hw.getTiltPositionMicroSteps() == 0:
                     tiltCounter += 1
@@ -2600,7 +2601,7 @@ All settings will be deleted!"""))
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
         #endwhile
-        
+
         #move tilt and tower to packing position
         self.display.hw.setTiltProfile('moveFast')
         self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
@@ -3229,7 +3230,7 @@ class PageCalibration(Page):
             line1 = _("Printer homing"),
             line2 = _("Please wait..."))
         pageWait.show()
-        
+
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait(2)
         while not self.display.hw.isTowerSynced():
@@ -4283,7 +4284,7 @@ class PageTuneTilt(ProfilesPage):
     def minus2g7Button(self):
         self._value(6, 0, 512, -1)
     #enddef
-    
+
     def plus2g7Button(self):
         self._value(6, 0, 512, 1)
     #enddef
@@ -4293,7 +4294,7 @@ class PageTuneTilt(ProfilesPage):
     def minus2g8Button(self):
         self._value(7, 1, 10, -1)
     #enddef
-    
+
     def plus2g8Button(self):
         self._value(7, 1, 10, 1)
     #enddef
@@ -4315,9 +4316,9 @@ class PageMedia(Page):
 
     def fillData(self):
         return {
-            'relative_path': self.path,
-            'base_path': self.base_path,
-            'absolute_path': os.path.join(self.base_path, self.path)
+            'relative_path' : self.path,
+            'base_path' : self.base_path,
+            'absolute_path' : os.path.join(self.base_path, self.path),
         }
     #enddef
 
@@ -4363,7 +4364,7 @@ class PageSetApikey(Page):
 
     def fillData(self):
         return {
-            'api_key': self.octoprintAuth
+            'api_key' : self.octoprintAuth,
         }
     #enddef
 
