@@ -4425,7 +4425,7 @@ Please check if tilt motor and optical endstop are connected properly."""))
         #endfor
         if homeStatus == -3:
             self.display.page_error.setParams(
-                text = ("""Tilt home check failed!
+                text = _("""Tilt home check failed!
 
 Please contact support.
 
@@ -4495,7 +4495,8 @@ Tower profiles needs to be changed."""))
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
             continueFce=self.wizardStep2,
-            text = _("""Screw down the resin tank and remove platform.
+            imageName = "04_tighten_screws.jpg",
+            text = _("""Screw down the resin tank.
 
 Make sure the tank is empty and clean."""))
         return "confirm"
@@ -4504,6 +4505,15 @@ Make sure the tank is empty and clean."""))
 
 
     def wizardStep2(self):
+        self.display.page_confirm.setParams(
+            continueFce=self.wizardStep3,
+            imageName = "09_remove_platform.jpg",
+            text = _("""Remove the platform."""))
+        return "confirm"
+    #enddef
+
+
+    def wizardStep3(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Tower axis check"),
@@ -4620,7 +4630,8 @@ Shutting down in 10 seconds...""") % self.display.hw.getCpuTemperature())
         #endif
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
-            continueFce = self.wizardStep3,
+            continueFce = self.wizardStep4,
+            imageName = "12_close_cover.jpg",
             text = _("""Please close the orange cover.
 
 Make sure the tank is empty and clean."""))
@@ -4628,7 +4639,7 @@ Make sure the tank is empty and clean."""))
     #enddef
 
 
-    def wizardStep3(self):
+    def wizardStep4(self):
         self.display.hw.powerLed("warn")
         if not self.display.hw.isCoverClosed():
             self.display.page_error.setParams(
@@ -4691,7 +4702,8 @@ Temperature data: %s""") % temps)
         #exposure display check
         self.display.screen.getImg(filename = os.path.join(defines.dataPath, "logo_1440x2560.png"))
         self.display.page_confirm.setParams(
-            continueFce = self.wizardStep4,
+            continueFce = self.wizardStep5,
+            imageName = "10_prusa_logo.jpg",
             text = _("""Can you see company logo on the exposure display through orange cover?
 
 DO NOT open the cover."""))
@@ -4699,17 +4711,18 @@ DO NOT open the cover."""))
     #enddef
 
 
-    def wizardStep4(self):
+    def wizardStep5(self):
         self.display.screen.getImgBlack()
         self.display.hw.uvLed(False)
         self.display.page_confirm.setParams(
-            continueFce = self.wizardStep5,
+            continueFce = self.wizardStep6,
+            imageName = "11_insert_platform_60deg.jpg",
             text = _("Leave resin tank screwed in place and insert platform in 60 degree angle."))
         return "confirm"
     #enddef
 
 
-    def wizardStep5(self):
+    def wizardStep6(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Resin sensor check"),
@@ -4744,7 +4757,7 @@ Measured %d ml.""") % volume)
             self.display.hw.beepAlarm(3)
         #endif
         self.display.page_confirm.setParams(
-            continueFce = self.wizardStep6,
+            continueFce = self.wizardStep7,
             text = _("""Printer is succesfully checked.
 
 Continue to calibration?"""))
@@ -4752,7 +4765,7 @@ Continue to calibration?"""))
     #enddef
 
 
-    def wizardStep6(self):
+    def wizardStep7(self):
         return "calibration"
     #enddef
 
