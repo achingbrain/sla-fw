@@ -27,6 +27,10 @@ class MyBool:
         return int(self.value)
     #endef
 
+    def inverse(self):
+        self.value = not self.value
+    #enddef
+
     __nonzero__=__bool__
 #endclass
 
@@ -267,6 +271,7 @@ class HwConfig(FileConfig):
         self.coverCheck = self._parseBool("covercheck", True)
         self.MCversionCheck = self._parseBool("mcversioncheck", True)
         self.resinSensor = self._parseBool("resinsensor", True)
+        self.autoOff = self._parseBool("autooff", True)
 
         self.screwMm = self._parseInt("screwmm", 4)
         self.microStepsMM = 200 * 16 / self.screwMm
@@ -314,7 +319,6 @@ class HwConfig(FileConfig):
         self.calibrated = self._parseBool("calibrated", False)
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(defines.defaultTowerHeight)) # safe value
         self.mute = self._parseBool("mute", False)
-        self.autoOff = self._parseBool("autooff", True)
         self.showAdmin = self._parseBool("showadmin", False)
         self.showWizard = self._parseBool("showwizard", True)
     #enddef

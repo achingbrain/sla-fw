@@ -428,7 +428,7 @@ Remove some resin from tank and try again."""))
             self.logger.info("job finished, real printing time is %s", printTime)
             self.jobLog(" - print time: %s  resin: %.1f ml" % (printTime, self.expo.resinCount) )
 
-            self.display.shutDown(self.hwConfig.autoOff)
+            self.display.shutDown(False if self.expo.canceled else self.hwConfig.autoOff)
 
         except Exception:
             self.logger.exception("run() exception:")

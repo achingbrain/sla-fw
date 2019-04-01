@@ -415,6 +415,7 @@ class Exposure(object):
         self.resinVolume = None
         self.pixelSize = self.hwConfig.pixelSize ** 2
         self.paused = False
+        self.canceled = False
     #enddef
 
 

@@ -251,6 +251,7 @@ class Display(object):
 
     # TODO presunout pryc
     def shutDown(self, doShutDown, reboot=False):
+        self.setPage("start")
         self.hw.uvLed(False)
         self.hw.motorsRelease()
 

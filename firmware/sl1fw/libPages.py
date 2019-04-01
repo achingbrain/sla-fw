@@ -120,8 +120,6 @@ class Page(object):
 
 
     def turnoffContinue(self):
-        pageWait = PageWait(self.display, line1 = _("Shutting down"))
-        pageWait.show()
         self.display.shutDown(True)
     #enddef
 
@@ -166,7 +164,7 @@ class Page(object):
 
 
     def _onOff(self, index, val):
-        self.temp[val] = not self.temp[val]
+        self.temp[val].inverse()
         self.changed[val] = str(self.temp[val])
         self.showItems(**{ 'state1g%d' % (index + 1) : int(self.temp[val]) })
     #enddef
@@ -439,8 +437,8 @@ Refill will be required during printing."""),
 class PageStart(Page):
 
     def __init__(self, display):
-        self.pageUI = "start"
-        self.pageTitle = _("Start")
+        self.pageUI = "splash"
+        self.pageTitle = ""
         super(PageStart, self).__init__(display)
     #enddef
 
@@ -1401,6 +1399,7 @@ It may affect the result!"""))
 
     def exitPrint(self):
         self.expo.doExitPrint()
+        self.expo.canceled = True
         self.display.page_systemwait.fill(
             line1 = _("Job will be canceled after layer finish"))
         return "systemwait"
@@ -2764,6 +2763,7 @@ class PageSetupHw(PageSetup):
                 'label1g2' : _("Cover check"),
                 'label1g3' : _("MC version check"),
                 'label1g4' : _("Use resin sensor"),
+                'label1g5' : _("Auto power off"),
 
                 'label2g1' : _("Screw (mm/rot)"),
                 'label2g2' : _("Tilt msteps"),
@@ -2788,11 +2788,13 @@ class PageSetupHw(PageSetup):
         self.temp['covercheck'] = self.display.hwConfig.coverCheck
         self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
         self.temp['resinsensor'] = self.display.hwConfig.resinSensor
+        self.temp['autooff'] = self.display.hwConfig.autoOff
 
         self.items['state1g1'] = int(self.temp['fancheck'])
         self.items['state1g2'] = int(self.temp['covercheck'])
         self.items['state1g3'] = int(self.temp['mcversioncheck'])
         self.items['state1g4'] = int(self.temp['resinsensor'])
+        self.items['state1g5'] = int(self.temp['autooff'])
 
         super(PageSetupHw, self).show()
     #enddef
@@ -2815,6 +2817,11 @@ class PageSetupHw(PageSetup):
 
     def state1g4ButtonRelease(self):
         self._onOff(3, 'resinsensor')
+    #enddef
+
+
+    def state1g5ButtonRelease(self):
+        self._onOff(4, 'autooff')
     #enddef
 
 
