@@ -2585,7 +2585,7 @@ Is tank filled and secured with both screws?"""))
 
     def button15ButtonRelease(self):
         self.display.page_confirm.setParams(
-            continueFce = self.button15Continue,
+            continueFce = self.factoryResetStep1,
             text = _("""Do you really want to do factory reset?
 
 All settings will be deleted!"""))
@@ -2593,8 +2593,8 @@ All settings will be deleted!"""))
     #enddef
 
 
-    def button15Continue(self):
-        pageWait = PageWait(self.display, line1 = _("Please wait..."))
+    def factoryResetStep1(self):
+        pageWait = PageWait(self.display, line1 = _("Please wait..."), line2 = _("Printer is moving to factory position"))
         pageWait.show()
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait(3)
@@ -2614,6 +2614,16 @@ All settings will be deleted!"""))
             sleep(0.25)
         #endwhile
         #at this height may be screwed down tank and inserted protective foam
+        self.display.page_confirm.setParams(
+            continueFce = self.factoryResetStep2,
+            text = _("""All settings will now be deleted and printer will shutdown.
+
+Continue?"""))
+        return "confirm"
+    #enddef
+
+
+    def factoryResetStep2(self):
         #slightly press the foam against printers base
         self.display.hw.towerMoveAbsolute(self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(93))
         while self.display.hw.isTowerMoving():
