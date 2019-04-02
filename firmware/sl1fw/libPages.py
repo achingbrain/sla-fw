@@ -1747,6 +1747,15 @@ class SourceDir:
         # Add directory to result
         full_path = os.path.join(path, item)
         if os.path.isdir(full_path):
+            # Skip dirs that do not contain projects
+            for root, dirs, files in os.walk(full_path):
+                if any(ext in defines.projectExtensions for (_, ext) in map(os.path.splitext, files)):
+                    break
+                #endif
+            else:
+                raise SourceDir.NotProject("No project in dir")
+            #endfor
+
             return {
                 'type': 'dir',
                 'name': item,
@@ -1783,6 +1792,7 @@ class PageSrcSelect(Page):
         self.pageTitle = _("Projects")
         self.currentRoot = "."
         self.old_items = None
+        self.sources = {}
         super(PageSrcSelect, self).__init__(display)
         self.stack = False
         self.callbackPeriod = 1
@@ -1838,11 +1848,14 @@ class PageSrcSelect(Page):
         content += files
 
         # Number items as choice#
+        content_map = {}
         for i, item in enumerate(content):
-            item['choice'] = "choice%d" % i
+            choice = "choice%d" % i
+            item['choice'] = choice
+            content_map[choice] = item
         #endfor
 
-        return content
+        return content_map
     #enddef
 
 
@@ -1854,9 +1867,11 @@ class PageSrcSelect(Page):
             text = _("Not connected to network")
         #endif
 
+        self.sources = self.source_list()
+
         return {
-            'text' : text,
-            'sources' : self.source_list(),
+            'text': text,
+            'sources': self.sources.values()
         }
     #enddef
 
@@ -1876,18 +1891,44 @@ class PageSrcSelect(Page):
 
 
     def sourceButtonSubmit(self, data):
-        for item in self.items['sources']:
-            if item['choice'] == data['choice']:
-                if item['type'] == 'dir':
-                    self.currentRoot = os.path.join(self.currentRoot, item['path'])
-                    self.currentRoot = os.path.normpath(self.currentRoot)
-                    self.logger.info("Current project selection root: %s" % self.currentRoot)
-                    return "sourceselect"
-                else:
-                    return self.loadProject(item['fullpath'])
-                #enddef
-            #endif
-        #endfor
+        try:
+            item = self.sources[data['choice']]
+        except KeyError:
+            self.logger.info("Invalid choice id passed %s", data['choice'])
+            return
+        #endtry
+
+        if item['type'] == 'dir':
+            self.currentRoot = os.path.join(self.currentRoot, item['path'])
+            self.currentRoot = os.path.normpath(self.currentRoot)
+            self.logger.info("Current project selection root: %s" % self.currentRoot)
+            return "sourceselect"
+        else:
+            return self.loadProject(item['fullpath'])
+        #endif
+    #enddef
+
+
+    def deleteButtonSubmit(self, data):
+        try:
+            item = self.sources[data['choice']]
+        except KeyError:
+            self.logger.info("Invalid choice id passed %s", data['choice'])
+            return
+        #endtry
+
+        if item['type'] == 'dir':
+#            for root, dirs, files in os.walk(item['fullpath']):
+#                for file in files:
+#                    (name, ext) = os.path.splitext(file)
+#                    if ext in defines.projectExtensions:
+#                        os.remove(os.path.join(root, file))
+#            return
+            raise NotImplementedError
+        else:
+            os.remove(item['fullpath'])
+            return
+        #endif
     #enddef
 
 
