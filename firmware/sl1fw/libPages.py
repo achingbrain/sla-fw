@@ -408,11 +408,11 @@ class PagePrintStart(PagePrintPreviewBase):
                 }
         if perc <= 100:
             lines.update({
-                'text' : _("Please fill resin tank at least at %d %%.") % perc
+                'text' : _("Please fill resin tank at least at %d %% and close cover.") % perc
                 })
         else:
             lines.update({
-                'text' : _("""Please fill resin tank to line 100 %.
+                'text' : _("""Please fill resin tank to line 100 % and close cover.
 
 Refill will be required during printing."""),
                 })
