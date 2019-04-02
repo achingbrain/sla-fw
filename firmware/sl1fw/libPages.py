@@ -4621,42 +4621,48 @@ RPM data: %(rpm)s""") % { 'fan' : fanName, 'rpm' : rpm })
                 self.display.page_error.setParams(
                     text = _(u"""%(sensor)s temperature not in range!
 
-Please check if temperature sensors are connected correctly. Keep printer at room temperature (15 - 35 °C).
+Please check if temperature sensors are connected correctly. Keep the printer out of direct sunlight at room temperature 15 - 35 °C.
 
 Measured: %(temp).1f""") % { 'sensor' : sensorName, 'temp' : temperatures[i] })
                 return "error"
             #endif
         #endfor
         if abs(temperatures[0] - temperatures[1]) > self.display.hw._maxTempDiff:
-            self.display.page_error.setParams(
-                text = _(u"""Measured temperatures differ too much!
+            self.display.page_confirm.setParams(
+                continueFce = self.wizardStep4,
+                text = _(u"""UV LED and ambient temperatures are in allowed range but differ more than %.1f °C.
 
-Please check if temperature sensor are connected correctly. Keep printer at room temperature (15 - 35 °C).
-
-Data: %(first).1f, %(second).1f""") % { 'first' : temperatures[0], 'second' : temperatures[1] })
-            return "error"
+Keep the printer out of direct sunlight at room temperature 15 - 35 °C.""") % self.display.hw._maxTempDiff)
+            return "confirm"
         #endif
         if self.display.hw.getCpuTemperature() > self.display.hw._maxA64Temp:
             self.display.page_error.setParams(
                 text = _("""A64 temperature is too high (%.1f)!
 
 Shutting down in 10 seconds...""") % self.display.hw.getCpuTemperature())
+            self.display.page_error.show()
             sleep(10)
             self.display.shutDown(True)
             return "error"
         #endif
-        self.display.hw.powerLed("normal")
-        self.display.page_confirm.setParams(
-            continueFce = self.wizardStep4,
-            imageName = "12_close_cover.jpg",
-            text = _("""Please close the orange cover.
-
-Make sure the tank is empty and clean."""))
-        return "confirm"
+        self.wizardStep4()
     #enddef
 
 
     def wizardStep4(self):
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+            continueFce = self.wizardStep5,
+            imageName = "12_close_cover.jpg",
+            text = _("""Please close the orange cover.
+
+Make sure the tank is empty and clean."""))
+        self.display.page_confirm.show()
+        return "confirm"
+    #enddef
+
+
+    def wizardStep5(self):
         self.display.hw.powerLed("warn")
         if not self.display.hw.isCoverClosed():
             self.display.page_error.setParams(
@@ -4719,7 +4725,7 @@ Temperature data: %s""") % temps)
         #exposure display check
         self.display.screen.getImg(filename = os.path.join(defines.dataPath, "logo_1440x2560.png"))
         self.display.page_confirm.setParams(
-            continueFce = self.wizardStep5,
+            continueFce = self.wizardStep6,
             imageName = "10_prusa_logo.jpg",
             text = _("""Can you see company logo on the exposure display through orange cover?
 
@@ -4728,18 +4734,18 @@ DO NOT open the cover."""))
     #enddef
 
 
-    def wizardStep5(self):
+    def wizardStep6(self):
         self.display.screen.getImgBlack()
         self.display.hw.uvLed(False)
         self.display.page_confirm.setParams(
-            continueFce = self.wizardStep6,
+            continueFce = self.wizardStep7,
             imageName = "11_insert_platform_60deg.jpg",
             text = _("Leave resin tank screwed in place and insert platform in 60 degree angle."))
         return "confirm"
     #enddef
 
 
-    def wizardStep6(self):
+    def wizardStep7(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Resin sensor check"),
@@ -4774,7 +4780,7 @@ Measured %d ml.""") % volume)
             self.display.hw.beepAlarm(3)
         #endif
         self.display.page_confirm.setParams(
-            continueFce = self.wizardStep7,
+            continueFce = self.wizardStep8,
             text = _("""Printer is succesfully checked.
 
 Continue to calibration?"""))
@@ -4782,7 +4788,7 @@ Continue to calibration?"""))
     #enddef
 
 
-    def wizardStep7(self):
+    def wizardStep8(self):
         return "calibration"
     #enddef
 
