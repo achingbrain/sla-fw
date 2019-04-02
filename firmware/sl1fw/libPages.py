@@ -165,7 +165,11 @@ class Page(object):
 
 
     def _onOff(self, index, val):
-        self.temp[val].inverse()
+        if isinstance(self.temp[val], libConfig.MyBool):
+            self.temp[val].inverse()
+        else:
+            self.temp[val] = not self.temp[val]
+        #endif
         self.changed[val] = str(self.temp[val])
         self.showItems(**{ 'state1g%d' % (index + 1) : int(self.temp[val]) })
     #enddef
@@ -184,10 +188,9 @@ class Page(object):
 
     def _setItem(self, items, index, value):
         if self.oldValues.get(index, None) != value:
-            valueType = type(value).__name__
-            if valueType == "bool":
+            if isinstance(value, bool):
                 items[index] = int(value)
-            elif valueType == "dict":
+            elif isinstance(value, dict):
                 items[index] = value
             else:
                 items[index] = str(value)
