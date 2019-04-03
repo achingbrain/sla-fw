@@ -1858,7 +1858,7 @@ class PageSrcSelect(Page):
             content_map[choice] = item
         #endfor
 
-        return content_map
+        return content, content_map
     #enddef
 
 
@@ -1870,11 +1870,11 @@ class PageSrcSelect(Page):
             text = _("Not connected to network")
         #endif
 
-        self.sources = self.source_list()
+        content, self.sources = self.source_list()
 
         return {
             'text': text,
-            'sources': self.sources.values()
+            'sources': content
         }
     #enddef
 
