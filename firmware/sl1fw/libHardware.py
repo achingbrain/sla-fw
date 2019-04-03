@@ -392,7 +392,7 @@ class Hardware(object):
         self.motorsRelease()
         self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm))
         self.setFans((True, True, True))
-        self.setFanCheckMask((True, True, False))   # last fan is broken, don't check it
+        self.setFanCheckMask((True, True, True))
         self.setUvLedCurrent(self.hwConfig.uvCurrent)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
         self.resinSensor(False)
