@@ -100,8 +100,13 @@ class ExposureThread(threading.Thread):
             sleep(self.expo.hwConfig.delayBeforeExposure / 10.0)
         #endif
 
+        if self.calibAreas is not None:
+            time = exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2]
+        else:
+            time = exposureTime
+        #endif
         self.logger.debug("exposure started")
-        self.expo.display.actualPage.showItems(exposure = exposureTime)
+        self.expo.display.actualPage.showItems(exposure = time)
         whitePixels = self.expo.screen.blitImg(second = second)
 
         if self.expo.hwConfig.blinkExposure:
