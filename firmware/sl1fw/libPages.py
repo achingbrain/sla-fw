@@ -4514,7 +4514,7 @@ Tilt profiles needs to be changed."""))
 
 Current position: %d
 
-Please check if tilting mechanism can move smoothly in whole range.""")) % self.display.hw.getTiltPosition()
+Please check if tilting mechanism can move smoothly in whole range.""") % self.display.hw.getTiltPosition())
 	    self.display.hw.motorsRelease()
             return "error"
         #endif
@@ -4586,16 +4586,18 @@ Make sure the tank is empty and clean."""))
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
-        #stop 10 mm before endstop to change sensitive profile
-        self.display.hw.towerMoveAbsolute(self.display.hw._towerEnd - 8000)
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        self.display.hw.setTowerProfile("homingSlow")
-        self.display.hw.towerMoveAbsolute(self.display.hw._towerMax)
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
+        if self.display.hw.getTowerPositionMicroSteps() == 0:
+            #stop 10 mm before endstop to change sensitive profile
+            self.display.hw.towerMoveAbsolute(self.display.hw._towerEnd - 8000)
+            while self.display.hw.isTowerMoving():
+                sleep(0.25)
+            #endwhile
+            self.display.hw.setTowerProfile("homingSlow")
+            self.display.hw.towerMoveAbsolute(self.display.hw._towerMax)
+            while self.display.hw.isTowerMoving():
+                sleep(0.25)
+            #endwhile
+        #endif
         position = self.display.hw.getTowerPositionMicroSteps()
         #MC moves tower by 1024 steps forward in last step of !twho
         if position < self.display.hw._towerEnd or position > self.display.hw._towerEnd + 1024 + 127: #add tolerance half fullstep
@@ -4623,11 +4625,11 @@ Please check if ballscrew can move smoothly in whole range.""") % position)
 
 Check if all fans are properly connected.
 
-RPM data: %s""")) % rpm
+RPM data: %s""") % rpm)
             return "error"
         #endif
                         #fan1        fan2        fan3
-        fanLimits = [[50,150], [1200, 1500], [150, 300]]
+        fanLimits = [[50,150], [1100, 1600], [150, 300]]
         hwConfig = libConfig.HwConfig()
         self.display.hw.setFansPwm((hwConfig.fan1Pwm, hwConfig.fan2Pwm, hwConfig.fan3Pwm))   #use default PWM. TODO measure fans in range of values
         sleep(6)    #let the fans spin up
@@ -4666,9 +4668,9 @@ RPM data: %(rpm)s""") % { 'fan' : fanName, 'rpm' : rpm })
                 self.display.page_error.setParams(
                     text = _(u"""%(sensor)s temperature not in range!
 
-Please check if temperature sensors are connected correctly. Keep the printer out of direct sunlight at room temperature 15 - 35 °C.
+Please check if temperature sensors are connected correctly.
 
-Measured: %(temp).1f""") % { 'sensor' : sensorName, 'temp' : temperatures[i] })
+Keep the printer out of direct sunlight at room temperature 15 - 35 °C. Measured: %(temp).1f °C.""") % { 'sensor' : sensorName, 'temp' : temperatures[i] })
                 return "error"
             #endif
         #endfor
@@ -4682,7 +4684,7 @@ Keep the printer out of direct sunlight at room temperature 15 - 35 °C.""") % s
         #endif
         if self.display.hw.getCpuTemperature() > self.display.hw._maxA64Temp:
             self.display.page_error.setParams(
-                text = _("""A64 temperature is too high (%.1f)!
+                text = _(u"""A64 temperature is too high. Measured: %.1f °C!
 
 Shutting down in 10 seconds...""") % self.display.hw.getCpuTemperature())
             self.display.page_error.show()
@@ -4710,14 +4712,16 @@ Make sure the tank is empty and clean."""))
     def wizardStep5(self):
         self.display.hw.powerLed("warn")
         if not self.display.hw.isCoverClosed():
-            self.display.page_error.setParams(
-                text = _("""Orange cover not closed!
-
-Please check the connection of cover switch."""))
+            pageWait = PageWait(self.display,
+                line1 = _("Orange cover not closed!"),
+                line2 = _("If cover is closed, please check the connection of cover switch."))
+            pageWait.show()
+            self.display.hw.beepAlarm(3)
             self.display.hw.uvLed(False)
-            return "error"
         #endif
-
+        while not self.display.hw.isCoverClosed():
+            sleep(0.5)
+        #endwhile
         # UV LED VA
         pageWait = PageWait(self.display,
             line1 = _("UV LED check"),
@@ -4734,13 +4738,13 @@ Please check the connection of cover switch."""))
             self.display.hw.setUvLedCurrent(uvCurrents[i])
             sleep(3)
             voltages = self.display.hw.getVoltages()
-            if not (uv1Limit[i][0] < voltages[0] < uv1Limit[i][1] or uv2Limit[i][0] < voltages[1] < uv2Limit[i][1] or uv3Limit[i][0] < voltages[2] < uv3Limit[i][1]):
+            if not (uv1Limit[i][0] < voltages[0] < uv1Limit[i][1] and uv2Limit[i][0] < voltages[1] < uv2Limit[i][1] and uv3Limit[i][0] < voltages[2] < uv3Limit[i][1]):
                 self.display.page_error.setParams(
                     text = _("""UV LED current out of range!
 
 Please check if UV LED panel is connected propely.
 
-Voltage data: %(row)d, %(value)s""") % { 'row' : i, 'value' : voltages})
+Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : voltages})
                 self.display.hw.uvLed(False)
                 return "error"
             #endif
