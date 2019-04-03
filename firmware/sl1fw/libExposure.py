@@ -270,6 +270,11 @@ class ExposureThread(threading.Thread):
                 if command == "feedme":
                     self.expo.hw.powerLed("warn")
                     self.expo.hw.tiltLayerUpWait()
+                    self.expo.display.page_feedme.showItems(text = _("""Resin level low!
+
+Please refill the tank up to max and hit done.
+
+If you don't want to refill, please press pack button on top of the screen."""))
                     if self.doWait() == "exit":
                         break
                     #endif

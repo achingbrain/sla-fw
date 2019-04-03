@@ -4120,9 +4120,6 @@ class PageFeedMe(Page):
         self.pageTitle = _("Feed me")
         super(PageFeedMe, self).__init__(display)
         self.expo = expo
-        self.items.update({
-            'text' : _("Fill the tank and press back."),
-            })
     #enddef
 
 
