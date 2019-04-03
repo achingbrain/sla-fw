@@ -215,7 +215,7 @@ DO NOT take it out!"""))
         if self.expo.resinVolume:
             remain = self.expo.resinVolume - int(self.expo.resinCount)
             if remain < defines.resinFeedWait:
-                self.display.page_feedme.setItems(text = _("The resin came off."))
+                self.display.page_feedme.setItems(text = _("Wait for layer finish please."))
                 self.expo.doFeedMe()
                 return "feedme"
             #endif
