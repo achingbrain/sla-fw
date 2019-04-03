@@ -4,7 +4,6 @@
 
 import os
 import logging
-import hashlib
 import zipfile
 
 import defines
@@ -45,10 +44,8 @@ class FileConfig(object):
     def _readFile(self, configFile):
         self._data = dict()
         self._lines = list()
-        self.configFound = False
         self.configFile = configFile
         if configFile is not None and os.path.exists(configFile):
-            self.configFound = True
             with open(configFile) as f:
                 for line in f:
                     self._parseLine(line)
@@ -174,19 +171,6 @@ class FileConfig(object):
             #endif
         #endfor
         return retval
-    #enddef
-
-    def getHash(self):
-        h = hashlib.md5()
-        for key,val in self._lines:
-            if key is not None:
-                h.update(key)
-            #endif
-            h.update(val)
-        #endfor
-
-        self._logger.debug("hash: %s", h.hexdigest())
-        return h.digest()
     #enddef
 
     def _parseInt(self, key, default = -1):
@@ -385,7 +369,6 @@ class PrintConfig(FileConfig):
     def __init__(self, hwConfig, configFile = None):
         self._name = "PrintConfig"
         self._hwConfig = hwConfig
-        self.final = False
         self.zipName = None
         super(PrintConfig, self).__init__(configFile)
     #enddef
@@ -395,59 +378,41 @@ class PrintConfig(FileConfig):
         raise Exception("Not implemented!")
     #enddef
 
-    def parseFile(self, zipFile):
-        super(PrintConfig, self).parseFile(zipFile)
-        self._logger.debug("Trying project file'%s'", zipFile)
+    def parseFile(self, zipName):
+        self._data = dict()
+        self._lines = list()
 
-        # ????
-        if zipFile is None:
+        # for defaults
+        if zipName is None:
+            self._parseData()
             return
         #endif
 
-        if not os.path.isfile(zipFile):
-            self._logger.exception("Project lookup exception: file not exists: " + zipFile)
+        self._logger.debug("Opening project file '%s'", zipName)
+
+        if not os.path.isfile(zipName):
+            self._logger.exception("Project lookup exception: file not exists: " + zipName)
+            self.zipError = _("Project file not found.")
+            return
         #endif
 
-        try:
-            projFile = zipfile.ZipFile(zipFile)
-            self.parseText(projFile.read(defines.configFile))
-
-            self._logger.debug("Found project file '%s'", zipFile)
-
-            # Set paths
-            dirName = os.path.dirname(zipFile)
-            self.configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
-            self.configFound = True
-            self.zipName = zipFile
-            self.loadSrc = "Direct file"
-
-            self.readZipFile()
-
-        except OSError:
-            pass
-        except Exception as e:
-            self._logger.exception("Project lookup exception:")
-        #endtry
-    #enddef
-
-    def readZipFile(self):
-        self.totalLayers = 0
         self.toPrint = []
         self.zipError = _("Can't read project data.")
 
-        if self.zipName is None:
-            self._logger.error("ZIP file not found")
-            return
-        #endif
-
         try:
-            zf = zipfile.ZipFile(self.zipName, 'r')
+            zf = zipfile.ZipFile(zipName, 'r')
+            self.parseText(zf.read(defines.configFile))
             namelist = zf.namelist()
             zf.close()
         except Exception as e:
             self._logger.exception("zip read exception:")
             return
         #endif
+
+        # Set paths
+        dirName = os.path.dirname(zipName)
+        self.configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
+        self.zipName = zipName
 
         for filename in namelist:
             fName, fExt = os.path.splitext(filename)
@@ -499,6 +464,9 @@ class PrintConfig(FileConfig):
         self.usedMaterial = self._parseFloat("usedmaterial", defines.resinMaxVolume - defines.resinMinVolume)
         self.layersSlow = self._parseInt("numslow", 0)
         self.layersFast = self._parseInt("numfast", 0)
+
+        self.totalLayers = self.layersSlow + self.layersFast
+        self.zipError = _("No data was read.")
     #enddef
 
 #endclass
