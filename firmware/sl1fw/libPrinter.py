@@ -299,8 +299,7 @@ DO NOT take it out!"""))
                 #endtry
 
                 # FIXME better format!
-                coLog = "(%s)job:%s+exp=%.1f/%d+step=%d" % (
-                        self.config.loadSrc,
+                coLog = "job:%s+exp=%.1f/%d+step=%d" % (
                         self.config.projectName,
                         self.config.expTime,
                         int(self.config.expTimeFirst),
@@ -416,7 +415,6 @@ Remove some resin from tank and try again."""))
             self.logger.debug("printStartTime: " + str(self.printStartTime))
 
             self.display.setPage("print")
-            self.config.final = True
             self.expo.start()
             self.display.doMenu(None, self.updateProgress)
 

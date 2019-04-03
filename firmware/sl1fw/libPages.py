@@ -125,28 +125,6 @@ class Page(object):
     #enddef
 
 
-    def checkConfFile(self, configFileWithPath):
-        # pokud se tiskne, nic nenacitat
-        if self.display.config.final:
-            return
-        #endif
-        newConfig = libConfig.PrintConfig(self.display.hwConfig, configFileWithPath)
-        self.logger.info("JOB config:")
-        newConfig.logAllItems()
-        # pokud byl uz soubor jednou nacten, ponechej puvodni, doba osvitu
-        # mohla byt zmenena
-        if newConfig.getHash() != self.display.config.getHash():
-            # pro jistotu nacteme do puvodniho configu, buh vi co by udelalo
-            # proste prirazeni
-            self.display.config.parseFile(configFileWithPath)
-        else:
-            # zipfile se cte vzdycky znovu, mohl se zmenit
-            # (napr. oprava spatne vygenerovaneho)
-            self.display.config.readZipFile()
-        #endif
-    #enddef
-
-
     def netChange(self):
         pass
     #enddef
@@ -1948,17 +1926,9 @@ class PageSrcSelect(Page):
     def loadProject(self, project_path):
         pageWait = PageWait(self.display, line1 = _("Reading project data..."))
         pageWait.show()
-        self.checkConfFile(project_path)
         config = self.display.config
-
-        if not config.configFound:
-            sleep(0.5)
-            self.display.page_error.setParams(
-                    text = _("""Your project has a problem: %s project not found.
-
-Regenerate it and try again.""") % project_path)
-            return "error"
-        elif config.zipError is not None:
+        config.parseFile(project_path)
+        if config.zipError is not None:
             sleep(0.5)
             self.display.page_error.setParams(
                     text = _("""Your project has a problem: %s

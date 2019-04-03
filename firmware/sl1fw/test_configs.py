@@ -2,9 +2,12 @@
 
 import os
 from time import sleep
+import gettext
 
 import logging
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
+
+gettext.install('sl1fw', unicode=1)
 
 import defines
 
@@ -18,12 +21,10 @@ copyfile(defines.hwConfigFile, "hwconfig.test")
 hwConfig = libConfig.HwConfig(defines.hwConfigFile)
 hwConfig.logAllItems()
 hwConfig.logFile()
-hwConfig.getHash()
 towerHeight = "1024"
 hwConfig.update(towerheight = towerHeight)
 hwConfig.logAllItems()
 hwConfig.logFile()
-hwConfig.getHash()
 logging.info(hwConfig.getSourceString())
 if not hwConfig.writeFile("hwconfig.test"):
     print "Failed"
@@ -32,10 +33,9 @@ if not hwConfig.writeFile("hwconfig.test"):
 config = libConfig.PrintConfig(hwConfig)
 config.logAllItems()
 config.logFile()
-config.parseFile(os.path.join("../../../../dwarf_projekty/opcik-zetony-1", defines.configFile))
+config.parseFile("../../test.dwz")
 config.logAllItems()
 config.logFile()
-config.getHash()
 logging.info(config.getSourceString())
 config.update(upAndDownWait = "5", wifiOn = "0")
 #config.writeFile("printconfig.txt")
