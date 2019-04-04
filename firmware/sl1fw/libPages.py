@@ -303,7 +303,7 @@ class PagePrintPreviewBase(Page):
         return {
             'name' : config.projectName,
             'calibrationRegions' : calibrateRegions,
-            'date' : os.path.getmtime(config.zipName),
+            'date' : config.modificationTime,
             'layers' : config.totalLayers,
             'exposure_time_first_sec' : config.expTimeFirst,
             'exposure_time_sec' : config.expTime,
