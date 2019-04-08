@@ -910,9 +910,38 @@ class PageFirmwareUpdate(Page):
     #enddef
 
 
+    def getNetFirmwares(self):
+        try:
+            req = urllib2.Request(defines.firmwareListURL, headers={
+                'User-Agent': 'Prusa-SL1'
+            })
+            response = urllib2.urlopen(req, timeout=5)
+            return json.loads(response.read())
+        except:
+            self.logger.exception("Failed to load firmware list from the net")
+            return []
+        # endtry
+    #enddef
+
+
     def fillData(self):
-        # Get list of available firmware files
+        # Get list of available firmware files on USB
         fw_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
+
+        # Get list of avaible firmware files on net
+        try:
+            for fw in self.net_list:
+                if fw['branch'] != "stable":
+                    continue
+
+                if fw['version'] == self.display.hwConfig.os.versionId:
+                    continue
+
+                fw_files.append(fw['url'])
+            # endfor
+        except:
+            self.logger.exception("Failed to process net firmware list")
+        # endtry
 
         # Get Rauc flasher status and progress
         operation = None
@@ -933,6 +962,7 @@ class PageFirmwareUpdate(Page):
 
 
     def show(self):
+        self.net_list = self.getNetFirmwares()
         self.items.update(self.fillData())
         super(PageFirmwareUpdate, self).show()
     #enddef
@@ -2698,16 +2728,27 @@ class PageNetUpdate(Page):
         self.pageTitle = _("Net Update")
         super(PageNetUpdate, self).__init__(display)
 
-        self.firmwares = list(enumerate(defines.netFirmwares))
+        try:
+            req = urllib2.Request(defines.firmwareListURL, headers={
+                'User-Agent': 'Prusa-SL1'
+            })
+            response = urllib2.urlopen(req, timeout=5)
+            self.firmwares = list(enumerate(json.loads(response.read())))
+        except:
+            self.logger.exception("Failed to load firmware list from the net")
+            self.display.page_error.setParams(
+                text=_("Cannot download firmware list"))
+            return "error"
+        # endtry
 
         # Create items for updating firmwares
         self.items.update({
-            "button%s" % (i + 1): _("Update to %s") % _(firmware['name']) for (i, firmware) in self.firmwares
+            "button%s" % (i + 1): ("%s - %s") % (firmware['version'], firmware['branch']) for (i, firmware) in self.firmwares
         })
 
         # Create action handlers
         for (i, firmware) in self.firmwares:
-            self.makeUpdateButton(i + 1, firmware['name'], firmware['url'])
+            self.makeUpdateButton(i + 1, firmware['version'], firmware['url'])
         #endfor
     #enddef
 
