@@ -2822,7 +2822,6 @@ class PageSetup(Page):
             sleep(1)
             self.display.hw.beepAlarm(3)
         #endif
-        self.display.config._parseData()    # <- WHY? FIXME
         return super(PageSetup, self).backButtonRelease()
     #endif
 #enddef
@@ -4088,7 +4087,6 @@ class PageFansLeds(Page):
             sleep(1)
             self.display.hw.beepAlarm(3)
         #endif
-        self.display.config._parseData()
         return super(PageFansLeds, self).backButtonRelease()
     #endif
 
@@ -4291,7 +4289,6 @@ class PageTuneTilt(ProfilesPage):
             sleep(1)
             self.display.hw.beepAlarm(3)
         #endif
-        self.display.hwConfig._parseData()
         return super(PageTuneTilt, self).backButtonRelease()
     #enddef
 
