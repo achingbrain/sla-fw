@@ -370,6 +370,7 @@ class PrintConfig(FileConfig):
         self._name = "PrintConfig"
         self._hwConfig = hwConfig
         self.zipName = None
+        self.modificationTime = None
         super(PrintConfig, self).__init__(configFile)
     #enddef
 
@@ -399,15 +400,23 @@ class PrintConfig(FileConfig):
         self.toPrint = []
         self.zipError = _("Can't read project data.")
 
+        # TODO: Get project completition time from config file once it is available
+        # TODO: modificationTime is not read from config. Thus it does not belong here.
+        try:
+            self.modificationTime = os.path.getmtime(zipName)
+        except Exception as e:
+            self._logger.exception("Cannot get project modification time:" + str(e))
+        #endtry
+
         try:
             zf = zipfile.ZipFile(zipName, 'r')
             self.parseText(zf.read(defines.configFile))
             namelist = zf.namelist()
             zf.close()
         except Exception as e:
-            self._logger.exception("zip read exception:")
+            self._logger.exception("zip read exception:" + str(e))
             return
-        #endif
+        #endtry
 
         # Set paths
         dirName = os.path.dirname(zipName)
