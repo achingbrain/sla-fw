@@ -1907,7 +1907,10 @@ class PageSrcSelect(Page):
 #            return
             raise NotImplementedError
         else:
-            os.remove(item['fullpath'])
+            try:
+                os.remove(item['fullpath'])
+            except OSError:
+                self.logger.error("Failed to remove project file")
             return
         #endif
     #enddef
