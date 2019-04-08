@@ -523,15 +523,8 @@ class PageControl(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = _("Tank reset"))
         pageWait.show()
-        self.display.hw.checkCoverStatus(PageWait(self.display), pageWait)
-        retc = self._syncTilt()
-        if retc == "error":
-            self.display.hw.motorsHold()
-            return retc
-        #endif
-        self.display.hw.setTiltProfile('moveFast')
-        self.display.hw.tiltDownWait()
-        self.display.hw.tiltUpWait()
+        self.display.hw.tiltLayerDownWait(self.display.hwConfig.whitePixelsThd + 1)    #pixel count always bigger than threshold
+        self.display.hw.tiltLayerUpWait()
         self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
         return "_SELF_"
@@ -3463,7 +3456,9 @@ class PageTiltCalib(MovePage):
             continueFce = self.tiltCalibStep4,
             backFce = self.tiltCalibStep2,
             imageName = "06_tighten_knob.jpg",
-            text = _("Check if the platform is properly secured with black knob."))
+            text = _("""Check if the platform is properly secured with black knob.
+
+Do not rotate the platform. Keep it flat and aligned with exposition display."""))
         return "confirm"
     #enddef
 
@@ -4845,6 +4840,8 @@ Temperature data: %s""") % temps)
             continueFce = self.wizardStep6,
             imageName = "10_prusa_logo.jpg",
             text = _("""Can you see company logo on the exposure display through orange cover?
+
+Tip: The logo is best seen when you look from above.
 
 DO NOT open the cover."""))
         return "confirm"

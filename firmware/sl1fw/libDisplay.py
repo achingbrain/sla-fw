@@ -157,11 +157,9 @@ class Display(object):
 
             button, pressed, data = self.getEvent()
             if button is not None:
-                if pressed:
-                    self.hw.beepEcho()
-                #endif
                 if button in self.actualPage.autorepeat:
                     if pressed:
+                        self.hw.beepEcho()
                         autorepeatDelay, autorepeatDelayNext = self.actualPage.autorepeat[button]
                         autorepeatFce = getattr(self.actualPage, button + "Button", self.actualPage.emptyButton)
                         autorepeatFce()
@@ -182,6 +180,7 @@ class Display(object):
                         pressFce()
                     #endif
                 else:
+                    self.hw.beepEcho()
                     submitFce = getattr(self.actualPage, button + "ButtonSubmit", None)
                     releaseFce = getattr(self.actualPage, button + "ButtonRelease", self.actualPage.emptyButtonRelease)
                     if submitFce:

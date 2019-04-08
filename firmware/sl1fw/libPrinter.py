@@ -307,7 +307,15 @@ DO NOT take it out!"""))
                 self.jobLog("\n%s" % (coLog))
 
                 self.hw.checkCoverStatus(self.checkPage, pageWait)  # FIXME status vlakno?
+                if self.hw.getFansError():
+                    self.display.page_error.setParams(
+                            text = _("""Some fans are not spinning!
 
+Check if fans are connected properly and can rotate without resistance."""))
+                    self.hw.motorsRelease()
+                    self.display.doMenu("error")
+                    continue
+                #endif
                 if self.display.hwConfig.resinSensor:
                     # TODO vyzadovat zavreny kryt po celou dobu!
                     pageWait.showItems(line2 = _("Measuring resin volume"), line3 = _("Do NOT TOUCH the printer"))
@@ -353,6 +361,7 @@ Remove some resin from tank and try again."""))
 
             self.screen.getImgBlack()
             self.hw.uvLed(True)
+            self.hw.setUvLedCurrent(self.hwConfig.uvCurrent)
 
             if self.hwConfig.warmUp > 0:
                 for sd in xrange(0, self.hwConfig.warmUp):
