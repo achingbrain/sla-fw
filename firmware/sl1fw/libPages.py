@@ -1705,7 +1705,7 @@ class SourceDir:
             except SourceDir.NotProject:
                 continue
             except Exception as e:
-                self.logger.debug("Ignoring source project: %s" % str(e))
+                self.logger.exception("Ignoring source project for exception")
                 continue
             #endtry
         #endfor
@@ -1728,21 +1728,36 @@ class SourceDir:
         # Add directory to result
         full_path = os.path.join(path, item)
         if os.path.isdir(full_path):
-            # Skip dirs that do not contain projects
+            # Count number of projects in current root and number of dirs that contain some projects
+            nonempty_dirs = set()
+            root_projects = 0
             for root, dirs, files in os.walk(full_path):
-                if any(ext in defines.projectExtensions for (_, ext) in map(os.path.splitext, files)):
-                    break
-                #endif
-            else:
-                raise SourceDir.NotProject("No project in dir")
+                for file in files:
+                    (_, ext) = os.path.splitext(file)
+                    if ext not in defines.projectExtensions:
+                        continue
+                    # endif
+
+                    rel_path = os.path.relpath(root, os.path.normpath(full_path))
+                    if rel_path == ".":
+                        root_projects += 1
+                    else:
+                        nonempty_dirs.add(rel_path.split(os.sep)[0])
+                    #endif
+                #endfor
             #endfor
+
+            num_items = len(nonempty_dirs) + root_projects
+            if num_items == 0:
+                raise SourceDir.NotProject("No project in dir")
+            #endif
 
             return {
                 'type': 'dir',
                 'name': item,
                 'path': item,
                 'fullpath': full_path,
-                'numitems': len(os.listdir(full_path))
+                'numitems': num_items
             }
         #endif
 
