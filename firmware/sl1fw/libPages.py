@@ -137,6 +137,7 @@ class Page(object):
         if len(usbs) > 0:
             return usbs[0]
         else:
+            self.logger.debug("getSavePath returning None, no media seems present")
             return None
         #endif
     #enddef
@@ -2243,12 +2244,30 @@ class PageDisplay(Page):
 
 
     def button6ButtonRelease(self):
+        if self.getSavePath() is None:
+            self.display.page_error.setParams(
+                text=_("No USB storage present"))
+            return "error"
+        #endif
+
+        test_file = os.path.join(self.getSavePath(), "test.png")
+
+        if not os.path.isfile(test_file):
+            self.display.page_error.setParams(
+                text=_("Cannot find test image"))
+            return "error"
+        #endif
+
         try:
-            self.display.screen.getImg(filename = os.path.join(self.getSavePath(), "test.png"))
+            self.display.screen.getImg(filename = test_file)
         except Exception:
-            self.logger.exception("export exception:")
-            self.display.hw.beepAlarm(3)
+            # TODO: This is not reached. Exceptions from screen do not propagate here
+            self.logger.exception("Error displaying test image")
+            self.display.page_error.setParams(
+                text=_("Cannot display test image"))
+            return "error"
         #endtry
+
     #enddef
 
 
@@ -2746,26 +2765,56 @@ class PageSetup(Page):
 
     def button1ButtonRelease(self):
         ''' export '''
-        if not self.display.hwConfig.writeFile(os.path.join(self.getSavePath(), defines.hwConfigFileName)):
-            self.display.hw.beepAlarm(3)
+
+        if self.getSavePath() is None:
+            self.display.page_error.setParams(
+                text=_("No USB storage present"))
+            return "error"
+        # endif
+
+        config_file = os.path.join(self.getSavePath(), defines.hwConfigFileName)
+
+        if not self.display.hwConfig.writeFile(config_file):
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
     #enddef
 
 
     def button2ButtonRelease(self):
         ''' import '''
+
+        if self.getSavePath() is None:
+            self.display.page_error.setParams(
+                text=_("No USB storage present"))
+            return "error"
+            # endif
+
+        config_file = os.path.join(self.getSavePath(), defines.hwConfigFileName)
+
+        if not os.path.isfile(config_file):
+            self.display.page_error.setParams(
+                text=_("Cannot find configuration to import"))
+            return "error"
+        # endif
+
         try:
-            with open(os.path.join(self.getSavePath(), defines.hwConfigFileName), "r") as f:
+            with open(config_file, "r") as f:
                 self.display.hwConfig.parseText(f.read())
             #endwith
         except Exception:
             self.logger.exception("import exception:")
-            self.display.hw.beepAlarm(3)
-            return
+            self.display.page_error.setParams(
+                text=_("Cannot import configuration"))
+            return "error"
         #endtry
 
+        # TODO: Does import also means also save? There is special button for it.
         if not self.display.hwConfig.writeFile(defines.hwConfigFile):
-            self.display.hw.beepAlarm(4)
+            self.display.page_error.setParams(
+                text=_("Cannot save imported configuration"))
+            return "error"
         #endif
 
         self.show()
@@ -3640,7 +3689,7 @@ class ProfilesPage(Page):
                 "button2" : _("Import"),
                 "button3" : _("Test"),
                 "button4" : _("Save"),
-                "back" : _("Back"),
+                "button5" : _("Defaults"),
                 })
         self.actualProfile = 0
         self.nameIndexes = set()
@@ -3683,30 +3732,62 @@ class ProfilesPage(Page):
 
     def button1ButtonRelease(self):
         ''' export '''
+
+        if self.getSavePath() is None:
+            self.display.page_error.setParams(
+                text=_("No USB storage present"))
+            return "error"
+            # endif
+
+        profile_file = os.path.join(self.getSavePath(), self.profilesFilename)
+
         try:
-            with open(os.path.join(self.getSavePath(), self.profilesFilename), "w") as f:
+            with open(profile_file, "w") as f:
                 f.write(json.dumps(self.profiles, sort_keys=True, indent=4, separators=(',', ': ')))
             #endwith
         except Exception:
             self.logger.exception("export exception:")
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot export profile"))
+            return "error"
         #endtry
     #enddef
 
 
     def button2ButtonRelease(self):
         ''' import '''
+
+        if self.getSavePath() is None:
+            self.display.page_error.setParams(
+                text=_("No USB storage present"))
+            return "error"
+            # endif
+
+        profile_file = os.path.join(self.getSavePath(), self.profilesFilename)
+
+        if not os.path.isfile(profile_file):
+            self.display.page_error.setParams(
+                text=_("Cannot find profile to import"))
+            return "error"
+        # endif
+
         try:
-            with open(os.path.join(self.getSavePath(), self.profilesFilename), "r") as f:
+            with open(profile_file, "r") as f:
                 self.profiles = json.loads(f.read())
             #endwith
             self._setProfile()
             return
         except Exception:
             self.logger.exception("import exception:")
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot import profile"))
+            return "error"
         #endtry
+    #enddef
 
+
+    def button5ButtonRelease(self):
+        ''' defaults '''
         try:
             with open(os.path.join(defines.dataPath, self.profilesFilename), "r") as f:
                 self.profiles = json.loads(f.read())
@@ -3714,7 +3795,9 @@ class ProfilesPage(Page):
             self._setProfile()
         except Exception:
             self.logger.exception("import exception:")
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot load default profile"))
+            return "error"
         #endtry
     #enddef
 
