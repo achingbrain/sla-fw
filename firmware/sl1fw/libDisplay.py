@@ -67,6 +67,7 @@ class Display(object):
         self.page_video = libPages.PageVideo(self)
         self.page_setapikey = libPages.PageSetApikey(self)
         self.page_wizard = libPages.PageWizard(self)
+        self.page_logging = libPages.PageLogging(self)
 
         self.actualPage = self.page_start
     #enddef
