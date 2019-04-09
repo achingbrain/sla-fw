@@ -1494,7 +1494,7 @@ class Hardware(object):
         temps = self.getMcTemperatures()
         self.logTemp(temps)
         temp = temps[self._ledTempIdx]
-        if temp < self._minAmbientTemp:
+        if temp < 0:
             if forceFail or not self.hwConfig.fanCheck or self.getFansError():
                 self.uvLed(False)
                 self.logger.critical("EMERGENCY STOP - LED temperature")
@@ -1510,7 +1510,7 @@ class Hardware(object):
                     sleep(1)
                 #endwhile
             else:
-                self.logger.warning("LED temperature too low!")
+                self.logger.warning("LED temperature has not been read correctly!")
             #endif
         #endif
 
