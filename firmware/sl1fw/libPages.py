@@ -2678,6 +2678,16 @@ class PageNetUpdate(Page):
         self.pageTitle = _("Net Update")
         super(PageNetUpdate, self).__init__(display)
 
+        # Create item for downlaoding examples
+        self.items.update({
+            "button15": _("Download examples")
+        })
+
+        self.firmwares = []
+    #enddef
+
+
+    def show(self):
         try:
             req = urllib2.Request(defines.firmwareListURL, headers={
                 'User-Agent': 'Prusa-SL1'
@@ -2686,9 +2696,6 @@ class PageNetUpdate(Page):
             self.firmwares = list(enumerate(json.loads(response.read())))
         except:
             self.logger.exception("Failed to load firmware list from the net")
-            self.display.page_error.setParams(
-                text=_("Cannot download firmware list"))
-            return "error"
         #endtry
 
         # Create items for updating firmwares
@@ -2696,15 +2703,12 @@ class PageNetUpdate(Page):
             "button%s" % (i + 1): ("%s - %s") % (firmware['version'], firmware['branch']) for (i, firmware) in self.firmwares
         })
 
-        # Create item for downlaoding examples
-        self.items.update({
-            "button15": _("Download examples")
-        })
-
         # Create action handlers
         for (i, firmware) in self.firmwares:
             self.makeUpdateButton(i + 1, firmware['version'], firmware['url'])
         #endfor
+
+        super(PageNetUpdate, self).show()
     #enddef
 
 
