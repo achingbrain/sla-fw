@@ -53,6 +53,6 @@ class QtDisplay(VirtualDisplay):
 
     def exit(self):
         self.server.join()
-    # enddef
+    #enddef
 
 #endclass

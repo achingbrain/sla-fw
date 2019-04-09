@@ -235,12 +235,12 @@ class ExposureThread(threading.Thread):
             except Exception:
                 self.logger.exception("getCommand exception")
                 command = None
-            # endtry
+            #endtry
 
             if command in breakFree:
                 break
-            # endif
-        # endwhile
+            #endif
+        #endwhile
 
         return command
 
