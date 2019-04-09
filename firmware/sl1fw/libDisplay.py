@@ -187,7 +187,7 @@ class Display(object):
                         newPage = submitFce(data)
                     elif releaseFce:
                         newPage = releaseFce()
-                    # endif
+                    #endif
 
                     if newPage == "_BACK_":
                         if not self.goBack():

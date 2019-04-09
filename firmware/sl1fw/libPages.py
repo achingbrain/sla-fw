@@ -920,7 +920,7 @@ class PageFirmwareUpdate(Page):
         except:
             self.logger.exception("Failed to load firmware list from the net")
             return []
-        # endtry
+        #endtry
     #enddef
 
 
@@ -938,10 +938,10 @@ class PageFirmwareUpdate(Page):
                     continue
 
                 fw_files.append(fw['url'])
-            # endfor
+            #endfor
         except:
             self.logger.exception("Failed to process net firmware list")
-        # endtry
+        #endtry
 
         # Get Rauc flasher status and progress
         operation = None
@@ -1080,12 +1080,12 @@ class PageFirmwareUpdate(Page):
                         line2 = _("Shutting down"))
                     sleep(3)
                     self.display.shutDown(True, reboot=True)
-                # endif
+                #endif
 
                 # Check for operation failure
                 if progress[1] == 'Installing failed.':
                     raise Exception("Update failed")
-                # endif
+                #endif
 
                 # Wait for a while
                 sleep(1)
@@ -1740,7 +1740,7 @@ class SourceDir:
         # Skip . link
         if item.startswith('.'):
             raise SourceDir.NotProject(". dir")
-        # endif
+        #endif
 
         # Skip files that fail to decode as utf-8
         try:
@@ -1760,7 +1760,7 @@ class SourceDir:
                     (_, ext) = os.path.splitext(file)
                     if ext not in defines.projectExtensions:
                         continue
-                    # endif
+                    #endif
 
                     rel_path = os.path.relpath(root, os.path.normpath(full_path))
                     if rel_path == ".":
@@ -2634,16 +2634,16 @@ Is tank filled and secured with both screws?"""))
                 buffer = source.read(block_size)
                 if not buffer:
                     break
-                # endif
+                #endif
                 file.write(buffer)
 
                 progress = int(100 * file.tell() / file_size)
                 if progress != old_progress:
                     pageWait.showItems(line2 = "%d%%" % progress)
                     old_progress = progress
-                # endif
-            # endwhile
-        # endwith
+                #endif
+            #endwhile
+        #endwith
     #enddef
 
 
@@ -2739,7 +2739,7 @@ class PageNetUpdate(Page):
             self.display.page_error.setParams(
                 text=_("Cannot download firmware list"))
             return "error"
-        # endtry
+        #endtry
 
         # Create items for updating firmwares
         self.items.update({
@@ -2804,7 +2804,7 @@ class PageSetup(Page):
             self.display.page_error.setParams(
                 text=_("No USB storage present"))
             return "error"
-        # endif
+        #endif
 
         config_file = os.path.join(self.getSavePath(), defines.hwConfigFileName)
 
@@ -2823,7 +2823,7 @@ class PageSetup(Page):
             self.display.page_error.setParams(
                 text=_("No USB storage present"))
             return "error"
-            # endif
+            #endif
 
         config_file = os.path.join(self.getSavePath(), defines.hwConfigFileName)
 
@@ -2831,7 +2831,7 @@ class PageSetup(Page):
             self.display.page_error.setParams(
                 text=_("Cannot find configuration to import"))
             return "error"
-        # endif
+        #endif
 
         try:
             with open(config_file, "r") as f:
@@ -3772,7 +3772,7 @@ class ProfilesPage(Page):
             self.display.page_error.setParams(
                 text=_("No USB storage present"))
             return "error"
-            # endif
+            #endif
 
         profile_file = os.path.join(self.getSavePath(), self.profilesFilename)
 
@@ -3796,7 +3796,7 @@ class ProfilesPage(Page):
             self.display.page_error.setParams(
                 text=_("No USB storage present"))
             return "error"
-            # endif
+            #endif
 
         profile_file = os.path.join(self.getSavePath(), self.profilesFilename)
 
@@ -3804,7 +3804,7 @@ class ProfilesPage(Page):
             self.display.page_error.setParams(
                 text=_("Cannot find profile to import"))
             return "error"
-        # endif
+        #endif
 
         try:
             with open(profile_file, "r") as f:
