@@ -143,6 +143,56 @@ class Page(object):
     #enddef
 
 
+    def downloadURL(self, url, dest, title=None):
+        """Fetches file specified by url info destination while displaying progress. This is implemented as chunked
+        copy from source file descriptor to the deestination file descriptor. The progress is updated once the cunk is
+        copied. The source file descriptor is either standard file when the source is mounted USB drive or urlopen
+        result."""
+
+        if not title:
+            title = _("Fetching")
+        #endif
+        pageWait = PageWait(self.display, line1=title, line2="0%")
+        pageWait.show()
+
+        self.logger.info("Downloading %s" % url)
+
+        if url.startswith("http://") or url.startswith("https://"):
+            # URL is HTTP, source is url
+            req = urllib2.Request(url)
+            req.add_header('User-Agent', 'Prusa-SL1')
+            source = urllib2.urlopen(req, timeout=10)
+            file_size = int(source.info().getheaders("Content-Length")[0])
+            block_size = 8 * 1024
+        else:
+            # URL is file, source is file
+            self.logger.info("Copying firmware %s" % url)
+            source = open(url, "rb")
+            file_size = os.path.getsize(url)
+            block_size = 1024 * 1024
+        #endif
+
+        with open(dest, 'wb') as file:
+            old_progress = 0
+            while True:
+                buffer = source.read(block_size)
+                if not buffer:
+                    break
+                #endif
+                file.write(buffer)
+
+                progress = int(100 * file.tell() / file_size)
+                if progress != old_progress:
+                    pageWait.showItems(line2="%d%%" % progress)
+                    old_progress = progress
+                #endif
+            #endwhile
+        #endwith
+
+        source.close()
+    #enddef
+
+
     def _onOff(self, index, val):
         if isinstance(self.temp[val], libConfig.MyBool):
             self.temp[val].inverse()
@@ -992,53 +1042,8 @@ class PageFirmwareUpdate(Page):
 
 
     def fetchUpdate(self, fw_url):
-        """Fetches file specified by url info ramdisk while displaying progress and watching for problems. Once the
-         fetch is finished the doUpdate is called with fetched file.
-
-        This is implemented as chunked copy from source file descriptor to the deestination file descriptor. The
-        progress is updated once the cunk is copied. The source file descriptor is either standard file when the source
-        is mounted USB drive or urlopen result."""
-
-        pageWait = PageWait(self.display, line1 = _("Fetching firmware"))
-        pageWait.show()
-
         try:
-            old_progress = 0
-            if fw_url.startswith("http://") or fw_url.startswith("https://"):
-                # URL is HTTP, source is url
-                self.logger.info("Downloading firmware %s" % fw_url)
-
-                req = urllib2.Request(fw_url, headers={
-                    'User-Agent': 'Prusa-SL1'
-                })
-                source = urllib2.urlopen(req, timeout=10)
-                file_size = int(source.info().getheaders("Content-Length")[0])
-                block_size = 8 * 1024
-            else:
-                # URL is file, source is file
-                self.logger.info("Copying firmware %s" % fw_url)
-                source = open(fw_url, "rb")
-                file_size = os.path.getsize(fw_url)
-                block_size = 1024 * 1024
-            #endif
-
-            with open(defines.firmwareTempFile, 'wb') as firmware_file:
-                while True:
-                    buffer = source.read(block_size)
-                    if not buffer:
-                        break
-                    #endif
-                    firmware_file.write(buffer)
-
-                    progress = int(100 * firmware_file.tell() / file_size)
-                    if progress != old_progress:
-                        pageWait.showItems(line2 = "%d%%" % progress)
-                        old_progress = progress
-                    #endif
-                #endwhile
-            #endwith
-
-            source.close()
+            self.downloadURL(fw_url, defines.firmwareTempFile, _("Fetching firmware"))
         #endtry
         except Exception as e:
             self.logger.error("Firmware fetch failed: " + str(e))
@@ -2406,7 +2411,7 @@ class PageAdmin(Page):
                 'button10' : _("Resin sensor test"),
 
                 'button11' : _("Net update"),
-                'button12' : _("Download examples"),
+                'button12' : _("Logging"),
                 'button13' : _("Wizard"),
                 'button14' : _("Change API-key"),
                 'button15' : _("Factory reset"),
@@ -2588,62 +2593,7 @@ Is tank filled and secured with both screws?"""))
 
 
     def button12ButtonRelease(self):
-        try:
-            if not os.path.isdir(defines.internalProjectPath):
-                os.makedirs(defines.internalProjectPath)
-            #endif
-
-            self.downloadURL(defines.examplesURL, defines.examplesArchivePath, title = _("Fetching examples"))
-
-            pageWait = PageWait(self.display, line1 = _("Decompressing examples"))
-            pageWait.show()
-            pageWait.showItems(line1 = _("Extracting examples"))
-            with tarfile.open(defines.examplesArchivePath) as tar:
-                tar.extractall(path=defines.internalProjectPath)
-            pageWait.showItems(line1 = _("Cleaning up"))
-            os.remove(defines.examplesArchivePath)
-
-            return "_BACK_"
-
-        except Exception as e:
-            self.logger.error("Exaples fetch failed: " + str(e))
-            self.display.page_error.setParams(
-                text = _("Examples fetch failed"))
-            return "error"
-    #enddef
-
-
-    def downloadURL(self, url, dest, title = None):
-        if not title:
-            title = _("Fetching")
-        #endif
-        pageWait = PageWait(self.display, line1 = title, line2 = "0%")
-        pageWait.show()
-
-        self.logger.info("Downloading %s" % url)
-
-        req = urllib2.Request(url)
-        req.add_header('User-Agent', 'Prusa-SL1')
-        source = urllib2.urlopen(req, timeout=10)
-        file_size = int(source.info().getheaders("Content-Length")[0])
-        block_size = 8 * 1024
-
-        with open(dest, 'wb') as file:
-            old_progress = 0
-            while True:
-                buffer = source.read(block_size)
-                if not buffer:
-                    break
-                #endif
-                file.write(buffer)
-
-                progress = int(100 * file.tell() / file_size)
-                if progress != old_progress:
-                    pageWait.showItems(line2 = "%d%%" % progress)
-                    old_progress = progress
-                #endif
-            #endwhile
-        #endwith
+        return "logging"
     #enddef
 
 
@@ -2746,10 +2696,44 @@ class PageNetUpdate(Page):
             "button%s" % (i + 1): ("%s - %s") % (firmware['version'], firmware['branch']) for (i, firmware) in self.firmwares
         })
 
+        # Create item for downlaoding examples
+        self.items.update({
+            "button15": _("Download examples")
+        })
+
         # Create action handlers
         for (i, firmware) in self.firmwares:
             self.makeUpdateButton(i + 1, firmware['version'], firmware['url'])
         #endfor
+    #enddef
+
+
+    def button15ButtonRelease(self):
+        try:
+            if not os.path.isdir(defines.internalProjectPath):
+                os.makedirs(defines.internalProjectPath)
+            #endif
+
+            self.downloadURL(defines.examplesURL, defines.examplesArchivePath, title=_("Fetching examples"))
+
+            pageWait = PageWait(self.display, line1=_("Decompressing examples"))
+            pageWait.show()
+            pageWait.showItems(line1=_("Extracting examples"))
+            with tarfile.open(defines.examplesArchivePath) as tar:
+                tar.extractall(path=defines.internalProjectPath)
+            #endwith
+            pageWait.showItems(line1=_("Cleaning up"))
+            os.remove(defines.examplesArchivePath)
+
+            return "_BACK_"
+        #endtry
+
+        except Exception as e:
+            self.logger.error("Exaples fetch failed: " + str(e))
+            self.display.page_error.setParams(
+                text=_("Examples fetch failed"))
+            return "error"
+        #endexcept
     #enddef
 
 
@@ -2766,6 +2750,41 @@ class PageNetUpdate(Page):
 
 Proceed update?""") % name)
         return "confirm"
+    #enddef
+
+#endclass
+
+
+class PageLogging(Page):
+
+    def __init__(self, display):
+        self.pageUI = "admin"
+        self.pageTitle = _("Logging")
+        super(PageLogging, self).__init__(display)
+        self.items.update({
+            "button1": _("Save logs to USB")
+        })
+    #enddef
+
+
+    def button1ButtonRelease(self):
+        if self.getSavePath() is None:
+            self.display.page_error.setParams(text=_("No USB storage present"))
+            return "error"
+        #endif
+
+        pageWait = PageWait(self.display, line1=_("Saving logs"))
+        pageWait.show()
+
+        try:
+            subprocess.check_call(
+                ["/bin/sh", "-c", "journalctl | gzip > %s/log.$(date +%%s).txt.gz; sync" % self.getSavePath()])
+        except subprocess.CalledProcessError as e:
+            self.display.page_error.setParams(text=_("Log save failed"))
+            return "error"
+        #endexcept
+
+        return "_BACK_"
     #enddef
 
 #endclass
@@ -4527,6 +4546,7 @@ class PageSetApikey(Page):
             self.display.page_error.setParams(
                 text = _("Octoprint apikey change failed"))
             return "error"
+        #endexcept
 
         return "_BACK_"
     #enddef
