@@ -266,11 +266,14 @@ DO NOT take it out!"""))
 
     def start(self):
 
+        showWizard = True
+
         try:
             while True:
-                if self.display.hwConfig.showWizard:
+                if self.display.hwConfig.showWizard and showWizard:
                     self.display.hw.beepRepeat(1)
                     self.display.doMenu("wizard")
+                    showWizard = False
                     sleep(0.5)    #delay between beep if user selects back from wizard and two beeps at the normal startup
                 #endif
                 self.display.doMenu("home", self.homeCallback, 30)
