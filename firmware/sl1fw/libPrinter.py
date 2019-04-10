@@ -7,6 +7,7 @@ import logging
 from time import time, sleep
 import zipfile
 import shutil
+from glob import glob
 
 import defines
 import libPages
@@ -121,11 +122,12 @@ Regenerate it and try again.""")
             return True
         #endif
 
-        # pokud soubor neni v ramdisku (lan), nakopirujeme ho tam
-        (basename, filename) = os.path.split(self.config.zipName)
-        if basename == defines.ramdiskPath:
-            return True
-        #endif
+        # Remove old projects from ramdisk
+        project_files = []
+        for ext in defines.projectExtensions:
+            project_files.extend(glob(defines.ramdiskPath + "/*" + ext))
+        for project_file in project_files:
+            os.remove(project_file)
 
         # test volneho mista
         statvfs = os.statvfs(defines.ramdiskPath)
@@ -148,6 +150,7 @@ Check it and try again."""))
             if ramdiskFree < filesize:
                 raise Exception("Not enough free space in the ramdisk!")
             #endif
+            (_, filename) = os.path.split(self.config.zipName)
             newZipName = os.path.join(defines.ramdiskPath, filename)
             if os.path.normpath(newZipName) != os.path.normpath(self.config.zipName):
                 shutil.copyfile(self.config.zipName, newZipName)
