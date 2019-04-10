@@ -1831,10 +1831,8 @@ class PageSrcSelect(Page):
 
     def source_list(self):
         # Get source directories
-        sourceDirs = \
-            [SourceDir(defines.ramdiskPath, "ramdisk")] + \
-            [SourceDir(path, "usb") for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))] + \
-            [SourceDir(defines.internalProjectPath, "internal")]
+        sourceDirs = [SourceDir(defines.internalProjectPath, "internal")]
+        sourceDirs += [SourceDir(path, "usb") for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
 
         # Get content items
         dirs = {}
