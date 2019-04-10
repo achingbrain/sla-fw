@@ -2472,6 +2472,7 @@ Are you sure?"""))
         pageWait = PageWait(self.display, line1 = _("Erasing EEPROM"))
         pageWait.show()
         self.display.hw.eraseEeprom()
+        self.display.hw.initDefaults()
         return "_BACK_"
     #enddef
 
@@ -2992,12 +2993,12 @@ class PageSetupHw(PageSetup):
 
 
     def minus2g8Button(self):
-        self._value(7, 'mcboardversion', 4, 5, -1)
+        self._value(7, 'mcboardversion', 5, 6, -1)
     #enddef
 
 
     def plus2g8Button(self):
-        self._value(7, 'mcboardversion', 4, 5, 1)
+        self._value(7, 'mcboardversion', 5, 6, 1)
     #enddef
 
 #endclass
@@ -4853,21 +4854,22 @@ Make sure the tank is empty and clean."""))
         self.display.hw.setUvLedCurrent(0)
         self.display.hw.uvLed(True)
         uvCurrents = [0, 300, 600]
-        # PWM            0           300         600
-        uv1Limit = [[14.0,17.4],[15.6,18.8],[16.1,19.5]]     #uv led 1st row voltage limits
-        uv2Limit = [[13.8,14.7],[15.1,16.7],[15.9,17.7]]     #uv led 2nd row voltage limits
-        uv3Limit = [[13.8,14.1],[14.8,16.2],[15.8,16.9]]     #uv led 3rd row voltage limits
+        # PWM         0          300         600
+        limit = [[12.6,14.2],[14.0,16.0],[15.0,17.1]]     #voltage limits for all rows of UV LED
         for i in xrange(3):
             self.display.hw.setUvLedCurrent(uvCurrents[i])
-            sleep(3)
-            voltages = self.display.hw.getVoltages()
-            if not (uv1Limit[i][0] < voltages[0] < uv1Limit[i][1] and uv2Limit[i][0] < voltages[1] < uv2Limit[i][1] and uv3Limit[i][0] < voltages[2] < uv3Limit[i][1]):
+            if self.display.hwConfig.MCBoardVersion < 6:    #for 05
+                sleep(10)    #wait to refresh all voltages
+            else:                                           #for 06+
+                sleep(5)    #wait to refresh all voltages
+            volts = self.display.hw.getVoltages()
+            if not (limit[i][0] < volts[0] < limit[i][1] and limit[i][0] < volts[1] < limit[i][1] and limit[i][0] < volts[2] < limit[i][1]):
                 self.display.page_error.setParams(
                     text = _("""UV LED current out of range!
 
 Please check if UV LED panel is connected propely.
 
-Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : voltages})
+Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : volts})
                 self.display.hw.uvLed(False)
                 return "error"
             #endif
@@ -4953,6 +4955,7 @@ Measured %d ml.""") % volume)
             sleep(1)
             self.display.hw.beepAlarm(3)
         #endif
+        self.display.hw.motorsRelease()
         self.display.page_confirm.setParams(
             continueFce = self.wizardStep8,
             text = _("""Printer is succesfully checked.

@@ -262,7 +262,7 @@ class HwConfig(FileConfig):
         self.tiltHeight = self._parseInt("tiltheight", defines.defaultTiltHeight) #safe value
         self.calibTowerOffset = self._parseInt("calibtoweroffset", 0)
 
-        self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 4, 4, 5)
+        self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 5, 5, 6)
 
         # Exposure setup
         self.blinkExposure = self._parseBool("blinkexposure", True)
