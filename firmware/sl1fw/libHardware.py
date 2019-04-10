@@ -379,6 +379,8 @@ class Hardware(object):
                 self.logger.error("motion controller error: %s", errorMessage)
                 self.ahojBabi(waitPage, errorMessage)
             #endif
+            waitPage.showItems(line1 = _("Erasing EEPROM."))
+            self.eraseEeprom()
 
             returnPage.show()
         #endif
@@ -486,7 +488,6 @@ class Hardware(object):
     def eraseEeprom(self):
         self.mcc.do("!eecl")
         self.mcc.do("!rst")    # FIXME MC issue
-        self.initDefaults()
     #enddef
 
 
