@@ -305,7 +305,11 @@ class HwConfig(FileConfig):
         self.mute = self._parseBool("mute", False)
         self.showAdmin = self._parseBool("showadmin", False)
         self.showWizard = self._parseBool("showwizard", True)
-    #enddef
+        self.uvVoltage = list()
+        self.uvVoltage.append([int(n) for n in self._parseString("uvvoltagerow1", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
+        self.uvVoltage.append([int(n) for n in self._parseString("uvvoltagerow2", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
+        self.uvVoltage.append([int(n) for n in self._parseString("uvvoltagerow3", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
+        self.fanRpm = [int(n) for n in self._parseString("fanrpm", "0 0 0").split()]
 
     def calcMicroSteps(self, mm):
         return int(mm * self.microStepsMM)

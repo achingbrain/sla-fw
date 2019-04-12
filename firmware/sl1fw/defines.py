@@ -5,7 +5,7 @@
 import os
 
 swVersion = "Gen3-190-410"
-reqMcVersion = "SLA-control 0.9.9-389a"
+reqMcVersion = "SLA-control 0.9.9-389b"
 
 home = "/home/root"
 
@@ -57,6 +57,7 @@ resinFilled = 200
 
 defaultTowerHeight = 128    # mm
 defaultTiltHeight = 4900    # usteps
+tiltHomingTolerance = 30    #tilt axis check has this tolerance
 towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40

@@ -2657,7 +2657,11 @@ Continue?"""))
             tiltheight = defines.defaultTiltHeight,
             calibrated = "no",
             showadmin = "no",
-            showwizard = "yes"
+            showwizard = "yes",
+            uvvoltagerow1 = "0 0 0",
+            uvvoltagerow2 = "0 0 0",
+            uvvoltagerow3 = "0 0 0",
+            fanrpm = "0 0 0"
         )
         if not self.display.hwConfig.writeFile():
             self.display.hw.beepAlarm(3)
@@ -3508,7 +3512,7 @@ class PageTiltCalib(MovePage):
             continueFce = self.tiltCalibStep3,
             backFce = self.okButtonRelease,
             imageName = "04_tighten_screws.jpg",
-            text = _("Screw down the tank. Make sure you tighten both screws evenly."))
+            text = _("Return the tank to normal position and screw it down. Make sure you tighten both screws evenly."))
         return "confirm"
     #enddef
 
@@ -3596,7 +3600,9 @@ Click continue and read the instructions carefully."""))
             continueFce = self.tiltCalibStep5,
             backFce = self.tiltCalibStep3,
             imageName = "05_align_platform.jpg",
-            text = _("Turn the platform to align it with exposition display."))
+            text = _("""Adjust the platform to align it with exposition display.
+
+Front edges of the platform and exposition display need to be parallel."""))
         return "confirm"
     #enddef
 
@@ -4627,12 +4633,17 @@ Tilt profiles needs to be changed."""))
         while self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
+        self.display.hw.tiltMoveAbsolute(512)   # go down fast before endstop
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.setTiltProfile("homingSlow")    #finish measurement with slow profile (more accurate)
         self.display.hw.tiltMoveAbsolute(self.display.hw._tiltMin)
         while self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
-        #MC moves tilt by 256 steps forward in last step of !tiho
-        if self.display.hw.getTiltPosition() < -256  or self.display.hw.getTiltPosition() > 0:
+        #TODO make MC homing more accurate
+        if self.display.hw.getTiltPosition() < -defines.tiltHomingTolerance  or self.display.hw.getTiltPosition() > defines.tiltHomingTolerance:
             self.display.page_error.setParams(
                 text = _("""Tilt axis check failed!
 
@@ -4642,6 +4653,7 @@ Please check if tilting mechanism can move smoothly in whole range.""") % self.d
 	    self.display.hw.motorsRelease()
             return "error"
         #endif
+        self.display.hw.setTiltProfile("homingFast")
         self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
         while self.display.hw.isTiltMoving():
             sleep(0.25)
@@ -4694,7 +4706,7 @@ Make sure the tank is empty and clean."""))
         self.display.page_confirm.setParams(
             continueFce=self.wizardStep3,
             imageName = "09_remove_platform.jpg",
-            text = _("""Remove the platform."""))
+            text = _("""Loosen the black knob and remove the platform."""))
         return "confirm"
     #enddef
 
@@ -4753,7 +4765,7 @@ RPM data: %s""") % rpm)
             return "error"
         #endif
                         #fan1        fan2        fan3
-        fanLimits = [[50,150], [1100, 1600], [150, 300]]
+        fanLimits = [[50,150], [1100, 1700], [150, 300]]
         hwConfig = libConfig.HwConfig()
         self.display.hw.setFansPwm((hwConfig.fan1Pwm, hwConfig.fan2Pwm, hwConfig.fan3Pwm))   #use default PWM. TODO measure fans in range of values
         sleep(6)    #let the fans spin up
@@ -4775,6 +4787,19 @@ Please check if the fan is connected correctly.
 RPM data: %(rpm)s""") % { 'fan' : fanName, 'rpm' : rpm })
                 self.display.hw.setFansPwm((0, 0, 0))
                 return "error"
+            #endif
+            if self.display.hwConfig.fanRpm[0] == 0:    # store only if rpm are empty
+                self.display.hwConfig.fanRpm[0] = rpm[0]
+                self.display.hwConfig.fanRpm[1] = rpm[1]
+                self.display.hwConfig.fanRpm[2] = rpm[2]
+                self.display.hwConfig.update(
+                    fanrpm = ' '.join(str(n) for n in self.display.hwConfig.fanRpm)
+                )
+                if not self.display.hwConfig.writeFile():
+                    self.display.hw.beepAlarm(3)
+                    sleep(1)
+                    self.display.hw.beepAlarm(3)
+                #endif
             #endif
         #endfor
         self.display.hwConfig.fanCheck = True
@@ -4846,7 +4871,8 @@ Make sure the tank is empty and clean."""))
         while not self.display.hw.isCoverClosed():
             sleep(0.5)
         #endwhile
-        # UV LED VA
+
+        # UV LED voltage comparation
         pageWait = PageWait(self.display,
             line1 = _("UV LED check"),
             line2 = _("Please wait..."))
@@ -4854,8 +4880,7 @@ Make sure the tank is empty and clean."""))
         self.display.hw.setUvLedCurrent(0)
         self.display.hw.uvLed(True)
         uvCurrents = [0, 300, 600]
-        # PWM         0          300         600
-        limit = [[12.6,14.2],[14.0,16.0],[15.0,17.1]]     #voltage limits for all rows of UV LED
+        diff = 0.4    # [mV] voltages in all rows cannot differ more than this limit
         for i in xrange(3):
             self.display.hw.setUvLedCurrent(uvCurrents[i])
             if self.display.hwConfig.MCBoardVersion < 6:    #for 05
@@ -4863,15 +4888,31 @@ Make sure the tank is empty and clean."""))
             else:                                           #for 06+
                 sleep(5)    #wait to refresh all voltages
             volts = self.display.hw.getVoltages()
-            if not (limit[i][0] < volts[0] < limit[i][1] and limit[i][0] < volts[1] < limit[i][1] and limit[i][0] < volts[2] < limit[i][1]):
+            del volts[-1]   #delete power supply voltage
+            if max(volts) - min(volts) > diff:
                 self.display.page_error.setParams(
-                    text = _("""UV LED current out of range!
+                    text = _("""UV LED voltages differ to much!
 
 Please check if UV LED panel is connected propely.
 
 Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : volts})
                 self.display.hw.uvLed(False)
                 return "error"
+            #endif
+            if self.display.hwConfig.uvVoltage[0][i] == 0:    # if data are empty (test only first row), save voltages
+                self.display.hwConfig.uvVoltage[0][i] = int(volts[0] * 1000)
+                self.display.hwConfig.uvVoltage[1][i] = int(volts[1] * 1000)
+                self.display.hwConfig.uvVoltage[2][i] = int(volts[2] * 1000)
+                self.display.hwConfig.update(
+                    uvvoltagerow1 = ' '.join(str(n) for n in self.display.hwConfig.uvVoltage[0]),
+                    uvvoltagerow2 = ' '.join(str(n) for n in self.display.hwConfig.uvVoltage[1]),
+                    uvvoltagerow3 = ' '.join(str(n) for n in self.display.hwConfig.uvVoltage[2])
+                )
+                if not self.display.hwConfig.writeFile():
+                    self.display.hw.beepAlarm(3)
+                    sleep(1)
+                    self.display.hw.beepAlarm(3)
+                #endif
             #endif
         #endfor
 
