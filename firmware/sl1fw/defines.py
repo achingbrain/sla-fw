@@ -68,6 +68,7 @@ videosURL = "https://www.prusa3d.com/SL1guide/"
 aboutURL = "https://www.prusa3d.com/about-us/"
 firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
 firmwareListURL = "https://www.prusa3d.com/SL1/updates.json"
+firmwareListTemp = os.path.join(ramdiskPath, "updates.json")
 internalProjectPath = "/var/sl1fw/projects"
 examplesURL = "https://www.prusa3d.com/SL1/examples.tar.gz"
 examplesArchivePath = os.path.join(internalProjectPath, 'examples.tar.gz')
