@@ -143,7 +143,7 @@ class Page(object):
     #enddef
 
 
-    def downloadURL(self, url, dest, title=None):
+    def downloadURL(self, url, dest, title=None, timeout_sec=10):
         """Fetches file specified by url info destination while displaying progress. This is implemented as chunked
         copy from source file descriptor to the deestination file descriptor. The progress is updated once the cunk is
         copied. The source file descriptor is either standard file when the source is mounted USB drive or urlopen
@@ -161,7 +161,7 @@ class Page(object):
             # URL is HTTP, source is url
             req = urllib2.Request(url)
             req.add_header('User-Agent', 'Prusa-SL1')
-            source = urllib2.urlopen(req, timeout=10)
+            source = urllib2.urlopen(req, timeout=timeout_sec)
             file_size = int(source.info().getheaders("Content-Length")[0])
             block_size = 8 * 1024
         else:
@@ -962,11 +962,11 @@ class PageFirmwareUpdate(Page):
 
     def getNetFirmwares(self):
         try:
-            req = urllib2.Request(defines.firmwareListURL, headers={
-                'User-Agent': 'Prusa-SL1'
-            })
-            response = urllib2.urlopen(req, timeout=5)
-            return json.loads(response.read())
+            self.downloadURL(defines.firmwareListURL, defines.firmwareListTemp, title=_("Downloading firmware list"),
+                             timeout_sec=3)
+            with open(defines.firmwareListTemp) as list_file:
+                return json.load(list_file)
+            #endwith
         except:
             self.logger.exception("Failed to load firmware list from the net")
             return []
@@ -2692,11 +2692,12 @@ class PageNetUpdate(Page):
 
     def show(self):
         try:
-            req = urllib2.Request(defines.firmwareListURL, headers={
-                'User-Agent': 'Prusa-SL1'
-            })
-            response = urllib2.urlopen(req, timeout=5)
-            self.firmwares = list(enumerate(json.loads(response.read())))
+            self.downloadURL(defines.firmwareListURL, defines.firmwareListTemp, title=_("Downloading firmware list"),
+                             timeout_sec=5)
+
+            with open(defines.firmwareListTemp) as list_file:
+                self.firmwares = list(enumerate(json.load(list_file)))
+            #endwith
         except:
             self.logger.exception("Failed to load firmware list from the net")
         #endtry
