@@ -59,8 +59,6 @@ class WebDisplayServer(SocketServer):
                 output['type'] = "items"
                 output['content'] = data
 
-#            elif data['command'] == "change":  TODO jako showItems?
-
             else:
                 self.logger.warning("unknown command '%s'", data['command'])
             #endif

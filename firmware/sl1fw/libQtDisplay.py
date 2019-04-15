@@ -24,7 +24,6 @@ class QtDisplayServer(SocketServer):
                 self.newClientData = data
             elif data['command'] == "showItems":
                 self.newClientData.update({ x: data[x] for x in data if x != 'command' })
-#            elif data['command'] == "change":  TODO jako showItems?
             else:
                 self.logger.warning("unknown command '%s'", data['command'])
             #endif
