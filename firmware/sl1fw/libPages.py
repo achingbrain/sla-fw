@@ -1544,7 +1544,6 @@ class PageSysInfo(Page):
                 'system_name': self.display.hwConfig.os.name,
                 'system_version': self.display.hwConfig.os.version,
                 'firmware_version': defines.swVersion,
-                'api_key': self.octoprintAuth
                 })
         self.callbackPeriod = 0.5
         self.skip = 11
@@ -1555,6 +1554,7 @@ class PageSysInfo(Page):
         self.oldValues = {}
         self.items['controller_version'] = self.display.hw.getControllerVersion()
         self.items['controller_serial'] = self.display.hw.getControllerSerial()
+        self.items['api_key'] = self.octoprintAuth
         self.display.hw.resinSensor(True)
         self.skip = 11
         super(PageSysInfo, self).show()
