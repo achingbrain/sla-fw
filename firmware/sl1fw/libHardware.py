@@ -178,20 +178,29 @@ class MotConCom(object):
 
 
     def do(self, *args):
+        if "noSyslog" in args:
+            syslog = False
+        else:
+            syslog = True
+        #endif
         self.portLock.acquire()
         while self.port.inWaiting():
             try:
                 msg = "| %s" % self.port.readline().strip().decode("ascii").encode()
-                self.logger.debug(msg)
+                if syslog:
+                    self.logger.debug(msg)
+                #endif
                 self.debug.log(msg)
             except Exception:
                 self.logger.exception("exception:")
             #endtry
         #endwhile
 
-        params = " ".join(str(x) for x in args)
+        params = " ".join(str(x) for x in args if x != "noSyslog")
         msg = "> %s" % params
-        self.logger.debug(msg)
+        if syslog:
+            self.logger.debug(msg)
+        #endif
         self.debug.log(msg)
 
         try:
@@ -200,7 +209,9 @@ class MotConCom(object):
             while True:
                 line = self.port.readline().strip().decode("ascii").encode()
                 msg = "< %s" % line
-                self.logger.debug(msg)
+                if syslog:
+                    self.logger.debug(msg)
+                #endif
                 self.debug.log(msg)
 
                 if line == '':
@@ -220,7 +231,9 @@ class MotConCom(object):
                     return None
                 else:
                     msg = "| %s" % line
-                    self.logger.debug(msg)
+                    if syslog:
+                        self.logger.debug(msg)
+                    #endif
                     self.debug.log(msg)
                 #endif
             #endwhile
@@ -660,7 +673,7 @@ class Hardware(object):
 
 
     def getUvLedState(self):
-        uvData = self.mcc.doGetIntList(args = ("?uled",))
+        uvData = self.mcc.doGetIntList(args = ("?uled", "noSyslog"))
         if uvData and 0 < len(uvData) < 3:
             return uvData if len(uvData) == 2 else list((uvData[0], 0))
         else:
@@ -862,7 +875,7 @@ class Hardware(object):
         self.mcc.do("!twhc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
-            homingStatus = self.mcc.doGetInt("?twho")
+            homingStatus = self.mcc.doGetInt("?twho", "noSyslog")
             sleep(0.1)
         #endwhile
     #enddef
@@ -877,7 +890,7 @@ class Hardware(object):
 
 
     def isTowerSynced(self):
-        homingStatus = self.mcc.doGetInt("?twho")
+        homingStatus = self.mcc.doGetInt("?twho", "noSyslog")
         if homingStatus > 0:    # not done and not error
             return False
         elif not homingStatus:
@@ -942,7 +955,7 @@ class Hardware(object):
 
 
     def isTowerMoving(self):
-        if self.mcc.doGetInt("?mot") & 1:
+        if self.mcc.doGetInt("?mot", "noSyslog") & 1:
             return True
         #endif
         return False
@@ -1113,7 +1126,7 @@ class Hardware(object):
         self.mcc.do("!tihc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
-            homingStatus = self.mcc.doGetInt("?tiho")
+            homingStatus = self.mcc.doGetInt("?tiho", "noSyslog")
             sleep(0.1)
         #endwhile
     #enddef
@@ -1126,7 +1139,7 @@ class Hardware(object):
             self.mcc.do("!tiho")
             homingStatus = 1
             while homingStatus > 0: # not done and not error
-                homingStatus = self.mcc.doGetInt("?tiho")
+                homingStatus = self.mcc.doGetInt("?tiho", "noSyslog")
                 sleep(0.1)
             #endwhile
             # test homing result
@@ -1164,7 +1177,7 @@ class Hardware(object):
 
 
     def isTiltMoving(self):
-        if self.mcc.doGetInt("?mot") & 2:
+        if self.mcc.doGetInt("?mot", "noSyslog") & 2:
             return True
         #endif
         return False
@@ -1379,7 +1392,7 @@ class Hardware(object):
         if profileId is not None:
             self.mcc.debug.showItems(tiltProfile = profile)
             self.mcc.do("!tics", profileId)
-            self.mcc.do("?ticf")
+            self.mcc.do("?ticf")    # FIXME why?
         else:
             self.logger.error("Invalid tilt profile '%s'", profile)
         #endif
