@@ -627,12 +627,30 @@ class PageSettings(Page):
 #endclass
 
 
-class PageTimeSettings(Page):
+class PageTimeDateBase(Page):
+
+    def __init__(self, display):
+        self._timedate = None
+        super(PageTimeDateBase, self).__init__(display)
+    #enddef
+
+
+    @property
+    def timedate(self):
+        if not self._timedate:
+            self._timedate = pydbus.SystemBus().get("org.freedesktop.timedate1")
+        #endif
+        return self._timedate
+    #enddef
+
+#endclass
+
+
+class PageTimeSettings(PageTimeDateBase):
 
     def __init__(self, display):
         self.pageUI = "timesettings"
         self.pageTitle = _("Time Settings")
-        self.timedate = pydbus.SystemBus().get("org.freedesktop.timedate1")
         super(PageTimeSettings, self).__init__(display)
     #enddef
 
@@ -679,10 +697,9 @@ class PageTimeSettings(Page):
 #endclass
 
 
-class PageSetTimeBase(Page):
+class PageSetTimeBase(PageTimeDateBase):
 
     def __init__(self, display):
-        self.timedate = pydbus.SystemBus().get("org.freedesktop.timedate1")
         super(PageSetTimeBase, self).__init__(display)
     #enddef
 
@@ -733,13 +750,12 @@ class PageSetDate(PageSetTimeBase):
 #endclass
 
 
-class PageSetTimezone(Page):
+class PageSetTimezone(PageTimeDateBase):
     zoneinfo = "/usr/share/zoneinfo/"
 
     def __init__(self, display):
         self.pageUI = "settimezone"
         self.pageTitle = _("Set Timezone")
-        self.timedate = pydbus.SystemBus().get("org.freedesktop.timedate1")
 
         # Available timezones
         regions = [zone.replace(PageSetTimezone.zoneinfo, "") for zone in glob.glob(os.path.join(PageSetTimezone.zoneinfo, "*"))]
@@ -795,8 +811,17 @@ class PageSetHostname(Page):
     def __init__(self, display):
         self.pageUI = "sethostname"
         self.pageTitle = _("Set Hostname")
-        self.hostname = pydbus.SystemBus().get("org.freedesktop.hostname1")
+        self._hostname = None
         super(PageSetHostname, self).__init__(display)
+    #enddef
+
+
+    @property
+    def hostname(self):
+        if not self._hostname:
+            self._hostname = pydbus.SystemBus().get("org.freedesktop.hostname1")
+        #endif
+        return self._hostname
     #enddef
 
 
@@ -829,8 +854,17 @@ class PageSetLanguage(Page):
     def __init__(self, display):
         self.pageUI = "setlanguage"
         self.pageTitle = _("Set Language")
-        self.locale = pydbus.SystemBus().get("org.freedesktop.locale1")
+        self._locale = None
         super(PageSetLanguage, self).__init__(display)
+    #enddef
+
+
+    @property
+    def locale(self):
+        if not self._locale:
+            self._locale = pydbus.SystemBus().get("org.freedesktop.locale1")
+        #endif
+        return self._locale
     #enddef
 
 
@@ -2731,7 +2765,6 @@ class PageNetUpdate(Page):
                 tar.extractall(path=defines.internalProjectPath)
             #endwith
             pageWait.showItems(line1=_("Cleaning up"))
-            os.remove(defines.examplesArchivePath)
 
             return "_BACK_"
         #endtry
@@ -2742,6 +2775,10 @@ class PageNetUpdate(Page):
                 text=_("Examples fetch failed"))
             return "error"
         #endexcept
+
+        finally:
+            os.remove(defines.examplesArchivePath)
+        #endfinally
     #enddef
 
 
