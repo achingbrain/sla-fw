@@ -55,12 +55,9 @@ class VirtualDisplay(object):
 
 
     def assignNetActive(self, value):
-        # TODO
-        pass
-
         self.netActive = value
         try:
-            self.commands.put_nowait({'command' : "change", 'netActive' : value })
+            self.commands.put_nowait({'command' : "showItems", 'net' : value })
         except Exception:
             self.logger.exception("put netActive exception")
         #endtry

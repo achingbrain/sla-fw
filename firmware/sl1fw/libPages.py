@@ -1181,16 +1181,7 @@ class PageNetwork(Page):
     #enddef
 
 
-    # TODO net state - mode, all ip with devices, all uri (log, debug, display, octoprint)
     def fillData(self):
-        devlist_structured = []
-        for addr, dev in self.display.inet.devices.iteritems():
-            devlist_structured.append({
-                'dev': dev,
-                'addr': addr
-            })
-        #endfor
-
         wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
 
         aps = {}
@@ -1198,7 +1189,7 @@ class PageNetwork(Page):
             aps[ap['ssid']] = ap
 
         return {
-            'devlist' : devlist_structured,
+            'devlist' : self.display.inet.getDevices(),
             'wifi_mode' : wifisetup.WifiMode,
             'client_ssid' : wifisetup.ClientSSID,
             'client_psk' : wifisetup.ClientPSK,
@@ -1297,11 +1288,9 @@ It may disconnect web client."""))
         pageWait.showItems(line1 = _("Connecting..."))
         for i in range(1, 10):
             sleep(1)
-            for addr, dev in self.display.inet.devices.iteritems():
-                if dev == "wlan0":
-                    # Connection "ok"
-                    return "_BACK_"
-                #endif
+            if 'wlan0' in self.display.inet.getDevices():
+                # Connection "ok"
+                return "_BACK_"
             #endfor
         #endfor
 
@@ -1330,11 +1319,9 @@ It may disconnect web client."""))
         pageWait.showItems(line1 = _("Starting AP..."))
         for i in range(1, 10):
             sleep(1)
-            for addr, dev in self.display.inet.devices.iteritems():
-                if dev == "ap0":
-                    # AP "ok"
-                    return "_BACK_"
-                #endif
+            if 'ap0' in self.display.inet.getDevices():
+                # AP "ok"
+                return "_BACK_"
             #endfor
         #endfor
 
@@ -1602,6 +1589,7 @@ class PageSysInfo(Page):
             self._setItem(items, 'temps', {'temp%d_celsius' % i: v for i, v in enumerate(self.display.hw.getMcTemperatures())})
             self._setItem(items, 'cpu_temp', self.display.hw.getCpuTemperature())
             self._setItem(items, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getVoltages())})
+            self._setItem(items, 'devlist', self.display.inet.getDevices())
             self.skip = 0
         #endif
         self._setItem(items, 'resin_sensor_state', self.display.hw.getResinSensorState())
@@ -1634,16 +1622,17 @@ class PageNetInfo(Page):
 
 
     def fillData(self):
+        apDeviceName = "ap0"
         items = {}
         devices = self.display.inet.getDevices()
         if devices:
-            if "ap0" in devices:
+            if apDeviceName in devices:
                 # AP mode
                 try:
                     with open(defines.wifiSetupFile, "r") as f:
                         wifiData = json.loads(f.read())
                     #endwith
-                    ip = self.display.inet.getIp("ap0")
+                    ip = devices[apDeviceName]
                     items['line1'] = _("SSID: %(ssid)s  password: %(pass)s") % { 'ssid' : wifiData['ssid'], 'pass' : wifiData['psk'] }
                     items['mode'] = 'ap'
                     items['ap_ssid'] = wifiData['ssid']
