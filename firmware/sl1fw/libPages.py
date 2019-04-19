@@ -5,7 +5,8 @@
 
 import os
 import logging
-from time import sleep
+from time import time, sleep
+from datetime import datetime
 import json
 import toml
 import subprocess
@@ -13,14 +14,16 @@ import signal
 import glob
 import pydbus
 from copy import deepcopy
-import time
 import re
 import urllib2
 import tarfile
+import zipfile
+import shutil
 import paho.mqtt.publish as mqtt
 
 import defines
 import libConfig
+
 
 class Page(object):
 
@@ -28,9 +31,25 @@ class Page(object):
         self.logger = logging.getLogger(__name__)
         self.display = display
         self.autorepeat = {}
-        self.callbackPeriod = None
         self.stack = True
         self.fill()
+
+        self.updateDataPeriod = None
+
+        # callback options
+        self.callbackPeriod = 0.5
+        self.checkPowerbutton = True
+        self.checkCover = False
+        self.checkCoverOveride = False   # to force off when exposure is in progress
+        self.checkCooling = False
+
+        # vars for checkCoverCallback()
+        self.checkCoverBeepDelay = 2
+        self.checkCoverWarnOnly = True
+        # vars for powerButtonCallback()
+        self.powerButtonCount = 0
+        # vars for checkCoolingCallback()
+        self.checkCooligSkip = 20   # 10 sec
     #enddef
 
 
@@ -124,6 +143,7 @@ class Page(object):
     def turnoffButtonRelease(self):
         self.display.page_confirm.setParams(
                 continueFce = self.turnoffContinue,
+                checkPowerbutton = False,
                 text = _("Do you really want to turn off the printer?"))
         return "confirm"
     #enddef
@@ -207,19 +227,21 @@ class Page(object):
     #enddef
 
 
-    def ensure_cover_closed(self):
+    def ensureCoverIsClosed(self):
+        if not self.display.hwConfig.coverCheck or self.display.hw.isCoverClosed():
+            return
+        #endif
         self.display.hw.powerLed("warn")
-        if not self.display.hw.isCoverClosed():
-            pageWait = PageWait(self.display,
-                    line1 = _("The orange cover is not closed!"),
-                    line2 = _("If the cover is closed, please check the connection of the cover switch."))
-            pageWait.show()
-            self.display.hw.beepAlarm(3)
-            self.display.hw.uvLed(False)
+        pageWait = PageWait(self.display,
+                line1 = _("Close the orange cover."),
+                line2 = _("If the cover is closed, please check the connection of the cover switch."))
+        pageWait.show()
+        self.display.hw.beepAlarm(3)
         #endif
         while not self.display.hw.isCoverClosed():
             sleep(0.5)
         #endwhile
+        self.display.hw.powerLed("normal")
     #enddef
 
 
@@ -261,7 +283,7 @@ DO NOT open the cover."""))
         pageWait = PageWait(self.display, line1=_("Saving logs"))
         pageWait.show()
 
-        timestamp = str(int(time.time()))
+        timestamp = str(int(time()))
         serial = self.display.hw.cpuSerialNo
         log_file = os.path.join(save_path, "log.%s.%s.txt.gz" % (serial, timestamp))
 
@@ -356,6 +378,254 @@ Check the printer's hardware."""))
         return "%.1f" % (value / 10.0)
     #enddef
 
+
+    def countRemainTime(self, actualLayer, slowLayers):
+        config = self.display.config
+        hwConfig = self.display.hwConfig
+        timeRemain = 0
+        fastLayers = config.totalLayers - actualLayer - slowLayers
+        # first 3 layers with expTimeFirst
+        long1 = 3 - actualLayer
+        if long1 > 0:
+            timeRemain += long1 * (config.expTimeFirst - config.expTime)
+            self.logger.debug("long1: %d  timeRemain: %f", long1, timeRemain)
+        #endif
+        # fade layers (approx)
+        long2 = config.fadeLayers + 3 - actualLayer
+        if long2 > 0:
+            timeRemain += long2 * ((config.expTimeFirst - config.expTime) / 2 - config.expTime)
+            self.logger.debug("long2: %d  timeRemain: %f", long2, timeRemain)
+        #endif
+        timeRemain += fastLayers * hwConfig.tiltFastTime
+        self.logger.debug("fastLayers: %d  timeRemain: %f", fastLayers, timeRemain)
+        timeRemain += slowLayers * hwConfig.tiltSlowTime
+        self.logger.debug("slowLayers: %d  timeRemain: %f", slowLayers, timeRemain)
+        # FIXME slice2 and slice3
+        timeRemain += (fastLayers + slowLayers) * (
+                config.calibrateRegions * config.calibrateTime
+                + config.expTime
+                + hwConfig.delayBeforeExposure
+                + hwConfig.delayAfterExposure)
+        self.logger.debug("timeRemain: %f", timeRemain)
+        return int(round(timeRemain / 60))
+    #enddef
+
+
+    def callback(self):
+
+        state = False
+        if self.checkPowerbutton:
+            state = True
+            retc = self.powerButtonCallback()
+            if retc:
+                return retc
+            #endif
+        #endif
+
+        expoInProgress = self.display.expo.inProgress()
+
+        if not self.checkCoverOveride and (self.checkCover or expoInProgress):
+            state = True
+            retc = self.checkCoverCallback()
+            if retc:
+                return retc
+            #endif
+        #endif
+
+        if self.checkCooling or (expoInProgress and self.display.checkCoolingExpo):
+            state = True
+            retc = self.checkCoolingCallback(expoInProgress)
+            if retc:
+                return retc
+            #endif
+        #endif
+
+        if not state:
+            # just read status from the MC to prevent the power LED pulsing
+            self.display.hw.getPowerswitchState()
+        #endif
+    #enddef
+
+
+    def powerButtonCallback(self):
+        if not self.display.hw.getPowerswitchState():
+            if self.powerButtonCount:
+                self.powerButtonCount = 0
+                self.display.hw.powerLed("normal")
+            #endif
+            return
+        #endif
+
+        if self.powerButtonCount > 3:
+            self.display.hw.powerLed("normal")
+            self.display.hw.beepEcho()
+            return self.turnoffButtonRelease()
+        #endif
+
+        if not self.powerButtonCount:
+            self.display.hw.powerLed("off")
+            self.display.hw.beepEcho()
+        #endif
+
+        self.powerButtonCount += 1
+    #enddef
+
+
+    def checkCoverCallback(self):
+        if not self.display.hwConfig.coverCheck or self.display.hw.isCoverClosed():
+            self.checkCoverBeepDelay = 2
+            return
+        #endif
+
+        if self.checkCoverWarnOnly:
+            if self.checkCoverBeepDelay > 1:
+                self.display.hw.beepAlarm(2)
+                self.checkCoverBeepDelay = 0
+            else:
+                self.checkCoverBeepDelay += 1
+            #endif
+        else:
+            UVIsOn, time = self.display.hw.getUvLedState()
+            if UVIsOn:
+                self.display.hw.uvLed(False)
+            #endif
+
+            self.display.hw.powerLed("warn")
+            pageWait = PageWait(self.display, line1 = _("Close the orange cover."))
+            pageWait.show()
+            self.display.hw.beepAlarm(3)
+            while not self.display.hw.isCoverClosed():
+                sleep(0.5)
+            #endwhile
+            self.display.hw.powerLed("normal")
+            self.show()
+            if UVIsOn:
+                self.display.hw.uvLed(True)
+            #endif
+        #endif
+    #enddef
+
+
+    def checkCoolingCallback(self, expoInProgress):
+        if self.checkCooligSkip < 20:
+            self.checkCooligSkip += 1
+            return
+        #endif
+        self.checkCooligSkip = 0
+
+        # UV LED temperature test
+        # TODO make it work even when job is not running
+        temp = self.display.hw.getUvLedTemperature()
+        if temp < 0:
+            if expoInProgress:
+                self.display.expo.doPause()
+                self.display.checkCoolingExpo = False
+                backFce = self.exitPrint
+                addText = _("Actual job will be canceled.")
+            else:
+                self.display.hw.uvLed(False)
+                backFce = self.backButtonRelease
+                addText = ""
+            #endif
+
+            self.display.page_error.setParams(
+                    backFce = backFce,
+                    text = _("""Reading of UV LED temperature has failed!
+
+This value is essential for the UV LED lifespan and printer safety.
+
+Please contact tech support!
+
+%s""") % addText)
+            return "error"
+        #endif
+
+        if temp > self.display.hw._maxUVTemp:
+            if expoInProgress:
+                self.display.expo.doPause()
+            else:
+                self.display.hw.uvLed(False)
+            #enddef
+            self.display.hw.powerLed("error")
+            pageWait = PageWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down..."))
+            pageWait.show()
+            self.display.hw.beepAlarm(3)
+            while(temp > self.display.hw._maxUVTemp - 10): # hystereze
+                pageWait.showItems(line3 = _("Temperature is %.1f C") % temp)
+                sleep(10)
+                temp = self.display.hw.getUvLedTemperature()
+            #endwhile
+            self.display.hw.powerLed("normal")
+            self.show()
+            if expoInProgress:
+                self.display.expo.doContinue()
+            #enddef
+        #endif
+
+        # fans test
+        if not self.display.hwConfig.fanCheck or self.display.fanErrorOverride:
+            return
+        #endif
+
+        fansState = self.display.hw.getFansError()
+        if any(fansState):
+            failedFans = []
+            for num, state in enumerate(fansState):
+                if state:
+                    failedFans.append(self.display.hw.getFanName(num))
+                #endif
+            #endfor
+
+            self.display.fanErrorOverride = True
+
+            if expoInProgress:
+                backFce = self.exitPrint
+                addText = _("""Expect overheating, but the print may continue.
+
+If you don't want to continue, please press the Back button on top of the screen and the actual job will be canceled.""")
+            else:
+                backFce = self.backButtonRelease
+                addText = ""
+            #endif
+
+            self.display.page_confirm.setParams(
+                    backFce = backFce,
+                    continueFce = self.backButtonRelease,
+                    beep = True,
+                    text = _("""Failed: %(what)s
+
+Please contact tech support!
+
+%(addText)s""") % { 'what' : ", ".join(failedFans), 'addText' : addText })
+            return "confirm"
+        #endif
+    #enddef
+
+
+    def exitPrint(self):
+        self.display.expo.doExitPrint()
+        self.display.expo.canceled = True
+        self.display.page_systemwait.fill(
+            line1 = _("Job will be canceled after layer finish"))
+        return "systemwait"
+    #enddef
+
+
+    def ramdiskCleanup(self):
+        project_files = []
+        for ext in defines.projectExtensions:
+            project_files.extend(glob.glob(defines.ramdiskPath + "/*" + ext))
+        #endfor
+        for project_file in project_files:
+            self.logger.debug("removing '%s'", project_file)
+            try:
+                os.remove(project_file)
+            except Exception as e:
+                self.logger.exception("ramdiskCleanup() exception:")
+            #endtry
+        #endfor
+    #enddef
+
 #endclass
 
 
@@ -392,8 +662,18 @@ class PageConfirm(Page):
         self.continueParams = kwargs.pop("continueParams", dict())
         self.backFce = kwargs.pop("backFce", None)
         self.backParams = kwargs.pop("backParams", dict())
+        self.beep = kwargs.pop("beep", False)
+        self.checkPowerbutton = kwargs.pop("checkPowerbutton", True)
         self.fill()
         self.items.update(kwargs)
+    #enddef
+
+
+    def show(self):
+        super(PageConfirm, self).show()
+        if self.beep:
+            self.display.hw.beepAlarm(1)
+        #endif
     #enddef
 
 
@@ -408,7 +688,7 @@ class PageConfirm(Page):
 
     def backButtonRelease(self):
         if self.backFce is None:
-            return "_BACK_"
+            return super(PageConfirm, self).backButtonRelease()
         else:
             return self.backFce(**self.backParams)
         #endif
@@ -440,9 +720,12 @@ class PagePrintPreviewBase(Page):
             'calibrationRegions' : calibrateRegions,
             'date' : config.modificationTime,
             'layers' : config.totalLayers,
+            'layer_height_first_mm' : self.display.hwConfig.calcMM(config.layerMicroStepsFirst),
+            'layer_height_mm' : self.display.hwConfig.calcMM(config.layerMicroSteps),
             'exposure_time_first_sec' : config.expTimeFirst,
             'exposure_time_sec' : config.expTime,
             'calibrate_time_sec' : calibration,
+            'print_time_min' : self.countRemainTime(0, config.layersSlow),
         }
     #enddef
 
@@ -464,19 +747,139 @@ class PagePrintPreview(PagePrintPreviewBase):
     #enddef
 
 
+    def copyAndCheckZip(self, config):
+        confirm = None
+        newZipName = None
+        if config.zipName:
+            # check free space
+            statvfs = os.statvfs(defines.ramdiskPath)
+            ramdiskFree = statvfs.f_frsize * statvfs.f_bavail - 10*1024*1024 # for other files
+            self.logger.debug("Ramdisk free space: %d bytes" % ramdiskFree)
+            try:
+                filesize = os.path.getsize(config.zipName)
+                self.logger.debug("Zip file size: %d bytes" % filesize)
+            except Exception:
+                self.logger.exception("filesize exception:")
+                return (_("""Can't read from the USB drive.
+
+Check it and try again."""), None, None)
+            #endtry
+
+            try:
+                if ramdiskFree < filesize:
+                    raise Exception("Not enough free space in the ramdisk!")
+                #endif
+                (dummy, filename) = os.path.split(config.zipName)
+                newZipName = os.path.join(defines.ramdiskPath, filename)
+                if os.path.normpath(newZipName) != os.path.normpath(config.zipName):
+                    shutil.copyfile(config.zipName, newZipName)
+                #endif
+            except Exception:
+                self.logger.exception("copyfile exception:")
+                confirm = _("""Loading the file into the printer's memory failed.
+
+The project will be printed from USB drive.
+
+DO NOT remove the USB drive!""")
+                newZipName = config.zipName
+            #endtry
+        #endif
+
+        try:
+            zf = zipfile.ZipFile(newZipName, 'r')
+            badfile = zf.testzip()
+            zf.close()
+            if badfile is not None:
+                self.logger.error("Corrupted file: %s", badfile)
+                return (_("""Corrupted data detected.
+
+Re-export the file and try again."""), None, None)
+            #endif
+        except Exception as e:
+            self.logger.exception("zip read exception:")
+            return (_("""Can't read project data.
+
+Re-export the file and try again."""), None, None)
+        #endtry
+
+        return (None, confirm, newZipName)
+    #enddef
+
+
     def contButtonRelease(self):
-        pageWait = PageWait(self.display, line1 = _("Setting start positions"))
+        pageWait = PageWait(self.display, line1 = _("Checking temperatures"))
         pageWait.show()
 
+        temperatures = self.display.hw.getMcTemperatures()
+        for i in xrange(2):
+            if temperatures[i] < 0:
+                self.display.page_error.setParams(
+                    backFce = self.backButtonRelease,
+                    text = _("""Can't read %s
+
+Please check if temperature sensors are connected correctly.""") % self.display.hw.getSensorName(i))
+                return "error"
+            #endif
+        #endfor
+
+        if temperatures[1] < self.display.hw._minAmbientTemp:
+            self.display.page_confirm.setParams(
+                    continueFce = self.contButtonContinue1,
+                    text = _("""Ambient temperature is under recommended value.
+
+You should heat up the resin and/or increase the exposure times.
+
+Do you want to continue?"""))
+            return "confirm"
+        #endif
+
+        if temperatures[1] > self.display.hw._maxAmbientTemp:
+            self.display.page_confirm.setParams(
+                    continueFce = self.contButtonContinue1,
+                    text = _("""Ambient temperature is over recommended value.
+
+You should move the printer to cooler place.
+
+Do you want to continue?"""))
+            return "confirm"
+        #endif
+
+        return self.contButtonContinue1()
+    #enddef
+
+
+    def contButtonContinue1(self):
+        pageWait = PageWait(self.display,
+                line1 = _("Checking project data..."),
+                line2 = _("Setting start positions..."),
+                line3 = _("Checking fans..."))
+        pageWait.show()
+
+        fanStartTime = datetime.now()
+        self.display.hw.startFans()
         self.display.hw.towerSync()
-        syncRes = self.display.hw.tiltSyncWait(retries = 2)
-        while not self.display.hw.isTowerSynced():
+        self.display.hw.tiltSync()
+
+        # Remove old projects from ramdisk
+        self.ramdiskCleanup()
+        (error, confirm, zipName) = self.copyAndCheckZip(self.display.config)
+
+        while not self.display.hw.isTowerSynced() or not self.display.hw.isTiltSynced():
             sleep(0.25)
         #endwhile
 
-        if self.display.hw.towerSyncFailed():
-            self.display.hw.motorsRelease()
+        if error:
             self.display.page_error.setParams(
+                    backFce = self.backButtonRelease,
+                    text = error)
+            return "error"
+        #endif
+
+        pageWait.showItems(line1 = _("Project data OK"))
+
+        if self.display.hw.towerSyncFailed():
+            self.display.page_error.setParams(
+                    backFce = self.backButtonRelease,
                     text = _("""Tower homing failed!
 
 Check the printer's hardware.
@@ -485,9 +888,9 @@ The print job was canceled."""))
             return "error"
         #endif
 
-        if not syncRes:
-            self.display.hw.motorsRelease()
+        if self.display.hw.tiltSyncFailed():
             self.display.page_error.setParams(
+                    backFce = self.backButtonRelease,
                     text = _("""Tilt homing failed!
 
 Check the printer's hardware.
@@ -498,8 +901,58 @@ The print job was canceled."""))
 
         self.display.hw.setTiltProfile('moveFast')
         self.display.hw.tiltUpWait()
+        pageWait.showItems(line2 = _("Start positions OK"))
 
+        fansRunningTime = (datetime.now() - fanStartTime).total_seconds()
+        if fansRunningTime < defines.fanStartStopTime:
+            sleepTime = defines.fanStartStopTime - fansRunningTime
+            self.logger.debug("Waiting %.2f secs for fans", sleepTime)
+            sleep(sleepTime)
+        #endif
+
+        fansState = self.display.hw.getFansError()
+        if any(fansState):
+            failedFans = []
+            for num, state in enumerate(fansState):
+                if state:
+                    failedFans.append(self.display.hw.getFanName(num))
+                #endif
+            #endfor
+            self.display.page_error.setParams(
+                    backFce = self.backButtonRelease,
+                    text = _("""Failed: %s
+
+Check if fans are connected properly and can rotate without resistance.""" % ", ".join(failedFans)))
+            return "error"
+        #endif
+
+        pageWait.showItems(line3 = _("Fans OK"))
+        self.display.fanErrorOverride = False
+        self.display.checkCoolingExpo = True
+        self.display.expo.setProject(zipName)
+
+        if confirm:
+            self.display.page_confirm.setParams(
+                    backFce = self.backButtonRelease,
+                    continueFce = self.contButtonContinue2,
+                    beep = True,
+                    text = confirm)
+            return "confirm"
+        #endif
+
+        return self.contButtonContinue2()
+    #enddef
+
+    def contButtonContinue2(self):
+        self.display.config.logAllItems()
         return "printstart"
+    #enddef
+
+    def backButtonRelease(self):
+        self.display.hw.motorsRelease()
+        self.display.hw.stopFans()
+        self.ramdiskCleanup()
+        self.display.goBack(2)
     #enddef
 
 #endclass
@@ -515,13 +968,13 @@ class PagePrintStart(PagePrintPreviewBase):
 
 
     def show(self):
-        perc = self.display.hw.calcPercVolume(self.display.config.usedMaterial + defines.resinMinVolume)
+        self.percReq = self.display.hw.calcPercVolume(self.display.config.usedMaterial + defines.resinMinVolume)
         lines = {
                 'name' : self.display.config.projectName,
                 }
-        if perc <= 100:
+        if self.percReq <= 100:
             lines.update({
-                'text' : _("Please fill the resin tank to at least %d %% and close the cover.") % perc
+                'text' : _("Please fill the resin tank to at least %d %% and close the cover.") % self.percReq
                 })
         else:
             lines.update({
@@ -539,13 +992,115 @@ Resin will have to be added during this print job."""),
     #enddef
 
 
-    def contButtonRelease(self):
-        return "_EXIT_MENU_"
+    def backButtonRelease(self):
+        self.display.hw.motorsRelease()
+        self.display.hw.stopFans()
+        self.ramdiskCleanup()
+        self.display.goBack(3)
     #enddef
 
 
-    def backButtonRelease(self):
-        self.display.goBack(2)
+    def contButtonRelease(self):
+
+        if not self.display.expo.loadProject():
+            self.display.page_error.setParams(
+                    backFce = self.backButtonRelease,
+                    text = _("""Can't read data of your project.
+
+Regenerate it and try again."""))
+            return "error"
+        #endif
+
+        self.ensureCoverIsClosed()
+        self.pageWait = PageWait(self.display, line1 = _("Do not open the orange cover!"))
+        self.pageWait.show()
+
+        if self.display.hwConfig.resinSensor:
+            self.pageWait.showItems(line2 = _("Measuring resin volume"), line3 = _("Do NOT TOUCH the printer"))
+            volume = self.display.hw.getResinVolume()
+            fail = True
+
+            if not volume:
+                text = _("""Resin measuring failed!
+
+Is there the correct amount of resin in the tank?
+
+Is the tank secured with both screws?""")
+            elif volume < defines.resinMinVolume:
+                text = _("""Resin volume is too low!
+
+Add enough resin so it reaches at least the %d %% mark and try again.""") % self.display.hw.calcPercVolume(defines.resinMinVolume)
+            elif volume > defines.resinMaxVolume:
+                text = _("""Resin volume is too high!
+
+Remove some resin from the tank and try again.""")
+            else:
+                fail = False
+            #endif
+
+            if fail:
+                self.pageWait.showItems(line1 = _("There is a problem with resin volume..."), line2 = _("Moving platform up"))
+                self.display.hw.setTowerProfile('moveFast')
+                self.display.hw.towerToTop()
+                while not self.display.hw.isTowerOnTop():
+                    sleep(0.25)
+                    self.pageWait.showItems(line3 = self.display.hw.getTowerPosition())
+                #endwhile
+                self.display.page_error.setParams(
+                        backFce = self.backButtonRelease,
+                        text = text)
+                return "error"
+            #endif
+
+            percMeas = self.display.hw.calcPercVolume(volume)
+            self.logger.debug("requested: %d, measured: %d", self.percReq, percMeas)
+            self.pageWait.showItems(line2 = _("Measured resin volume is approx. %d %%") % percMeas)
+            self.display.expo.setResinVolume(volume)
+
+            if percMeas < self.percReq:
+                self.display.page_confirm.setParams(
+                        backFce = self.backButtonRelease,
+                        continueFce = self.contButtonContinue1,
+                        beep = True,
+                        text = _("""Your tank fill is approx %(measured)d %%
+
+For your project is %(requested)d %% requested. Refill may be required during printing.""") \
+                        % { 'measured' : percMeas, 'requested' : self.percReq})
+                return "confirm"
+            #endif
+        else:
+            self.pageWait.showItems(line2 = _("Resin volume measurement is turned off"))
+        #endif
+
+        return self.contButtonContinue2()
+    #enddef
+
+
+    def contButtonContinue1(self):
+        self.pageWait.show()
+        return self.contButtonContinue2()
+    #enddef
+
+
+    def contButtonContinue2(self):
+        if self.display.hwConfig.tilt:
+            self.pageWait.showItems(line3 = _("Moving tank down"))
+            self.display.hw.tiltDownWait()
+        #endif
+
+        self.pageWait.showItems(line3 = _("Moving platform down"))
+        self.display.hw.setTowerProfile('layer')
+        self.display.hw.towerToPosition(0.25)
+        while not self.display.hw.isTowerOnPosition():
+            sleep(0.25)
+        #endwhile
+
+        if self.display.hwConfig.tilt:
+            self.pageWait.showItems(line3 = _("Resin stirring"))
+            self.display.hw.stirResin()
+        #endif
+
+        return "print"
     #enddef
 
 #endclass
@@ -569,15 +1124,15 @@ class PageHome(Page):
         self.pageTitle = _("Home")
         super(PageHome, self).__init__(display)
         # meni se i z libPrinter!
-        self.firstRun = True
+        self.readyBeep = True
     #enddef
 
 
     def show(self):
         super(PageHome, self).show()
-        if self.firstRun:
-            self.display.hw.beepRepeat(2) # ready beep
-            self.firstRun = False
+        if self.readyBeep:
+            self.display.hw.beepRepeat(2)
+            self.readyBeep = False
         #endif
     #enddef
 
@@ -657,7 +1212,10 @@ class PageControl(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line2 = _("Tank reset"))
         pageWait.show()
-        self.display.hw.tiltLayerDownWait(self.display.hwConfig.whitePixelsThd + 1)    #pixel count always bigger than threshold
+        # assume tilt is up (there may be error from print)
+        self.display.hw.setTiltPosition(self.display.hw._tiltEnd)
+        self.display.hw.tiltLayerDownWait(True)
+        self.display.hw.tiltSyncWait()
         self.display.hw.tiltLayerUpWait()
         self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
@@ -742,7 +1300,7 @@ class PageTimeSettings(PageTimeDateBase):
     def fillData(self):
         return {
             'ntp' : self.timedate.NTP,
-            'unix_timestamp_sec' : time.time(),
+            'unix_timestamp_sec' : time(),
             'timezone' : self.timedate.Timezone,
         }
     #enddef
@@ -790,7 +1348,7 @@ class PageSetTimeBase(PageTimeDateBase):
 
     def fillData(self):
         return {
-            'unix_timestamp_sec' : time.time(),
+            'unix_timestamp_sec' : time(),
             'timezone' : self.timedate.Timezone,
         }
     #enddef
@@ -1109,6 +1667,7 @@ class PageAdvancedSettings(Page):
         self.display.hw.setFansPwm((self.configwrapper.fan1Pwm,
                                    self.configwrapper.fan2Pwm,
                                    self.configwrapper.fan3Pwm))
+        self.display.hw.setFans((False, False, True))
     #enddef
 
 
@@ -1244,7 +1803,7 @@ class PageAdvancedSettings(Page):
 
     # Display test
     def displaytestButtonRelease(self):
-        self.ensure_cover_closed()
+        self.ensureCoverIsClosed()
         return self.exposure_display_check()
     #enddef
 
@@ -1314,6 +1873,7 @@ All settings will be deleted!"""))
 
     # Back
     def leave(self, newPage):
+        self.display.hw.stopFans()
         if self.configwrapper.changed():
             self.display.page_confirm.setParams(
                 continueFce = self._savechanges,
@@ -1523,7 +2083,7 @@ class PageFirmwareUpdate(Page):
         self.old_items = None
         self.rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
         super(PageFirmwareUpdate, self).__init__(display)
-        self.callbackPeriod = 1
+        self.updateDataPeriod = 1
     #enddef
 
 
@@ -1586,11 +2146,12 @@ class PageFirmwareUpdate(Page):
     #enddef
 
 
-    def menuCallback(self):
+    def updateData(self):
         items = self.fillData()
         if self.old_items != items:
             self.showItems(**items)
             self.old_items = items
+        #endif
     #enddef
 
 
@@ -1869,6 +2430,7 @@ It may disconnect the web client."""))
 #endclass
 
 
+# FIXME obsolete?
 class PageQRCode(Page):
 
     def __init__(self, display):
@@ -1888,19 +2450,133 @@ class PageQRCode(Page):
 
 class PagePrint(Page):
 
-    def __init__(self, display, expo):
+    def __init__(self, display):
         self.pageUI = "print"
         self.pageTitle = _("Print")
-        self.expo = expo
         super(PagePrint, self).__init__(display)
+        self.callbackPeriod = 0.1
+        self.callbackSkip = 6
     #enddef
 
 
-    def fillData(self):
-       return {
-            'paused' : self.expo.paused,
-            'pauseunpause' : self._pauseunpause_text(),
-       }
+    def prepare(self):
+
+        if self.display.expo.inProgress():
+            return
+        #endif
+
+        config = self.display.config
+
+        # FIXME move to MC counters
+        coLog = "job:%s+exp=%.1f/%d+step=%d" % (
+                config.projectName,
+                config.expTime,
+                int(config.expTimeFirst),
+                config.layerMicroSteps)
+        self.jobLog("\n%s" % (coLog))
+
+        self.display.hw.towerMoveAbsoluteWait(0)    # first layer will move up
+
+        # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
+        self.totalHeight = (config.totalLayers-1) * self.display.hwConfig.calcMM(config.layerMicroSteps) + self.display.hwConfig.calcMM(config.layerMicroStepsFirst)
+        self.lastLayer = 0
+
+        self.display.screen.getImgBlack()
+        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        if not self.display.hwConfig.blinkExposure:
+            self.display.hw.uvLed(True)
+        #endif
+
+        self.printStartTime = time()
+        self.logger.debug("printStartTime: " + str(self.printStartTime))
+
+        self.display.expo.start()
+    #enddef
+
+
+    def callback(self):
+
+        if self.callbackSkip > 5:
+            self.callbackSkip = 0
+            retc = super(PagePrint, self).callback()
+            if retc:
+                return retc
+            #endif
+        #endif
+
+        self.callbackSkip += 1
+        expo = self.display.expo
+        hwConfig = self.display.hwConfig
+
+        if not expo.inProgress():
+
+            if expo.exception is not None:
+                raise Exception("Exposure thread exception: %s" % str(expo.exception))
+            #endif
+
+            printTime = int((time() - self.printStartTime) / 60)
+            self.logger.info("Job finished - real printing time is %s minutes", printTime)
+            self.jobLog(" - print time: %s  resin: %.1f ml" % (printTime, expo.resinCount) )
+
+            self.display.hw.stopFans()
+            self.display.hw.motorsRelease()
+            if hwConfig.autoOff and not expo.canceled:
+                self.display.shutDown(True)
+            #endif
+            return "_EXIT_MENU_"
+        #endif
+
+        if self.lastLayer == expo.actualLayer:
+            return
+        #endif
+
+        self.lastLayer = expo.actualLayer
+        config = self.display.config
+
+        time_remain_min = self.countRemainTime(expo.actualLayer, expo.slowLayers)
+        time_elapsed_min = int(round((time() - self.printStartTime) / 60))
+        positionMM = hwConfig.calcMM(expo.position)
+        percent = int(100 * (self.lastLayer-1) / config.totalLayers)
+        self.logger.info("Layer: %d/%d  Height: %.3f/%.3f mm  Elapsed[min]: %d  Remain[min]: %d  Percent: %d",
+                self.lastLayer, config.totalLayers, positionMM,
+                self.totalHeight, time_elapsed_min, time_remain_min, percent)
+
+        remain = None
+        low_resin = False
+        if expo.resinVolume:
+            remain = expo.resinVolume - int(expo.resinCount)
+            if remain < defines.resinFeedWait:
+                self.display.page_feedme.manual = False
+                expo.doFeedMe()
+                self.display.page_systemwait.fill(
+                    line1 = _("Wait until layer finish..."))
+                return "systemwait"
+            #endif
+            if remain < defines.resinLowWarn:
+                self.display.hw.beepAlarm(1)
+                low_resin = True
+            #endif
+        #endif
+
+        items = {
+                'time_remain_min' : time_remain_min,
+                'time_elapsed_min' : time_elapsed_min,
+                'current_layer' : self.lastLayer,
+                'total_layers' : config.totalLayers,
+                'layer_height_first_mm' : self.display.hwConfig.calcMM(config.layerMicroStepsFirst),
+                'layer_height_mm' : hwConfig.calcMM(config.layerMicroSteps),
+                'position_mm' : positionMM,
+                'total_mm' : self.totalHeight,
+                'project_name' : config.projectName,
+                'progress' : percent,
+                'resin_used_ml' : expo.resinCount,
+                'resin_remaining_ml' : remain,
+                'resin_low' : low_resin
+                }
+
+        self.showItems(**items)
+        #endif
+
     #enddef
 
 
@@ -1909,15 +2585,24 @@ class PagePrint(Page):
             'showAdmin' : int(self.display.show_admin), # TODO: Remove once client uses show_admin
             'show_admin': self.display.show_admin,
         })
-        self.items.update(self.fillData())
         super(PagePrint, self).show()
     #enddef
 
 
     def feedmeButtonRelease(self):
-        self.display.page_feedme.setItems(text = _("Wait until layer finish..."))
-        self.expo.doFeedMe()
-        return "feedme"
+        self.display.page_confirm.setParams(
+            continueFce = self.doFeedme,
+            text = _("Do you really want add the resin to the tank?"))
+        return "confirm"
+    #enddef
+
+
+    def doFeedme(self):
+        self.display.page_feedme.manual = True
+        self.display.expo.doFeedMeByButton()
+        self.display.page_systemwait.fill(
+            line1 = _("Wait until layer finish..."))
+        return "systemwait"
     #enddef
 
 
@@ -1932,7 +2617,7 @@ It may affect the printed object!"""))
 
 
     def doUpAndDown(self):
-        self.expo.doUpAndDown()
+        self.display.expo.doUpAndDown()
         self.display.page_systemwait.fill(
             line1 = _("Up and down will be executed after layer finish."))
         return "systemwait"
@@ -1946,19 +2631,10 @@ It may affect the printed object!"""))
 
     def turnoffButtonRelease(self):
         self.display.page_confirm.setParams(
-            continueFce = self.exitPrint,
-            text = _("Do you really want to cancel the actual job?"))
+                continueFce = self.exitPrint,
+                checkPowerbutton = False,
+                text = _("Do you really want to cancel the actual job?"))
         return "confirm"
-    #enddef
-
-
-    def pauseunpauseButtonRelease(self):
-        if self.expo.paused:
-            self.expo.doContinue()
-        else:
-            self.expo.doPause()
-        #endif
-        self.showItems(paused=self.expo.paused, pauseunpause=self._pauseunpause_text())
     #enddef
 
 
@@ -1969,17 +2645,10 @@ It may affect the printed object!"""))
     #enddef
 
 
-    def exitPrint(self):
-        self.expo.doExitPrint()
-        self.expo.canceled = True
-        self.display.page_systemwait.fill(
-            line1 = _("Job will be canceled after layer finish"))
-        return "systemwait"
-    #enddef
-
-
-    def _pauseunpause_text(self):
-        return 'UnPause' if self.expo.paused else 'Pause'
+    def jobLog(self, text):
+        with open(defines.jobCounter, "a") as jobfile:
+            jobfile.write(text)
+        #endwith
     #enddef
 
 #endclass
@@ -2106,8 +2775,9 @@ class PageSysInfo(Page):
                 'system_version': self.display.hwConfig.os.version,
                 'firmware_version': defines.swVersion,
                 })
-        self.callbackPeriod = 0.5
+        self.updateDataPeriod = 0.5
         self.skip = 11
+        self.checkPowerbutton = False
     #enddef
 
 
@@ -2116,13 +2786,15 @@ class PageSysInfo(Page):
         self.items['controller_version'] = self.display.hw.mcVersion
         self.items['controller_serial'] = self.display.hw.mcSerialNo
         self.items['api_key'] = self.octoprintAuth
+        self.items['tilt_fast_time'] = self.display.hwConfig.tiltFastTime
+        self.items['tilt_slow_time'] = self.display.hwConfig.tiltSlowTime
         self.display.hw.resinSensor(True)
         self.skip = 11
         super(PageSysInfo, self).show()
     #enddef
 
 
-    def menuCallback(self):
+    def updateData(self):
         items = {}
         if self.skip > 10:
             self._setItem(items, 'fans', {'fan%d_rpm' % i: v for i, v in enumerate(self.display.hw.getFansRpm())})
@@ -2250,7 +2922,7 @@ class PageAbout(Page):
                 continueFce = self.showadminContinue,
                 text = _("""Do you really want to enable the admin menu?
 
-Wrong settings may damage your printer!"""))
+Wrong settings will damage your printer!"""))
         return "confirm"
     #enddef
 
@@ -2376,7 +3048,7 @@ class PageSrcSelect(Page):
         self.sources = {}
         super(PageSrcSelect, self).__init__(display)
         self.stack = False
-        self.callbackPeriod = 1
+        self.updateDataPeriod = 1
     #enddef
 
 
@@ -2461,11 +3133,12 @@ class PageSrcSelect(Page):
     #enddef
 
 
-    def menuCallback(self):
+    def updateData(self):
         items = self.fillData()
         if self.old_items != items:
             self.showItems(**items)
             self.old_items = items
+        #endif
     #enddef
 
 
@@ -2517,18 +3190,18 @@ class PageSrcSelect(Page):
     def netChange(self):
         ip = self.display.inet.getIp()
         if ip != "none" and self.octoprintAuth:
-            self.showItems(text, "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth))
+            self.showItems(text = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth))
         else:
-            self.showItems(text, _("Not connected to network"))
+            self.showItems(text = _("Not connected to network"))
         #endif
     #enddef
 
 
-    def loadProject(self, project_path):
+    def loadProject(self, project_filename):
         pageWait = PageWait(self.display, line1 = _("Reading project data..."))
         pageWait.show()
         config = self.display.config
-        config.parseFile(project_path)
+        config.parseFile(project_filename)
         if config.zipError is not None:
             sleep(0.5)
             self.display.page_error.setParams(
@@ -2570,6 +3243,8 @@ class PageError(Page):
 
 
     def setParams(self, **kwargs):
+        self.backFce = kwargs.pop("backFce", None)
+        self.backParams = kwargs.pop("backParams", dict())
         self.fill()
         self.items.update(kwargs)
     #enddef
@@ -2577,13 +3252,16 @@ class PageError(Page):
 
     def backButtonRelease(self):
         self.display.hw.powerLed("normal")
-        return super(PageError, self).backButtonRelease()
+        if self.backFce is None:
+            return super(PageError, self).backButtonRelease()
+        else:
+            return self.backFce(**self.backParams)
+        #endif
     #enddef
 
 
     def contButtonRelease(self):
-        self.display.hw.powerLed("normal")
-        return super(PageError, self).backButtonRelease()
+        return self.backButtonRelease()
     #enddef
 
 #endclass
@@ -2771,12 +3449,15 @@ class PageDisplay(Page):
                 'button14' : "",
                 'button15' : "",
                 })
+        self.checkCooling = True
     #enddef
 
 
     def show(self):
+        self.display.hw.startFans()
         self.display.screen.getImgBlack()
         self.display.screen.inverse()
+        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
         self.display.hw.uvLed(True)
         self.items['button14'] = _("UV off")
         super(PageDisplay, self).show()
@@ -2857,6 +3538,8 @@ class PageDisplay(Page):
             line3 = _("Tilt cycles: %d") % tiltCounter)
         pageWait.show()
         self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
+        self.display.hw.startFans()
+        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
         self.display.hw.uvLed(True)
         self.display.hw.towerSync()
         while True:
@@ -2921,6 +3604,7 @@ class PageDisplay(Page):
     def backButtonRelease(self):
         self.display.hw.uvLed(False)
         self.display.screen.getImgBlack()
+        self.display.hw.stopFans()
         return super(PageDisplay, self).backButtonRelease()
     #enddef
 
@@ -2949,7 +3633,7 @@ class PageAdmin(Page):
 
                 'button11' : _("Net update"),
                 'button12' : _("Logging"),
-                'button13' : "",
+                'button13' : _("System Information"),
                 'button14' : "",
                 'button15' : "",
                 })
@@ -3139,7 +3823,7 @@ Is the tank secured with both screws?"""))
 
 
     def button13ButtonRelease(self):
-        pass
+        return "sysinfo"
     #enddef
 
 
@@ -3375,10 +4059,14 @@ class PageSetupHw(PageSetup):
                 'label1g3' : _("MC version check"),
                 'label1g4' : _("Use resin sensor"),
                 'label1g5' : _("Auto power off"),
+                'label1g6' : _("Mute (no beeps)"),
 
                 'label2g1' : _("Screw (mm/rot)"),
                 'label2g2' : _("Tilt msteps"),
                 'label2g3' : _("Calib. tower offset [mm]"),
+                'label2g4' : _("Measuring moves count"),
+                'label2g5' : _("Stirring moves count"),
+                'label2g6' : _("Delay after stirring [s]"),
                 'label2g8' : _("MC board version"),
                 })
     #enddef
@@ -3388,11 +4076,17 @@ class PageSetupHw(PageSetup):
         self.temp['screwmm'] = self.display.hwConfig.screwMm
         self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
         self.temp['calibtoweroffset'] = self.display.hwConfig.calibTowerOffset
+        self.temp['measuringmoves'] = self.display.hwConfig.measuringMoves
+        self.temp['stirringmoves'] = self.display.hwConfig.stirringMoves
+        self.temp['stirringdelay'] = self.display.hwConfig.stirringDelay
         self.temp['mcboardversion'] = self.display.hwConfig.MCBoardVersion
 
         self.items['value2g1'] = str(self.temp['screwmm'])
         self.items['value2g2'] = str(self.temp['tiltheight'])
         self.items['value2g3'] = self._strOffset(self.temp['calibtoweroffset'])
+        self.items['value2g4'] = str(self.temp['measuringmoves'])
+        self.items['value2g5'] = str(self.temp['stirringmoves'])
+        self.items['value2g6'] = self._strTenth(self.temp['stirringdelay'])
         self.items['value2g8'] = str(self.temp['mcboardversion'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
@@ -3400,12 +4094,14 @@ class PageSetupHw(PageSetup):
         self.temp['mcversioncheck'] = self.display.hwConfig.MCversionCheck
         self.temp['resinsensor'] = self.display.hwConfig.resinSensor
         self.temp['autooff'] = self.display.hwConfig.autoOff
+        self.temp['mute'] = self.display.hwConfig.mute
 
         self.items['state1g1'] = int(self.temp['fancheck'])
         self.items['state1g2'] = int(self.temp['covercheck'])
         self.items['state1g3'] = int(self.temp['mcversioncheck'])
         self.items['state1g4'] = int(self.temp['resinsensor'])
         self.items['state1g5'] = int(self.temp['autooff'])
+        self.items['state1g6'] = int(self.temp['mute'])
 
         super(PageSetupHw, self).show()
     #enddef
@@ -3433,6 +4129,11 @@ class PageSetupHw(PageSetup):
 
     def state1g5ButtonRelease(self):
         self._onOff(4, 'autooff')
+    #enddef
+
+
+    def state1g6ButtonRelease(self):
+        self._onOff(5, 'mute')
     #enddef
 
 
@@ -3466,6 +4167,36 @@ class PageSetupHw(PageSetup):
     #enddef
 
 
+    def minus2g4Button(self):
+        self._value(3, 'measuringmoves', 1, 10, -1)
+    #enddef
+
+
+    def plus2g4Button(self):
+        self._value(3, 'measuringmoves', 1, 10, 1)
+    #enddef
+
+
+    def minus2g5Button(self):
+        self._value(4, 'stirringmoves', 1, 10, -1)
+    #enddef
+
+
+    def plus2g5Button(self):
+        self._value(4, 'stirringmoves', 1, 10, 1)
+    #enddef
+
+
+    def minus2g6Button(self):
+        self._value(5, 'stirringdelay', 0, 300, -5, self._strTenth)
+    #enddef
+
+
+    def plus2g6Button(self):
+        self._value(5, 'stirringdelay', 0, 300, 5, self._strTenth)
+    #enddef
+
+
     def minus2g8Button(self):
         self._value(7, 'mcboardversion', 5, 6, -1)
     #enddef
@@ -3488,7 +4219,6 @@ class PageSetupExposure(PageSetup):
                 'label1g2' : _("Per-Partes expos."),
                 'label1g3' : _("Use tilt"),
 
-                'label2g1' : _("Warm up mins"),
                 'label2g2' : _("Layer trigger [s]"),
                 'label2g3' : _("Limit for fast tilt [%]"),
                 'label2g4' : _("Layer tower hop [mm]"),
@@ -3501,7 +4231,6 @@ class PageSetupExposure(PageSetup):
 
 
     def show(self):
-        self.temp['warmup'] = self.display.hwConfig.warmUp
         self.temp['trigger'] = self.display.hwConfig.trigger
         self.temp['limit4fast'] = self.display.hwConfig.limit4fast
         self.temp['layertowerhop'] = self.display.hwConfig.layerTowerHop
@@ -3510,7 +4239,6 @@ class PageSetupExposure(PageSetup):
         self.temp['upanddownwait'] = self.display.hwConfig.upAndDownWait
         self.temp['upanddowneverylayer'] = self.display.hwConfig.upAndDownEveryLayer
 
-        self.items['value2g1'] = str(self.temp['warmup'])
         self.items['value2g2'] = self._strTenth(self.temp['trigger'])
         self.items['value2g3'] = str(self.temp['limit4fast'])
         self.items['value2g4'] = self._strZHop(self.temp['layertowerhop'])
@@ -3552,12 +4280,12 @@ class PageSetupExposure(PageSetup):
 
 
     def minus2g1Button(self):
-        self._value(0, 'warmup', 0, 30, -1)
+        pass
     #enddef
 
 
     def plus2g1Button(self):
-        self._value(0, 'warmup', 0, 30, 1)
+        pass
     #enddef
 
 
@@ -3851,7 +4579,7 @@ class PageCalibration(Page):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep2,
             imageName = "06_tighten_knob.jpg",
-            text = _("Insert the platform and secure it with the black knob."))
+            text = _("If the platform is not yet inserted, insert it now and secure it with the black knob."))
         return "confirm"
     #enddef
 
@@ -3930,7 +4658,9 @@ class PageTiltCalib(MovePage):
             continueFce = self.tiltCalibStep2,
             backFce = self.tiltCalibAgain,
             imageName = "08_clean.jpg",
-            text = _("Make sure the platform, tank and tilt are PERFECTLY clean."))
+            text = _("""Make sure the platform, tank and tilt are PERFECTLY clean.
+
+The image is for illustation only."""))
         return "confirm"
     #endif
 
@@ -4016,10 +4746,7 @@ Do not rotate the platform. It should be positioned according to the picture."""
         self.logger.debug("tower position above: %d", self.display.hw.getTowerPositionMicroSteps())
         if self.display.hw.getTowerPositionMicroSteps() != self.display.hw._towerAboveSurface:
             self.display.hw.beepAlarm(3)
-            self.display.hw.towerSync()
-            while not self.display.hw.isTowerSynced():
-                sleep(0.25)
-            #endwhile
+            self.display.hw.towerSyncWait()
             self.display.page_confirm.setParams(
                 continueFce = self.okButtonRelease,
                 text = _("""Tower not at the expected position.
@@ -4037,10 +4764,7 @@ Click continue and read the instructions carefully."""))
         self.logger.debug("tower position min: %d", self.display.hw.getTowerPositionMicroSteps())
         if self.display.hw.getTowerPositionMicroSteps() <= self.display.hw._towerMin:
             self.display.hw.beepAlarm(3)
-            self.display.hw.towerSync()
-            while not self.display.hw.isTowerSynced():
-                sleep(0.25)
-            #endwhile
+            self.display.hw.towerSyncWait()
             self.display.page_confirm.setParams(
                 continueFce = self.okButtonRelease,
                 text = _("""Tower not at the expected position.
@@ -4089,27 +4813,30 @@ Front edges of the platform and exposition display need to be parallel."""))
 
     def tiltCalibStep6(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Please wait..."))
+        pageWait = PageWait(self.display, line1 = _("Measuring tilt times..."), line2 = _("Please wait..."))
         pageWait.show()
         self.display.hw.towerSync()
-        self.display.hw.tiltSyncWait(2)
-        self.display.hw.tiltMoveAbsolute(self.display.hwConfig.tiltHeight)
+        self.display.hw.tiltSyncWait()
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
         #endwhile
-        self.display.hwConfig.calibrated = True
+        tiltSlowTime = self.getTiltTime(pageWait, True)
+        tiltFastTime = self.getTiltTime(pageWait, False)
+        self.display.hw.setTowerProfile('moveFast')
+        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.tiltUpWait()
+        self.display.hw.motorsHold()
         self.display.hwConfig.update(
             towerheight = self.display.hwConfig.towerHeight,
             tiltheight = self.display.hwConfig.tiltHeight,
+            tiltfasttime = tiltFastTime,
+            tiltslowtime = tiltSlowTime,
             calibrated = "yes")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
-        self.display.hw.setTiltProfile('moveFast')
-        self.display.hw.setTowerProfile('moveFast')
-        self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
             continueFce = self.tiltCalibStep7,
@@ -4122,7 +4849,23 @@ Front edges of the platform and exposition display need to be parallel."""))
     def tiltCalibStep7(self):
         return "_BACK_"
     #enddef
+
+
+    def getTiltTime(self, pageWait, slowMove):
+        tiltTime = 0
+        total = self.display.hwConfig.measuringMoves
+        for i in xrange(total):
+            pageWait.showItems(line3 = (_("Slow move %(count)d / %(total)d") if slowMove else _("Fast move %(count)d / %(total)d")) % { 'count' : i+1, 'total' : total })
+            tiltStartTime = time()
+            self.display.hw.tiltLayerUpWait()
+            self.display.hw.tiltLayerDownWait(slowMove)
+            tiltTime += time() - tiltStartTime
+        #endfor
+        return round(tiltTime / total, 1)
+    #enddef
+
 #endclass
+
 
 class PageTowerOffset(MovePage):
 
@@ -4575,10 +5318,11 @@ class PageFansLeds(Page):
                 'button4' : _("Save"),
                 'back' : _("Back"),
                 })
-        self.callbackPeriod = 0.5
+        self.updateDataPeriod = 0.5
         self.changed = {}
         self.temp = {}
         self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'uvcurrent', 'pwrledpwm'))
+        self.checkCooling = True
     #enddef
 
 
@@ -4588,7 +5332,7 @@ class PageFansLeds(Page):
     #enddef
 
 
-    def menuCallback(self):
+    def updateData(self):
         items = {}
         self.temp['fs1'], self.temp['fs2'], self.temp['fs3'] = self.display.hw.getFans()
         self.temp['uls'] = self.display.hw.getUvLedState()[0]
@@ -4621,7 +5365,7 @@ class PageFansLeds(Page):
     def button1ButtonRelease(self):
         self.display.page_confirm.setParams(
             continueFce=self.save_defaults,
-            text=_("Save current values as factory defaults ?")
+            text=_("Save current values as factory defaults?")
         )
         return "confirm"
     #enddef
@@ -4664,7 +5408,7 @@ class PageFansLeds(Page):
     def button3ButtonRelease(self):
         self.display.page_confirm.setParams(
             continueFce=self.reset_to_defaults,
-            text=_("Reset to factory defaults ?")
+            text=_("Reset to factory defaults?")
         )
         return "confirm"
     #enddef
@@ -4725,24 +5469,32 @@ class PageFansLeds(Page):
     def state1g1ButtonRelease(self):
         self._onOff(0, 'fs1')
         self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
+        self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
     def state1g2ButtonRelease(self):
         self._onOff(1, 'fs2')
         self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
+        self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
     def state1g3ButtonRelease(self):
         self._onOff(2, 'fs3')
         self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
+        self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
     def state1g5ButtonRelease(self):
         self._onOff(4, 'uls')
         self.display.hw.uvLed(self.temp['uls'])
+        if self.temp['uls']:
+            self.display.hw.startFans()
+        else:
+            self.display.hw.stopFans()
+        #endif
     #enddef
 
 
@@ -4840,11 +5592,12 @@ class PageFansLeds(Page):
 
 class PageFeedMe(Page):
 
-    def __init__(self, display, expo):
+    def __init__(self, display):
         self.pageUI = "feedme"
         self.pageTitle = _("Feed me")
         super(PageFeedMe, self).__init__(display)
-        self.expo = expo
+        self.manual = False
+        self.checkCoverOveride = True
     #enddef
 
 
@@ -4856,15 +5609,18 @@ class PageFeedMe(Page):
 
     def backButtonRelease(self):
         self.display.hw.powerLed("normal")
-        self.expo.doContinue()
+        if not self.manual:
+            self.display.expo.setResinVolume(None)
+        #endif
+        self.display.expo.doBack()
         return super(PageFeedMe, self).backButtonRelease()
     #enddef
 
 
     def refilledButtonRelease(self):
         self.display.hw.powerLed("normal")
-        self.expo.setResinVolume(defines.resinFilled)
-        self.expo.doContinue()
+        self.display.expo.setResinVolume(defines.resinFilled)
+        self.display.expo.doContinue()
         return super(PageFeedMe, self).backButtonRelease()
     #enddef
 
@@ -5163,16 +5919,17 @@ Continue?"""))
 
     def unboxingStep2(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display,
-            line1 = _("The cover is closed!"),
-            line2 = _("Please remove safety sticker and open the orange cover."))
+        pageWait = PageWait(self.display)
         pageWait.show()
-        if self.display.hw.isCoverClosed():
+        if self.display.hwConfig.coverCheck and self.display.hw.isCoverClosed():
+            pageWait.showItems(
+                    line1 = _("The cover is closed!"),
+                    line2 = _("Please remove the safety sticker and open the orange cover."))
             self.display.hw.beepAlarm(3)
+            while self.display.hw.isCoverClosed():
+                sleep(0.5)
+            #endwhile
         #endif
-        while self.display.hw.isCoverClosed():
-            sleep(0.5)
-        #endwhile
         pageWait.showItems(
             line1 = _("The printer is moving to allow for easier manipulation"),
             line2 = _("Please wait...")
@@ -5198,10 +5955,7 @@ Continue?"""))
             line1 = _("The printer is moving to allow for easier manipulation"),
             line2 = _("Please wait..."))
         pageWait.show()
-        self.display.hw.towerSync()
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
+        self.display.hw.towerSyncWait()
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep4,
@@ -5237,8 +5991,6 @@ Continue?"""))
 
 
     def wizardStep1(self):
-        self.display.hwConfig.fanCheck = False
-        self.display.hw.uvLed(False)
         self.display.hw.powerLed("warn")
         homeStatus = 0
 
@@ -5300,7 +6052,7 @@ Tilt profiles need to be changed."""))
 
 Current position: %d
 
-Please check if tilting mechanism can move smoothly in its entire range.""") % self.display.hw.getTiltPosition())
+Please check if the tilting mechanism can move smoothly in its entire range.""") % self.display.hw.getTiltPosition())
 	    self.display.hw.motorsRelease()
             return "error"
         #endif
@@ -5393,85 +6145,55 @@ Make sure the tank is empty and clean."""))
 
 Current position: %d
 
-Please check if ballscrew can move smoothly in its entire range.""") % position)
+Please check if the ballscrew can move smoothly in its entire range.""") % position)
             self.display.hw.motorsRelease()
             return "error"
         #endif
 
-        #fan check
-        self.display.hw.uvLed(False)
-        pageWait.showItems(line1 = _("Fan check"))
-        self.display.hwConfig.fanCheck = False
-        self.display.hw.setFansPwm((0, 0, 0))
-        self.display.hw.setFans((True, True, True))
-        sleep(6)    #wait for fans to stop
+        # fan check
+        pageWait.showItems(line1 = _("Fans check (fans are stopped)"))
+        self.display.hw.stopFans()
+        sleep(defines.fanStartStopTime)  # wait for fans to stop
         rpm = self.display.hw.getFansRpm()
-        if rpm[0] != 0 or rpm[1] != 0 or rpm[2] != 0:
+        if any(rpm):
             self.display.page_error.setParams(
                 text = _("""RPM detected when fans are expected to be off
 
 Check if all fans are properly connected.
 
 RPM data: %s""") % rpm)
+            self.display.hw.motorsRelease()
             return "error"
         #endif
+        pageWait.showItems(line1 = _("Fans check (fans are running)"))
+        # TODO rafactoring needed -> fans object(s)
                         #fan1        fan2        fan3
         fanLimits = [[50,150], [1100, 1700], [150, 300]]
         hwConfig = libConfig.HwConfig()
         self.display.hw.setFansPwm((hwConfig.fan1Pwm, hwConfig.fan2Pwm, hwConfig.fan3Pwm))   #use default PWM. TODO measure fans in range of values
-        sleep(6)    #let the fans spin up
+        self.display.hw.startFans()
+        sleep(defines.fanStartStopTime)  # let the fans spin up
         rpm = self.display.hw.getFansRpm()
         for i in xrange(3):
             if not fanLimits[i][0] <= rpm[i] <= fanLimits[i][1]:
-                if i == 0:
-                    fanName = _("UV LED")
-                elif i == 1:
-                    fanName = _("blower")
-                else:
-                    fanName = _("rear")
-                #endif
                 self.display.page_error.setParams(
-                    text = _("""RPM of %(fan)s fan not in range!
+                    text = _("""RPM of %(fan)s not in range!
 
 Please check if the fan is connected correctly.
 
-RPM data: %(rpm)s""") % { 'fan' : fanName, 'rpm' : rpm })
-                self.display.hw.setFansPwm((0, 0, 0))
+RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm })
+                self.display.hw.stopFans()
+                self.display.hw.motorsRelease()
                 return "error"
             #endif
         #endfor
         self.display.hwConfig.wizardFanRpm[0] = rpm[0]
         self.display.hwConfig.wizardFanRpm[1] = rpm[1]
         self.display.hwConfig.wizardFanRpm[2] = rpm[2]
-        self.display.hwConfig.fanCheck = True
 
-        #temperature check
+        # temperature check
         pageWait.showItems(line1 = _("Temperature check"))
-        temperatures = self.display.hw.getMcTemperatures()
-        for i in xrange(2):
-            if not self.display.hw._minAmbientTemp < temperatures[i] < self.display.hw._maxAmbientTemp:
-                if i == 0:
-                    sensorName = _("UV LED")
-                else:
-                    sensorName = _("Ambient")
-                #endif
-                self.display.page_error.setParams(
-                    text = _(u"""%(sensor)s temperature not in range!
 
-Please check if temperature sensors are connected correctly.
-
-Keep the printer out of direct sunlight at room temperature 18 - 32 °C. Measured: %(temp).1f °C.""") % { 'sensor' : sensorName, 'temp' : temperatures[i] })
-                return "error"
-            #endif
-        #endfor
-        if abs(temperatures[0] - temperatures[1]) > self.display.hw._maxTempDiff:
-            self.display.page_confirm.setParams(
-                continueFce = self.wizardStep4,
-                text = _(u"""UV LED and ambient temperatures are in allowed range but differ more than %.1f °C.
-
-Keep the printer out of direct sunlight at room temperature 18 - 32 °C.""") % self.display.hw._maxTempDiff)
-            return "confirm"
-        #endif
         if self.display.hw.getCpuTemperature() > self.display.hw._maxA64Temp:
             self.display.page_error.setParams(
                 text = _(u"""A64 temperature is too high. Measured: %.1f °C!
@@ -5482,10 +6204,43 @@ Shutting down in 10 seconds...""") % self.display.hw.getCpuTemperature())
             self.display.shutDown(True)
             return "error"
         #endif
-        self.display.hwConfig.wizardTempUvInit = temperatures[0]
-        self.display.hwConfig.wizardTempAmbient = temperatures[1]
-        self.display.hwConfig.wizardTempA64 = self.display.hw.getCpuTemperature()
-        self.wizardStep4()
+
+        temperatures = self.display.hw.getMcTemperatures()
+        for i in xrange(2):
+
+            if temperatures[i] < 0:
+                self.display.page_error.setParams(
+                    text = _("""Can't read %s
+
+Please check if temperature sensors are connected correctly.""") % self.display.hw.getSensorName(i))
+                self.display.hw.stopFans()
+                self.display.hw.motorsRelease()
+                return "error"
+            #endif
+
+            if not self.display.hw._minAmbientTemp < temperatures[i] < self.display.hw._maxAmbientTemp:
+                self.display.page_error.setParams(
+                    text = _(u"""%(sensor)s not in range!
+
+Keep the printer out of direct sunlight at room temperature (18 - 32 °C). Measured: %(temp).1f °C.""")
+                    % { 'sensor' : self.display.hw.getSensorName(i), 'temp' : temperatures[i] })
+                self.display.hw.stopFans()
+                self.display.hw.motorsRelease()
+                return "error"
+            #endif
+
+        #endfor
+
+        if abs(temperatures[0] - temperatures[1]) > self.display.hw._maxTempDiff:
+            self.display.page_confirm.setParams(
+                continueFce = self.wizardStep4,
+                text = _(u"""UV LED and ambient temperatures are in allowed range but differ more than %.1f °C.
+
+Keep the printer out of direct sunlight at room temperature (18 - 32 °C).""") % self.display.hw._maxTempDiff)
+            return "confirm"
+        #endif
+
+        return self.wizardStep4()
     #enddef
 
 
@@ -5503,7 +6258,7 @@ Make sure the tank is empty and clean."""))
 
 
     def wizardStep5(self):
-        self.ensure_cover_closed()
+        self.ensureCoverIsClosed()
 
         # UV LED voltage comparation
         pageWait = PageWait(self.display,
@@ -5530,6 +6285,8 @@ Please check if UV LED panel is connected properly.
 
 Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : volts})
                 self.display.hw.uvLed(False)
+                self.display.hw.stopFans()
+                self.display.hw.motorsRelease()
                 return "error"
             #endif
             self.display.hwConfig.wizardUvVoltage[0][i] = int(volts[0] * 1000)
@@ -5543,19 +6300,21 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
         for countdown in xrange(120, 0, -1):
             pageWait.showItems(line2 = _("Please wait %d s") % countdown)
             sleep(1)
-            temps = self.display.hw.getMcTemperatures()
-            if temps[self.display.hw._ledTempIdx] > self.display.hw._maxUVTemp:
+            temp = self.display.hw.getUvLedTemperature()
+            if temp > self.display.hw._maxUVTemp:
                 self.display.page_error.setParams(
                     text = _("""UV LED too hot!
 
 Please check if the UV LED panel is attached to the heatsink.
 
-Temperature data: %s""") % temps)
+Temperature data: %s""") % temp)
                 self.display.hw.uvLed(False)
+                self.display.hw.stopFans()
+                self.display.hw.motorsRelease()
                 return "error"
             #endif
         #endfor
-        self.display.hwConfig.wizardTempUvWarm = temps[self.display.hw._ledTempIdx]
+        self.display.hwConfig.wizardTempUvWarm = temp
         self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
         self.display.hw.powerLed("normal")
 
@@ -5564,10 +6323,13 @@ Temperature data: %s""") % temps)
 
 
     def wizardStep6(self):
+        self.display.screen.getImgBlack()
+        self.display.hw.uvLed(False)
+        self.display.hw.stopFans()
         self.display.page_confirm.setParams(
             continueFce = self.wizardStep7,
             imageName = "11_insert_platform_60deg.jpg",
-            text = _("Leave the resin tank secured with screws and insert platform at a 60 degree angle."))
+            text = _("Leave the resin tank secured with screws and insert platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down."))
         return "confirm"
     #enddef
 
@@ -5579,17 +6341,14 @@ Temperature data: %s""") % temps)
             line2 = _("Please wait..."),
             line3 = _("DO NOT touch the printer"))
         pageWait.show()
-        self.display.hw.towerSync()
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-        #endwhile
+        self.display.hw.towerSyncWait()
         self.display.hw.setTowerPosition(self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight))
         volume = self.display.hw.getResinVolume()
         if not 110 <= volume <= 190:    #to work properly even with loosen rocker brearing
             self.display.page_error.setParams(
-                text = _("""Resin sensor not working properly!
+                text = _("""Resin sensor not working!
 
-Please check if sensor is properly connected.
+Please check if sensor is connected properly.
 
 Measured %d ml.""") % volume)
             self.display.hw.motorsRelease()
@@ -5602,7 +6361,7 @@ Measured %d ml.""") % volume)
             sleep(0.25)
         #endwhile
         self.display.hw.motorsRelease()
-        self.display.hw.setFans((False, False, False))
+        self.display.hw.stopFans()
         self.display.hwConfig.update(
             wizarduvvoltagerow1 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[0]),
             wizarduvvoltagerow2 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[1]),

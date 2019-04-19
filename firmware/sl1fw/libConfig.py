@@ -285,11 +285,15 @@ class HwConfig(FileConfig):
         self.MCversionCheck = self._parseBool("mcversioncheck", True)
         self.resinSensor = self._parseBool("resinsensor", True)
         self.autoOff = self._parseBool("autooff", True)
+        self.mute = self._parseBool("mute", False)
 
         self.screwMm = self._parseInt("screwmm", 4)
         self.microStepsMM = 200 * 16 / self.screwMm
         self.tiltHeight = self._parseInt("tiltheight", defines.defaultTiltHeight) #safe value
         self.calibTowerOffset = self._parseInt("calibtoweroffset", 0)
+        self.stirringMoves = self._parseIntMinMax("stirringmoves", 3, 1, 10)
+        self.stirringDelay = self._parseIntMinMax("stirringdelay", 5, 0, 300)
+        self.measuringMoves = self._parseIntMinMax("measuringmoves", 3, 1, 10)
 
         self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 5, 5, 6)
 
@@ -298,7 +302,6 @@ class HwConfig(FileConfig):
         self.perPartes = self._parseBool("perpartesexposure", False)
         self.tilt = self._parseBool("tilt", True)
 
-        self.warmUp = self._parseInt("warmup", 0)
         self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
         self.limit4fast = self._parseIntMinMax("limit4fast", 45, 0, 100)
         self.whitePixelsThd = (1440 * 2560) * (self.limit4fast / 100.0)
@@ -331,7 +334,8 @@ class HwConfig(FileConfig):
         self.pixelSize = self._parseFloat("pixelsize", 0.046875, True)    # 5.5" LCD
         self.calibrated = self._parseBool("calibrated", False)
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(defines.defaultTowerHeight)) # safe value
-        self.mute = self._parseBool("mute", False)
+        self.tiltFastTime = self._parseFloat("tiltfasttime", 5.5)
+        self.tiltSlowTime = self._parseFloat("tiltslowtime", 8.0)
         self.showAdmin = self._parseBool("showadmin", False)
         self.showWizard = self._parseBool("showwizard", True)
         self.showUnboxing = self._parseBool("showunboxing", True)
@@ -503,6 +507,8 @@ class PrintConfig(FileConfig):
             self.layerMicroSteps2 = self._parseInt("stepnum2", self.layerMicroSteps)
             self.layerMicroSteps3 = self._parseInt("stepnum3", self.layerMicroSteps)
         #endif
+        layerHeightFirst = self._parseFloat("layerheightfirst", 0.05)
+        self.layerMicroStepsFirst = self._hwConfig.calcMicroSteps(layerHeightFirst)
 
         self.slice2 = self._parseInt("slice2", 9999998) # vrstva prechodu na parametry2
         self.slice3 = self._parseInt("slice3", 9999999) # vrstva prechodu na parametry3

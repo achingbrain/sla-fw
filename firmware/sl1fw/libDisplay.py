@@ -5,7 +5,7 @@
 import os, sys
 import logging
 from time import sleep
-import datetime
+from datetime import datetime
 
 import defines
 import libPages
@@ -69,14 +69,30 @@ class Display(object):
         self.page_setlogincredentials = libPages.PageSetLoginCredentials(self)
         self.page_wizard = libPages.PageWizard(self)
         self.page_logging = libPages.PageLogging(self)
+        self.page_print = libPages.PagePrint(self)
+        self.page_feedme = libPages.PageFeedMe(self)
 
         self.actualPage = self.page_start
+        self.fanErrorOverride = False
+        self.checkCoolingExpo = True
     #enddef
 
 
-    def initExpoPages(self, expo):
-        self.page_print = libPages.PagePrint(self, expo)
-        self.page_feedme = libPages.PageFeedMe(self, expo)
+    def __del__(self):
+        self.exit()
+    #enddef
+
+
+    def exit(self):
+        for device in self.devices:
+            device.exit()
+        #endfor
+    #enddef
+
+
+    def initExpo(self, expo):
+        # TODO remove cyclic dependency
+        self.expo = expo
     #enddef
 
 
@@ -122,22 +138,21 @@ class Display(object):
     #enddef
 
 
-    def doMenu(self, startPage, callback = None, callbackPeriod = 0.1):
+    def doMenu(self, startPage):
         self.pageStack = list()
         if startPage is not None:
             self.setPage(startPage)
         #endif
         autorepeatFce = None
         autorepeatDelay = 1
-        callbackTimeOld = datetime.datetime.now()
-        callbackTime = datetime.datetime.fromtimestamp(0)
+        callbackTime = datetime.fromtimestamp(0)
+        updateDataTime = callbackTime
         while True:
-            now = datetime.datetime.now()
+            now = datetime.now()
 
-            # old style callbacks (TODO:remove)
-            if callback is not None and (now - callbackTimeOld).total_seconds() > callbackPeriod:
-                callbackTimeOld = now
-                newPage = callback(self.actualPage)
+            if self.actualPage.callbackPeriod and (now - callbackTime).total_seconds() > self.actualPage.callbackPeriod:
+                callbackTime = now
+                newPage = self.actualPage.callback()
                 if newPage == "_EXIT_MENU_":
                     break
                 elif newPage is not None:
@@ -149,12 +164,9 @@ class Display(object):
                 #endif
             #endif
 
-            # new style callbacks
-            if self.actualPage.callbackPeriod and (now - callbackTime).total_seconds() > self.actualPage.callbackPeriod:
-                callbackTime = now
-                if self.actualPage.menuCallback() == "_EXIT_MENU_":
-                    break
-                #endif
+            if self.actualPage.updateDataPeriod and (now - updateDataTime).total_seconds() > self.actualPage.updateDataPeriod:
+                updateDataTime = now
+                self.actualPage.updateData()
             #endif
 
             button, pressed, data = self.getEvent()
@@ -270,8 +282,9 @@ class Display(object):
         #endif
 
         self.screen.exit()
-        for device in self.devices:
-            device.exit()
+        self.inet.exit()
+        self.hw.exit()
+        self.exit()
         sys.exit()
     #enddef
 

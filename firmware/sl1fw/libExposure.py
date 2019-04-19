@@ -72,7 +72,7 @@ class ExposureThread(threading.Thread):
     #enddef
 
 
-    def doFrame(self, picture, position, exposureTime, overlayName, prevWhitePixels, second):
+    def doFrame(self, picture, position, exposureTime, overlayName, prevWhitePixels, wasStirring, second):
 
         self.expo.screen.screenshot(second = second)
 
@@ -98,6 +98,10 @@ class ExposureThread(threading.Thread):
 
         if self.expo.hwConfig.delayBeforeExposure:
             sleep(self.expo.hwConfig.delayBeforeExposure / 10.0)
+        #endif
+
+        if wasStirring:
+            sleep(self.expo.hwConfig.stirringDelay / 10.0)
         #endif
 
         if self.calibAreas is not None:
@@ -167,12 +171,17 @@ class ExposureThread(threading.Thread):
 
         if self.expo.hwConfig.tilt:
             self.expo.hw.setTowerProfile('layer')
-            if not self.expo.hw.tiltLayerDownWait(whitePixels):
-                self.expo.doPause()
+
+            slowMove = whitePixels > self.expo.hwConfig.whitePixelsThd
+            if slowMove and self.expo.slowLayers:
+                self.expo.slowLayers -= 1
+            #endif
+            if not self.expo.hw.tiltLayerDownWait(slowMove):
+                return (False, whitePixels)
             #endif
         #endif
 
-        return whitePixels
+        return (True, whitePixels)
     #enddef
 
 
@@ -186,7 +195,7 @@ class ExposureThread(threading.Thread):
             self.expo.hw.beepAlarm(3)
             sleep(5)
         else:
-            pageWait = libPages.PageWait(self.expo.display, line2 = _("Going to top"))
+            pageWait = libPages.PageWait(self.expo.display, line2 = _("Going to the top position"))
             pageWait.show()
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():
@@ -221,11 +230,13 @@ class ExposureThread(threading.Thread):
     #endif
 
 
-    def doWait(self):
+    def doWait(self, beep = False):
         command = None
-        breakFree = set(("exit", "continue"))
+        breakFree = set(("exit", "back", "continue"))
         while not command:
-            self.expo.hw.beepAlarm(3)
+            if beep:
+                self.expo.hw.beepAlarm(3)
+            #endif
             sleep(1)
 
             try:
@@ -243,6 +254,51 @@ class ExposureThread(threading.Thread):
         #endwhile
 
         return command
+    #enddef
+
+
+    def doStuckRelease(self):
+        self.expo.hw.powerLed("error")
+        self.expo.hw.towerHoldTiltRelease()
+        self.expo.display.page_confirm.setParams(
+            continueFce = self.expo.doContinue,
+            backFce = self.expo.doBack,
+            beep = True,
+            text = _("""The printer got stuck and needs user assistance.
+
+Release the tank mechanism and press Continue.
+
+If you don't want to continue, please press the Back button on top of the screen and the actual job will be canceled."""))
+        self.expo.display.setPage("confirm")
+        if self.doWait(True) == "back":
+            return False
+        #endif
+
+        self.expo.hw.powerLed("warn")
+        pageWait = libPages.PageWait(self.expo.display, line2 = _("Setting start positions..."))
+        pageWait.show()
+
+        if not self.expo.display.hw.tiltSyncWait(retries = 1):
+            self.expo.display.page_confirm.setParams(
+                    continueFce = self.expo.doBack,
+                    backFce = self.expo.doBack,
+                    beep = True,
+                    text = _("""Tilt homing failed!
+
+Check the printer's hardware.
+
+The print job was canceled."""))
+            self.expo.display.setPage("confirm")
+            self.doWait(True)
+            return False
+        #endif
+
+        pageWait.showItems(line2 = _("Stirring the resin"))
+        self.expo.hw.stirResin()
+        self.expo.hw.powerLed("normal")
+        self.expo.display.setPage("print")
+        return True
+    #enddef
 
 
     def run(self):
@@ -251,6 +307,8 @@ class ExposureThread(threading.Thread):
             config = self.expo.config
             prevWhitePixels = 0
             totalLayers = config.totalLayers
+            stuck = False
+            wasStirring = True
 
             for i in xrange(totalLayers):
 
@@ -266,36 +324,57 @@ class ExposureThread(threading.Thread):
                 if command == "updown":
                     self.doUpAndDown()
                     self.expo.display.goBack()
+                    wasStirring = True
                 #endif
 
                 if command == "exit":
                     break
                 #endif
 
-                if command == "feedme":
-                    self.expo.hw.powerLed("warn")
-                    self.expo.hw.tiltLayerUpWait()
-                    self.expo.display.page_feedme.showItems(text = _("""Resin level low!
+                if command == "pause":
+                    if not self.expo.hwConfig.blinkExposure:
+                        self.display.hw.uvLed(False)
+                    #endif
 
-Please refill the tank up to the 100 % mark and press Done.
-
-If you don't want to refill, please press the Back button on top of the screen."""))
-                    if self.doWait() == "exit":
+                    if self.doWait(False) == "exit":
                         break
                     #endif
+
+                    if not self.expo.hwConfig.blinkExposure:
+                        self.display.hw.uvLed(True)
+                    #endif
+                #endif
+
+                if command == "feedme" or command == "feedmeByButton":
+                    self.expo.hw.powerLed("warn")
+                    if self.expo.hwConfig.tilt:
+                        self.expo.hw.tiltLayerUpWait()
+                    #endif
+                    if command == "feedme":
+                        reason = _("Resin level low!")
+                        beep = True
+                    else:
+                        reason = _("Manual resin refill")
+                        beep = False
+                    #endif
+                    self.expo.display.page_feedme.showItems(text = _("""%s
+
+Please refill the tank up to the 100 %% mark and press Done.
+
+If you don't want to refill, please press the Back button on top of the screen.""") % reason)
+                    self.expo.display.setPage("feedme")
+                    self.doWait(beep)
 
                     if self.expo.hwConfig.tilt:
                         pageWait = libPages.PageWait(self.expo.display, line2 = _("Stirring the resin"))
                         pageWait.show()
+                        self.expo.hw.setTiltProfile('moveFast')
                         self.expo.hw.tiltDownWait()
                         self.expo.hw.stirResin()
                     #endif
+                    wasStirring = True
                     self.expo.hw.powerLed("normal")
-                    self.expo.display.actualPage.show()
-                #endif
-
-                if command == "pause":
-                    self.doWait()
+                    self.expo.display.setPage("print")
                 #endif
 
                 if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
@@ -303,30 +382,30 @@ If you don't want to refill, please press the Back button on top of the screen."
                     self.expo.display.actualPage.show()
                 #endif
 
-                self.expo.hw.checkTemp(self.expo.checkPage, self.expo.display.actualPage)
-                self.expo.hw.checkFanStatus(self.expo.checkPage, self.expo.display.actualPage)
-                self.expo.hw.checkCoverStatus(self.expo.checkPage, self.expo.display.actualPage)
-
-                # prvni tri vrstvy jsou vzdy s casem config.expTimeFirst
-                if i < 3:
+                # first layer - extra height + extra time
+                if not i:
+                    step = config.layerMicroStepsFirst
+                    time = config.expTimeFirst
+                # second two layers - normal height + extra time
+                elif i < 3:
                     step = config.layerMicroSteps
                     time = config.expTimeFirst
-                # dalsich config.fadeLayers je prechod config.expTimeFirst -> config.expTime
+                # next config.fadeLayers is fade between config.expTimeFirst and config.expTime
                 elif i < config.fadeLayers + 3:
                     step = config.layerMicroSteps
                     # expTimes may be changed during print
                     timeLoss = (config.expTimeFirst - config.expTime) / float(config.fadeLayers)
                     self.logger.debug("timeLoss: %0.3f", timeLoss)
                     time = config.expTimeFirst - (i - 2) * timeLoss
-                # do prvniho zlomu standardni parametry
+                # standard parameters to first change
                 elif i + 1 < config.slice2:
                     step = config.layerMicroSteps
                     time = config.expTime
-                # do druheho zlomu parametry2
+                # parameters of second change
                 elif i + 1 < config.slice3:
                     step = config.layerMicroSteps2
                     time = config.expTime2
-                # a pak uz parametry3
+                # parameters of third change
                 else:
                     step = config.layerMicroSteps3
                     time = config.expTime3
@@ -334,8 +413,8 @@ If you don't want to refill, please press the Back button on top of the screen."
 
                 self.expo.actualLayer = i + 1
                 self.expo.position += step
-                self.logger.debug("LAYER %04d/%04d (%s)  steps: %d  position: %d  time: %.3f",
-                        self.expo.actualLayer, totalLayers, config.toPrint[i], step, self.expo.position, time)
+                self.logger.debug("LAYER %04d/%04d (%s)  steps: %d  position: %d time: %.3f  slowLayers: %d",
+                        self.expo.actualLayer, totalLayers, config.toPrint[i], step, self.expo.position, time, self.expo.slowLayers)
 
                 if i < 2:
                     overlayName = 'calibPad'
@@ -345,24 +424,39 @@ If you don't want to refill, please press the Back button on top of the screen."
                     overlayName = None
                 #endif
 
-                whitePixels = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
+                (success, whitePixels) = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                         self.expo.position + self.expo.hwConfig.calibTowerOffset,
                         time,
                         overlayName,
                         prevWhitePixels,
+                        wasStirring,
                         False)
+
+                if not success and not self.doStuckRelease():
+                    self.expo.hw.powerLed("normal")
+                    self.expo.canceled = True
+                    stuck = True
+                    break
+                #endif
 
                 # exposure second part too
                 if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
-                    self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
+                    (success, dummy) = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                             self.expo.position + self.expo.hwConfig.calibTowerOffset,
                             time,
                             overlayName,
                             whitePixels,
+                            wasStirring,
                             True)
+
+                    if not success and not self.doStuckRelease():
+                        stuck = True
+                        break
+                    #endif
                 #endif
 
                 prevWhitePixels = whitePixels
+                wasStirring = False
 
                 # /1000 - we want cm3 (=ml) not mm3
                 self.expo.resinCount += whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000
@@ -379,13 +473,16 @@ If you don't want to refill, please press the Back button on top of the screen."
             self.expo.hw.uvLed(False)
             self.expo.hw.beepRepeat(3)
             actualPage = self.expo.display.setPage("print")
+            actualPage.showItems(percent = "100%",  progress = 100)
 
             # TODO extra page finalPrint
 
-            self.expo.hw.towerToTop()
-            while not self.expo.hw.isTowerOnTop():
-                sleep(0.25)
-            #endwhile
+            if not stuck:
+                self.expo.hw.towerToTop()
+                while not self.expo.hw.isTowerOnTop():
+                    sleep(0.25)
+                #endwhile
+            #endif
 
             #self.logger.debug("thread ended")
 
@@ -407,40 +504,62 @@ class Exposure(object):
         self.display = display
         self.hw = hw
         self.screen = screen
-        # FIXME test return value!
-        self.screen.openZip(filename = self.config.zipName)
-        # here ^^^
-        self.perPartes = self.screen.createMasks(perPartes = hwConfig.perPartes)
+        self.pixelSize = self.hwConfig.pixelSize ** 2
+        self.exception = None
+        self.resinCount = 0.0
+        self.resinVolume = None
+        self.canceled = False
+        self.expoThread = None
+        self.zipName = None
+    #enddef
+
+
+    def setProject(self, zipName):
+        self.zipName = zipName
+    #enddef
+
+
+    def loadProject(self):
+        if not self.screen.openZip(filename = self.zipName):
+            return False
+        #endif
+        self.perPartes = self.screen.createMasks(perPartes = self.hwConfig.perPartes)
         self.position = 0
         self.actualLayer = 0
-        self.checkPage = libPages.PageWait(display)
+        self.checkPage = libPages.PageWait(self.display) # FIXME
         self.expoCommands = Queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self, self.config.toPrint[0])
         self.screen.preloadImg(
                 filename = self.config.toPrint[0],
                 overlayName = 'calibPad',
-                whitePixelsThd = hwConfig.whitePixelsThd)
-        self.exception = None
-        self.resinCount = 0.0
-        self.resinVolume = None
-        self.pixelSize = self.hwConfig.pixelSize ** 2
-        self.paused = False
-        self.canceled = False
+                whitePixelsThd = self.hwConfig.whitePixelsThd)
+        self.slowLayers = self.config.layersSlow
+        return True
     #enddef
 
 
     def start(self):
-        self.expoThread.start()
+        if self.expoThread:
+            self.expoThread.start()
+        else:
+            self.logger.error("Can't start exposure thread")
+        #endif
     #enddef
 
 
     def inProgress(self):
-        return self.expoThread.isAlive()
+        if self.expoThread:
+            return self.expoThread.isAlive()
+        else:
+            return False
+        #endif
     #enddef
 
 
     def waitDone(self):
-        self.expoThread.join()
+        if self.expoThread:
+            self.expoThread.join()
+        #endif
     #enddef
 
 
@@ -459,20 +578,32 @@ class Exposure(object):
     #enddef
 
 
+    def doFeedMeByButton(self):
+        self.expoCommands.put("feedmeByButton")
+    #enddef
+
+
     def doPause(self):
         self.expoCommands.put("pause")
-        self.paused = True
+    #enddef
 
 
     def doContinue(self):
         self.expoCommands.put("continue")
-        self.paused = False
+    #enddef
+
+
+    def doBack(self):
+        self.expoCommands.put("back")
     #enddef
 
 
     def setResinVolume(self, volume):
-        self.resinCount = 0.0
-        self.resinVolume = volume
+        if volume is None:
+            self.resinVolume = None
+        else:
+            self.resinVolume = volume + int(self.resinCount)
+        #endif
     #enddef
 
 #endclass
