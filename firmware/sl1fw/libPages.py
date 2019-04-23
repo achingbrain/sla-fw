@@ -1701,9 +1701,9 @@ Wrong settings may damage your printer!"""))
     def showadminContinue(self):
         self.display.hwConfig.update(showadmin = "yes")
         if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
         return "_BACK_"
     #enddef
@@ -2057,7 +2057,7 @@ class PageTiltTower(Page):
 
                 'button11' : _("Turn motors off"),
                 'button12' : _("Tune tilt"),
-                'button13' : _("Tilt home test"),
+                'button13' : _("Axis sensitivity"),
                 'button14' : _("Tower offset"),
                 'button15' : "",
                 })
@@ -2182,24 +2182,7 @@ class PageTiltTower(Page):
 
 
     def button13ButtonRelease(self):
-        self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Tilt home test"))
-        pageWait.show()
-        retc = self._syncTower(pageWait)
-        if retc == "error":
-            return retc
-        #endif
-        for i in xrange(50):
-            self.display.hw.tiltSyncWait()
-            self.display.hw.tiltMoveAbsolute(3000)
-            #self.display.hw.tiltUp()
-            while self.display.hw.isTiltMoving():
-                sleep(0.1)
-            #endwhile
-            sleep(2)
-        #endfor
-        self.display.hw.powerLed("normal")
-        return "_SELF_"
+        return "axissensivity"
     #enddef
 
 
@@ -2667,9 +2650,9 @@ Continue?"""))
             fanrpm = "0 0 0"
         )
         if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
         self.display.shutDown(True)
     #enddef
@@ -2892,9 +2875,9 @@ class PageSetup(Page):
         ''' save '''
         self.display.hwConfig.update(**self.changed)
         if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
         return super(PageSetup, self).backButtonRelease()
     #endif
@@ -3640,9 +3623,9 @@ Front edges of the platform and exposition display need to be parallel."""))
             tiltheight = self.display.hwConfig.tiltHeight,
             calibrated = "yes")
         if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
         self.display.hw.setTiltProfile('moveFast')
         self.display.hw.setTowerProfile('moveFast')
@@ -3713,9 +3696,9 @@ class PageTowerOffset(MovePage):
         self.display.hwConfig.calibTowerOffset = self.tmpTowerOffset
         self.display.hwConfig.update(calibtoweroffset = self.display.hwConfig.calibTowerOffset)
         if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
         return "_BACK_"
     #enddef
@@ -4159,9 +4142,9 @@ class PageFansLeds(Page):
         filtered = { k : v for k, v in filter(lambda t: t[0] in self.valuesToSave, self.changed.iteritems()) }
         self.display.hwConfig.update(**filtered)
         if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
         return super(PageFansLeds, self).backButtonRelease()
     #endif
@@ -4361,9 +4344,9 @@ class PageTuneTilt(ProfilesPage):
             tiltup = ' '.join(str(n) for n in self.profiles[2])
         )
         if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
         return super(PageTuneTilt, self).backButtonRelease()
     #enddef
@@ -4803,9 +4786,9 @@ RPM data: %(rpm)s""") % { 'fan' : fanName, 'rpm' : rpm })
                     fanrpm = ' '.join(str(n) for n in self.display.hwConfig.fanRpm)
                 )
                 if not self.display.hwConfig.writeFile():
-                    self.display.hw.beepAlarm(3)
-                    sleep(1)
-                    self.display.hw.beepAlarm(3)
+                    self.display.page_error.setParams(
+                        text=_("Cannot save confuration"))
+                    return "error"
                 #endif
             #endif
         #endfor
@@ -4916,9 +4899,9 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
                     uvvoltagerow3 = ' '.join(str(n) for n in self.display.hwConfig.uvVoltage[2])
                 )
                 if not self.display.hwConfig.writeFile():
-                    self.display.hw.beepAlarm(3)
-                    sleep(1)
-                    self.display.hw.beepAlarm(3)
+                    self.display.page_error.setParams(
+                        text=_("Cannot save confuration"))
+                    return "error"
                 #endif
             #endif
         #endfor
@@ -4999,9 +4982,9 @@ Measured %d ml.""") % volume)
         #endwhile
         self.display.hwConfig.update(showwizard = "no")
         if not self.display.hwConfig.writeFile():
-            self.display.hw.beepAlarm(3)
-            sleep(1)
-            self.display.hw.beepAlarm(3)
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
         #endif
         self.display.hw.motorsRelease()
         self.display.page_confirm.setParams(
@@ -5015,6 +4998,103 @@ Continue to calibration?"""))
 
     def wizardStep8(self):
         return "calibration"
+    #enddef
+
+#endclass
+
+class PageAxisSensitivity(PageSetup):
+
+    def __init__(self, display):
+        self.pageTitle = _("Axis sensitivity")
+        super(PageAxisSensitivity, self).__init__(display)
+        self.items.update({
+                'label1g1' : _("Tilt"),
+                'label1g2' : _("Tower"),
+                
+                'button1' : "",
+                'button2' : "",
+                })
+    #enddef
+
+
+    def show(self):
+        self.temp['tiltsensivity'] = self.display.hwConfig.tiltSensivity
+        self.temp['towersensivity'] = self.display.hwConfig.towerSensivity
+
+        self.items['value2g1'] = str(self.temp['tiltsensivity'])
+        self.items['value2g2'] = str(self.temp['towersensivity'])
+
+        super(PageAxisSensitivity, self).show()
+    #enddef
+
+
+    def button1ButtonRelease(self):
+        pass
+    #enddef
+
+
+    def button2ButtonRelease(self):
+        pass
+    #enddef
+
+
+    def button4ButtonRelease(self):
+        ''' save '''
+        if self.temp['tiltsensivity'] != self.display.hwConfig.tiltSensivity:
+            self.display.hwConfig.tiltSensivity = self.temp['tiltsensivity']
+            #adjust tilt profiles
+            profiles = self.display.hw.getTiltProfiles()
+            self.logger.debug("profiles %s", profiles)
+            profiles[0][4] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensivity + 2][0]
+            profiles[0][5] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensivity + 2][1]
+            profiles[1][4] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensivity + 2][0]
+            profiles[1][5] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensivity + 2][1]
+            self.display.hw.setTiltProfiles(profiles)
+            self.logger.debug("profiles %s", profiles)
+        #endif
+        if self.temp['towersensivity'] != self.display.hwConfig.towerSensivity:
+            self.display.hwConfig.towerSensivity = self.temp['towersensivity']
+            #adjust tower profiles
+            profiles = self.display.hw.getTowerProfiles()
+            self.logger.debug("profiles %s", profiles)
+            profiles[0][4] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensivity + 2][0]
+            profiles[0][5] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensivity + 2][1]
+            profiles[1][4] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensivity + 2][0]
+            profiles[1][5] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensivity + 2][1]
+            self.display.hw.setTowerProfiles(profiles)
+            self.logger.debug("profiles %s", profiles)
+        #endif
+
+        self.display.hwConfig.update(
+            tiltsensivity = self.display.hwConfig.tiltSensivity,
+            towersensivity = self.display.hwConfig.towerSensivity,
+        )
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
+        #endif
+        return super(PageAxisSensitivity, self).backButtonRelease()
+    #enddef
+
+
+    def minus2g1Button(self):
+        self._value(0, 'tiltsensivity', -2, +2, -1)
+    #enddef
+
+
+    def plus2g1Button(self):
+        self._value(0, 'tiltsensivity', -2, +2, 1)
+    #enddef
+
+
+    def minus2g2Button(self):
+        self._value(1, 'towersensivity', -2, +2, -1)
+    #enddef
+
+
+    def plus2g2Button(self):
+        self._value(1, 'towersensivity', -2, +2, 1)
     #enddef
 
 #endclass
