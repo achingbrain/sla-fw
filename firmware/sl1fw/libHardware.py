@@ -343,6 +343,16 @@ class Hardware(object):
         self._tiltProfileNames = map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1]))
         self._towerProfileNames = map(lambda x: x[0], sorted(self._towerProfiles.items(), key=lambda kv: kv[1]))
 
+        self._tiltAdjust = {
+            'homingFast': [[20,5],[20,6],[20,7],[21,9],[22,12]],
+            'homingSlow': [[16,3],[16,5],[16,7],[16,9],[16,11]]
+        }
+
+        self._towerAdjust = {
+            'homingFast': [[22,0],[22,2],[22,4],[22,6],[22,8]],
+            'homingSlow': [[14,0],[15,0],[16,1],[16,3],[16,5]]
+        }
+
         self._tiltMin = -12840        # whole turn
         self._tiltMax = 12840
         self._tiltEnd = 5800    #top deadlock

@@ -310,6 +310,8 @@ class HwConfig(FileConfig):
         self.uvVoltage.append([int(n) for n in self._parseString("uvvoltagerow2", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
         self.uvVoltage.append([int(n) for n in self._parseString("uvvoltagerow3", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
         self.fanRpm = [int(n) for n in self._parseString("fanrpm", "0 0 0").split()]
+        self.tiltSensivity = self._parseInt("tiltsensivity", 0)
+        self.towerSensivity = self._parseInt("towersensivity", 0)
 
     def calcMicroSteps(self, mm):
         return int(mm * self.microStepsMM)
