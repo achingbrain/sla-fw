@@ -1633,47 +1633,27 @@ class PageNetInfo(Page):
                         wifiData = json.loads(f.read())
                     #endwith
                     ip = devices[apDeviceName]
-                    items['line1'] = _("SSID: %(ssid)s  password: %(pass)s") % { 'ssid' : wifiData['ssid'], 'pass' : wifiData['psk'] }
-                    items['mode'] = 'ap'
+                    items['mode'] = "ap"
                     items['ap_ssid'] = wifiData['ssid']
                     items['ap_psk'] = wifiData['psk']
-                    items['line2'] = _("Setup URL: %s") % (ip + defines.wifiSetupURI)
-                    items['ap_setup_url'] = "%s%s" % (ip, defines.wifiSetupURI)
-                    items['qr1label'] = _("WiFi")
-                    items['qr1'] = "WIFI:S:%s;T:WPA;P:%s;H:false;" % (wifiData['ssid'], wifiData['psk'])
-                    items['qr2label'] = _("Setup URL")
-                    items['qr2'] = "http://%s%s" % (ip, defines.wifiSetupURI)
+                    items['qr'] = "WIFI:S:%s;T:WPA;P:%s;H:false;" % (wifiData['ssid'], wifiData['psk'])
                 except Exception:
                     self.logger.exception("wifi setup file exception:")
-                    items['line1'] = _("Error reading WiFi setup!")
-                    items['line2'] = ""
-                    items['qr1label'] = ""
-                    items['qr1'] = ""
-                    items['qr2label'] = ""
-                    items['qr2'] = ""
+                    items['mode'] = None
+                    items['text'] = _("Error reading WiFi setup!")
                 #endtry
             else:
                 # client mode
                 ip = self.display.inet.getIp()
-                items['line1'] = _("IP address: %s") % ip
-                items['line2'] = _("Hostname: %s") % self.display.inet.getHostname()
                 items['mode'] = "client"
                 items['client_ip'] = ip
                 items['client_hostname'] = self.display.inet.getHostname()
-                items['qr1label'] = _("Logfile")
-                items['qr1'] = "http://%s/log" % ip
-                items['qr2label'] = _("MC debug")
-                items['qr2'] = "http://%s/debug" % ip
+                items['qr'] = "http://maker:%s@%s/" % (self.octoprintAuth, ip)
             #endif
         else:
             # no internet connection
             items['mode'] = None
-            items['line1'] = _("Not connected to network")
-            items['line2'] = ""
-            items['qr1label'] = ""
-            items['qr1'] = ""
-            items['qr2label'] = ""
-            items['qr2'] = ""
+            items['text'] = _("Not connected to network")
         #endif
         return items
     #enddef
@@ -1699,11 +1679,11 @@ class PageAbout(Page):
         self.pageTitle = _("About")
         super(PageAbout, self).__init__(display)
         self.items.update({
-                "line1" : "2018-2019 Prusa Research s.r.o.",
-                "line2" : defines.aboutURL,
-#                "qr1" : "https://www.prusa3d.com",
-                "qr1" : "MECARD:N:Prusa Research s.r.o.;URL:www.prusa3d.com;EMAIL:info@prusa3d.com;;",
-                "about_url": defines.aboutURL
+                'line1' : "2018-2019 Prusa Research s.r.o.",
+                'line2' : defines.aboutURL,
+#                'qr' : "https://www.prusa3d.com",
+                'qr' : "MECARD:N:Prusa Research s.r.o.;URL:www.prusa3d.com;EMAIL:info@prusa3d.com;;",
+                'about_url': defines.aboutURL
                 })
     #enddef
 

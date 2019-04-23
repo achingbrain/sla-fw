@@ -43,7 +43,6 @@ templates = '/srv/http/intranet/templates'
 motionControlDevice = "/dev/ttyS2"
 socatPort = 8192
 
-wifiSetupURI = ":8080"
 wifiSetupFile = "/etc/hostapd.secrets.json"
 
 octoprintURI = ":8000"
