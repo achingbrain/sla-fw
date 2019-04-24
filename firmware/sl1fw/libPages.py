@@ -2644,6 +2644,7 @@ Continue?"""))
             calibrated = "no",
             showadmin = "no",
             showwizard = "yes",
+            showunboxing = "yes",
             uvvoltagerow1 = "0 0 0",
             uvvoltagerow2 = "0 0 0",
             uvvoltagerow3 = "0 0 0",
@@ -4564,11 +4565,88 @@ class PageWizard(Page):
 
 
     def prepare(self):
+        if not self.display.hwConfig.showUnboxing:
+            continueTo = self.wizardStep1
+        else:
+            continueTo = self.unboxingStep1
+        #endif
         self.display.page_confirm.setParams(
-            continueFce = self.wizardStep1,
+            continueFce = continueTo,
             text = _("""Welcome to initial wizard.
 
 This procedure will check and set up all features.
+
+Continue?"""))
+        return "confirm"
+    #enddef
+
+
+    def unboxingStep1(self):
+        self.display.page_confirm.setParams(
+            continueFce = self.unboxingStep2,
+            imageName = "13_open_cover.jpg",
+            text = _("Please open the cover."))
+        return "confirm"
+    #enddef
+
+
+    def unboxingStep2(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = _("Cover is closed!"),
+            line2 = _("Please open the orange cover."))
+        pageWait.show()
+        if self.display.hw.isCoverClosed():
+            self.display.hw.beepAlarm(3)
+        #endif
+        while self.display.hw.isCoverClosed():
+            sleep(0.5)
+        #endwhile
+        pageWait.showItems(
+            line1 = _("Printer is moving for easier unboxing"),
+            line2 = _("Please wait...")
+        )
+        self.display.hw.setTowerPosition(0)
+        self.display.hw.setTowerProfile("homingFast")
+        self.display.hw.towerMoveAbsolute(self.display.hwConfig.calcMicroSteps(30))
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.powerLed("normal")
+        self.display.page_confirm.setParams(
+            continueFce = self.unboxingStep3,
+            text = _("Remove the protective foam from both sides of the platform."))
+        return "confirm"
+    #enddef
+
+
+    def unboxingStep3(self):
+        self.display.page_confirm.setParams(
+            continueFce = self.unboxingStep4,
+            text = _("Unscrew the tank and remove the protective foam underneath it."))
+        return "confirm"
+    #enddef
+
+
+    def unboxingStep4(self):
+        self.display.page_confirm.setParams(
+            continueFce = self.unboxingStep5,
+            text = _("Carefully peel of protective foil from exposure display."))
+        return "confirm"
+    #enddef
+
+
+    def unboxingStep5(self):
+        self.display.hwConfig.showUnboxing = False
+        self.display.hwConfig.update(showunboxing = "no")
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text=_("Cannot save confuration"))
+            return "error"
+        #endif
+        self.display.page_confirm.setParams(
+            continueFce = self.wizardStep1,
+            text = _("""Printer is unboxed and ready for selftest.
 
 Continue?"""))
         return "confirm"
