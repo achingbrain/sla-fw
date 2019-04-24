@@ -31,6 +31,7 @@ class MotConCom(object):
             dsrdtr = False,
             interCharTimeout = None)
     MCversion = ""
+    MCrevision = ""
     MCserial = ""
 
     commOKStr = re.compile('^(.*)ok$')
@@ -100,6 +101,11 @@ class MotConCom(object):
             return "Wrong motion controller firmware version"
         else:
             self.logger.info("motion controller firmware version: %s", self.MCversion)
+        #endif
+
+        self.MCrevision = self.do("?rev")
+        if self.MCrevision:
+            self.logger.info("motion controller board revision: %s", self.MCrevision)
         #endif
 
         self.MCserial = self.do("?ser")
@@ -458,18 +464,27 @@ class Hardware(object):
     #enddef
 
 
-    def getControllerVersion(self):
+    @property
+    def mcVersion(self):
         return self.mcc.MCversion
     #enddef
 
 
-    def getControllerSerial(self):
+    @property
+    def mcSerialNo(self):
         return self.mcc.MCserial
     #enddef
 
 
-    def getCPUSerial(self):
+    @property
+    def cpuSerialNo(self):
         return self.cpuSerial
+    #enddef
+
+
+    @property
+    def mcRevision(self):
+        return self.mcc.MCrevision
     #enddef
 
 

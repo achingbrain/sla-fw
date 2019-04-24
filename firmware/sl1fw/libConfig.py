@@ -306,13 +306,19 @@ class HwConfig(FileConfig):
         self.showAdmin = self._parseBool("showadmin", False)
         self.showWizard = self._parseBool("showwizard", True)
         self.showUnboxing = self._parseBool("showunboxing", True)
-        self.uvVoltage = list()
-        self.uvVoltage.append([int(n) for n in self._parseString("uvvoltagerow1", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
-        self.uvVoltage.append([int(n) for n in self._parseString("uvvoltagerow2", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
-        self.uvVoltage.append([int(n) for n in self._parseString("uvvoltagerow3", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
-        self.fanRpm = [int(n) for n in self._parseString("fanrpm", "0 0 0").split()]
         self.tiltSensivity = self._parseInt("tiltsensivity", 0)
         self.towerSensivity = self._parseInt("towersensivity", 0)
+        #following values are measured and saved in initial wizard
+        self.wizardUvVoltage = list() #measured voltage on each UV led row
+        self.wizardUvVoltage.append([int(n) for n in self._parseString("wizarduvvoltagerow1", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
+        self.wizardUvVoltage.append([int(n) for n in self._parseString("wizarduvvoltagerow2", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
+        self.wizardUvVoltage.append([int(n) for n in self._parseString("wizarduvvoltagerow3", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
+        self.wizardFanRpm = [int(n) for n in self._parseString("wizardfanrpm", "0 0 0").split()] #fans rpm when using default pwm
+        self.wizardTempUvInit = self._parseFloat("wizardtempuvinit", 0.0) #UV led temperature at the beginning of test (should be close to ambient)
+        self.wizardTempUvWarm = self._parseFloat("wizardtempuvwarm", 0.0) #UV led temperature after warmup test
+        self.wizardTempAmbient = self._parseFloat("wizardtempambient", 0.0) #ambient sensor temperature
+        self.wizardTempA64 = self._parseFloat("wizardtempa64", 0.0) #A64 temperature
+        self.wizardResinVolume = self._parseInt("wizardresinvolume", 0) #measured fake resin volume in wizard (without resin with rotated platform)
 
     def calcMicroSteps(self, mm):
         return int(mm * self.microStepsMM)
