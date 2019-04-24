@@ -16,6 +16,7 @@ import time
 import re
 import urllib2
 import tarfile
+import paho.mqtt.publish as mqtt
 
 import defines
 import libConfig
@@ -1561,7 +1562,7 @@ class PageSysInfo(Page):
         self.pageTitle = _("System Information")
         super(PageSysInfo, self).__init__(display)
         self.items.update({
-                'serial_number': self.display.hw.getCPUSerial(),
+                'serial_number': self.display.hw.cpuSerialNo,
                 'system_name': self.display.hwConfig.os.name,
                 'system_version': self.display.hwConfig.os.version,
                 'firmware_version': defines.swVersion,
@@ -1573,8 +1574,8 @@ class PageSysInfo(Page):
 
     def show(self):
         self.oldValues = {}
-        self.items['controller_version'] = self.display.hw.getControllerVersion()
-        self.items['controller_serial'] = self.display.hw.getControllerSerial()
+        self.items['controller_version'] = self.display.hw.mcVersion
+        self.items['controller_serial'] = self.display.hw.mcSerialNo
         self.items['api_key'] = self.octoprintAuth
         self.display.hw.resinSensor(True)
         self.skip = 11
@@ -2633,26 +2634,60 @@ Continue?"""))
 
 
     def factoryResetStep2(self):
+        pageWait = PageWait(self.display, line1 = _("Please wait..."), line2 = _("Printer returns to factory defaults."))
+        pageWait.show()
         #slightly press the foam against printers base
         self.display.hw.towerMoveAbsolute(self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(93))
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
-        self.display.hwConfig.update(
+        topic = "prusa/sl1/factoryConfig"
+        printerConfig = {
+            "osVersion" : self.display.hwConfig.os.versionId,
+            "sl1fwVersion" : defines.swVersion,
+            "a64SerialNo" : self.display.hw.cpuSerialNo,
+            "mcSerialNo" : self.display.hw.mcSerialNo,
+            "mcFwVersion" : self.display.hw.mcVersion,
+            "mcBoardRev" : self.display.hw.mcRevision,
+            "towerHeight" : self.display.hwConfig.towerHeight,
+            "tiltHeight" : self.display.hwConfig.tiltHeight,
+            "uvCurrent" : self.display.hwConfig.uvCurrent,
+            "wizardUvVoltageRow1" : self.display.hwConfig.wizardUvVoltage[0],
+            "wizardUvVoltageRow2" : self.display.hwConfig.wizardUvVoltage[1],
+            "wizardUvVoltageRow3" : self.display.hwConfig.wizardUvVoltage[2],
+            "wizardFanRpm" : self.display.hwConfig.wizardFanRpm,
+            "wizardTempUvInit" : self.display.hwConfig.wizardTempUvInit,
+            "wizardTempUvWarm" : self.display.hwConfig.wizardTempUvWarm,
+            "wizardTempAmbient" : self.display.hwConfig.wizardTempAmbient,
+            "wizardTempA64" : self.display.hwConfig.wizardTempA64,
+            "wizardResinVolume" : self.display.hwConfig.wizardResinVolume
+        }
+        try:
+            mqtt.single(topic, json.dumps(printerConfig), qos=2, retain=True, hostname="mqttstage.prusa")
+        except Exception as err:
+            self.logger.warning("mqtt message not delivered. %s", err)
+        #endtry
+
+        hwConfig = libConfig.HwConfig()
+        self.display.hwConfig.update(   #set  to default those parameters which can be changed from advanced settings or via calibration
             towerheight = self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight),
             tiltheight = defines.defaultTiltHeight,
+            tiltsensivity = hwConfig.tiltSensivity,
+            towersensivity = hwConfig.towerSensivity,
+            limit4fast = hwConfig.limit4fast,
+            calibtoweroffset = hwConfig.calibTowerOffset,
+            fan3pwm = hwConfig.fan3Pwm,
+            autooff = hwConfig.autoOff,
+            covercheck = hwConfig.coverCheck,
+            resinsensor = hwConfig.resinSensor,
             calibrated = "no",
             showadmin = "no",
             showwizard = "yes",
-            showunboxing = "yes",
-            uvvoltagerow1 = "0 0 0",
-            uvvoltagerow2 = "0 0 0",
-            uvvoltagerow3 = "0 0 0",
-            fanrpm = "0 0 0"
+            showunboxing = "yes"
         )
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text=_("Cannot save factory default confuration"))
             return "error"
         #endif
         self.display.shutDown(True)
@@ -4856,20 +4891,10 @@ RPM data: %(rpm)s""") % { 'fan' : fanName, 'rpm' : rpm })
                 self.display.hw.setFansPwm((0, 0, 0))
                 return "error"
             #endif
-            if self.display.hwConfig.fanRpm[0] == 0:    # store only if rpm are empty
-                self.display.hwConfig.fanRpm[0] = rpm[0]
-                self.display.hwConfig.fanRpm[1] = rpm[1]
-                self.display.hwConfig.fanRpm[2] = rpm[2]
-                self.display.hwConfig.update(
-                    fanrpm = ' '.join(str(n) for n in self.display.hwConfig.fanRpm)
-                )
-                if not self.display.hwConfig.writeFile():
-                    self.display.page_error.setParams(
-                        text=_("Cannot save confuration"))
-                    return "error"
-                #endif
-            #endif
         #endfor
+        self.display.hwConfig.wizardFanRpm[0] = rpm[0]
+        self.display.hwConfig.wizardFanRpm[1] = rpm[1]
+        self.display.hwConfig.wizardFanRpm[2] = rpm[2]
         self.display.hwConfig.fanCheck = True
 
         #temperature check
@@ -4909,6 +4934,9 @@ Shutting down in 10 seconds...""") % self.display.hw.getCpuTemperature())
             self.display.shutDown(True)
             return "error"
         #endif
+        self.display.hwConfig.wizardTempUvInit = temperatures[0]
+        self.display.hwConfig.wizardTempAmbient = temperatures[1]
+        self.display.hwConfig.wizardTempA64 = self.display.hw.getCpuTemperature()
         self.wizardStep4()
     #enddef
 
@@ -4967,21 +4995,9 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
                 self.display.hw.uvLed(False)
                 return "error"
             #endif
-            if self.display.hwConfig.uvVoltage[0][i] == 0:    # if data are empty (test only first row), save voltages
-                self.display.hwConfig.uvVoltage[0][i] = int(volts[0] * 1000)
-                self.display.hwConfig.uvVoltage[1][i] = int(volts[1] * 1000)
-                self.display.hwConfig.uvVoltage[2][i] = int(volts[2] * 1000)
-                self.display.hwConfig.update(
-                    uvvoltagerow1 = ' '.join(str(n) for n in self.display.hwConfig.uvVoltage[0]),
-                    uvvoltagerow2 = ' '.join(str(n) for n in self.display.hwConfig.uvVoltage[1]),
-                    uvvoltagerow3 = ' '.join(str(n) for n in self.display.hwConfig.uvVoltage[2])
-                )
-                if not self.display.hwConfig.writeFile():
-                    self.display.page_error.setParams(
-                        text=_("Cannot save confuration"))
-                    return "error"
-                #endif
-            #endif
+            self.display.hwConfig.wizardUvVoltage[0][i] = int(volts[0] * 1000)
+            self.display.hwConfig.wizardUvVoltage[1][i] = int(volts[1] * 1000)
+            self.display.hwConfig.wizardUvVoltage[2][i] = int(volts[2] * 1000)
         #endfor
 
         # UV LED temperature check
@@ -5002,6 +5018,7 @@ Temperature data: %s""") % temps)
                 return "error"
             #endif
         #endfor
+        self.display.hwConfig.wizardTempUvWarm = temps[self.display.hw._ledTempIdx]
         self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
         self.display.hw.powerLed("normal")
 
@@ -5053,18 +5070,34 @@ Measured %d ml.""") % volume)
             self.display.hw.motorsRelease()
             return "error"
         #endif
+        self.display.hwConfig.wizardResinVolume = volume
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait()
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
         #endwhile
-        self.display.hwConfig.update(showwizard = "no")
+        self.display.hw.motorsRelease()
+
+        self.display.hwConfig.update(
+            wizarduvvoltagerow1 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[0]),
+            wizarduvvoltagerow2 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[1]),
+            wizarduvvoltagerow3 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[2]),
+            wizardfanrpm = ' '.join(str(n) for n in self.display.hwConfig.wizardFanRpm),
+            wizardtempuvinit = self.display.hwConfig.wizardTempUvInit,
+            wizardtempuvwarm = self.display.hwConfig.wizardTempUvWarm,
+            wizardtempambient = self.display.hwConfig.wizardTempAmbient,
+            wizardtempa64 = self.display.hwConfig.wizardTempA64,
+            wizardresinvolume = self.display.hwConfig.wizardResinVolume,
+            showwizard = "no"
+        )
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text=_("Cannot save wizard confuration"))
             return "error"
         #endif
-        self.display.hw.motorsRelease()
+
+        #TODO save hardware.cfg to second slot
+
         self.display.page_confirm.setParams(
             continueFce = self.wizardStep8,
             text = _("""Printer is succesfully checked.
