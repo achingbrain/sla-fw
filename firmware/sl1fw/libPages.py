@@ -3550,7 +3550,7 @@ class PageTiltCalib(MovePage):
             imageName = "06_tighten_knob.jpg",
             text = _("""Check if the platform is properly secured with black knob.
 
-Do not rotate the platform. Keep it flat and aligned with exposition display."""))
+Do not rotate the platform. It should be positioned according to picture."""))
         return "confirm"
     #enddef
 
@@ -4607,9 +4607,9 @@ class PageWizard(Page):
         #endif
         self.display.page_confirm.setParams(
             continueFce = continueTo,
-            text = _("""Welcome to initial wizard.
+            text = _("""Welcome to the initial wizard.
 
-This procedure will check and set up all features.
+Following steps will guide you through all initial settings of your new SL1.
 
 Continue?"""))
         return "confirm"
@@ -4620,7 +4620,7 @@ Continue?"""))
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep2,
             imageName = "13_open_cover.jpg",
-            text = _("Please open the cover."))
+            text = _("Please remove safety sticker on the right and open the orange cover."))
         return "confirm"
     #enddef
 
@@ -4629,7 +4629,7 @@ Continue?"""))
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Cover is closed!"),
-            line2 = _("Please open the orange cover."))
+            line2 = _("Please remove safety sticker and open the orange cover."))
         pageWait.show()
         if self.display.hw.isCoverClosed():
             self.display.hw.beepAlarm(3)
@@ -4650,15 +4650,27 @@ Continue?"""))
         self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep3,
-            text = _("Remove the protective foam from both sides of the platform."))
+            imageName = "14_remove_foam.jpg",
+            text = _("Remove the black foam from both sides of the platform."))
         return "confirm"
     #enddef
 
 
     def unboxingStep3(self):
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display,
+            line1 = _("Printer is moving for easier unboxing"),
+            line2 = _("Please wait..."))
+        pageWait.show()
+        self.display.hw.towerSync()
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.powerLed("normal")
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep4,
-            text = _("Unscrew the tank and remove the protective foam underneath it."))
+            imageName = "15_remove_bottom_foam.jpg",
+            text = _("Unscrew and remove the resin tank and remove black foam underneath it."))
         return "confirm"
     #enddef
 
@@ -4666,7 +4678,7 @@ Continue?"""))
     def unboxingStep4(self):
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep5,
-            text = _("Carefully peel of protective foil from exposure display."))
+            text = _("Carefully peel of orange protective foil from exposure display."))
         return "confirm"
     #enddef
 
