@@ -4597,6 +4597,14 @@ class PageFansLeds(Page):
     #endif
 
 
+    def backButtonRelease(self):
+        self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm, self.display.hwConfig.fan2Pwm, self.display.hwConfig.fan3Pwm))
+        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        self.display.hw.setPowerLedPwm(self.display.hwConfig.pwrLedPwm)
+        return super(PageFansLeds, self).backButtonRelease()
+    #enddef
+
+
     def state1g1ButtonRelease(self):
         self._onOff(0, 'fs1')
         self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
