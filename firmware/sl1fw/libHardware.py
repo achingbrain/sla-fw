@@ -422,7 +422,8 @@ class Hardware(object):
     def initDefaults(self):
         self.motorsRelease()
         self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm))
-        self.setFans((True, True, True))
+        #TODO remove this awful hack to enable fans only after UV is turned on
+        #self.setFans((True, True, True))
         self.setFanCheckMask((True, True, True))
         self.setUvLedCurrent(self.hwConfig.uvCurrent)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
@@ -693,7 +694,11 @@ class Hardware(object):
 
 
     def uvLed(self, state, time = 0):
-        self.mcc.do("!uled", 1 if state else 0, int(time))
+        #TODO remove this awful hack to enable fans only after UV is turned on  
+        if state == True:
+            self.setFans((True, True, True))
+        #endif
+        self.mcc.do("!uled", 1 if state else 0, int(time))        
     #enddef
 
 
