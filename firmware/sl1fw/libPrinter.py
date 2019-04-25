@@ -95,15 +95,15 @@ class Printer(object):
             zf.close()
             if badfile is not None:
                 self.logger.error("Corrupted file: %s", badfile)
-                message = _("""Your project has corrupted data.
+                message = _("""Corrupted data detected.
 
-Regenerate it and try again.""")
+Re-export the file and try again.""")
             #endif
         except Exception as e:
             self.logger.exception("zip read exception:")
-            message = _("""Can't read data of your project.
+            message = _("""Can't read project data.
 
-Regenerate it and try again.""")
+Re-export the file and try again.""")
         #endif
 
         if message is None:
@@ -160,11 +160,11 @@ Check it and try again."""))
             self.display.page_confirm.setParams(
                     continueFce = self.copyZipRestore,
                     continueParams = { 'returnPage' : returnPage },
-                    text = _("""Can't load the file to the printer.
+                    text = _("""Loading the file into the printer's memory failed.
 
-Project'll be printed directly from the USB drive.
+The project will be printed from USB drive.
 
-DO NOT take it out!"""))
+DO NOT remove the USB drive!"""))
             return self.display.doMenu("confirm")
         #endtry
 
@@ -218,7 +218,7 @@ DO NOT take it out!"""))
         if self.expo.resinVolume:
             remain = self.expo.resinVolume - int(self.expo.resinCount)
             if remain < defines.resinFeedWait:
-                self.display.page_feedme.setItems(text = _("Wait for layer finish please."))
+                self.display.page_feedme.setItems(text = _("Wait until layer finish..."))
                 self.expo.doFeedMe()
                 return "feedme"
             #endif
@@ -278,7 +278,7 @@ DO NOT take it out!"""))
                 #endif
                 self.display.doMenu("home", self.homeCallback, 30)
 
-                pageWait = libPages.PageWait(self.display, line1 = _("Do not open the cover!"), line2 = _("Checking project data"))
+                pageWait = libPages.PageWait(self.display, line1 = _("Do not open the cover!"), line2 = _("Checking project data..."))
                 pageWait.show()
 
                 if not self.copyZip(pageWait):
@@ -299,7 +299,7 @@ DO NOT take it out!"""))
                     self.display.initExpoPages(self.expo)
                 except Exception:
                     self.logger.exception("exposure exception:")
-                    self.display.page_error.setParams(text = _("Can't init exposure display"))
+                    self.display.page_error.setParams(text = _("Couldn't initialize the exposure display!"))
                     self.display.doMenu("error")
                     continue
                 #endtry
@@ -332,25 +332,27 @@ Check if fans are connected properly and can rotate without resistance."""))
 
                     if not volume:
                         self.display.page_error.setParams(
-                                text = _("""Resin measure failed!
+                                text = _("""Resin measuring failed!
 
-Is tank filled and secured with both screws?"""))
+Is there the correct amount of resin in the tank?
+
+Is the tank secured with both screws?"""))
                     elif volume < defines.resinMinVolume:
                         self.display.page_error.setParams(
                                 text = _("""Resin volume is too low!
 
-Add resin and try again."""))
+Add enough resin so it reaches at least the %d %% mark and try again.""") % self.hw.calcPercVolume(defines.resinMinVolume))
                     elif volume > defines.resinMaxVolume:
                         self.display.page_error.setParams(
                                 text = _("""Resin volume is too high!
 
-Remove some resin from tank and try again."""))
+Remove some resin from the tank and try again."""))
                     else:
                         fail = False
                     #endif
 
                     if fail:
-                        pageWait.showItems(line1 = _("Problem with resin volume"), line2 = _("Moving platform up"))
+                        pageWait.showItems(line1 = _("There is a problem with resin volume..."), line2 = _("Moving platform up"))
                         self.hw.setTowerProfile('moveFast')
                         self.hw.towerToTop()
                         while not self.hw.isTowerOnTop():
@@ -361,7 +363,7 @@ Remove some resin from tank and try again."""))
                         continue
                     #endif
 
-                    pageWait.showItems(line2 = _("Measured resin volume is approx %d %%") % self.hw.calcPercVolume(volume))
+                    pageWait.showItems(line2 = _("Measured resin volume is approx. %d %%") % self.hw.calcPercVolume(volume))
                     self.expo.setResinVolume(volume)
                 else:
                     pageWait.showItems(line2 = _("Resin volume measurement is turned off"))
@@ -460,7 +462,7 @@ Remove some resin from tank and try again."""))
             if ip != "none":
                 items['text'] += _("""
 Please send the contents of %s/logf to info@prusa3d.com
-Thank you""") % ip
+Thank you!""") % ip
                 items.update({
                     "qr1"   : "http://%s/logf" % ip,
                     "qr1label" : "Logfile",

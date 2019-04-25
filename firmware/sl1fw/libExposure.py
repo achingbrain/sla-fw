@@ -207,7 +207,7 @@ class ExposureThread(threading.Thread):
             #endfor
 
             if self.expo.hwConfig.tilt:
-                pageWait.showItems(line2 = _("Resin stirring"), line3 = "")
+                pageWait.showItems(line2 = _("Stirring the resin"), line3 = "")
                 self.expo.hw.stirResin()
             #endif
             pageWait.showItems(line2 = _("Going back"), line3 = "")
@@ -277,15 +277,15 @@ class ExposureThread(threading.Thread):
                     self.expo.hw.tiltLayerUpWait()
                     self.expo.display.page_feedme.showItems(text = _("""Resin level low!
 
-Please refill the tank up to max and hit done.
+Please refill the tank up to the 100 % mark and press Done.
 
-If you don't want to refill, please press pack button on top of the screen."""))
+If you don't want to refill, please press the Back button on top of the screen."""))
                     if self.doWait() == "exit":
                         break
                     #endif
 
                     if self.expo.hwConfig.tilt:
-                        pageWait = libPages.PageWait(self.expo.display, line2 = _("Resin stirring"))
+                        pageWait = libPages.PageWait(self.expo.display, line2 = _("Stirring the resin"))
                         pageWait.show()
                         self.expo.hw.tiltDownWait()
                         self.expo.hw.stirResin()

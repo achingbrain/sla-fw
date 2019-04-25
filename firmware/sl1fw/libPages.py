@@ -203,8 +203,8 @@ class Page(object):
         self.display.hw.powerLed("warn")
         if not self.display.hw.isCoverClosed():
             pageWait = PageWait(self.display,
-                                line1=_("Orange cover not closed!"),
-                                line2=_("If cover is closed, please check the connection of cover switch."))
+                    line1 = _("The orange lid is not closed!"),
+                    line2 = _("If the cover is closed, please check the connection of the cover switch."))
             pageWait.show()
             self.display.hw.beepAlarm(3)
             self.display.hw.uvLed(False)
@@ -229,16 +229,16 @@ class Page(object):
         self.display.hw.uvLed(True)
         self.display.screen.getImg(filename=os.path.join(defines.dataPath, "logo_1440x2560.png"))
         self.display.page_confirm.setParams(
-            continueFce=callback,
-            continueParams={'fce': continueFce},
-            backFce=callback,
-            backParams={'fce': backFce},
-            imageName="10_prusa_logo.jpg",
-            text=_("""Can you see company logo on the exposure display through orange cover?
+            continueFce = callback,
+            continueParams = {'fce': continueFce},
+            backFce = callback,
+            backParams = {'fce': backFce},
+            imageName = "10_prusa_logo.jpg",
+            text = _("""Can you see company logo on the exposure display through the orange cover?
 
-        Tip: The logo is best seen when you look from above.
+Tip: The logo is best seen when you look from above.
 
-        DO NOT open the cover."""))
+DO NOT open the cover."""))
         return "confirm"
     #enddef
 
@@ -310,7 +310,7 @@ class Page(object):
             self.display.page_error.setParams(
                     text = _("""Tower homing failed!
 
-Check printer's hardware."""))
+Check the printer's hardware."""))
             return "error"
         #endif
         return "_SELF_"
@@ -322,7 +322,7 @@ Check printer's hardware."""))
             self.display.page_error.setParams(
                     text = _("""Tilt homing failed!
 
-Check printer's hardware."""))
+Check the printer's hardware."""))
             return "error"
         #endif
         return "_SELF_"
@@ -466,9 +466,9 @@ class PagePrintPreview(PagePrintPreviewBase):
             self.display.page_error.setParams(
                     text = _("""Tower homing failed!
 
-Check printer's hardware.
+Check the printer's hardware.
 
-Job was canceled."""))
+The print job was canceled."""))
             return "error"
         #endif
 
@@ -477,9 +477,9 @@ Job was canceled."""))
             self.display.page_error.setParams(
                     text = _("""Tilt homing failed!
 
-Check printer's hardware.
+Check the printer's hardware.
 
-Job was canceled."""))
+The print job was canceled."""))
             return "error"
         #endif
 
@@ -508,13 +508,13 @@ class PagePrintStart(PagePrintPreviewBase):
                 }
         if perc <= 100:
             lines.update({
-                'text' : _("Please fill resin tank at least at %d %% and close cover.") % perc
+                'text' : _("Please fill the resin tank to least %d %% and close the cover.") % perc
                 })
         else:
             lines.update({
-                'text' : _("""Please fill resin tank to line 100 % and close cover.
+                'text' : _("""Please fill the resin tank to the 100 % mark and close the cover.
 
-Refill will be required during printing."""),
+Resin will have to be added during this print job."""),
                 })
         self.items.update(lines)
         super(PagePrintStart, self).show()
@@ -631,7 +631,7 @@ class PageControl(Page):
 
     def topButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = _("Moving platform to top"))
+        pageWait = PageWait(self.display, line2 = _("Moving platform to the top"))
         pageWait.show()
         retc = self._syncTower(pageWait)
         self.display.hw.motorsHold()
@@ -1271,10 +1271,10 @@ class PageAdvancedSettings(Page):
     # Factory reset
     def factoryresetButtonRelease(self):
         self.display.page_confirm.setParams(
-            continueFce=self.factoryResetStep1,
-            text=_("""Do you really want to do factory reset?
+            continueFce = self.factoryResetStep1,
+            text = _("""Do you really want to perform the factory reset?
 
-        All settings will be deleted!"""))
+All settings will be deleted!"""))
         return "confirm"
     #enddef
 
@@ -1297,9 +1297,9 @@ class PageAdvancedSettings(Page):
     def backButtonRelease(self):
         if self.configwrapper.changed():
             self.display.page_confirm.setParams(
-                continueFce=self._savechanges,
-                backFce=self._discardchanges,
-                text=_("Save changes"))
+                continueFce = self._savechanges,
+                backFce = self._discardchanges,
+                text = _("Save changes"))
             return "confirm"
         else:
             return super(PageAdvancedSettings, self).backButtonRelease()
@@ -1311,7 +1311,7 @@ class PageAdvancedSettings(Page):
         sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
         if not self.configwrapper.commit():
             self.display.page_error.setParams(
-                text=_("Cannot save configuration"))
+                text = _("Cannot save configuration"))
             return "error"
         #endif
 
@@ -1356,8 +1356,8 @@ class PageAdvancedSettings(Page):
     #enddef
 
     def factoryResetStep1(self):
-        pageWait = PageWait(self.display, line1=_("Please wait..."),
-                            line2=_("Printer is moving to factory position"))
+        pageWait = PageWait(self.display, line1 = _("Please wait..."),
+                line2 = _("Printer is being reset to factory defaults"))
         pageWait.show()
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait(3)
@@ -1379,8 +1379,8 @@ class PageAdvancedSettings(Page):
         #endwhile
         # at this height may be screwed down tank and inserted protective foam
         self.display.page_confirm.setParams(
-            continueFce=self.factoryResetStep2,
-            text=_("""All settings will now be deleted and printer will shutdown.
+            continueFce = self.factoryResetStep2,
+            text = _("""All settings will now be deleted and the printer will shut down.
 
 Continue?"""))
         return "confirm"
@@ -1388,8 +1388,8 @@ Continue?"""))
     #enddef
 
     def factoryResetStep2(self):
-        pageWait = PageWait(self.display, line1=_("Please wait..."),
-                            line2=_("Printer returns to factory defaults."))
+        pageWait = PageWait(self.display, line1 = _("Please wait..."),
+                line2 = _("Printer returns to factory defaults."))
         pageWait.show()
         # slightly press the foam against printers base
         self.display.hw.towerMoveAbsolute(
@@ -1572,7 +1572,7 @@ class PageFirmwareUpdate(Page):
         self.display.page_confirm.setParams(
             continueFce = self.fetchUpdate,
             continueParams = { 'fw_url': fw_url },
-            text = _("Do you really want to update firmware?"))
+            text = _("Do you really want to update the firmware?"))
         return "confirm"
     #enddef
 
@@ -1602,7 +1602,7 @@ class PageFirmwareUpdate(Page):
             self.logger.error("Rauc install call failed: " + str(e))
         #endtry
 
-        pageWait = PageWait(self.display, line1 = _("Updating firmware"))
+        pageWait = PageWait(self.display, line1 = _("Updating the firmware"))
         pageWait.show()
 
         try:
@@ -1722,9 +1722,9 @@ class PageNetwork(Page):
         self.display.page_confirm.setParams(
             continueFce = self.setclient,
             continueParams = { 'ssid': data['client-ssid'], 'psk': data['client-psk'] },
-            text = _("""Do you really want to set wifi to client mode?
+            text = _("""Do you really want to set the Wi-fi to client mode?
 
-It may disconnect web client."""))
+It may disconnect the web client."""))
         return "confirm"
     #enddef
 
@@ -1733,9 +1733,9 @@ It may disconnect web client."""))
         self.display.page_confirm.setParams(
             continueFce = self.setap,
             continueParams = { 'ssid': data['ap-ssid'], 'psk': data['ap-psk'] },
-            text = _("""Do you really want to set wifi to ap mode?
+            text = _("""Do you really want to set the Wi-fi to AP mode?
 
-It may disconnect web client."""))
+It may disconnect the web client."""))
         return "confirm"
     #enddef
 
@@ -1743,9 +1743,9 @@ It may disconnect web client."""))
     def wifioffButtonSubmit(self, data):
         self.display.page_confirm.setParams(
             continueFce = self.wifioff,
-            text = _("""Do you really want to turn off wifi?
+            text = _("""Do you really want to turn off the Wi-fi?
 
-It may disconnect web client."""))
+It may disconnect the web client."""))
         return "confirm"
     #enddef
 
@@ -1830,7 +1830,7 @@ It may disconnect web client."""))
 
         # Connection fail
         self.display.page_error.setParams(
-                text = _("AP failed!"))
+                text = _("Starting AP failed!"))
         return "error"
     #enddef
 
@@ -1883,7 +1883,7 @@ class PagePrint(Page):
 
 
     def feedmeButtonRelease(self):
-        self.display.page_feedme.setItems(text = _("Wait for layer finish please."))
+        self.display.page_feedme.setItems(text = _("Wait until layer finish..."))
         self.expo.doFeedMe()
         return "feedme"
     #enddef
@@ -1892,9 +1892,9 @@ class PagePrint(Page):
     def updownButtonRelease(self):
         self.display.page_confirm.setParams(
             continueFce = self.doUpAndDown,
-            text = _("""Do you really want to go platform up and down?
+            text = _("""Do you really want the platform to go up and down?
 
-It may affect the result!"""))
+It may affect the printed object!"""))
         return "confirm"
     #enddef
 
@@ -1915,7 +1915,7 @@ It may affect the result!"""))
     def turnoffButtonRelease(self):
         self.display.page_confirm.setParams(
             continueFce = self.exitPrint,
-            text = _("Do you really want to cancel actual job?"))
+            text = _("Do you really want to cancel the actual job?"))
         return "confirm"
     #enddef
 
@@ -2148,7 +2148,7 @@ class PageNetInfo(Page):
                 except Exception:
                     self.logger.exception("wifi setup file exception:")
                     items['mode'] = None
-                    items['text'] = _("Error reading WiFi setup!")
+                    items['text'] = _("Error reading Wi-fi setup!")
                 #endtry
             else:
                 # client mode
@@ -2216,7 +2216,7 @@ class PageAbout(Page):
 
         self.display.page_confirm.setParams(
                 continueFce = self.showadminContinue,
-                text = _("""Do you really want to enable admin menu?
+                text = _("""Do you really want to enable the admin menu?
 
 Wrong settings may damage your printer!"""))
         return "confirm"
@@ -2501,7 +2501,7 @@ class PageSrcSelect(Page):
             self.display.page_error.setParams(
                     text = _("""Your project has a problem: %s
 
-Regenerate it and try again.""") % config.zipError)
+Re-export it and try again.""") % config.zipError)
             return "error"
         #endif
 
@@ -2643,7 +2643,7 @@ class PageTiltTower(Page):
 
     def button6ButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Moving platform to top"))
+        pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
         pageWait.show()
         retc = self._syncTower(pageWait)
         self.display.hw.powerLed("normal")
@@ -2658,7 +2658,7 @@ class PageTiltTower(Page):
 
     def button8ButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Moving platform to top"))
+        pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
         pageWait.show()
         retc = self._syncTower(pageWait)
         if retc == "error":
@@ -2778,7 +2778,7 @@ class PageDisplay(Page):
     def button6ButtonRelease(self):
         if self.getSavePath() is None:
             self.display.page_error.setParams(
-                text=_("No USB storage present"))
+                text = _("No USB storage present"))
             return "error"
         #endif
 
@@ -2786,7 +2786,7 @@ class PageDisplay(Page):
 
         if not os.path.isfile(test_file):
             self.display.page_error.setParams(
-                text=_("Cannot find test image"))
+                text = _("Cannot find the test image"))
             return "error"
         #endif
 
@@ -2796,7 +2796,7 @@ class PageDisplay(Page):
             # TODO: This is not reached. Exceptions from screen do not propagate here
             self.logger.exception("Error displaying test image")
             self.display.page_error.setParams(
-                text=_("Cannot display test image"))
+                text = _("Cannot display the test image"))
             return "error"
         #endtry
 
@@ -2951,7 +2951,7 @@ class PageAdmin(Page):
     def button6ButtonRelease(self):
         self.display.page_confirm.setParams(
                 continueFce = self.button6Continue,
-                text = _("""This overwrites the motion controller with supplied firmware.
+                text = _("""This overwrites the motion controller with selected firmware.
 
 Are you sure?"""))
         return "confirm"
@@ -2987,8 +2987,7 @@ Are you sure?"""))
         self.display.page_confirm.setParams(
                 continueFce = self.mc2net,
                 continueParams = { 'bootloader' : True },
-                text = _("""This stops GUI and connect the MC bootloader to TCP port.
-
+                text = _("""This will disable the GUI and connect the MC bootloader to TCP port.
 
 Are you sure?"""))
         return "confirm"
@@ -2999,7 +2998,7 @@ Are you sure?"""))
         self.display.page_confirm.setParams(
                 continueFce = self.mc2net,
                 continueParams = { 'bootloader' : False },
-                text = _("""This stops GUI and connect the motion controller to TCP port.
+                text = _("""This will disable the GUI and connect the motion controller to TCP port.
 
 Are you sure?"""))
         return "confirm"
@@ -3051,7 +3050,9 @@ Press Continue when done.""") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.s
     def button10ButtonRelease(self):
         self.display.page_confirm.setParams(
                 continueFce = self.button10Continue,
-                text = _("Is tank filled and secured with both screws?"))
+                text = _("""Is there the correct amount of resin in the tank?
+
+Is the tank secured with both screws?"""))
         return "confirm"
     #enddef
 
@@ -3059,7 +3060,7 @@ Press Continue when done.""") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.s
     def button10Continue(self):
         # TODO vyzadovat zavreny kryt po celou dobu!
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Moving platform to top"))
+        pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
         pageWait.show()
         retc = self._syncTower(pageWait)
         if retc == "error":
@@ -3074,14 +3075,16 @@ Press Continue when done.""") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.s
         self.display.hw.setTiltProfile('layerMoveSlow')
         self.display.hw.tiltUpWait()
 
-        pageWait.showItems(line2 = _("Measuring"), line3 = _("Do NOT TOUCH the printer"))
+        pageWait.showItems(line2 = _("Measuring..."), line3 = _("Do NOT TOUCH the printer"))
         volume = self.display.hw.getResinVolume()
         self.display.hw.powerLed("normal")
         if not volume:
             self.display.page_error.setParams(
-                    text = _("""Resin measure failed!
+                    text = _("""Resin measuring failed!
 
-Is tank filled and secured with both screws?"""))
+Is there the correct amount of resin in the tank?
+
+Is the tank secured with both screws?"""))
             return "error"
         #endif
 
@@ -3270,7 +3273,7 @@ class PageSetup(Page):
 
         if not self.display.hwConfig.writeFile(config_file):
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text = _("Cannot save configuration"))
             return "error"
         #endif
     #enddef
@@ -3320,7 +3323,7 @@ class PageSetup(Page):
         self.display.hwConfig.update(**self.changed)
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text = _("Cannot save configuration"))
             return "error"
         #endif
         return super(PageSetup, self).backButtonRelease()
@@ -3815,7 +3818,7 @@ class PageCalibration(Page):
         self.display.page_confirm.setParams(
             continueFce = self.recalibrateStep2,
             imageName = "06_tighten_knob.jpg",
-            text = _("Insert the platfom and secure it with black knob."))
+            text = _("Insert the platform and secure it with the black knob."))
         return "confirm"
     #enddef
 
@@ -3835,7 +3838,7 @@ class PageCalibration(Page):
             continueFce = self.recalibrateStep4,
             backFce = self.recalibrateStep2,
             imageName = "02_place_bed.jpg",
-            text = _("Unscrew the tank and turn it 90 degrees on the base so it lies across tilt."))
+            text = _("Unscrew the tank, rotate it by 90 degrees and place it flat across the tilt bed. Remove the tank screws completely!"))
         return "confirm"
     #enddef
 
@@ -3851,7 +3854,7 @@ class PageCalibration(Page):
             continueFce = self.recalibrateStep5,
             backFce = self.recalibrateStep3,
             imageName = "03_proper_aligment.jpg",
-            text = _("In next step move tilt up until the tank gets lifted. Resin tank needs be in direct contact with tilt, but still lie flat on printer."))
+            text = _("In the next step, move the tilt up/down until the tilt frame is in direct contact with the resin tank. The tilt frame and tank have to be aligned in a perfect line."))
         return "confirm"
     #enddef
 
@@ -3946,7 +3949,7 @@ class PageTiltCalib(MovePage):
             continueFce = self.tiltCalibStep3,
             backFce = self.okButtonRelease,
             imageName = "04_tighten_screws.jpg",
-            text = _("Return the tank to normal position and screw it down. Make sure you tighten both screws evenly."))
+            text = _("Return the tank to normal position and secure it with tank screws. Make sure you tighten both screws evenly and with the same amount of force."))
         return "confirm"
     #enddef
 
@@ -3988,7 +3991,7 @@ Do not rotate the platform. It should be positioned according to picture."""))
                 continueFce = self.okButtonRelease,
                 text = _("""Tower not at expected position.
 
-Is the platform and tank secured on position?
+Is the platform and tank secured in correct position?
 
 Click continue and read the instructions carefully."""))
             return "confirm"
@@ -4034,7 +4037,7 @@ Click continue and read the instructions carefully."""))
             continueFce = self.tiltCalibStep5,
             backFce = self.tiltCalibStep3,
             imageName = "05_align_platform.jpg",
-            text = _("""Adjust the platform to align it with exposition display.
+            text = _("""Adjust the platform to align it with the exposition display.
 
 Front edges of the platform and exposition display need to be parallel."""))
         return "confirm"
@@ -4068,7 +4071,7 @@ Front edges of the platform and exposition display need to be parallel."""))
             calibrated = "yes")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text = _("Cannot save configuration"))
             return "error"
         #endif
         self.display.hw.setTiltProfile('moveFast')
@@ -4141,7 +4144,7 @@ class PageTowerOffset(MovePage):
         self.display.hwConfig.update(calibtoweroffset = self.display.hwConfig.calibTowerOffset)
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text = _("Cannot save configuration"))
             return "error"
         #endif
         return "_BACK_"
@@ -4587,7 +4590,7 @@ class PageFansLeds(Page):
         self.display.hwConfig.update(**filtered)
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text = _("Cannot save configuration"))
             return "error"
         #endif
         return super(PageFansLeds, self).backButtonRelease()
@@ -4789,7 +4792,7 @@ class PageTuneTilt(ProfilesPage):
         )
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text = _("Cannot save configuration"))
             return "error"
         #endif
         return super(PageTuneTilt, self).backButtonRelease()
@@ -4987,7 +4990,7 @@ class PageSetLoginCredentials(Page):
             subprocess.check_call(["/bin/api-keygen.sh", apikey])
         except subprocess.CalledProcessError as e:
             self.display.page_error.setParams(
-                text = _("Octoprint apikey change failed"))
+                text = _("Octoprint API key change failed"))
             return "error"
         #endexcept
 
@@ -5015,9 +5018,9 @@ class PageWizard(Page):
         #endif
         self.display.page_confirm.setParams(
             continueFce = continueTo,
-            text = _("""Welcome to the initial wizard.
+            text = _("""Welcome to the setup wizard.
 
-Following steps will guide you through all initial settings of your new SL1.
+This procedure is mandatory and it will help you to set up the printer
 
 Continue?"""))
         return "confirm"
@@ -5028,7 +5031,7 @@ Continue?"""))
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep2,
             imageName = "13_open_cover.jpg",
-            text = _("Please remove safety sticker on the right and open the orange cover."))
+            text = _("Please remove safety sticker on the right and open the orange lid."))
         return "confirm"
     #enddef
 
@@ -5037,7 +5040,7 @@ Continue?"""))
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Cover is closed!"),
-            line2 = _("Please remove safety sticker and open the orange cover."))
+            line2 = _("Please remove safety sticker and open the orange lid."))
         pageWait.show()
         if self.display.hw.isCoverClosed():
             self.display.hw.beepAlarm(3)
@@ -5096,7 +5099,7 @@ Continue?"""))
         self.display.hwConfig.update(showunboxing = "no")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
+                text = _("Cannot save configuration"))
             return "error"
         #endif
         self.display.page_confirm.setParams(
@@ -5217,7 +5220,7 @@ Tower profiles needs to be changed."""))
         self.display.page_confirm.setParams(
             continueFce=self.wizardStep2,
             imageName = "04_tighten_screws.jpg",
-            text = _("""Screw down the resin tank.
+            text = _("""Secure the resin tank with resin tank screws.
 
 Make sure the tank is empty and clean."""))
         return "confirm"
@@ -5280,7 +5283,7 @@ Please check if ballscrew can move smoothly in whole range.""") % position)
         rpm = self.display.hw.getFansRpm()
         if rpm[0] != 0 or rpm[1] != 0 or rpm[2] != 0:
             self.display.page_error.setParams(
-                text = _("""RPM detected even when fans are off.
+                text = _("""RPM detected when fans are expected to be off
 
 Check if all fans are properly connected.
 
@@ -5332,7 +5335,7 @@ RPM data: %(rpm)s""") % { 'fan' : fanName, 'rpm' : rpm })
 
 Please check if temperature sensors are connected correctly.
 
-Keep the printer out of direct sunlight at room temperature 15 - 35 °C. Measured: %(temp).1f °C.""") % { 'sensor' : sensorName, 'temp' : temperatures[i] })
+Keep the printer out of direct sunlight at room temperature 18 - 32 °C. Measured: %(temp).1f °C.""") % { 'sensor' : sensorName, 'temp' : temperatures[i] })
                 return "error"
             #endif
         #endfor
@@ -5341,7 +5344,7 @@ Keep the printer out of direct sunlight at room temperature 15 - 35 °C. Measure
                 continueFce = self.wizardStep4,
                 text = _(u"""UV LED and ambient temperatures are in allowed range but differ more than %.1f °C.
 
-Keep the printer out of direct sunlight at room temperature 15 - 35 °C.""") % self.display.hw._maxTempDiff)
+Keep the printer out of direct sunlight at room temperature 18 - 32 °C.""") % self.display.hw._maxTempDiff)
             return "confirm"
         #endif
         if self.display.hw.getCpuTemperature() > self.display.hw._maxA64Temp:
@@ -5366,7 +5369,7 @@ Shutting down in 10 seconds...""") % self.display.hw.getCpuTemperature())
         self.display.page_confirm.setParams(
             continueFce = self.wizardStep5,
             imageName = "12_close_cover.jpg",
-            text = _("""Please close the orange cover.
+            text = _("""Please close the orange lid.
 
 Make sure the tank is empty and clean."""))
         self.display.page_confirm.show()
@@ -5396,9 +5399,9 @@ Make sure the tank is empty and clean."""))
             del volts[-1]   #delete power supply voltage
             if max(volts) - min(volts) > diff:
                 self.display.page_error.setParams(
-                    text = _("""UV LED voltages differ to much!
+                    text = _("""UV LED voltages differ too much!
 
-Please check if UV LED panel is connected propely.
+Please check if UV LED panel is connected properly.
 
 Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : volts})
                 self.display.hw.uvLed(False)
@@ -5420,7 +5423,7 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
                 self.display.page_error.setParams(
                     text = _("""UV LED too hot!
 
-Please check if UV LED panel is connected propely with heatsing.
+Please check if the UV LED panel is connected properly to the heatsink.
 
 Temperature data: %s""") % temps)
                 self.display.hw.uvLed(False)
@@ -5439,7 +5442,7 @@ Temperature data: %s""") % temps)
         self.display.page_confirm.setParams(
             continueFce = self.wizardStep7,
             imageName = "11_insert_platform_60deg.jpg",
-            text = _("Leave resin tank screwed in place and insert platform in 60 degree angle."))
+            text = _("Leave the resin tank secured with screws and insert platform at a 60 degree angle."))
         return "confirm"
     #enddef
 

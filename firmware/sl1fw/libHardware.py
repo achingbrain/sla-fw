@@ -377,8 +377,8 @@ class Hardware(object):
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
 
-        self._minAmbientTemp = 13.0 #15C from manual. Capsule is not calibrated, add some tolerance
-        self._maxAmbientTemp = 38.0 #38C from manual. Capsule is not calibrated, add some tolerance
+        self._minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance
+        self._maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some tolerance
         self._maxA64Temp = 70.0
         self._maxUVTemp = 50.0
         self._maxTempDiff = 3.0
@@ -435,7 +435,7 @@ class Hardware(object):
         waitPage.show()
         waitPage.showItems(line1 = _("Fatal error"), line2 = message)
         while True:
-            waitPage.showItems(line3 = _("Please call service."))
+            waitPage.showItems(line3 = _("Please contact tech support!"))
             sleep(1)
             waitPage.showItems(line3 = "")
             sleep(1)
@@ -1472,7 +1472,7 @@ class Hardware(object):
             self.powerLed("error")
 
             waitPage.show()
-            waitPage.showItems(line3 = _("Please call service."))
+            waitPage.showItems(line3 = _("Please contact tech support!"))
             while(counter < 10):
                 waitPage.showItems(line2 = _("FAN ERROR!"))
                 self.beepAlarm(3)
@@ -1545,7 +1545,7 @@ class Hardware(object):
                 self.powerLed("error")
                 waitPage.show()
                 waitPage.showItems(line2 = _("Emergency stop!"))
-                waitPage.showItems(line3 = _("Please call service."))
+                waitPage.showItems(line3 = _("Please contact tech support!"))
                 while True:
                     waitPage.showItems(line1 = _("LED temperature sensor failure!"))
                     self.beepAlarm(3)
