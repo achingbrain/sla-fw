@@ -162,6 +162,8 @@ class Page(object):
             # URL is HTTP, source is url
             req = urllib2.Request(url)
             req.add_header('User-Agent', 'Prusa-SL1')
+            req.add_header('Prusa-SL1-version', self.display.hwConfig.os.versionId)
+            req.add_header('Prusa-SL1-serial', self.display.hw.cpuSerialNo)
             source = urllib2.urlopen(req, timeout=timeout_sec)
             try:
                 file_size = int(source.info().getheaders("Content-Length")[0])
@@ -1495,7 +1497,8 @@ class PageFirmwareUpdate(Page):
 
     def getNetFirmwares(self):
         try:
-            self.downloadURL(defines.firmwareListURL, defines.firmwareListTemp, title=_("Downloading firmware list"),
+            query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
+            self.downloadURL(query_url, defines.firmwareListTemp, title=_("Downloading firmware list"),
                              timeout_sec=3)
             with open(defines.firmwareListTemp) as list_file:
                 return json.load(list_file)
@@ -1576,7 +1579,8 @@ class PageFirmwareUpdate(Page):
 
     def fetchUpdate(self, fw_url):
         try:
-            self.downloadURL(fw_url, defines.firmwareTempFile, _("Fetching firmware"))
+            query_url = fw_url + "?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
+            self.downloadURL(query_url, defines.firmwareTempFile, _("Fetching firmware"))
         #endtry
         except Exception as e:
             self.logger.error("Firmware fetch failed: " + str(e))
@@ -3133,7 +3137,8 @@ class PageNetUpdate(Page):
 
     def show(self):
         try:
-            self.downloadURL(defines.firmwareListURL, defines.firmwareListTemp, title=_("Downloading firmware list"),
+            query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
+            self.downloadURL(query_url, defines.firmwareListTemp, title=_("Downloading firmware list"),
                              timeout_sec=5)
 
             with open(defines.firmwareListTemp) as list_file:
