@@ -65,9 +65,8 @@ class Display(object):
         self.page_qrcode = libPages.PageQRCode(self)
         self.page_image = libPages.PageImage(self)
         self.page_video = libPages.PageVideo(self)
-        self.page_setapikey = libPages.PageSetApikey(self)
+        self.page_setlogincredentials = libPages.PageSetLoginCredentials(self)
         self.page_wizard = libPages.PageWizard(self)
-        self.page_axissensivity = libPages.PageAxisSensitivity(self)
         self.page_logging = libPages.PageLogging(self)
 
         self.actualPage = self.page_start

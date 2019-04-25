@@ -194,6 +194,71 @@ class Page(object):
     #enddef
 
 
+    def ensure_cover_closed(self):
+        self.display.hw.powerLed("warn")
+        if not self.display.hw.isCoverClosed():
+            pageWait = PageWait(self.display,
+                                line1=_("Orange cover not closed!"),
+                                line2=_("If cover is closed, please check the connection of cover switch."))
+            pageWait.show()
+            self.display.hw.beepAlarm(3)
+            self.display.hw.uvLed(False)
+        #endif
+        while not self.display.hw.isCoverClosed():
+            sleep(0.5)
+        #endwhile
+    #enddef
+
+
+    def exposure_display_check(self, continueFce=None, backFce=None):
+        def callback(fce):
+            self.display.hw.uvLed(False)
+            self.display.screen.getImgBlack()
+            if fce:
+                return fce()
+            else:
+                return "_BACK_"
+            #endif
+        #enddef
+
+        self.display.hw.uvLed(True)
+        self.display.screen.getImg(filename=os.path.join(defines.dataPath, "logo_1440x2560.png"))
+        self.display.page_confirm.setParams(
+            continueFce=callback,
+            continueParams={'fce': continueFce},
+            backFce=callback,
+            backParams={'fce': backFce},
+            imageName="10_prusa_logo.jpg",
+            text=_("""Can you see company logo on the exposure display through orange cover?
+
+        Tip: The logo is best seen when you look from above.
+
+        DO NOT open the cover."""))
+        return "confirm"
+    #enddef
+
+
+    def save_logs_to_usb(self):
+        if self.getSavePath() is None:
+            self.display.page_error.setParams(text=_("No USB storage present"))
+            return "error"
+        #endif
+
+        pageWait = PageWait(self.display, line1=_("Saving logs"))
+        pageWait.show()
+
+        try:
+            subprocess.check_call(
+                ["/bin/sh", "-c", "journalctl | gzip > %s/log.$(date +%%s).txt.gz; sync" % self.getSavePath()])
+        except subprocess.CalledProcessError as e:
+            self.display.page_error.setParams(text=_("Log save failed"))
+            return "error"
+        #endexcept
+
+        return "_BACK_"
+    #enddef
+
+
     def _onOff(self, index, val):
         if isinstance(self.temp[val], libConfig.MyBool):
             self.temp[val].inverse()
@@ -900,54 +965,481 @@ class PageSetLanguage(Page):
 #endclass
 
 
+def item_updater(str_func = None):
+    def new_decorator(func):
+        def new_func(self, value):
+            func(self, value)
+
+            key = func.__name__
+            if str_func:
+                value = str_func(getattr(self, func.__name__))
+            else:
+                value = getattr(self, func.__name__)
+            #endif
+
+            self.showItems(**{key: value})
+        #enddef
+        return new_func
+    #enddef
+    return new_decorator
+#enddef
+
+
+def value_saturate(min, max):
+    def new_decorator(func):
+        def new_func(self, value):
+            if not min <= value <= max:
+                self.display.hw.beepAlarm(1)
+                return
+            else:
+                func(self, value)
+            #enddif
+        #enddef
+        return new_func
+    #enddef
+    return new_decorator
+#enddef
+
+
 class PageAdvancedSettings(Page):
 
     def __init__(self, display):
         self.pageUI = "advancedsettings"
         self.pageTitle = _("Advanced Settings")
+        self._display_test = False
+        self.configwrapper = None
+        self._calibTowerOffset_mm = None
         super(PageAdvancedSettings, self).__init__(display)
+
+        self.autorepeat = {
+            'minus_tiltsensitivity': (5, 1), 'plus_tiltsensitivity': (5, 1),
+            'minus_towersensitivity': (5, 1), 'plus_towersensitivity': (5, 1),
+            'minus_fasttiltlimit': (5, 1), 'plus_fasttiltlimit': (5, 1),
+            'minus_toweroffset': (5, 1), 'plus_toweroffset': (5, 1),
+            'minus_rearfanspeed': (5, 1), 'plus_rearfanspeed': (5, 1),
+        }
+    #enddef
+
+
+    @property
+    def tilt_sensitivity(self):
+        return self.configwrapper.tiltSensitivity
+    #enddef
+
+    @tilt_sensitivity.setter
+    @value_saturate(-2, 2)
+    @item_updater()
+    def tilt_sensitivity(self, value):
+        self.configwrapper.tiltSensitivity = value
+    #enddef
+
+
+    @property
+    def tower_sensitivity(self):
+        return self.configwrapper.towerSensitivity
+    #enddef
+
+    @tower_sensitivity.setter
+    @value_saturate(-2, 2)
+    @item_updater()
+    def tower_sensitivity(self, value):
+        self.configwrapper.towerSensitivity = value
+    #enddef
+
+
+    @property
+    def fast_tilt_limit(self):
+        return self.configwrapper.limit4fast
+    #enddef
+
+    @fast_tilt_limit.setter
+    @value_saturate(0, 100)
+    @item_updater()
+    def fast_tilt_limit(self, value):
+        self.configwrapper.limit4fast = value
+    #enddef
+
+
+    @property
+    def tower_offset(self):
+        if self._calibTowerOffset_mm is None:
+            self._calibTowerOffset_mm = self.display.hwConfig.calcMM(self.configwrapper.calibTowerOffset)
+        #endif
+        return self._calibTowerOffset_mm
+    #enddef
+
+    @tower_offset.setter
+    @value_saturate(-0.5, 0.5)
+    @item_updater(str_func=lambda x: "%+.3f" % x)
+    def tower_offset(self, value):
+        self._calibTowerOffset_mm = value
+        self.configwrapper.calibTowerOffset = self.display.hwConfig.calcMicroSteps(value)
+    #enddef
+
+
+    @property
+    def rear_fan_speed(self):
+        return self.configwrapper.fan3Pwm
+    #enddef
+
+    @rear_fan_speed.setter
+    @value_saturate(0, 100)
+    @item_updater()
+    def rear_fan_speed(self, value):
+        self.configwrapper.fan3Pwm = value
+        # TODO: This is wrong, it would be nice to have API to set just one fan
+        self.display.hw.setFansPwm((self.configwrapper.fan1Pwm,
+                                   self.configwrapper.fan2Pwm,
+                                   self.configwrapper.fan3Pwm))
+    #enddef
+
+
+    @property
+    def auto_power_off(self):
+        return self.configwrapper.autoOff
+    #enddef
+
+    @auto_power_off.setter
+    @item_updater()
+    def auto_power_off(self, value):
+        self.configwrapper.autoOff = value
+    #enddef
+
+
+    @property
+    def cover_check(self):
+        return self.configwrapper.coverCheck
+    #enddef
+
+    @cover_check.setter
+    @item_updater()
+    def cover_check(self, value):
+        self.configwrapper.coverCheck = value
+    #enddef
+
+
+    @property
+    def resin_sensor(self):
+        return self.configwrapper.resinSensor
+    #enddef
+
+    @resin_sensor.setter
+    @item_updater()
+    def resin_sensor(self, value):
+        self.configwrapper.resinSensor = value
     #enddef
 
 
     def show(self):
-        self.items.update({ 'showAdmin' : int(self.display.hwConfig.showAdmin) })
+        self.configwrapper = libConfig.ConfigHelper(self.display.hwConfig)
+        self._calibTowerOffset_mm = None
+
+        self.items.update({
+            'showAdmin': self.configwrapper.showAdmin,
+            'tilt_sensitivity': self.tilt_sensitivity,
+            'tower_sensitivity': self.tower_sensitivity,
+            'fast_tilt_limit': self.fast_tilt_limit,
+            'tower_offset': "%+.3f" % self.tower_offset,
+            'rear_fan_speed': self.rear_fan_speed,
+            'auto_power_off': self.auto_power_off,
+            'cover_check': self.cover_check,
+            'resin_sensor': self.resin_sensor,
+        })
         super(PageAdvancedSettings, self).show()
     #enddef
 
 
+    # Move platform
     def towermoveButtonRelease(self):
         return "towermove"
     #enddef
 
 
+    # Move resin tank
     def tiltmoveButtonRelease(self):
         return "tiltmove"
     #enddef
 
 
-    def firmwareupdateButtonRelease(self):
-        return "firmwareupdate"
-    #enddef
-
-
-    def adminButtonRelease(self):
-        return "admin"
-    #enddef
-
-
+    # Time settings
     def timesettingsButtonRelease(self):
         return "timesettings"
     #enddef
 
 
+    # Change language (TODO: Not in the graphical design, not yet implemented properly)
+    def setlanguageButtonRelease(self):
+        return "setlanguage"
+    #enddef
+
+
+    # Hostname
     def sethostnameButtonRelease(self):
         return "sethostname"
     #enddef
 
 
-    def setlanguageButtonRelease(self):
-        return "setlanguage"
+    # Change name/password
+    def setremoteaccessButtonRelease(self):
+        return "setlogincredentials"
     #enddef
+
+
+    # Tilt sensitivity
+    def minus_tiltsensitivityButton(self):
+        self.tilt_sensitivity -= 1
+    #enddef
+    def plus_tiltsensitivityButton(self):
+        self.tilt_sensitivity += 1
+    #enddef
+
+
+    # Tower sensitivity
+    def minus_towersensitivityButton(self):
+        self.tower_sensitivity -= 1
+    # enddef
+    def plus_towersensitivityButton(self):
+        self.tower_sensitivity += 1
+    # enddef
+
+
+    # Limit for fast tilt
+    def minus_fasttiltlimitButton(self):
+        self.fast_tilt_limit -= 1
+    #enddef
+    def plus_fasttiltlimitButton(self):
+        self.fast_tilt_limit += 1
+    #enddef
+
+
+    # Tower offset
+    # TODO: Adjust in mm, compute steps
+    # Currently we are adjusting steps, but showing mm. This in counterintuitive.
+    def minus_toweroffsetButton(self):
+        self.tower_offset -= 0.001
+    #enddef
+    def plus_toweroffsetButton(self):
+        self.tower_offset += 0.001
+    #enddef
+
+
+    # Display test
+    def displaytestButtonRelease(self):
+        self.ensure_cover_closed()
+        return self.exposure_display_check()
+    #enddef
+
+    # Rear fan speed
+    def minus_rearfanspeedButton(self):
+        self.rear_fan_speed -= 1
+    #enddef
+    def plus_rearfanspeedButton(self):
+        self.rear_fan_speed += 1
+    #enddef
+
+
+    # Auto power off
+    def autopoweroffButtonRelease(self):
+        self.auto_power_off = not self.auto_power_off
+    #enddef
+
+
+    # Cover check
+    def covercheckButtonRelease(self):
+        self.cover_check = not self.cover_check
+    #enddef
+
+
+    # Resin Sensor
+    def resinsensorButtonRelease(self):
+        self.resin_sensor = not self.resin_sensor
+    #enddef
+
+
+    # Firmware update
+    def firmwareupdateButtonRelease(self):
+        return "firmwareupdate"
+    #enddef
+
+
+    # Factory reset
+    def factoryresetButtonRelease(self):
+        self.display.page_confirm.setParams(
+            continueFce=self.factoryResetStep1,
+            text=_("""Do you really want to do factory reset?
+
+        All settings will be deleted!"""))
+        return "confirm"
+    #enddef
+
+
+    # Admin
+    def adminButtonRelease(self):
+        return "admin"
+    #enddef
+
+
+    # Logs export to usb
+    def exportlogstoflashdiskButtonRelease(self):
+        return self.save_logs_to_usb()
+    #enddef
+
+
+    # Back
+    def backButtonRelease(self):
+        if self.configwrapper.changed():
+            self.display.page_confirm.setParams(
+                continueFce=self._savechanges,
+                backFce=self._discardchanges,
+                text=_("Save changes"))
+            return "confirm"
+        else:
+            return super(PageAdvancedSettings, self).backButtonRelease()
+        #endif
+    #enddef
+
+
+    def _savechanges(self):
+        sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
+        if not self.configwrapper.commit():
+            self.display.page_error.setParams(
+                text=_("Cannot save configuration"))
+            return "error"
+        #endif
+
+        if sensitivity_changed:
+            self.logger.info("Motor sensitivity changed. Updating profiles.")
+            self._updatesensitivity()
+        #endif
+
+        self.display.goBack(2)
+    #enddef
+
+
+    def _discardchanges(self):
+        # TODO: This is wrong, it would be nice to have API to set just one fan
+        self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm,
+                                    self.display.hwConfig.fan2Pwm,
+                                    self.display.hwConfig.fan3Pwm))
+        self.display.goBack(2)
+    #enddef
+
+
+    def _updatesensitivity(self):
+        # adjust tilt profiles
+        profiles = self.display.hw.getTiltProfiles()
+        self.logger.debug("profiles %s", profiles)
+        profiles[0][4] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensitivity + 2][0]
+        profiles[0][5] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensitivity + 2][1]
+        profiles[1][4] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensitivity + 2][0]
+        profiles[1][5] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensitivity + 2][1]
+        self.display.hw.setTiltProfiles(profiles)
+        self.logger.debug("profiles %s", profiles)
+
+        # adjust tower profiles
+        profiles = self.display.hw.getTowerProfiles()
+        self.logger.debug("profiles %s", profiles)
+        profiles[0][4] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensitivity + 2][0]
+        profiles[0][5] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensitivity + 2][1]
+        profiles[1][4] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensitivity + 2][0]
+        profiles[1][5] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensitivity + 2][1]
+        self.display.hw.setTowerProfiles(profiles)
+        self.logger.debug("profiles %s", profiles)
+    #enddef
+
+    def factoryResetStep1(self):
+        pageWait = PageWait(self.display, line1=_("Please wait..."),
+                            line2=_("Printer is moving to factory position"))
+        pageWait.show()
+        self.display.hw.towerSync()
+        self.display.hw.tiltSyncWait(3)
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
+
+        # move tilt and tower to packing position
+        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.setTowerProfile('moveFast')
+        self.display.hw.towerMoveAbsolute(
+            self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(74))
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        # at this height may be screwed down tank and inserted protective foam
+        self.display.page_confirm.setParams(
+            continueFce=self.factoryResetStep2,
+            text=_("""All settings will now be deleted and printer will shutdown.
+
+Continue?"""))
+        return "confirm"
+
+    #enddef
+
+    def factoryResetStep2(self):
+        pageWait = PageWait(self.display, line1=_("Please wait..."),
+                            line2=_("Printer returns to factory defaults."))
+        pageWait.show()
+        # slightly press the foam against printers base
+        self.display.hw.towerMoveAbsolute(
+            self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(93))
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        topic = "prusa/sl1/factoryConfig"
+        printerConfig = {
+            "osVersion": self.display.hwConfig.os.versionId,
+            "sl1fwVersion": defines.swVersion,
+            "a64SerialNo": self.display.hw.cpuSerialNo,
+            "mcSerialNo": self.display.hw.mcSerialNo,
+            "mcFwVersion": self.display.hw.mcVersion,
+            "mcBoardRev": self.display.hw.mcRevision,
+            "towerHeight": self.display.hwConfig.towerHeight,
+            "tiltHeight": self.display.hwConfig.tiltHeight,
+            "uvCurrent": self.display.hwConfig.uvCurrent,
+            "wizardUvVoltageRow1": self.display.hwConfig.wizardUvVoltage[0],
+            "wizardUvVoltageRow2": self.display.hwConfig.wizardUvVoltage[1],
+            "wizardUvVoltageRow3": self.display.hwConfig.wizardUvVoltage[2],
+            "wizardFanRpm": self.display.hwConfig.wizardFanRpm,
+            "wizardTempUvInit": self.display.hwConfig.wizardTempUvInit,
+            "wizardTempUvWarm": self.display.hwConfig.wizardTempUvWarm,
+            "wizardTempAmbient": self.display.hwConfig.wizardTempAmbient,
+            "wizardTempA64": self.display.hwConfig.wizardTempA64,
+            "wizardResinVolume": self.display.hwConfig.wizardResinVolume
+        }
+        try:
+            mqtt.single(topic, json.dumps(printerConfig), qos=2, retain=True, hostname="mqttstage.prusa")
+        except Exception as err:
+            self.logger.warning("mqtt message not delivered. %s", err)
+        #endtry
+
+        hwConfig = libConfig.HwConfig()
+        self.display.hwConfig.update(
+            # set  to default those parameters which can be changed from advanced settings or via calibration
+            towerheight=self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight),
+            tiltheight=defines.defaultTiltHeight,
+            tiltsensitivity=hwConfig.tiltSensitivity,
+            towersensitivity=hwConfig.towerSensitivity,
+            limit4fast=hwConfig.limit4fast,
+            calibtoweroffset=hwConfig.calibTowerOffset,
+            fan3pwm=hwConfig.fan3Pwm,
+            autooff=hwConfig.autoOff,
+            covercheck=hwConfig.coverCheck,
+            resinsensor=hwConfig.resinSensor,
+            calibrated="no",
+            showadmin="no",
+            showwizard="yes",
+            showunboxing="yes"
+        )
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text=_("Cannot save factory default confuration"))
+            return "error"
+        #endif
+        self.display.shutDown(True)
 
 #endclass
 
@@ -2058,7 +2550,7 @@ class PageTiltTower(Page):
 
                 'button11' : _("Turn motors off"),
                 'button12' : _("Tune tilt"),
-                'button13' : _("Axis sensitivity"),
+                'button13' : "",
                 'button14' : _("Tower offset"),
                 'button15' : "",
                 })
@@ -2183,7 +2675,7 @@ class PageTiltTower(Page):
 
 
     def button13ButtonRelease(self):
-        return "axissensivity"
+        pass
     #enddef
 
 
@@ -2398,8 +2890,8 @@ class PageAdmin(Page):
                 'button11' : _("Net update"),
                 'button12' : _("Logging"),
                 'button13' : _("Wizard"),
-                'button14' : _("Change API-key"),
-                'button15' : _("Factory reset"),
+                'button14' : "",
+                'button15' : "",
                 })
     #enddef
 
@@ -2589,108 +3081,12 @@ Is tank filled and secured with both screws?"""))
 
 
     def button14ButtonRelease(self):
-        return "setapikey"
+        pass
     #enddef
 
 
     def button15ButtonRelease(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.factoryResetStep1,
-            text = _("""Do you really want to do factory reset?
-
-All settings will be deleted!"""))
-        return "confirm"
-    #enddef
-
-
-    def factoryResetStep1(self):
-        pageWait = PageWait(self.display, line1 = _("Please wait..."), line2 = _("Printer is moving to factory position"))
-        pageWait.show()
-        self.display.hw.towerSync()
-        self.display.hw.tiltSyncWait(3)
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-        #endwhile
-
-        #move tilt and tower to packing position
-        self.display.hw.setTiltProfile('moveFast')
-        self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
-        while self.display.hw.isTiltMoving():
-            sleep(0.25)
-        #endwhile
-        self.display.hw.setTowerProfile('moveFast')
-        self.display.hw.towerMoveAbsolute(self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(74))
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        #at this height may be screwed down tank and inserted protective foam
-        self.display.page_confirm.setParams(
-            continueFce = self.factoryResetStep2,
-            text = _("""All settings will now be deleted and printer will shutdown.
-
-Continue?"""))
-        return "confirm"
-    #enddef
-
-
-    def factoryResetStep2(self):
-        pageWait = PageWait(self.display, line1 = _("Please wait..."), line2 = _("Printer returns to factory defaults."))
-        pageWait.show()
-        #slightly press the foam against printers base
-        self.display.hw.towerMoveAbsolute(self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(93))
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        topic = "prusa/sl1/factoryConfig"
-        printerConfig = {
-            "osVersion" : self.display.hwConfig.os.versionId,
-            "sl1fwVersion" : defines.swVersion,
-            "a64SerialNo" : self.display.hw.cpuSerialNo,
-            "mcSerialNo" : self.display.hw.mcSerialNo,
-            "mcFwVersion" : self.display.hw.mcVersion,
-            "mcBoardRev" : self.display.hw.mcRevision,
-            "towerHeight" : self.display.hwConfig.towerHeight,
-            "tiltHeight" : self.display.hwConfig.tiltHeight,
-            "uvCurrent" : self.display.hwConfig.uvCurrent,
-            "wizardUvVoltageRow1" : self.display.hwConfig.wizardUvVoltage[0],
-            "wizardUvVoltageRow2" : self.display.hwConfig.wizardUvVoltage[1],
-            "wizardUvVoltageRow3" : self.display.hwConfig.wizardUvVoltage[2],
-            "wizardFanRpm" : self.display.hwConfig.wizardFanRpm,
-            "wizardTempUvInit" : self.display.hwConfig.wizardTempUvInit,
-            "wizardTempUvWarm" : self.display.hwConfig.wizardTempUvWarm,
-            "wizardTempAmbient" : self.display.hwConfig.wizardTempAmbient,
-            "wizardTempA64" : self.display.hwConfig.wizardTempA64,
-            "wizardResinVolume" : self.display.hwConfig.wizardResinVolume
-        }
-        try:
-            mqtt.single(topic, json.dumps(printerConfig), qos=2, retain=True, hostname="mqttstage.prusa")
-        except Exception as err:
-            self.logger.warning("mqtt message not delivered. %s", err)
-        #endtry
-
-        hwConfig = libConfig.HwConfig()
-        self.display.hwConfig.update(   #set  to default those parameters which can be changed from advanced settings or via calibration
-            towerheight = self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight),
-            tiltheight = defines.defaultTiltHeight,
-            tiltsensivity = hwConfig.tiltSensivity,
-            towersensivity = hwConfig.towerSensivity,
-            limit4fast = hwConfig.limit4fast,
-            calibtoweroffset = hwConfig.calibTowerOffset,
-            fan3pwm = hwConfig.fan3Pwm,
-            autooff = hwConfig.autoOff,
-            covercheck = hwConfig.coverCheck,
-            resinsensor = hwConfig.resinSensor,
-            calibrated = "no",
-            showadmin = "no",
-            showwizard = "yes",
-            showunboxing = "yes"
-        )
-        if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
-                text=_("Cannot save factory default confuration"))
-            return "error"
-        #endif
-        self.display.shutDown(True)
+        pass
     #enddef
 
 #endclass
@@ -2801,23 +3197,7 @@ class PageLogging(Page):
 
 
     def button1ButtonRelease(self):
-        if self.getSavePath() is None:
-            self.display.page_error.setParams(text=_("No USB storage present"))
-            return "error"
-        #endif
-
-        pageWait = PageWait(self.display, line1=_("Saving logs"))
-        pageWait.show()
-
-        try:
-            subprocess.check_call(
-                ["/bin/sh", "-c", "journalctl | gzip > %s/log.$(date +%%s).txt.gz; sync" % self.getSavePath()])
-        except subprocess.CalledProcessError as e:
-            self.display.page_error.setParams(text=_("Log save failed"))
-            return "error"
-        #endexcept
-
-        return "_BACK_"
+        return self.save_logs_to_usb()
     #enddef
 
 #endclass
@@ -4553,12 +4933,12 @@ class PageVideo(PageMedia):
 #endclass
 
 
-class PageSetApikey(Page):
+class PageSetLoginCredentials(Page):
 
     def __init__(self, display):
-        self.pageUI = "setapikey"
-        self.pageTitle = _("Set API-key")
-        super(PageSetApikey, self).__init__(display)
+        self.pageUI = "setlogincredentials"
+        self.pageTitle = _("Login Credentials")
+        super(PageSetLoginCredentials, self).__init__(display)
     #enddef
 
     def fillData(self):
@@ -4569,10 +4949,10 @@ class PageSetApikey(Page):
 
     def show(self):
         self.items.update(self.fillData())
-        super(PageSetApikey, self).show()
+        super(PageSetLoginCredentials, self).show()
     #enddef
 
-    def setapikeyButtonSubmit(self, data):
+    def saveButtonSubmit(self, data):
         apikey = data['api_key']
 
         try:
@@ -4967,18 +5347,7 @@ Make sure the tank is empty and clean."""))
 
 
     def wizardStep5(self):
-        self.display.hw.powerLed("warn")
-        if not self.display.hw.isCoverClosed():
-            pageWait = PageWait(self.display,
-                line1 = _("Orange cover not closed!"),
-                line2 = _("If cover is closed, please check the connection of cover switch."))
-            pageWait.show()
-            self.display.hw.beepAlarm(3)
-            self.display.hw.uvLed(False)
-        #endif
-        while not self.display.hw.isCoverClosed():
-            sleep(0.5)
-        #endwhile
+        self.ensure_cover_closed()
 
         # UV LED voltage comparation
         pageWait = PageWait(self.display,
@@ -5034,23 +5403,11 @@ Temperature data: %s""") % temps)
         self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
         self.display.hw.powerLed("normal")
 
-        #exposure display check
-        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "logo_1440x2560.png"))
-        self.display.page_confirm.setParams(
-            continueFce = self.wizardStep6,
-            imageName = "10_prusa_logo.jpg",
-            text = _("""Can you see company logo on the exposure display through orange cover?
-
-Tip: The logo is best seen when you look from above.
-
-DO NOT open the cover."""))
-        return "confirm"
+        return self.exposure_display_check(self.wizardStep6)
     #enddef
 
 
     def wizardStep6(self):
-        self.display.screen.getImgBlack()
-        self.display.hw.uvLed(False)
         self.display.page_confirm.setParams(
             continueFce = self.wizardStep7,
             imageName = "11_insert_platform_60deg.jpg",
@@ -5121,103 +5478,6 @@ Continue to calibration?"""))
 
     def wizardStep8(self):
         return "calibration"
-    #enddef
-
-#endclass
-
-class PageAxisSensitivity(PageSetup):
-
-    def __init__(self, display):
-        self.pageTitle = _("Axis sensitivity")
-        super(PageAxisSensitivity, self).__init__(display)
-        self.items.update({
-                'label1g1' : _("Tilt"),
-                'label1g2' : _("Tower"),
-                
-                'button1' : "",
-                'button2' : "",
-                })
-    #enddef
-
-
-    def show(self):
-        self.temp['tiltsensivity'] = self.display.hwConfig.tiltSensivity
-        self.temp['towersensivity'] = self.display.hwConfig.towerSensivity
-
-        self.items['value2g1'] = str(self.temp['tiltsensivity'])
-        self.items['value2g2'] = str(self.temp['towersensivity'])
-
-        super(PageAxisSensitivity, self).show()
-    #enddef
-
-
-    def button1ButtonRelease(self):
-        pass
-    #enddef
-
-
-    def button2ButtonRelease(self):
-        pass
-    #enddef
-
-
-    def button4ButtonRelease(self):
-        ''' save '''
-        if self.temp['tiltsensivity'] != self.display.hwConfig.tiltSensivity:
-            self.display.hwConfig.tiltSensivity = self.temp['tiltsensivity']
-            #adjust tilt profiles
-            profiles = self.display.hw.getTiltProfiles()
-            self.logger.debug("profiles %s", profiles)
-            profiles[0][4] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensivity + 2][0]
-            profiles[0][5] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensivity + 2][1]
-            profiles[1][4] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensivity + 2][0]
-            profiles[1][5] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensivity + 2][1]
-            self.display.hw.setTiltProfiles(profiles)
-            self.logger.debug("profiles %s", profiles)
-        #endif
-        if self.temp['towersensivity'] != self.display.hwConfig.towerSensivity:
-            self.display.hwConfig.towerSensivity = self.temp['towersensivity']
-            #adjust tower profiles
-            profiles = self.display.hw.getTowerProfiles()
-            self.logger.debug("profiles %s", profiles)
-            profiles[0][4] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensivity + 2][0]
-            profiles[0][5] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensivity + 2][1]
-            profiles[1][4] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensivity + 2][0]
-            profiles[1][5] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensivity + 2][1]
-            self.display.hw.setTowerProfiles(profiles)
-            self.logger.debug("profiles %s", profiles)
-        #endif
-
-        self.display.hwConfig.update(
-            tiltsensivity = self.display.hwConfig.tiltSensivity,
-            towersensivity = self.display.hwConfig.towerSensivity,
-        )
-        if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
-            return "error"
-        #endif
-        return super(PageAxisSensitivity, self).backButtonRelease()
-    #enddef
-
-
-    def minus2g1Button(self):
-        self._value(0, 'tiltsensivity', -2, +2, -1)
-    #enddef
-
-
-    def plus2g1Button(self):
-        self._value(0, 'tiltsensivity', -2, +2, 1)
-    #enddef
-
-
-    def minus2g2Button(self):
-        self._value(1, 'towersensivity', -2, +2, -1)
-    #enddef
-
-
-    def plus2g2Button(self):
-        self._value(1, 'towersensivity', -2, +2, 1)
     #enddef
 
 #endclass

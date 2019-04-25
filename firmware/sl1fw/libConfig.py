@@ -306,8 +306,8 @@ class HwConfig(FileConfig):
         self.showAdmin = self._parseBool("showadmin", False)
         self.showWizard = self._parseBool("showwizard", True)
         self.showUnboxing = self._parseBool("showunboxing", True)
-        self.tiltSensivity = self._parseInt("tiltsensivity", 0)
-        self.towerSensivity = self._parseInt("towersensivity", 0)
+        self.tiltSensitivity = self._parseInt("tiltsensitivity", 0)
+        self.towerSensitivity = self._parseInt("towersensitivity", 0)
         #following values are measured and saved in initial wizard
         self.wizardUvVoltage = list() #measured voltage on each UV led row
         self.wizardUvVoltage.append([int(n) for n in self._parseString("wizarduvvoltagerow1", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
@@ -319,6 +319,7 @@ class HwConfig(FileConfig):
         self.wizardTempAmbient = self._parseFloat("wizardtempambient", 0.0) #ambient sensor temperature
         self.wizardTempA64 = self._parseFloat("wizardtempa64", 0.0) #A64 temperature
         self.wizardResinVolume = self._parseInt("wizardresinvolume", 0) #measured fake resin volume in wizard (without resin with rotated platform)
+    #enddef
 
     def calcMicroSteps(self, mm):
         return int(mm * self.microStepsMM)
@@ -489,6 +490,64 @@ class PrintConfig(FileConfig):
 
         self.totalLayers = self.layersSlow + self.layersFast
         self.zipError = _("No data was read.")
+    #enddef
+
+#endclass
+
+
+class ConfigHelper(object):
+    """ This class provides a wrapper around config that behaves in a bit more sane way than the original config. Values
+    can be read AND set using cameCase attribute access. Changes are saved to underlying config and configuration file
+    upon a commit operation. Dirty values can be detected using a 'changed' method."""
+
+    def __init__(self, config):
+        self._config = config
+        self._changed = {}
+    #enddef
+
+
+    def __getattr__(self, item):
+        if item.lower() in self._changed:
+            value = self._changed[item.lower()]
+        else:
+            value = getattr(self._config, item)
+        #endif
+
+        if isinstance(value, MyBool):
+            value = bool(value)
+        #endif
+
+        return value
+    #enddef
+
+
+    def __setattr__(self, key, value):
+        if key.startswith('_'):
+            object.__setattr__(self, key, value)
+        else:
+            if isinstance(getattr(self._config, key), MyBool):
+                self._changed[key.lower()] = MyBool(value)
+            else:
+                self._changed[key.lower()] = value
+            #endif
+        #endif
+    #enddef
+
+
+    def commit(self):
+        for key, value in self._changed.items():
+            self._config.update(**{key: str(value)})
+        #endfor
+        self._changed = {}
+        return self._config.writeFile()
+    #enddef
+
+
+    def changed(self, key = None):
+        if key is None:
+            return bool(self._changed)
+        else:
+            return key.lower() in self._changed
     #enddef
 
 #endclass
