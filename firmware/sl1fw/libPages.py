@@ -163,7 +163,10 @@ class Page(object):
             req = urllib2.Request(url)
             req.add_header('User-Agent', 'Prusa-SL1')
             source = urllib2.urlopen(req, timeout=timeout_sec)
-            file_size = int(source.info().getheaders("Content-Length")[0])
+            try:
+                file_size = int(source.info().getheaders("Content-Length")[0])
+            except:
+                file_size = 1
             block_size = 8 * 1024
         else:
             # URL is file, source is file
@@ -177,7 +180,7 @@ class Page(object):
             old_progress = 0
             while True:
                 buffer = source.read(block_size)
-                if not buffer:
+                if not buffer or buffer == '':
                     break
                 #endif
                 file.write(buffer)
@@ -1135,7 +1138,8 @@ class PageAdvancedSettings(Page):
         self._calibTowerOffset_mm = None
 
         self.items.update({
-            'showAdmin': self.configwrapper.showAdmin,
+            'showAdmin': self.display.show_admin, # TODO: Remove once client uses show_admin
+            'show_admin': self.display.show_admin,
             'tilt_sensitivity': self.tilt_sensitivity,
             'tower_sensitivity': self.tower_sensitivity,
             'fast_tilt_limit': self.fast_tilt_limit,
@@ -1275,7 +1279,9 @@ class PageAdvancedSettings(Page):
 
     # Admin
     def adminButtonRelease(self):
-        return "admin"
+        if self.display.show_admin:
+            return "admin"
+        #endif
     #enddef
 
 
@@ -1863,7 +1869,10 @@ class PagePrint(Page):
 
 
     def show(self):
-        self.items.update({ 'showAdmin' : int(self.display.hwConfig.showAdmin) })
+        self.items.update({
+            'showAdmin' : int(self.display.show_admin), # TODO: Remove once client uses show_admin
+            'show_admin': self.display.show_admin,
+        })
         self.items.update(self.fillData())
         super(PagePrint, self).show()
     #enddef
@@ -1918,7 +1927,9 @@ It may affect the result!"""))
 
 
     def adminButtonRelease(self):
-        return "admin"
+        if self.display.show_admin:
+            return "admin"
+        #endif
     #enddef
 
 
@@ -2182,6 +2193,23 @@ class PageAbout(Page):
 
 
     def showadminButtonRelease(self):
+        try:
+            query_url = defines.admincheckURL + "/?serial=" + self.display.hw.cpuSerialNo
+            self.downloadURL(query_url, defines.admincheckTemp, title=_("Checking admin access"))
+
+            with open(defines.admincheckTemp, 'r') as file:
+                admin_check = json.load(file)
+                if not admin_check['result']:
+                    raise Exception("Admin not enabled")
+                #endif
+            #endwith
+        except:
+            self.logger.exception("Admin accesibility check exception")
+            self.display.page_error.setParams(
+                text=_("Admin not accessible"))
+            return "error"
+        #endexcept
+
         self.display.page_confirm.setParams(
                 continueFce = self.showadminContinue,
                 text = _("""Do you really want to enable admin menu?
@@ -2192,12 +2220,7 @@ Wrong settings may damage your printer!"""))
 
 
     def showadminContinue(self):
-        self.display.hwConfig.update(showadmin = "yes")
-        if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
-                text=_("Cannot save confuration"))
-            return "error"
-        #endif
+        self.display.show_admin = True
         return "_BACK_"
     #enddef
 
