@@ -5446,7 +5446,7 @@ Measured %d ml.""") % volume)
             sleep(0.25)
         #endwhile
         self.display.hw.motorsRelease()
-
+        self.display.hw.setFans((False, False, False))
         self.display.hwConfig.update(
             wizarduvvoltagerow1 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[0]),
             wizarduvvoltagerow2 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[1]),
