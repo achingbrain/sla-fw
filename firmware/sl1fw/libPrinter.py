@@ -299,7 +299,7 @@ DO NOT remove the USB drive!"""))
                     self.display.initExpoPages(self.expo)
                 except Exception:
                     self.logger.exception("exposure exception:")
-                    self.display.page_error.setParams(text = _("Couldn't initialize the exposure display!"))
+                    self.display.page_error.setParams(text = _("Couldn't initialize the exposition display!"))
                     self.display.doMenu("error")
                     continue
                 #endtry

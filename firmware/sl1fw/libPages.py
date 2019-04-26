@@ -203,7 +203,7 @@ class Page(object):
         self.display.hw.powerLed("warn")
         if not self.display.hw.isCoverClosed():
             pageWait = PageWait(self.display,
-                    line1 = _("The orange lid is not closed!"),
+                    line1 = _("The orange cover is not closed!"),
                     line2 = _("If the cover is closed, please check the connection of the cover switch."))
             pageWait.show()
             self.display.hw.beepAlarm(3)
@@ -508,7 +508,7 @@ class PagePrintStart(PagePrintPreviewBase):
                 }
         if perc <= 100:
             lines.update({
-                'text' : _("Please fill the resin tank to least %d %% and close the cover.") % perc
+                'text' : _("Please fill the resin tank to at least %d %% and close the cover.") % perc
                 })
         else:
             lines.update({
@@ -1380,7 +1380,7 @@ All settings will be deleted!"""))
         # at this height may be screwed down tank and inserted protective foam
         self.display.page_confirm.setParams(
             continueFce = self.factoryResetStep2,
-            text = _("""All settings will now be deleted and the printer will shut down.
+            text = _("""All settings will be deleted and the printer will shut down.
 
 Continue?"""))
         return "confirm"
@@ -1444,7 +1444,7 @@ Continue?"""))
         )
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save factory default confuration"))
+                text=_("Cannot save factory defaults configuration"))
             return "error"
         #endif
         self.display.shutDown(True)
@@ -2951,7 +2951,7 @@ class PageAdmin(Page):
     def button6ButtonRelease(self):
         self.display.page_confirm.setParams(
                 continueFce = self.button6Continue,
-                text = _("""This overwrites the motion controller with selected firmware.
+                text = _("""This overwrites the motion controller with the selected firmware.
 
 Are you sure?"""))
         return "confirm"
@@ -3949,7 +3949,7 @@ class PageTiltCalib(MovePage):
             continueFce = self.tiltCalibStep3,
             backFce = self.okButtonRelease,
             imageName = "04_tighten_screws.jpg",
-            text = _("Return the tank to normal position and secure it with tank screws. Make sure you tighten both screws evenly and with the same amount of force."))
+            text = _("Return the tank to the original position and secure it with tank screws. Make sure you tighten both screws evenly and with the same amount of force."))
         return "confirm"
     #enddef
 
@@ -3959,9 +3959,9 @@ class PageTiltCalib(MovePage):
             continueFce = self.tiltCalibStep4,
             backFce = self.tiltCalibStep2,
             imageName = "06_tighten_knob.jpg",
-            text = _("""Check if the platform is properly secured with black knob.
+            text = _("""Check if the platform is properly secured with the black knob.
 
-Do not rotate the platform. It should be positioned according to picture."""))
+Do not rotate the platform. It should be positioned according to the picture."""))
         return "confirm"
     #enddef
 
@@ -3989,7 +3989,7 @@ Do not rotate the platform. It should be positioned according to picture."""))
             #endwhile
             self.display.page_confirm.setParams(
                 continueFce = self.okButtonRelease,
-                text = _("""Tower not at expected position.
+                text = _("""Tower not at the expected position.
 
 Is the platform and tank secured in correct position?
 
@@ -4010,9 +4010,9 @@ Click continue and read the instructions carefully."""))
             #endwhile
             self.display.page_confirm.setParams(
                 continueFce = self.okButtonRelease,
-                text = _("""Tower not at expected position.
+                text = _("""Tower not at the expected position.
 
-Is the platform and tank secured on position?
+Is the platform and tank secured in correct position?
 
 Click continue and read the instructions carefully."""))
             return "confirm"
@@ -4037,7 +4037,7 @@ Click continue and read the instructions carefully."""))
             continueFce = self.tiltCalibStep5,
             backFce = self.tiltCalibStep3,
             imageName = "05_align_platform.jpg",
-            text = _("""Adjust the platform to align it with the exposition display.
+            text = _("""Adjust the platform so it's aligned with the exposition display.
 
 Front edges of the platform and exposition display need to be parallel."""))
         return "confirm"
@@ -4049,7 +4049,7 @@ Front edges of the platform and exposition display need to be parallel."""))
             continueFce = self.tiltCalibStep6,
             backFce = self.tiltCalibStep4,
             imageName = "07_tighten_screws.jpg",
-            text = _("Tighten small screws on the cantilever little by little. Be careful to tighten them evenly as much as possible."))
+            text = _("Tighten small screws on the cantilever little by little. For best results, tighten them as evenly as possible."))
         return "confirm"
     #enddef
 
@@ -5039,7 +5039,7 @@ Continue?"""))
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep2,
             imageName = "13_open_cover.jpg",
-            text = _("Please remove safety sticker on the right and open the orange lid."))
+            text = _("Please remove the safety sticker on the right and open the orange cover."))
         return "confirm"
     #enddef
 
@@ -5047,8 +5047,8 @@ Continue?"""))
     def unboxingStep2(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
-            line1 = _("Cover is closed!"),
-            line2 = _("Please remove safety sticker and open the orange lid."))
+            line1 = _("The cover is closed!"),
+            line2 = _("Please remove safety sticker and open the orange cover."))
         pageWait.show()
         if self.display.hw.isCoverClosed():
             self.display.hw.beepAlarm(3)
@@ -5057,7 +5057,7 @@ Continue?"""))
             sleep(0.5)
         #endwhile
         pageWait.showItems(
-            line1 = _("Printer is moving for easier unboxing"),
+            line1 = _("The printer is moving to allow for easier manipulation"),
             line2 = _("Please wait...")
         )
         self.display.hw.setTowerPosition(0)
@@ -5078,7 +5078,7 @@ Continue?"""))
     def unboxingStep3(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
-            line1 = _("Printer is moving for easier unboxing"),
+            line1 = _("The printer is moving to allow for easier manipulation"),
             line2 = _("Please wait..."))
         pageWait.show()
         self.display.hw.towerSync()
@@ -5089,7 +5089,7 @@ Continue?"""))
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep4,
             imageName = "15_remove_bottom_foam.jpg",
-            text = _("Unscrew and remove the resin tank and remove black foam underneath it."))
+            text = _("Unscrew and remove the resin tank and remove the black foam underneath it."))
         return "confirm"
     #enddef
 
@@ -5097,7 +5097,7 @@ Continue?"""))
     def unboxingStep4(self):
         self.display.page_confirm.setParams(
             continueFce = self.unboxingStep5,
-            text = _("Carefully peel of orange protective foil from exposure display."))
+            text = _("Carefully peel off the orange protective foil from the exposition display."))
         return "confirm"
     #enddef
 
@@ -5112,7 +5112,7 @@ Continue?"""))
         #endif
         self.display.page_confirm.setParams(
             continueFce = self.wizardStep1,
-            text = _("""Printer is unboxed and ready for selftest.
+            text = _("""The printer is fully unboxed and ready for the selftest.
 
 Continue?"""))
         return "confirm"
@@ -5140,7 +5140,7 @@ Continue?"""))
                 self.display.page_error.setParams(
                     text = _("""Tilt endstop not reached!
 
-Please check if tilt motor and optical endstop are connected properly."""))
+Please check if the tilt motor and optical endstop are connected properly."""))
                 self.display.hw.motorsRelease()
                 return "error"
             elif homeStatus == 0:
@@ -5155,7 +5155,7 @@ Please check if tilt motor and optical endstop are connected properly."""))
 
 Please contact support.
 
-Tilt profiles needs to be changed."""))
+Tilt profiles need to be changed."""))
             self.display.hw.motorsRelease()
             return "error"
         #endif
@@ -5183,7 +5183,7 @@ Tilt profiles needs to be changed."""))
 
 Current position: %d
 
-Please check if tilting mechanism can move smoothly in whole range.""") % self.display.hw.getTiltPosition())
+Please check if tilting mechanism can move smoothly in its entire range.""") % self.display.hw.getTiltPosition())
 	    self.display.hw.motorsRelease()
             return "error"
         #endif
@@ -5205,7 +5205,7 @@ Please check if tilting mechanism can move smoothly in whole range.""") % self.d
                 self.display.page_error.setParams(
                     text = _("""Tower endstop not reached!
 
-Please check if tower motor is connected properly."""))
+Please check if the tower motor is connected properly."""))
                 self.display.hw.motorsRelease()
                 return "error"
             elif homeStatus == 0:
@@ -5220,7 +5220,7 @@ Please check if tower motor is connected properly."""))
 
 Please contact support.
 
-Tower profiles needs to be changed."""))
+Tower profiles need to be changed."""))
             self.display.hw.motorsRelease()
             return "error"
         #endif
@@ -5276,7 +5276,7 @@ Make sure the tank is empty and clean."""))
 
 Current position: %d
 
-Please check if ballscrew can move smoothly in whole range.""") % position)
+Please check if ballscrew can move smoothly in its entire range.""") % position)
             self.display.hw.motorsRelease()
             return "error"
         #endif
@@ -5431,7 +5431,7 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
                 self.display.page_error.setParams(
                     text = _("""UV LED too hot!
 
-Please check if the UV LED panel is connected properly to the heatsink.
+Please check if the UV LED panel is attached to the heatsink.
 
 Temperature data: %s""") % temps)
                 self.display.hw.uvLed(False)
@@ -5500,7 +5500,7 @@ Measured %d ml.""") % volume)
         )
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save wizard confuration"))
+                text=_("Cannot save wizard configuration"))
             return "error"
         #endif
 
@@ -5508,7 +5508,7 @@ Measured %d ml.""") % volume)
 
         self.display.page_confirm.setParams(
             continueFce = self.wizardStep8,
-            text = _("""Printer is succesfully checked.
+            text = _("""Selftest OK.
 
 Continue to calibration?"""))
         return "confirm"
