@@ -1293,6 +1293,12 @@ All settings will be deleted!"""))
     #enddef
 
 
+    # Show wizard
+    def wizardButtonRelease(self):
+        return "wizard"
+    #enddef
+
+
     # Back
     def backButtonRelease(self):
         if self.configwrapper.changed():
@@ -2916,7 +2922,7 @@ class PageAdmin(Page):
 
                 'button11' : _("Net update"),
                 'button12' : _("Logging"),
-                'button13' : _("Wizard"),
+                'button13' : "",
                 'button14' : "",
                 'button15' : "",
                 })
@@ -3106,7 +3112,7 @@ Is the tank secured with both screws?"""))
 
 
     def button13ButtonRelease(self):
-        return "wizard"
+        pass
     #enddef
 
 
