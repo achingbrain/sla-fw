@@ -2334,7 +2334,8 @@ class SourceDir:
                 'source': self.name,
                 'filename': item,
                 'path': item,
-                'time': os.path.getmtime(full_path)
+                'time': os.path.getmtime(full_path),
+                'size': os.path.getsize(full_path),
             }
         #endif
 
