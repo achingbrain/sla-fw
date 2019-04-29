@@ -243,8 +243,9 @@ DO NOT open the cover."""))
     #enddef
 
 
-    def save_logs_to_usb(self):
-        if self.getSavePath() is None:
+    def saveLogsToUSB(self):
+        save_path = self.getSavePath()
+        if save_path is None:
             self.display.page_error.setParams(text=_("No USB storage present"))
             return "error"
         #endif
@@ -252,9 +253,13 @@ DO NOT open the cover."""))
         pageWait = PageWait(self.display, line1=_("Saving logs"))
         pageWait.show()
 
+        timestamp = str(int(time.time()))
+        serial = self.display.hw.cpuSerialNo
+        log_file = os.path.join(save_path, "log.%s.%s.txt.gz" % (serial, timestamp))
+
         try:
             subprocess.check_call(
-                ["/bin/sh", "-c", "journalctl | gzip > %s/log.$(date +%%s).txt.gz; sync" % self.getSavePath()])
+                ["/bin/sh", "-c", "journalctl | gzip > %s; sync" % log_file])
         except subprocess.CalledProcessError as e:
             self.display.page_error.setParams(text=_("Log save failed"))
             return "error"
@@ -1289,7 +1294,7 @@ All settings will be deleted!"""))
 
     # Logs export to usb
     def exportlogstoflashdiskButtonRelease(self):
-        return self.save_logs_to_usb()
+        return self.saveLogsToUSB()
     #enddef
 
 
@@ -3234,7 +3239,7 @@ class PageLogging(Page):
 
 
     def button1ButtonRelease(self):
-        return self.save_logs_to_usb()
+        return self.saveLogsToUSB()
     #enddef
 
 #endclass
