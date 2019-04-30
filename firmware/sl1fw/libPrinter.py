@@ -8,6 +8,7 @@ from time import time, sleep
 import zipfile
 import shutil
 from glob import glob
+import toml
 
 import defines
 import libPages
@@ -22,7 +23,15 @@ class Printer(object):
         self.logger.info("SL1 firmware started - version %s", defines.swVersion)
 
         import libConfig
-        self.hwConfig = libConfig.HwConfig(defines.hwConfigFile)
+        try:
+            with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
+                factory_defaults = toml.load(factory)
+            #endwith
+        except:
+            self.logger.exception("Failed to load factory defaults")
+            factory_defaults = {}
+        #endtry
+        self.hwConfig = libConfig.HwConfig(defines.hwConfigFile, defaults = factory_defaults)
         self.hwConfig.logAllItems()
         self.config = libConfig.PrintConfig(self.hwConfig)
 
