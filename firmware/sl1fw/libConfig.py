@@ -36,8 +36,9 @@ class MyBool:
 
 class FileConfig(object):
 
-    def __init__(self, configFile):
+    def __init__(self, configFile, defaults = {}):
         self._logger = logging.getLogger(self._name)
+        self._defaults = defaults
         self.parseFile(configFile)
     #enddef
 
@@ -104,9 +105,16 @@ class FileConfig(object):
         return True
     #enddef
 
-    # keys in kwargs must be lowercased file keywords not object members!!!
-    # values must be strings!!!
     def update(self, **kwargs):
+        '''
+        Update values in the config
+
+        Changes are not propagated to the underlying file. Use 'writeFile' to sync changes.
+
+        :param kwargs: Dictionary with key=value pairs to update. Keys must be lowcase strings !!! Object
+         members cannot be used directly !!! Setting value to None removes key from the configuration.
+        '''
+
         for key,val in kwargs.iteritems():
             self._logger.debug("update: %s = %s", key, str(val))
             self._data[key.lower()] = val
@@ -117,15 +125,19 @@ class FileConfig(object):
                 newLines.append((None, val))
             else:
                 lowerkey = key.lower()
-                newLines.append((key, self._data[lowerkey]))
+                if lowerkey not in kwargs or kwargs[lowerkey] is not None:
+                    newLines.append((key, self._data[lowerkey]))
+                #endif
                 if lowerkey in kwargs:
                     del kwargs[lowerkey]
                 #endif
             #endif
         #endfor
         for key,val in kwargs.iteritems():
-            newLines.append((None, ""))
-            newLines.append((key, val))
+            if val is not None:
+                newLines.append((None, ""))
+                newLines.append((key, val))
+            #endif
         #endfor
         self._lines = newLines
         self._parseData()
@@ -174,8 +186,13 @@ class FileConfig(object):
     #enddef
 
     def _parseInt(self, key, default = -1):
+        if key in self._defaults:
+            default = self._defaults[key]
+        #endif
+
         try:
-            return int(self._data.get(key, default))
+            ret = int(self._data.get(key, default))
+            return ret
         except Exception:
             return default
         #endtry
@@ -192,6 +209,10 @@ class FileConfig(object):
     #enddef
 
     def _parseFloat(self, key, default = -1.0, exact = False):
+        if key in self._defaults:
+            default = self._defaults[key]
+        #endif
+
         try:
             val = float(self._data.get(key, default))
             if exact:
@@ -215,6 +236,10 @@ class FileConfig(object):
     #enddef
 
     def _parseBool(self, key, default = False):
+        if key in self._defaults:
+            default = self._defaults[key]
+        #endif
+
         try:
             val = self._data.get(key, "").lower()
             if val == "on" or val == "yes":
@@ -226,11 +251,15 @@ class FileConfig(object):
             #endif
         except Exception:
             self._logger.exception("_parseBool() exception:")
-            return MyBool(default)
+            return default
         #endtry
     #enddef
 
     def _parseString(self, key, default = ""):
+        if key in self._defaults:
+            default = self._defaults[key]
+        #endif
+
         try:
             return self._data.get(key, default).strip('"')
         except Exception:
@@ -243,9 +272,9 @@ class FileConfig(object):
 
 class HwConfig(FileConfig):
 
-    def __init__(self, configFile = None):
+    def __init__(self, configFile = None, defaults = {}):
         self._name = "HwConfig"
-        super(HwConfig, self).__init__(configFile)
+        super(HwConfig, self).__init__(configFile, defaults)
         self.os = OsConfig()
     #enddef
 

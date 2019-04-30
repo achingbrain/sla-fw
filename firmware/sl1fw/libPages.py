@@ -7,6 +7,7 @@ import os
 import logging
 from time import sleep
 import json
+import toml
 import subprocess
 import signal
 import glob
@@ -4549,6 +4550,8 @@ class PageFansLeds(Page):
                 'label2g7' : _("Power LED mode"),
                 'label2g8' : _("Power LED speed"),
 
+                'button1' : _("Save defaults"),
+                'button3' : _("Defaults"),
                 'button4' : _("Save"),
                 'back' : _("Back"),
                 })
@@ -4595,11 +4598,85 @@ class PageFansLeds(Page):
     #enddef
 
 
+    def button1ButtonRelease(self):
+        self.display.page_confirm.setParams(
+            continueFce=self.save_defaults,
+            text=_("Save current values as factory defaults ?")
+        )
+        return "confirm"
+    #enddef
+
+
+    def save_defaults(self):
+        self._update_config()
+        try:
+            self.logger.info("Remounting factory partition rw")
+            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", defines.factoryMountPoint])
+
+            defaults = {
+                'fan1pwm': self.display.hwConfig.fan1Pwm,
+                'fan2pwm': self.display.hwConfig.fan2Pwm,
+                'fan3pwm': self.display.hwConfig.fan3Pwm,
+                'uvcurrent': self.display.hwConfig.uvCurrent,
+            }
+
+            with open(defines.hwConfigFactoryDefaultsFile, "w") as file:
+                toml.dump(defaults, file)
+            #endwith
+
+            self.display.hwConfig._defaults = defaults
+        except:
+            self.logger.exception("Failed to save factory defaults")
+            self.display.page_error.setParams(
+                text=_("!!! Failed to save factory defaults !!!"))
+            return "error"
+        finally:
+            try:
+                self.logger.info("Remounting factory partition ro")
+                subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", defines.factoryMountPoint])
+            except:
+                self.logger.exception("Failed to remount factory partion ro")
+        #endtry
+        return "_BACK_"
+    #enddef
+
+
+    def button3ButtonRelease(self):
+        self.display.page_confirm.setParams(
+            continueFce=self.reset_to_defaults,
+            text=_("Reset to factory defaults ?")
+        )
+        return "confirm"
+    #enddef
+
+
+    def reset_to_defaults(self):
+        self.display.hwConfig.update(
+            uvcurrent=None,
+            fan1pwm=None,
+            fan2pwm=None,
+            fan3pwm=None,
+        )
+        self._reset_hw_values()
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text = _("Cannot save configuration"))
+            return "error"
+        #endif
+        return "_BACK_"
+    #enddef
+
+
+    def _update_config(self):
+        # filter only wanted items
+        filtered = {k: v for k, v in filter(lambda t: t[0] in self.valuesToSave, self.changed.iteritems())}
+        self.display.hwConfig.update(**filtered)
+    #enddef
+
+
     def button4ButtonRelease(self):
         ''' save '''
-        # filter only wanted items
-        filtered = { k : v for k, v in filter(lambda t: t[0] in self.valuesToSave, self.changed.iteritems()) }
-        self.display.hwConfig.update(**filtered)
+        self._update_config()
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save configuration"))
@@ -4609,10 +4686,18 @@ class PageFansLeds(Page):
     #endif
 
 
-    def backButtonRelease(self):
-        self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm, self.display.hwConfig.fan2Pwm, self.display.hwConfig.fan3Pwm))
+    def _reset_hw_values(self):
+        self.display.hw.setFansPwm(
+            (self.display.hwConfig.fan1Pwm,
+             self.display.hwConfig.fan2Pwm,
+             self.display.hwConfig.fan3Pwm))
         self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
         self.display.hw.setPowerLedPwm(self.display.hwConfig.pwrLedPwm)
+    #enddef
+
+
+    def backButtonRelease(self):
+        self._reset_hw_values()
         return super(PageFansLeds, self).backButtonRelease()
     #enddef
 

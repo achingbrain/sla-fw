@@ -8,6 +8,7 @@ swVersion = "Gen3-190-425"
 reqMcVersion = "SLA-control 0.9.9-399b"
 
 home = "/home/root"
+factoryMountPoint = "/usr/share/factory/defaults"
 
 swPath = "/usr/lib/python2.7/site-packages/sl1fw"
 dataPath = os.path.join(swPath, "data")
@@ -17,6 +18,7 @@ jobCounter = os.path.join(home, "jobs.log")
 configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
+hwConfigFactoryDefaultsFile = os.path.join(factoryMountPoint, "hardware.toml")
 livePreviewImage = os.path.join(ramdiskPath, "live.png")
 livePreviewSize = (288, 512)
 
