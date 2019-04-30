@@ -60,6 +60,13 @@ class Page(object):
     #enddef
 
 
+    def leave(self, newPage):
+        '''Override this to modify page this page is left for. This is used to show confirm page instead and return to
+        newPage later.'''
+        return newPage
+    #enddef
+
+
     def show(self):
         # renew save path every time when page is shown, it may change
         self.items['save_path'] = self.getSavePath()
@@ -1306,20 +1313,22 @@ All settings will be deleted!"""))
 
 
     # Back
-    def backButtonRelease(self):
+    def leave(self, newPage):
         if self.configwrapper.changed():
             self.display.page_confirm.setParams(
                 continueFce = self._savechanges,
+                continueParams={'newPage': newPage},
                 backFce = self._discardchanges,
+                backParams={'newPage': newPage},
                 text = _("Save changes"))
             return "confirm"
         else:
-            return super(PageAdvancedSettings, self).backButtonRelease()
+            return newPage
         #endif
     #enddef
 
 
-    def _savechanges(self):
+    def _savechanges(self, newPage):
         sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
         if not self.configwrapper.commit():
             self.display.page_error.setParams(
@@ -1332,16 +1341,27 @@ All settings will be deleted!"""))
             self._updatesensitivity()
         #endif
 
-        self.display.goBack(2)
+        # TODO: This is wrong, display should handle this for us.
+        if newPage == "_BACK_":
+            self.display.goBack(2)
+        else:
+            self.display.setPage(newPage)
+        #endif
     #enddef
 
 
-    def _discardchanges(self):
+    def _discardchanges(self, newPage):
         # TODO: This is wrong, it would be nice to have API to set just one fan
         self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm,
                                     self.display.hwConfig.fan2Pwm,
                                     self.display.hwConfig.fan3Pwm))
-        self.display.goBack(2)
+
+        # TODO: This is wrong, display should halde this for us.
+        if newPage == "_BACK_":
+            self.display.goBack(2)
+        else:
+            self.display.setPage(newPage)
+        #endif
     #enddef
 
 
