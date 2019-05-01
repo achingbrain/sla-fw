@@ -191,6 +191,9 @@ class Display(object):
                         newPage = releaseFce()
                     #endif
 
+                    # Allow leave function o override newPage
+                    newPage = self.actualPage.leave(newPage)
+
                     if newPage == "_BACK_":
                         if not self.goBack():
                             return False
