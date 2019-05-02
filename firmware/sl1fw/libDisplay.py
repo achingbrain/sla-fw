@@ -41,6 +41,7 @@ class Display(object):
         self.page_sourceselect = libPages.PageSrcSelect(self)
         self.page_error = libPages.PageError(self)
         self.page_tilttower = libPages.PageTiltTower(self)
+        self.page_displaytest = libPages.PageDisplayTest(self)
         self.page_display = libPages.PageDisplay(self)
         self.page_admin = libPages.PageAdmin(self)
         self.page_netupdate = libPages.PageNetUpdate(self)
@@ -49,10 +50,20 @@ class Display(object):
         self.page_exception = libPages.PageException(self)
         self.page_towermove = libPages.PageTowerMove(self)
         self.page_tiltmove = libPages.PageTiltMove(self)
-        self.page_tiltcalib = libPages.PageTiltCalib(self)
         self.page_toweroffset = libPages.PageTowerOffset(self)
         self.page_tiltprofiles = libPages.PageTiltProfiles(self)
-        self.page_calibration = libPages.PageCalibration(self)
+        self.page_calibration1 = libPages.PageCalibration1(self)
+        self.page_calibration2 = libPages.PageCalibration2(self)
+        self.page_calibration3 = libPages.PageCalibration3(self)
+        self.page_calibration4 = libPages.PageCalibration4(self)
+        self.page_calibration5 = libPages.PageCalibration5(self)
+        self.page_calibration6 = libPages.PageCalibration6(self)
+        self.page_calibration7 = libPages.PageCalibration7(self)
+        self.page_calibration8 = libPages.PageCalibration8(self)
+        self.page_calibration9 = libPages.PageCalibration9(self)
+        self.page_calibration10 = libPages.PageCalibration10(self)
+        self.page_calibration11 = libPages.PageCalibration11(self)
+        self.page_calibrationconfirm = libPages.PageCalibrationConfirm(self)
         self.page_tunetilt = libPages.PageTuneTilt(self)
         self.page_towerprofiles = libPages.PageTowerProfiles(self)
         self.page_fansleds = libPages.PageFansLeds(self)
@@ -67,7 +78,19 @@ class Display(object):
         self.page_image = libPages.PageImage(self)
         self.page_video = libPages.PageVideo(self)
         self.page_setlogincredentials = libPages.PageSetLoginCredentials(self)
-        self.page_wizard = libPages.PageWizard(self)
+        self.page_unboxing1 = libPages.PageUnboxing1(self)
+        self.page_unboxing2 = libPages.PageUnboxing2(self)
+        self.page_unboxing3 = libPages.PageUnboxing3(self)
+        self.page_unboxing4 = libPages.PageUnboxing4(self)
+        self.page_unboxing5 = libPages.PageUnboxing5(self)
+        self.page_unboxingconfirm = libPages.PageUnboxingConfirm(self)
+        self.page_wizard1 = libPages.PageWizard1(self)
+        self.page_wizard2 = libPages.PageWizard2(self)
+        self.page_wizard3 = libPages.PageWizard3(self)
+        self.page_wizard4 = libPages.PageWizard4(self)
+        self.page_wizard5 = libPages.PageWizard5(self)
+        self.page_wizard6 = libPages.PageWizard6(self)
+        self.page_wizardconfirm = libPages.PageWizardConfirm(self)
         self.page_logging = libPages.PageLogging(self)
         self.page_print = libPages.PagePrint(self)
         self.page_feedme = libPages.PageFeedMe(self)
@@ -75,6 +98,7 @@ class Display(object):
         self.actualPage = self.page_start
         self.fanErrorOverride = False
         self.checkCoolingExpo = True
+        self.backActions = set(("_EXIT_", "_BACK_", "_OK_", "_NOK_"))
     #enddef
 
 
@@ -153,7 +177,7 @@ class Display(object):
             if self.actualPage.callbackPeriod and (now - callbackTime).total_seconds() > self.actualPage.callbackPeriod:
                 callbackTime = now
                 newPage = self.actualPage.callback()
-                if newPage == "_EXIT_MENU_":
+                if newPage == "_EXIT_":
                     break
                 elif newPage is not None:
                     if self.actualPage.stack:
@@ -206,19 +230,30 @@ class Display(object):
                     # Allow leave function o override newPage
                     newPage = self.actualPage.leave(newPage)
 
-                    if newPage == "_BACK_":
-                        if not self.goBack():
-                            return False
-                        #endif
+                    self.logger.warning("newPage: %s actualPage name: %s", newPage, self.actualPage.pageTitle)
+
+                    if newPage in self.backActions:
                         autorepeatFce = None
                         autorepeatDelay = 1
                         sleep(0.1)
-                        continue
-                    elif newPage == "_SELF_":
+                        while newPage in self.backActions:
+                            if not self.goBack(show = False):
+                                return
+                            #endif
+                            self.logger.warning("actualPage name: %s", self.actualPage.pageTitle)
+                            np = None
+                            backFce = getattr(self.actualPage, newPage, None)
+                            if backFce:
+                                np = backFce()
+                            #endif
+                            self.logger.warning("np: %s", np)
+                            newPage = np
+                        #endwhile
+                        self.actualPage.show()
+                    #endif
+                    if newPage == "_SELF_":
                         self.actualPage.show()
                         continue
-                    elif newPage == "_EXIT_MENU_":
-                        return True
                     elif newPage is not None:
                         if self.actualPage.stack:
                             self.pageStack.append(self.actualPage)
@@ -247,7 +282,7 @@ class Display(object):
     #enddef
 
 
-    def goBack(self, count = 1):
+    def goBack(self, count = 1, show = True):
         retc = True
         page = self.actualPage
         for i in xrange(count):
@@ -259,7 +294,9 @@ class Display(object):
         #endfor
         if page != self.actualPage:
             self.actualPage = page
-            self.actualPage.show()
+            if show:
+                self.actualPage.show()
+            #endif
         #endif
         return retc
     #enddef

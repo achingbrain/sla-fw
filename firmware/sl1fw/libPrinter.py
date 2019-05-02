@@ -88,10 +88,16 @@ class Printer(object):
                 self.expo = Exposure(self.hwConfig, self.config, self.display, self.hw, self.screen)
                 self.display.initExpo(self.expo)
 
-                if self.hwConfig.showWizard and firstRun:
-                    self.hw.beepRepeat(1)
-                    self.display.doMenu("wizard")
-                    sleep(0.5)    # delay between beep if user selects back from wizard and two beeps at the normal startup
+                if firstRun:
+                    if self.hwConfig.showUnboxing:
+                        self.hw.beepRepeat(1)
+                        self.display.doMenu("unboxing1")
+                        sleep(0.5)
+                    elif self.hwConfig.showWizard:
+                        self.hw.beepRepeat(1)
+                        self.display.doMenu("wizard1")
+                        sleep(0.5)
+                    #endif
                 #endif
 
                 self.display.page_home.readyBeep = True

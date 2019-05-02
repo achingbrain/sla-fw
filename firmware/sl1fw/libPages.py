@@ -46,6 +46,7 @@ class Page(object):
         # vars for checkCoverCallback()
         self.checkCoverBeepDelay = 2
         self.checkCoverWarnOnly = True
+        self.checkCoverUVOn = False
         # vars for powerButtonCallback()
         self.powerButtonCount = 0
         # vars for checkCoolingCallback()
@@ -242,34 +243,6 @@ class Page(object):
             sleep(0.5)
         #endwhile
         self.display.hw.powerLed("normal")
-    #enddef
-
-
-    def exposure_display_check(self, continueFce=None, backFce=None):
-        def callback(fce):
-            self.display.hw.uvLed(False)
-            self.display.screen.getImgBlack()
-            if fce:
-                return fce()
-            else:
-                return "_BACK_"
-            #endif
-        #enddef
-
-        self.display.hw.uvLed(True)
-        self.display.screen.getImg(filename=os.path.join(defines.dataPath, "logo_1440x2560.png"))
-        self.display.page_confirm.setParams(
-            continueFce = callback,
-            continueParams = {'fce': continueFce},
-            backFce = callback,
-            backParams = {'fce': backFce},
-            imageName = "10_prusa_logo.jpg",
-            text = _("""Can you see company logo on the exposure display through the orange cover?
-
-Tip: The logo is best seen when you look from above.
-
-DO NOT open the cover."""))
-        return "confirm"
     #enddef
 
 
@@ -485,11 +458,7 @@ Check the printer's hardware."""))
                 self.checkCoverBeepDelay += 1
             #endif
         else:
-            UVIsOn, time = self.display.hw.getUvLedState()
-            if UVIsOn:
-                self.display.hw.uvLed(False)
-            #endif
-
+            self.display.hw.uvLed(False)
             self.display.hw.powerLed("warn")
             pageWait = PageWait(self.display, line1 = _("Close the orange cover."))
             pageWait.show()
@@ -499,7 +468,7 @@ Check the printer's hardware."""))
             #endwhile
             self.display.hw.powerLed("normal")
             self.show()
-            if UVIsOn:
+            if self.checkCoverUVOn:
                 self.display.hw.uvLed(True)
             #endif
         #endif
@@ -514,7 +483,6 @@ Check the printer's hardware."""))
         self.checkCooligSkip = 0
 
         # UV LED temperature test
-        # TODO make it work even when job is not running
         temp = self.display.hw.getUvLedTemperature()
         if temp < 0:
             if expoInProgress:
@@ -679,7 +647,7 @@ class PageConfirm(Page):
 
     def contButtonRelease(self):
         if self.continueFce is None:
-            return "_EXIT_MENU_"
+            return "_EXIT_"
         else:
             return self.continueFce(**self.continueParams)
         #endif
@@ -1171,12 +1139,12 @@ Calibrate now?"""))
 
 
     def showWizard(self):
-        return "wizard"
+        return "wizard1"
     #enddef
 
 
     def printContinue(self):
-        return "calibration"
+        return "calibration1"
     #enddef
 
 #endclass
@@ -1263,7 +1231,7 @@ class PageSettings(Page):
 
 
     def calibrateContinue(self):
-        return "calibration"
+        return "calibration1"
     #enddef
 
 #endclass
@@ -1803,8 +1771,7 @@ class PageAdvancedSettings(Page):
 
     # Display test
     def displaytestButtonRelease(self):
-        self.ensureCoverIsClosed()
-        return self.exposure_display_check()
+        return "displaytest"
     #enddef
 
     # Rear fan speed
@@ -1867,7 +1834,7 @@ All settings will be deleted!"""))
 
     # Show wizard
     def wizardButtonRelease(self):
-        return "wizard"
+        return "wizard1"
     #enddef
 
 
@@ -2523,7 +2490,7 @@ class PagePrint(Page):
             if hwConfig.autoOff and not expo.canceled:
                 self.display.shutDown(True)
             #endif
-            return "_EXIT_MENU_"
+            return "_EXIT_"
         #endif
 
         if self.lastLayer == expo.actualLayer:
@@ -3225,10 +3192,8 @@ Re-export it and try again.""") % config.zipError)
 
 class PageError(Page):
 
-    # TODO PageFatalError with pageUI = "error" (poweroff)
-
     def __init__(self, display):
-        self.pageUI = "confirm"
+        self.pageUI = "error"
         self.pageTitle = _("Error")
         super(PageError, self).__init__(display)
         self.stack = False
@@ -3250,18 +3215,18 @@ class PageError(Page):
     #enddef
 
 
-    def backButtonRelease(self):
+    def okButtonRelease(self):
         self.display.hw.powerLed("normal")
         if self.backFce is None:
-            return super(PageError, self).backButtonRelease()
+            return "_EXIT_"
         else:
             return self.backFce(**self.backParams)
         #endif
     #enddef
 
-
-    def contButtonRelease(self):
-        return self.backButtonRelease()
+    #TODO remove back button from GUI
+    def backButtonRelease(self):
+        return self.okButtonRelease()
     #enddef
 
 #endclass
@@ -3608,6 +3573,56 @@ class PageDisplay(Page):
         return super(PageDisplay, self).backButtonRelease()
     #enddef
 
+#endclass
+
+
+class PageDisplayTest(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Display test")
+        super(PageDisplayTest, self).__init__(display)
+        self.items.update({
+            'imageName' : "10_prusa_logo.jpg",
+            'text' : _("""Can you see company logo on the exposure display through the orange cover?
+
+Tip: The logo is best seen when you look from above.
+
+DO NOT open the cover.""")})
+        self.stack = False
+        self.checkCover = True
+        self.checkCoverWarnOnly = False
+        self.checkCoverUVOn = True
+        self.checkCooling = True
+    #enddef
+
+
+    def show(self):
+        if not self.display.hwConfig.coverCheck or self.display.hw.isCoverClosed():
+            self.display.hw.uvLed(True)
+            super(PageDisplayTest, self).show()
+        #endif
+        self.display.screen.getImg(filename=os.path.join(defines.dataPath, "logo_1440x2560.png"))
+        self.display.hw.startFans()
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "_OK_"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "_NOK_"
+    #enddef
+
+
+    def leave(self, newPage):
+        self.display.hw.uvLed(False)
+        self.display.screen.getImgBlack()
+        self.display.hw.stopFans()
+        return newPage
+    #enddef
 
 #endclass
 
@@ -4553,12 +4568,15 @@ class PageTiltMove(MovePage):
 #endclass
 
 
-class PageCalibration(Page):
+class PageCalibration1(Page):
+
     def __init__(self, display):
-        self.pageUI = "home"
-        self.pageTitle = _("Calibration")
-        super(PageCalibration, self).__init__(display)
-        self.stack = False
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 1/10")
+        super(PageCalibration1, self).__init__(display)
+        self.items.update({
+            'imageName' : "06_tighten_knob.jpg",
+            'text' : _("If the platform is not yet inserted, insert it now and secure it with the black knob.")})
     #enddef
 
 
@@ -4575,65 +4593,131 @@ class PageCalibration(Page):
             sleep(0.25)
         #endwhile
         self.display.hw.powerLed("normal")
-
-        self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep2,
-            imageName = "06_tighten_knob.jpg",
-            text = _("If the platform is not yet inserted, insert it now and secure it with the black knob."))
-        return "confirm"
     #enddef
 
 
-    def recalibrateStep2(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep3,
-            backFce = self.prepare,
-            imageName = "01_loosen_screws.jpg",
-            text = _("Loosen small screws on the cantilever. Be careful not to unscrew them completely."))
-        return "confirm"
+    def contButtonRelease(self):
+        return "calibration2"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
     #enddef
 
 
-    def recalibrateStep3(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep4,
-            backFce = self.recalibrateStep2,
-            imageName = "02_place_bed.jpg",
-            text = _("Unscrew the tank, rotate it by 90 degrees and place it flat across the tilt bed. Remove the tank screws completely!"))
-        return "confirm"
+    def _EXIT_(self):
+        self.display.hw.motorsRelease()
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageCalibration2(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 2/10")
+        super(PageCalibration2, self).__init__(display)
+        self.items.update({
+            'imageName' : "01_loosen_screws.jpg",
+            'text' : _("Loosen small screws on the cantilever. Be careful not to unscrew them completely.")})
     #enddef
 
 
-    def recalibrateStep4(self):
+    def contButtonRelease(self):
+        return "calibration3"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageCalibration3(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 3/10")
+        super(PageCalibration3, self).__init__(display)
+        self.items.update({
+            'imageName' : "02_place_bed.jpg",
+            'text' : _("Unscrew the tank, rotate it by 90 degrees and place it flat across the tilt bed. Remove the tank screws completely!")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        pageWait = PageWait(self.display,
+            line1 = _("Setting start position."),
+            line2 = _("Please wait..."))
+        pageWait.show()
+
         self.display.hw.powerLed("warn")
         self.display.hw.tiltMoveAbsolute(self.display.hw._tiltCalibStart)
         while self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
         self.display.hw.powerLed("normal")
-        self.display.page_confirm.setParams(
-            continueFce = self.recalibrateStep5,
-            backFce = self.recalibrateStep3,
-            imageName = "03_proper_aligment.jpg",
-            text = _("In the next step, move the tilt up/down until the tilt frame is in direct contact with the resin tank. The tilt frame and tank have to be aligned in a perfect line."))
-        return "confirm"
+        return "calibration4"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
     #enddef
 
 
-    def recalibrateStep5(self):
-        return "tiltcalib"
-    #endef
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
 
 #endclass
 
 
-class PageTiltCalib(MovePage):
+class PageCalibration4(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 4/10")
+        super(PageCalibration4, self).__init__(display)
+        self.items.update({
+            'imageName' : "03_proper_aligment.jpg",
+            'text' : _("In the next step, move the tilt up/down until the tilt frame is in direct contact with the resin tank. The tilt frame and tank have to be aligned in a perfect line.")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "calibration5"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageCalibration5(MovePage):
 
     def __init__(self, display):
         self.pageUI = "tiltmovecalibration"
-        self.pageTitle = _("Tank Calibration")
-        super(PageTiltCalib, self).__init__(display)
-        self.stack = False
+        self.pageTitle = _("Calibration step 5/10")
+        super(PageCalibration5, self).__init__(display)
         self.autorepeat = { "upslow" : (3, 1), "downslow" : (3, 1) }
     #enddef
 
@@ -4642,31 +4726,7 @@ class PageTiltCalib(MovePage):
         self.display.hw.setTiltProfile('moveSlow')
         self.items["value"] = self.display.hw.getTiltPosition()
         self.moving = False
-        super(PageTiltCalib, self).show()
-    #enddef
-
-
-    def okButtonRelease(self):
-        position = self.display.hw.getTiltPositionMicroSteps()
-        if position is None:
-            self.logger.error("Invalid tilt position to save!")
-            self.display.hw.beepAlarm(3)
-        else:
-            self.display.hwConfig.tiltHeight = position
-        #endif
-        self.display.page_confirm.setParams(
-            continueFce = self.tiltCalibStep2,
-            backFce = self.tiltCalibAgain,
-            imageName = "08_clean.jpg",
-            text = _("""Make sure the platform, tank and tilt are PERFECTLY clean.
-
-The image is for illustation only."""))
-        return "confirm"
-    #endif
-
-
-    def backButtonRelease(self):
-        return "calibration"
+        super(PageCalibration5, self).show()
     #enddef
 
 
@@ -4702,34 +4762,110 @@ The image is for illustation only."""))
     #enddef
 
 
-    def tiltCalibAgain(self):
-        return "tiltcalib"
+    def okButtonRelease(self):
+        position = self.display.hw.getTiltPositionMicroSteps()
+        if position is None:
+            self.logger.error("Invalid tilt position to save!")
+            self.display.hw.beepAlarm(3)
+        else:
+            self.display.hwConfig.tiltHeight = position
+        #endif
+        return "calibration6"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
     #enddef
 
 
-    def tiltCalibStep2(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.tiltCalibStep3,
-            backFce = self.okButtonRelease,
-            imageName = "04_tighten_screws.jpg",
-            text = _("Return the tank to the original position and secure it with tank screws. Make sure you tighten both screws evenly and with the same amount of force."))
-        return "confirm"
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageCalibration6(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 6/10")
+        super(PageCalibration6, self).__init__(display)
+        self.items.update({
+            'imageName' : "08_clean.jpg",
+            'text' : _("""Make sure the platform, tank and tilt are PERFECTLY clean.
+
+The image is for illustation only.""")})
     #enddef
 
 
-    def tiltCalibStep3(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.tiltCalibStep4,
-            backFce = self.tiltCalibStep2,
-            imageName = "06_tighten_knob.jpg",
-            text = _("""Check if the platform is properly secured with the black knob.
+    def contButtonRelease(self):
+        return "calibration7"
+    #endif
 
-Do not rotate the platform. It should be positioned according to the picture."""))
-        return "confirm"
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
     #enddef
 
 
-    def tiltCalibStep4(self):
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageCalibration7(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 7/10")
+        super(PageCalibration7, self).__init__(display)
+        self.items.update({
+            'imageName' : "04_tighten_screws.jpg",
+            'text' : _("Return the tank to the original position and secure it with tank screws. Make sure you tighten both screws evenly and with the same amount of force.")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "calibration8"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+
+    def _BACK_(self):
+        return "_BACK_"
+    #enddef
+
+#endclass
+
+
+class PageCalibration8(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 8/10")
+        super(PageCalibration8, self).__init__(display)
+        self.items.update({
+            'imageName' : "06_tighten_knob.jpg",
+            'text' : _("""Check if the platform is properly secured with the black knob.
+
+Do not rotate the platform. It should be positioned according to the picture.""")})
+    #enddef
+
+
+    def contButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Platform calibration"),
@@ -4748,7 +4884,7 @@ Do not rotate the platform. It should be positioned according to the picture."""
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
             self.display.page_confirm.setParams(
-                continueFce = self.okButtonRelease,
+                continueFce = self.positionFailed,
                 text = _("""Tower not at the expected position.
 
 Is the platform and tank secured in correct position?
@@ -4766,7 +4902,7 @@ Click continue and read the instructions carefully."""))
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
             self.display.page_confirm.setParams(
-                continueFce = self.okButtonRelease,
+                continueFce = self.positionFailed,
                 text = _("""Tower not at the expected position.
 
 Is the platform and tank secured in correct position?
@@ -4790,28 +4926,76 @@ Click continue and read the instructions carefully."""))
         self.display.hwConfig.towerHeight = -self.display.hw.getTowerPositionMicroSteps()
         self.display.hw.setTowerProfile('homingFast')
         self.display.hw.powerLed("normal")
-        self.display.page_confirm.setParams(
-            continueFce = self.tiltCalibStep5,
-            backFce = self.tiltCalibStep3,
-            imageName = "05_align_platform.jpg",
-            text = _("""Adjust the platform so it's aligned with the exposition display.
+        return "calibration9"
+    #endif
 
-Front edges of the platform and exposition display need to be parallel."""))
-        return "confirm"
+
+    def positionFailed(self):
+        return "_BACK_"
     #enddef
 
 
-    def tiltCalibStep5(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.tiltCalibStep6,
-            backFce = self.tiltCalibStep4,
-            imageName = "07_tighten_screws.jpg",
-            text = _("Tighten small screws on the cantilever little by little. For best results, tighten them as evenly as possible."))
-        return "confirm"
+    def backButtonRelease(self):
+        return "calibrationconfirm"
     #enddef
 
 
-    def tiltCalibStep6(self):
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+
+    def _BACK_(self):
+        return "_BACK_"
+    #enddef
+
+#endclass
+
+
+class PageCalibration9(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 9/10")
+        super(PageCalibration9, self).__init__(display)
+        self.items.update({
+            'imageName' : "05_align_platform.jpg",
+            'text' : _("""Adjust the platform so it's aligned with the exposition display.
+
+Front edges of the platform and exposition display need to be parallel.""")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "calibration10"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageCalibration10(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration step 10/10")
+        super(PageCalibration10, self).__init__(display)
+        self.items.update({
+            'imageName' : "07_tighten_screws.jpg",
+            'text' : _("Tighten small screws on the cantilever little by little. For best results, tighten them as evenly as possible.")})
+    #enddef
+
+
+    def contButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Measuring tilt times..."), line2 = _("Please wait..."))
         pageWait.show()
@@ -4838,16 +5022,17 @@ Front edges of the platform and exposition display need to be parallel."""))
             return "error"
         #endif
         self.display.hw.powerLed("normal")
-        self.display.page_confirm.setParams(
-            continueFce = self.tiltCalibStep7,
-            backFce = self.tiltCalibStep5,
-            text = _("All done, happy printing!"))
-        return "confirm"
+        return "calibration11"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "calibrationconfirm"
     #enddef
 
 
-    def tiltCalibStep7(self):
-        return "_BACK_"
+    def _EXIT_(self):
+        return "_EXIT_"
     #enddef
 
 
@@ -4855,13 +5040,61 @@ Front edges of the platform and exposition display need to be parallel."""))
         tiltTime = 0
         total = self.display.hwConfig.measuringMoves
         for i in xrange(total):
-            pageWait.showItems(line3 = (_("Slow move %(count)d / %(total)d") if slowMove else _("Fast move %(count)d / %(total)d")) % { 'count' : i+1, 'total' : total })
+            pageWait.showItems(line3 = (_("Slow move %(count)d/%(total)d") if slowMove else _("Fast move %(count)d/%(total)d")) % { 'count' : i+1, 'total' : total })
             tiltStartTime = time()
             self.display.hw.tiltLayerUpWait()
             self.display.hw.tiltLayerDownWait(slowMove)
             tiltTime += time() - tiltStartTime
         #endfor
         return round(tiltTime / total, 1)
+    #enddef
+
+#endclass
+
+
+class PageCalibration11(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Calibration done")
+        super(PageCalibration11, self).__init__(display)
+        self.items.update({
+            'text' : _("All done, happy printing!")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "_EXIT_"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageCalibrationConfirm(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Cancel calibration?")
+        super(PageCalibrationConfirm, self).__init__(display)
+        self.items.update({
+            'text' : _("""Do you really want to cancel calibration?
+
+Machine will not work without going through it.""")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "_EXIT_"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "_NOK_"
     #enddef
 
 #endclass
@@ -5853,16 +6086,19 @@ class PageSetLoginCredentials(Page):
         super(PageSetLoginCredentials, self).__init__(display)
     #enddef
 
+
     def fillData(self):
         return {
             'api_key' : self.octoprintAuth,
         }
     #enddef
 
+
     def show(self):
         self.items.update(self.fillData())
         super(PageSetLoginCredentials, self).show()
     #enddef
+
 
     def saveButtonSubmit(self, data):
         apikey = data['api_key']
@@ -5881,43 +6117,20 @@ class PageSetLoginCredentials(Page):
 #endclass
 
 
-class PageWizard(Page):
+class PageUnboxing1(Page):
 
     def __init__(self, display):
         self.pageUI = "confirm"
-        self.pageTitle = _("Printer Setup")
-        super(PageWizard, self).__init__(display)
-        self.stack = False
+        self.pageTitle = _("Unboxing step 1/4")
+        super(PageUnboxing1, self).__init__(display)
+        self.items.update({
+            'imageName' : "13_open_cover.jpg",
+            'text' : _("""Please remove the safety sticker on the right and open the orange cover.
+
+You can skip to wizard by hitting back button.""")})
     #enddef
 
-
-    def prepare(self):
-        if not self.display.hwConfig.showUnboxing:
-            continueTo = self.wizardStep1
-        else:
-            continueTo = self.unboxingStep1
-        #endif
-        self.display.page_confirm.setParams(
-            continueFce = continueTo,
-            text = _("""Welcome to the setup wizard.
-
-This procedure is mandatory and it will help you to set up the printer
-
-Continue?"""))
-        return "confirm"
-    #enddef
-
-
-    def unboxingStep1(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.unboxingStep2,
-            imageName = "13_open_cover.jpg",
-            text = _("Please remove the safety sticker on the right and open the orange cover."))
-        return "confirm"
-    #enddef
-
-
-    def unboxingStep2(self):
+    def contButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display)
         pageWait.show()
@@ -5941,15 +6154,46 @@ Continue?"""))
             sleep(0.25)
         #endwhile
         self.display.hw.powerLed("normal")
-        self.display.page_confirm.setParams(
-            continueFce = self.unboxingStep3,
-            imageName = "14_remove_foam.jpg",
-            text = _("Remove the black foam from both sides of the platform."))
-        return "confirm"
+        return "unboxing2"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "unboxingconfirm"
     #enddef
 
 
-    def unboxingStep3(self):
+    def _OK_(self):
+        self.display.hwConfig.update(showunboxing = "no")
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text = _("Cannot save configuration"))
+            return "error"
+        #endif
+        return "wizard1"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageUnboxing2(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Unboxing step 2/4")
+        super(PageUnboxing2, self).__init__(display)
+        self.items.update({
+            'imageName' : "14_remove_foam.jpg",
+            'text' : _("Remove the black foam from both sides of the platform.")})
+    #enddef
+
+
+    def contButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("The printer is moving to allow for easier manipulation"),
@@ -5957,40 +6201,190 @@ Continue?"""))
         pageWait.show()
         self.display.hw.towerSyncWait()
         self.display.hw.powerLed("normal")
-        self.display.page_confirm.setParams(
-            continueFce = self.unboxingStep4,
-            imageName = "15_remove_bottom_foam.jpg",
-            text = _("Unscrew and remove the resin tank and remove the black foam underneath it."))
-        return "confirm"
+        return "unboxing3"
     #enddef
 
 
-    def unboxingStep4(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.unboxingStep5,
-            text = _("Carefully peel off the orange protective foil from the exposition display."))
-        return "confirm"
+    def backButtonRelease(self):
+        return "unboxingconfirm"
     #enddef
 
 
-    def unboxingStep5(self):
-        self.display.hwConfig.showUnboxing = False
+    def _OK_(self):
+        return "_OK_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageUnboxing3(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Unboxing step 3/4")
+        super(PageUnboxing3, self).__init__(display)
+        self.items.update({
+            'imageName' : "15_remove_bottom_foam.jpg",
+            'text' : _("Unscrew and remove the resin tank and remove the black foam underneath it.")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "unboxing4"
+    #enddef
+
+
+    def backButtonRelease(self):
+        return "unboxingconfirm"
+    #enddef
+
+
+    def _OK_(self):
+        return "_OK_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageUnboxing4(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Unboxing step 4/4")
+        super(PageUnboxing4, self).__init__(display)
+        self.items.update({
+            'text' : _("Carefully peel off the orange protective foil from the exposition display.")})
+    #enddef
+
+
+    def contButtonRelease(self):
         self.display.hwConfig.update(showunboxing = "no")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
-        self.display.page_confirm.setParams(
-            continueFce = self.wizardStep1,
-            text = _("""The printer is fully unboxed and ready for the selftest.
-
-Continue?"""))
-        return "confirm"
+        return "unboxing5"
     #enddef
 
 
-    def wizardStep1(self):
+    def backButtonRelease(self):
+        return "unboxingconfirm"
+    #enddef
+
+
+    def _OK_(self):
+        return "_OK_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageUnboxing5(Page):
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Unboxing done")
+        super(PageUnboxing5, self).__init__(display)
+        self.items.update({
+            'text' : _("""The printer is fully unboxed and ready for the selftest.
+
+Continue?""")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "wizard1"
+    #enddef
+
+
+    def backButtonRelease(self):
+        return "_EXIT_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageUnboxingConfirm(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Skip unboxing?")
+        super(PageUnboxingConfirm, self).__init__(display)
+        self.items.update({
+            'text' : _("""Do you really want to skip unboxing guide?
+
+Continue only, if you built the priner as kit or you went through this guide earlier.""")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "_OK_"
+    #enddef
+
+
+    def backButtonRelease(self):
+        return "_NOK_"
+    #enddef
+
+#endclass
+
+
+class PageWizard1(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Setup wizard step 1/5")
+        super(PageWizard1, self).__init__(display)
+        self.items.update({
+            'text' : _("""Welcome to the setup wizard.
+
+This procedure is mandatory and it will help you to set up the printer
+
+Continue?""")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        # check serial numbers
+        if (not re.match("CZPX\d{4}X009X[C|K]\d{5}", self.display.hw.cpuSerialNo) or
+        not re.match("CZPX\d{4}X012X[C|K]\d{5}", self.display.hw.mcSerialNo)):
+# FIXME we don't want cut off betatesters with MC without serial number
+            self.display.page_error.setParams(
+                backFce = self.justContinue, # use as confirm
+                text = _("""Serial numbers in wrong format!
+
+A64: %(a64)s
+MC: %(mc)s
+
+Please contact tech support!""" % {'a64' : self.display.hw.cpuSerialNo, 'mc' : self.display.hw.mcSerialNo}))
+            return "error"
+
+        #endif
+        return self.justContinue() # only for confirm, join with contButtonContinue() when changed to error
+    #enddef
+
+
+    def justContinue(self):
         self.display.hw.powerLed("warn")
         homeStatus = 0
 
@@ -6010,7 +6404,6 @@ Continue?"""))
                     text = _("""Tilt endstop not reached!
 
 Please check if the tilt motor and optical endstop are connected properly."""))
-                self.display.hw.motorsRelease()
                 return "error"
             elif homeStatus == 0:
                 self.display.hw.tiltHomeCalibrateWait()
@@ -6022,10 +6415,9 @@ Please check if the tilt motor and optical endstop are connected properly."""))
             self.display.page_error.setParams(
                 text = _("""Tilt home check failed!
 
-Please contact support.
+Please contact tech support!
 
 Tilt profiles need to be changed."""))
-            self.display.hw.motorsRelease()
             return "error"
         #endif
 
@@ -6046,14 +6438,13 @@ Tilt profiles need to be changed."""))
             sleep(0.25)
         #endwhile
         #TODO make MC homing more accurate
-        if self.display.hw.getTiltPosition() < -defines.tiltHomingTolerance  or self.display.hw.getTiltPosition() > defines.tiltHomingTolerance:
+        if self.display.hw.getTiltPosition() < -defines.tiltHomingTolerance or self.display.hw.getTiltPosition() > defines.tiltHomingTolerance:
             self.display.page_error.setParams(
                 text = _("""Tilt axis check failed!
 
 Current position: %d
 
 Please check if the tilting mechanism can move smoothly in its entire range.""") % self.display.hw.getTiltPosition())
-	    self.display.hw.motorsRelease()
             return "error"
         #endif
         self.display.hw.setTiltProfile("homingFast")
@@ -6075,7 +6466,6 @@ Please check if the tilting mechanism can move smoothly in its entire range.""")
                     text = _("""Tower endstop not reached!
 
 Please check if the tower motor is connected properly."""))
-                self.display.hw.motorsRelease()
                 return "error"
             elif homeStatus == 0:
                 self.display.hw.towerHomeCalibrateWait()
@@ -6087,34 +6477,94 @@ Please check if the tower motor is connected properly."""))
             self.display.page_error.setParams(
                 text = _("""Tower home check failed!
 
-Please contact support.
+Please contact tech support!
 
 Tower profiles need to be changed."""))
-            self.display.hw.motorsRelease()
             return "error"
         #endif
         self.display.hw.powerLed("normal")
-        self.display.page_confirm.setParams(
-            continueFce=self.wizardStep2,
-            imageName = "04_tighten_screws.jpg",
-            text = _("""Secure the resin tank with resin tank screws.
-
-Make sure the tank is empty and clean."""))
-        return "confirm"
-
+        return "wizard2"
     #enddef
 
 
-    def wizardStep2(self):
-        self.display.page_confirm.setParams(
-            continueFce=self.wizardStep3,
-            imageName = "09_remove_platform.jpg",
-            text = _("""Loosen the black knob and remove the platform."""))
-        return "confirm"
+    def backButtonRelease(self):
+        return "wizardconfirm"
     #enddef
 
 
-    def wizardStep3(self):
+    def _OK_(self):
+        self.display.hw.uvLed(False)
+        self.display.hw.motorsRelease()
+        self.display.hw.stopFans()
+        self.display.hwConfig.update(showwizard = "no")
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text = _("Cannot save wizard configuration"))
+            return "error"
+        #endif
+        return "_EXIT_"
+    #endef
+
+
+    def _EXIT_(self):
+        self.display.hw.uvLed(False)
+        self.display.hw.motorsRelease()
+        self.display.hw.stopFans()
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageWizard2(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Setup wizard step 2/5")
+        super(PageWizard2, self).__init__(display)
+        self.items.update({
+            'imageName' : "04_tighten_screws.jpg",
+            'text' : _("""Secure the resin tank with resin tank screws.
+
+Make sure the tank is empty and clean.""")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "wizard3"
+    #enddef
+
+
+    def backButtonRelease(self):
+        return "wizardconfirm"
+    #enddef
+
+
+    def _OK_(self):
+        return "_OK_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageWizard3(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Setup wizard step 3/5")
+        super(PageWizard3, self).__init__(display)
+        self.items.update({
+            'imageName' : "09_remove_platform.jpg",
+            'text' : _("""Loosen the black knob and remove the platform.""")})
+    #enddef
+
+
+    def contButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Tower axis check"),
@@ -6146,7 +6596,6 @@ Make sure the tank is empty and clean."""))
 Current position: %d
 
 Please check if the ballscrew can move smoothly in its entire range.""") % position)
-            self.display.hw.motorsRelease()
             return "error"
         #endif
 
@@ -6162,7 +6611,6 @@ Please check if the ballscrew can move smoothly in its entire range.""") % posit
 Check if all fans are properly connected.
 
 RPM data: %s""") % rpm)
-            self.display.hw.motorsRelease()
             return "error"
         #endif
         pageWait.showItems(line1 = _("Fans check (fans are running)"))
@@ -6182,8 +6630,6 @@ RPM data: %s""") % rpm)
 Please check if the fan is connected correctly.
 
 RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm })
-                self.display.hw.stopFans()
-                self.display.hw.motorsRelease()
                 return "error"
             #endif
         #endfor
@@ -6192,72 +6638,85 @@ RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm })
         self.display.hwConfig.wizardFanRpm[2] = rpm[2]
 
         # temperature check
-        pageWait.showItems(line1 = _("Temperature check"))
-
-        if self.display.hw.getCpuTemperature() > self.display.hw._maxA64Temp:
+        pageWait.showItems(line1 = _("A64 temperature check"))
+        A64temperature = self.display.hw.getCpuTemperature()
+        if A64temperature > self.display.hw._maxA64Temp:
             self.display.page_error.setParams(
                 text = _(u"""A64 temperature is too high. Measured: %.1f °C!
 
-Shutting down in 10 seconds...""") % self.display.hw.getCpuTemperature())
+Shutting down in 10 seconds...""") % A64temperature)
             self.display.page_error.show()
             sleep(10)
             self.display.shutDown(True)
             return "error"
         #endif
 
+        pageWait.showItems(line1 = _("Thermistors temperature check"))
         temperatures = self.display.hw.getMcTemperatures()
         for i in xrange(2):
-
             if temperatures[i] < 0:
                 self.display.page_error.setParams(
                     text = _("""Can't read %s
 
 Please check if temperature sensors are connected correctly.""") % self.display.hw.getSensorName(i))
-                self.display.hw.stopFans()
-                self.display.hw.motorsRelease()
                 return "error"
             #endif
-
-            if not self.display.hw._minAmbientTemp < temperatures[i] < self.display.hw._maxAmbientTemp:
+            if i == 0:
+                maxTemp = self.display.hw._maxUVTemp
+            else:
+                maxTemp = self.display.hw._maxAmbientTemp
+            #endif
+            if not self.display.hw._minAmbientTemp < temperatures[i] < maxTemp:
                 self.display.page_error.setParams(
                     text = _(u"""%(sensor)s not in range!
 
-Keep the printer out of direct sunlight at room temperature (18 - 32 °C). Measured: %(temp).1f °C.""")
+Measured temperature: %(temp).1f °C.
+
+Keep the printer out of direct sunlight at room temperature (18 - 32 °C).""")
                     % { 'sensor' : self.display.hw.getSensorName(i), 'temp' : temperatures[i] })
-                self.display.hw.stopFans()
-                self.display.hw.motorsRelease()
                 return "error"
             #endif
-
         #endfor
-
-        if abs(temperatures[0] - temperatures[1]) > self.display.hw._maxTempDiff:
-            self.display.page_confirm.setParams(
-                continueFce = self.wizardStep4,
-                text = _(u"""UV LED and ambient temperatures are in allowed range but differ more than %.1f °C.
-
-Keep the printer out of direct sunlight at room temperature (18 - 32 °C).""") % self.display.hw._maxTempDiff)
-            return "confirm"
-        #endif
-
-        return self.wizardStep4()
-    #enddef
-
-
-    def wizardStep4(self):
+        self.display.hwConfig.wizardTempA64 = A64temperature
+        self.display.hwConfig.wizardTempUvInit = temperatures[0]
+        self.display.hwConfig.wizardTempAmbient = temperatures[1]
         self.display.hw.powerLed("normal")
-        self.display.page_confirm.setParams(
-            continueFce = self.wizardStep5,
-            imageName = "12_close_cover.jpg",
-            text = _("""Please close the orange lid.
-
-Make sure the tank is empty and clean."""))
-        self.display.page_confirm.show()
-        return "confirm"
+        return "wizard4"
     #enddef
 
 
-    def wizardStep5(self):
+    def backButtonRelease(self):
+        return "wizardconfirm"
+    #enddef
+
+
+    def _OK_(self):
+        return "_OK_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageWizard4(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Setup wizard step 4/5")
+        super(PageWizard4, self).__init__(display)
+        self.items.update({
+            'imageName' : "12_close_cover.jpg",
+            'text' : _("""Please close the orange lid.
+
+Make sure the tank is empty and clean.""")})
+    #enddef
+
+
+    def contButtonRelease(self):
         self.ensureCoverIsClosed()
 
         # UV LED voltage comparation
@@ -6284,9 +6743,6 @@ Make sure the tank is empty and clean."""))
 Please check if UV LED panel is connected properly.
 
 Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : volts})
-                self.display.hw.uvLed(False)
-                self.display.hw.stopFans()
-                self.display.hw.motorsRelease()
                 return "error"
             #endif
             self.display.hwConfig.wizardUvVoltage[0][i] = int(volts[0] * 1000)
@@ -6308,9 +6764,6 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
 Please check if the UV LED panel is attached to the heatsink.
 
 Temperature data: %s""") % temp)
-                self.display.hw.uvLed(False)
-                self.display.hw.stopFans()
-                self.display.hw.motorsRelease()
                 return "error"
             #endif
         #endfor
@@ -6318,23 +6771,49 @@ Temperature data: %s""") % temp)
         self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
         self.display.hw.powerLed("normal")
 
-        return self.exposure_display_check(self.wizardStep6)
+        return "displaytest"
     #enddef
 
 
-    def wizardStep6(self):
-        self.display.screen.getImgBlack()
-        self.display.hw.uvLed(False)
-        self.display.hw.stopFans()
-        self.display.page_confirm.setParams(
-            continueFce = self.wizardStep7,
-            imageName = "11_insert_platform_60deg.jpg",
-            text = _("Leave the resin tank secured with screws and insert platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down."))
-        return "confirm"
+    def backButtonRelease(self):
+        return "wizardconfirm"
     #enddef
 
 
-    def wizardStep7(self):
+    def _NOK_(self):
+        self.display.page_error.setParams(
+            text = _("""Your display is broken somehow.
+
+Please contact tech support!"""))
+        return "error"
+    #enddef
+
+
+    def _OK_(self):
+        return "wizard5"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageWizard5(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Setup wizard step 5/5")
+        super(PageWizard5, self).__init__(display)
+        self.items.update({
+            'imageName' : "11_insert_platform_60deg.jpg",
+            'text' : _("Leave the resin tank secured with screws and insert platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
+    #enddef
+
+
+    def contButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Resin sensor check"),
@@ -6351,7 +6830,6 @@ Temperature data: %s""") % temp)
 Please check if sensor is connected properly.
 
 Measured %d ml.""") % volume)
-            self.display.hw.motorsRelease()
             return "error"
         #endif
         self.display.hwConfig.wizardResinVolume = volume
@@ -6376,23 +6854,83 @@ Measured %d ml.""") % volume)
         )
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
-                text=_("Cannot save wizard configuration"))
+                text = _("Cannot save wizard configuration"))
             return "error"
         #endif
 
         #TODO save hardware.cfg to second slot
 
-        self.display.page_confirm.setParams(
-            continueFce = self.wizardStep8,
-            text = _("""Selftest OK.
-
-Continue to calibration?"""))
-        return "confirm"
+        return "wizard6"
     #enddef
 
 
-    def wizardStep8(self):
-        return "calibration"
+    def backButtonRelease(self):
+        return "wizardconfirm"
+    #enddef
+
+
+    def _OK_(self):
+        return "_OK_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageWizard6(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Setup wizard done")
+        super(PageWizard6, self).__init__(display)
+        self.items.update({
+            'text' : _("""Selftest OK.
+
+Continue to calibration?""")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "calibration1"
+    #enddef
+
+
+    def backButtonRelease(self):
+        return "_EXIT_"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+class PageWizardConfirm(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Skip wizard?")
+        super(PageWizardConfirm, self).__init__(display)
+        self.items.update({
+            'text' : _("""Do you really want to skip wizard?
+
+Machine may not work correctly without going through this check.""")})
+    #enddef
+
+
+    def contButtonRelease(self):
+        return "_OK_"
+    #endif
+
+
+    def backButtonRelease(self):
+        return "_NOK_"
     #enddef
 
 #endclass
