@@ -230,8 +230,6 @@ class Display(object):
                     # Allow leave function o override newPage
                     newPage = self.actualPage.leave(newPage)
 
-                    self.logger.warning("newPage: %s actualPage name: %s", newPage, self.actualPage.pageTitle)
-
                     if newPage in self.backActions:
                         autorepeatFce = None
                         autorepeatDelay = 1
@@ -240,13 +238,11 @@ class Display(object):
                             if not self.goBack(show = False):
                                 return
                             #endif
-                            self.logger.warning("actualPage name: %s", self.actualPage.pageTitle)
                             np = None
                             backFce = getattr(self.actualPage, newPage, None)
                             if backFce:
                                 np = backFce()
                             #endif
-                            self.logger.warning("np: %s", np)
                             newPage = np
                         #endwhile
                         self.actualPage.show()
