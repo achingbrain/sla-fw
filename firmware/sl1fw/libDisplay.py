@@ -228,7 +228,9 @@ class Display(object):
                     #endif
 
                     # Allow leave function o override newPage
-                    newPage = self.actualPage.leave(newPage)
+                    if newPage is not None:
+                        newPage = self.actualPage.leave(newPage)
+                    #endif
 
                     if newPage in self.backActions:
                         autorepeatFce = None
