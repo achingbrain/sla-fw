@@ -163,7 +163,7 @@ class Page(object):
     def getSavePath(self):
         usbs = glob.glob(os.path.join(defines.mediaRootPath, '*'))
 
-        if len(usbs) > 0:
+        if len(usbs) > 0 and os.path.ismount(usbs[0]):
             return usbs[0]
         else:
             self.logger.debug("getSavePath returning None, no media seems present")
@@ -3490,13 +3490,14 @@ class PageDisplay(Page):
 
 
     def button6ButtonRelease(self):
-        if self.getSavePath() is None:
+        savepath = self.getSavePath()
+        if savepath is None:
             self.display.page_error.setParams(
                 text = _("No USB storage present"))
             return "error"
         #endif
 
-        test_file = os.path.join(self.getSavePath(), "test.png")
+        test_file = os.path.join(savepath, "test.png")
 
         if not os.path.isfile(test_file):
             self.display.page_error.setParams(
@@ -3979,14 +3980,14 @@ class PageSetup(Page):
 
     def button1ButtonRelease(self):
         ''' export '''
-
-        if self.getSavePath() is None:
+        savepath = self.getSavePath()
+        if savepath is None:
             self.display.page_error.setParams(
                 text=_("No USB storage present"))
             return "error"
         #endif
 
-        config_file = os.path.join(self.getSavePath(), defines.hwConfigFileName)
+        config_file = os.path.join(savepath, defines.hwConfigFileName)
 
         if not self.display.hwConfig.writeFile(config_file):
             self.display.page_error.setParams(
@@ -3998,14 +3999,14 @@ class PageSetup(Page):
 
     def button2ButtonRelease(self):
         ''' import '''
-
-        if self.getSavePath() is None:
+        savepath = self.getSavePath()
+        if savepath is None:
             self.display.page_error.setParams(
                 text=_("No USB storage present"))
             return "error"
-            #endif
+        #endif
 
-        config_file = os.path.join(self.getSavePath(), defines.hwConfigFileName)
+        config_file = os.path.join(savepath, defines.hwConfigFileName)
 
         if not os.path.isfile(config_file):
             self.display.page_error.setParams(
@@ -5008,14 +5009,14 @@ class ProfilesPage(Page):
 
     def button1ButtonRelease(self):
         ''' export '''
-
-        if self.getSavePath() is None:
+        savepath = self.getSavePath()
+        if savepath is None:
             self.display.page_error.setParams(
                 text=_("No USB storage present"))
             return "error"
-            #endif
+        #endif
 
-        profile_file = os.path.join(self.getSavePath(), self.profilesFilename)
+        profile_file = os.path.join(savepath, self.profilesFilename)
 
         try:
             with open(profile_file, "w") as f:
@@ -5032,14 +5033,14 @@ class ProfilesPage(Page):
 
     def button2ButtonRelease(self):
         ''' import '''
-
-        if self.getSavePath() is None:
+        savepath = self.getSavePath()
+        if savepath is None:
             self.display.page_error.setParams(
                 text=_("No USB storage present"))
             return "error"
-            #endif
+        #endif
 
-        profile_file = os.path.join(self.getSavePath(), self.profilesFilename)
+        profile_file = os.path.join(savepath, self.profilesFilename)
 
         if not os.path.isfile(profile_file):
             self.display.page_error.setParams(
