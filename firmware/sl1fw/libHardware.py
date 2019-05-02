@@ -131,6 +131,9 @@ class MotConCom(object):
         self.MCserial = self.do("?ser")
         if self.MCserial:
             self.logger.info("motion controller serial number: %s", self.MCserial)
+        else:
+            self.logger.warning("motion controller serial number is invalid")
+            self.MCserial = "*INVALID*"
         #endif
 
         return None
