@@ -44,16 +44,27 @@ class MotConCom(object):
             '5' : "operation not permitted",
             }
 
+    _statusBits = {
+            'tower'  :  0,
+            'tilt'   :  1,
+            'button' :  6,
+            'cover'  :  7,
+            'endstop':  8,
+            'reset'  : 13,
+            'fans'   : 14,
+            'fatal'  : 15,
+            }
+
     selfCheckErrors = {
-            1 : "Application flash checksum",
-            2 : "Bootloader flash checksum",
-            3 : "Serial number check",
-            4 : "Fuse bit settings",
-            5 : "Boot-section lock",
-            6 : "GPIO SPI",
-            7 : "TMC SPI",
-            8 : "TMC wiring/signals",
-            9 : "UV-led",
+            1 : _("Application flash checksum has failed"),
+            2 : _("Bootloader flash checksum has failed"),
+            3 : _("Serial number check has failed"),
+            4 : _("Fuse bit settings has failed"),
+            5 : _("Boot-section lock has failed"),
+            6 : _("GPIO SPI has failed"),
+            7 : _("TMC SPI has failed"),
+            8 : _("TMC wiring/communication has failed"),
+            9 : _("The UV LED has failed"),
             }
 
     resetFlags = {
@@ -72,20 +83,29 @@ class MotConCom(object):
     #enddef
 
 
+    def __del__(self):
+        self.exit()
+    #enddef
+
+
+    def exit(self):
+        self.debug.exit()
+    #enddef
+
+
     def connect(self, MCversionCheck):
-        stateBits = self.doGetBoolList(bitCount = 16, args = ("?",))
-        if not stateBits or len(stateBits) != 16:
-            self.logger.error("State bits count not match! (%s)", str(stateBits))
-            return "Communication failed"
+        state = self.getStateBits(('fatal', 'reset'))
+        if not state:
+            return _("Communication with the motion controller has failed")
         #endif
 
-        if stateBits[15]:
+        if state['fatal']:
             errorCode = self.doGetInt("?err")
-            error = "%s has failed!" % self.selfCheckErrors.get(errorCode, "Something unknown")
+            error = self.selfCheckErrors.get(errorCode, _("An unknown issue has occured"))
             return error
         #endif
 
-        if stateBits[13]:
+        if state['reset']:
             resetBits = self.doGetBoolList(bitCount = 8, args = ("?rst",))
             bit = 0
             for val in resetBits:
@@ -98,7 +118,7 @@ class MotConCom(object):
 
         self.MCversion = self.do("?ver")
         if MCversionCheck and self.MCversion != defines.reqMcVersion:
-            return "Wrong motion controller firmware version"
+            return _("Wrong motion controller firmware version")
         else:
             self.logger.info("motion controller firmware version: %s", self.MCversion)
         #endif
@@ -294,11 +314,45 @@ class MotConCom(object):
         gpio.set(131, 0)
     #enddef
 
+
+    def getStateBits(self, request = None):
+        if not request:
+            request = self._statusBits.keys()
+        #endif
+        bits = self.doGetBoolList(bitCount = 16, args = ("?", "noSyslog"))
+        if not bits or len(bits) != 16:
+            self.logger.warning("State bits count not match! (%s)", str(bits))
+            return None
+        else:
+            retval = {}
+            for name in request:
+                try:
+                    retval[name] = bits[self._statusBits[name]]
+                except Exception:
+                    self.logger.exception("exception:")
+                    return None
+                #endtry
+            #endfor
+            return retval
+        #endif
+    #enddef
+
 #endclass
 
 
 class dummyMotConCom(object):
-    pass
+
+    def getStateBits(self, request = None):
+        if not request:
+            request = self._statusBits.keys()
+        #endif
+        retval = {}
+        for name in request:
+            retval[name] = False
+        #endfor
+        return retval
+    #enddef
+
 #endclass
 
 
@@ -323,7 +377,7 @@ class Hardware(object):
         self._ledTempIdx = 0
 
         # (mode, speed)
-        self._powerLedStates= { 'normal' : (1, 2), 'warn' : (2, 10), 'error' : (3, 15) }
+        self._powerLedStates= { 'normal' : (1, 2), 'warn' : (2, 10), 'error' : (3, 15), 'off' : (3, 64) }
 
         self._tiltProfiles = {
                 'homingFast'    : 0,
@@ -345,6 +399,7 @@ class Hardware(object):
                 '<reserved2>'   : 6,
                 'resinSensor'   : 7,
                 }
+
         # get sorted profiles names
         self._tiltProfileNames = map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1]))
         self._towerProfileNames = map(lambda x: x[0], sorted(self._towerProfiles.items(), key=lambda kv: kv[1]))
@@ -359,16 +414,21 @@ class Hardware(object):
             'homingSlow': [[14,0],[15,0],[16,1],[16,3],[16,5]]
         }
 
+        self._fansNames = {
+                0 : _("UV LED fan"),
+                1 : _("blower fan"),
+                2 : _("rear fan"),
+                }
+
+        self._sensorsNames = {
+                0 : _("UV LED temperature"),
+                1 : _("Ambient temperature"),
+                }
+
         self._tiltMin = -12840        # whole turn
         self._tiltMax = 12840
         self._tiltEnd = 5800    #top deadlock
         self._tiltCalibStart = 4300 
-        self._tiltReleaseTo = 400
-        self._tiltHomeOffset = 0
-        self.tiltRehomeCounter = 3
-        self._tiltFindProfileMinSteps = 640
-        self._tiltFindProfileMaxSteps = 1200
-        self._towerCalibMaxOffset = self.hwConfig.calcMicroSteps(0.3)
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
         self._towerMax = self.hwConfig.calcMicroSteps(310)
@@ -385,6 +445,16 @@ class Hardware(object):
 
         self.mcc = MotConCom("MC_Main")
         self.cpuSerial = self.readCpuSerial()
+    #enddef
+
+
+    def __del__(self):
+        self.exit()
+    #enddef
+
+
+    def exit(self):
+        self.mcc.exit()
     #enddef
 
 
@@ -408,6 +478,7 @@ class Hardware(object):
                 self.logger.error("motion controller error: %s", errorMessage)
                 self.ahojBabi(waitPage, errorMessage)
             #endif
+
             waitPage.showItems(line1 = _("Erasing EEPROM."))
             self.eraseEeprom()
 
@@ -422,12 +493,10 @@ class Hardware(object):
     def initDefaults(self):
         self.motorsRelease()
         self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm))
-        #TODO remove this awful hack to enable fans only after UV is turned on
-        #self.setFans((True, True, True))
-        self.setFanCheckMask((True, True, True))
         self.setUvLedCurrent(self.hwConfig.uvCurrent)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
         self.resinSensor(False)
+        self.stopFans()
     #enddef
 
 
@@ -445,7 +514,7 @@ class Hardware(object):
 
     def flashMC(self, waitPage, returnPage):
         waitPage.fill(
-                line1 = _("Forced update of motion controller firmware."),
+                line1 = _("Forced update of the motion controller firmware."),
                 line2 = _("Please wait..."))
         waitPage.show()
         self.mcc.flash(self.hwConfig.MCBoardVersion)
@@ -620,7 +689,7 @@ class Hardware(object):
 
     def beep(self, frequency, lenght):
         if not self.hwConfig.mute and not self.dummyMC:
-            self.mcc.do("!beep", frequency, int(lenght * 1000))
+            self.mcc.do("!beep", frequency, int(lenght * 1000), "noSyslog")
         #endif
     #enddef
 
@@ -694,10 +763,6 @@ class Hardware(object):
 
 
     def uvLed(self, state, time = 0):
-        #TODO remove this awful hack to enable fans only after UV is turned on  
-        if state == True:
-            self.setFans((True, True, True))
-        #endif
         self.mcc.do("!uled", 1 if state else 0, int(time))        
     #enddef
 
@@ -765,24 +830,36 @@ class Hardware(object):
 
 
     def isCoverClosed(self):
-        bits = self.mcc.doGetBoolList(bitCount = 16, args = ("?",))
-        if not bits or len(bits) != 16:
-            self.logger.warning("State bits count not match! (%s)", str(bits))
-            return False
-        else:
-            return bits[7]
-        #endif
+        return self.checkState('cover')
     #enddef
 
 
     def getPowerswitchState(self):
-        bits = self.mcc.doGetBoolList(bitCount = 16, args = ("?",))
-        if not bits or len(bits) != 16:
-            self.logger.warning("State bits count not match! (%s)", str(bits))
-            return False
+        return self.checkState('button')
+    #enddef
+
+
+    def checkState(self, name):
+        state = self.mcc.getStateBits((name,))
+        if state:
+            return state[name]
         else:
-            return bits[6]
+            self.logger.warning("State check of '%s' has failed", name)
+            return False
         #endif
+    #enddef
+
+
+    def startFans(self):
+        self.setFans((True, True, True))
+        # user can change speed of rear fan to 0 so we don't want to check it
+        self.setFanCheckMask((True, True, False))
+    #enddef
+
+
+    def stopFans(self):
+        self.setFans((False, False, False))
+        self.setFanCheckMask((False, False, False))
     #enddef
 
 
@@ -818,14 +895,20 @@ class Hardware(object):
     #enddef
 
 
-    # TODO remove
     def getFansError(self):
+        state = self.mcc.getStateBits(('fans',))
+        if not state:
+            self.logger.warning("State check of fans has failed")
+        elif not state['fans']:
+            return (False, False, False)
+        #endif
+
         fans = self.mcc.doGetBoolList(bitCount = 3, args = ("?fane",))
         if fans and len(fans) == 3:
-            return fans[0] or fans[1] or fans[2]
+            return fans
         else:
             self.logger.warning("Fans error bits count not match! (%s)", str(fans))
-            return True
+            return (True, True, True)
         #endif
     #enddef
 
@@ -857,14 +940,30 @@ class Hardware(object):
     #enddef
 
 
+    def getFanName(self, fanNumber):
+        return self._fansNames.get(fanNumber, _("unknown fan"))
+    #enddef
+
+
     def getMcTemperatures(self):
-        temps = self.mcc.doGetIntList(multiply = 0.1, args = ("?temp",))
+        temps = self.mcc.doGetIntList(multiply = 0.1, args = ("?temp", "noSyslog"))
         if temps and len(temps) == 4:
+            self.logger.info("Temperatures [C]: %s", " ".join(map(lambda x: str(x), temps)))
             return temps
         else:
             self.logger.warning("TEMPs count not match! (%s)", str(temps))
             return list((-273.2, -273.2, -273.2, -273.2))
         #endif
+    #enddef
+
+
+    def getUvLedTemperature(self):
+        return self.getMcTemperatures()[self._ledTempIdx]
+    #endif
+
+
+    def getSensorName(self, sensorNumber):
+        return self._sensorsNames.get(sensorNumber, _("unknown sensor"))
     #enddef
 
 
@@ -894,6 +993,12 @@ class Hardware(object):
     def motorsHold(self):
         self.setTiltCurrent(defines.tiltHoldCurrent)
         self.setTowerCurrent(defines.towerHoldCurrent)
+    #enddef
+
+
+    def towerHoldTiltRelease(self):
+        self.mcc.do("!ena 1")
+        self._tiltSynced = False
     #enddef
 
 
@@ -929,8 +1034,8 @@ class Hardware(object):
             return True
         else:
             self.logger.warning("Tower homing failed!")
-            self.beepAlarm(3)
             self.mcc.debug.showItems(towerFailed = "homing Fast/Slow")
+            # repeat count, None is infinity
             if self._towerSyncRetries is None or self._towerSyncRetries:
                 if self._towerSyncRetries:
                     self._towerSyncRetries -= 1
@@ -951,6 +1056,7 @@ class Hardware(object):
         while not self.isTowerSynced():
             pass
         #endwhile
+        return not self.towerSyncFailed()
     #enddef
 
 
@@ -998,7 +1104,6 @@ class Hardware(object):
         #endif
         while self._towerToPosition != self.getTowerPositionMicroSteps():
             self.logger.warning("Tower is not on required position! Sync forced.")
-            self.beepAlarm(3)
             self.mcc.debug.showItems(towerFailed = self._lastTowerProfile)
             profileBackup = self._lastTowerProfile
             self.towerSyncWait()
@@ -1162,36 +1267,52 @@ class Hardware(object):
     #enddef
 
 
-    def tiltSyncWait(self, retries = None):
+    def tiltSync(self, retries = None):
         ''' home at bottom position, retries = None is infinity '''
-        while True:
-            self.setTiltProfile('homingFast')
-            self.mcc.do("!tiho")
-            homingStatus = 1
-            while homingStatus > 0: # not done and not error
-                homingStatus = self.mcc.doGetInt("?tiho", "noSyslog")
-                sleep(0.1)
-            #endwhile
-            # test homing result
-            if not homingStatus:
-                self.setTiltPosition(0)
-                self._tiltSynced = True
-                return True
-            else:
-                self.logger.warning("Tilt homing failed!")
-                self.beepAlarm(3)
-                # repeat count, None is infinity
-                if retries is None:
-                    continue
-                elif retries:
-                    retries -= 1
-                    continue
-                else:
-                    self.logger.error("Tilt homing max tries reached!")
-                    return False
+        self._tiltSyncRetries = retries
+        self.setTiltProfile('homingFast')
+        self.mcc.do("!tiho")
+    #enddef
+
+
+    def isTiltSynced(self):
+        homingStatus = self.mcc.doGetInt("?tiho", "noSyslog")
+        if homingStatus > 0: # not done and not error
+            return False
+        elif not homingStatus:
+            self.setTiltPosition(0)
+            self._tiltSynced = True
+            return True
+        else:
+            self.logger.warning("Tilt homing failed!")
+            self.mcc.debug.showItems(tiltFailed = "homing Fast/Slow")
+            # repeat count, None is infinity
+            if self._tiltSyncRetries is None or self._tiltSyncRetries:
+                if self._tiltSyncRetries:
+                    self._tiltSyncRetries -= 1
                 #endif
+                self.setTiltProfile('homingFast')
+                self.mcc.do("!tiho")
+                return False
+            else:
+                self.logger.error("Tilt homing max tries reached!")
+                return True
             #endif
+        #endif
+    #enddef
+
+
+    def tiltSyncWait(self, retries = None):
+        self.tiltSync(retries)
+        while not self.isTiltSynced():
+            pass
         #endwhile
+        return not self.tiltSyncFailed()
+    #enddef
+
+
+    def tiltSyncFailed(self):
+        return self._tiltSyncRetries == 0
     #enddef
 
 
@@ -1220,7 +1341,6 @@ class Hardware(object):
         #endif
         while self._tiltToPosition != self.getTiltPositionMicroSteps():
             self.logger.warning("Tilt is not on required position! Sync forced.")
-            self.beepAlarm(3)
             self.mcc.debug.showItems(tiltFailed = self._lastTiltProfile)
             profileBackup = self._lastTiltProfile
             self.tiltSyncWait()
@@ -1299,15 +1419,14 @@ class Hardware(object):
     #enddef
 
 
-    def tiltLayerDownWait(self, whitePixels = 0):
-        #use movement settings according to number of white pixels at actual layer
-        if whitePixels > self.hwConfig.whitePixelsThd:
+    def tiltLayerDownWait(self, slowMove = False):
+        if slowMove:
             tiltProfile = self.hwConfig.tuneTilt[0]
         else:
             tiltProfile = self.hwConfig.tuneTilt[1]
         #endif
 
-        #initial release movement with optional sleep at the end
+        # initial release movement with optional sleep at the end
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
         self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - tiltProfile[1])
         while self.isTiltMoving():
@@ -1316,8 +1435,8 @@ class Hardware(object):
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
         sleep(tiltProfile[2] / 1000.0)
 
-        #next movement may be split
-        movePerCycle = int((self.getTiltPositionMicroSteps() - self._tiltReleaseTo) / tiltProfile[4])
+        # next movement may be splited
+        movePerCycle = int(self.getTiltPositionMicroSteps() / tiltProfile[4])
         for i in xrange(1, tiltProfile[4]):
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
             while self.isTiltMoving():
@@ -1326,38 +1445,29 @@ class Hardware(object):
             sleep(tiltProfile[5] / 1000.0)
         #endfor
 
-        #ensure we end up at defined bottom position
-        self.tiltMoveAbsolute(self._tiltReleaseTo)
-        while self.isTiltMoving():
-            sleep(0.1)
-        #endwhile
+        # ensure we end up at defined bottom position
+        self.tiltDownWait()
 
-        #when number of white pixels is bigger than threshold, force tilt home
-        position = self.getTiltPositionMicroSteps()
-        if whitePixels > self.hwConfig.whitePixelsThd:
-            self.logger.warning("Forcing rehome")
-            #repeat defined number of times
-            for i in xrange(tiltProfile[7]):
-                self.logger.debug("rehome and release try %d", i)
-                self.setTiltProfile('homingFast')
-                if not self.tiltSyncWait(2):    #home 3x
-                    #if home fails try to release
-                    self.setTiltPosition(2000)
-                    self.setTiltProfile("layerMoveSlow")
-                    self.tiltMoveAbsolute(0)
-                    while self.isTiltMoving():
-                        sleep(0.1)
-                    #endwhile
-                else:
-                    self.logger.debug("Succesfully rehomed")
-                    return True
-                #endif
-            #endfor
-            self.logger.error("Printer is stuck...")
-            return False
-        else:
+        # check if tilt is on endstop
+        if self.checkState('endstop'):
             return True
         #endif
+
+        # unstuck
+        self.logger.warning("Tilt unstucking...")
+        self.setTiltProfile("layerRelease")
+        count = 0
+        step = 128
+        while count < self._tiltEnd and not self.checkState('endstop'):
+            self.setTiltPosition(step)
+            self.tiltMoveAbsolute(0)
+            while self.isTiltMoving():
+                sleep(0.1)
+            #endwhile
+            count += step
+        #endwhile
+        self.setTiltProfile('homingFast')
+        return self.tiltSyncWait(1)
     #enddef
 
 
@@ -1422,7 +1532,6 @@ class Hardware(object):
         if profileId is not None:
             self.mcc.debug.showItems(tiltProfile = profile)
             self.mcc.do("!tics", profileId)
-            self.mcc.do("?ticf")    # FIXME why?
         else:
             self.logger.error("Invalid tilt profile '%s'", profile)
         #endif
@@ -1440,151 +1549,10 @@ class Hardware(object):
 
     def stirResin(self):
         self.setTiltProfile('moveFast')
-        for i in xrange(3):
+        for i in xrange(self.hwConfig.stirringMoves):
             self.tiltUpWait()
             self.tiltDownWait()
         #endfor
-    #enddef
-
-
-    # --- generic ---
-
-
-    def getCurrentMiliTime(self):
-        return int(round(time() * 1000))
-    #enddef
-
-
-    def checkFanStatus(self, waitPage, returnPage):
-        #self.logger.debug("checkFanStatus started")
-        if not self.hwConfig.fanCheck or self.dummyMC:
-            #self.logger.debug("checkFanStatus disable return")
-            return
-        #endif
-        if self.getFansError():
-            if self._fanFailed and self.getCurrentMiliTime() - self._coolDownCounter < 1000 * 60 * 15:
-                #self.logger.debug("checkFanStatus time return")
-                return
-            #endif
-            self._fanFailed = True
-            self._coolDownCounter = self.getCurrentMiliTime()
-            counter = 0
-            self.powerLed("error")
-
-            waitPage.show()
-            waitPage.showItems(line3 = _("Please contact tech support!"))
-            while(counter < 10):
-                waitPage.showItems(line2 = _("FAN ERROR!"))
-                self.beepAlarm(3)
-                counter += 1
-                sleep(1)
-                waitPage.showItems(line2 = "")
-                sleep(1)
-            #endwhile
-            waitPage.showItems(line2 = "")
-            waitPage.showItems(line3 = "")
-            returnPage.show()
-            self.powerLed("normal")
-        else:
-            self._fanFailed = False
-        #endif
-        #self.logger.debug("checkFanStatus done")
-    #enddef
-
-
-    def checkCoverStatus(self, waitPage, returnPage):
-        #self.logger.debug("checkCoverStatus started")
-        if not self.hwConfig.coverCheck:
-            #self.logger.debug("checkCoverStatus disable return")
-            return
-        #endif
-        if self.isCoverClosed():
-            #self.logger.debug("checkCoverStatus stateOK return")
-            return
-        #endif
-        self.powerLed("warn")
-        waitPage.show()
-        waitPage.showItems(line3 = _("to continue!"))
-        pocet = 0
-        while not self.isCoverClosed():
-            waitPage.showItems(line2 = _("Close cover"))
-            pocet -= 1
-            if pocet < 0:
-                pocet = 5
-                self.beepAlarm(3)
-            #endif
-            sleep(1)
-            waitPage.showItems(line2 = "")
-            sleep(1)
-        #endwhile
-        waitPage.showItems(line2 = "")
-        waitPage.showItems(line3 = "")
-        returnPage.show()
-        self.powerLed("normal")
-        #self.logger.debug("checkCoverStatus done")
-    #enddef
-
-
-    def logTemp(self, temps):
-        self.logger.info("Temperatures [C]: %s", " ".join(map(lambda x: str(x), temps)))
-    #enddef
-
-
-    def checkTemp(self, waitPage, returnPage, forceFail = False):
-        #self.logger.debug("checkTemp started")
-        if self.dummyMC:
-            return
-        #endif
-        temps = self.getMcTemperatures()
-        self.logTemp(temps)
-        temp = temps[self._ledTempIdx]
-        if temp < 0:
-            if forceFail or not self.hwConfig.fanCheck or self.getFansError():
-                self.uvLed(False)
-                self.logger.critical("EMERGENCY STOP - LED temperature")
-                self.powerLed("error")
-                waitPage.show()
-                waitPage.showItems(line2 = _("Emergency stop!"))
-                waitPage.showItems(line3 = _("Please contact tech support!"))
-                while True:
-                    waitPage.showItems(line1 = _("LED temperature sensor failure!"))
-                    self.beepAlarm(3)
-                    sleep(1)
-                    waitPage.showItems(line1 = "")
-                    sleep(1)
-                #endwhile
-            else:
-                self.logger.warning("LED temperature has not been read correctly!")
-            #endif
-        #endif
-
-        if forceFail or temp < self._maxUVTemp:
-            return
-        #endif
-
-        self.uvLed(False)
-        self.powerLed("error")
-        waitPage.show()
-        waitPage.showItems(line2 = _("OVERHEAT!"))
-        while(temp > self._maxUVTemp - 10): # hystereze
-            waitPage.showItems(line3 = _("Cooling down..."))
-            self.beepAlarm(3)
-            sleep(1)
-            waitPage.showItems(line3 = _("Temperature is %.1f C") % temp)
-            sleep(1)
-            temps = self.getMcTemperatures()
-            self.logTemp(temps)
-            temp = temps[self._ledTempIdx]
-        #endwhile
-
-        waitPage.showItems(line2 = "")
-        waitPage.showItems(line3 = "")
-        returnPage.show()
-        self.powerLed("normal")
-        self.beepEcho()
-        self.uvLed(True)
-
-        #self.logger.debug("checkTemp done")
     #enddef
 
 #endclass

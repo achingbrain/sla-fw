@@ -58,10 +58,11 @@ resinFilled = 200
 
 defaultTowerHeight = 128    # mm
 defaultTiltHeight = 4900    # usteps
-tiltHomingTolerance = 30    #tilt axis check has this tolerance
+tiltHomingTolerance = 30    # tilt axis check has this tolerance
 towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40
+fanStartStopTime = 6.0       # in secs
 
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
 manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
