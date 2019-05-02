@@ -4577,7 +4577,7 @@ class PageCalibration1(Page):
         super(PageCalibration1, self).__init__(display)
         self.items.update({
             'imageName' : "06_tighten_knob.jpg",
-            'text' : _("If the platform is not yet inserted, insert it now and secure it with the black knob.")})
+            'text' : _(u"If the platform is not yet inserted, insert it according to picture at 0° angle and secure it with the black knob.")})
     #enddef
 
 
