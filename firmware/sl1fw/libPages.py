@@ -1057,7 +1057,7 @@ For your project is %(requested)d %% requested. Refill may be required during pr
         #endif
 
         self.pageWait.showItems(line3 = _("Moving platform down"))
-        self.display.hw.setTowerProfile('layer')
+        self.display.hw.setTowerProfile('moveFast')
         self.display.hw.towerToPosition(0.25)
         while not self.display.hw.isTowerOnPosition():
             sleep(0.25)
@@ -2442,6 +2442,7 @@ class PagePrint(Page):
                 config.layerMicroSteps)
         self.jobLog("\n%s" % (coLog))
 
+        self.display.hw.setTowerProfile('layer')
         self.display.hw.towerMoveAbsoluteWait(0)    # first layer will move up
 
         # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
