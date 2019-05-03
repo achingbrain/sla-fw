@@ -9,6 +9,7 @@ reqMcVersion = "SLA-control 0.9.9-409"
 
 home = "/home/root"
 factoryMountPoint = "/usr/share/factory/defaults"
+persistentStorage = "/var/sl1fw"
 
 swPath = "/usr/lib/python2.7/site-packages/sl1fw"
 dataPath = os.path.join(swPath, "data")
@@ -71,8 +72,9 @@ aboutURL = "https://www.prusa3d.com/about-us/"
 firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
 firmwareListURL = "https://sl1.prusa3d.com/check-update"
 firmwareListTemp = os.path.join(ramdiskPath, "updates.json")
-internalProjectPath = "/var/sl1fw/projects"
+internalProjectPath = os.path.join(persistentStorage, "projects")
 examplesURL = "https://www.prusa3d.com/SL1/examples.tar.gz"
 examplesArchivePath = os.path.join(ramdiskPath, 'examples.tar.gz')
 admincheckURL = "https://sl1.prusa3d.com/check-admin"
 admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
+bootFailedStamp = os.path.join(persistentStorage, "failedboot")
