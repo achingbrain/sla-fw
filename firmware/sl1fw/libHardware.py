@@ -1593,10 +1593,18 @@ class Hardware(object):
 
 
     def stirResin(self):
-        self.setTiltProfile('moveFast')
         for i in xrange(self.hwConfig.stirringMoves):
-            self.tiltUpWait()
-            self.tiltDownWait()
+            self.setTiltProfile('moveFast')
+            # do not verify end positions
+            self.tiltUp()
+            while self.isTiltMoving():
+                sleep(0.1)
+            #endwhile
+            self.tiltDown()
+            while self.isTiltMoving():
+                sleep(0.1)
+            #endwhile
+            self.tiltSyncWait()
         #endfor
     #enddef
 
