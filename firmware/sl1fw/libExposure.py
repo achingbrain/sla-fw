@@ -76,19 +76,18 @@ class ExposureThread(threading.Thread):
 
         self.expo.screen.screenshot(second = second)
 
+        self.expo.hw.setTowerProfile('layer')
         if self.expo.hwConfig.tilt:
             if self.expo.hwConfig.layerTowerHop and prevWhitePixels > self.expo.hwConfig.whitePixelsThd:
                 self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.layerTowerHop)
                 self.expo.hw.setTowerProfile('layerMove')
                 self.expo.hw.tiltLayerUpWait()
                 self.expo.hw.towerMoveAbsoluteWait(position)
-                self.expo.hw.setTowerProfile('layer')
             else:
                 self.expo.hw.towerMoveAbsoluteWait(position)
                 self.expo.hw.tiltLayerUpWait()
             #endif
         else:
-            self.expo.hw.setTowerProfile('layer')
             self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.layerTowerHop)
             self.expo.hw.towerMoveAbsoluteWait(position)
         #endif
@@ -170,8 +169,6 @@ class ExposureThread(threading.Thread):
         #endif
 
         if self.expo.hwConfig.tilt:
-            self.expo.hw.setTowerProfile('layer')
-
             slowMove = whitePixels > self.expo.hwConfig.whitePixelsThd
             if slowMove and self.expo.slowLayers:
                 self.expo.slowLayers -= 1
@@ -197,6 +194,7 @@ class ExposureThread(threading.Thread):
         else:
             pageWait = libPages.PageWait(self.expo.display, line2 = _("Going to the top position"))
             pageWait.show()
+            self.expo.hw.setTowerProfile('moveFast')
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
@@ -478,6 +476,7 @@ If you don't want to refill, please press the Back button on top of the screen."
             # TODO extra page finalPrint
 
             if not stuck:
+                self.expo.hw.setTowerProfile('moveFast')
                 self.expo.hw.towerToTop()
                 while not self.expo.hw.isTowerOnTop():
                     sleep(0.25)
