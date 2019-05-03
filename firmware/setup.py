@@ -21,7 +21,7 @@ print(data_files)
 setup(
 	name="sl1fw",
 	version="0.1",
-	packages=find_packages(),
+	packages=find_packages(exclude=["sl1fw.tests"]),
 	scripts=['sl1fw/main.py'],
 	package_data={'sl1fw': ['data/*']},
 	data_files=data_files
