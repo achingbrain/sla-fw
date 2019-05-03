@@ -1,0 +1,20 @@
+image: prusa/sl1fw
+
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  script:
+    - cd firmware
+    - python setup.py build
+
+test:
+  stage: test
+  script:
+    - cd firmware/sl1fw
+    - python -m unittest tests.test_libConfig
+# Cannot run all tests, remaining needs fixes and conversion to unitests
+#   - python -m unittest discover
+
