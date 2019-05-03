@@ -2139,8 +2139,7 @@ class PageFirmwareUpdate(Page):
 
     def fetchUpdate(self, fw_url):
         try:
-            query_url = fw_url + "?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
-            self.downloadURL(query_url, defines.firmwareTempFile, _("Fetching firmware"))
+            self.downloadURL(fw_url, defines.firmwareTempFile, _("Fetching firmware"))
         #endtry
         except Exception as e:
             self.logger.error("Firmware fetch failed: " + str(e))
