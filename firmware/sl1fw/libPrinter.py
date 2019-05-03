@@ -80,6 +80,7 @@ class Printer(object):
     def start(self):
         from libExposure import Exposure
         firstRun = True
+
         try:
             while True:
                 self.hw.uvLed(False)
@@ -87,6 +88,15 @@ class Printer(object):
 
                 self.expo = Exposure(self.hwConfig, self.config, self.display, self.hw, self.screen)
                 self.display.initExpo(self.expo)
+
+                if self.hw.checkFailedBoot():
+                    self.display.page_error.setParams(
+                        text=_(
+                            "The printer has booted to an alernative boot slot due to failed boot attempts using the "
+                            "primary slot. This can happen after a failed update or due to hardware failure. Printer "
+                            "settings may have been reset to factory defautls."))
+                    self.display.doMenu("error")
+                #endif
 
                 if firstRun:
                     if self.hwConfig.showUnboxing:

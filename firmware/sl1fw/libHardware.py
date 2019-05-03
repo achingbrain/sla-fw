@@ -9,6 +9,8 @@ from time import time, sleep
 from multiprocessing import Lock
 import bitstring
 from math import ceil
+import pydbus
+import os
 
 from libDebug import Debug
 
@@ -593,6 +595,46 @@ class Hardware(object):
             self.logger.exception("CPU serial:")
         #endtry
         return serial
+    #enddef
+
+
+    def checkFailedBoot(self):
+        '''
+        Check for failed boot by comparing current and last boot slot
+        :return: True is last boot failed, false otherwise
+        '''
+        try:
+            # Get slot statuses
+            rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
+            status = rauc.GetSlotStatus()
+            a = status[0][1]['boot-status']
+            b = status[2][1]['boot-status']
+
+            if a == 'good' and b == 'good':
+                # Device is booting fine, remove stamp
+                if os.path.isfile(defines.bootFailedStamp):
+                    os.remove(defines.bootFailedStamp)
+                #endif
+                return False
+            else:
+                # Device has boot problems
+                if os.path.isfile(defines.bootFailedStamp):
+                    # The problem is already reported
+                    return False
+                else:
+                    # This is a new problem, create stamp, report problem
+                    if not os.path.exists(defines.persistentStorage):
+                        os.makedirs(defines.persistentStorage)
+                    #endif
+                    open(defines.bootFailedStamp, 'a').close()
+                    return True
+                #endif
+            #endif
+        except:
+            self.logger.exception("Failed to check for failed boot")
+            # Something went wrong during check, expect the worst
+            return True
+        #endtry
     #enddef
 
 
