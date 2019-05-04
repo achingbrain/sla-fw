@@ -6617,26 +6617,36 @@ RPM data: %s""") % rpm)
         pageWait.showItems(line1 = _("Fans check (fans are running)"))
         # TODO rafactoring needed -> fans object(s)
                         #fan1        fan2        fan3
-        fanLimits = [[50,150], [1100, 1700], [150, 300]]
+        fanLimits = [[50,250], [1100, 1700], [150, 500]]
         hwConfig = libConfig.HwConfig()
         self.display.hw.setFansPwm((hwConfig.fan1Pwm, hwConfig.fan2Pwm, hwConfig.fan3Pwm))   #use default PWM. TODO measure fans in range of values
         self.display.hw.startFans()
         sleep(defines.fanStartStopTime)  # let the fans spin up
-        rpm = self.display.hw.getFansRpm()
-        for i in xrange(3):
-            if not fanLimits[i][0] <= rpm[i] <= fanLimits[i][1]:
+        rpm = [[], [], []]
+        for i in xrange(defines.fanMeasCycles):
+            tmp = self.display.hw.getFansRpm()
+            rpm[0].append(tmp[0])   #UV
+            rpm[1].append(tmp[1])   #blower
+            rpm[2].append(tmp[2])   #rear
+            pageWait.showItems(line1 = _("Fans check (fans are running). Remaining %d s") % (defines.fanMeasCycles - i))
+            sleep(1)
+        #endfor
+        
+        for i in xrange(3): #iterate over fans
+            rpm[i].remove(max(rpm[i]))
+            rpm[i].remove(min(rpm[i]))
+            avgRpm = sum(rpm[i]) / len(rpm[i])
+            if not fanLimits[i][0] <= avgRpm <= fanLimits[i][1]:
                 self.display.page_error.setParams(
                     text = _("""RPM of %(fan)s not in range!
 
 Please check if the fan is connected correctly.
 
-RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm })
+RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i] })
                 return "error"
             #endif
+            self.display.hwConfig.wizardFanRpm[i] = avgRpm
         #endfor
-        self.display.hwConfig.wizardFanRpm[0] = rpm[0]
-        self.display.hwConfig.wizardFanRpm[1] = rpm[1]
-        self.display.hwConfig.wizardFanRpm[2] = rpm[2]
 
         # temperature check
         pageWait.showItems(line1 = _("A64 temperature check"))
