@@ -64,6 +64,7 @@ towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40
 fanStartStopTime = 6.0       # in secs
+fanMeasCycles = 20
 
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
 manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
