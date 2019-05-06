@@ -28,6 +28,7 @@ class Display(object):
         self.page_control = libPages.PageControl(self)
         self.page_settings = libPages.PageSettings(self)
         self.page_advancedsettings = libPages.PageAdvancedSettings(self)
+        self.page_factoryreset = libPages.PageFactoryReset(self)
         self.page_timesettings = libPages.PageTimeSettings(self)
         self.page_settime = libPages.PageSetTime(self)
         self.page_setdate = libPages.PageSetDate(self)
