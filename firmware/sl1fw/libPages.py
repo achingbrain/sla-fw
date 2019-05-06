@@ -51,6 +51,7 @@ class Page(object):
         self.powerButtonCount = 0
         # vars for checkCoolingCallback()
         self.checkCooligSkip = 20   # 10 sec
+        self.checkOverTempSkip = 20   # 10 sec
     #enddef
 
 
@@ -411,6 +412,9 @@ Check the printer's hardware."""))
             #endif
         #endif
 
+        # always check the over temp
+        self.checkOverTempCallback()
+
         if not state:
             # just read status from the MC to prevent the power LED pulsing
             self.display.hw.getPowerswitchState()
@@ -565,6 +569,39 @@ Please contact tech support!
 %(addText)s""") % { 'what' : ", ".join(failedFans), 'addText' : addText })
             return "confirm"
         #endif
+    #enddef
+
+
+    def checkOverTempCallback(self):
+        if self.checkOverTempSkip < 20:
+            self.checkOverTempSkip += 1
+            return
+        #endif
+        self.checkOverTempSkip = 0
+
+        A64temperature = self.display.hw.getCpuTemperature()
+        if A64temperature > self.display.hw._maxA64Temp - 10: # 60 C
+            self.logger.warning("Printer is overheating! Measured %.1f °C on A64.", A64temperature)
+            self.display.hw.startFans()
+            #self.checkCooling = True #shouldn't this start the fan check also?
+        #endif
+        '''
+        do not shut down the printer for now
+        if A64temperature > self.display.hw._maxA64Temp: # 70 C
+            self.logger.warning("Printer is shuting down due to overheat! Measured %.1f °C on A64.", A64temperature)
+            self.display.page_error.setParams(
+                text = _(u"""Printers temperature is too high. Measured: %.1f °C!
+
+Shutting down in 10 seconds...""") % A64temperature)
+            self.display.page_error.show()
+            for i in xrange(10):
+                self.display.hw.beepAlarm(3)
+                sleep(1)
+            #endfor
+            self.display.shutDown(True)
+            return "error"
+        #endif
+        '''
     #enddef
 
 
@@ -6759,7 +6796,10 @@ RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i] 
 
 Shutting down in 10 seconds...""") % A64temperature)
             self.display.page_error.show()
-            sleep(10)
+            for i in xrange(10):
+                self.display.hw.beepAlarm(3)
+                sleep(1)
+            #endfor
             self.display.shutDown(True)
             return "error"
         #endif
