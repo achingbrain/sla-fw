@@ -79,3 +79,4 @@ examplesArchivePath = os.path.join(ramdiskPath, 'examples.tar.gz')
 admincheckURL = "https://sl1.prusa3d.com/check-admin"
 admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
 bootFailedStamp = os.path.join(persistentStorage, "failedboot")
+apikeyFile = os.path.join(configDir, "api.key")

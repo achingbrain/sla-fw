@@ -2036,29 +2036,54 @@ Continue?"""))
             self.logger.warning("mqtt message not delivered. %s", err)
         #endtry
 
-        hwConfig = libConfig.HwConfig()
-        self.display.hwConfig.update(
-            # set  to default those parameters which can be changed from advanced settings or via calibration
-            towerheight=self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight),
-            tiltheight=defines.defaultTiltHeight,
-            tiltsensitivity=hwConfig.tiltSensitivity,
-            towersensitivity=hwConfig.towerSensitivity,
-            limit4fast=hwConfig.limit4fast,
-            calibtoweroffset=hwConfig.calibTowerOffset,
-            fan3pwm=hwConfig.fan3Pwm,
-            autooff=hwConfig.autoOff,
-            covercheck=hwConfig.coverCheck,
-            resinsensor=hwConfig.resinSensor,
-            calibrated="no",
-            showadmin="no",
-            showwizard="yes",
-            showunboxing="yes"
-        )
-        if not self.display.hwConfig.writeFile():
+        try:
+            with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
+                factory_defaults = toml.load(factory)
+            #endwith
+        except:
+            self.logger.exception("Failed to load factory defaults")
+            factory_defaults = {}
+        #endtry
+        self.display.hwConfig = libConfig.HwConfig(defaults=factory_defaults)
+        if not self.display.hwConfig.writeFile(filename=defines.hwConfigFile):
             self.display.page_error.setParams(
                 text=_("Cannot save factory defaults configuration"))
             return "error"
         #endif
+
+        # Reset hostname
+        try:
+            hostnamectl = pydbus.SystemBus().get("org.freedesktop.hostname1")
+            hostname = "prusa64-sl1"
+            hostnamectl.SetStaticHostname(hostname, False)
+            hostnamectl.SetHostname(hostname, False)
+        except:
+            self.logger.exception("Failed to set hostname to factory default")
+        #endtry
+
+        # Reset apikey (will be regenerated on next boot)
+        try:
+            os.remove(defines.apikeyFile)
+        except:
+            self.logger.exception("Failed to remove api.key")
+        #endtry
+
+        # Reset wifi
+        try:
+            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+            wifisetup.Reset()
+        except:
+            self.logger.exception("Failed to reset wifi config")
+        #endtry
+
+        # Reset timezone
+        try:
+            timedate = pydbus.SystemBus().get("org.freedesktop.timedate1")
+            timedate.SetTimezone("Universal", False)
+        except:
+            self.logger.exception("Failed to reset timezone")
+        #endtry
+
         self.display.shutDown(True)
     #enddef
 
