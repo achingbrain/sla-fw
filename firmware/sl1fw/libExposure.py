@@ -470,10 +470,10 @@ If you don't want to refill, please press the Back button on top of the screen."
 
             self.expo.hw.uvLed(False)
             self.expo.hw.beepRepeat(3)
-            actualPage = self.expo.display.setPage("print")
-            actualPage.showItems(percent = "100%",  progress = 100)
 
             # TODO extra page finalPrint
+            self.expo.display.page_systemwait.fill(line1 = _("Moving platform to the top"))
+            self.expo.display.setPage("systemwait")
 
             if not stuck:
                 self.expo.hw.setTowerProfile('moveFast')
@@ -483,6 +483,8 @@ If you don't want to refill, please press the Back button on top of the screen."
                 #endwhile
             #endif
 
+            actualPage = self.expo.display.setPage("print")
+            actualPage.showItems(percent = "100%",  progress = 100)
             #self.logger.debug("thread ended")
 
         except Exception as e:
