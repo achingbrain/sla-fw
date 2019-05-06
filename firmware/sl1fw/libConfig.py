@@ -117,7 +117,7 @@ class FileConfig(object):
 
         for key,val in kwargs.iteritems():
             self._logger.debug("update: %s = %s", key, str(val))
-            self._data[key.lower()] = val
+            self._data[key.lower()] = None if val is None else str(val)
         #endfor
         newLines = list()
         for key,val in self._lines:
