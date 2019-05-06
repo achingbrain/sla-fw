@@ -1826,7 +1826,7 @@ class PageAdvancedSettings(Page):
     def resinsensorButtonRelease(self):
         if self.resin_sensor:
             self.display.page_confirm.setParams(
-                continueFce=self.disableCoverCheck,
+                continueFce=self.disableResinSensor,
                 backFce=self._doConfirmReturn,
                 text=_("Disable the resin sensor?\n"
                        "\n"
@@ -1840,7 +1840,7 @@ class PageAdvancedSettings(Page):
 
     def disableResinSensor(self):
         self.resin_sensor = False
-        return self.confirmReturnPending()
+        return self._doConfirmReturn()
     #enddef
 
 
