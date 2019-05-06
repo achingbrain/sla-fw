@@ -1553,6 +1553,7 @@ class PageAdvancedSettings(Page):
         self._display_test = False
         self.configwrapper = None
         self._calibTowerOffset_mm = None
+        self.confirmReturnPending = False
         super(PageAdvancedSettings, self).__init__(display)
 
         self.autorepeat = {
@@ -1676,7 +1677,11 @@ class PageAdvancedSettings(Page):
 
 
     def show(self):
-        self.configwrapper = libConfig.ConfigHelper(self.display.hwConfig)
+        if self.configwrapper is None or not self.confirmReturnPending:
+            self.configwrapper = libConfig.ConfigHelper(self.display.hwConfig)
+        else:
+            self.confirmReturnPending = False
+        #endif
         self._calibTowerOffset_mm = None
 
         self.items.update({
@@ -1791,13 +1796,51 @@ class PageAdvancedSettings(Page):
 
     # Cover check
     def covercheckButtonRelease(self):
-        self.cover_check = not self.cover_check
+        if self.cover_check:
+            self.display.page_confirm.setParams(
+                continueFce=self.disableCoverCheck,
+                backFce=self._doConfirmReturn,
+                text=_("Disable the cover sensor?\n"
+                       "\n"
+                       "CAUTION: This may lead to unwanted exposure to UV light. This action is not recommended!"))
+            return "confirm"
+        else:
+            self.cover_check = True
+        #endif
+    #enddef
+
+
+    def disableCoverCheck(self):
+        self.cover_check = False
+        return self._doConfirmReturn()
+    #enddef
+
+
+    def _doConfirmReturn(self):
+        self.confirmReturnPending = True
+        return "_BACK_"
     #enddef
 
 
     # Resin Sensor
     def resinsensorButtonRelease(self):
-        self.resin_sensor = not self.resin_sensor
+        if self.resin_sensor:
+            self.display.page_confirm.setParams(
+                continueFce=self.disableCoverCheck,
+                backFce=self._doConfirmReturn,
+                text=_("Disable the resin sensor?\n"
+                       "\n"
+                       "CAUTION: This may lead to failed prints or resin tank overflow! This action is not recommended!"))
+            return "confirm"
+        else:
+            self.resin_sensor = True
+        #endif
+    #enddef
+
+
+    def disableResinSensor(self):
+        self.resin_sensor = False
+        return self.confirmReturnPending()
     #enddef
 
 
@@ -1836,7 +1879,7 @@ class PageAdvancedSettings(Page):
     # Back
     def leave(self, newPage):
         self.display.hw.stopFans()
-        if self.configwrapper.changed():
+        if self.configwrapper.changed() and newPage != "confirm":
             self.display.page_confirm.setParams(
                 continueFce = self._savechanges,
                 continueParams={'newPage': newPage},
