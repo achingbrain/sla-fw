@@ -1809,12 +1809,7 @@ class PageAdvancedSettings(Page):
 
     # Factory reset
     def factoryresetButtonRelease(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.factoryResetStep1,
-            text = _("""Do you really want to perform the factory reset?
-
-All settings will be deleted!"""))
-        return "confirm"
+        return "factoryreset"
     #enddef
 
 
@@ -1914,7 +1909,23 @@ All settings will be deleted!"""))
         self.logger.debug("profiles %s", profiles)
     #enddef
 
-    def factoryResetStep1(self):
+#endclass
+
+
+class PageFactoryReset(Page):
+
+    def __init__(self, display):
+        self.pageUI = "confirm"
+        self.pageTitle = _("Factory reset")
+        super(PageFactoryReset, self).__init__(display)
+        self.items.update({
+            'text' : _("""Do you really want to perform the factory reset?
+
+All settings will be deleted!""")})
+    #enddef
+
+
+    def contButtonRelease(self):
         pageWait = PageWait(self.display, line1 = _("Please wait..."),
                 line2 = _("Printer is being reset to factory defaults"))
         pageWait.show()
@@ -1936,6 +1947,7 @@ All settings will be deleted!"""))
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
+
         # at this height may be screwed down tank and inserted protective foam
         self.display.page_confirm.setParams(
             continueFce = self.factoryResetStep2,
@@ -1943,8 +1955,8 @@ All settings will be deleted!"""))
 
 Continue?"""))
         return "confirm"
-
     #enddef
+
 
     def factoryResetStep2(self):
         pageWait = PageWait(self.display, line1 = _("Please wait..."),
@@ -2007,6 +2019,12 @@ Continue?"""))
             return "error"
         #endif
         self.display.shutDown(True)
+    #enddef
+
+
+    def _BACK_(self):
+        return "_BACK_"
+    #enddef
 
 #endclass
 
@@ -6631,7 +6649,7 @@ RPM data: %s""") % rpm)
             pageWait.showItems(line1 = _("Fans check (fans are running). Remaining %d s") % (defines.fanMeasCycles - i))
             sleep(1)
         #endfor
-        
+
         for i in xrange(3): #iterate over fans
             rpm[i].remove(max(rpm[i]))
             rpm[i].remove(min(rpm[i]))
