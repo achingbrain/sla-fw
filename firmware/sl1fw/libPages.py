@@ -361,21 +361,19 @@ Check the printer's hardware."""))
         long1 = 3 - actualLayer
         if long1 > 0:
             timeRemain += long1 * (config.expTimeFirst - config.expTime)
-            self.logger.debug("long1: %d  timeRemain: %f", long1, timeRemain)
         #endif
         # fade layers (approx)
         long2 = config.fadeLayers + 3 - actualLayer
         if long2 > 0:
             timeRemain += long2 * ((config.expTimeFirst - config.expTime) / 2 - config.expTime)
-            self.logger.debug("long2: %d  timeRemain: %f", long2, timeRemain)
         #endif
         timeRemain += fastLayers * hwConfig.tiltFastTime
-        self.logger.debug("fastLayers: %d  timeRemain: %f", fastLayers, timeRemain)
         timeRemain += slowLayers * hwConfig.tiltSlowTime
-        self.logger.debug("slowLayers: %d  timeRemain: %f", slowLayers, timeRemain)
+
         # FIXME slice2 and slice3
         timeRemain += (fastLayers + slowLayers) * (
                 config.calibrateRegions * config.calibrateTime
+                + self.display.hwConfig.calcMM(config.layerMicroSteps) * 5  # tower move
                 + config.expTime
                 + hwConfig.delayBeforeExposure
                 + hwConfig.delayAfterExposure)
@@ -5120,8 +5118,23 @@ class PageCalibration11(Page):
         self.pageUI = "confirm"
         self.pageTitle = _("Calibration done")
         super(PageCalibration11, self).__init__(display)
+    #enddef
+
+
+    def show(self):
         self.items.update({
-            'text' : _("All done, happy printing!")})
+            'text' : _("""All done, happy printing!
+
+
+Tilt settings for Prusa Slicer:
+
+Tilt time fast: %(fast).1f s
+Tilt time slow: %(slow).1f s
+Area fill: %(area)d %%""") % {
+                'fast' : self.display.hwConfig.tiltFastTime,
+                'slow' : self.display.hwConfig.tiltSlowTime,
+                'area' : self.display.hwConfig.limit4fast }})
+        super(PageCalibration11, self).show()
     #enddef
 
 
