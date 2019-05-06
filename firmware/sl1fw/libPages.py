@@ -6186,7 +6186,7 @@ class PageUnboxing1(Page):
         self.pageTitle = _("Unboxing step 1/4")
         super(PageUnboxing1, self).__init__(display)
         self.items.update({
-            'imageName' : "13_open_cover.jpg",
+            'imageName' : "16_sticker_open_cover.jpg",
             'text' : _("""Please remove the safety sticker on the right and open the orange cover.
 
 You can skip to wizard by hitting back button.""")})
@@ -6325,6 +6325,7 @@ class PageUnboxing4(Page):
         self.pageTitle = _("Unboxing step 4/4")
         super(PageUnboxing4, self).__init__(display)
         self.items.update({
+            'imageName' : "17_remove_sticker_screen.jpg",
             'text' : _("Carefully peel off the orange protective foil from the exposition display.")})
     #enddef
 
