@@ -6393,9 +6393,11 @@ class PageUnboxingConfirm(Page):
         self.pageTitle = _("Skip unboxing?")
         super(PageUnboxingConfirm, self).__init__(display)
         self.items.update({
-            'text' : _("""Do you really want to skip unboxing guide?
+            'text' : _("""Do you really want to skip the unboxing wizard?
 
-Continue only, if you built the priner as kit or you went through this guide earlier.""")})
+Press 'Continue' only in case you've assembled the printer as a kit, or you went through this wizard previously and the printer is unpacked.
+
+Press 'Back' to return to the wizard.""")})
     #enddef
 
 
@@ -6992,7 +6994,9 @@ class PageWizardConfirm(Page):
         self.items.update({
             'text' : _("""Do you really want to skip wizard?
 
-Machine may not work correctly without going through this check.""")})
+Machine may not work correctly without going through this check.
+
+Press 'Continue' to exit the wizard, or 'Back' to return to the wizard.""")})
     #enddef
 
 
