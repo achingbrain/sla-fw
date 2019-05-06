@@ -3598,7 +3598,7 @@ class PageDisplay(Page):
 class PageDisplayTest(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
+        self.pageUI = "yesno"
         self.pageTitle = _("Display test")
         super(PageDisplayTest, self).__init__(display)
         self.items.update({
@@ -3626,12 +3626,12 @@ DO NOT open the cover.""")})
     #enddef
 
 
-    def contButtonRelease(self):
+    def yesButtonRelease(self):
         return "_OK_"
     #endif
 
 
-    def backButtonRelease(self):
+    def noButtonRelease(self):
         return "_NOK_"
     #enddef
 
