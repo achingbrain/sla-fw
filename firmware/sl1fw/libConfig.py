@@ -295,7 +295,7 @@ class HwConfig(FileConfig):
         self.stirringDelay = self._parseIntMinMax("stirringdelay", 5, 0, 300)
         self.measuringMoves = self._parseIntMinMax("measuringmoves", 3, 1, 10)
 
-        self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 5, 5, 6)
+        self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 6, 5, 6)
 
         # Exposure setup
         self.blinkExposure = self._parseBool("blinkexposure", True)
