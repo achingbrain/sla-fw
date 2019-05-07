@@ -1067,7 +1067,7 @@ Remove some resin from the tank and try again.""")
                         beep = True,
                         text = _("""Your tank fill is approx %(measured)d %%
 
-For your project is %(requested)d %% requested. Refill may be required during printing.""") \
+For your project, %(requested)d %% is needed. A refill may be required during printing.""") \
                         % { 'measured' : percMeas, 'requested' : self.percReq})
                 return "confirm"
             #endif
@@ -4698,7 +4698,7 @@ class PageCalibration1(Page):
         super(PageCalibration1, self).__init__(display)
         self.items.update({
             'imageName' : "06_tighten_knob.jpg",
-            'text' : _(u"If the platform is not yet inserted, insert it according to picture at 0° angle and secure it with the black knob.")})
+            'text' : _(u"If the platform is not yet inserted, insert it according to the picture at 0° angle and secure it with the black knob.")})
     #enddef
 
 
@@ -4744,7 +4744,7 @@ class PageCalibration2(Page):
         super(PageCalibration2, self).__init__(display)
         self.items.update({
             'imageName' : "01_loosen_screws.jpg",
-            'text' : _("Loosen small screws on the cantilever. Be careful not to unscrew them completely.")})
+            'text' : _("Loosen two small screws on the cantilever. Be careful not to unscrew them completely.")})
     #enddef
 
 
@@ -6264,7 +6264,7 @@ class PageUnboxing1(Page):
             'imageName' : "16_sticker_open_cover.jpg",
             'text' : _("""Please remove the safety sticker on the right and open the orange cover.
 
-You can skip to wizard by hitting back button.""")})
+In case you assembled your printer, you can skip this wizard by hitting the Back button.""")})
     #enddef
 
     def contButtonRelease(self):
@@ -6893,7 +6893,7 @@ Make sure the tank is empty and clean.""")})
                 self.display.page_error.setParams(
                     text = _("""UV LED voltages differ too much!
 
-Please check if UV LED panel is connected properly.
+Please check if the UV LED panel is connected properly.
 
 Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : volts})
                 return "error"
@@ -6935,7 +6935,7 @@ Temperature data: %s""") % temp)
 
     def _NOK_(self):
         self.display.page_error.setParams(
-            text = _("""Your display is broken somehow.
+            text = _("""Your display is probably broken.
 
 Please contact tech support!"""))
         return "error"
@@ -6962,7 +6962,7 @@ class PageWizard5(Page):
         super(PageWizard5, self).__init__(display)
         self.items.update({
             'imageName' : "11_insert_platform_60deg.jpg",
-            'text' : _("Leave the resin tank secured with screws and insert platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
+            'text' : _("Leave the resin tank secured with screws and insert the platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
     #enddef
 
 
@@ -6980,7 +6980,7 @@ class PageWizard5(Page):
             self.display.page_error.setParams(
                 text = _("""Resin sensor not working!
 
-Please check if sensor is connected properly.
+Please check if the sensor is connected properly.
 
 Measured %d ml.""") % volume)
             return "error"
@@ -7071,9 +7071,9 @@ class PageWizardConfirm(Page):
         self.pageTitle = _("Skip wizard?")
         super(PageWizardConfirm, self).__init__(display)
         self.items.update({
-            'text' : _("""Do you really want to skip wizard?
+            'text' : _("""Do you really want to skip the wizard?
 
-Machine may not work correctly without going through this check.
+The machine may not work correctly without finishing this check.
 
 Press 'Continue' to exit the wizard, or 'Back' to return to the wizard.""")})
     #enddef

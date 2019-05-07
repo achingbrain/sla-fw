@@ -266,7 +266,7 @@ class ExposureThread(threading.Thread):
 
 Release the tank mechanism and press Continue.
 
-If you don't want to continue, please press the Back button on top of the screen and the actual job will be canceled."""))
+If you don't want to continue, press the Back button on top of the screen and the actual job will be canceled."""))
         self.expo.display.setPage("confirm")
         if self.doWait(True) == "back":
             return False
