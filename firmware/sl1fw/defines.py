@@ -4,8 +4,8 @@
 
 import os
 
-swVersion = "Gen3-190-506"
-reqMcVersion = "SLA-control 0.9.9-409-rc0"
+swVersion = "Gen3-190-507"
+reqMcVersion = "SLA-control 0.9.9-417"
 
 home = "/home/root"
 factoryMountPoint = "/usr/share/factory/defaults"
