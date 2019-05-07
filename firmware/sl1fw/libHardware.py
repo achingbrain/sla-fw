@@ -61,7 +61,7 @@ class MotConCom(object):
             1 : _("Application flash checksum has failed"),
             2 : _("Bootloader flash checksum has failed"),
             3 : _("Serial number check has failed"),
-            4 : _("Fuse bit settings has failed"),
+            4 : _("Fuse bit settings have failed"),
             5 : _("Boot-section lock has failed"),
             6 : _("GPIO SPI has failed"),
             7 : _("TMC SPI has failed"),

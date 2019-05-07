@@ -92,9 +92,9 @@ class Printer(object):
                 if self.hw.checkFailedBoot():
                     self.display.page_error.setParams(
                         text=_(
-                            "The printer has booted to an alernative boot slot due to failed boot attempts using the "
+                            "The printer has booted to an alernative boot slot due to a failed boot attempts using the "
                             "primary slot. This can happen after a failed update or due to hardware failure. Printer "
-                            "settings may have been reset to factory defautls."))
+                            "settings may have been reset to factory defaults."))
                     self.display.doMenu("error")
                 #endif
 
