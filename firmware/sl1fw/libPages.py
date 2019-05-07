@@ -6507,7 +6507,7 @@ Continue?""")})
     def contButtonRelease(self):
         # check serial numbers
         if (not re.match("CZPX\d{4}X009X[C|K]\d{5}", self.display.hw.cpuSerialNo) or
-        not re.match("CZPX\d{4}X012X[C|K]\d{5}", self.display.hw.mcSerialNo)):
+        not re.match("CZPX\d{4}X012X[C|K|0|1]\d{5}", self.display.hw.mcSerialNo)):
 # FIXME we don't want cut off betatesters with MC without serial number
             self.display.page_error.setParams(
                 backFce = self.justContinue, # use as confirm
