@@ -3739,6 +3739,11 @@ DO NOT open the cover.""")})
     #enddef
 
 
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+
     def leave(self, newPage):
         self.display.hw.uvLed(False)
         self.display.screen.getImgBlack()
@@ -6300,13 +6305,7 @@ In case you assembled your printer, you can skip this wizard by hitting the Back
     #enddef
 
 
-    def _OK_(self):
-        self.display.hwConfig.update(showunboxing = "no")
-        if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
-                text = _("Cannot save configuration"))
-            return "error"
-        #endif
+    def _BACK_(self):
         return "wizard1"
     #enddef
 
@@ -6347,8 +6346,8 @@ class PageUnboxing2(Page):
     #enddef
 
 
-    def _OK_(self):
-        return "_OK_"
+    def _BACK_(self):
+        return "_BACK_"
     #enddef
 
 
@@ -6381,8 +6380,8 @@ class PageUnboxing3(Page):
     #enddef
 
 
-    def _OK_(self):
-        return "_OK_"
+    def _BACK_(self):
+        return "_BACK_"
     #enddef
 
 
@@ -6421,8 +6420,8 @@ class PageUnboxing4(Page):
     #enddef
 
 
-    def _OK_(self):
-        return "_OK_"
+    def _BACK_(self):
+        return "_BACK_"
     #enddef
 
 
@@ -6478,7 +6477,13 @@ Press 'Back' to return to the wizard.""")})
 
 
     def contButtonRelease(self):
-        return "_OK_"
+        self.display.hwConfig.update(showunboxing = "no")
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text = _("Cannot save configuration"))
+            return "error"
+        #endif
+        return "_BACK_"
     #enddef
 
 
@@ -6632,20 +6637,6 @@ Tower profiles need to be changed."""))
     #enddef
 
 
-    def _OK_(self):
-        self.display.hw.uvLed(False)
-        self.display.hw.motorsRelease()
-        self.display.hw.stopFans()
-        self.display.hwConfig.update(showwizard = "no")
-        if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
-                text = _("Cannot save wizard configuration"))
-            return "error"
-        #endif
-        return "_EXIT_"
-    #endef
-
-
     def _EXIT_(self):
         self.display.hw.uvLed(False)
         self.display.hw.motorsRelease()
@@ -6677,11 +6668,6 @@ Make sure the tank is empty and clean.""")})
 
     def backButtonRelease(self):
         return "wizardconfirm"
-    #enddef
-
-
-    def _OK_(self):
-        return "_OK_"
     #enddef
 
 
@@ -6840,11 +6826,6 @@ Keep the printer out of direct sunlight at room temperature (18 - 32 °C).""")
 
     def backButtonRelease(self):
         return "wizardconfirm"
-    #enddef
-
-
-    def _OK_(self):
-        return "_OK_"
     #enddef
 
 
@@ -7022,11 +7003,6 @@ Measured %d ml.""") % volume)
     #enddef
 
 
-    def _OK_(self):
-        return "_OK_"
-    #enddef
-
-
     def _EXIT_(self):
         return "_EXIT_"
     #enddef
@@ -7080,7 +7056,16 @@ Press 'Continue' to exit the wizard, or 'Back' to return to the wizard.""")})
 
 
     def contButtonRelease(self):
-        return "_OK_"
+        self.display.hw.uvLed(False)
+        self.display.hw.motorsRelease()
+        self.display.hw.stopFans()
+        self.display.hwConfig.update(showwizard = "no")
+        if not self.display.hwConfig.writeFile():
+            self.display.page_error.setParams(
+                text = _("Cannot save wizard configuration"))
+            return "error"
+        #endif
+        return "_EXIT_"
     #endif
 
 
