@@ -3735,7 +3735,11 @@ DO NOT open the cover.""")})
 
 
     def noButtonRelease(self):
-        return "_NOK_"
+        self.display.page_error.setParams(
+            text = _("""Your display is probably broken.
+
+Please contact tech support!"""))
+        return "error"
     #enddef
 
 
@@ -6911,15 +6915,6 @@ Temperature data: %s""") % temp)
 
     def backButtonRelease(self):
         return "wizardconfirm"
-    #enddef
-
-
-    def _NOK_(self):
-        self.display.page_error.setParams(
-            text = _("""Your display is probably broken.
-
-Please contact tech support!"""))
-        return "error"
     #enddef
 
 
