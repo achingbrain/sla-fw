@@ -6746,7 +6746,7 @@ RPM data: %s""") % rpm)
         pageWait.showItems(line1 = _("Fans check (fans are running)"))
         # TODO rafactoring needed -> fans object(s)
                         #fan1        fan2        fan3
-        fanLimits = [[50,250], [1100, 1700], [150, 500]]
+        fanLimits = [[50,300], [1100, 1700], [150, 500]]
         hwConfig = libConfig.HwConfig()
         self.display.hw.setFansPwm((hwConfig.fan1Pwm, hwConfig.fan2Pwm, hwConfig.fan3Pwm))   #use default PWM. TODO measure fans in range of values
         self.display.hw.startFans()
@@ -6864,7 +6864,7 @@ Make sure the tank is empty and clean.""")})
         pageWait.show()
         self.display.hw.setUvLedCurrent(0)
         self.display.hw.uvLed(True)
-        uvCurrents = [0, 300, 600]
+        uvCurrents = [100, 300, 600]
         diff = 0.4    # [mV] voltages in all rows cannot differ more than this limit
         for i in xrange(3):
             self.display.hw.setUvLedCurrent(uvCurrents[i])
