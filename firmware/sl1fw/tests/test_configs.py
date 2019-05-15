@@ -27,7 +27,7 @@ hwConfig.logAllItems()
 hwConfig.logFile()
 logging.info(hwConfig.getSourceString())
 if not hwConfig.writeFile("hwconfig.test"):
-    print "Failed"
+    print("Failed")
 #endif
 
 config = libConfig.PrintConfig(hwConfig)
@@ -46,8 +46,8 @@ firmware = Gen2-180-319""")
 netConfig.logAllItems()
 netConfig.logFile()
 
-print defines.usbUpdatePath
-print defines.swPath
+print(defines.usbUpdatePath)
+print(defines.swPath)
 
 fwConfig = libConfig.FwConfig(os.path.join(defines.usbUpdatePath + defines.swPath, "defines.py"))
 fwConfig.logAllItems()
