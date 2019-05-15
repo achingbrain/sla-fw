@@ -15,12 +15,12 @@ screen.blit(obr, obrRect)
 #pygame.display.flip()
 
 pixels = pygame.surfarray.pixels3d(screen)
-print pixels.size
-print np.amin(pixels)
-print np.amax(pixels)
+print(pixels.size)
+print(np.amin(pixels))
+print(np.amax(pixels))
 hist = np.histogram(pixels, [0, 51, 102, 153, 204, 255])
-print hist[1]
-print hist[0]
+print(hist[1])
+print(hist[0])
 
 #pixels ^= 2 ** 32 - 1
 

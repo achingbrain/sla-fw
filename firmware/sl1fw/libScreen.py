@@ -199,7 +199,7 @@ class ScreenServer(multiprocessing.Process):
 
 
     def blitImg(self, second = False):
-	startTime = time()
+        startTime = time()
         self.logger.debug("blit started")
         if second:
             self.screen.blit(self.nextImage2, (0,0))
@@ -210,7 +210,7 @@ class ScreenServer(multiprocessing.Process):
         #endif
         pygame.display.flip()
         self._writefb()
-	self.logger.debug("blit done in %f secs", time() - startTime)
+        self.logger.debug("blit done in %f secs", time() - startTime)
         return self.whitePixels
     #enddef
 
@@ -235,13 +235,13 @@ class ScreenServer(multiprocessing.Process):
 
 
     def screenshotRename(self):
-	startTime = time()
+        startTime = time()
         try:
             os.rename(defines.livePreviewImage + "-tmp.png", defines.livePreviewImage)
         except Exception as e:
             self.logger.exception("screenshotRename exception:")
         #endtry
-	self.logger.debug("rename time: %f secs", time() - startTime)
+        self.logger.debug("rename time: %f secs", time() - startTime)
     #enddef
 
 
