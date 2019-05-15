@@ -156,6 +156,10 @@ class FileConfig(object):
         #endfor
     #enddef
 
+    def defaultsSet(self):
+        return self._defaults
+    #enddef
+
     def __str__(self):
         rows = list(("",))
         items = vars(self)

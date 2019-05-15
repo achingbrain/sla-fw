@@ -99,6 +99,12 @@ class Printer(object):
                 #endif
 
                 if firstRun:
+                    if not self.hwConfig.defaultsSet():
+                        self.display.page_error.setParams(
+                            text=_("Failed to load fans and LEDS factory calibration."))
+                        self.display.doMenu("error")
+                    #endif
+
                     if self.hwConfig.showUnboxing:
                         self.hw.beepRepeat(1)
                         self.display.doMenu("unboxing1")
