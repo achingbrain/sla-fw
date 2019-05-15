@@ -4055,8 +4055,12 @@ class PageNetUpdate(Page):
         #endexcept
 
         finally:
-            os.remove(defines.examplesArchivePath)
-        #endfinally
+            try:
+                os.remove(defines.examplesArchivePath)
+            except:
+                self.logger.exception("Failed to remove examples archive")
+            #endtry
+        #endtry
     #enddef
 
 
