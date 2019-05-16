@@ -24,13 +24,15 @@ import defines
 
 class ScreenServer(multiprocessing.Process):
 
-    def __init__(self, commands, results, pixelSize):
+    def __init__(self, commands, results, pixelSize, fbdev, fbset):
         super(ScreenServer, self).__init__()
         self.logger = logging.getLogger(__name__)
         self.commands = commands
         self.results = results
         self.pixelSize = pixelSize
         self.stoprequest = multiprocessing.Event()
+        self.fbdev = fbdev
+        self.fbset = fbset
     #enddef
 
 
@@ -51,7 +53,9 @@ class ScreenServer(multiprocessing.Process):
         signal.signal(signal.SIGTERM, self.signalHandler)
         os.environ['SDL_NOMOUSE'] = '1'
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
-        subprocess.call(['/usr/sbin/fbset', '-fb', '/dev/fb0', '1440x2560-0'])
+        if self.fbset:
+            subprocess.call(['/usr/sbin/fbset', '-fb', '/dev/fb0', '1440x2560-0'])
+        #endif
         pygame.init()
         self.screen = pygame.display.set_mode((1440,2560), pygame.FULLSCREEN, 32)
         self.screen.set_alpha(None)
@@ -105,7 +109,7 @@ class ScreenServer(multiprocessing.Process):
 
 
     def _writefb(self):
-        with open('/dev/fb0', 'wb') as fb:
+        with open(self.fbdev, 'wb') as fb:
             fb.write(self.screen.get_buffer())
         #endwith
     #enddef
@@ -342,11 +346,11 @@ class ScreenServer(multiprocessing.Process):
 
 class Screen(object):
 
-    def __init__(self, hwConfig):
+    def __init__(self, hwConfig, fbdev="/dev/fb0", fbset=True):
         self.logger = logging.getLogger(__name__)
         self.commands = multiprocessing.Queue()
         self.results = multiprocessing.Queue()
-        self.server = ScreenServer(self.commands, self.results, hwConfig.pixelSize)
+        self.server = ScreenServer(self.commands, self.results, hwConfig.pixelSize, fbdev, fbset)
         self.server.start()
     #enddef
 
