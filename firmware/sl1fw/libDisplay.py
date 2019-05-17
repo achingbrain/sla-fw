@@ -7,8 +7,8 @@ import logging
 from time import sleep
 from datetime import datetime
 
-import defines
-import libPages
+from sl1fw import defines
+from sl1fw import libPages
 
 class Display(object):
 

@@ -6,10 +6,10 @@ import logging
 import jinja2
 import jinja2.exceptions
 
-from libServer import SocketServer
-from libVirtualDisplay import VirtualDisplay
+from sl1fw.libServer import SocketServer
+from sl1fw.libVirtualDisplay import VirtualDisplay
 
-import defines
+from sl1fw import defines
 
 class WebDisplayServer(SocketServer):
 

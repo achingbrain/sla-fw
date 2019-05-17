@@ -9,10 +9,10 @@ import shutil
 from datetime import datetime
 from time import sleep
 
-import defines
+from sl1fw import defines
 
-import libPages
-import libDisplay
+from sl1fw import libPages
+from sl1fw import libDisplay
 
 class ExposureThread(threading.Thread):
 

@@ -7,9 +7,9 @@ from collections import deque
 import jinja2
 from multiprocessing import Queue
 
-from libServer import SocketServer
+from sl1fw.libServer import SocketServer
 
-import defines
+from sl1fw import defines
 
 class DebugServer(SocketServer):
 

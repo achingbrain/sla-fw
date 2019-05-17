@@ -13,6 +13,6 @@ build:
 test:
   stage: test
   script:
-    - cd firmware/sl1fw
-    - python -m unittest discover tests
+    - cd firmware
+    - python -m unittest discover sl1fw.tests
 

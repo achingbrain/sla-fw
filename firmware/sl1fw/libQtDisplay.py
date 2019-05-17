@@ -3,10 +3,10 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import logging
-from libServer import SocketServer
-from libVirtualDisplay import VirtualDisplay
+from sl1fw.libServer import SocketServer
+from sl1fw.libVirtualDisplay import VirtualDisplay
 
-import defines
+from sl1fw import defines
 
 class QtDisplayServer(SocketServer):
 

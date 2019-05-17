@@ -13,13 +13,12 @@ from cStringIO import StringIO
 import subprocess
 import zipfile
 import lazy_import
-
 lazy_import.lazy_module("pygame")
 import pygame
 lazy_import.lazy_module("numpy")
 import numpy
 
-import defines
+from sl1fw import defines
 
 
 class ScreenServer(multiprocessing.Process):

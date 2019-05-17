@@ -7,7 +7,7 @@ import logging
 from time import time, sleep
 import toml
 
-import defines
+from sl1fw import defines
 
 class Printer(object):
 
@@ -18,7 +18,7 @@ class Printer(object):
         self.logger = logging.getLogger(__name__)
         self.logger.info("SL1 firmware started - version %s", defines.swVersion)
 
-        import libConfig
+        from sl1fw import libConfig
         try:
             with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
                 factory_defaults = toml.load(factory)
@@ -36,24 +36,24 @@ class Printer(object):
             raise Exception(_("Wrong hardware! ('%s' is not prusa)") % self.hwConfig.os.id)
         #endif
 
-        from libHardware import Hardware
+        from sl1fw.libHardware import Hardware
         self.hw = Hardware(self.hwConfig, self.config)
 
-        from libInternet import Internet
+        from sl1fw.libInternet import Internet
         self.inet = Internet()
 
-        from libQtDisplay import QtDisplay
+        from sl1fw.libQtDisplay import QtDisplay
         qtdisplay = QtDisplay()
 
-        from libWebDisplay import WebDisplay
+        from sl1fw.libWebDisplay import WebDisplay
         webdisplay = WebDisplay()
 
         devices = list((qtdisplay, webdisplay))
 
-        from libScreen import Screen
+        from sl1fw.libScreen import Screen
         self.screen = Screen(self.hwConfig)
 
-        from libDisplay import Display
+        from sl1fw.libDisplay import Display
         self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen)
 
         self.hw.connectMC(self.display.page_systemwait, self.display.actualPage)
@@ -78,7 +78,7 @@ class Printer(object):
 
 
     def start(self):
-        from libExposure import Exposure
+        from sl1fw.libExposure import Exposure
         firstRun = True
 
         try:

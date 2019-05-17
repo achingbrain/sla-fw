@@ -6,7 +6,7 @@ import os
 import logging
 import zipfile
 
-import defines
+from sl1fw import defines
 
 class MyBool:
 
