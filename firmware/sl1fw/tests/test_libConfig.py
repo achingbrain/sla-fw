@@ -8,8 +8,8 @@ try:
 except:
     gettext.install('sl1fw')
 
-from libConfig import *
-import defines
+from sl1fw.libConfig import *
+from sl1fw import defines
 
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 

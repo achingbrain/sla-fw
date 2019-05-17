@@ -8,8 +8,8 @@ try:
 except:
     gettext.install('sl1fw')
 
-import libExposure
-import libConfig
+from sl1fw import libExposure
+from sl1fw import libConfig
 
 
 class TestExposure(unittest.TestCase):

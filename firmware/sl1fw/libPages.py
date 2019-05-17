@@ -21,8 +21,8 @@ import zipfile
 import shutil
 import paho.mqtt.publish as mqtt
 
-import defines
-import libConfig
+from sl1fw import defines
+from sl1fw import libConfig
 
 
 class Page(object):

@@ -14,8 +14,8 @@ import logging
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
 
-import defines
-import libConfig
+from sl1fw import defines
+from sl1fw import libConfig
 
 
 class TestScreen(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestScreen(unittest.TestCase):
     def setUp(self):
         self.hwConfig = libConfig.HwConfig(defines.hwConfigFile)
         logging.debug("before import")
-        from libScreen import Screen
+        from sl1fw.libScreen import Screen
         logging.debug("after import")
 
         self.screen = Screen(self.hwConfig, fbdev=TestScreen.FBDEV, fbset=False)

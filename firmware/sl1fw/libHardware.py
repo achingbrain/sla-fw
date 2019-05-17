@@ -12,9 +12,9 @@ from math import ceil
 import pydbus
 import os
 
-from libDebug import Debug
+from sl1fw.libDebug import Debug
 
-import defines
+from sl1fw import defines
 
 
 class MotConCom(object):

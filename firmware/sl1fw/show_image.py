@@ -3,9 +3,9 @@
 import os, sys
 from time import sleep
 import logging
-import defines
-import libConfig
-from libScreen import Screen
+from sl1fw import defines
+from sl1fw import libConfig
+from sl1fw.libScreen import Screen
 
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.INFO)
 hwConfig = libConfig.HwConfig(defines.hwConfigFile)

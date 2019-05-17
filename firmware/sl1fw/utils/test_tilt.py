@@ -42,5 +42,5 @@ for sgt in xrange(10, 30):
         sleep(0.1)
     #endwhile
     
-print result
+print(result)
 hw.mcc.do("!motr")
