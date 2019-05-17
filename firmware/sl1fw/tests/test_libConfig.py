@@ -152,6 +152,17 @@ class TestConfigHelper(unittest.TestCase):
         self.assertFalse(self.helper.changed('autoOff'))
         self.assertFalse(self.helper.changed('pixelSize'))
 
+    def test_changed(self):
+        self.assertFalse(self.helper.changed(), "Fresh config is not changed")
+
+        self.helper.autoOff = not self.helper.autoOff
+
+        self.assertTrue(self.helper.changed(), "Modified config is changed")
+
+        self.helper.autoOff = not self.helper.autoOff
+
+        self.assertFalse(self.helper.changed(), "After modify revert the config is not changed")
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -8,6 +8,7 @@ import zipfile
 
 import defines
 
+
 class MyBool:
 
     def __init__(self, value):
@@ -25,6 +26,14 @@ class MyBool:
     def __int__(self):
         return int(self.value)
     #endef
+
+    def __eq__(self, other):
+        if isinstance(other, MyBool):
+            return self.value == other.value
+        else:
+            return False
+        #endif
+    #enddef
 
     def inverse(self):
         self.value = not self.value
@@ -564,16 +573,31 @@ class ConfigHelper(object):
         if key.startswith('_'):
             object.__setattr__(self, key, value)
         else:
+            # Determine new value, MyBool in underlying config requires special handling
             if isinstance(getattr(self._config, key), MyBool):
-                self._changed[key.lower()] = MyBool(value)
+                change = MyBool(value)
             else:
-                self._changed[key.lower()] = value
+                change = value
+            #endif
+
+            # Update changed or reset it if change is returning to original value
+            if change == getattr(self._config, key):
+                if key.lower() in self._changed:
+                    del self._changed[key.lower()]
+                #endif
+            else:
+                self._changed[key.lower()] = change
             #endif
         #endif
     #enddef
 
 
     def commit(self):
+        """
+        Save changes to underlying config and write it to file
+
+        :return: Config file write operation result. True is successful, false otherwise.
+        """
         for key, value in self._changed.items():
             self._config.update(**{key: str(value)})
         #endfor
@@ -583,6 +607,12 @@ class ConfigHelper(object):
 
 
     def changed(self, key = None):
+        """
+        Test for changes relative to underlying config.
+
+        :param key: Test only for specific key. If not specified or None changes on all keys are checked.
+        :return: True if changed, false otherwise
+        """
         if key is None:
             return bool(self._changed)
         else:
