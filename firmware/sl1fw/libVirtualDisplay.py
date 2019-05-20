@@ -4,7 +4,7 @@
 
 import logging
 from multiprocessing import Queue
-from Queue import Empty
+from queue import Empty
 
 
 class VirtualDisplay(object):

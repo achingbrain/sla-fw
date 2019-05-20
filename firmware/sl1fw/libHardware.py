@@ -154,7 +154,7 @@ class MotConCom(object):
 
     def doGetIntList(self, base = 10, multiply = 1, args = ()):
         try:
-            return map(lambda x: int(x, base) * multiply, self.do(*args).split(" "))
+            return list(map(lambda x: int(x, base) * multiply, self.do(*args).split(" ")))
         except Exception:
             self.logger.exception("exception:")
             return None
@@ -235,10 +235,13 @@ class MotConCom(object):
         self.debug.log(msg)
 
         try:
-            self.port.write('%s\n' % params)
+            self.port.write(str('%s\n' % params).encode('ascii'))
 
             while True:
-                line = self.port.readline().strip().decode("ascii").encode()
+                try:
+                    line = self.port.readline().strip().decode("ascii")
+                except:
+                    line = ""
                 msg = "< %s" % line
                 if syslog:
                     self.logger.debug(msg)
@@ -406,8 +409,8 @@ class Hardware(object):
                 }
 
         # get sorted profiles names
-        self._tiltProfileNames = map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1]))
-        self._towerProfileNames = map(lambda x: x[0], sorted(self._towerProfiles.items(), key=lambda kv: kv[1]))
+        self._tiltProfileNames = list(map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1])))
+        self._towerProfileNames = list(map(lambda x: x[0], sorted(self._towerProfiles.items(), key=lambda kv: kv[1])))
 
         self._tiltAdjust = {
             'homingFast': [[20,5],[20,6],[20,7],[21,9],[22,12]],
@@ -573,7 +576,8 @@ class Hardware(object):
             if mcsc != mcs1 or mcsc ^ 255 != mcs2:
                 self.logger.error("MAC checksum FAIL (is %02x:%02x, should be %02x:%02x)" % (mcs1, mcs2, mcsc, mcsc ^ 255))
             else:
-                self.logger.info("MAC: %s (checksum %02x:%02x)", ":".join(map(lambda x: x.encode("hex"), mac.bytes)), mcs1, mcs2)
+                hex = ":".join(re.findall("..", mac.hex))
+                self.logger.info("MAC: %s (checksum %02x:%02x)", hex, mcs1, mcs2)
 
                 # byte order change
                 sn = bitstring.BitArray(length = 64, uintle = snbe)
@@ -646,13 +650,13 @@ class Hardware(object):
 
     def getTiltProfilesNames(self):
         self.logger.debug(str(self._tiltProfileNames))
-        return self._tiltProfileNames
+        return list(self._tiltProfileNames)
     #enddef
 
 
     def getTowerProfilesNames(self):
         self.logger.debug(str(self._towerProfileNames))
-        return self._towerProfileNames
+        return list(self._towerProfileNames)
     #enddef
 
 
@@ -671,7 +675,7 @@ class Hardware(object):
         for profId in xrange(8):
             try:
                 profData = self.mcc.do(getProfileDataCmd, profId).split(" ")
-                profiles.append(map(lambda x: int(x), profData))
+                profiles.append(list(map(lambda x: int(x), profData)))
             except Exception:
                 self.logger.exception("parse profile:")
                 profiles.append(list((-1, -1, -1, -1, -1, -1, -1)))
@@ -778,7 +782,7 @@ class Hardware(object):
 
 
     def setPowerLedPwm(self, pwm):
-        self.mcc.do("!ppwm", pwm / 5)
+        self.mcc.do("!ppwm", int(pwm / 5))
     #enddef
 
 
@@ -959,7 +963,7 @@ class Hardware(object):
 
 
     def setFansPwm(self, pwms):
-        self.mcc.do("!fpwm", " ".join(map(lambda x: str(x / 5), pwms)), 0) # FIXME remove 0 after done in MC
+        self.mcc.do("!fpwm", " ".join(map(lambda x: str(int(x / 5)), pwms)), 0) # FIXME remove 0 after done in MC
     #enddef
 
 

@@ -6,7 +6,7 @@ import signal
 import logging
 import multiprocessing
 import json
-from Queue import Empty
+from queue import Empty
 from threading import Thread
 from websocket_server import WebsocketServer # pip install git+https://github.com/Pithikos/python-websocket-server
 

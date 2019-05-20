@@ -18,7 +18,10 @@ logger.setLevel(logging.DEBUG)
 
 logger.info("%s" % gettext.find('sl1fw', None, ('en', 'fr', 'de'), all))
 
-gettext.install('sl1fw', unicode=1)
+try:
+    gettext.install('sl1fw', unicode=1)
+except:
+    gettext.install('sl1fw')
 
 #lang1 = gettext.translation('sl1fw', languages=['en'])
 #lang2 = gettext.translation('sl1fw', languages=['fr'])

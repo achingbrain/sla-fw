@@ -3,6 +3,7 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
+import sl1fw
 
 swVersion = "Gen3-190-513"
 reqMcVersion = "SLA-control 0.9.9-417"
@@ -11,7 +12,7 @@ home = "/home/root"
 factoryMountPoint = "/usr/share/factory/defaults"
 persistentStorage = "/var/sl1fw"
 
-swPath = "/usr/lib/python2.7/site-packages/sl1fw"
+swPath = os.path.dirname(sl1fw.__file__)
 dataPath = os.path.join(swPath, "data")
 ramdiskPath = "/run/sl1fw"
 mediaRootPath = "/run/media/root"

@@ -15,7 +15,19 @@ import glob
 import pydbus
 from copy import deepcopy
 import re
-import urllib2
+
+# Python 2/3 urllib imports
+try:
+    from urllib.parse import urlparse, urlencode
+    from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
+except ImportError:
+    # TODO: Remove once we accept Python 3
+    from urlparse import urlparse
+    from urllib import urlencode
+    from urllib2 import urlopen, Request, HTTPError
+#endtry
+
 import tarfile
 import zipfile
 import shutil
@@ -190,15 +202,30 @@ class Page(object):
 
         if url.startswith("http://") or url.startswith("https://"):
             # URL is HTTP, source is url
-            req = urllib2.Request(url)
+            req = Request(url)
             req.add_header('User-Agent', 'Prusa-SL1')
             req.add_header('Prusa-SL1-version', self.display.hwConfig.os.versionId)
             req.add_header('Prusa-SL1-serial', self.display.hw.cpuSerialNo)
-            source = urllib2.urlopen(req, timeout=timeout_sec)
+            source = urlopen(req, timeout=timeout_sec)
+
+            # Try to read header using Python 3 API
             try:
-                file_size = int(source.info().getheaders("Content-Length")[0])
+                file_size = int(source.info().get("Content-Length"))
             except:
-                file_size = 1
+                self.logger.exception("Failed to read file content length header Python 3 way")
+
+                # Try to header read using Python 2 API
+                try:
+                    # TODO: Remove once we accept Python3
+                    file_size = int(source.info().getheaders("Content-Length")[0])
+                except:
+                    self.logger.exception("Failed to read file content length header Python 2 way")
+
+                    # Default files size (sometimes HTTP server does not know size)
+                    file_size = 1
+                #endtry
+            #endtry
+
             block_size = 8 * 1024
         else:
             # URL is file, source is file
@@ -2378,7 +2405,7 @@ class PageNetwork(Page):
             'client_psk' : wifisetup.ClientPSK,
             'ap_ssid' : wifisetup.APSSID,
             'ap_psk' : wifisetup.APPSK,
-            'aps' : aps.values(),
+            'aps' : list(aps.values()),
             'wifi_ssid' : wifisetup.WifiConnectedSSID,
             'wifi_signal' : wifisetup.WifiConnectedSignal,
         }
@@ -3065,8 +3092,10 @@ class SourceDir:
         # Skip files that fail to decode as utf-8
         try:
             item.decode('utf-8')
-        except Exception as e:
+        except ValueError:
             raise Exception('Invalid filename')
+        except AttributeError as e:
+            pass  # Python3 compat
         #endtry
 
         # Add directory to result
@@ -6768,7 +6797,7 @@ RPM data: %s""") % rpm)
         for i in xrange(3): #iterate over fans
             rpm[i].remove(max(rpm[i]))
             rpm[i].remove(min(rpm[i]))
-            avgRpm = sum(rpm[i]) / len(rpm[i])
+            avgRpm = sum(rpm[i]) // len(rpm[i])
             if not fanLimits[i][0] <= avgRpm <= fanLimits[i][1]:
                 self.display.page_error.setParams(
                     text = _("""RPM of %(fan)s not in range!

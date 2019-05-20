@@ -470,7 +470,7 @@ class PrintConfig(FileConfig):
 
         try:
             zf = zipfile.ZipFile(zipName, 'r')
-            self.parseText(zf.read(defines.configFile))
+            self.parseText(zf.read(defines.configFile).decode('utf-8'))
             namelist = zf.namelist()
             zf.close()
         except Exception as e:
