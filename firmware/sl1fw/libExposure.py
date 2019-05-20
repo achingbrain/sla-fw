@@ -4,7 +4,7 @@
 
 import os
 import logging
-import threading, Queue
+import threading, queue
 import shutil
 from datetime import datetime
 from time import sleep
@@ -239,7 +239,7 @@ class ExposureThread(threading.Thread):
 
             try:
                 command = self.commands.get_nowait()
-            except Queue.Empty:
+            except queue.Empty:
                 command = None
             except Exception:
                 self.logger.exception("getCommand exception")
@@ -312,7 +312,7 @@ The print job was canceled."""))
 
                 try:
                     command = self.commands.get_nowait()
-                except Queue.Empty:
+                except queue.Empty:
                     command = None
                 except Exception:
                     self.logger.exception("getCommand exception")
@@ -528,7 +528,7 @@ class Exposure(object):
         self.position = 0
         self.actualLayer = 0
         self.checkPage = libPages.PageWait(self.display) # FIXME
-        self.expoCommands = Queue.Queue()
+        self.expoCommands = queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self, self.config.toPrint[0])
         self.screen.preloadImg(
                 filename = self.config.toPrint[0],

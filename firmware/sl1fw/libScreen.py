@@ -8,8 +8,8 @@ import signal
 import logging
 from time import time
 import multiprocessing
-from Queue import Empty
-from cStringIO import StringIO
+from queue import Empty
+from io import BytesIO
 import subprocess
 import zipfile
 import lazy_import
@@ -167,7 +167,7 @@ class ScreenServer(multiprocessing.Process):
 
             startTimeFirst = time()
             filedata = self.zf.read(filename)
-            filedata_io = StringIO(filedata)
+            filedata_io = BytesIO(filedata)
             self.nextImage1 = pygame.image.load(filedata_io, filename).convert()
             self.logger.debug("load time: %f secs", time() - startTimeFirst)
 
@@ -279,7 +279,7 @@ class ScreenServer(multiprocessing.Process):
             self.logger.info("No mask picture in the project")
             return self.perPartes
         #endtry
-        filedata_io = StringIO(filedata)
+        filedata_io = BytesIO(filedata)
         self.overlays['mask'] = pygame.image.load(filedata_io, defines.maskFilename).convert_alpha()
         return self.perPartes
     #enddef
@@ -292,7 +292,7 @@ class ScreenServer(multiprocessing.Process):
         spacingY = 1.5
 
         filedata = self.zf.read(filename)
-        filedata_io = StringIO(filedata)
+        filedata_io = BytesIO(filedata)
         baseImage = pygame.image.load(filedata_io, filename).convert()
         pixels = pygame.surfarray.pixels3d(baseImage)
 
