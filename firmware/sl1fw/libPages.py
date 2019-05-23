@@ -15,6 +15,7 @@ import glob
 import pydbus
 from copy import deepcopy
 import re
+import tempfile
 
 # Python 2/3 urllib imports
 try:
@@ -208,6 +209,9 @@ class Page(object):
             req.add_header('Prusa-SL1-serial', self.display.hw.cpuSerialNo)
             source = urlopen(req, timeout=timeout_sec)
 
+            # Default files size (sometimes HTTP server does not know size)
+            file_size = None
+
             # Try to read header using Python 3 API
             try:
                 file_size = int(source.info().get("Content-Length"))
@@ -220,9 +224,6 @@ class Page(object):
                     file_size = int(source.info().getheaders("Content-Length")[0])
                 except:
                     self.logger.exception("Failed to read file content length header Python 2 way")
-
-                    # Default files size (sometimes HTTP server does not know size)
-                    file_size = 1
                 #endtry
             #endtry
 
@@ -244,12 +245,21 @@ class Page(object):
                 #endif
                 file.write(buffer)
 
-                progress = int(100 * file.tell() / file_size)
+                if file_size is not None:
+                    progress = int(100 * file.tell() / file_size)
+                else:
+                    progress = 0
+                #endif
+
                 if progress != old_progress:
                     pageWait.showItems(line2="%d%%" % progress)
                     old_progress = progress
                 #endif
             #endwhile
+
+            if file_size and file.tell() != file_size:
+                raise Exception("Download of %s failed to read whole file %d != %d", url, file_size, file.tell())
+            #endif
         #endwith
 
         source.close()
@@ -4063,15 +4073,35 @@ class PageNetUpdate(Page):
                 os.makedirs(defines.internalProjectPath)
             #endif
 
-            self.downloadURL(defines.examplesURL, defines.examplesArchivePath, title=_("Fetching examples"))
+            # TODO: With python 3 we could:
+            # with tempfile.TemporaryFile() as archive:
+            archive = tempfile.mktemp(suffix=".tar.gz")
+
+            self.downloadURL(defines.examplesURL, archive, title=_("Fetching examples"))
 
             pageWait = PageWait(self.display, line1=_("Decompressing examples"))
             pageWait.show()
             pageWait.showItems(line1=_("Extracting examples"))
-            with tarfile.open(defines.examplesArchivePath) as tar:
-                tar.extractall(path=defines.internalProjectPath)
+
+            #TODO: With python 3 we could:
+            #with tempfile.TemporaryDirectory() as temp:
+            temp = tempfile.mkdtemp()
+            with tarfile.open(archive) as tar:
+                for member in tar.getmembers():
+                    tar.extract(member, temp)
+                #endfor
             #endwith
+            pageWait.showItems(line1=_("Storing examples"))
+            for item in os.listdir(temp):
+                dest = os.path.join(defines.internalProjectPath, item)
+                if os.path.exists(dest):
+                    shutil.rmtree(dest)
+                #endif
+                shutil.copytree(os.path.join(temp, item), dest)
+            #endfor
+
             pageWait.showItems(line1=_("Cleaning up"))
+            #endwith
 
             return "_BACK_"
         #endtry
@@ -4085,9 +4115,14 @@ class PageNetUpdate(Page):
 
         finally:
             try:
-                os.remove(defines.examplesArchivePath)
+                if os.path.exists(archive):
+                    os.remove(archive)
+                #endif
+                if os.path.exists(temp):
+                    shutil.rmtree(temp)
+                #endif
             except:
-                self.logger.exception("Failed to remove examples archive")
+                self.logger.exception("Failed to remove examples debries")
             #endtry
         #endtry
     #enddef
