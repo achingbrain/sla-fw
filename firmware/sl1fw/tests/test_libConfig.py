@@ -74,24 +74,31 @@ class TestPrintConfig(unittest.TestCase):
         #config.writeFile("printconfig.txt")
 
 
-class TestNetConfig(unittest.TestCase):
-    def test_read(self):
-        netConfig = NetConfig()
-        netConfig.parseText("""image = RSL-180-318
-        firmware = Gen2-180-319""")
-        netConfig.logAllItems()
-        netConfig.logFile()
+class TestWizardData(unittest.TestCase):
+    def setUp(self):
+        defines.hwConfigFile = os.path.join(os.path.dirname(__file__), "samples/wizardData.cfg")
+        from shutil import copyfile
+        copyfile(defines.hwConfigFile, "wizardData.test")
+        self.wizardData = WizardData(defines.hwConfigFile)
 
-        self.assertEqual(netConfig.firmware, "Gen2-180-319", "Check firmware version")
-        self.assertEqual(netConfig.image, "RSL-180-318", "Check image version")
+    def tearDown(self):
+        os.remove("wizardData.test")
 
+    def test_lists(self):
+        sensorData = [98, 105, 108, 128, 136, 111, 145]
+        percDiff = [-23.4, -17.9, -15.6, 0.0, 6.3, -13.3, 13.3, -6.2, -10.9, -18.7]
+        self.wizardData.update(uvsensordata = sensorData, uvpercdiff = percDiff)
 
-class TestFWConfig(unittest.TestCase):
-    def test_read(self):
-        fwConfig = FwConfig(os.path.join(defines.usbUpdatePath + defines.swPath, "defines.py"))
-        fwConfig.logAllItems()
+        self.assertEqual(self.wizardData.uvSensorData, sensorData, "Check uvSensorData is set")
+        self.assertEqual(self.wizardData.uvPercDiff, percDiff, "Check uvSensorData is set")
 
-        # TODO: What is this supposed to do?
+        self.wizardData.writeFile("wizardData.test")
+
+        self.wizardData.logAllItems()
+        self.wizardData.logFile()
+
+        self.assertEqual(self.wizardData.uvSensorData, sensorData, "Test sensor data read")
+        self.assertEqual(self.wizardData.uvPercDiff, percDiff, "Test perc diff read")
 
 
 class TestConfigHelper(unittest.TestCase):
