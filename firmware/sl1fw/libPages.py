@@ -1613,9 +1613,15 @@ class PageSetHostname(Page):
 
 
     def sethostnameButtonSubmit(self, data):
-        hostname = data['hostname']
-        self.hostname.SetStaticHostname(hostname, False)
-        self.hostname.SetHostname(hostname, False)
+        try:
+            hostname = data['hostname']
+            self.hostname.SetStaticHostname(hostname, False)
+            self.hostname.SetHostname(hostname, False)
+        except:
+            self.display.page_error.setParams(
+                text=_("Failed to set hostname"))
+            return "error"
+        #endtry
 
         return "_BACK_"
     #enddef
