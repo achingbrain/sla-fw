@@ -5,7 +5,7 @@
 import os
 import sl1fw
 
-swVersion = "Gen3-190-513"
+swVersion = "Gen3-190-527"
 reqMcVersion = "SLA-control 0.9.9-417"
 
 home = "/home/root"

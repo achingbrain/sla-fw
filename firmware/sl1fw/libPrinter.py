@@ -123,21 +123,13 @@ class Printer(object):
 
         except Exception:
             self.logger.exception("run() exception:")
-            items = {
-                    'text' : _("FIRMWARE FAILURE - Something went wrong!"),
-                    }
-            ip = self.inet.getIp()
-            if ip != "none":
-                items['text'] += _("""
-Please send the contents of %s/logf to support@prusa3d.com
-Thank you!""") % ip
-                items.update({
-                    "qr1"   : "http://%s/logf" % ip,
-                    "qr1label" : "Logfile",
-                    })
-            #endif
             self.hw.powerLed("error")
-            self.display.page_exception.setParams(**items)
+            self.display.page_exception.setParams(text =
+                    "An unexpected error has occured :-(.\n\n"
+                    "The SL1 will finish the print if you are currently printing.\n\n"
+                    "You can turn the printer off by pressing the front power button.\n\n"
+                    "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. Please send the log to us and help us improve the printer.\n\n"
+                    "Thank you!")
             self.display.setPage("exception")
             if hasattr(self, 'expo') and self.expo.inProgress():
                 self.expo.waitDone()
@@ -145,9 +137,10 @@ Thank you!""") % ip
             self.hw.uvLed(False)
             self.hw.stopFans()
             self.hw.motorsRelease()
-            while True:
-                sleep(10)
+            while not self.display.hw.getPowerswitchState():
+                sleep(0.5)
             #endwhile
+            self.display.shutDown(True)
         #endtry
 
     #enddef
