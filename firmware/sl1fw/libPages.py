@@ -7400,7 +7400,7 @@ class PageWizard5(Page):
         self.display.hw.towerSyncWait()
         self.display.hw.setTowerPosition(self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight))
         volume = self.display.hw.getResinVolume()
-        if not 110 <= volume <= 190:    #to work properly even with loosen rocker brearing
+        if not 110.0 <= volume <= defines.resinMaxVolume:    #to work properly even with loosen rocker brearing
             self.display.page_error.setParams(
                 text = _("""Resin sensor not working!
 
