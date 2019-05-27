@@ -4253,7 +4253,7 @@ class PageAdmin(Page):
                 'button12' : _("Logging"),
                 'button13' : _("System Information"),
                 'button14' : "",
-                'button15' : "",
+                'button15' : _("Raise exception"),
                 })
     #enddef
 
@@ -4451,7 +4451,7 @@ Is the tank secured with both screws?"""))
 
 
     def button15ButtonRelease(self):
-        pass
+        raise Exception("Test problem")
     #enddef
 
 #endclass
