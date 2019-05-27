@@ -88,6 +88,7 @@ class Printer(object):
 
                 self.expo = Exposure(self.hwConfig, self.config, self.display, self.hw, self.screen)
                 self.display.initExpo(self.expo)
+                self.screen.cleanup()
 
                 if self.hw.checkFailedBoot():
                     self.display.page_error.setParams(
