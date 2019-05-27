@@ -186,25 +186,42 @@ function hookShowAdmin() {
     })
 }
 
+
+function pad2(value) {
+    if(value < 10) {
+        return "0" + value
+    } else {
+        return "" + value
+    }
+}
+
+function formatTime(date) {
+    hours = date.getUTCHours()
+    minutes = date.getUTCMinutes()
+
+    return hours + "h " + minutes + "m"
+
+}
+
 function hookUpdate() {
     $('#progress').on('update', function(event, data) {
         $('#progress-bar').css('width', data + '%');
         $('#progress').text(data + "%");
     });
 
-    $('#time_remain_sec').on('update', function(event, data) {
-        reamining = new Date(data * 1000);
-        $(event.target).text(reamining.getUTCHours() + "h " + reamining.getUTCMinutes() + "m");
+    $('#time_remain_min').on('update', function(event, data) {
+        remaining = new Date(data * 1000 * 60);
+        $(event.target).text(formatTime(remaining));
 
         now = new Date();
-        end = new Date(now.getTime() + data * 1000);
+        end = new Date(now.getTime() + data * 1000 * 60);
 
-        $('#estimated-end').text(end.getHours() + ":" + end.getMinutes());
+        $('#estimated-end').text(pad2(end.getHours()) + ":" + pad2(end.getMinutes()));
     });
 
-    $('#time_elapsed_sec').on('update', function(event, data) {
-        elapsed = new Date(data * 1000);
-        $(event.target).text(elapsed.getUTCHours() + "h " + elapsed.getUTCMinutes() + "m");
+    $('#time_elapsed_min').on('update', function(event, data) {
+        elapsed = new Date(data * 1000 * 60);
+        $(event.target).text(formatTime(elapsed));
     });
 
     $('.update-fixed-2').on('update', function(event, data) {
@@ -218,6 +235,13 @@ function hookUpdate() {
             $(event.target).text(data);
         }
 
-        $('#live').attr('src', "live.png?layer=" + data);
+        function load() {
+            $('#live').on('error', function() {
+                console.log("Error loading live image, reloading in 1s")
+                setTimeout(load, 1000)
+            }).attr('src', "live.png?layer=" + data);
+        }
+
+        load()
     });
 }

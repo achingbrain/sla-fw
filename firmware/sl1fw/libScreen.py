@@ -358,6 +358,12 @@ class Screen(object):
         self.exit()
     #enddef
 
+    def cleanup(self):
+        # Remove live preview from last run
+        if os.path.exists(defines.livePreviewImage):
+            os.remove(defines.livePreviewImage)
+        #endif
+    #enddef
 
     def exit(self):
         self.server.join()
