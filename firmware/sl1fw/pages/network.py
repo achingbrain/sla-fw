@@ -29,10 +29,10 @@ class PageNetwork(Page):
         return {
             'devlist' : self.display.inet.getDevices(),
             'wifi_mode' : wifisetup.WifiMode,
-            'client_ssid' : wifisetup.ClientSSID,
-            'client_psk' : wifisetup.ClientPSK,
-            'ap_ssid' : wifisetup.APSSID,
-            'ap_psk' : wifisetup.APPSK,
+            'client_ssid' : wifisetup.Client['ssid'],
+            'client_psk' : wifisetup.Client['psk'],
+            'ap_ssid' : wifisetup.Hotspot['ssid'],
+            'ap_psk' : wifisetup.Hotspot['psk'],
             'aps' : list(aps.values()),
             'wifi_ssid' : wifisetup.WifiConnectedSSID,
             'wifi_signal' : wifisetup.WifiConnectedSignal,
@@ -41,6 +41,8 @@ class PageNetwork(Page):
 
 
     def show(self):
+        wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+        wifisetup.Scan()
         self.items.update(self.fillData())
         super(PageNetwork, self).show()
     #enddef
@@ -109,23 +111,30 @@ class PageNetwork(Page):
 
         try:
             wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
-            wifisetup.ClientSSID = ssid
-            wifisetup.ClientPSK = psk
+            wifisetup.Client = {
+                'ssid': ssid,
+                'psk': psk,
+            }
             wifisetup.StartClient()
             wifisetup.EnableClient()
         except:
-            self.logger.error("Setting wifi client params failed: ssid:%s psk:%s", ssid, psk)
+            self.logger.exception("Setting wifi client params failed: ssid:%s psk:%s", ssid, psk)
         #endtry
 
         # Connecting
         pageWait.showItems(line1 = _("Connecting"))
-        for i in range(1, 10):
-            sleep(1)
-            if 'wlan0' in self.display.inet.getDevices():
-                # Connection "ok"
-                return "_BACK_"
+        try:
+            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+            for i in range(1, 10):
+                sleep(1)
+                if wifisetup.WifiConnectedSSID == ssid:
+                    # Connection "ok"
+                    return "_BACK_"
+                #endfor
             #endfor
-        #endfor
+        except:
+            self.logger.exception("Connection check failed")
+        #endtry
 
         # Connection fail
         self.display.pages['error'].setParams(
@@ -140,8 +149,10 @@ class PageNetwork(Page):
 
         try:
             wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
-            wifisetup.APSSID = ssid
-            wifisetup.APPSK = psk
+            wifisetup.Hotspot = {
+                'ssid': ssid,
+                'psk': psk,
+            }
             wifisetup.StartAP()
             wifisetup.EnableAP()
         except:
@@ -152,7 +163,7 @@ class PageNetwork(Page):
         pageWait.showItems(line1 = _("Starting Access Point"))
         for i in range(1, 10):
             sleep(1)
-            if 'ap0' in self.display.inet.getDevices():
+            if wifisetup.WifiMode == "ap":
                 # AP "ok"
                 return "_BACK_"
             #endfor
