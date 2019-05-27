@@ -5005,7 +5005,7 @@ class PageException(Page):
 
     def __init__(self, display):
         self.pageUI = "exception"
-        self.pageTitle = _("System Fatal Error")
+        self.pageTitle = _("System Error")
         super(PageException, self).__init__(display)
     #enddef
 
