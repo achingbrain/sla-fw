@@ -333,13 +333,6 @@ class HwConfig(FileConfig):
     #enddef
 
     def _parseData(self):
-        # Advanced settings
-        self.tiltSensitivity = self._parseInt("tiltsensitivity", 0)
-        self.towerSensitivity = self._parseInt("towersensitivity", 0)
-        self.limit4fast = self._parseIntMinMax("limit4fast", 45, 0, 100)
-        self.whitePixelsThd = (1440 * 2560) * (self.limit4fast / 100.0)
-        self.calibTowerOffset = self._parseInt("calibtoweroffset", 0)
-
         # Hardware setup
         self.fanCheck = self._parseBool("fancheck", True)
         self.coverCheck = self._parseBool("covercheck", True)
@@ -357,6 +350,13 @@ class HwConfig(FileConfig):
         self.pwrLedPwm = self._parseIntMinMax("pwrledpwm", 100, 0, 100)
 
         self.MCBoardVersion = self._parseIntMinMax("mcboardversion", 6, 5, 6)
+
+        # Advanced settings
+        self.tiltSensitivity = self._parseInt("tiltsensitivity", 0)
+        self.towerSensitivity = self._parseInt("towersensitivity", 0)
+        self.limit4fast = self._parseIntMinMax("limit4fast", 45, 0, 100)
+        self.whitePixelsThd = (1440 * 2560) * (self.limit4fast / 100.0)
+        self.calibTowerOffset = self._parseInt("calibtoweroffset", self.calcMicroSteps(defines.defaultTowerOffset))
 
         # Exposure setup
         self.blinkExposure = self._parseBool("blinkexposure", True)

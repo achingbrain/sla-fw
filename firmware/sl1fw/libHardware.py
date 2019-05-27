@@ -1162,7 +1162,7 @@ class Hardware(object):
 
 
     def towerToZero(self):
-        self.towerMoveAbsolute(0)
+        self.towerMoveAbsolute(self.hwConfig.calibTowerOffset)
     #enddef
 
 

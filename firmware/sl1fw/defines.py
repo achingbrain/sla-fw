@@ -61,6 +61,7 @@ resinFilled = 200
 
 defaultTowerHeight = 128    # mm
 defaultTiltHeight = 4900    # usteps
+defaultTowerOffset = 0.05   # mm
 tiltHomingTolerance = 30    # tilt axis check has this tolerance
 towerHoldCurrent = 12
 tiltHoldCurrent = 35
