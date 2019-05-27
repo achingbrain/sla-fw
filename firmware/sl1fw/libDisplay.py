@@ -31,7 +31,6 @@ class Display(object):
         self.wizardData = WizardData(defines.wizardDataFile)
         self.page_confirm = libPages.PageConfirm(self)
         self.page_yesno = libPages.PageYesNo(self)
-        self.page_systemwait = libPages.PageWait(self)
         self.page_start = libPages.PageStart(self)
         self.page_home = libPages.PageHome(self)
         self.page_control = libPages.PageControl(self)
@@ -111,10 +110,13 @@ class Display(object):
         self.page_feedme = libPages.PageFeedMe(self)
         self.page_infinitetest = libPages.PageInfiniteTest(self)
 
-        self.actualPage = self.page_start
+        self.actualPage = self.page_start   # TODO remove
         self.fanErrorOverride = False
         self.checkCoolingExpo = True
         self.backActions = set(("_EXIT_", "_BACK_", "_OK_", "_NOK_"))
+        self.waitPageItems = None
+        self.netState = None
+        self.forcedPage = None
     #enddef
 
 
@@ -136,14 +138,19 @@ class Display(object):
     #enddef
 
 
-    def setPage(self, page):
+    def forcePage(self, page):
+        self.forcedPage = self._setPage(page)
+    #endef
+
+
+    def _setPage(self, page):
         newPage = getattr(self, 'page_' + page, None)
         if newPage is None:
             self.logger.warning("There is no page named '%s'!", page)
         else:
             retc = newPage.prepare()
             if retc:
-                self.setPage(retc)
+                self._setPage(retc)
             else:
                 self.actualPage = newPage
                 self.actualPage.show()
@@ -157,19 +164,24 @@ class Display(object):
         for device in self.devices:
             device.assignNetActive(value)
         #endfor
-        self.actualPage.netChange()
+        self.netState = value
     #enddef
 
 
-    def getEvent(self):
+    def setWaitPage(self, **items):
+        self.waitPageItems = items
+    #enddef
+
+
+    def getEvent(self, actualPage):
         for device in self.devices:
             event = device.getEventNoWait()
             if event.get('page', None) is not None:
-                if event['page'] == self.actualPage.pageUI:
+                if event['page'] == actualPage.pageUI:
                     # FIXME nejdrive se vycte drivejsi zarizeni, je to OK?
                     return (event.get('id', None), event.get('pressed', None), event.get('data', None))
                 #endif
-                self.logger.warning("event page (%s) and actual page (%s) differ", event['page'], self.actualPage.pageUI)
+                self.logger.warning("event page (%s) and actual page (%s) differ", event['page'], actualPage.pageUI)
             elif event.get('client_type', None) == "prusa_sla_client_qt":
                 self.page_sysinfo.setItems(qt_gui_version = event.get('client_version', _("unknown")))
             #endif
@@ -179,49 +191,58 @@ class Display(object):
 
 
     def doMenu(self, startPage):
-        self.pageStack = list()
-        if startPage is not None:
-            self.setPage(startPage)
-        #endif
+        pageStack = list()
+        actualPage = self._setPage(startPage)
         autorepeatFce = None
         autorepeatDelay = 1
         callbackTime = 0.0  # call the callback immediately
         updateDataTime = callbackTime
         while True:
+
+            if self.forcedPage is not None:
+                actualPage = self.forcedPage
+                self.forcedPage = None
+            #enddef
+
+            if self.netState is not None:
+                actualPage.netChange()
+                self.netState = None
+            #endif
+
             now = monotonic()
 
-            if self.actualPage.callbackPeriod and now - callbackTime > self.actualPage.callbackPeriod:
+            if actualPage.callbackPeriod and now - callbackTime > actualPage.callbackPeriod:
                 callbackTime = now
-                newPage = self.actualPage.callback()
+                newPage = actualPage.callback()
                 if newPage == "_EXIT_":
                     break
                 elif newPage is not None:
-                    if self.actualPage.stack:
-                        self.pageStack.append(self.actualPage)
+                    if actualPage.stack:
+                        pageStack.append(actualPage)
                     #endif
-                    self.setPage(newPage)
+                    actualPage = self._setPage(newPage)
                     continue
                 #endif
             #endif
 
-            if self.actualPage.updateDataPeriod and now - updateDataTime > self.actualPage.updateDataPeriod:
+            if actualPage.updateDataPeriod and now - updateDataTime > actualPage.updateDataPeriod:
                 updateDataTime = now
-                self.actualPage.updateData()
+                actualPage.updateData()
             #endif
 
-            button, pressed, data = self.getEvent()
+            button, pressed, data = self.getEvent(actualPage)
             if button is not None:
-                if button in self.actualPage.autorepeat:
+                if button in actualPage.autorepeat:
                     if pressed:
                         self.hw.beepEcho()
-                        autorepeatDelay, autorepeatDelayNext = self.actualPage.autorepeat[button]
-                        autorepeatFce = getattr(self.actualPage, button + "Button", self.actualPage.emptyButton)
+                        autorepeatDelay, autorepeatDelayNext = actualPage.autorepeat[button]
+                        autorepeatFce = getattr(actualPage, button + "Button", actualPage.emptyButton)
                         autorepeatFce()
                     else:
                         autorepeatFce = None
                         autorepeatDelay = 1
-                        submitFce = getattr(self.actualPage, button + "ButtonSubmit", None)
-                        releaseFce = getattr(self.actualPage, button + "ButtonRelease", None)
+                        submitFce = getattr(actualPage, button + "ButtonSubmit", None)
+                        releaseFce = getattr(actualPage, button + "ButtonRelease", None)
                         if submitFce:
                             submitFce(data)
                         elif releaseFce:
@@ -229,23 +250,22 @@ class Display(object):
                         #endif
                     #endif
                 elif pressed:
-                    pressFce = getattr(self.actualPage, button + "Button", None)
+                    pressFce = getattr(actualPage, button + "Button", None)
                     if pressFce:
                         pressFce()
                     #endif
                 else:
                     self.hw.beepEcho()
-                    submitFce = getattr(self.actualPage, button + "ButtonSubmit", None)
-                    releaseFce = getattr(self.actualPage, button + "ButtonRelease", self.actualPage.emptyButtonRelease)
+                    submitFce = getattr(actualPage, button + "ButtonSubmit", None)
+                    releaseFce = getattr(actualPage, button + "ButtonRelease", actualPage.emptyButtonRelease)
                     if submitFce:
                         newPage = submitFce(data)
                     elif releaseFce:
                         newPage = releaseFce()
                     #endif
 
-                    # Allow leave function o override newPage
-                    if newPage is not None:
-                        newPage = self.actualPage.leave(newPage)
+                    if newPage is not None and newPage != "_SELF_":
+                        actualPage.leave()
                     #endif
 
                     if newPage in self.backActions:
@@ -253,28 +273,37 @@ class Display(object):
                         autorepeatDelay = 1
                         sleep(0.1)
                         while newPage in self.backActions:
-                            if not self.goBack(show = False):
-                                return
+                            if len(pageStack):
+                                actualPage = pageStack.pop()
+                            elif newPage == "_OK_":
+                                return True
+                            else:
+                                return False
                             #endif
                             np = None
-                            backFce = getattr(self.actualPage, newPage, None)
+                            backFce = getattr(actualPage, newPage, None)
                             if backFce:
                                 np = backFce()
                             #endif
                             newPage = np
                         #endwhile
-                        self.actualPage.show()
+                        actualPage.show()
                     #endif
                     if newPage == "_SELF_":
-                        self.actualPage.show()
+                        if self.waitPageItems:
+                            libPages.PageWait(self, **self.waitPageItems).show()
+                            self.waitPageItems = None
+                        else:
+                            actualPage.show()
+                        #endif
                         continue
                     elif newPage is not None:
-                        if self.actualPage.stack:
-                            self.pageStack.append(self.actualPage)
+                        if actualPage.stack:
+                            pageStack.append(actualPage)
                         #endif
                         autorepeatFce = None
                         autorepeatDelay = 1
-                        self.setPage(newPage)
+                        actualPage = self._setPage(newPage)
                     #endif
                 #endif
             #endif
@@ -296,29 +325,9 @@ class Display(object):
     #enddef
 
 
-    def goBack(self, count = 1, show = True):
-        retc = True
-        page = self.actualPage
-        for i in range(count):
-            if len(self.pageStack):
-                page = self.pageStack.pop()
-            else:
-                retc = False
-            #endif
-        #endfor
-        if page != self.actualPage:
-            self.actualPage = page
-            if show:
-                self.actualPage.show()
-            #endif
-        #endif
-        return retc
-    #enddef
-
-
     # TODO presunout pryc
     def shutDown(self, doShutDown, reboot=False):
-        self.setPage("start")
+        self.forcePage("start")
         self.hw.uvLed(False)
         self.hw.motorsRelease()
 

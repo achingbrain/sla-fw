@@ -564,9 +564,9 @@ class Hardware(object):
     #enddef
 
 
-    def switchToMC(self, page_systemwait, actualPage):
+    def switchToMC(self, waitPage, actualPage):
         self.mcc = self.realMcc
-        self.connectMC(page_systemwait, actualPage)
+        self.connectMC(waitPage, actualPage)
     #enddef
 
 

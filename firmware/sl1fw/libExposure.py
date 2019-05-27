@@ -12,7 +12,6 @@ from time import sleep
 from sl1fw import defines
 
 from sl1fw import libPages
-from sl1fw import libDisplay
 
 class ExposureThread(threading.Thread):
 
@@ -225,6 +224,7 @@ class ExposureThread(threading.Thread):
             #endwhile
         #endif
         self.expo.hw.powerLed("normal")
+        self.expo.display.forcePage("print")
     #endif
 
 
@@ -267,7 +267,7 @@ class ExposureThread(threading.Thread):
 Release the tank mechanism and press Continue.
 
 If you don't want to continue, press the Back button on top of the screen and the actual job will be canceled."""))
-        self.expo.display.setPage("confirm")
+        self.expo.display.forcePage("confirm")
         if self.doWait(True) == "back":
             return False
         #endif
@@ -276,7 +276,7 @@ If you don't want to continue, press the Back button on top of the screen and th
         pageWait = libPages.PageWait(self.expo.display, line2 = _("Setting start positions..."))
         pageWait.show()
 
-        if not self.expo.display.hw.tiltSyncWait(retries = 1):
+        if not self.expo.hw.tiltSyncWait(retries = 1):
             self.expo.display.page_confirm.setParams(
                     continueFce = self.expo.doBack,
                     backFce = self.expo.doBack,
@@ -286,7 +286,7 @@ If you don't want to continue, press the Back button on top of the screen and th
 Check the printer's hardware.
 
 The print job was canceled."""))
-            self.expo.display.setPage("confirm")
+            self.expo.display.forcePage("confirm")
             self.doWait(True)
             return False
         #endif
@@ -294,7 +294,7 @@ The print job was canceled."""))
         pageWait.showItems(line2 = _("Stirring the resin"))
         self.expo.hw.stirResin()
         self.expo.hw.powerLed("normal")
-        self.expo.display.setPage("print")
+        self.expo.display.forcePage("print")
         return True
     #enddef
 
@@ -321,7 +321,6 @@ The print job was canceled."""))
 
                 if command == "updown":
                     self.doUpAndDown()
-                    self.expo.display.goBack()
                     wasStirring = True
                 #endif
 
@@ -331,7 +330,7 @@ The print job was canceled."""))
 
                 if command == "pause":
                     if not self.expo.hwConfig.blinkExposure:
-                        self.expo.display.hw.uvLed(False)
+                        self.expo.hw.uvLed(False)
                     #endif
 
                     if self.doWait(False) == "exit":
@@ -339,7 +338,7 @@ The print job was canceled."""))
                     #endif
 
                     if not self.expo.hwConfig.blinkExposure:
-                        self.expo.display.hw.uvLed(True)
+                        self.expo.hw.uvLed(True)
                     #endif
                 #endif
 
@@ -360,7 +359,7 @@ The print job was canceled."""))
 Please refill the tank up to the 100 %% mark and press Done.
 
 If you don't want to refill, please press the Back button on top of the screen.""") % reason)
-                    self.expo.display.setPage("feedme")
+                    self.expo.display.forcePage("feedme")
                     self.doWait(beep)
 
                     if self.expo.hwConfig.tilt:
@@ -372,12 +371,11 @@ If you don't want to refill, please press the Back button on top of the screen."
                     #endif
                     wasStirring = True
                     self.expo.hw.powerLed("normal")
-                    self.expo.display.setPage("print")
+                    self.expo.display.forcePage("print")
                 #endif
 
                 if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
                     self.doUpAndDown()
-                    self.expo.display.actualPage.show()
                 #endif
 
                 # first layer - extra height + extra time
@@ -472,11 +470,10 @@ If you don't want to refill, please press the Back button on top of the screen."
             self.expo.hw.uvLed(False)
             self.expo.hw.beepRepeat(3)
 
-            # TODO extra page finalPrint
-            self.expo.display.page_systemwait.fill(line1 = _("Moving platform to the top"))
-            self.expo.display.setPage("systemwait")
-
             if not stuck:
+                pageWait = libPages.PageWait(self.expo.display, line1 = _("Moving platform to the top"))
+                pageWait.show()
+
                 self.expo.hw.setTowerProfile('moveFast')
                 self.expo.hw.towerToTop()
                 while not self.expo.hw.isTowerOnTop():
@@ -484,8 +481,9 @@ If you don't want to refill, please press the Back button on top of the screen."
                 #endwhile
             #endif
 
-            actualPage = self.expo.display.setPage("print")
-            actualPage.showItems(percent = "100%",  progress = 100)
+            # TODO extra page finalPrint
+            self.expo.display.forcePage("print")
+            self.expo.display.actualPage.showItems(percent = "100%", progress = 100)
             #self.logger.debug("thread ended")
 
         except Exception as e:
@@ -528,7 +526,6 @@ class Exposure(object):
         self.perPartes = self.screen.createMasks(perPartes = self.hwConfig.perPartes)
         self.position = 0
         self.actualLayer = 0
-        self.checkPage = libPages.PageWait(self.display) # FIXME
         self.expoCommands = queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self, self.config.toPrint[0])
         self.screen.preloadImg(
