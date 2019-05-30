@@ -836,6 +836,27 @@ class Hardware(object):
     #enddef
 
 
+    def getUvStatistics(self):
+        uvData = self.mcc.doGetIntList(args = ("?usta",)) #time counter [s] #TODO add uv average current, uv average temperature
+        if uvData and len(uvData) == 1:
+            return uvData
+        else:
+            self.logger.warning("UV statistics data count not match! (%s)", str(uvData))
+            return list((0,))
+        #endif
+    #enddef
+
+
+    def saveUvStatistics(self):
+        self.mcc.do("!usta", 0)
+    #enddef
+
+
+    def clearUvStatistics(self):    # call if UV led was replaced
+        self.mcc.do("!usta", 1)
+    #enddef
+
+
     def getVoltages(self):
         volts = self.mcc.doGetIntList(multiply = 0.001, args = ("?volt",))
         if volts and len(volts) == 4:
