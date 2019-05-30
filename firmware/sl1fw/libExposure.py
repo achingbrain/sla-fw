@@ -468,6 +468,7 @@ If you don't want to refill, please press the Back button on top of the screen."
 
             #endfor
 
+            self.expo.hw.saveUvStatistics()
             self.expo.hw.uvLed(False)
             self.expo.hw.beepRepeat(3)
 

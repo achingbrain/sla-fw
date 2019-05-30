@@ -103,6 +103,7 @@ class Display(object):
         self.page_logging = libPages.PageLogging(self)
         self.page_print = libPages.PagePrint(self)
         self.page_feedme = libPages.PageFeedMe(self)
+        self.page_infinitetest = libPages.PageInfiniteTest(self)
 
         self.actualPage = self.page_start
         self.fanErrorOverride = False
