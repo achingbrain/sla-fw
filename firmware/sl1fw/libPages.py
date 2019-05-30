@@ -5242,7 +5242,9 @@ class PageCalibration2(Page):
         super(PageCalibration2, self).__init__(display)
         self.items.update({
             'imageName' : "01_loosen_screws.jpg",
-            'text' : _("Loosen two small screws on the cantilever. Be careful not to unscrew them completely.")})
+            'text' : _("""Loosen the small screw on the cantilever with an allen key. Be careful not to unscrew it completely.
+
+Some SL1 printers may have two screws - see the handbook for more information.""")})
     #enddef
 
 
@@ -5479,7 +5481,7 @@ class PageCalibration8(Page):
         super(PageCalibration8, self).__init__(display)
         self.items.update({
             'imageName' : "06_tighten_knob.jpg",
-            'text' : _("""Check if the platform is properly secured with the black knob.
+            'text' : _("""Check whether the platform is properly secured with the black knob (hold it in place and tighten the knob if needed).
 
 Do not rotate the platform. It should be positioned according to the picture.""")})
     #enddef
@@ -5611,7 +5613,9 @@ class PageCalibration10(Page):
         super(PageCalibration10, self).__init__(display)
         self.items.update({
             'imageName' : "07_tighten_screws.jpg",
-            'text' : _("Tighten small screws on the cantilever little by little. For best results, tighten them as evenly as possible.")})
+            'text' : _("""Tighten the small screw on the cantilever with an allen key.
+
+Some SL1 printers may have two screws - tighten them evenly, little by little. See the handbook for more information.""")})
     #enddef
 
 
