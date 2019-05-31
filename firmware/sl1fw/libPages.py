@@ -83,7 +83,7 @@ class Page(object):
 
     def fill(self):
         self.items = {
-                'image_version' : self.display.hwConfig.os.versionId,
+                'image_version' : "%s%s" % (self.display.hwConfig.os.versionId, " (factory mode)" if self.display.hwConfig.showAdmin else ""),
                 'page_title' : self.pageTitle,
                 }
     #enddef
@@ -140,6 +140,7 @@ class Page(object):
     #enddef
 
 
+    # FIXME - remove
     def okButtonRelease(self):
         return "_BACK_"
     #enddef
@@ -2128,86 +2129,17 @@ class PageAdvancedSettings(Page):
 class PageFactoryReset(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Factory reset")
+        self.pageUI = "yesno"
+        self.pageTitle = _("Factory reset?")
         super(PageFactoryReset, self).__init__(display)
         self.items.update({
-            'text' : _("""Do you really want to perform the factory reset?
-
-All settings will be deleted!""")})
+            'text' : _("Do you really want to perform the factory reset?\n\n"
+                "All settings will be deleted!")})
     #enddef
 
 
-    def contButtonRelease(self):
-        pageWait = PageWait(self.display, line1 = _("Please wait..."),
-                line2 = _("Printer is being reset to factory defaults"))
-        pageWait.show()
-        self.display.hw.towerSync()
-        self.display.hw.tiltSyncWait(3)
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-        #endwhile
-
-        # move tilt and tower to packing position
-        self.display.hw.setTiltProfile('moveFast')
-        self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
-        while self.display.hw.isTiltMoving():
-            sleep(0.25)
-        #endwhile
-        self.display.hw.setTowerProfile('moveFast')
-        self.display.hw.towerMoveAbsolute(
-            self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(74))
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-
-        # at this height may be screwed down tank and inserted protective foam
-        self.display.page_confirm.setParams(
-            continueFce = self.factoryResetStep2,
-            text = _("""All settings will be deleted and the printer will shut down.
-
-Continue?"""))
-        return "confirm"
-    #enddef
-
-
-    def factoryResetStep2(self):
-        pageWait = PageWait(self.display, line1 = _("Please wait..."),
-                line2 = _("Printer returns to factory defaults."))
-        pageWait.show()
-        # slightly press the foam against printers base
-        self.display.hw.towerMoveAbsolute(
-            self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(93))
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        topic = "prusa/sl1/factoryConfig"
-        printerConfig = {
-            "osVersion": self.display.hwConfig.os.versionId,
-            "sl1fwVersion": defines.swVersion,
-            "a64SerialNo": self.display.hw.cpuSerialNo,
-            "mcSerialNo": self.display.hw.mcSerialNo,
-            "mcFwVersion": self.display.hw.mcVersion,
-            "mcBoardRev": self.display.hw.mcRevision,
-            "towerHeight": self.display.hwConfig.towerHeight,
-            "tiltHeight": self.display.hwConfig.tiltHeight,
-            "uvCurrent": self.display.hwConfig.uvCurrent,
-            "wizardUvVoltageRow1": self.display.hwConfig.wizardUvVoltage[0],
-            "wizardUvVoltageRow2": self.display.hwConfig.wizardUvVoltage[1],
-            "wizardUvVoltageRow3": self.display.hwConfig.wizardUvVoltage[2],
-            "wizardFanRpm": self.display.hwConfig.wizardFanRpm,
-            "wizardTempUvInit": self.display.hwConfig.wizardTempUvInit,
-            "wizardTempUvWarm": self.display.hwConfig.wizardTempUvWarm,
-            "wizardTempAmbient": self.display.hwConfig.wizardTempAmbient,
-            "wizardTempA64": self.display.hwConfig.wizardTempA64,
-            "wizardResinVolume": self.display.hwConfig.wizardResinVolume
-        }
-        try:
-            mqtt.single(topic, json.dumps(printerConfig), qos=2, retain=True, hostname="mqttstage.prusa")
-        except Exception as err:
-            self.logger.warning("mqtt message not delivered. %s", err)
-        #endtry
-
+    def yesButtonRelease(self):
+        inFactoryMode = self.display.hwConfig.showAdmin
         try:
             with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
                 factory_defaults = toml.load(factory)
@@ -2256,12 +2188,61 @@ Continue?"""))
             self.logger.exception("Failed to reset timezone")
         #endtry
 
+        # continue only in factory mode
+        if not inFactoryMode:
+            self.display.shutDown(doShutDown=True, reboot=True)
+            return
+        #endif
+
+        pageWait = PageWait(self.display, line1 = _("Please wait..."),
+                line2 = _("Printer is being set to packing positions"))
+        pageWait.show()
+        self.display.hw.towerSync()
+        self.display.hw.tiltSyncWait(3)
+        while not self.display.hw.isTowerSynced():
+            sleep(0.25)
+        #endwhile
+
+        # move tilt and tower to packing position
+        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
+        while self.display.hw.isTiltMoving():
+            sleep(0.25)
+        #endwhile
+        self.display.hw.setTowerProfile('moveFast')
+        self.display.hw.towerMoveAbsolute(
+            self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(74))
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+
+        # at this height may be screwed down tank and inserted protective foam
+        self.display.page_confirm.setParams(
+            continueFce = self.factoryResetStep2,
+            text = _("Insert protective foam"))
+        return "confirm"
+    #enddef
+
+
+    def factoryResetStep2(self):
+        pageWait = PageWait(self.display, line1 = _("Please wait..."),
+                line2 = _("Printer is being set to packing positions"))
+        pageWait.show()
+
+        # slightly press the foam against printers base
+        self.display.hw.towerMoveAbsolute(
+            self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(93))
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+
         self.display.shutDown(True)
     #enddef
 
 
-    def _BACK_(self):
-        return "_BACK_"
+    # FIXME - to Page()
+    def noButtonRelease(self):
+        return self.backButtonRelease()
     #enddef
 
 #endclass
@@ -3483,11 +3464,6 @@ class PageError(Page):
         #endif
     #enddef
 
-    #TODO remove back button from GUI
-    def backButtonRelease(self):
-        return self.okButtonRelease()
-    #enddef
-
 #endclass
 
 
@@ -4179,7 +4155,7 @@ class PageUvCalibrationConfirm(Page):
 
 
     def _OK_(self):
-        self.display.hwConfig.update(uvcurrent = self.display.wizardData.uvFoundCurrent)
+        self.display.hwConfig.update(uvCurrent = self.display.wizardData.uvFoundCurrent)
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save configuration"))
@@ -4265,7 +4241,10 @@ Please contact tech support!"""))
 
     def leave(self, newPage):
         self.display.hw.saveUvStatistics()
-        self.allOff()
+        # can't call allOff(), motorsRelease() is harmful for the wizard
+        self.display.screen.getImgBlack()
+        self.display.hw.uvLed(False)
+        self.display.hw.stopFans()
         return newPage
     #enddef
 
@@ -4508,7 +4487,8 @@ class PageNetUpdate(Page):
 
         # Create item for downlaoding examples
         self.items.update({
-            "button15": _("Download examples")
+            "button14" : _("Send factory config"),
+            "button15" : _("Download examples"),
         })
 
         self.firmwares = []
@@ -4539,6 +4519,44 @@ class PageNetUpdate(Page):
         #endfor
 
         super(PageNetUpdate, self).show()
+    #enddef
+
+
+    def button14ButtonRelease(self):
+        if not len(self.display.wizardData.osVersion):
+            self.display.page_error.setParams(
+                    backFce = self.gotoWizard,
+                    text = _("The Wizard was not finished successfully!"))
+            return "error"
+        #endif
+
+        if self.display.wizardData.uvFoundCurrent < 0:
+            self.display.page_error.setParams(
+                    backFce = self.gotoUVcalib,
+                    text = _("The UV LED calibration was not finished successfully!"))
+            return "error"
+        #endif
+
+        topic = "prusa/sl1/factoryConfig"
+        data = self.display.wizardData.getJson()
+        self.logger.debug("mqtt data: %s", data)
+        try:
+            mqtt.single(topic, data, qos=2, retain=True, hostname="mqttstage.prusa")
+        except Exception as err:
+            self.logger.error("mqtt message not delivered. %s", err)
+            self.display.page_error.setParams(text = _("Cannot send factory config!"))
+            return "error"
+        #endtry
+    #enddef
+
+
+    def gotoWizard(self):
+        return "wizard1"
+    #enddef
+
+
+    def gotoUVcalib(self):
+        return "uvcalibrationtest"
     #enddef
 
 
@@ -5677,10 +5695,10 @@ Some SL1 printers may have two screws - tighten them evenly, little by little. S
         self.display.hw.tiltUpWait()
         self.display.hw.motorsHold()
         self.display.hwConfig.update(
-            towerheight = self.display.hwConfig.towerHeight,
-            tiltheight = self.display.hwConfig.tiltHeight,
-            tiltfasttime = tiltFastTime,
-            tiltslowtime = tiltSlowTime,
+            towerHeight = self.display.hwConfig.towerHeight,
+            tiltHeight = self.display.hwConfig.tiltHeight,
+            tiltFastTime = tiltFastTime,
+            tiltSlowTime = tiltSlowTime,
             calibrated = "yes")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
@@ -5830,8 +5848,7 @@ class PageTowerOffset(MovePage):
 
 
     def okButtonRelease(self):
-        self.display.hwConfig.calibTowerOffset = self.tmpTowerOffset
-        self.display.hwConfig.update(calibtoweroffset = self.display.hwConfig.calibTowerOffset)
+        self.display.hwConfig.update(calibTowerOffset = self.tmpTowerOffset)
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save configuration"))
@@ -6308,10 +6325,10 @@ class PageFansLeds(Page):
 
     def reset_to_defaults(self):
         self.display.hwConfig.update(
-            uvcurrent=None,
-            fan1pwm=None,
-            fan2pwm=None,
-            fan3pwm=None,
+            uvCurrent = None,
+            fan1Pwm = None,
+            fan2Pwm = None,
+            fan3Pwm = None,
         )
         self._reset_hw_values()
         if not self.display.hwConfig.writeFile():
@@ -6544,9 +6561,9 @@ class PageTuneTilt(ProfilesPage):
     def button4ButtonRelease(self):
         ''' save '''
         self.display.hwConfig.update(
-            tiltdownlargefill = ' '.join(str(n) for n in self.profiles[0]),
-            tiltdownsmallfill = ' '.join(str(n) for n in self.profiles[1]),
-            tiltup = ' '.join(str(n) for n in self.profiles[2])
+            tiltDownLargeFill = self.profiles[0],
+            tiltDownSmallFill = self.profiles[1],
+            tiltUp = self.profiles[2],
         )
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
@@ -6907,7 +6924,7 @@ class PageUnboxing4(Page):
 
 
     def contButtonRelease(self):
-        self.display.hwConfig.update(showunboxing = "no")
+        self.display.hwConfig.update(showUnboxing = "no")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save configuration"))
@@ -6979,7 +6996,7 @@ Press 'Back' to return to the wizard.""")})
 
 
     def contButtonRelease(self):
-        self.display.hwConfig.update(showunboxing = "no")
+        self.display.hwConfig.update(showUnboxing = "no")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save configuration"))
@@ -7257,6 +7274,7 @@ RPM data: %s""") % rpm)
             sleep(1)
         #endfor
 
+        avgRpms = list()
         for i in xrange(3): #iterate over fans
             rpm[i].remove(max(rpm[i]))
             rpm[i].remove(min(rpm[i]))
@@ -7270,8 +7288,9 @@ Please check if the fan is connected correctly.
 RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i] })
                 return "error"
             #endif
-            self.display.hwConfig.wizardFanRpm[i] = avgRpm
+            avgRpms.append(avgRpm)
         #endfor
+        self.display.wizardData.update(wizardFanRpm = avgRpms)
 
         # temperature check
         pageWait.showItems(line1 = _("A64 temperature check"))
@@ -7316,9 +7335,10 @@ Keep the printer out of direct sunlight at room temperature (18 - 32 °C).""")
                 return "error"
             #endif
         #endfor
-        self.display.hwConfig.wizardTempA64 = A64temperature
-        self.display.hwConfig.wizardTempUvInit = temperatures[0]
-        self.display.hwConfig.wizardTempAmbient = temperatures[1]
+        self.display.wizardData.update(
+                wizardTempA64 = A64temperature,
+                wizardTempUvInit = temperatures[0],
+                wizardTempAmbient = temperatures[1])
         self.display.hw.powerLed("normal")
         return "wizard4"
     #enddef
@@ -7362,6 +7382,9 @@ Make sure the tank is empty and clean.""")})
         self.display.hw.uvLed(True)
         uvCurrents = [100, 300, 600]
         diff = 0.4    # [mV] voltages in all rows cannot differ more than this limit
+        row1 = list()
+        row2 = list()
+        row3 = list()
         for i in xrange(3):
             self.display.hw.setUvLedCurrent(uvCurrents[i])
             if self.display.hwConfig.MCBoardVersion < 6:    #for 05
@@ -7379,10 +7402,14 @@ Please check if the UV LED panel is connected properly.
 Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : volts})
                 return "error"
             #endif
-            self.display.hwConfig.wizardUvVoltage[0][i] = int(volts[0] * 1000)
-            self.display.hwConfig.wizardUvVoltage[1][i] = int(volts[1] * 1000)
-            self.display.hwConfig.wizardUvVoltage[2][i] = int(volts[2] * 1000)
+            row1.append(int(volts[0] * 1000))
+            row2.append(int(volts[1] * 1000))
+            row3.append(int(volts[2] * 1000))
         #endfor
+        self.display.wizardData.update(
+                wizardUvVoltageRow1 = row1,
+                wizardUvVoltageRow2 = row2,
+                wizardUvVoltageRow3 = row3)
 
         # UV LED temperature check
         pageWait.showItems(line1 = _("UV LED warmup check"))
@@ -7401,7 +7428,7 @@ Temperature data: %s""") % temp)
                 return "error"
             #endif
         #endfor
-        self.display.hwConfig.wizardTempUvWarm = temp
+        self.display.wizardData.update(wizardTempUvWarm = temp)
         self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
         self.display.hw.powerLed("normal")
 
@@ -7457,7 +7484,18 @@ Please check if the sensor is connected properly.
 Measured %d ml.""") % volume)
             return "error"
         #endif
-        self.display.hwConfig.wizardResinVolume = volume
+        self.display.wizardData.update(
+                wizardResinVolume = volume,
+                osVersion = self.display.hwConfig.os.versionId,
+                sl1fwVersion = defines.swVersion,
+                a64SerialNo = self.display.hw.cpuSerialNo,
+                mcSerialNo = self.display.hw.mcSerialNo,
+                mcFwVersion = self.display.hw.mcVersion,
+                mcBoardRev = self.display.hw.mcRevision,
+                towerHeight = self.display.hwConfig.towerHeight,
+                tiltHeight = self.display.hwConfig.tiltHeight,
+                uvCurrent = self.display.hwConfig.uvCurrent,
+                )
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait()
         while not self.display.hw.isTowerSynced():
@@ -7465,25 +7503,22 @@ Measured %d ml.""") % volume)
         #endwhile
         self.display.hw.motorsRelease()
         self.display.hw.stopFans()
-        self.display.hwConfig.update(
-            wizarduvvoltagerow1 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[0]),
-            wizarduvvoltagerow2 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[1]),
-            wizarduvvoltagerow3 = ' '.join(str(n) for n in self.display.hwConfig.wizardUvVoltage[2]),
-            wizardfanrpm = ' '.join(str(n) for n in self.display.hwConfig.wizardFanRpm),
-            wizardtempuvinit = self.display.hwConfig.wizardTempUvInit,
-            wizardtempuvwarm = self.display.hwConfig.wizardTempUvWarm,
-            wizardtempambient = self.display.hwConfig.wizardTempAmbient,
-            wizardtempa64 = self.display.hwConfig.wizardTempA64,
-            wizardresinvolume = self.display.hwConfig.wizardResinVolume,
-            showwizard = "no"
-        )
+
+        self.display.hwConfig.update(showWizard = "no")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save wizard configuration"))
             return "error"
         #endif
 
-        #TODO save hardware.cfg to second slot
+        # only in factory mode
+        if self.display.hwConfig.showAdmin:
+            if not self.writeToFactory(self.display.wizardData.writeFile):
+                self.display.page_error.setParams(
+                    text = _("!!! Failed to save factory defaults !!!"))
+                return "error"
+            #endif
+        #endif
 
         return "wizard6"
     #enddef
@@ -7548,7 +7583,7 @@ Press 'Continue' to exit the wizard, or 'Back' to return to the wizard.""")})
 
     def contButtonRelease(self):
         self.allOff()
-        self.display.hwConfig.update(showwizard = "no")
+        self.display.hwConfig.update(showWizard = "no")
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
                 text = _("Cannot save wizard configuration"))
