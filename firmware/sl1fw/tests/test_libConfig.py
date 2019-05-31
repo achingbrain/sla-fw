@@ -33,15 +33,21 @@ class TestHardwareConfig(unittest.TestCase):
         self.assertEqual(self.hwConfig.layerTowerHop, 0, "Test layerTowerHop read")
 
     def test_write(self):
-        towerHeight = "1024"
-        self.hwConfig.update(towerheight = towerHeight)
+        self.hwConfig.update(towerHeight = "mistake")
+        towerHeight = 1024
+        self.hwConfig.update(towerHeight = towerHeight)
 
-        self.assertEqual(self.hwConfig.towerHeight, 1024, "Check towerHeight is set")
+        self.assertEqual(self.hwConfig.towerHeight, towerHeight, "Check towerHeight is set")
 
         self.hwConfig.logAllItems()
         self.hwConfig.logFile()
-        logging.info(self.hwConfig.getSourceString())
         self.assertTrue(self.hwConfig.writeFile("hwconfig.test"), "Write config file")
+        self.assertEqual(self.hwConfig.getSourceString(), "MCBoardVersion = 6\r\n\r\nshowAdmin = yes\r\n\r\nshowUnboxing = no\r\ntowerHeight = 1024", "Check file lines append")
+
+        self.hwConfig.update(MCBoardVersion = None)
+        self.hwConfig.logFile()
+        self.assertTrue(self.hwConfig.writeFile("hwconfig.test"), "Write config file")
+        self.assertEqual(self.hwConfig.getSourceString(), "\r\nshowAdmin = yes\r\n\r\nshowUnboxing = no\r\ntowerHeight = 1024", "Check file lines delete")
 
 
 class TestPrintConfig(unittest.TestCase):
@@ -87,15 +93,17 @@ class TestWizardData(unittest.TestCase):
     def test_lists(self):
         sensorData = [98, 105, 108, 128, 136, 111, 145]
         percDiff = [-23.4, -17.9, -15.6, 0.0, 6.3, -13.3, 13.3, -6.2, -10.9, -18.7]
-        self.wizardData.update(uvsensordata = sensorData, uvpercdiff = percDiff)
+        self.wizardData.update(uvSensorData = sensorData, uvPercDiff = percDiff)
 
         self.assertEqual(self.wizardData.uvSensorData, sensorData, "Check uvSensorData is set")
         self.assertEqual(self.wizardData.uvPercDiff, percDiff, "Check uvSensorData is set")
 
-        self.wizardData.writeFile("wizardData.test")
-
         self.wizardData.logAllItems()
         self.wizardData.logFile()
+        print(self.wizardData.getJson())
+
+        self.wizardData.writeFile("wizardData.test")
+        self.assertEqual(self.wizardData.getSourceString(), "uvSensorData = 98 105 108 128 136 111 145\r\nuvPercDiff = -23.4 -17.9 -15.6 0.0 6.3 -13.3 13.3 -6.2 -10.9 -18.7", "Check file lines")
 
         self.assertEqual(self.wizardData.uvSensorData, sensorData, "Test sensor data read")
         self.assertEqual(self.wizardData.uvPercDiff, percDiff, "Test perc diff read")

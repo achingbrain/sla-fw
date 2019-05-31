@@ -5,6 +5,7 @@
 import os
 import logging
 import zipfile
+import json
 
 from sl1fw import defines
 
@@ -54,7 +55,7 @@ class FileConfig(object):
     def _readFile(self, configFile):
         self._data = dict()
         self._lines = list()
-        self.configFile = configFile
+        self._configFile = configFile
         if configFile is not None and os.path.exists(configFile):
             with open(configFile) as f:
                 for line in f:
@@ -97,9 +98,9 @@ class FileConfig(object):
     def writeFile(self, filename = None):
         try:
             if filename is None:
-                filename = self.configFile
+                filename = self._configFile
             else:
-                self.configFile = filename
+                self._configFile = filename
             #endif
             writename = filename + ".tmp"
             with open(writename, "w") as f:
@@ -120,10 +121,11 @@ class FileConfig(object):
 
         Changes are not propagated to the underlying file. Use 'writeFile' to sync changes.
 
-        :param kwargs: Dictionary with key=value pairs to update. Keys must be lowcase strings !!! Object
-         members cannot be used directly !!! Setting value to None removes key from the configuration.
+        :param kwargs: Dictionary with key=value pairs to update. Object members
+        cannot be used directly !!! Setting value to None removes key from the configuration.
         '''
 
+	lowerkeys = dict()
         for key,val in kwargs.iteritems():
             lowerkey = key.lower()
             if val is None:
@@ -134,6 +136,7 @@ class FileConfig(object):
                 self._data[lowerkey] = str(val)
             #endif
             self._logger.debug("update: %s = %s", lowerkey, self._data[lowerkey])
+            lowerkeys[lowerkey] = key
         #endfor
         newLines = list()
         for key,val in self._lines:
@@ -141,17 +144,16 @@ class FileConfig(object):
                 newLines.append((None, val))
             else:
                 lowerkey = key.lower()
-                if lowerkey not in kwargs or kwargs[lowerkey] is not None:
+                if lowerkey not in lowerkeys or kwargs[lowerkeys[lowerkey]] is not None:
                     newLines.append((key, self._data[lowerkey]))
                 #endif
-                if lowerkey in kwargs:
-                    del kwargs[lowerkey]
+                if lowerkey in lowerkeys:
+                    del kwargs[lowerkeys[lowerkey]]
                 #endif
             #endif
         #endfor
         for key,val in kwargs.iteritems():
             if val is not None:
-                newLines.append((None, ""))
                 newLines.append((key, val))
             #endif
         #endfor
@@ -171,6 +173,10 @@ class FileConfig(object):
             #endif
         #endfor
         return out
+    #enddef
+
+    def getJson(self):
+        return json.dumps(self.getDict())
     #enddef
 
     def logAllItems(self):
@@ -380,9 +386,9 @@ class HwConfig(FileConfig):
 
         # Tilt & Tower -> Tilt tune
         self.tuneTilt = list()
-        self.tuneTilt.append([int(n) for n in self._parseString("tiltdownlargefill", "5 650 1000 4 1 0 64 3").split()])
-        self.tuneTilt.append([int(n) for n in self._parseString("tiltdownsmallfill", "5 0 0 6 1 0 0 0").split()])
-        self.tuneTilt.append([int(n) for n in self._parseString("tiltup", "2 400 0 5 1 0 0 0").split()])
+        self.tuneTilt.append(self._parseIntList("tiltdownlargefill", [5, 650, 1000, 4, 1, 0, 64, 3]))
+        self.tuneTilt.append(self._parseIntList("tiltdownsmallfill", [5, 0, 0, 6, 1, 0, 0, 0]))
+        self.tuneTilt.append(self._parseIntList("tiltup", [2, 400, 0, 5, 1, 0, 0, 0]))
         #hotfix. TODO remove
         if len(self.tuneTilt[0]) != 8 or len(self.tuneTilt[1]) != 8 or len(self.tuneTilt[2]) != 8:
             self.tuneTilt[0] = [5, 650, 1000, 4, 1, 0, 64, 3]
@@ -399,19 +405,6 @@ class HwConfig(FileConfig):
         self.showAdmin = self._parseBool("showadmin", False)
         self.showWizard = self._parseBool("showwizard", True)
         self.showUnboxing = self._parseBool("showunboxing", True)
-
-        # TODO move to wizardData
-        #following values are measured and saved in initial wizard
-        self.wizardUvVoltage = list() #measured voltage on each UV led row
-        self.wizardUvVoltage.append([int(n) for n in self._parseString("wizarduvvoltagerow1", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
-        self.wizardUvVoltage.append([int(n) for n in self._parseString("wizarduvvoltagerow2", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
-        self.wizardUvVoltage.append([int(n) for n in self._parseString("wizarduvvoltagerow3", "0 0 0").split()]) #data in mV for 0 mA, 300 mA, 600 mA
-        self.wizardFanRpm = [int(n) for n in self._parseString("wizardfanrpm", "0 0 0").split()] #fans rpm when using default pwm
-        self.wizardTempUvInit = self._parseFloat("wizardtempuvinit", 0.0) #UV led temperature at the beginning of test (should be close to ambient)
-        self.wizardTempUvWarm = self._parseFloat("wizardtempuvwarm", 0.0) #UV led temperature after warmup test
-        self.wizardTempAmbient = self._parseFloat("wizardtempambient", 0.0) #ambient sensor temperature
-        self.wizardTempA64 = self._parseFloat("wizardtempa64", 0.0) #A64 temperature
-        self.wizardResinVolume = self._parseInt("wizardresinvolume", 0) #measured fake resin volume in wizard (without resin with rotated platform)
     #enddef
 
     def calcMicroSteps(self, mm):
@@ -450,6 +443,38 @@ class WizardData(FileConfig):
     #enddef
 
     def _parseData(self):
+        # following values are for quality monitoring systems
+        self.osVersion = self._parseString("osversion")
+        self.sl1fwVersion = self._parseString("sl1fwversion")
+        self.a64SerialNo = self._parseString("a64serialno")
+        self.mcSerialNo = self._parseString("mcserialno")
+        self.mcFwVersion = self._parseString("mcfwversion")
+        self.mcBoardRev = self._parseString("mcboardrev")
+        self.towerHeight = self._parseInt("towerheight")
+        self.tiltHeight = self._parseInt("tiltheight")
+        self.uvCurrent = self._parseFloat("uvcurrent")
+
+        # following values are measured and saved in initial wizard
+        # data in mV for 0 mA, 300 mA, 600 mA
+        self.wizardUvVoltageRow1 = self._parseIntList("wizarduvvoltagerow1")
+        # data in mV for 0 mA, 300 mA, 600 mA
+        self.wizardUvVoltageRow2 = self._parseIntList("wizarduvvoltagerow2")
+        # data in mV for 0 mA, 300 mA, 600 mA
+        self.wizardUvVoltageRow3 = self._parseIntList("wizarduvvoltagerow3")
+        # fans rpm when using default pwm
+        self.wizardFanRpm = self._parseIntList("wizardfanrpm")
+        # UV LED temperature at the beginning of test (should be close to ambient)
+        self.wizardTempUvInit = self._parseFloat("wizardtempuvinit")
+        # UV LED temperature after warmup test
+        self.wizardTempUvWarm = self._parseFloat("wizardtempuvwarm")
+        # ambient sensor temperature
+        self.wizardTempAmbient = self._parseFloat("wizardtempambient")
+        # A64 temperature
+        self.wizardTempA64 = self._parseFloat("wizardtempa64")
+        # measured fake resin volume in wizard (without resin with rotated platform)
+        self.wizardResinVolume = self._parseInt("wizardresinvolume")
+
+        # following values are measured and saved in automatic UV LED calibration
         self.uvSensorData = self._parseIntList("uvsensordata")
         self.uvTemperature = self._parseFloat("uvtemperature", -273.2)
         self.uvDateTime = self._parseString("uvdatetime", "_NOT_SET_")
@@ -520,7 +545,7 @@ class PrintConfig(FileConfig):
 
         # Set paths
         dirName = os.path.dirname(zipName)
-        self.configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
+        self._configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
         self.zipName = zipName
 
         for filename in namelist:
