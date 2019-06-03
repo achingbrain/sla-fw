@@ -3756,6 +3756,7 @@ class PageDisplay(Page):
 
 #endclass
 
+
 class PageInfiniteTest(Page):
 
     def __init__(self, display):
@@ -4036,6 +4037,7 @@ class PageUvMeter(PageUvMeterShow):
         self.display.hw.setUvLedCurrent(self.testCurrent)
         self.lastCallback = datetime.now()
         self.iterCnt = 15
+        self.finalTest = False
     #enddef
 
 
@@ -4057,7 +4059,19 @@ class PageUvMeter(PageUvMeterShow):
             return "error"
         #endif
         data = self.uvmeter.getData()
-        self.logger.info("UV calibration - current:%.1f  data:%s", realCurrent, str(data))
+        self.logger.info("UV calibration - finalTest:%s current:%.1f data:%s",
+                "yes" if self.finalTest else "no", realCurrent, str(data))
+
+        if self.finalTest:
+            self.allOff()
+            if data['uvMean'] > 1.0 or data['uvMaxValue'] > 2:
+                self.display.wizardData.parseFile(defines.wizardDataFile)
+                self.display.page_error.setParams(text = _("The exposure display "
+                    "do not block the UV light enough. Replace it please."))
+                return "error"
+            #endif
+            return "uvcalibrationconfirm"
+        #endif
 
         if int(self.testCurrent) == int(self.bottomCurrent) and data['uvMean'] > self.display.hwConfig.uvCalibIntensity:
             self.display.page_error.setParams(text = _("Requested intensity "
@@ -4083,8 +4097,10 @@ class PageUvMeter(PageUvMeterShow):
 
             self.display.wizardData.update(**data)
             self.display.wizardData.update(uvFoundCurrent = realCurrent)
-            self.allOff()
-            return "uvcalibrationconfirm"
+            self.display.screen.getImgBlack()
+            self.finalTest = True
+            self.lastCallback = datetime.now()
+            return
         #endif
 
         self.iterCnt -= 1
@@ -4115,7 +4131,7 @@ class PageUvCalibrationConfirm(Page):
 
     def __init__(self, display):
         self.pageUI = "yesno"
-        self.pageTitle = _("Show calibration data?")
+        self.pageTitle = _("Apply calibration?")
         super(PageUvCalibrationConfirm, self).__init__(display)
         self.checkCooling = True
     #enddef
@@ -4126,7 +4142,7 @@ class PageUvCalibrationConfirm(Page):
             'text' : _("The result of calibration\nCurrent: %(cur).1f mA\n"
                 "Intensity: %(int).1f\n"
                 "Standard deviation: %(dev).1f\n\n"
-                "Would you like to see the calibration data?")
+                "Would you like to apply the calibration?")
             % { 'cur' : self.display.wizardData.uvFoundCurrent,
                 'int' : self.display.wizardData.uvMean,
                 'dev' : self.display.wizardData.uvStdDev,
@@ -4136,25 +4152,6 @@ class PageUvCalibrationConfirm(Page):
 
 
     def yesButtonRelease(self):
-        self.display.page_uvmetershow.generatePicture(self.display.wizardData.getDict())
-        return "uvmetershow"
-    #endif
-
-
-    def noButtonRelease(self):
-        self.display.page_yesno.setParams(
-                pageTitle = "Apply calibration?",
-                text = _("Would you like to apply the calibration?"))
-        return "yesno"
-    #endif
-
-
-    def _BACK_(self):
-        return self.noButtonRelease()
-    #enddef
-
-
-    def _OK_(self):
         self.display.hwConfig.update(uvCurrent = self.display.wizardData.uvFoundCurrent)
         if not self.display.hwConfig.writeFile():
             self.display.page_error.setParams(
@@ -4176,14 +4173,9 @@ class PageUvCalibrationConfirm(Page):
     #enddef
 
 
-    def _NOK_(self):
+    def noButtonRelease(self):
         self.display.wizardData.parseFile(defines.wizardDataFile)
         return "_BACK_"
-    #enddef
-
-
-    def _EXIT_(self):
-        return "_EXIT_"
     #enddef
 
 #endclass
