@@ -4515,17 +4515,41 @@ class PageNetUpdate(Page):
 
 
     def button14ButtonRelease(self):
-        if not len(self.display.wizardData.osVersion):
+        if self.display.wizardData.wizardResinVolume < 0:
             self.display.page_error.setParams(
                     backFce = self.gotoWizard,
-                    text = _("The Wizard was not finished successfully!"))
+                    text = _("The wizard was not finished successfully!"))
+            return "error"
+        #endif
+
+        if not self.display.hwConfig.calibrated:
+            self.display.page_error.setParams(
+                    backFce = self.gotoCalib,
+                    text = _("The calibration was not finished successfully!"))
             return "error"
         #endif
 
         if self.display.wizardData.uvFoundCurrent < 0:
             self.display.page_error.setParams(
                     backFce = self.gotoUVcalib,
-                    text = _("The UV LED calibration was not finished successfully!"))
+                    text = _("The automatic UV LED calibration was not finished successfully!"))
+            return "error"
+        #endif
+
+        self.display.wizardData.update(
+                osVersion = self.display.hwConfig.os.versionId,
+                sl1fwVersion = defines.swVersion,
+                a64SerialNo = self.display.hw.cpuSerialNo,
+                mcSerialNo = self.display.hw.mcSerialNo,
+                mcFwVersion = self.display.hw.mcVersion,
+                mcBoardRev = self.display.hw.mcRevision,
+                towerHeight = self.display.hwConfig.towerHeight,
+                tiltHeight = self.display.hwConfig.tiltHeight,
+                uvCurrent = self.display.hwConfig.uvCurrent,
+                )
+        if not self.writeToFactory(self.display.wizardData.writeFile):
+            self.display.page_error.setParams(
+                text = _("!!! Failed to save factory defaults !!!"))
             return "error"
         #endif
 
@@ -4539,6 +4563,11 @@ class PageNetUpdate(Page):
             self.display.page_error.setParams(text = _("Cannot send factory config!"))
             return "error"
         #endtry
+
+        self.display.page_confirm.setParams(
+                continueFce = self.success,
+                text = _("Factory config was successfully sent."))
+        return "confirm"
     #enddef
 
 
@@ -4547,8 +4576,18 @@ class PageNetUpdate(Page):
     #enddef
 
 
+    def gotoCalib(self):
+        return "calibration1"
+    #enddef
+
+
     def gotoUVcalib(self):
         return "uvcalibrationtest"
+    #enddef
+
+
+    def success(self):
+        return "_BACK_"
     #enddef
 
 
@@ -7476,18 +7515,7 @@ Please check if the sensor is connected properly.
 Measured %d ml.""") % volume)
             return "error"
         #endif
-        self.display.wizardData.update(
-                wizardResinVolume = volume,
-                osVersion = self.display.hwConfig.os.versionId,
-                sl1fwVersion = defines.swVersion,
-                a64SerialNo = self.display.hw.cpuSerialNo,
-                mcSerialNo = self.display.hw.mcSerialNo,
-                mcFwVersion = self.display.hw.mcVersion,
-                mcBoardRev = self.display.hw.mcRevision,
-                towerHeight = self.display.hwConfig.towerHeight,
-                tiltHeight = self.display.hwConfig.tiltHeight,
-                uvCurrent = self.display.hwConfig.uvCurrent,
-                )
+        self.display.wizardData.update(wizardResinVolume = volume)
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait()
         while not self.display.hw.isTowerSynced():
