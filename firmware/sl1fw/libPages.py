@@ -3006,7 +3006,7 @@ class PageSysInfo(Page):
             self._setItem(items, 'cpu_temp', self.display.hw.getCpuTemperature())
             self._setItem(items, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getVoltages())})
             self._setItem(items, 'devlist', self.display.inet.getDevices())
-            self._setItem(items, 'uv_statistics', {'uv_stats%d' % i: v for i, v in enumerate(self.display.hw.getUvStatistics())})   #uv_stats0 - time counter [s] #TODO add uv average current, uv average temperature
+            self._setItem(items, 'uv_statistics', {'uv_stat%d' % i: v for i, v in enumerate(self.display.hw.getUvStatistics())})   #uv_stats0 - time counter [s] #TODO add uv average current, uv average temperature
             self.skip = 0
         #endif
         self._setItem(items, 'resin_sensor_state', self.display.hw.getResinSensorState())
