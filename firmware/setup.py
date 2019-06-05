@@ -24,6 +24,6 @@ setup(
     version="0.1",
     packages=find_packages(exclude=["sl1fw.tests"]),
     scripts=['sl1fw/main.py'],
-    package_data={'sl1fw': ['data/*']},
+    package_data={'sl1fw': ['data/*', 'locales/*/LC_MESSAGES/*']},
     data_files=data_files
 )

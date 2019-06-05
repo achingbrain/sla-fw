@@ -1,0 +1,13 @@
+`make extract` to create translation template (source) file sl1fw.pot
+`make clean` to remove all generated files
+`make compile` or `make` to compile all files in $LANG/LC_MESSAGES/sl1fw.po
+
+remote_install.sh should copy all generated files to the printer
+
+How to set language on printer (persistent, only once):
+- log in via ssh
+- `localectl set-locale $LOCALE.utf8`
+- `systemctl restart sl1fw`
+- `systemctl restart sla-client`
+
+$LOCALE is one from en_US, cs_CZ, de_DE, es_ES, fr_FR, it_IT, pl_PL
