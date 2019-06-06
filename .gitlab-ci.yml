@@ -18,3 +18,11 @@ test:
     - python2 -m unittest discover sl1fw.tests
     - python3 -m unittest discover sl1fw.tests
 
+pylint:
+  stage: test
+  script:
+    - cd firmware
+    - python3 -m pylint --version
+    - python3 -m pylint sl1fw --jobs 0 --errors-only --additional-builtins=_
+  allow_failure: true
+
