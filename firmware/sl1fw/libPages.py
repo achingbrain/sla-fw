@@ -83,7 +83,7 @@ class Page(object):
 
     def fill(self):
         self.items = {
-                'image_version' : "%s%s" % (self.display.hwConfig.os.versionId, " (factory mode)" if self.display.hwConfig.factoryMode else ""),
+                'image_version' : "%s%s" % (self.display.hwConfig.os.versionId, _(" (factory mode)") if self.display.hwConfig.factoryMode else ""),
                 'page_title' : self.pageTitle,
                 }
     #enddef

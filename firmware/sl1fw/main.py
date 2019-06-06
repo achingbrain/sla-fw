@@ -16,18 +16,21 @@ logger = logging.getLogger('')
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-logger.info("%s" % gettext.find('sl1fw', None, ('en', 'fr', 'de'), all))
+langs = dict()
+for lang in ('cs', 'de', 'fr', 'it', 'es', 'pl'):
+    try:
+        langs[lang] = gettext.translation('sl1fw', localedir='locales', languages=[lang])
+    except:
+        logger.warning("Translation file for language %s not found.", lang)
+    #endtry
+#enddef
 
-try:
-    gettext.install('sl1fw', unicode=1)
-except:
-    gettext.install('sl1fw')
+logger.info("Avaiable translations: %s", ", ".join(langs.keys()))
 
-#lang1 = gettext.translation('sl1fw', languages=['en'])
-#lang2 = gettext.translation('sl1fw', languages=['fr'])
-#lang3 = gettext.translation('sl1fw', languages=['de'])
+#langs['cs'].install()
 
-#lang1.install()
+# use system locale settings
+gettext.install('sl1fw', 'locales')
 
 printer = libPrinter.Printer()
 printer.start()
