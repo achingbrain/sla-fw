@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # part of SL1 firmware
 # 2014-2018 Futur3d - www.futur3d.net

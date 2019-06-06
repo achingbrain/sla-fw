@@ -19,7 +19,7 @@ while hw.isTiltMoving():
 #endwhile
 profile = [1750, 1750, 0, 0, 58, 26, 2100]
 result = dict()
-for sgt in xrange(10, 30):
+for sgt in range(10, 30):
     profile[5] = sgt
     sgbd = list()
     hw.mcc.do("!tics", 4)

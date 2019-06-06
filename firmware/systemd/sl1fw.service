@@ -2,9 +2,9 @@
 Description=SL1 firmware
 
 [Service]
-WorkingDirectory=/lib/python2.7/site-packages/sl1fw
 ExecStartPre=/usr/bin/sh -c "/usr/bin/echo 0 > /sys/class/vtconsole/vtcon1/bind"
-ExecStart=/usr/bin/nohup python -u /usr/bin/main.py
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/nohup /usr/bin/main.py
 Restart=always
 RestartSec=3
 

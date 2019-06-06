@@ -80,7 +80,7 @@ class Debug(object):
 
     def showItems(self, **kwargs):
         output = dict()
-        for name, value in kwargs.iteritems():
+        for name, value in kwargs.items():
             item = self.setup.get(name, None)
             if item:
                 output[item[1]] = "%s%s" % (item[0], value)

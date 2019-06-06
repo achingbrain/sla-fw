@@ -668,7 +668,7 @@ Please contact tech support!
 
 Shutting down in 10 seconds...""") % A64temperature)
             self.display.page_error.show()
-            for i in xrange(10):
+            for i in range(10):
                 self.display.hw.beepAlarm(3)
                 sleep(1)
             #endfor
@@ -946,7 +946,7 @@ Re-export the file and try again."""), None, None)
         pageWait.show()
 
         temperatures = self.display.hw.getMcTemperatures()
-        for i in xrange(2):
+        for i in range(2):
             if temperatures[i] < 0:
                 self.display.page_error.setParams(
                     backFce = self.backButtonRelease,
@@ -5766,7 +5766,7 @@ Some SL1 printers may have two screws - tighten them evenly, little by little. S
     def getTiltTime(self, pageWait, slowMove):
         tiltTime = 0
         total = self.display.hwConfig.measuringMoves
-        for i in xrange(total):
+        for i in range(total):
             pageWait.showItems(line3 = (_("Slow move %(count)d/%(total)d") if slowMove else _("Fast move %(count)d/%(total)d")) % { 'count' : i+1, 'total' : total })
             tiltStartTime = time()
             self.display.hw.tiltLayerUpWait()
@@ -5968,7 +5968,7 @@ class ProfilesPage(Page):
         data = { "state1g1" : 0, "state1g2" : 0, "state1g3" : 0, "state1g4" : 0, "state1g5" : 0, "state1g6" : 0, "state1g7" : 0, "state1g8" : 0 }
         data["state1g%d" % (self.actualProfile + 1)] = 1
 
-        for i in xrange(self.profileItems):
+        for i in range(self.profileItems):
             if i in self.nameIndexes:
                 data["value2g%d" % (i + 1)] = str(self.profilesNames[int(self.profiles[self.actualProfile][i])])
             else:
@@ -6327,7 +6327,7 @@ class PageFansLeds(Page):
         self._setItem(items, 'value2g1', self.temp['fan1pwm'])
         self._setItem(items, 'value2g2', self.temp['fan2pwm'])
         self._setItem(items, 'value2g3', self.temp['fan3pwm'])
-        self._setItem(items, 'value2g5', self.temp['uvcurrent'])
+        self._setItem(items, 'value2g5', str(int(self.temp['uvcurrent'])))
 
         if len(items):
             self.showItems(**items)
@@ -6385,7 +6385,7 @@ class PageFansLeds(Page):
 
     def _update_config(self):
         # filter only wanted items
-        filtered = {k: v for k, v in filter(lambda t: t[0] in self.valuesToSave, self.changed.iteritems())}
+        filtered = { k : v for k, v in filter(lambda t: t[0] in self.valuesToSave, self.changed.items()) }
         self.display.hwConfig.update(**filtered)
     #enddef
 
@@ -6494,13 +6494,13 @@ class PageFansLeds(Page):
 
 
     def minus2g5Button(self):
-        self._value(4, 'uvcurrent', 0, 800.1, -3.2)
+        self._value(4, 'uvcurrent', 0, 800.1, -3.2, strFce=lambda x: str(int(x)))
         self.display.hw.setUvLedCurrent(self.temp['uvcurrent'])
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 'uvcurrent', 0, 800.1, 3.2)
+        self._value(4, 'uvcurrent', 0, 800.1, 3.2, strFce=lambda x: str(int(x)))
         self.display.hw.setUvLedCurrent(self.temp['uvcurrent'])
     #enddef
 
@@ -7100,7 +7100,7 @@ Please contact tech support!""" % {'a64' : self.display.hw.cpuSerialNo, 'mc' : s
             line1 = _("Tilt home check"),
             line2 = _("Please wait..."))
         pageWait.show()
-        for i in xrange(3):
+        for i in range(3):
             self.display.hw.mcc.do("!tiho")
             while self.display.hw.mcc.doGetInt("?tiho") > 0:
                 sleep(0.25)
@@ -7162,7 +7162,7 @@ Please check if the tilting mechanism can move smoothly in its entire range.""")
 
         #tower home check
         pageWait.showItems(line1 = _("Tower home check"))
-        for i in xrange(3):
+        for i in range(3):
             self.display.hw.mcc.do("!twho")
             while self.display.hw.mcc.doGetInt("?twho") > 0:
                 sleep(0.25)
@@ -7308,7 +7308,7 @@ RPM data: %s""") % rpm)
         self.display.hw.startFans()
         sleep(defines.fanStartStopTime)  # let the fans spin up
         rpm = [[], [], []]
-        for i in xrange(defines.fanMeasCycles):
+        for i in range(defines.fanMeasCycles):
             tmp = self.display.hw.getFansRpm()
             rpm[0].append(tmp[0])   #UV
             rpm[1].append(tmp[1])   #blower
@@ -7318,7 +7318,7 @@ RPM data: %s""") % rpm)
         #endfor
 
         avgRpms = list()
-        for i in xrange(3): #iterate over fans
+        for i in range(3): #iterate over fans
             rpm[i].remove(max(rpm[i]))
             rpm[i].remove(min(rpm[i]))
             avgRpm = sum(rpm[i]) // len(rpm[i])
@@ -7340,11 +7340,11 @@ RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i] 
         A64temperature = self.display.hw.getCpuTemperature()
         if A64temperature > defines.maxA64Temp:
             self.display.page_error.setParams(
-                text = _(u"""A64 temperature is too high. Measured: %.1f °C!
+                text = _("""A64 temperature is too high. Measured: %.1f °C!
 
 Shutting down in 10 seconds...""") % A64temperature)
             self.display.page_error.show()
-            for i in xrange(10):
+            for i in range(10):
                 self.display.hw.beepAlarm(3)
                 sleep(1)
             #endfor
@@ -7354,7 +7354,7 @@ Shutting down in 10 seconds...""") % A64temperature)
 
         pageWait.showItems(line1 = _("Thermistors temperature check"))
         temperatures = self.display.hw.getMcTemperatures()
-        for i in xrange(2):
+        for i in range(2):
             if temperatures[i] < 0:
                 self.display.page_error.setParams(
                     text = _("""Can't read %s
@@ -7428,7 +7428,7 @@ Make sure the tank is empty and clean.""")})
         row1 = list()
         row2 = list()
         row3 = list()
-        for i in xrange(3):
+        for i in range(3):
             self.display.hw.setUvLedCurrent(uvCurrents[i])
             if self.display.hwConfig.MCBoardVersion < 6:    #for 05
                 sleep(10)    #wait to refresh all voltages
@@ -7457,7 +7457,7 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
         # UV LED temperature check
         pageWait.showItems(line1 = _("UV LED warmup check"))
         self.display.hw.setUvLedCurrent(700)
-        for countdown in xrange(120, 0, -1):
+        for countdown in range(120, 0, -1):
             pageWait.showItems(line2 = _("Please wait %d s") % countdown)
             sleep(1)
             temp = self.display.hw.getUvLedTemperature()

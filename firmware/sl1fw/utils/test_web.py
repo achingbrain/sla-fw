@@ -29,7 +29,7 @@ actualPage.showItems({ "timeremain" : "99:60", "timeelaps" : "99:60", "line1" : 
 
 sleep(5)
 
-for i in xrange(101):
+for i in range(101):
     actualPage.showItems({ "percent" : "%d%%" % i, "progress" : i })
     sleep(0.25)
 #endfor
