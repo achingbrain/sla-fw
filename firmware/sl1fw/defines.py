@@ -87,7 +87,7 @@ admincheckURL = "https://sl1.prusa3d.com/check-admin"
 admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
 bootFailedStamp = os.path.join(persistentStorage, "failedboot")
 apikeyFile = os.path.join(configDir, "api.key")
-
 uvLedMeterDevice = "/dev/uvmeter"
 uvLedMeasMinCurr = 400.0
 uvLedMeasMaxCurr = 600.0
+factoryConfigFile = os.path.join(factoryMountPoint, "factory.toml")

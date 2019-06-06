@@ -42,12 +42,12 @@ class TestHardwareConfig(unittest.TestCase):
         self.hwConfig.logAllItems()
         self.hwConfig.logFile()
         self.assertTrue(self.hwConfig.writeFile("hwconfig.test"), "Write config file")
-        self.assertEqual(self.hwConfig.getSourceString(), "MCBoardVersion = 6\r\n\r\nshowAdmin = yes\r\n\r\nshowUnboxing = no\r\ntowerHeight = 1024", "Check file lines append")
+        self.assertEqual(self.hwConfig.getSourceString(), "MCBoardVersion = 6\r\nshowUnboxing = no\r\ntowerHeight = 1024", "Check file lines append")
 
         self.hwConfig.update(MCBoardVersion = None)
         self.hwConfig.logFile()
         self.assertTrue(self.hwConfig.writeFile("hwconfig.test"), "Write config file")
-        self.assertEqual(self.hwConfig.getSourceString(), "\r\nshowAdmin = yes\r\n\r\nshowUnboxing = no\r\ntowerHeight = 1024", "Check file lines delete")
+        self.assertEqual(self.hwConfig.getSourceString(), "showUnboxing = no\r\ntowerHeight = 1024", "Check file lines delete")
 
 
 class TestPrintConfig(unittest.TestCase):
