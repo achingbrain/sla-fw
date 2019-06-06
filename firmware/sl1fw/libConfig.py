@@ -6,6 +6,7 @@ import os
 import logging
 import zipfile
 import json
+import toml
 
 from sl1fw import defines
 
@@ -336,6 +337,18 @@ class HwConfig(FileConfig):
         self._name = "HwConfig"
         super(HwConfig, self).__init__(configFile, defaults)
         self.os = OsConfig()
+        self.factoryMode = False
+
+        # Load factory mode configuration
+        try:
+            with open(defines.factoryConfigFile, "r") as f:
+                if toml.load(f)['factoryMode']:
+                    self.factoryMode = True
+                #endif
+            #endwith
+        except:
+            self._logger.exception("Failed to load factory configuration, keeping disabled")
+        #endtry
     #enddef
 
     def _parseData(self):
@@ -402,7 +415,6 @@ class HwConfig(FileConfig):
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(defines.defaultTowerHeight)) # safe value
         self.tiltFastTime = self._parseFloat("tiltfasttime", 5.5)
         self.tiltSlowTime = self._parseFloat("tiltslowtime", 8.0)
-        self.showAdmin = self._parseBool("showadmin", False)
         self.showWizard = self._parseBool("showwizard", True)
         self.showUnboxing = self._parseBool("showunboxing", True)
     #enddef

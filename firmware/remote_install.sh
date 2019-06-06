@@ -33,7 +33,9 @@ cd ${target_tmp}; \
 tar xvf sl1fw*.tar.gz; \
 rm sl1fw*.tar.gz; \
 cd sl1fw-*; \
+mount -o remount,rw /usr/share/factory/defaults; \
 pip install . ; \
+mount -o remount,ro /usr/share/factory/defaults; \
 mv -f \"$CFG\" \"$CFG.new\"; \
 cp \"$CFG.bak\" \"$CFG\"; \
 systemctl daemon-reload; \

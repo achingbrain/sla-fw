@@ -18,7 +18,7 @@ class Display(object):
         self.hwConfig = hwConfig
         self.config = config
         self.devices = devices
-        self.show_admin = bool(hwConfig.showAdmin)
+        self.show_admin = bool(hwConfig.factoryMode)
         self.hw = hw
         self.inet = inet
         self.screen = screen

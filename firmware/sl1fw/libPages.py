@@ -83,7 +83,7 @@ class Page(object):
 
     def fill(self):
         self.items = {
-                'image_version' : "%s%s" % (self.display.hwConfig.os.versionId, " (factory mode)" if self.display.hwConfig.showAdmin else ""),
+                'image_version' : "%s%s" % (self.display.hwConfig.os.versionId, " (factory mode)" if self.display.hwConfig.factoryMode else ""),
                 'page_title' : self.pageTitle,
                 }
     #enddef
@@ -2139,7 +2139,7 @@ class PageFactoryReset(Page):
 
 
     def yesButtonRelease(self):
-        inFactoryMode = self.display.hwConfig.showAdmin
+        inFactoryMode = self.display.hwConfig.factoryMode
         try:
             with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
                 factory_defaults = toml.load(factory)
@@ -2194,6 +2194,9 @@ class PageFactoryReset(Page):
             return
         #endif
 
+        # disable factory mode
+        self.writeToFactory(self._disableFactory)
+
         pageWait = PageWait(self.display, line1 = _("Please wait..."),
                 line2 = _("Printer is being set to packing positions"))
         pageWait.show()
@@ -2243,6 +2246,15 @@ class PageFactoryReset(Page):
     # FIXME - to Page()
     def noButtonRelease(self):
         return self.backButtonRelease()
+    #enddef
+
+
+    def _disableFactory(self):
+        with open(defines.factoryConfigFile, "w") as f:
+            toml.dump({
+                'factoryMode': False
+            }, f)
+        #endwith
     #enddef
 
 #endclass
@@ -7532,7 +7544,7 @@ Measured %d ml.""") % volume)
         #endif
 
         # only in factory mode
-        if self.display.hwConfig.showAdmin:
+        if self.display.hwConfig.factoryMode:
             if not self.writeToFactory(self.display.wizardData.writeFile):
                 self.display.page_error.setParams(
                     text = _("!!! Failed to save factory defaults !!!"))
