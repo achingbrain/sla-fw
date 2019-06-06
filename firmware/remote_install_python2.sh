@@ -18,13 +18,13 @@ tmp=$(mktemp --directory --tmpdir=/tmp/ sl1fw.XXXX)
 echo "Local temp is ${tmp}"
 
 echo "Running setup"
-python3 setup.py sdist --dist-dir=${tmp}
+python2 setup.py sdist --dist-dir=${tmp}
 
 # Create remote temp
 target_tmp=$(ssh root@${target} "mktemp --directory --tmpdir=/tmp/ sl1fw.XXXX")
 echo "Remote temp is ${target_tmp}"
 
-echo "Installing on target"
+echo "Install on target...start"
 scp -r ${tmp}/* root@${target}:${target_tmp}
 ssh root@${target} "\
 set -o xtrace; \
@@ -33,14 +33,13 @@ cd ${target_tmp}; \
 tar xvf sl1fw*.tar.gz; \
 rm sl1fw*.tar.gz; \
 cd sl1fw-*; \
-mount -o remount,rw /usr/share/factory/defaults; \
-pip3 install . ; \
-mount -o remount,ro /usr/share/factory/defaults; \
+pip install . ; \
 mv -f \"$CFG\" \"$CFG.new\"; \
 cp \"$CFG.bak\" \"$CFG\"; \
 systemctl daemon-reload; \
 systemctl restart sl1fw
 "
+echo "Install on target...done"
 
 echo "Removing remote temp"
 ssh root@${target} "rm -rf ${target_tmp}"

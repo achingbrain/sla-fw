@@ -8,11 +8,13 @@ build:
   stage: build
   script:
     - cd firmware
-    - python setup.py build
+    - python2 setup.py build
+    - python3 setup.py build
 
 test:
   stage: test
   script:
     - cd firmware
-    - python -m unittest discover sl1fw.tests
+    - python2 -m unittest discover sl1fw.tests
+    - python3 -m unittest discover sl1fw.tests
 

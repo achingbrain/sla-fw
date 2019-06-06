@@ -53,9 +53,9 @@ class ExposureThread(threading.Thread):
                 self.calibAreas = list()
                 lw = 0
                 time = config.expTime
-                for i in xrange(divide[x]):
+                for i in range(divide[x]):
                     lh = 0
-                    for j in xrange(divide[y]):
+                    for j in range(divide[y]):
                         w = (i+1) * stepW
                         h = (j+1) * stepH
                         #self.logger.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)
@@ -202,7 +202,7 @@ class ExposureThread(threading.Thread):
             #endwhile
             pageWait.showItems(line3 = "")
 
-            for sec in xrange(self.expo.hwConfig.upAndDownWait):
+            for sec in range(self.expo.hwConfig.upAndDownWait):
                 pageWait.showItems(line2 = _("Waiting... (%d)") % (self.expo.hwConfig.upAndDownWait - sec))
                 sleep(1)
                 if self.expo.hwConfig.coverCheck and not self.expo.hw.isCoverClosed():
@@ -308,7 +308,7 @@ The print job was canceled."""))
             stuck = False
             wasStirring = True
 
-            for i in xrange(totalLayers):
+            for i in range(totalLayers):
 
                 try:
                     command = self.commands.get_nowait()

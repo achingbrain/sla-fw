@@ -64,9 +64,9 @@ class TestScreen(unittest.TestCase):
         lw = 0
         time = 4.0
         timeStep = 1.0
-        for i in xrange(divide[x]):
+        for i in range(divide[x]):
             lh = 0
-            for j in xrange(divide[y]):
+            for j in range(divide[y]):
                 w = (i+1) * stepW
                 h = (j+1) * stepH
                 logging.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)

@@ -126,8 +126,8 @@ class FileConfig(object):
         cannot be used directly !!! Setting value to None removes key from the configuration.
         '''
 
-	lowerkeys = dict()
-        for key,val in kwargs.iteritems():
+        lowerkeys = dict()
+        for key,val in kwargs.items():
             lowerkey = key.lower()
             if val is None:
                 self._data[lowerkey] = None
@@ -153,7 +153,7 @@ class FileConfig(object):
                 #endif
             #endif
         #endfor
-        for key,val in kwargs.iteritems():
+        for key,val in kwargs.items():
             if val is not None:
                 newLines.append((key, val))
             #endif
@@ -247,7 +247,7 @@ class FileConfig(object):
 
     def _parseIntList(self, key, count = None, default = list()):
         try:
-            ret = map(lambda x: int(x), self._data.get(key, "").split())
+            ret = list(map(lambda x: int(x), self._data.get(key, "").split()))
             if count and len(ret) != count:
                 return default
             #endif
@@ -286,7 +286,7 @@ class FileConfig(object):
 
     def _parseFloatList(self, key, count = 0, default = list()):
         try:
-            ret = map(lambda x: float(x), self._data.get(key, "").split())
+            ret = list(map(lambda x: float(x), self._data.get(key, "").split()))
             if count and len(ret) != count:
                 return default
             #endif

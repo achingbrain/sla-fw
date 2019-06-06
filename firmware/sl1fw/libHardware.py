@@ -176,7 +176,7 @@ class MotConCom(object):
         bits = list()
         try:
             num = int(self.do(*args))
-            for i in xrange(bitCount):
+            for i in range(bitCount):
                 bits.append(True if num & (1 << i) else False)
             #endfor
             return bits
@@ -189,7 +189,8 @@ class MotConCom(object):
 
     def doGetHexedString(self, *args):
         try:
-            return self.do(*args).decode("hex")
+            # TODO: Check this is working ok. This was ported to python 3 but not actually used anywhere to check.
+            return bytes.fromhex(self.do(*args)).decode('ascii')
         except Exception:
             self.logger.exception("exception:")
             return None
@@ -666,7 +667,7 @@ class Hardware(object):
 
     def getProfiles(self, getProfileDataCmd):
         profiles = []
-        for profId in xrange(8):
+        for profId in range(8):
             try:
                 profData = self.mcc.do(getProfileDataCmd, profId).split(" ")
                 profiles.append(list(map(lambda x: int(x), profData)))
@@ -690,7 +691,7 @@ class Hardware(object):
 
 
     def setProfiles(self, profiles, setProfileCmd, setProfileDataCmd):
-        for profId in xrange(8):
+        for profId in range(8):
             self.mcc.do(setProfileCmd, profId)
             self.mcc.do(setProfileDataCmd, *profiles[profId])
         #endfor
@@ -743,7 +744,7 @@ class Hardware(object):
 
 
     def beepRepeat(self, count):
-        for num in xrange(count):
+        for num in range(count):
             self.beep(1800, 0.1)
             sleep(0.5)
         #endfor
@@ -751,7 +752,7 @@ class Hardware(object):
 
 
     def beepAlarm(self, count):
-        for num in xrange(count):
+        for num in range(count):
             self.beep(1900, 0.05)
             sleep(0.25)
         #endfor
@@ -1501,7 +1502,7 @@ class Hardware(object):
 
         # next movement may be splited
         movePerCycle = int(self.getTiltPositionMicroSteps() / tiltProfile[4])
-        for i in xrange(1, tiltProfile[4]):
+        for i in range(1, tiltProfile[4]):
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
             while self.isTiltMoving():
                 sleep(0.1)
@@ -1550,7 +1551,7 @@ class Hardware(object):
 
         #finish move may be also splited in multiple sections
         movePerCycle = int((self.getTiltPositionMicroSteps() - self.hwConfig.tiltHeight) / self.hwConfig.tuneTilt[2][4])
-        for i in xrange(1, self.hwConfig.tuneTilt[2][4]):
+        for i in range(1, self.hwConfig.tuneTilt[2][4]):
             self.logger.debug("tilt up cycle %d", i)
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
             while self.isTiltMoving():
@@ -1612,7 +1613,7 @@ class Hardware(object):
 
 
     def stirResin(self):
-        for i in xrange(self.hwConfig.stirringMoves):
+        for i in range(self.hwConfig.stirringMoves):
             self.setTiltProfile('moveFast')
             # do not verify end positions
             self.tiltUp()
