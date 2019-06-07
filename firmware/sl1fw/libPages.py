@@ -38,14 +38,20 @@ from sl1fw import defines
 from sl1fw import libConfig
 
 
+# deferred translations
+def N_(message): return message
+
+
 class Page(object):
 
     def __init__(self, display):
+        self.pageUI = "splash"
+        self.pageTitle = ""
         self.logger = logging.getLogger(__name__)
         self.display = display
         self.autorepeat = {}
         self.stack = True
-        self.fill()
+        self.items = dict()
 
         self.updateDataPeriod = None
 
@@ -81,14 +87,6 @@ class Page(object):
     #enddef
 
 
-    def fill(self):
-        self.items = {
-                'image_version' : "%s%s" % (self.display.hwConfig.os.versionId, _(" (factory mode)") if self.display.hwConfig.factoryMode else ""),
-                'page_title' : self.pageTitle,
-                }
-    #enddef
-
-
     def prepare(self):
         pass
     #enddef
@@ -103,7 +101,12 @@ class Page(object):
 
     def show(self):
         # renew save path every time when page is shown, it may change
-        self.items['save_path'] = self.getSavePath()
+        self.items.update({
+            'save_path' : self.getSavePath(),
+            'image_version' : "%s%s" % (self.display.hwConfig.os.versionId, _(" (factory mode)") if self.display.hwConfig.factoryMode else ""),
+            'page_title' : _(self.pageTitle),
+            })
+
         for device in self.display.devices:
             device.setPage(self.pageUI)
             device.setItems(self.items)
@@ -350,30 +353,30 @@ class Page(object):
     #enddef
 
 
-    def _onOff(self, index, val):
-        if isinstance(self.temp[val], libConfig.MyBool):
-            self.temp[val].inverse()
+    def _onOff(self, temp, changed, index, val):
+        if isinstance(temp[val], libConfig.MyBool):
+            temp[val].inverse()
         else:
-            self.temp[val] = not self.temp[val]
+            temp[val] = not temp[val]
         #endif
-        self.changed[val] = str(self.temp[val])
-        self.showItems(**{ 'state1g%d' % (index + 1) : int(self.temp[val]) })
+        changed[val] = str(temp[val])
+        self.showItems(**{ 'state1g%d' % (index + 1) : int(temp[val]) })
     #enddef
 
 
-    def _value(self, index, val, valmin, valmax, change, strFce = str):
-        if valmin <= self.temp[val] + change <= valmax:
-            self.temp[val] += change
-            self.changed[val] = str(self.temp[val])
-            self.showItems(**{ 'value2g%d' % (index + 1) : strFce(self.temp[val]) })
+    def _value(self, temp, changed, index, val, valmin, valmax, change, strFce = str):
+        if valmin <= temp[val] + change <= valmax:
+            temp[val] += change
+            changed[val] = str(temp[val])
+            self.showItems(**{ 'value2g%d' % (index + 1) : strFce(temp[val]) })
         else:
             self.display.hw.beepAlarm(1)
         #endif
     #enddef
 
 
-    def _setItem(self, items, index, value):
-        if self.oldValues.get(index, None) != value:
+    def _setItem(self, items, oldValues, index, value):
+        if oldValues.get(index, None) != value:
             if isinstance(value, bool):
                 items[index] = int(value)
             elif isinstance(value, dict):
@@ -381,7 +384,7 @@ class Page(object):
             else:
                 items[index] = str(value)
             #endif
-            self.oldValues[index] = value
+            oldValues[index] = value
         #endif
     #enddef
 
@@ -475,10 +478,7 @@ Check the printer's hardware."""))
 
         if not self.checkCoverOveride and (self.checkCover or expoInProgress):
             state = True
-            retc = self.checkCoverCallback()
-            if retc:
-                return retc
-            #endif
+            self.checkCoverCallback()
         #endif
 
         if self.checkCooling or (expoInProgress and self.display.checkCoolingExpo):
@@ -720,16 +720,15 @@ Shutting down in 10 seconds...""") % A64temperature)
 class PageWait(Page):
 
     def __init__(self, display, **kwargs):
-        self.pageUI = "wait"
-        self.pageTitle = _("Wait")
         super(PageWait, self).__init__(display)
+        self.pageUI = "wait"
+        self.pageTitle = N_("Wait")
         self.items.update(kwargs)
     #enddef
 
 
     def fill(self, **kwargs):
-        super(PageWait, self).fill()
-        self.items.update(kwargs)
+        self.items = kwargs
     #enddef
 
 #endclass
@@ -738,9 +737,9 @@ class PageWait(Page):
 class PageConfirm(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Confirm")
         super(PageConfirm, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Confirm")
         self.stack = False
     #enddef
 
@@ -752,8 +751,7 @@ class PageConfirm(Page):
         self.backParams = kwargs.pop("backParams", dict())
         self.beep = kwargs.pop("beep", False)
         self.checkPowerbutton = kwargs.pop("checkPowerbutton", True)
-        self.fill()
-        self.items.update(kwargs)
+        self.items = kwargs
     #enddef
 
 
@@ -788,9 +786,9 @@ class PageConfirm(Page):
 class PageYesNo(Page):
 
     def __init__(self, display):
-        self.pageUI = "yesno"
-        self.pageTitle = _("Make your choice")
         super(PageYesNo, self).__init__(display)
+        self.pageUI = "yesno"
+        self.pageTitle = N_("Make your choice")
         self.stack = False
     #enddef
 
@@ -801,9 +799,8 @@ class PageYesNo(Page):
         self.noFce = kwargs.pop("noFce", None)
         self.noParams = kwargs.pop("noParams", dict())
         self.beep = kwargs.pop("beep", False)
-        self.pageTitle = kwargs.pop("pageTitle", _("Make your choice"))
-        self.fill()
-        self.items.update(kwargs)
+        self.pageTitle = kwargs.pop("pageTitle", N_("Make your choice"))
+        self.items = kwargs
     #enddef
 
 
@@ -873,9 +870,9 @@ class PagePrintPreviewBase(Page):
 class PagePrintPreview(PagePrintPreviewBase):
 
     def __init__(self, display):
-        self.pageUI = "printpreview"
-        self.pageTitle = _("Project")
         super(PagePrintPreview, self).__init__(display)
+        self.pageUI = "printpreview"
+        self.pageTitle = N_("Project")
     #enddef
 
 
@@ -1098,9 +1095,9 @@ Check if fans are connected properly and can rotate without resistance.""" % ", 
 class PagePrintStart(PagePrintPreviewBase):
 
     def __init__(self, display):
-        self.pageUI = "printstart"
-        self.pageTitle = _("Confirm")
         super(PagePrintStart, self).__init__(display)
+        self.pageUI = "printstart"
+        self.pageTitle = N_("Confirm")
     #enddef
 
 
@@ -1245,8 +1242,6 @@ For your project, %(requested)d %% is needed. A refill may be required during pr
 class PageStart(Page):
 
     def __init__(self, display):
-        self.pageUI = "splash"
-        self.pageTitle = ""
         super(PageStart, self).__init__(display)
     #enddef
 
@@ -1256,9 +1251,9 @@ class PageStart(Page):
 class PageHome(Page):
 
     def __init__(self, display):
-        self.pageUI = "home"
-        self.pageTitle = _("Home")
         super(PageHome, self).__init__(display)
+        self.pageUI = "home"
+        self.pageTitle = N_("Home")
         # meni se i z libPrinter!
         self.readyBeep = True
     #enddef
@@ -1321,9 +1316,9 @@ Calibrate now?"""))
 class PageControl(Page):
 
     def __init__(self, display):
-        self.pageUI = "control"
-        self.pageTitle = _("Control")
         super(PageControl, self).__init__(display)
+        self.pageUI = "control"
+        self.pageTitle = N_("Control")
     #enddef
 
 
@@ -1369,9 +1364,9 @@ class PageControl(Page):
 class PageSettings(Page):
 
     def __init__(self, display):
-        self.pageUI = "settings"
-        self.pageTitle = _("Settings")
         super(PageSettings, self).__init__(display)
+        self.pageUI = "settings"
+        self.pageTitle = N_("Settings")
     #enddef
 
 
@@ -1427,9 +1422,9 @@ class PageTimeDateBase(Page):
 class PageTimeSettings(PageTimeDateBase):
 
     def __init__(self, display):
-        self.pageUI = "timesettings"
-        self.pageTitle = _("Time Settings")
         super(PageTimeSettings, self).__init__(display)
+        self.pageUI = "timesettings"
+        self.pageTitle = N_("Time Settings")
     #enddef
 
 
@@ -1509,9 +1504,9 @@ class PageSetTimeBase(PageTimeDateBase):
 class PageSetTime(PageSetTimeBase):
 
     def __init__(self, display):
-        self.pageUI = "settime"
-        self.pageTitle = _("Set Time")
         super(PageSetTime, self).__init__(display)
+        self.pageUI = "settime"
+        self.pageTitle = N_("Set Time")
     #enddef
 
 #endclass
@@ -1520,9 +1515,9 @@ class PageSetTime(PageSetTimeBase):
 class PageSetDate(PageSetTimeBase):
 
     def __init__(self, display):
-        self.pageUI = "setdate"
-        self.pageTitle = _("Set Date")
         super(PageSetDate, self).__init__(display)
+        self.pageUI = "setdate"
+        self.pageTitle = N_("Set Date")
     #enddef
 
 #endclass
@@ -1532,8 +1527,9 @@ class PageSetTimezone(PageTimeDateBase):
     zoneinfo = "/usr/share/zoneinfo/"
 
     def __init__(self, display):
+        super(PageSetTimezone, self).__init__(display)
         self.pageUI = "settimezone"
-        self.pageTitle = _("Set Timezone")
+        self.pageTitle = N_("Set Timezone")
 
         # Available timezones
         regions = [zone.replace(PageSetTimezone.zoneinfo, "") for zone in glob.glob(os.path.join(PageSetTimezone.zoneinfo, "*"))]
@@ -1542,7 +1538,6 @@ class PageSetTimezone(PageTimeDateBase):
             cities = [os.path.basename(city) for city in glob.glob(os.path.join(PageSetTimezone.zoneinfo, region, "*"))]
             self.timezones[region] = cities
 
-        super(PageSetTimezone, self).__init__(display)
     #enddef
 
 
@@ -1587,10 +1582,10 @@ class PageSetTimezone(PageTimeDateBase):
 class PageSetHostname(Page):
 
     def __init__(self, display):
-        self.pageUI = "sethostname"
-        self.pageTitle = _("Set Hostname")
-        self._hostname = None
         super(PageSetHostname, self).__init__(display)
+        self.pageUI = "sethostname"
+        self.pageTitle = N_("Set Hostname")
+        self._hostname = None
     #enddef
 
 
@@ -1636,10 +1631,10 @@ class PageSetHostname(Page):
 class PageSetLanguage(Page):
 
     def __init__(self, display):
-        self.pageUI = "setlanguage"
-        self.pageTitle = _("Set Language")
-        self._locale = None
         super(PageSetLanguage, self).__init__(display)
+        self.pageUI = "setlanguage"
+        self.pageTitle = N_("Set Language")
+        self._locale = None
     #enddef
 
 
@@ -1722,13 +1717,13 @@ def value_saturate(min, max):
 class PageAdvancedSettings(Page):
 
     def __init__(self, display):
+        super(PageAdvancedSettings, self).__init__(display)
         self.pageUI = "advancedsettings"
-        self.pageTitle = _("Advanced Settings")
+        self.pageTitle = N_("Advanced Settings")
         self._display_test = False
         self.configwrapper = None
         self._calibTowerOffset_mm = None
         self.confirmReturnPending = False
-        super(PageAdvancedSettings, self).__init__(display)
 
         self.autorepeat = {
             'minus_tiltsensitivity': (5, 1), 'plus_tiltsensitivity': (5, 1),
@@ -2132,9 +2127,9 @@ class PageAdvancedSettings(Page):
 class PageFactoryReset(Page):
 
     def __init__(self, display):
-        self.pageUI = "yesno"
-        self.pageTitle = _("Factory reset?")
         super(PageFactoryReset, self).__init__(display)
+        self.pageUI = "yesno"
+        self.pageTitle = N_("Factory reset?")
         self.items.update({
             'text' : _("Do you really want to perform the factory reset?\n\n"
                 "All settings will be deleted!")})
@@ -2266,9 +2261,9 @@ class PageFactoryReset(Page):
 class PageSupport(Page):
 
     def __init__(self, display):
-        self.pageUI = "support"
-        self.pageTitle = _("Support")
         super(PageSupport, self).__init__(display)
+        self.pageUI = "support"
+        self.pageTitle = N_("Support")
     #enddef
 
 
@@ -2297,11 +2292,11 @@ class PageSupport(Page):
 class PageFirmwareUpdate(Page):
 
     def __init__(self, display):
+        super(PageFirmwareUpdate, self).__init__(display)
         self.pageUI = "firmwareupdate"
-        self.pageTitle = _("Firmware Update")
+        self.pageTitle = N_("Firmware Update")
         self.old_items = None
         self.rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
-        super(PageFirmwareUpdate, self).__init__(display)
         self.updateDataPeriod = 1
     #enddef
 
@@ -2459,9 +2454,9 @@ class PageFirmwareUpdate(Page):
 class PageManual(Page):
 
     def __init__(self, display):
-        self.pageUI = "manual"
-        self.pageTitle = _("Manual")
         super(PageManual, self).__init__(display)
+        self.pageUI = "manual"
+        self.pageTitle = N_("Manual")
         self.items.update({
             'manual_url': defines.manualURL,
             #'text' : "",
@@ -2474,9 +2469,9 @@ class PageManual(Page):
 class PageVideos(Page):
 
     def __init__(self, display):
-        self.pageUI = "videos"
-        self.pageTitle = _("Videos")
         super(PageVideos, self).__init__(display)
+        self.pageUI = "videos"
+        self.pageTitle = N_("Videos")
         self.items.update({
             'videos_url': defines.videosURL,
             #'text' : "",
@@ -2489,9 +2484,9 @@ class PageVideos(Page):
 class PageNetwork(Page):
 
     def __init__(self, display):
-        self.pageUI = "network"
-        self.pageTitle = _("Network")
         super(PageNetwork, self).__init__(display)
+        self.pageUI = "network"
+        self.pageTitle = N_("Network")
     #enddef
 
 
@@ -2513,8 +2508,6 @@ class PageNetwork(Page):
             'wifi_ssid' : wifisetup.WifiConnectedSSID,
             'wifi_signal' : wifisetup.WifiConnectedSignal,
         }
-
-        return items
     #enddef
 
 
@@ -2626,7 +2619,7 @@ It may disconnect the web client."""))
             wifisetup.StartAP()
             wifisetup.EnableAP()
         except:
-            self.logger.error("Setting wifi AP params failed: ssid:%s psk:%s", (ssid, psk))
+            self.logger.error("Setting wifi AP params failed: ssid:%s psk:%s", ssid, psk)
         #endtry
 
         # Starting AP...
@@ -2652,9 +2645,9 @@ It may disconnect the web client."""))
 class PageQRCode(Page):
 
     def __init__(self, display):
-        self.pageUI = "qrcode"
-        self.pageTitle = _("QR Code")
         super(PageQRCode, self).__init__(display)
+        self.pageUI = "qrcode"
+        self.pageTitle = N_("QR Code")
     #enddef
 
     # TODO: Display parametric qrcode passed from previous page
@@ -2669,9 +2662,9 @@ class PageQRCode(Page):
 class PagePrint(Page):
 
     def __init__(self, display):
-        self.pageUI = "print"
-        self.pageTitle = _("Print")
         super(PagePrint, self).__init__(display)
+        self.pageUI = "print"
+        self.pageTitle = N_("Print")
         self.callbackPeriod = 0.1
         self.callbackSkip = 6
     #enddef
@@ -2876,9 +2869,9 @@ It may affect the printed object!"""))
 class PageChange(Page):
 
     def __init__(self, display):
-        self.pageUI = "change"
-        self.pageTitle = _("Change Exposure Times")
         super(PageChange, self).__init__(display)
+        self.pageUI = "change"
+        self.pageTitle = N_("Change Exposure Times")
         self.autorepeat = {
             "exposaddsecond" : (5, 1),
             "expossubsecond" : (5, 1),
@@ -2985,9 +2978,9 @@ class PageChange(Page):
 class PageSysInfo(Page):
 
     def __init__(self, display):
-        self.pageUI = "sysinfo"
-        self.pageTitle = _("System Information")
         super(PageSysInfo, self).__init__(display)
+        self.pageUI = "sysinfo"
+        self.pageTitle = N_("System Information")
         self.items.update({
                 'serial_number': self.display.hw.cpuSerialNo,
                 'system_name': self.display.hwConfig.os.name,
@@ -3016,17 +3009,17 @@ class PageSysInfo(Page):
     def updateData(self):
         items = {}
         if self.skip > 10:
-            self._setItem(items, 'fans', {'fan%d_rpm' % i: v for i, v in enumerate(self.display.hw.getFansRpm())})
-            self._setItem(items, 'temps', {'temp%d_celsius' % i: v for i, v in enumerate(self.display.hw.getMcTemperatures())})
-            self._setItem(items, 'cpu_temp', self.display.hw.getCpuTemperature())
-            self._setItem(items, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getVoltages())})
-            self._setItem(items, 'devlist', self.display.inet.getDevices())
-            self._setItem(items, 'uv_statistics', {'uv_stat%d' % i: v for i, v in enumerate(self.display.hw.getUvStatistics())})   #uv_stats0 - time counter [s] #TODO add uv average current, uv average temperature
+            self._setItem(items, self.oldValues, 'fans', {'fan%d_rpm' % i: v for i, v in enumerate(self.display.hw.getFansRpm())})
+            self._setItem(items, self.oldValues, 'temps', {'temp%d_celsius' % i: v for i, v in enumerate(self.display.hw.getMcTemperatures())})
+            self._setItem(items, self.oldValues, 'cpu_temp', self.display.hw.getCpuTemperature())
+            self._setItem(items, self.oldValues, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getVoltages())})
+            self._setItem(items, self.oldValues, 'devlist', self.display.inet.getDevices())
+            self._setItem(items, self.oldValues, 'uv_statistics', {'uv_stat%d' % i: v for i, v in enumerate(self.display.hw.getUvStatistics())})   #uv_stats0 - time counter [s] #TODO add uv average current, uv average temperature
             self.skip = 0
         #endif
-        self._setItem(items, 'resin_sensor_state', self.display.hw.getResinSensorState())
-        self._setItem(items, 'cover_state', self.display.hw.isCoverClosed())
-        self._setItem(items, 'power_switch_state', self.display.hw.getPowerswitchState())
+        self._setItem(items, self.oldValues, 'resin_sensor_state', self.display.hw.getResinSensorState())
+        self._setItem(items, self.oldValues, 'cover_state', self.display.hw.isCoverClosed())
+        self._setItem(items, self.oldValues, 'power_switch_state', self.display.hw.getPowerswitchState())
 
         if len(items):
             self.showItems(**items)
@@ -3047,9 +3040,9 @@ class PageSysInfo(Page):
 class PageNetInfo(Page):
 
     def __init__(self, display):
-        self.pageUI = "netinfo"
-        self.pageTitle = _("Network Information")
         super(PageNetInfo, self).__init__(display)
+        self.pageUI = "netinfo"
+        self.pageTitle = N_("Network Information")
     #enddef
 
 
@@ -3107,9 +3100,9 @@ class PageNetInfo(Page):
 class PageAbout(Page):
 
     def __init__(self, display):
-        self.pageUI = "about"
-        self.pageTitle = _("About")
         super(PageAbout, self).__init__(display)
+        self.pageUI = "about"
+        self.pageTitle = N_("About")
         self.items.update({
                 'line1' : "2018-2019 Prusa Research s.r.o.",
                 'line2' : defines.aboutURL,
@@ -3263,12 +3256,12 @@ class SourceDir:
 class PageSrcSelect(Page):
 
     def __init__(self, display):
+        super(PageSrcSelect, self).__init__(display)
         self.pageUI = "sourceselect"
-        self.pageTitle = _("Projects")
+        self.pageTitle = N_("Projects")
         self.currentRoot = "."
         self.old_items = None
         self.sources = {}
-        super(PageSrcSelect, self).__init__(display)
         self.stack = False
         self.updateDataPeriod = 1
     #enddef
@@ -3448,9 +3441,9 @@ Re-export it and try again.""") % config.zipError)
 class PageError(Page):
 
     def __init__(self, display):
-        self.pageUI = "error"
-        self.pageTitle = _("Error")
         super(PageError, self).__init__(display)
+        self.pageUI = "error"
+        self.pageTitle = N_("Error")
         self.stack = False
     #enddef
 
@@ -3465,8 +3458,7 @@ class PageError(Page):
     def setParams(self, **kwargs):
         self.backFce = kwargs.pop("backFce", None)
         self.backParams = kwargs.pop("backParams", dict())
-        self.fill()
-        self.items.update(kwargs)
+        self.items = kwargs
     #enddef
 
 
@@ -3485,9 +3477,9 @@ class PageError(Page):
 class PageTiltTower(Page):
 
     def __init__(self, display):
-        self.pageUI = "admin"
-        self.pageTitle = _("Tilt & Tower")
         super(PageTiltTower, self).__init__(display)
+        self.pageUI = "admin"
+        self.pageTitle = N_("Tilt & Tower")
         self.items.update({
                 'button1' : _("Tilt home"),
                 'button2' : _("Tilt move"),
@@ -3642,9 +3634,9 @@ class PageTiltTower(Page):
 class PageDisplay(Page):
 
     def __init__(self, display):
-        self.pageUI = "admin"
-        self.pageTitle = _("Display")
         super(PageDisplay, self).__init__(display)
+        self.pageUI = "admin"
+        self.pageTitle = N_("Display")
         self.items.update({
                 'button1' : _("Chess 8"),
                 'button2' : _("Chess 16"),
@@ -3775,9 +3767,9 @@ class PageDisplay(Page):
 class PageInfiniteTest(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Infinite test")
         super(PageInfiniteTest, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Infinite test")
         self.checkCooling = True
     #enddef
 
@@ -3870,9 +3862,9 @@ class PageInfiniteTest(Page):
 class PageUvCalibration(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("UV LED calibration")
         super(PageUvCalibration, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("UV LED calibration")
         self.checkCooling = True
     #enddef
 
@@ -3947,9 +3939,9 @@ class PageUvCalibration(Page):
 class PageUvMeterShow(Page):
 
     def __init__(self, display):
-        self.pageUI = "picture"
-        self.pageTitle = _("UV LED calibration")
         super(PageUvMeterShow, self).__init__(display)
+        self.pageUI = "picture"
+        self.pageTitle = N_("UV LED calibration")
         self.checkCooling = True
         from sl1fw.libUvLedMeter import UvLedMeter
         self.uvmeter = UvLedMeter()
@@ -3988,7 +3980,7 @@ class PageUvCalibrationTest(PageUvMeterShow):
     def backButtonRelease(self):
         self.display.page_yesno.setParams(
                 yesFce = self.toCalibration,
-                pageTitle = "Recalibrate?",
+                pageTitle = N_("Recalibrate?"),
                 text = _("The UV LED is already calibrated.\n\n"
                     "Would you like to recalibrate?"))
         return "yesno"
@@ -4145,9 +4137,9 @@ class PageUvMeter(PageUvMeterShow):
 class PageUvCalibrationConfirm(Page):
 
     def __init__(self, display):
-        self.pageUI = "yesno"
-        self.pageTitle = _("Apply calibration?")
         super(PageUvCalibrationConfirm, self).__init__(display)
+        self.pageUI = "yesno"
+        self.pageTitle = N_("Apply calibration?")
         self.checkCooling = True
     #enddef
 
@@ -4199,9 +4191,9 @@ class PageUvCalibrationConfirm(Page):
 class PageDisplayTest(Page):
 
     def __init__(self, display):
-        self.pageUI = "yesno"
-        self.pageTitle = _("Display test")
         super(PageDisplayTest, self).__init__(display)
+        self.pageUI = "yesno"
+        self.pageTitle = N_("Display test")
         self.items.update({
             'imageName' : "10_prusa_logo.jpg",
             'text' : _("""Can you see company logo on the exposure display through the orange cover?
@@ -4261,9 +4253,9 @@ Please contact tech support!"""))
 class PageAdmin(Page):
 
     def __init__(self, display):
-        self.pageUI = "admin"
-        self.pageTitle = _("Admin Home")
         super(PageAdmin, self).__init__(display)
+        self.pageUI = "admin"
+        self.pageTitle = N_("Admin Home")
         self.items.update({
                 'button1' : _("Tilt & Tower"),
                 'button2' : _("Display"),
@@ -4488,11 +4480,11 @@ Is the tank secured with both screws?"""))
 class PageNetUpdate(Page):
 
     def __init__(self, display):
-        self.pageUI = "admin"
-        self.pageTitle = _("Net Update")
         super(PageNetUpdate, self).__init__(display)
+        self.pageUI = "admin"
+        self.pageTitle = N_("Net Update")
 
-        # Create item for downlaoding examples
+        # Create item for downloading examples
         self.items.update({
             "button14" : _("Send factory config"),
             "button15" : _("Download examples"),
@@ -4688,9 +4680,9 @@ Proceed update?""") % name)
 class PageLogging(Page):
 
     def __init__(self, display):
-        self.pageUI = "admin"
-        self.pageTitle = _("Logging")
         super(PageLogging, self).__init__(display)
+        self.pageUI = "admin"
+        self.pageTitle = N_("Logging")
         self.items.update({
             "button1": _("Save logs to USB")
         })
@@ -4707,8 +4699,8 @@ class PageLogging(Page):
 class PageSetup(Page):
 
     def __init__(self, display):
-        self.pageUI = "setup"
         super(PageSetup, self).__init__(display)
+        self.pageUI = "setup"
         self.autorepeat = {
                 'minus2g1' : (5, 1), 'plus2g1' : (5, 1),
                 'minus2g2' : (5, 1), 'plus2g2' : (5, 1),
@@ -4726,7 +4718,6 @@ class PageSetup(Page):
                 'back' : _("Back"),
                 })
         self.changed = {}
-        self.temp = {}
     #enddef
 
 
@@ -4804,8 +4795,8 @@ class PageSetup(Page):
 class PageSetupHw(PageSetup):
 
     def __init__(self, display):
-        self.pageTitle = _("Hardware Setup")
         super(PageSetupHw, self).__init__(display)
+        self.pageTitle = N_("Hardware Setup")
         self.items.update({
                 'label1g1' : _("Fan check"),
                 'label1g2' : _("Cover check"),
@@ -4823,6 +4814,7 @@ class PageSetupHw(PageSetup):
 
                 'label2g8' : _("MC board version"),
                 })
+        self.temp = {}
     #enddef
 
 
@@ -4863,104 +4855,104 @@ class PageSetupHw(PageSetup):
 
 
     def state1g1ButtonRelease(self):
-        self._onOff(0, 'fancheck')
+        self._onOff(self.temp, self.changed, 0, 'fancheck')
     #enddef
 
 
     def state1g2ButtonRelease(self):
-        self._onOff(1, 'covercheck')
+        self._onOff(self.temp, self.changed, 1, 'covercheck')
     #enddef
 
 
     def state1g3ButtonRelease(self):
-        self._onOff(2, 'mcversioncheck')
+        self._onOff(self.temp, self.changed, 2, 'mcversioncheck')
     #enddef
 
 
     def state1g4ButtonRelease(self):
-        self._onOff(3, 'resinsensor')
+        self._onOff(self.temp, self.changed, 3, 'resinsensor')
     #enddef
 
 
     def state1g5ButtonRelease(self):
-        self._onOff(4, 'autooff')
+        self._onOff(self.temp, self.changed, 4, 'autooff')
     #enddef
 
 
     def state1g6ButtonRelease(self):
-        self._onOff(5, 'mute')
+        self._onOff(self.temp, self.changed, 5, 'mute')
     #enddef
 
 
     def minus2g1Button(self):
-        self._value(0, 'screwmm', 2, 8, -1)
+        self._value(self.temp, self.changed, 0, 'screwmm', 2, 8, -1)
     #enddef
 
 
     def plus2g1Button(self):
-        self._value(0, 'screwmm', 2, 8, 1)
+        self._value(self.temp, self.changed, 0, 'screwmm', 2, 8, 1)
     #enddef
 
 
     def minus2g2Button(self):
-        self._value(1, 'tiltheight', 1, 6000, -1)
+        self._value(self.temp, self.changed, 1, 'tiltheight', 1, 6000, -1)
     #enddef
 
 
     def plus2g2Button(self):
-        self._value(1, 'tiltheight', 1, 6000, 1)
+        self._value(self.temp, self.changed, 1, 'tiltheight', 1, 6000, 1)
     #enddef
 
 
     def minus2g3Button(self):
-        self._value(2, 'measuringmoves', 1, 10, -1)
+        self._value(self.temp, self.changed, 2, 'measuringmoves', 1, 10, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        self._value(2, 'measuringmoves', 1, 10, 1)
+        self._value(self.temp, self.changed, 2, 'measuringmoves', 1, 10, 1)
     #enddef
 
 
     def minus2g4Button(self):
-        self._value(3, 'stirringmoves', 1, 10, -1)
+        self._value(self.temp, self.changed, 3, 'stirringmoves', 1, 10, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        self._value(3, 'stirringmoves', 1, 10, 1)
+        self._value(self.temp, self.changed, 3, 'stirringmoves', 1, 10, 1)
     #enddef
 
 
     def minus2g5Button(self):
-        self._value(4, 'stirringdelay', 0, 300, -5, self._strTenth)
+        self._value(self.temp, self.changed, 4, 'stirringdelay', 0, 300, -5, self._strTenth)
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 'stirringdelay', 0, 300, 5, self._strTenth)
+        self._value(self.temp, self.changed, 4, 'stirringdelay', 0, 300, 5, self._strTenth)
     #enddef
 
 
     def minus2g6Button(self):
-        self._value(5, 'pwrledpwm', 0, 100, -5)
+        self._value(self.temp, self.changed, 5, 'pwrledpwm', 0, 100, -5)
         self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
     #enddef
 
 
     def plus2g6Button(self):
-        self._value(5, 'pwrledpwm', 0, 100, 5)
+        self._value(self.temp, self.changed, 5, 'pwrledpwm', 0, 100, 5)
         self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
     #enddef
 
 
     def minus2g8Button(self):
-        self._value(7, 'mcboardversion', 5, 6, -1)
+        self._value(self.temp, self.changed, 7, 'mcboardversion', 5, 6, -1)
     #enddef
 
 
     def plus2g8Button(self):
-        self._value(7, 'mcboardversion', 5, 6, 1)
+        self._value(self.temp, self.changed, 7, 'mcboardversion', 5, 6, 1)
     #enddef
 
 
@@ -4975,8 +4967,8 @@ class PageSetupHw(PageSetup):
 class PageSetupExposure(PageSetup):
 
     def __init__(self, display):
-        self.pageTitle = _("Exposure Setup")
         super(PageSetupExposure, self).__init__(display)
+        self.pageTitle = N_("Exposure Setup")
         self.items.update({
                 'label1g1' : _("Blink exposure"),
                 'label1g2' : _("Per-Partes expos."),
@@ -4989,6 +4981,7 @@ class PageSetupExposure(PageSetup):
                 'label2g5' : _("Up&down wait [s]"),
                 'label2g6' : _("Up&down every n-th l."),
                 })
+        self.temp = {}
     #enddef
 
 
@@ -5021,17 +5014,17 @@ class PageSetupExposure(PageSetup):
 
 
     def state1g1ButtonRelease(self):
-        self._onOff(0, 'blinkexposure')
+        self._onOff(self.temp, self.changed, 0, 'blinkexposure')
     #enddef
 
 
     def state1g2ButtonRelease(self):
-        self._onOff(1, 'perpartesexposure')
+        self._onOff(self.temp, self.changed, 1, 'perpartesexposure')
     #enddef
 
 
     def state1g3ButtonRelease(self):
-        self._onOff(2, 'tilt')
+        self._onOff(self.temp, self.changed, 2, 'tilt')
         if not self.temp['tilt'] and not self.temp['layertowerhop']:
             self.temp['layertowerhop'] = self.display.hwConfig.calcMicroSteps(5)
             self.changed['layertowerhop'] = str(self.temp['layertowerhop'])
@@ -5041,17 +5034,17 @@ class PageSetupExposure(PageSetup):
 
 
     def minus2g1Button(self):
-        self._value(0, 'trigger', 0, 20, -1, self._strTenth)
+        self._value(self.temp, self.changed, 0, 'trigger', 0, 20, -1, self._strTenth)
     #enddef
 
 
     def plus2g1Button(self):
-        self._value(0, 'trigger', 0, 20, 1, self._strTenth)
+        self._value(self.temp, self.changed, 0, 'trigger', 0, 20, 1, self._strTenth)
     #enddef
 
 
     def minus2g2Button(self):
-        self._value(1, 'layertowerhop', 0, 8000, -20, self._strZHop)
+        self._value(self.temp, self.changed, 1, 'layertowerhop', 0, 8000, -20, self._strZHop)
         if not self.temp['tilt'] and not self.temp['layertowerhop']:
             self.temp['tilt'] = True
             self.changed['tilt'] = "on"
@@ -5061,47 +5054,47 @@ class PageSetupExposure(PageSetup):
 
 
     def plus2g2Button(self):
-        self._value(1, 'layertowerhop', 0, 8000, 20, self._strZHop)
+        self._value(self.temp, self.changed, 1, 'layertowerhop', 0, 8000, 20, self._strZHop)
     #enddef
 
 
     def minus2g3Button(self):
-        self._value(2, 'delaybeforeexposure', 0, 300, -1, self._strTenth)
+        self._value(self.temp, self.changed, 2, 'delaybeforeexposure', 0, 300, -1, self._strTenth)
     #enddef
 
 
     def plus2g3Button(self):
-        self._value(2, 'delaybeforeexposure', 0, 300, 1, self._strTenth)
+        self._value(self.temp, self.changed, 2, 'delaybeforeexposure', 0, 300, 1, self._strTenth)
     #enddef
 
 
     def minus2g4Button(self):
-        self._value(3, 'delayafterexposure', 0, 300, -1, self._strTenth)
+        self._value(self.temp, self.changed, 3, 'delayafterexposure', 0, 300, -1, self._strTenth)
     #enddef
 
 
     def plus2g4Button(self):
-        self._value(3, 'delayafterexposure', 0, 300, 1, self._strTenth)
+        self._value(self.temp, self.changed, 3, 'delayafterexposure', 0, 300, 1, self._strTenth)
     #enddef
 
 
     def minus2g5Button(self):
-        self._value(4, 'upanddownwait', 0, 600, -1)
+        self._value(self.temp, self.changed, 4, 'upanddownwait', 0, 600, -1)
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 'upanddownwait', 0, 600, 1)
+        self._value(self.temp, self.changed, 4, 'upanddownwait', 0, 600, 1)
     #enddef
 
 
     def minus2g6Button(self):
-        self._value(5, 'upanddowneverylayer', 0, 500, -1)
+        self._value(self.temp, self.changed, 5, 'upanddowneverylayer', 0, 500, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        self._value(5, 'upanddowneverylayer', 0, 500, 1)
+        self._value(self.temp, self.changed, 5, 'upanddowneverylayer', 0, 500, 1)
     #enddef
 
 #endclass
@@ -5110,21 +5103,38 @@ class PageSetupExposure(PageSetup):
 class PageException(Page):
 
     def __init__(self, display):
-        self.pageUI = "exception"
-        self.pageTitle = _("System Error")
         super(PageException, self).__init__(display)
+        self.pageUI = "exception"
+        self.pageTitle = N_("System Error")
     #enddef
 
 
     def setParams(self, **kwargs):
-        self.fill()
-        self.items.update(kwargs)
+        self.items = kwargs
     #enddef
 
 #endclass
 
 
 class MovePage(Page):
+
+    # for pylint only :)
+    def _up(self, dummy):
+        self.logger.error("THIS SHOULD BE OVERRIDDEN!")
+    #enddef
+
+
+    # for pylint only :)
+    def _down(self, dummy):
+        self.logger.error("THIS SHOULD BE OVERRIDDEN!")
+    #enddef
+
+
+    # for pylint only :)
+    def _stop(self):
+        self.logger.error("THIS SHOULD BE OVERRIDDEN!")
+    #enddef
+
 
     def upfastButton(self):
         self._up(False)
@@ -5171,9 +5181,9 @@ class MovePage(Page):
 class PageTowerMove(MovePage):
 
     def __init__(self, display):
-        self.pageUI = "towermove"
-        self.pageTitle = _("Tower Move")
         super(PageTowerMove, self).__init__(display)
+        self.pageUI = "towermove"
+        self.pageTitle = N_("Tower Move")
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
         self.setProfiles = True
     #enddef
@@ -5234,9 +5244,9 @@ class PageTowerMove(MovePage):
 class PageTiltMove(MovePage):
 
     def __init__(self, display):
-        self.pageUI = "tiltmove"
-        self.pageTitle = _("Tilt Move")
         super(PageTiltMove, self).__init__(display)
+        self.pageUI = "tiltmove"
+        self.pageTitle = N_("Tilt Move")
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
         self.setProfiles = True
     #enddef
@@ -5297,9 +5307,9 @@ class PageTiltMove(MovePage):
 class PageCalibration1(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 1/10")
         super(PageCalibration1, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 1/10")
         self.items.update({
             'imageName' : "06_tighten_knob.jpg",
             'text' : _(u"If the platform is not yet inserted, insert it according to the picture at 0° angle and secure it with the black knob.")})
@@ -5343,9 +5353,9 @@ class PageCalibration1(Page):
 class PageCalibration2(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 2/10")
         super(PageCalibration2, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 2/10")
         self.items.update({
             'imageName' : "01_loosen_screws.jpg",
             'text' : _("""Loosen the small screw on the cantilever with an allen key. Be careful not to unscrew it completely.
@@ -5374,9 +5384,9 @@ Some SL1 printers may have two screws - see the handbook for more information.""
 class PageCalibration3(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 3/10")
         super(PageCalibration3, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 3/10")
         self.items.update({
             'imageName' : "02_place_bed.jpg",
             'text' : _("Unscrew the tank, rotate it by 90 degrees and place it flat across the tilt bed. Remove the tank screws completely!")})
@@ -5414,9 +5424,9 @@ class PageCalibration3(Page):
 class PageCalibration4(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 4/10")
         super(PageCalibration4, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 4/10")
         self.items.update({
             'imageName' : "03_proper_aligment.jpg",
             'text' : _("In the next step, move the tilt up/down until the tilt frame is in direct contact with the resin tank. The tilt frame and tank have to be aligned in a perfect line.")})
@@ -5443,9 +5453,9 @@ class PageCalibration4(Page):
 class PageCalibration5(MovePage):
 
     def __init__(self, display):
-        self.pageUI = "tiltmovecalibration"
-        self.pageTitle = _("Calibration step 5/10")
         super(PageCalibration5, self).__init__(display)
+        self.pageUI = "tiltmovecalibration"
+        self.pageTitle = N_("Calibration step 5/10")
         self.autorepeat = { "upslow" : (3, 1), "downslow" : (3, 1) }
     #enddef
 
@@ -5517,9 +5527,9 @@ class PageCalibration5(MovePage):
 class PageCalibration6(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 6/10")
         super(PageCalibration6, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 6/10")
         self.items.update({
             'imageName' : "08_clean.jpg",
             'text' : _("""Make sure the platform, tank and tilt are PERFECTLY clean.
@@ -5548,9 +5558,9 @@ The image is for illustation only.""")})
 class PageCalibration7(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 7/10")
         super(PageCalibration7, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 7/10")
         self.items.update({
             'imageName' : "04_tighten_screws.jpg",
             'text' : _("Return the tank to the original position and secure it with tank screws. Make sure you tighten both screws evenly and with the same amount of force.")})
@@ -5582,9 +5592,9 @@ class PageCalibration7(Page):
 class PageCalibration8(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 8/10")
         super(PageCalibration8, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 8/10")
         self.items.update({
             'imageName' : "06_tighten_knob.jpg",
             'text' : _("""Check whether the platform is properly secured with the black knob (hold it in place and tighten the knob if needed).
@@ -5683,9 +5693,9 @@ Click continue and read the instructions carefully."""))
 class PageCalibration9(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 9/10")
         super(PageCalibration9, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 9/10")
         self.items.update({
             'imageName' : "05_align_platform.jpg",
             'text' : _("""Adjust the platform so it's aligned with the exposition display.
@@ -5714,9 +5724,9 @@ Front edges of the platform and exposition display need to be parallel.""")})
 class PageCalibration10(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration step 10/10")
         super(PageCalibration10, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration step 10/10")
         self.items.update({
             'imageName' : "07_tighten_screws.jpg",
             'text' : _("""Tighten the small screw on the cantilever with an allen key.
@@ -5785,9 +5795,9 @@ Some SL1 printers may have two screws - tighten them evenly, little by little. S
 class PageCalibration11(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Calibration done")
         super(PageCalibration11, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Calibration done")
     #enddef
 
 
@@ -5823,9 +5833,9 @@ Area fill: %(area)d %%""") % {
 class PageCalibrationConfirm(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Cancel calibration?")
         super(PageCalibrationConfirm, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Cancel calibration?")
         self.items.update({
             'text' : _("""Do you really want to cancel calibration?
 
@@ -5848,9 +5858,9 @@ Machine will not work without going through it.""")})
 class PageTowerOffset(MovePage):
 
     def __init__(self, display):
-        self.pageUI = "towermovecalibration"
-        self.pageTitle = _("Tower Offset")
         super(PageTowerOffset, self).__init__(display)
+        self.pageUI = "towermovecalibration"
+        self.pageTitle = N_("Tower Offset")
         self.stack = False
         self.autorepeat = { "upslow" : (3, 1), "downslow" : (3, 1) }
     #enddef
@@ -5908,9 +5918,9 @@ class PageTowerOffset(MovePage):
 
 class ProfilesPage(Page):
 
-    def __init__(self, display, items = None):
-        self.pageUI = "setup"
+    def __init__(self, display):
         super(ProfilesPage, self).__init__(display)
+        self.pageUI = "setup"
         self.autorepeat = {
                 "minus2g1" : (5, 1), "plus2g1" : (5, 1),
                 "minus2g2" : (5, 1), "plus2g2" : (5, 1),
@@ -5920,33 +5930,17 @@ class ProfilesPage(Page):
                 "minus2g6" : (5, 1), "plus2g6" : (5, 1),
                 "minus2g7" : (5, 1), "plus2g7" : (5, 1),
                 }
-        self.items.update(items if items else {
-                "label1g1" : self.profilesNames[0],
-                "label1g2" : self.profilesNames[1],
-                "label1g3" : self.profilesNames[2],
-                "label1g4" : self.profilesNames[3],
-                "label1g5" : self.profilesNames[4],
-                "label1g6" : self.profilesNames[5],
-                "label1g7" : self.profilesNames[6],
-                "label1g8" : self.profilesNames[7],
-
-                "label2g1" : "starting steprate",
-                "label2g2" : "maximum steprate",
-                "label2g3" : "acceleration",
-                "label2g4" : "deceleration",
-                "label2g5" : "current",
-                "label2g6" : "stallguard threshold",
-                "label2g7" : "coolstep threshold",
-
+        self.items.update({
                 "button1" : _("Export"),
                 "button2" : _("Import"),
-                "button3" : _("Test"),
                 "button4" : _("Save"),
-                "button5" : _("Defaults"),
                 })
+        self.profilesNames = dict()
+        self.profiles = None
         self.actualProfile = 0
         self.nameIndexes = set()
         self.profileItems = 7
+        self.profilesFilename = "dummy.json"
     #enddef
 
 
@@ -6170,11 +6164,31 @@ class ProfilesPage(Page):
 class PageTiltProfiles(ProfilesPage):
 
     def __init__(self, display):
+        super(PageTiltProfiles, self).__init__(display)
         self.profilesFilename = "tilt_profiles.json"
         self.profilesNames = display.hw.getTiltProfilesNames()
-        self.profiles = None
-        self.pageTitle = _("Tilt Profiles")
-        super(PageTiltProfiles, self).__init__(display)
+        self.pageTitle = N_("Tilt Profiles")
+        self.items.update({
+                "label1g1" : self.profilesNames[0],
+                "label1g2" : self.profilesNames[1],
+                "label1g3" : self.profilesNames[2],
+                "label1g4" : self.profilesNames[3],
+                "label1g5" : self.profilesNames[4],
+                "label1g6" : self.profilesNames[5],
+                "label1g7" : self.profilesNames[6],
+                "label1g8" : self.profilesNames[7],
+
+                "label2g1" : "starting steprate",
+                "label2g2" : "maximum steprate",
+                "label2g3" : "acceleration",
+                "label2g4" : "deceleration",
+                "label2g5" : "current",
+                "label2g6" : "stallguard threshold",
+                "label2g7" : "coolstep threshold",
+
+                "button3" : _("Test"),
+                "button5" : _("Defaults"),
+                })
     #enddef
 
 
@@ -6216,11 +6230,31 @@ class PageTiltProfiles(ProfilesPage):
 class PageTowerProfiles(ProfilesPage):
 
     def __init__(self, display):
+        super(PageTowerProfiles, self).__init__(display)
         self.profilesFilename = "tower_profiles.json"
         self.profilesNames = display.hw.getTowerProfilesNames()
-        self.profiles = None
-        self.pageTitle = _("Tower Profiles")
-        super(PageTowerProfiles, self).__init__(display)
+        self.pageTitle = N_("Tower Profiles")
+        self.items.update({
+                "label1g1" : self.profilesNames[0],
+                "label1g2" : self.profilesNames[1],
+                "label1g3" : self.profilesNames[2],
+                "label1g4" : self.profilesNames[3],
+                "label1g5" : self.profilesNames[4],
+                "label1g6" : self.profilesNames[5],
+                "label1g7" : self.profilesNames[6],
+                "label1g8" : self.profilesNames[7],
+
+                "label2g1" : "starting steprate",
+                "label2g2" : "maximum steprate",
+                "label2g3" : "acceleration",
+                "label2g4" : "deceleration",
+                "label2g5" : "current",
+                "label2g6" : "stallguard threshold",
+                "label2g7" : "coolstep threshold",
+
+                "button3" : _("Test"),
+                "button5" : _("Defaults"),
+                })
     #enddef
 
 
@@ -6262,9 +6296,9 @@ class PageTowerProfiles(ProfilesPage):
 class PageFansLeds(Page):
 
     def __init__(self, display):
-        self.pageUI = "setup"
-        self.pageTitle = _("Fans & UV LED")
         super(PageFansLeds, self).__init__(display)
+        self.pageUI = "setup"
+        self.pageTitle = N_("Fans & UV LED")
         self.autorepeat = {
                 'minus2g1' : (5, 1), 'plus2g1' : (5, 1),
                 'minus2g2' : (5, 1), 'plus2g2' : (5, 1),
@@ -6295,10 +6329,10 @@ class PageFansLeds(Page):
                 'back' : _("Back"),
                 })
         self.updateDataPeriod = 0.5
-        self.changed = {}
-        self.temp = {}
         self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'uvcurrent', 'uvcalibtemp', 'uvcalibintensity'))
         self.checkCooling = True
+        self.temp = {}
+        self.changed = {}
     #enddef
 
 
@@ -6319,18 +6353,18 @@ class PageFansLeds(Page):
         self.temp['fs1'], self.temp['fs2'], self.temp['fs3'] = self.display.hw.getFans()
         self.temp['uls'] = self.display.hw.getUvLedState()[0]
         self.temp['cls'] = self.display.hw.getCameraLedState()
-        self._setItem(items, 'state1g1', self.temp['fs1'])
-        self._setItem(items, 'state1g2', self.temp['fs2'])
-        self._setItem(items, 'state1g3', self.temp['fs3'])
-        self._setItem(items, 'state1g5', self.temp['uls'])
-        self._setItem(items, 'state1g7', self.temp['cls'])
+        self._setItem(items, self.oldValues, 'state1g1', self.temp['fs1'])
+        self._setItem(items, self.oldValues, 'state1g2', self.temp['fs2'])
+        self._setItem(items, self.oldValues, 'state1g3', self.temp['fs3'])
+        self._setItem(items, self.oldValues, 'state1g5', self.temp['uls'])
+        self._setItem(items, self.oldValues, 'state1g7', self.temp['cls'])
 
         self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'] = self.display.hw.getFansPwm()
         self.temp['uvcurrent'] = self.display.hw.getUvLedCurrent()
-        self._setItem(items, 'value2g1', self.temp['fan1pwm'])
-        self._setItem(items, 'value2g2', self.temp['fan2pwm'])
-        self._setItem(items, 'value2g3', self.temp['fan3pwm'])
-        self._setItem(items, 'value2g5', str(int(self.temp['uvcurrent'])))
+        self._setItem(items, self.oldValues, 'value2g1', self.temp['fan1pwm'])
+        self._setItem(items, self.oldValues, 'value2g2', self.temp['fan2pwm'])
+        self._setItem(items, self.oldValues, 'value2g3', self.temp['fan3pwm'])
+        self._setItem(items, self.oldValues, 'value2g5', str(int(self.temp['uvcurrent'])))
 
         if len(items):
             self.showItems(**items)
@@ -6423,28 +6457,28 @@ class PageFansLeds(Page):
 
 
     def state1g1ButtonRelease(self):
-        self._onOff(0, 'fs1')
+        self._onOff(self.temp, self.changed, 0, 'fs1')
         self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
         self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
     def state1g2ButtonRelease(self):
-        self._onOff(1, 'fs2')
+        self._onOff(self.temp, self.changed, 1, 'fs2')
         self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
         self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
     def state1g3ButtonRelease(self):
-        self._onOff(2, 'fs3')
+        self._onOff(self.temp, self.changed, 2, 'fs3')
         self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
         self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
     #enddef
 
 
     def state1g5ButtonRelease(self):
-        self._onOff(4, 'uls')
+        self._onOff(self.temp, self.changed, 4, 'uls')
         self.display.hw.uvLed(self.temp['uls'])
         if self.temp['uls']:
             self.display.hw.startFans()
@@ -6455,76 +6489,76 @@ class PageFansLeds(Page):
 
 
     def state1g7ButtonRelease(self):
-        self._onOff(6, 'cls')
+        self._onOff(self.temp, self.changed, 6, 'cls')
         self.display.hw.cameraLed(self.temp['cls'])
     #enddef
 
 
     def minus2g1Button(self):
-        self._value(0, 'fan1pwm', 0, 100, -5)
+        self._value(self.temp, self.changed, 0, 'fan1pwm', 0, 100, -5)
         self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def plus2g1Button(self):
-        self._value(0, 'fan1pwm', 0, 100, 5)
+        self._value(self.temp, self.changed, 0, 'fan1pwm', 0, 100, 5)
         self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def minus2g2Button(self):
-        self._value(1, 'fan2pwm', 0, 100, -5)
+        self._value(self.temp, self.changed, 1, 'fan2pwm', 0, 100, -5)
         self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def plus2g2Button(self):
-        self._value(1, 'fan2pwm', 0, 100, 5)
+        self._value(self.temp, self.changed, 1, 'fan2pwm', 0, 100, 5)
         self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def minus2g3Button(self):
-        self._value(2, 'fan3pwm', 0, 100, -5)
+        self._value(self.temp, self.changed, 2, 'fan3pwm', 0, 100, -5)
         self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def plus2g3Button(self):
-        self._value(2, 'fan3pwm', 0, 100, 5)
+        self._value(self.temp, self.changed, 2, 'fan3pwm', 0, 100, 5)
         self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
     #enddef
 
 
     def minus2g5Button(self):
-        self._value(4, 'uvcurrent', 0, 800.1, -3.2, strFce=lambda x: str(int(x)))
+        self._value(self.temp, self.changed, 4, 'uvcurrent', 0, 800.1, -3.2, strFce=lambda x: str(int(x)))
         self.display.hw.setUvLedCurrent(self.temp['uvcurrent'])
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 'uvcurrent', 0, 800.1, 3.2, strFce=lambda x: str(int(x)))
+        self._value(self.temp, self.changed, 4, 'uvcurrent', 0, 800.1, 3.2, strFce=lambda x: str(int(x)))
         self.display.hw.setUvLedCurrent(self.temp['uvcurrent'])
     #enddef
 
 
     def minus2g6Button(self):
-        self._value(5, 'uvcalibtemp', 30, 50, -1)
+        self._value(self.temp, self.changed, 5, 'uvcalibtemp', 30, 50, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        self._value(5, 'uvcalibtemp', 30, 50, 1)
+        self._value(self.temp, self.changed, 5, 'uvcalibtemp', 30, 50, 1)
     #enddef
 
 
     def minus2g7Button(self):
-        self._value(6, 'uvcalibintensity', 80, 200, -1)
+        self._value(self.temp, self.changed, 6, 'uvcalibintensity', 80, 200, -1)
     #enddef
 
 
     def plus2g7Button(self):
-        self._value(6, 'uvcalibintensity', 80, 200, 1)
+        self._value(self.temp, self.changed, 6, 'uvcalibintensity', 80, 200, 1)
     #enddef
 
 #endclass
@@ -6533,9 +6567,9 @@ class PageFansLeds(Page):
 class PageFeedMe(Page):
 
     def __init__(self, display):
-        self.pageUI = "feedme"
-        self.pageTitle = _("Feed me")
         super(PageFeedMe, self).__init__(display)
+        self.pageUI = "feedme"
+        self.pageTitle = N_("Feed me")
         self.manual = False
         self.checkCoverOveride = True
     #enddef
@@ -6570,10 +6604,11 @@ class PageFeedMe(Page):
 class PageTuneTilt(ProfilesPage):
 
     def __init__(self, display):
+        super(PageTuneTilt, self).__init__(display)
         self.profilesFilename = "tilt_tune_profiles.json"
         self.profilesNames = display.hw.getTiltProfilesNames()
-        self.pageTitle = _("Tilt Tune")
-        super(PageTuneTilt, self).__init__(display, items = {
+        self.pageTitle = N_("Tilt Tune")
+        self.items.update({
                 "label1g1" : _("Down slow"),
                 "label1g2" : _("Down fast"),
                 "label1g3" : _("Up"),
@@ -6586,11 +6621,6 @@ class PageTuneTilt(ProfilesPage):
                 "label2g6" : _("tilt delay [ms]"),
                 "label2g7" : _("homing tolerance"),
                 "label2g8" : _("homing cycles"),
-
-                "button1" : _("Export"),
-                "button2" : _("Import"),
-                "button4" : _("Save"),
-                "back" : _("Back"),
                 })
         self.nameIndexes = set((0,3))
         self.profileItems = 8
@@ -6736,9 +6766,9 @@ class PageTuneTilt(ProfilesPage):
 class PageMedia(Page):
 
     def __init__(self, display):
+        super(PageMedia, self).__init__(display)
         self.base_path = defines.multimediaRootPath
         self.path = None
-        super(PageMedia, self).__init__(display)
     #enddef
 
     def setMedia(self, relative_path):
@@ -6764,10 +6794,10 @@ class PageMedia(Page):
 class PageImage(PageMedia):
 
     def __init__(self, display):
-        self.pageUI = "image"
-        self.pageTitle = _("Image")
-        self.path = None
         super(PageImage, self).__init__(display)
+        self.pageUI = "image"
+        self.pageTitle = N_("Image")
+        self.path = None
     #enddef
 
 #endclass
@@ -6776,10 +6806,10 @@ class PageImage(PageMedia):
 class PageVideo(PageMedia):
 
     def __init__(self, display):
-        self.pageUI = "video"
-        self.pageTitle = _("Video")
-        self.path = None
         super(PageVideo, self).__init__(display)
+        self.pageUI = "video"
+        self.pageTitle = N_("Video")
+        self.path = None
     #enddef
 
 #endclass
@@ -6788,9 +6818,9 @@ class PageVideo(PageMedia):
 class PageSetLoginCredentials(Page):
 
     def __init__(self, display):
-        self.pageUI = "setlogincredentials"
-        self.pageTitle = _("Login Credentials")
         super(PageSetLoginCredentials, self).__init__(display)
+        self.pageUI = "setlogincredentials"
+        self.pageTitle = N_("Login Credentials")
     #enddef
 
 
@@ -6827,9 +6857,9 @@ class PageSetLoginCredentials(Page):
 class PageUnboxing1(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Unboxing step 1/4")
         super(PageUnboxing1, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Unboxing step 1/4")
         self.items.update({
             'imageName' : "16_sticker_open_cover.jpg",
             'text' : _("""Please remove the safety sticker on the right and open the orange cover.
@@ -6885,9 +6915,9 @@ In case you assembled your printer, you can skip this wizard by hitting the Back
 class PageUnboxing2(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Unboxing step 2/4")
         super(PageUnboxing2, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Unboxing step 2/4")
         self.items.update({
             'imageName' : "14_remove_foam.jpg",
             'text' : _("Remove the black foam from both sides of the platform.")})
@@ -6926,9 +6956,9 @@ class PageUnboxing2(Page):
 class PageUnboxing3(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Unboxing step 3/4")
         super(PageUnboxing3, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Unboxing step 3/4")
         self.items.update({
             'imageName' : "15_remove_bottom_foam.jpg",
             'text' : _("Unscrew and remove the resin tank and remove the black foam underneath it.")})
@@ -6960,9 +6990,9 @@ class PageUnboxing3(Page):
 class PageUnboxing4(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Unboxing step 4/4")
         super(PageUnboxing4, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Unboxing step 4/4")
         self.items.update({
             'imageName' : "17_remove_sticker_screen.jpg",
             'text' : _("Carefully peel off the orange protective foil from the exposition display.")})
@@ -6998,10 +7028,11 @@ class PageUnboxing4(Page):
 
 
 class PageUnboxing5(Page):
+
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Unboxing done")
         super(PageUnboxing5, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Unboxing done")
         self.items.update({
             'text' : _("""The printer is fully unboxed and ready for the selftest.
 
@@ -7029,9 +7060,9 @@ Continue?""")})
 class PageUnboxingConfirm(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Skip unboxing?")
         super(PageUnboxingConfirm, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Skip unboxing?")
         self.items.update({
             'text' : _("""Do you really want to skip the unboxing wizard?
 
@@ -7062,9 +7093,9 @@ Press 'Back' to return to the wizard.""")})
 class PageWizard1(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Setup wizard step 1/5")
         super(PageWizard1, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Setup wizard step 1/5")
         self.items.update({
             'text' : _("""Welcome to the setup wizard.
 
@@ -7213,9 +7244,9 @@ Tower profiles need to be changed."""))
 class PageWizard2(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Setup wizard step 2/5")
         super(PageWizard2, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Setup wizard step 2/5")
         self.items.update({
             'imageName' : "04_tighten_screws.jpg",
             'text' : _("""Secure the resin tank with resin tank screws.
@@ -7244,9 +7275,9 @@ Make sure the tank is empty and clean.""")})
 class PageWizard3(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Setup wizard step 3/5")
         super(PageWizard3, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Setup wizard step 3/5")
         self.items.update({
             'imageName' : "09_remove_platform.jpg",
             'text' : _("""Loosen the black knob and remove the platform.""")})
@@ -7405,9 +7436,9 @@ Keep the printer out of direct sunlight at room temperature (18 - 32 °C).""")
 class PageWizard4(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Setup wizard step 4/5")
         super(PageWizard4, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Setup wizard step 4/5")
         self.items.update({
             'imageName' : "12_close_cover.jpg",
             'text' : _("""Please close the orange lid.
@@ -7502,9 +7533,9 @@ Temperature data: %s""") % temp)
 class PageWizard5(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Setup wizard step 5/5")
         super(PageWizard5, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Setup wizard step 5/5")
         self.items.update({
             'imageName' : "11_insert_platform_60deg.jpg",
             'text' : _("Leave the resin tank secured with screws and insert the platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
@@ -7574,9 +7605,9 @@ Measured %d ml.""") % volume)
 class PageWizard6(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Setup wizard done")
         super(PageWizard6, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Setup wizard done")
         self.items.update({
             'text' : _("""Selftest OK.
 
@@ -7604,9 +7635,9 @@ Continue to calibration?""")})
 class PageWizardConfirm(Page):
 
     def __init__(self, display):
-        self.pageUI = "confirm"
-        self.pageTitle = _("Skip wizard?")
         super(PageWizardConfirm, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Skip wizard?")
         self.items.update({
             'text' : _("""Do you really want to skip the wizard?
 

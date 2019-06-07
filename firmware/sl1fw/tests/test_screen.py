@@ -5,10 +5,7 @@ from time import sleep
 import gettext
 import unittest
 
-try:
-    gettext.install('sl1fw', unicode=1)
-except:
-    gettext.install('sl1fw')
+gettext.install('sl1fw', 'locales')
 
 import logging
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
@@ -57,8 +54,8 @@ class TestScreen(unittest.TestCase):
             y = 0
         #endif
 
-        stepW = width / divide[x]
-        stepH = height / divide[y]
+        stepW = width // divide[x]
+        stepH = height // divide[y]
 
         calibAreas = list()
         lw = 0

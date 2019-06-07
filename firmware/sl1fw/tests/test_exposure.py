@@ -3,10 +3,7 @@ from mock import Mock
 import gettext
 import os
 
-try:
-    gettext.install('sl1fw', unicode=1)
-except:
-    gettext.install('sl1fw')
+gettext.install('sl1fw', 'locales')
 
 from sl1fw import libExposure
 from sl1fw import libConfig

@@ -23,6 +23,6 @@ pylint:
   script:
     - cd firmware
     - python3 -m pylint --version
-    - python3 -m pylint sl1fw --jobs 0 --errors-only --additional-builtins=_
+    - python3 -m pylint sl1fw --jobs 0 --errors-only --additional-builtins=_ --extension-pkg-whitelist=pygame
   allow_failure: true
 

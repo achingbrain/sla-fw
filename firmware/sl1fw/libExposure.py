@@ -47,8 +47,8 @@ class ExposureThread(threading.Thread):
                     y = 0
                 #endif
 
-                stepW = width / divide[x]
-                stepH = height / divide[y]
+                stepW = width // divide[x]
+                stepH = height // divide[y]
 
                 self.calibAreas = list()
                 lw = 0
@@ -331,7 +331,7 @@ The print job was canceled."""))
 
                 if command == "pause":
                     if not self.expo.hwConfig.blinkExposure:
-                        self.display.hw.uvLed(False)
+                        self.expo.display.hw.uvLed(False)
                     #endif
 
                     if self.doWait(False) == "exit":
@@ -339,7 +339,7 @@ The print job was canceled."""))
                     #endif
 
                     if not self.expo.hwConfig.blinkExposure:
-                        self.display.hw.uvLed(True)
+                        self.expo.display.hw.uvLed(True)
                     #endif
                 #endif
 
