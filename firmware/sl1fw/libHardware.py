@@ -18,20 +18,6 @@ from sl1fw import defines
 
 
 class MotConCom(object):
-
-    portLock = Lock()
-    debug = Debug()
-    port = serial.Serial(port = defines.motionControlDevice,
-            baudrate = 115200,
-            bytesize = 8,
-            parity = 'N',
-            stopbits = 1,
-            timeout = 1.0,
-            writeTimeout = 1.0,
-            xonxoff = False,
-            rtscts = False,
-            dsrdtr = False,
-            interCharTimeout = None)
     MCversion = ""
     MCrevision = ""
     MCserial = ""
@@ -79,7 +65,25 @@ class MotConCom(object):
             }
 
 
-    def __init__(self, instance_name):
+    def __init__(self, instance_name, serial_port = None, debug = Debug()):
+        self.portLock = Lock()
+        self.debug = debug
+        if serial_port:
+            self.port = serial_port
+        else:
+            self.port = serial.Serial(port=defines.motionControlDevice,
+                                     baudrate=115200,
+                                     bytesize=8,
+                                     parity='N',
+                                     stopbits=1,
+                                     timeout=1.0,
+                                     writeTimeout=1.0,
+                                     xonxoff=False,
+                                     rtscts=False,
+                                     dsrdtr=False,
+                                     interCharTimeout=None)
+        #endif
+
         super(MotConCom, self).__init__()
         self.logger = logging.getLogger(instance_name)
     #enddef
@@ -351,6 +355,9 @@ class MotConCom(object):
 
 class dummyMotConCom(object):
 
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+
     def getStateBits(self, request = None):
         if not request:
             request = self._statusBits.keys()
@@ -362,12 +369,16 @@ class dummyMotConCom(object):
         return retval
     #enddef
 
+    def do(self, *args):
+        self.logger.debug("do called %s", ','.join([str(x) for x in args]))
+    #enddef
+
 #endclass
 
 
 class Hardware(object):
 
-    def __init__(self, hwConfig, config):
+    def __init__(self, hwConfig, config, serial_port = None, debug = None):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.config = config
@@ -446,7 +457,8 @@ class Hardware(object):
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
 
-        self.mcc = MotConCom("MC_Main")
+        self.mcc = MotConCom("MC_Main", serial_port=serial_port, debug=debug)
+        self.realMcc = self.mcc
         self.cpuSerial = self.readCpuSerial()
     #enddef
 
@@ -488,7 +500,6 @@ class Hardware(object):
             returnPage.show()
         #endif
 
-        self.dummyMC = False
         self.initDefaults()
     #enddef
 
@@ -527,12 +538,11 @@ class Hardware(object):
 
     def switchToDummy(self):
         self.mcc = dummyMotConCom()
-        self.dummyMC = True
     #enddef
 
 
     def switchToMC(self, page_systemwait, actualPage):
-        self.mcc = MotConCom("MC_Main")
+        self.mcc = self.realMcc
         self.connectMC(page_systemwait, actualPage)
     #enddef
 
@@ -565,7 +575,10 @@ class Hardware(object):
         ot = { 0 : "CZP" }
         serial = "*INVALID*"
         try:
-            s = bitstring.BitArray(bytes = open(defines.cpuSNFile, 'rb').read())
+            with open(defines.cpuSNFile, 'rb') as nvmem:
+                s = bitstring.BitArray(bytes = nvmem.read())
+            #endwith
+
             mac, mcs1, mcs2, snbe = s.unpack('pad:192, bits:48, uint:8, uint:8, pad:224, uintbe:64')
             mcsc = mac.count(1)
             if mcsc != mcs1 or mcsc ^ 255 != mcs2:
@@ -732,7 +745,7 @@ class Hardware(object):
 
 
     def beep(self, frequency, lenght):
-        if not self.hwConfig.mute and not self.dummyMC:
+        if not self.hwConfig.mute:
             self.mcc.do("!beep", frequency, int(lenght * 1000), "noSyslog")
         #endif
     #enddef
@@ -880,16 +893,25 @@ class Hardware(object):
 
 
     def resinSensor(self, state):
+        """Enable/Disable resin sensor"""
         self.mcc.do("!rsen", 1 if state else 0)
     #enddef
 
 
     def getResinSensor(self):
+        """
+        Read resin sensor enabled
+        :return: True if enabled, False otherwise
+        """
         return self.mcc.doGetBool("?rsen")
     #enddef
 
 
     def getResinSensorState(self):
+        """
+        Read resin sensor value
+        :return: True if resin is detected, False otherwise
+        """
         return self.mcc.doGetBool("?rsst")
     #enddef
 
