@@ -31,11 +31,6 @@ class Printer(object):
         self.hwConfig.logAllItems()
         self.config = libConfig.PrintConfig(self.hwConfig)
 
-        if self.hwConfig.os.id != "prusa":
-            self.logger.error("Wrong hardware! ('%s' is not prusa)" % self.hwConfig.os.id)
-            raise Exception(_("Wrong hardware! ('%s' is not prusa)") % self.hwConfig.os.id)
-        #endif
-
         from sl1fw.libHardware import Hardware
         self.hw = Hardware(self.hwConfig, self.config)
 
