@@ -65,9 +65,14 @@ class MotConCom(object):
             }
 
 
-    def __init__(self, instance_name, serial_port = None, debug = Debug()):
+    def __init__(self, instance_name, serial_port = None, debug = None):
         self.portLock = Lock()
-        self.debug = debug
+        if debug:
+            self.debug = debug
+        else:
+            self.debug = Debug()
+        #endif
+        
         if serial_port:
             self.port = serial_port
         else:
