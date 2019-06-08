@@ -175,17 +175,20 @@ class Page(object):
     #enddef
 
 
+    # List paths to successfully mounted partitions found on currently attached removable storage devices.
+    def getSavePaths(self):
+        return [p for p in glob.glob(os.path.join(defines.mediaRootPath, '*')) if os.path.ismount(p)]
+    #enddef
+
     # Dynamic USB path, first usb device or None
     def getSavePath(self):
-        usbs = glob.glob(os.path.join(defines.mediaRootPath, '*'))
-
-        if len(usbs) > 0 and os.path.ismount(usbs[0]):
-            return usbs[0]
-        else:
+        usbs = self.getSavePaths()
+        if len(usbs) == 0:
             self.logger.debug("getSavePath returning None, no media seems present")
             return None
         #endif
-    #enddef
+        return usbs[0]
+    #enddsef
 
 
     def downloadURL(self, url, dest, title=None, timeout_sec=10):
