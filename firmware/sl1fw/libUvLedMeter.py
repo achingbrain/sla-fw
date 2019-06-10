@@ -86,7 +86,7 @@ class UvLedMeter(object):
                 return False
             #endif
 
-            data = map(lambda x: int(x), line[1:].split(','))
+            data = list(map(lambda x: int(x), line[1:].split(',')))
         except Exception as e:
             self.logger.exception("Invalid response:")
             return False
@@ -138,8 +138,8 @@ class UvLedMeter(object):
         percPlusColor = (0, 255, 0)
         percMinusColor = (255, 0, 0)
         fontFile = os.path.join(defines.dataPath, "FreeSansBold.otf")
-        fontSize = height / 15
-        fontSmallSize = height / 30
+        fontSize = height // 15
+        fontSmallSize = height // 30
 
         if data is None:
             data = self.getData()
@@ -182,8 +182,8 @@ class UvLedMeter(object):
         textSurf = font.render(text, True, textColor, bgColor)
         surf.blit(textSurf, (0, 0))
 
-        for col in xrange(cols):
-            for row in xrange(rows):
+        for col in range(cols):
+            for row in range(rows):
                 i = col + 10 * row
                 color = int(round(63 + stepColor * (values[i] - data['uvMinValue'])))
 

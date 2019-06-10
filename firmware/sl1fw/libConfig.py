@@ -47,8 +47,8 @@ class MyBool:
 
 class FileConfig(object):
 
-    def __init__(self, configFile, defaults = {}):
-        self._logger = logging.getLogger(self._name)
+    def __init__(self, name, configFile, defaults = {}):
+        self._logger = logging.getLogger(name)
         self._defaults = defaults
         self.parseFile(configFile)
     #enddef
@@ -84,6 +84,11 @@ class FileConfig(object):
         else:
             self._lines.append((None, line.strip()))
         #endif
+    #enddef
+
+    # for pylint only :)
+    def _parseData(self):
+        self._logger.error("THIS SHOULD BE OVERRIDDEN!")
     #enddef
 
     def parseFile(self, configFile):
@@ -334,8 +339,7 @@ class FileConfig(object):
 class HwConfig(FileConfig):
 
     def __init__(self, configFile = None, defaults = {}):
-        self._name = "HwConfig"
-        super(HwConfig, self).__init__(configFile, defaults)
+        super(HwConfig, self).__init__("HwConfig", configFile, defaults)
         self.os = OsConfig()
         self.factoryMode = False
 
@@ -433,8 +437,7 @@ class HwConfig(FileConfig):
 class OsConfig(FileConfig):
 
     def __init__(self, configFile = "/etc/os-release"):
-        self._name = "OsConfig"
-        super(OsConfig, self).__init__(configFile)
+        super(OsConfig, self).__init__("OsConfig", configFile)
     #enddef
 
     def _parseData(self):
@@ -450,8 +453,7 @@ class OsConfig(FileConfig):
 class WizardData(FileConfig):
 
     def __init__(self, configFile = None):
-        self._name = "WizardData"
-        super(WizardData, self).__init__(configFile)
+        super(WizardData, self).__init__("WizardData", configFile)
     #enddef
 
     def _parseData(self):
@@ -504,11 +506,10 @@ class WizardData(FileConfig):
 class PrintConfig(FileConfig):
 
     def __init__(self, hwConfig, configFile = None):
-        self._name = "PrintConfig"
         self._hwConfig = hwConfig
         self.zipName = None
         self.modificationTime = None
-        super(PrintConfig, self).__init__(configFile)
+        super(PrintConfig, self).__init__("PrintConfig", configFile)
     #enddef
 
     def writeFile(self, filename = None):

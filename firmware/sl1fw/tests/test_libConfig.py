@@ -3,10 +3,7 @@ import gettext
 import os
 import logging
 
-try:
-    gettext.install('sl1fw', unicode=1)
-except:
-    gettext.install('sl1fw')
+gettext.install('sl1fw', 'locales')
 
 from sl1fw.libConfig import *
 from sl1fw import defines

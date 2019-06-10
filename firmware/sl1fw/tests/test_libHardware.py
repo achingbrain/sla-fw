@@ -16,6 +16,7 @@ from sl1fw import defines
 
 defines.cpuSNFile = os.path.join(os.path.dirname(__file__), "samples/nvmem")
 defines.cpuTempFile = os.path.join(os.path.dirname(__file__), "samples/cputemp")
+defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
 
 
 class TestLibHardware(unittest.TestCase):

@@ -14,8 +14,8 @@ from sl1fw import defines
 class DebugServer(SocketServer):
 
     def __init__(self, port, commands):
-        self.logger = logging.getLogger(__name__)
         super(DebugServer, self).__init__(port, commands)
+        self.logger = logging.getLogger(__name__)
         self.jinja = jinja2.Environment(loader = jinja2.FileSystemLoader(defines.templates))
         self.newClientData['wholePage'] = True
     #enddef

@@ -14,8 +14,8 @@ from sl1fw import defines
 class WebDisplayServer(SocketServer):
 
     def __init__(self, port, commands, events):
-        self.logger = logging.getLogger(__name__)
         super(WebDisplayServer, self).__init__(port, commands, events)
+        self.logger = logging.getLogger(__name__)
         self.jinja = jinja2.Environment(loader = jinja2.FileSystemLoader(defines.templates))
         self.newClientData['command'] = "showPage"
         self.newClientData['page'] = "home"

@@ -15,6 +15,7 @@ class SocketServer(multiprocessing.Process):
 
     def __init__(self, port, commands, events = None):
         super(SocketServer, self).__init__()
+        self.logger = logging.getLogger(__name__)
         self.commands = commands
         self.events = events
         self.stoprequest = multiprocessing.Event()
