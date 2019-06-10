@@ -358,26 +358,44 @@ class MotConCom(object):
 #endclass
 
 
-class dummyMotConCom(object):
-
+class DummyDebug(object):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
+    #enddef
 
-    def getStateBits(self, request = None):
+    def showItems(self, *args, **kwargs):
+        self.logger.debug("mcc.debug.showItems called while using dummy MotConCom")
+    #enddef
+
+    def exit(self):
+        pass
+    #enddef
+#endclass
+
+
+class DummyMotConCom(MotConCom):
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.debug = DummyDebug()
+        # Super init intentionally omitted in order to avoid port init
+    #enddef
+
+    def getStateBits(self, request=None):
         if not request:
             request = self._statusBits.keys()
         #endif
+
         retval = {}
         for name in request:
             retval[name] = False
         #endfor
+
         return retval
     #enddef
 
     def do(self, *args):
-        self.logger.debug("do called %s", ','.join([str(x) for x in args]))
+        self.logger.debug("mcc.do called while using dummy MotConCom")
     #enddef
-
 #endclass
 
 
@@ -542,7 +560,7 @@ class Hardware(object):
 
 
     def switchToDummy(self):
-        self.mcc = dummyMotConCom()
+        self.mcc = DummyMotConCom()
     #enddef
 
 
