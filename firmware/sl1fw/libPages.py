@@ -6,7 +6,6 @@
 import os
 import logging
 from time import time, sleep
-from datetime import datetime
 import json
 import toml
 import subprocess
@@ -17,7 +16,13 @@ from copy import deepcopy
 import re
 import tempfile
 
-# Python 2/3 urllib imports
+# Python 2/3 imports
+try:
+    from time import monotonic
+except ImportError:
+    # TODO: Remove once we accept Python 3
+    from monotonic import monotonic
+#endtry
 try:
     from urllib.parse import urlparse, urlencode
     from urllib.request import urlopen, Request
@@ -990,7 +995,7 @@ Do you want to continue?"""))
                 line3 = _("Checking fans..."))
         pageWait.show()
 
-        fanStartTime = datetime.now()
+        fanStartTime = monotonic()
         self.display.hw.startFans()
         self.display.hw.towerSync()
         self.display.hw.tiltSync()
@@ -1038,7 +1043,7 @@ The print job was canceled."""))
         self.display.hw.tiltUpWait()
         pageWait.showItems(line2 = _("Start positions OK"))
 
-        fansRunningTime = (datetime.now() - fanStartTime).total_seconds()
+        fansRunningTime = monotonic() - fanStartTime
         if fansRunningTime < defines.fanStartStopTime:
             sleepTime = defines.fanStartStopTime - fansRunningTime
             self.logger.debug("Waiting %.2f secs for fans", sleepTime)
@@ -4042,7 +4047,7 @@ class PageUvMeter(PageUvMeterShow):
         self.bottomCurrent = defines.uvLedMeasMinCurr
         self.testCurrent = self.bottomCurrent
         self.display.hw.setUvLedCurrent(self.testCurrent)
-        self.lastCallback = datetime.now()
+        self.lastCallback = monotonic()
         self.iterCnt = 15
         self.finalTest = False
     #enddef
@@ -4054,7 +4059,7 @@ class PageUvMeter(PageUvMeterShow):
             return retc
         #endif
 
-        if (datetime.now() - self.lastCallback).total_seconds() < 3:
+        if monotonic() - self.lastCallback < 3.0:
             return
         #endif
 
@@ -4106,7 +4111,7 @@ class PageUvMeter(PageUvMeterShow):
             self.display.wizardData.update(uvFoundCurrent = realCurrent)
             self.display.screen.getImgBlack()
             self.finalTest = True
-            self.lastCallback = datetime.now()
+            self.lastCallback = monotonic()
             return
         #endif
 
@@ -4128,7 +4133,7 @@ class PageUvMeter(PageUvMeterShow):
 
         self.testCurrent = (self.topCurrent - self.bottomCurrent) / 2 + self.bottomCurrent
         self.display.hw.setUvLedCurrent(self.testCurrent)
-        self.lastCallback = datetime.now()
+        self.lastCallback = monotonic()
     #enddef
 
 #endclass

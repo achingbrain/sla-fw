@@ -5,7 +5,13 @@
 import os, sys
 import logging
 from time import sleep
-from datetime import datetime
+# Python 2/3 imports
+try:
+    from time import monotonic
+except ImportError:
+    # TODO: Remove once we accept Python 3
+    from monotonic import monotonic
+#endtry
 
 from sl1fw import defines
 from sl1fw import libPages
@@ -179,12 +185,12 @@ class Display(object):
         #endif
         autorepeatFce = None
         autorepeatDelay = 1
-        callbackTime = datetime.fromtimestamp(0)
+        callbackTime = 0.0  # call the callback immediately
         updateDataTime = callbackTime
         while True:
-            now = datetime.now()
+            now = monotonic()
 
-            if self.actualPage.callbackPeriod and (now - callbackTime).total_seconds() > self.actualPage.callbackPeriod:
+            if self.actualPage.callbackPeriod and now - callbackTime > self.actualPage.callbackPeriod:
                 callbackTime = now
                 newPage = self.actualPage.callback()
                 if newPage == "_EXIT_":
@@ -198,7 +204,7 @@ class Display(object):
                 #endif
             #endif
 
-            if self.actualPage.updateDataPeriod and (now - updateDataTime).total_seconds() > self.actualPage.updateDataPeriod:
+            if self.actualPage.updateDataPeriod and now - updateDataTime > self.actualPage.updateDataPeriod:
                 updateDataTime = now
                 self.actualPage.updateData()
             #endif
