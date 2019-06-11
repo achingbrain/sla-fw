@@ -50,7 +50,7 @@ class UvLedMeter(object):
 
             reply = None
             while reply != "<done":
-                reply = self.port.readline().strip()
+                reply = self.port.readline().strip().decode()
                 self.logger.debug("UV meter response: %s", reply)
             #endwhile
 
@@ -67,8 +67,8 @@ class UvLedMeter(object):
     def read(self):
         self.np = None
         try:
-            self.port.write('>all\n')
-            self.logger.debug("UV meter command reply: %s", self.port.readline().strip())
+            self.port.write(('>all\n').encode())
+            self.logger.debug("UV meter command reply: %s", self.port.readline().strip().decode())
             timeout = 100
             while not self.port.inWaiting() and timeout:
                 sleep(0.1)
@@ -78,7 +78,7 @@ class UvLedMeter(object):
                 self.logger.error("Response timeout")
                 return False
             #endif
-            line = self.port.readline().strip()
+            line = self.port.readline().strip().decode()
             self.logger.debug("UV meter response: %s", line)
 
             if line[0] != '<':
@@ -170,7 +170,7 @@ class UvLedMeter(object):
 
         surf.fill(bgColor, ((0, 0), (width, textSize)))
 
-        status = u"ø %.1f   σ %.1f   %.1f °C   %s" % (
+        status = "ø %.1f   σ %.1f   %.1f °C   %s" % (
                 data['uvMean'],
                 data['uvStdDev'],
                 data['uvTemperature'],
