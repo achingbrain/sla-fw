@@ -36,20 +36,20 @@ class PageHome(Page):
     def printButtonRelease(self):
 # FIXME temporaily disabled until it works perfectly on all printers
 #        if self.display.hwConfig.showWizard:
-#            self.display.pages['confirm'].setParams(
-#                    continueFce = self.showWizard,
-#                    text = _("""Printer needs to be set up!
-#
-#Go through wizard now?"""))
-#            return "confirm"
+#            self.display.pages['yesno'].setParams(
+#                    pageTitle = N_("Go through wizard?"),
+#                    yesFce = self.showWizard,
+#                    text = _("Printer needs to be set up!\n\n"
+#                        "Go through wizard now?"))
+#            return "yesno"
         #endif
         if not self.display.hwConfig.calibrated:
-            self.display.pages['confirm'].setParams(
-                    continueFce = self.printContinue,
-                    text = _("""Printer is not calibrated!
-
-Calibrate now?"""))
-            return "confirm"
+            self.display.pages['yesno'].setParams(
+                    pageTitle = N_("Calibrate now?"),
+                    yesFce = self.printContinue,
+                    text = _("Printer is not calibrated!\n\n"
+                        "Calibrate now?"))
+            return "yesno"
         #endif
 
         return "sourceselect"

@@ -19,7 +19,6 @@ class PageConfirm(Page):
         self.backFce = kwargs.pop("backFce", None)
         self.backParams = kwargs.pop("backParams", dict())
         self.beep = kwargs.pop("beep", False)
-        self.checkPowerbutton = kwargs.pop("checkPowerbutton", True)
         self.items = kwargs
     #enddef
 

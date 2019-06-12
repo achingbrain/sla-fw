@@ -98,11 +98,11 @@ class PageFirmwareUpdate(Page):
             self.logger.error("Error reading data['firmware']: " + str(e))
         #endtry
 
-        self.display.pages['confirm'].setParams(
-            continueFce = self.fetchUpdate,
-            continueParams = { 'fw_url': fw_url },
+        self.display.pages['yesno'].setParams(
+            yesFce = self.fetchUpdate,
+            yesParams = { 'fw_url': fw_url },
             text = _("Do you really want to update the firmware?"))
-        return "confirm"
+        return "yesno"
     #enddef
 
 
