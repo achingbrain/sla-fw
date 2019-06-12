@@ -8,8 +8,9 @@ class PageYesNo(Page):
     def __init__(self, display):
         super(PageYesNo, self).__init__(display)
         self.pageUI = "yesno"
-        self.pageTitle = N_("Make your choice")
+        self.pageTitle = N_("Are you sure?")
         self.stack = False
+        self.checkPowerbutton = False
     #enddef
 
 
@@ -19,7 +20,7 @@ class PageYesNo(Page):
         self.noFce = kwargs.pop("noFce", None)
         self.noParams = kwargs.pop("noParams", dict())
         self.beep = kwargs.pop("beep", False)
-        self.pageTitle = kwargs.pop("pageTitle", N_("Make your choice"))
+        self.pageTitle = kwargs.pop("pageTitle", N_("Are you sure?"))
         self.items = kwargs
     #enddef
 

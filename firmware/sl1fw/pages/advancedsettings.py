@@ -312,13 +312,13 @@ class PageAdvancedSettings(Page):
     # Cover check
     def covercheckButtonRelease(self):
         if self.cover_check:
-            self.display.pages['confirm'].setParams(
-                continueFce=self.disableCoverCheck,
-                backFce=self._doConfirmReturn,
-                text=_("Disable the cover sensor?\n"
+            self.display.pages['yesno'].setParams(
+                yesFce = self.disableCoverCheck,
+                noFce = self._doConfirmReturn,
+                text = _("Disable the cover sensor?\n"
                        "\n"
                        "CAUTION: This may lead to unwanted exposure to UV light. This action is not recommended!"))
-            return "confirm"
+            return "yesno"
         else:
             self.cover_check = True
         #endif
@@ -340,13 +340,13 @@ class PageAdvancedSettings(Page):
     # Resin Sensor
     def resinsensorButtonRelease(self):
         if self.resin_sensor:
-            self.display.pages['confirm'].setParams(
-                continueFce=self.disableResinSensor,
-                backFce=self._doConfirmReturn,
-                text=_("Disable the resin sensor?\n"
+            self.display.pages['yesno'].setParams(
+                yesFce = self.disableResinSensor,
+                noFce = self._doConfirmReturn,
+                text = _("Disable the resin sensor?\n"
                        "\n"
                        "CAUTION: This may lead to failed prints or resin tank overflow! This action is not recommended!"))
-            return "confirm"
+            return "yesno"
         else:
             self.resin_sensor = True
         #endif
@@ -405,7 +405,7 @@ class PageAdvancedSettings(Page):
         self.display.hw.stopFans()
         if self.configwrapper.changed():
             self.display.pages['yesno'].setParams(
-                    pageTitle = _("Save changes?"),
+                    pageTitle = N_("Save changes?"),
                     text = _("Save changes?"))
             if self.display.doMenu("yesno"):
                 # save changes

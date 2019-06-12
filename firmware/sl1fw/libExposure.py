@@ -277,16 +277,14 @@ If you don't want to continue, press the Back button on top of the screen and th
         pageWait.show()
 
         if not self.expo.hw.tiltSyncWait(retries = 1):
-            self.expo.display.pages['confirm'].setParams(
-                    continueFce = self.expo.doBack,
+            self.expo.display.pages['error'].setParams(
                     backFce = self.expo.doBack,
-                    beep = True,
                     text = _("""Tilt homing failed!
 
 Check the printer's hardware.
 
 The print job was canceled."""))
-            self.expo.display.forcePage("confirm")
+            self.expo.display.forcePage("error")
             self.doWait(True)
             return False
         #endif

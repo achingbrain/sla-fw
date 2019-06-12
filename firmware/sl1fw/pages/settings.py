@@ -19,10 +19,10 @@ class PageSettings(Page):
 
 
     def recalibrationButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.calibrateContinue,
+        self.display.pages['yesno'].setParams(
+            yesFce = self.calibrateContinue,
             text = _("Calibrate printer now?"))
-        return "confirm"
+        return "yesno"
     #enddef
 
 

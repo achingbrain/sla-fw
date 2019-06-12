@@ -162,12 +162,6 @@ class Page(object):
     #enddef
 
 
-    # FIXME - remove
-    def okButtonRelease(self):
-        return "_BACK_"
-    #enddef
-
-
     def wifiButtonRelease(self):
         return "netinfo"
     #enddef
@@ -179,11 +173,10 @@ class Page(object):
 
 
     def turnoffButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-                continueFce = self.turnoffContinue,
-                checkPowerbutton = False,
+        self.display.pages['yesno'].setParams(
+                yesFce = self.turnoffContinue,
                 text = _("Do you really want to turn off the printer?"))
-        return "confirm"
+        return "yesno"
     #enddef
 
 
@@ -527,7 +520,7 @@ Check the printer's hardware."""))
             return
         #endif
 
-        if self.powerButtonCount > 3:
+        if self.powerButtonCount > 0:
             self.display.hw.powerLed("normal")
             self.display.hw.beepEcho()
             return self.turnoffButtonRelease()
@@ -882,25 +875,23 @@ Please check if temperature sensors are connected correctly.""") % self.display.
         #endfor
 
         if temperatures[1] < defines.minAmbientTemp:
-            self.display.pages['confirm'].setParams(
-                    continueFce = self.contButtonContinue1,
-                    text = _("""Ambient temperature is under recommended value.
-
-You should heat up the resin and/or increase the exposure times.
-
-Do you want to continue?"""))
-            return "confirm"
+            self.display.pages['yesno'].setParams(
+                    pageTitle = N_("Continue?"),
+                    yesFce = self.contButtonContinue1,
+                    text = _("Ambient temperature is under recommended value.\n\n"
+                        "You should heat up the resin and/or increase the exposure times.\n\n"
+                        "Do you want to continue?"))
+            return "yesno"
         #endif
 
         if temperatures[1] > defines.maxAmbientTemp:
-            self.display.pages['confirm'].setParams(
-                    continueFce = self.contButtonContinue1,
-                    text = _("""Ambient temperature is over recommended value.
-
-You should move the printer to cooler place.
-
-Do you want to continue?"""))
-            return "confirm"
+            self.display.pages['yesno'].setParams(
+                    pageTitle = N_("Continue?"),
+                    yesFce = self.contButtonContinue1,
+                    text = _("Ambient temperature is over recommended value.\n\n"
+                        "You should move the printer to cooler place.\n\n"
+                        "Do you want to continue?"))
+            return "yesno"
         #endif
 
         return self.contButtonContinue1()
@@ -1462,10 +1453,11 @@ class PageFactoryReset(Page):
     def __init__(self, display):
         super(PageFactoryReset, self).__init__(display)
         self.pageUI = "yesno"
-        self.pageTitle = N_("Factory reset?")
+        self.pageTitle = N_("Are you sure?")
         self.items.update({
             'text' : _("Do you really want to perform the factory reset?\n\n"
                 "All settings will be deleted!")})
+        self.checkPowerbutton = False
     #enddef
 
 
@@ -1702,34 +1694,31 @@ class PageNetwork(Page):
 
 
     def clientconnectButtonSubmit(self, data):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.setclient,
-            continueParams = { 'ssid': data['client-ssid'], 'psk': data['client-psk'] },
-            text = _("""Do you really want to set the Wi-fi to client mode?
-
-It may disconnect the web client."""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+            yesFce = self.setclient,
+            yesParams = { 'ssid': data['client-ssid'], 'psk': data['client-psk'] },
+            text = _("Do you really want to set the Wi-fi to client mode?\n\n"
+                "It may disconnect the web client."))
+        return "yesno"
     #enddef
 
 
     def apsetButtonSubmit(self, data):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.setap,
-            continueParams = { 'ssid': data['ap-ssid'], 'psk': data['ap-psk'] },
-            text = _("""Do you really want to set the Wi-fi to AP mode?
-
-It may disconnect the web client."""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+            yesFce = self.setap,
+            yesParams = { 'ssid': data['ap-ssid'], 'psk': data['ap-psk'] },
+            text = _("Do you really want to set the Wi-fi to AP mode?\n\n"
+                "It may disconnect the web client."))
+        return "yesno"
     #enddef
 
 
     def wifioffButtonSubmit(self, data):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.wifioff,
-            text = _("""Do you really want to turn off the Wi-fi?
-
-It may disconnect the web client."""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+            yesFce = self.wifioff,
+            text = _("Do you really want to turn off the Wi-fi?\n\n"
+                "It may disconnect the web client."))
+        return "yesno"
     #enddef
 
 
@@ -1984,10 +1973,10 @@ class PagePrint(Page):
 
 
     def feedmeButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.doFeedme,
+        self.display.pages['yesno'].setParams(
+            yesFce = self.doFeedme,
             text = _("Do you really want add the resin to the tank?"))
-        return "confirm"
+        return "yesno"
     #enddef
 
 
@@ -2000,12 +1989,11 @@ class PagePrint(Page):
 
 
     def updownButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.doUpAndDown,
-            text = _("""Do you really want the platform to go up and down?
-
-It may affect the printed object!"""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+            yesFce = self.doUpAndDown,
+            text = _("Do you really want the platform to go up and down?\n\n"
+                "It may affect the printed object!"))
+        return "yesno"
     #enddef
 
 
@@ -2022,11 +2010,10 @@ It may affect the printed object!"""))
 
 
     def turnoffButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-                continueFce = self.exitPrint,
-                checkPowerbutton = False,
+        self.display.pages['yesno'].setParams(
+                yesFce = self.exitPrint,
                 text = _("Do you really want to cancel the actual job?"))
-        return "confirm"
+        return "yesno"
     #enddef
 
 
@@ -2320,12 +2307,11 @@ class PageAbout(Page):
             return "error"
         #endexcept
 
-        self.display.pages['confirm'].setParams(
-                continueFce = self.showadminContinue,
-                text = _("""Do you really want to enable the admin menu?
-
-Wrong settings will damage your printer!"""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+                yesFce = self.showadminContinue,
+                text = _("Do you really want to enable the admin menu?\n\n"
+                    "Wrong settings will damage your printer!"))
+        return "yesno"
     #enddef
 
 
@@ -3058,6 +3044,7 @@ class PageUvCalibrationConfirm(Page):
         self.pageUI = "yesno"
         self.pageTitle = N_("Apply calibration?")
         self.checkCooling = True
+        self.checkPowerbutton = False
     #enddef
 
 
@@ -3121,6 +3108,7 @@ Tip: The logo is best seen when you look from above.
 
 DO NOT open the cover.""")})
         self.stack = False
+        self.checkPowerbutton = False
         self.checkCover = True
         self.checkCoverWarnOnly = False
         self.checkCoverUVOn = True
@@ -3224,12 +3212,10 @@ class PageAdmin(Page):
 
 
     def button6ButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-                continueFce = self.button6Continue,
-                text = _("""This overwrites the motion controller with the selected firmware.
-
-Are you sure?"""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+                yesFce = self.button6Continue,
+                text = _("This overwrites the motion controller with the selected firmware."))
+        return "yesno"
     #enddef
 
 
@@ -3241,12 +3227,10 @@ Are you sure?"""))
 
 
     def button7ButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-                continueFce = self.button7Continue,
-                text = _("""This will erase all profiles and other motion controller settings.
-
-Are you sure?"""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+                yesFce = self.button7Continue,
+                text = _("This will erase all profiles and other motion controller settings."))
+        return "yesno"
     #enddef
 
 
@@ -3260,24 +3244,20 @@ Are you sure?"""))
 
 
     def button8ButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-                continueFce = self.mc2net,
-                continueParams = { 'bootloader' : True },
-                text = _("""This will disable the GUI and connect the MC bootloader to TCP port.
-
-Are you sure?"""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+                yesFce = self.mc2net,
+                yesParams = { 'bootloader' : True },
+                text = _("This will disable the GUI and connect the MC bootloader to TCP port."))
+        return "yesno"
     #enddef
 
 
     def button9ButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-                continueFce = self.mc2net,
-                continueParams = { 'bootloader' : False },
-                text = _("""This will disable the GUI and connect the motion controller to TCP port.
-
-Are you sure?"""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+                yesFce = self.mc2net,
+                yesParams = { 'bootloader' : False },
+                text = _("This will disable the GUI and connect the motion controller to TCP port."))
+        return "yesno"
     #enddef
 
 
@@ -3307,11 +3287,9 @@ Are you sure?"""))
                 continueParams = { 'pid' : pid },
                 backFce = self.mc2netStop,
                 backParams = { 'pid' : pid },
-                text = _("""Baudrate is %(br)d.
-
-Serial line is redirected to %(ip)s:%(port)d.
-
-Press Continue when done.""") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.socatPort })
+                text = _("Baudrate is %(br)d.\n\n"
+                    "Serial line is redirected to %(ip)s:%(port)d.\n\n"
+                    "Press 'Continue' when done.") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.socatPort })
         return "confirm"
     #enddef
 
@@ -3325,12 +3303,11 @@ Press Continue when done.""") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.s
 
 
     def button10ButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-                continueFce = self.button10Continue,
-                text = _("""Is there the correct amount of resin in the tank?
-
-Is the tank secured with both screws?"""))
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+                yesFce = self.button10Continue,
+                text = _("Is there the correct amount of resin in the tank?\n\n"
+                    "Is the tank secured with both screws?"))
+        return "yesno"
     #enddef
 
 
@@ -3589,13 +3566,11 @@ class PageNetUpdate(Page):
 
 
     def update(self, name, url):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.display.pages['firmwareupdate'].fetchUpdate,
-            continueParams = { 'fw_url': url },
-            text = _("""Updating to %s.
-
-Proceed update?""") % name)
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+            yesFce = self.display.pages['firmwareupdate'].fetchUpdate,
+            yesParams = { 'fw_url': url },
+            text = _("Updating to %s.\n\nProceed update?") % name)
+        return "yesno"
     #enddef
 
 #endclass
@@ -4574,11 +4549,9 @@ Do not rotate the platform. It should be positioned according to the picture."""
             self.display.hw.towerSyncWait()
             self.display.pages['confirm'].setParams(
                 continueFce = self.positionFailed,
-                text = _("""Tower not at the expected position.
-
-Is the platform and tank secured in correct position?
-
-Click continue and read the instructions carefully."""))
+                text = _("Tower not at the expected position.\n\n"
+                    "Is the platform and tank secured in correct position?\n\n"
+                    "Press 'Continue' and read the instructions carefully."))
             return "confirm"
         #endif
         self.display.hw.setTowerProfile('homingSlow')
@@ -4592,11 +4565,9 @@ Click continue and read the instructions carefully."""))
             self.display.hw.towerSyncWait()
             self.display.pages['confirm'].setParams(
                 continueFce = self.positionFailed,
-                text = _("""Tower not at the expected position.
-
-Is the platform and tank secured in correct position?
-
-Click continue and read the instructions carefully."""))
+                text = _("Tower not at the expected position.\n\n"
+                    "Is the platform and tank secured in correct position?\n\n"
+                    "Press 'Continue' and read the instructions carefully."))
             return "confirm"
         #endif
         self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw._towerCalibPos * 3)
@@ -4793,21 +4764,22 @@ class PageCalibrationConfirm(Page):
 
     def __init__(self, display):
         super(PageCalibrationConfirm, self).__init__(display)
-        self.pageUI = "confirm"
+        self.pageUI = "yesno"
         self.pageTitle = N_("Cancel calibration?")
         self.items.update({
             'text' : _("""Do you really want to cancel calibration?
 
 Machine will not work without going through it.""")})
+        self.checkPowerbutton = False
     #enddef
 
 
-    def contButtonRelease(self):
+    def yesButtonRelease(self):
         return "_EXIT_"
     #endif
 
 
-    def backButtonRelease(self):
+    def noButtonRelease(self):
         return "_NOK_"
     #enddef
 
@@ -5340,11 +5312,10 @@ class PageFansLeds(Page):
 
 
     def button1ButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-            continueFce=self.save_defaults,
-            text=_("Save current values as factory defaults?")
-        )
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+            yesFce = self.save_defaults,
+            text = _("Save current values as factory defaults?"))
+        return "yesno"
     #enddef
 
 
@@ -5362,11 +5333,10 @@ class PageFansLeds(Page):
 
 
     def button3ButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-            continueFce=self.reset_to_defaults,
-            text=_("Reset to factory defaults?")
-        )
-        return "confirm"
+        self.display.pages['yesno'].setParams(
+            yesFce = self.reset_to_defaults,
+            text = _("Reset to factory defaults?"))
+        return "yesno"
     #enddef
 
 
@@ -5980,9 +5950,7 @@ class PageUnboxing5(Page):
         self.pageUI = "confirm"
         self.pageTitle = N_("Unboxing done")
         self.items.update({
-            'text' : _("""The printer is fully unboxed and ready for the selftest.
-
-Continue?""")})
+            'text' : _("The printer is fully unboxed and ready for the selftest.")})
     #enddef
 
 
@@ -6009,18 +5977,18 @@ class PageUnboxingConfirm(Page):
 
     def __init__(self, display):
         super(PageUnboxingConfirm, self).__init__(display)
-        self.pageUI = "confirm"
+        self.pageUI = "yesno"
         self.pageTitle = N_("Skip unboxing?")
         self.items.update({
-            'text' : _("""Do you really want to skip the unboxing wizard?
-
-Press 'Continue' only in case you've assembled the printer as a kit, or you went through this wizard previously and the printer is unpacked.
-
-Press 'Back' to return to the wizard.""")})
+            'text' : _("Do you really want to skip the unboxing wizard?\n\n"
+                "Press 'Yes' only in case you've assembled the printer as a kit,"
+                " or you went through this wizard previously and the printer is"
+                " unpacked.")})
+        self.checkPowerbutton = False
     #enddef
 
 
-    def contButtonRelease(self):
+    def yesButtonRelease(self):
         self.display.hwConfig.update(showUnboxing = "no")
         if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
@@ -6031,7 +5999,7 @@ Press 'Back' to return to the wizard.""")})
     #enddef
 
 
-    def backButtonRelease(self):
+    def noButtonRelease(self):
         return "_NOK_"
     #enddef
 
@@ -6047,11 +6015,8 @@ class PageWizard1(Page):
         self.pageUI = "confirm"
         self.pageTitle = N_("Setup wizard step 1/5")
         self.items.update({
-            'text' : _("""Welcome to the setup wizard.
-
-This procedure is mandatory and it will help you to set up the printer
-
-Continue?""")})
+            'text' : _("Welcome to the setup wizard.\n\n"
+                "This procedure is mandatory and it will help you to set up the printer.")})
     #enddef
 
 
@@ -6598,18 +6563,16 @@ class PageWizardConfirm(Page):
 
     def __init__(self, display):
         super(PageWizardConfirm, self).__init__(display)
-        self.pageUI = "confirm"
+        self.pageUI = "yesno"
         self.pageTitle = N_("Skip wizard?")
         self.items.update({
-            'text' : _("""Do you really want to skip the wizard?
-
-The machine may not work correctly without finishing this check.
-
-Press 'Continue' to exit the wizard, or 'Back' to return to the wizard.""")})
+            'text' : _("Do you really want to skip the wizard?\n\n"
+                "The machine may not work correctly without finishing this check.")})
+        self.checkPowerbutton = False
     #enddef
 
 
-    def contButtonRelease(self):
+    def yesButtonRelease(self):
         self.allOff()
         self.display.hwConfig.update(showWizard = "no")
         if not self.display.hwConfig.writeFile():
@@ -6621,7 +6584,7 @@ Press 'Continue' to exit the wizard, or 'Back' to return to the wizard.""")})
     #endif
 
 
-    def backButtonRelease(self):
+    def noButtonRelease(self):
         return "_NOK_"
     #enddef
 
