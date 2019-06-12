@@ -4,7 +4,7 @@ from sl1fw.libPages import PageWait
 
 @page
 class PageControl(Page):
-    Name = "Control"
+    Name = "control"
 
     def __init__(self, display):
         super(PageControl, self).__init__(display)
