@@ -404,14 +404,14 @@ class PageAdvancedSettings(Page):
     def confirmChanges(self):
         self.display.hw.stopFans()
         if self.configwrapper.changed():
-            self.display.page_yesno.setParams(
+            self.display.pages['yesno'].setParams(
                     pageTitle = _("Save changes?"),
                     text = _("Save changes?"))
             if self.display.doMenu("yesno"):
                 # save changes
                 sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
                 if not self.configwrapper.commit():
-                    self.display.page_error.setParams(
+                    self.display.pages['error'].setParams(
                         text = _("Cannot save configuration"))
                     return "error"
                 #endif
@@ -441,7 +441,15 @@ class PageAdvancedSettings(Page):
         self.display.hw.setTiltProfiles(profiles)
         self.logger.debug("profiles %s", profiles)
 
-        return "_BACK_"
+        # adjust tower profiles
+        profiles = self.display.hw.getTowerProfiles()
+        self.logger.debug("profiles %s", profiles)
+        profiles[0][4] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensitivity + 2][0]
+        profiles[0][5] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensitivity + 2][1]
+        profiles[1][4] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensitivity + 2][0]
+        profiles[1][5] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensitivity + 2][1]
+        self.display.hw.setTowerProfiles(profiles)
+        self.logger.debug("profiles %s", profiles)
     #enddef
 
 #endclass
