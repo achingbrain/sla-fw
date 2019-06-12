@@ -258,7 +258,7 @@ class ExposureThread(threading.Thread):
     def doStuckRelease(self):
         self.expo.hw.powerLed("error")
         self.expo.hw.towerHoldTiltRelease()
-        self.expo.display.page_confirm.setParams(
+        self.expo.display.pages['confirm'].setParams(
             continueFce = self.expo.doContinue,
             backFce = self.expo.doBack,
             beep = True,
@@ -277,7 +277,7 @@ If you don't want to continue, press the Back button on top of the screen and th
         pageWait.show()
 
         if not self.expo.hw.tiltSyncWait(retries = 1):
-            self.expo.display.page_confirm.setParams(
+            self.expo.display.pages['confirm'].setParams(
                     continueFce = self.expo.doBack,
                     backFce = self.expo.doBack,
                     beep = True,
@@ -354,7 +354,7 @@ The print job was canceled."""))
                         reason = _("Manual resin refill")
                         beep = False
                     #endif
-                    self.expo.display.page_feedme.showItems(text = _("""%s
+                    self.expo.display.pages['feedme'].showItems(text = _("""%s
 
 Please refill the tank up to the 100 %% mark and press Done.
 

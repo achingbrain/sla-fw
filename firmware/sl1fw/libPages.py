@@ -43,6 +43,25 @@ from sl1fw import defines
 from sl1fw import libConfig
 
 
+class PageRegistry(object):
+    def __init__(self):
+        self._pages = {}
+
+    def __call__(self, page_class):
+        self._pages[page_class.Name] = page_class
+        return page_class
+    #enddef
+
+    def getpages(self):
+        return self._pages
+    #enddef
+
+#endclass
+
+
+page = PageRegistry()
+
+
 class Page(object):
 
     def __init__(self, display):
@@ -160,7 +179,7 @@ class Page(object):
 
 
     def turnoffButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.turnoffContinue,
                 checkPowerbutton = False,
                 text = _("Do you really want to turn off the printer?"))
@@ -294,7 +313,7 @@ class Page(object):
     def saveLogsToUSB(self):
         save_path = self.getSavePath()
         if save_path is None:
-            self.display.page_error.setParams(text=_("No USB storage present"))
+            self.display.pages['error'].setParams(text=_("No USB storage present"))
             return "error"
         #endif
 
@@ -309,7 +328,7 @@ class Page(object):
             subprocess.check_call(
                 ["/bin/sh", "-c", "journalctl | gzip > %s; sync" % log_file])
         except subprocess.CalledProcessError as e:
-            self.display.page_error.setParams(text=_("Log save failed"))
+            self.display.pages['error'].setParams(text=_("Log save failed"))
             return "error"
         #endexcept
 
@@ -396,7 +415,7 @@ class Page(object):
             pageWait.showItems(line2 = self.display.hw.getTowerPosition())
         #endwhile
         if self.display.hw.towerSyncFailed():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     text = _("""Tower homing failed!
 
 Check the printer's hardware."""))
@@ -408,7 +427,7 @@ Check the printer's hardware."""))
 
     def _syncTilt(self):
         if not self.display.hw.tiltSyncWait(retries = 2):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     text = _("""Tilt homing failed!
 
 Check the printer's hardware."""))
@@ -575,7 +594,7 @@ Check the printer's hardware."""))
                 addText = ""
             #endif
 
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = backFce,
                     text = _("""Reading of UV LED temperature has failed!
 
@@ -635,7 +654,7 @@ If you don't want to continue, please press the Back button on top of the screen
                 addText = ""
             #endif
 
-            self.display.page_confirm.setParams(
+            self.display.pages['confirm'].setParams(
                     backFce = backFce,
                     continueFce = self.backButtonRelease,
                     beep = True,
@@ -666,11 +685,11 @@ Please contact tech support!
         do not shut down the printer for now
         if A64temperature > defines.maxA64Temp: # 70 C
             self.logger.warning("Printer is shuting down due to overheat! Measured %.1f °C on A64.", A64temperature)
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _(u"""Printers temperature is too high. Measured: %.1f °C!
 
 Shutting down in 10 seconds...""") % A64temperature)
-            self.display.page_error.show()
+            self.display.pages['error'].show()
             for i in range(10):
                 self.display.hw.beepAlarm(3)
                 sleep(1)
@@ -716,7 +735,9 @@ Shutting down in 10 seconds...""") % A64temperature)
 #endclass
 
 
+@page
 class PageWait(Page):
+    Name = "wait"
 
     def __init__(self, display, **kwargs):
         super(PageWait, self).__init__(display)
@@ -728,104 +749,6 @@ class PageWait(Page):
 
     def fill(self, **kwargs):
         self.items = kwargs
-    #enddef
-
-#endclass
-
-
-class PageConfirm(Page):
-
-    def __init__(self, display):
-        super(PageConfirm, self).__init__(display)
-        self.pageUI = "confirm"
-        self.pageTitle = N_("Confirm")
-        self.stack = False
-    #enddef
-
-
-    def setParams(self, **kwargs):
-        self.continueFce = kwargs.pop("continueFce", None)
-        self.continueParams = kwargs.pop("continueParams", dict())
-        self.backFce = kwargs.pop("backFce", None)
-        self.backParams = kwargs.pop("backParams", dict())
-        self.beep = kwargs.pop("beep", False)
-        self.checkPowerbutton = kwargs.pop("checkPowerbutton", True)
-        self.items = kwargs
-    #enddef
-
-
-    def show(self):
-        super(PageConfirm, self).show()
-        if self.beep:
-            self.display.hw.beepAlarm(1)
-        #endif
-    #enddef
-
-
-    def contButtonRelease(self):
-        if self.continueFce is None:
-            return "_EXIT_"
-        else:
-            return self.continueFce(**self.continueParams)
-        #endif
-    #enddef
-
-
-    def backButtonRelease(self):
-        if self.backFce is None:
-            return super(PageConfirm, self).backButtonRelease()
-        else:
-            return self.backFce(**self.backParams)
-        #endif
-    #enddef
-
-#endclass
-
-
-class PageYesNo(Page):
-
-    def __init__(self, display):
-        super(PageYesNo, self).__init__(display)
-        self.pageUI = "yesno"
-        self.pageTitle = N_("Make your choice")
-        self.stack = False
-    #enddef
-
-
-    def setParams(self, **kwargs):
-        self.yesFce = kwargs.pop("yesFce", None)
-        self.yesParams = kwargs.pop("yesParams", dict())
-        self.noFce = kwargs.pop("noFce", None)
-        self.noParams = kwargs.pop("noParams", dict())
-        self.beep = kwargs.pop("beep", False)
-        self.pageTitle = kwargs.pop("pageTitle", N_("Make your choice"))
-        self.items = kwargs
-    #enddef
-
-
-    def show(self):
-        super(PageYesNo, self).show()
-        if self.beep:
-            self.display.hw.beepAlarm(1)
-        #endif
-    #enddef
-
-
-    def yesButtonRelease(self):
-        if self.yesFce is None:
-            return "_OK_"
-        else:
-            return self.yesFce(**self.yesParams)
-        #endif
-    #enddef
-
-
-    def noButtonRelease(self):
-        if self.noFce is None:
-            return "_NOK_"
-        else:
-            return self.noFce(**self.noParams)
-        #endif
     #enddef
 
 #endclass
@@ -866,7 +789,9 @@ class PagePrintPreviewBase(Page):
 #endclass
 
 
+@page
 class PagePrintPreview(PagePrintPreviewBase):
+    Name = "printpreview"
 
     def __init__(self, display):
         super(PagePrintPreview, self).__init__(display)
@@ -947,7 +872,7 @@ Re-export the file and try again."""), None, None)
         temperatures = self.display.hw.getMcTemperatures()
         for i in range(2):
             if temperatures[i] < 0:
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     backFce = self.backButtonRelease,
                     text = _("""Can't read %s
 
@@ -957,7 +882,7 @@ Please check if temperature sensors are connected correctly.""") % self.display.
         #endfor
 
         if temperatures[1] < defines.minAmbientTemp:
-            self.display.page_confirm.setParams(
+            self.display.pages['confirm'].setParams(
                     continueFce = self.contButtonContinue1,
                     text = _("""Ambient temperature is under recommended value.
 
@@ -968,7 +893,7 @@ Do you want to continue?"""))
         #endif
 
         if temperatures[1] > defines.maxAmbientTemp:
-            self.display.page_confirm.setParams(
+            self.display.pages['confirm'].setParams(
                     continueFce = self.contButtonContinue1,
                     text = _("""Ambient temperature is over recommended value.
 
@@ -1003,7 +928,7 @@ Do you want to continue?"""))
         #endwhile
 
         if error:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = self.backButtonRelease,
                     text = error)
             return "error"
@@ -1012,7 +937,7 @@ Do you want to continue?"""))
         pageWait.showItems(line1 = _("Project data OK"))
 
         if self.display.hw.towerSyncFailed():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = self.backButtonRelease,
                     text = _("""Tower homing failed!
 
@@ -1023,7 +948,7 @@ The print job was canceled."""))
         #endif
 
         if self.display.hw.tiltSyncFailed():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = self.backButtonRelease,
                     text = _("""Tilt homing failed!
 
@@ -1052,7 +977,7 @@ The print job was canceled."""))
                     failedFans.append(self.display.hw.getFanName(num))
                 #endif
             #endfor
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = self.backButtonRelease,
                     text = _("""Failed: %s
 
@@ -1066,7 +991,7 @@ Check if fans are connected properly and can rotate without resistance.""" % ", 
         self.display.expo.setProject(zipName)
 
         if confirm:
-            self.display.page_confirm.setParams(
+            self.display.pages['confirm'].setParams(
                     backFce = self.backButtonRelease,
                     continueFce = self.contButtonContinue2,
                     beep = True,
@@ -1097,7 +1022,9 @@ Check if fans are connected properly and can rotate without resistance.""" % ", 
 #endclass
 
 
+@page
 class PagePrintStart(PagePrintPreviewBase):
+    Name = "printstart"
 
     def __init__(self, display):
         super(PagePrintStart, self).__init__(display)
@@ -1134,7 +1061,7 @@ Resin will have to be added during this print job."""),
     def contButtonRelease(self):
 
         if not self.display.expo.loadProject():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = self.backButtonRelease,
                     text = _("""Can't read data of your project.
 
@@ -1177,7 +1104,7 @@ Remove some resin from the tank and try again.""")
                     sleep(0.25)
                     self.pageWait.showItems(line3 = self.display.hw.getTowerPosition())
                 #endwhile
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                         backFce = self.backButtonRelease,
                         text = text)
                 return "error"
@@ -1189,7 +1116,7 @@ Remove some resin from the tank and try again.""")
             self.display.expo.setResinVolume(volume)
 
             if percMeas < self.percReq:
-                self.display.page_confirm.setParams(
+                self.display.pages['confirm'].setParams(
                         backFce = self.backButtonRelease,
                         continueFce = self.contButtonContinue1,
                         beep = True,
@@ -1237,167 +1164,6 @@ For your project, %(requested)d %% is needed. A refill may be required during pr
 #endclass
 
 
-class PageStart(Page):
-
-    def __init__(self, display):
-        super(PageStart, self).__init__(display)
-    #enddef
-
-#endclass
-
-
-class PageHome(Page):
-
-    def __init__(self, display):
-        super(PageHome, self).__init__(display)
-        self.pageUI = "home"
-        self.pageTitle = N_("Home")
-        # meni se i z libPrinter!
-        self.readyBeep = True
-    #enddef
-
-
-    def show(self):
-        super(PageHome, self).show()
-        if self.readyBeep:
-            self.display.hw.beepRepeat(2)
-            self.readyBeep = False
-        #endif
-    #enddef
-
-
-    def controlButtonRelease(self):
-        return "control"
-    #enddef
-
-
-    def settingsButtonRelease(self):
-        return "settings"
-    #enddef
-
-
-    def printButtonRelease(self):
-# FIXME temporaily disabled until it works perfectly on all printers
-#        if self.display.hwConfig.showWizard:
-#            self.display.page_confirm.setParams(
-#                    continueFce = self.showWizard,
-#                    text = _("""Printer needs to be set up!
-#
-#Go through wizard now?"""))
-#            return "confirm"
-        #endif
-        if not self.display.hwConfig.calibrated:
-            self.display.page_confirm.setParams(
-                    continueFce = self.printContinue,
-                    text = _("""Printer is not calibrated!
-
-Calibrate now?"""))
-            return "confirm"
-        #endif
-
-        return "sourceselect"
-    #enddef
-
-
-    def showWizard(self):
-        return "wizard1"
-    #enddef
-
-
-    def printContinue(self):
-        return "calibration1"
-    #enddef
-
-#endclass
-
-
-class PageControl(Page):
-
-    def __init__(self, display):
-        super(PageControl, self).__init__(display)
-        self.pageUI = "control"
-        self.pageTitle = N_("Control")
-    #enddef
-
-
-    def show(self):
-        self.moving = False
-        super(PageControl, self).show()
-    #enddef
-
-
-    def topButtonRelease(self):
-        self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = _("Moving platform to the top"))
-        pageWait.show()
-        retc = self._syncTower(pageWait)
-        self.display.hw.motorsHold()
-        self.display.hw.powerLed("normal")
-        return retc
-    #enddef
-
-
-    def tankresButtonRelease(self):
-        self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = _("Tank reset"))
-        pageWait.show()
-        # assume tilt is up (there may be error from print)
-        self.display.hw.setTiltPosition(self.display.hw._tiltEnd)
-        self.display.hw.tiltLayerDownWait(True)
-        self.display.hw.tiltSyncWait()
-        self.display.hw.tiltLayerUpWait()
-        self.display.hw.motorsHold()
-        self.display.hw.powerLed("normal")
-        return "_SELF_"
-    #enddef
-
-
-    def disablesteppersButtonRelease(self):
-        self.display.hw.motorsRelease()
-    #enddef
-
-#endclass
-
-
-class PageSettings(Page):
-
-    def __init__(self, display):
-        super(PageSettings, self).__init__(display)
-        self.pageUI = "settings"
-        self.pageTitle = N_("Settings")
-    #enddef
-
-
-    def networkButtonRelease(self):
-        return "network"
-    #enddef
-
-
-    def recalibrationButtonRelease(self):
-        self.display.page_confirm.setParams(
-            continueFce = self.calibrateContinue,
-            text = _("Calibrate printer now?"))
-        return "confirm"
-    #enddef
-
-
-    def advancedsettingsButtonRelease(self):
-        return "advancedsettings"
-    #enddef
-
-
-    def supportButtonRelease(self):
-        return "support"
-    #enddef
-
-
-    def calibrateContinue(self):
-        return "calibration1"
-    #enddef
-
-#endclass
-
-
 class PageTimeDateBase(Page):
 
     def __init__(self, display):
@@ -1417,7 +1183,9 @@ class PageTimeDateBase(Page):
 #endclass
 
 
+@page
 class PageTimeSettings(PageTimeDateBase):
+    Name = "timesettings"
 
     def __init__(self, display):
         super(PageTimeSettings, self).__init__(display)
@@ -1499,7 +1267,9 @@ class PageSetTimeBase(PageTimeDateBase):
 #endclass
 
 
+@page
 class PageSetTime(PageSetTimeBase):
+    Name = "settime"
 
     def __init__(self, display):
         super(PageSetTime, self).__init__(display)
@@ -1510,7 +1280,9 @@ class PageSetTime(PageSetTimeBase):
 #endclass
 
 
+@page
 class PageSetDate(PageSetTimeBase):
+    Name = "setdate"
 
     def __init__(self, display):
         super(PageSetDate, self).__init__(display)
@@ -1521,7 +1293,9 @@ class PageSetDate(PageSetTimeBase):
 #endclass
 
 
+@page
 class PageSetTimezone(PageTimeDateBase):
+    Name = "settimezone"
     zoneinfo = "/usr/share/zoneinfo/"
 
     def __init__(self, display):
@@ -1577,7 +1351,9 @@ class PageSetTimezone(PageTimeDateBase):
 #endclass
 
 
+@page
 class PageSetHostname(Page):
+    Name = "sethostname"
 
     def __init__(self, display):
         super(PageSetHostname, self).__init__(display)
@@ -1615,7 +1391,7 @@ class PageSetHostname(Page):
             self.hostname.SetStaticHostname(hostname, False)
             self.hostname.SetHostname(hostname, False)
         except:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Failed to set hostname"))
             return "error"
         #endtry
@@ -1626,7 +1402,9 @@ class PageSetHostname(Page):
 #endclass
 
 
+@page
 class PageSetLanguage(Page):
+    Name = "setlanguage"
 
     def __init__(self, display):
         super(PageSetLanguage, self).__init__(display)
@@ -1669,6 +1447,7 @@ class PageSetLanguage(Page):
             self.locale.SetLocale([data['locale']], False)
         except:
             self.logger.error("Setting locale failed")
+        #endtry
 
         return "_BACK_"
     #enddef
@@ -1676,458 +1455,9 @@ class PageSetLanguage(Page):
 #endclass
 
 
-def item_updater(str_func = None):
-    def new_decorator(func):
-        def new_func(self, value):
-            func(self, value)
-
-            key = func.__name__
-            if str_func:
-                value = str_func(getattr(self, func.__name__))
-            else:
-                value = getattr(self, func.__name__)
-            #endif
-
-            self.showItems(**{key: value})
-        #enddef
-        return new_func
-    #enddef
-    return new_decorator
-#enddef
-
-
-def value_saturate(min, max):
-    def new_decorator(func):
-        def new_func(self, value):
-            if not min <= value <= max:
-                self.display.hw.beepAlarm(1)
-                return
-            else:
-                func(self, value)
-            #enddif
-        #enddef
-        return new_func
-    #enddef
-    return new_decorator
-#enddef
-
-
-def confirm_leave(func):
-    def new_func(self):
-        retc = self.confirmChanges()
-        if retc:
-            return retc
-        else:
-            return func(self)
-        #endif
-    #enddef
-    return new_func
-#enddef
-
-
-class PageAdvancedSettings(Page):
-
-    def __init__(self, display):
-        super(PageAdvancedSettings, self).__init__(display)
-        self.pageUI = "advancedsettings"
-        self.pageTitle = N_("Advanced Settings")
-        self._display_test = False
-        self.configwrapper = None
-        self._calibTowerOffset_mm = None
-        self.confirmReturnPending = False
-
-        self.autorepeat = {
-            'minus_tiltsensitivity': (5, 1), 'plus_tiltsensitivity': (5, 1),
-            'minus_towersensitivity': (5, 1), 'plus_towersensitivity': (5, 1),
-            'minus_fasttiltlimit': (5, 1), 'plus_fasttiltlimit': (5, 1),
-            'minus_toweroffset': (5, 1), 'plus_toweroffset': (5, 1),
-            'minus_rearfanspeed': (5, 1), 'plus_rearfanspeed': (5, 1),
-        }
-    #enddef
-
-
-    @property
-    def tilt_sensitivity(self):
-        return self.configwrapper.tiltSensitivity
-    #enddef
-
-    @tilt_sensitivity.setter
-    @value_saturate(-2, 2)
-    @item_updater()
-    def tilt_sensitivity(self, value):
-        self.configwrapper.tiltSensitivity = value
-    #enddef
-
-
-    @property
-    def tower_sensitivity(self):
-        return self.configwrapper.towerSensitivity
-    #enddef
-
-    @tower_sensitivity.setter
-    @value_saturate(-2, 2)
-    @item_updater()
-    def tower_sensitivity(self, value):
-        self.configwrapper.towerSensitivity = value
-    #enddef
-
-
-    @property
-    def fast_tilt_limit(self):
-        return self.configwrapper.limit4fast
-    #enddef
-
-    @fast_tilt_limit.setter
-    @value_saturate(0, 100)
-    @item_updater()
-    def fast_tilt_limit(self, value):
-        self.configwrapper.limit4fast = value
-    #enddef
-
-
-    @property
-    def tower_offset(self):
-        if self._calibTowerOffset_mm is None:
-            self._calibTowerOffset_mm = self.display.hwConfig.calcMM(self.configwrapper.calibTowerOffset)
-        #endif
-        return self._calibTowerOffset_mm
-    #enddef
-
-    @tower_offset.setter
-    @value_saturate(-0.5, 0.5)
-    @item_updater(str_func=lambda x: "%+.3f" % x)
-    def tower_offset(self, value):
-        self._calibTowerOffset_mm = value
-        self.configwrapper.calibTowerOffset = self.display.hwConfig.calcMicroSteps(value)
-    #enddef
-
-
-    @property
-    def rear_fan_speed(self):
-        return self.configwrapper.fan3Pwm
-    #enddef
-
-    @rear_fan_speed.setter
-    @value_saturate(0, 100)
-    @item_updater()
-    def rear_fan_speed(self, value):
-        self.configwrapper.fan3Pwm = value
-        # TODO: This is wrong, it would be nice to have API to set just one fan
-        self.display.hw.setFansPwm((self.configwrapper.fan1Pwm,
-                                   self.configwrapper.fan2Pwm,
-                                   self.configwrapper.fan3Pwm))
-        self.display.hw.setFans((False, False, True))
-    #enddef
-
-
-    @property
-    def auto_power_off(self):
-        return self.configwrapper.autoOff
-    #enddef
-
-    @auto_power_off.setter
-    @item_updater()
-    def auto_power_off(self, value):
-        self.configwrapper.autoOff = value
-    #enddef
-
-
-    @property
-    def cover_check(self):
-        return self.configwrapper.coverCheck
-    #enddef
-
-    @cover_check.setter
-    @item_updater()
-    def cover_check(self, value):
-        self.configwrapper.coverCheck = value
-    #enddef
-
-
-    @property
-    def resin_sensor(self):
-        return self.configwrapper.resinSensor
-    #enddef
-
-    @resin_sensor.setter
-    @item_updater()
-    def resin_sensor(self, value):
-        self.configwrapper.resinSensor = value
-    #enddef
-
-
-    def show(self):
-        if self.configwrapper is None or not self.confirmReturnPending:
-            self.configwrapper = libConfig.ConfigHelper(self.display.hwConfig)
-        else:
-            self.confirmReturnPending = False
-        #endif
-        self._calibTowerOffset_mm = None
-
-        self.items.update({
-            'showAdmin': self.display.show_admin, # TODO: Remove once client uses show_admin
-            'show_admin': self.display.show_admin,
-            'tilt_sensitivity': self.tilt_sensitivity,
-            'tower_sensitivity': self.tower_sensitivity,
-            'fast_tilt_limit': self.fast_tilt_limit,
-            'tower_offset': "%+.3f" % self.tower_offset,
-            'rear_fan_speed': self.rear_fan_speed,
-            'auto_power_off': self.auto_power_off,
-            'cover_check': self.cover_check,
-            'resin_sensor': self.resin_sensor,
-        })
-        super(PageAdvancedSettings, self).show()
-    #enddef
-
-
-    # Move platform
-    @confirm_leave
-    def towermoveButtonRelease(self):
-        return "towermove"
-    #enddef
-
-
-    # Move resin tank
-    @confirm_leave
-    def tiltmoveButtonRelease(self):
-        return "tiltmove"
-    #enddef
-
-
-    # Time settings
-    @confirm_leave
-    def timesettingsButtonRelease(self):
-        return "timesettings"
-    #enddef
-
-
-    # Change language (TODO: Not in the graphical design, not yet implemented properly)
-    @confirm_leave
-    def setlanguageButtonRelease(self):
-        return "setlanguage"
-    #enddef
-
-
-    # Hostname
-    @confirm_leave
-    def sethostnameButtonRelease(self):
-        return "sethostname"
-    #enddef
-
-
-    # Change name/password
-    @confirm_leave
-    def setremoteaccessButtonRelease(self):
-        return "setlogincredentials"
-    #enddef
-
-
-    # Tilt sensitivity
-    def minus_tiltsensitivityButton(self):
-        self.tilt_sensitivity -= 1
-    #enddef
-    def plus_tiltsensitivityButton(self):
-        self.tilt_sensitivity += 1
-    #enddef
-
-
-    # Tower sensitivity
-    def minus_towersensitivityButton(self):
-        self.tower_sensitivity -= 1
-    # enddef
-    def plus_towersensitivityButton(self):
-        self.tower_sensitivity += 1
-    # enddef
-
-
-    # Limit for fast tilt
-    def minus_fasttiltlimitButton(self):
-        self.fast_tilt_limit -= 1
-    #enddef
-    def plus_fasttiltlimitButton(self):
-        self.fast_tilt_limit += 1
-    #enddef
-
-
-    # Tower offset
-    # TODO: Adjust in mm, compute steps
-    # Currently we are adjusting steps, but showing mm. This in counterintuitive.
-    def minus_toweroffsetButton(self):
-        self.tower_offset -= 0.001
-    #enddef
-    def plus_toweroffsetButton(self):
-        self.tower_offset += 0.001
-    #enddef
-
-
-    # Display test
-    @confirm_leave
-    def displaytestButtonRelease(self):
-        return "displaytest"
-    #enddef
-
-    # Rear fan speed
-    def minus_rearfanspeedButton(self):
-        self.rear_fan_speed -= 1
-    #enddef
-    def plus_rearfanspeedButton(self):
-        self.rear_fan_speed += 1
-    #enddef
-
-
-    # Auto power off
-    def autopoweroffButtonRelease(self):
-        self.auto_power_off = not self.auto_power_off
-    #enddef
-
-
-    # Cover check
-    def covercheckButtonRelease(self):
-        if self.cover_check:
-            self.display.page_confirm.setParams(
-                continueFce=self.disableCoverCheck,
-                backFce=self._doConfirmReturn,
-                text=_("Disable the cover sensor?\n"
-                       "\n"
-                       "CAUTION: This may lead to unwanted exposure to UV light. This action is not recommended!"))
-            return "confirm"
-        else:
-            self.cover_check = True
-        #endif
-    #enddef
-
-
-    def disableCoverCheck(self):
-        self.cover_check = False
-        return self._doConfirmReturn()
-    #enddef
-
-
-    def _doConfirmReturn(self):
-        self.confirmReturnPending = True
-        return "_BACK_"
-    #enddef
-
-
-    # Resin Sensor
-    def resinsensorButtonRelease(self):
-        if self.resin_sensor:
-            self.display.page_confirm.setParams(
-                continueFce=self.disableResinSensor,
-                backFce=self._doConfirmReturn,
-                text=_("Disable the resin sensor?\n"
-                       "\n"
-                       "CAUTION: This may lead to failed prints or resin tank overflow! This action is not recommended!"))
-            return "confirm"
-        else:
-            self.resin_sensor = True
-        #endif
-    #enddef
-
-
-    def disableResinSensor(self):
-        self.resin_sensor = False
-        return self._doConfirmReturn()
-    #enddef
-
-
-    # Firmware update
-    @confirm_leave
-    def firmwareupdateButtonRelease(self):
-        return "firmwareupdate"
-    #enddef
-
-
-    # Factory reset
-    @confirm_leave
-    def factoryresetButtonRelease(self):
-        return "factoryreset"
-    #enddef
-
-
-    # Admin
-    @confirm_leave
-    def adminButtonRelease(self):
-        if self.display.show_admin:
-            return "admin"
-        #endif
-    #enddef
-
-
-    # Logs export to usb
-    def exportlogstoflashdiskButtonRelease(self):
-        return self.saveLogsToUSB()
-    #enddef
-
-
-    # Show wizard
-    @confirm_leave
-    def wizardButtonRelease(self):
-        return "wizard1"
-    #enddef
-
-
-    @confirm_leave
-    def backButtonRelease(self):
-        return super(PageAdvancedSettings, self).backButtonRelease()
-    #enddef
-
-
-    def confirmChanges(self):
-        self.display.hw.stopFans()
-        if self.configwrapper.changed():
-            self.display.page_yesno.setParams(
-                    pageTitle = _("Save changes?"),
-                    text = _("Save changes?"))
-            if self.display.doMenu("yesno"):
-                # save changes
-                sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
-                if not self.configwrapper.commit():
-                    self.display.page_error.setParams(
-                        text = _("Cannot save configuration"))
-                    return "error"
-                #endif
-                if sensitivity_changed:
-                    self.logger.info("Motor sensitivity changed. Updating profiles.")
-                    self._updatesensitivity()
-                #endif
-            else:
-                # discard changes
-                # TODO: This is wrong, it would be nice to have API to set just one fan
-                self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm,
-                                            self.display.hwConfig.fan2Pwm,
-                                            self.display.hwConfig.fan3Pwm))
-            #endif
-        #endif
-    #enddef
-
-
-    def _updatesensitivity(self):
-        # adjust tilt profiles
-        profiles = self.display.hw.getTiltProfiles()
-        self.logger.debug("profiles %s", profiles)
-        profiles[0][4] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensitivity + 2][0]
-        profiles[0][5] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensitivity + 2][1]
-        profiles[1][4] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensitivity + 2][0]
-        profiles[1][5] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensitivity + 2][1]
-        self.display.hw.setTiltProfiles(profiles)
-        self.logger.debug("profiles %s", profiles)
-
-        # adjust tower profiles
-        profiles = self.display.hw.getTowerProfiles()
-        self.logger.debug("profiles %s", profiles)
-        profiles[0][4] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensitivity + 2][0]
-        profiles[0][5] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensitivity + 2][1]
-        profiles[1][4] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensitivity + 2][0]
-        profiles[1][5] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensitivity + 2][1]
-        self.display.hw.setTowerProfiles(profiles)
-        self.logger.debug("profiles %s", profiles)
-    #enddef
-
-#endclass
-
-
+@page
 class PageFactoryReset(Page):
+    Name = "factoryreset"
 
     def __init__(self, display):
         super(PageFactoryReset, self).__init__(display)
@@ -2151,7 +1481,7 @@ class PageFactoryReset(Page):
         #endtry
         self.display.hwConfig = libConfig.HwConfig(defaults=factory_defaults)
         if not self.display.hwConfig.writeFile(filename=defines.hwConfigFile):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Cannot save factory defaults configuration"))
             return "error"
         #endif
@@ -2221,7 +1551,7 @@ class PageFactoryReset(Page):
         #endwhile
 
         # at this height may be screwed down tank and inserted protective foam
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
             continueFce = self.factoryResetStep2,
             text = _("Insert protective foam"))
         return "confirm"
@@ -2261,7 +1591,9 @@ class PageFactoryReset(Page):
 #endclass
 
 
+@page
 class PageSupport(Page):
+    Name = "support"
 
     def __init__(self, display):
         super(PageSupport, self).__init__(display)
@@ -2292,169 +1624,9 @@ class PageSupport(Page):
 #endclass
 
 
-class PageFirmwareUpdate(Page):
-
-    def __init__(self, display):
-        super(PageFirmwareUpdate, self).__init__(display)
-        self.pageUI = "firmwareupdate"
-        self.pageTitle = N_("Firmware Update")
-        self.old_items = None
-        self.rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
-        self.updateDataPeriod = 1
-    #enddef
-
-
-    def getNetFirmwares(self):
-        try:
-            query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
-            self.downloadURL(query_url, defines.firmwareListTemp, title=_("Downloading firmware list"),
-                             timeout_sec=3)
-            with open(defines.firmwareListTemp) as list_file:
-                return json.load(list_file)
-            #endwith
-        except:
-            self.logger.exception("Failed to load firmware list from the net")
-            return []
-        #endtry
-    #enddef
-
-
-    def fillData(self):
-        # Get list of available firmware files on USB
-        fw_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
-
-        # Get list of avaible firmware files on net
-        try:
-            for fw in self.net_list:
-                if fw['branch'] != "stable":
-                    continue
-
-                if fw['version'] == self.display.hwConfig.os.versionId:
-                    continue
-
-                fw_files.append(fw['url'])
-            #endfor
-        except:
-            self.logger.exception("Failed to process net firmware list")
-        #endtry
-
-        # Get Rauc flasher status and progress
-        operation = None
-        progress = None
-        try:
-            operation = self.rauc.Operation
-            progress = self.rauc.Progress
-        except Exception as e:
-            self.logger.error("Rauc status read failed: " + str(e))
-        #endtry
-
-        return {
-            'firmwares' : fw_files,
-            'operation' : operation,
-            'progress' : progress,
-        }
-    #enddef
-
-
-    def show(self):
-        self.net_list = self.getNetFirmwares()
-        self.items.update(self.fillData())
-        super(PageFirmwareUpdate, self).show()
-    #enddef
-
-
-    def updateData(self):
-        items = self.fillData()
-        if self.old_items != items:
-            self.showItems(**items)
-            self.old_items = items
-        #endif
-    #enddef
-
-
-    def flashButtonSubmit(self, data):
-        try:
-            fw_url = data['firmware']
-        except Exception as e:
-            self.logger.error("Error reading data['firmware']: " + str(e))
-        #endtry
-
-        self.display.page_confirm.setParams(
-            continueFce = self.fetchUpdate,
-            continueParams = { 'fw_url': fw_url },
-            text = _("Do you really want to update the firmware?"))
-        return "confirm"
-    #enddef
-
-
-    def fetchUpdate(self, fw_url):
-        try:
-            self.downloadURL(fw_url, defines.firmwareTempFile, _("Fetching firmware"))
-        #endtry
-        except Exception as e:
-            self.logger.error("Firmware fetch failed: " + str(e))
-            self.display.page_error.setParams(
-                    text = _("Firmware fetch failed!"))
-            return "error"
-        #endexcept
-
-        return self.doUpdate(defines.firmwareTempFile)
-    #enddef
-
-
-    def doUpdate(self, fw_file):
-        self.logger.info("Flashing: " + fw_file)
-        try:
-            rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
-            rauc.Install(fw_file)
-        except Exception as e:
-            self.logger.error("Rauc install call failed: " + str(e))
-        #endtry
-
-        pageWait = PageWait(self.display, line1 = _("Updating the firmware"))
-        pageWait.show()
-
-        try:
-            while True:
-                operation = self.rauc.Operation
-                progress = self.rauc.Progress
-
-                pageWait.showItems(
-                    line2 = progress[1],
-                    line3 = "%d%%" % progress[0]
-                )
-
-                # Check progress for update done
-                if progress[1] == 'Installing done.':
-                    pageWait.showItems(
-                        line1 = _("Update done"),
-                        line2 = _("Shutting down"))
-                    sleep(3)
-                    self.display.shutDown(True, reboot=True)
-                #endif
-
-                # Check for operation failure
-                if progress[1] == 'Installing failed.':
-                    raise Exception("Update failed")
-                #endif
-
-                # Wait for a while
-                sleep(1)
-            #endwhile
-        #endtry
-
-        except Exception as e:
-            self.logger.error("Rauc update failed: " + str(e))
-            self.display.page_error.setParams(
-                    text = _("Update failed!"))
-            return "error"
-        #endexcept
-    #enddef
-
-#endclass
-
-
+@page
 class PageManual(Page):
+    Name = "manual"
 
     def __init__(self, display):
         super(PageManual, self).__init__(display)
@@ -2469,7 +1641,9 @@ class PageManual(Page):
 #endclass
 
 
+@page
 class PageVideos(Page):
+    Name = "videos"
 
     def __init__(self, display):
         super(PageVideos, self).__init__(display)
@@ -2484,7 +1658,9 @@ class PageVideos(Page):
 #endclass
 
 
+@page
 class PageNetwork(Page):
+    Name = "network"
 
     def __init__(self, display):
         super(PageNetwork, self).__init__(display)
@@ -2526,7 +1702,7 @@ class PageNetwork(Page):
 
 
     def clientconnectButtonSubmit(self, data):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
             continueFce = self.setclient,
             continueParams = { 'ssid': data['client-ssid'], 'psk': data['client-psk'] },
             text = _("""Do you really want to set the Wi-fi to client mode?
@@ -2537,7 +1713,7 @@ It may disconnect the web client."""))
 
 
     def apsetButtonSubmit(self, data):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
             continueFce = self.setap,
             continueParams = { 'ssid': data['ap-ssid'], 'psk': data['ap-psk'] },
             text = _("""Do you really want to set the Wi-fi to AP mode?
@@ -2548,7 +1724,7 @@ It may disconnect the web client."""))
 
 
     def wifioffButtonSubmit(self, data):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
             continueFce = self.wifioff,
             text = _("""Do you really want to turn off the Wi-fi?
 
@@ -2605,7 +1781,7 @@ It may disconnect the web client."""))
         #endfor
 
         # Connection fail
-        self.display.page_error.setParams(
+        self.display.pages['error'].setParams(
                 text = _("Connection failed!"))
         return "error"
     #enddef
@@ -2636,7 +1812,7 @@ It may disconnect the web client."""))
         #endfor
 
         # Connection fail
-        self.display.page_error.setParams(
+        self.display.pages['error'].setParams(
                 text = _("Starting AP failed!"))
         return "error"
     #enddef
@@ -2645,7 +1821,9 @@ It may disconnect the web client."""))
 
 
 # FIXME obsolete?
+@page
 class PageQRCode(Page):
+    Name = "qrcode"
 
     def __init__(self, display):
         super(PageQRCode, self).__init__(display)
@@ -2662,7 +1840,9 @@ class PageQRCode(Page):
 #endclass
 
 
+@page
 class PagePrint(Page):
+    Name = "print"
 
     def __init__(self, display):
         super(PagePrint, self).__init__(display)
@@ -2761,7 +1941,7 @@ class PagePrint(Page):
         if expo.resinVolume:
             remain = expo.resinVolume - int(expo.resinCount)
             if remain < defines.resinFeedWait:
-                self.display.page_feedme.manual = False
+                self.display.pages['feedme'].manual = False
                 expo.doFeedMe()
                 pageWait = PageWait(self.display, line1 = _("Wait until layer finish..."))
                 pageWait.show()
@@ -2804,7 +1984,7 @@ class PagePrint(Page):
 
 
     def feedmeButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
             continueFce = self.doFeedme,
             text = _("Do you really want add the resin to the tank?"))
         return "confirm"
@@ -2812,7 +1992,7 @@ class PagePrint(Page):
 
 
     def doFeedme(self):
-        self.display.page_feedme.manual = True
+        self.display.pages['feedme'].manual = True
         self.display.expo.doFeedMeByButton()
         self.display.setWaitPage(line1 = _("Wait until layer finish..."))
         return "_SELF_"
@@ -2820,7 +2000,7 @@ class PagePrint(Page):
 
 
     def updownButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
             continueFce = self.doUpAndDown,
             text = _("""Do you really want the platform to go up and down?
 
@@ -2842,7 +2022,7 @@ It may affect the printed object!"""))
 
 
     def turnoffButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.exitPrint,
                 checkPowerbutton = False,
                 text = _("Do you really want to cancel the actual job?"))
@@ -2866,7 +2046,10 @@ It may affect the printed object!"""))
 #endclass
 
 
+@page
+# TODO: Rename ??
 class PageChange(Page):
+    Name = "change"
 
     def __init__(self, display):
         super(PageChange, self).__init__(display)
@@ -2975,7 +2158,9 @@ class PageChange(Page):
 #endclass
 
 
+@page
 class PageSysInfo(Page):
+    Name = "sysinfo"
 
     def __init__(self, display):
         super(PageSysInfo, self).__init__(display)
@@ -3037,7 +2222,9 @@ class PageSysInfo(Page):
 #endclass
 
 
+@page
 class PageNetInfo(Page):
+    Name = "netinfo"
 
     def __init__(self, display):
         super(PageNetInfo, self).__init__(display)
@@ -3097,7 +2284,9 @@ class PageNetInfo(Page):
 #endclass
 
 
+@page
 class PageAbout(Page):
+    Name = "about"
 
     def __init__(self, display):
         super(PageAbout, self).__init__(display)
@@ -3126,12 +2315,12 @@ class PageAbout(Page):
             #endwith
         except:
             self.logger.exception("Admin accesibility check exception")
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Admin not accessible"))
             return "error"
         #endexcept
 
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.showadminContinue,
                 text = _("""Do you really want to enable the admin menu?
 
@@ -3148,290 +2337,9 @@ Wrong settings will damage your printer!"""))
 #endclass
 
 
-class SourceDir:
-
-    class NotProject(Exception):
-        pass
-    #endclass
-
-    def __init__(self, root, name):
-        self.root = root
-        self.name = name
-        self.logger = logging.getLogger(__name__)
-    #enddef
-
-
-    def list(self, current_root):
-        path = os.path.join(self.root, current_root)
-
-        if not os.path.isdir(path):
-            return
-        #endif
-
-        for item in os.listdir(path):
-            try:
-                yield self.processItem(item, path)
-            except SourceDir.NotProject:
-                continue
-            except Exception as e:
-                self.logger.exception("Ignoring source project for exception")
-                continue
-            #endtry
-        #endfor
-    #enddef
-
-
-    def processItem(self, item, path):
-        # Skip . link
-        if item.startswith('.'):
-            raise SourceDir.NotProject(". dir")
-        #endif
-
-        # Skip files that fail to decode as utf-8
-        try:
-            item.decode('utf-8')
-        except ValueError:
-            raise Exception('Invalid filename')
-        except AttributeError as e:
-            pass  # Python3 compat
-        #endtry
-
-        # Add directory to result
-        full_path = os.path.join(path, item)
-        if os.path.isdir(full_path):
-            # Count number of projects in current root and number of dirs that contain some projects
-            nonempty_dirs = set()
-            root_projects = 0
-            for root, dirs, files in os.walk(full_path):
-                for file in files:
-                    (_, ext) = os.path.splitext(file)
-                    if ext not in defines.projectExtensions:
-                        continue
-                    #endif
-
-                    rel_path = os.path.relpath(root, os.path.normpath(full_path))
-                    if rel_path == ".":
-                        root_projects += 1
-                    else:
-                        nonempty_dirs.add(rel_path.split(os.sep)[0])
-                    #endif
-                #endfor
-            #endfor
-
-            num_items = len(nonempty_dirs) + root_projects
-            if num_items == 0:
-                raise SourceDir.NotProject("No project in dir")
-            #endif
-
-            return {
-                'type': 'dir',
-                'name': item,
-                'path': item,
-                'fullpath': full_path,
-                'numitems': num_items
-            }
-        #endif
-
-        # Add project as result
-        (name, extension) = os.path.splitext(item)
-        if extension in defines.projectExtensions:
-            return {
-                'type': 'project',
-                'name': name,
-                'fullpath': full_path,
-                'source': self.name,
-                'filename': item,
-                'path': item,
-                'time': os.path.getmtime(full_path),
-                'size': os.path.getsize(full_path),
-            }
-        #endif
-
-        raise SourceDir.NotProject("Invalid extension: %s" % name)
-    #enddef
-
-#endclass
-
-
-class PageSrcSelect(Page):
-
-    def __init__(self, display):
-        super(PageSrcSelect, self).__init__(display)
-        self.pageUI = "sourceselect"
-        self.pageTitle = N_("Projects")
-        self.currentRoot = "."
-        self.old_items = None
-        self.sources = {}
-        self.updateDataPeriod = 1
-    #enddef
-
-
-    def in_root(self):
-        return self.currentRoot == "."
-    #enddef
-
-
-    def source_list(self):
-        # Get source directories
-        sourceDirs = [SourceDir(defines.internalProjectPath, "internal")]
-        sourceDirs += [SourceDir(path, "usb") for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
-
-        # Get content items
-        dirs = {}
-        files = []
-        for source_dir in sourceDirs:
-            for item in source_dir.list(self.currentRoot):
-                if item['type'] == 'dir':
-                    if item['name'] in dirs:
-                        item['numitems'] += dirs[item['name']]['numitems']
-                    #endif
-                    dirs[item['name']] = item
-                else:
-                    files.append(item)
-                #endif
-            #endfor
-        #endfor
-
-        # Flatten dirs, sort by name
-        dirs = sorted(dirs.values(), key=lambda x: x['name'])
-
-        # Add <up> virtual directory
-        if not self.in_root():
-            dirs.insert(0, {
-                'type': 'dir',
-                'name': '<up>',
-                'path': '..'
-            })
-        #endif
-
-        # Sort files
-        files.sort(key=lambda x: x['time'])
-        files.reverse()
-
-        # Compose content
-        content = dirs
-        content += files
-
-        # Number items as choice#
-        content_map = {}
-        for i, item in enumerate(content):
-            choice = "choice%d" % i
-            item['choice'] = choice
-            content_map[choice] = item
-        #endfor
-
-        return content, content_map
-    #enddef
-
-
-    def fillData(self):
-        ip = self.display.inet.getIp()
-        if ip != "none" and self.octoprintAuth:
-            text = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
-        else:
-            text = _("Not connected to network")
-        #endif
-
-        content, self.sources = self.source_list()
-
-        return {
-            'text': text,
-            'sources': content
-        }
-    #enddef
-
-
-    def show(self):
-        self.items = self.fillData()
-        super(PageSrcSelect, self).show()
-    #enddef
-
-
-    def updateData(self):
-        items = self.fillData()
-        if self.old_items != items:
-            self.showItems(**items)
-            self.old_items = items
-        #endif
-    #enddef
-
-
-    def sourceButtonSubmit(self, data):
-        try:
-            item = self.sources[data['choice']]
-        except KeyError:
-            self.logger.info("Invalid choice id passed %s", data['choice'])
-            return
-        #endtry
-
-        if item['type'] == 'dir':
-            self.currentRoot = os.path.join(self.currentRoot, item['path'])
-            self.currentRoot = os.path.normpath(self.currentRoot)
-            self.logger.info("Current project selection root: %s" % self.currentRoot)
-            self.show()
-        else:
-            return self.loadProject(item['fullpath'])
-        #endif
-    #enddef
-
-
-    def deleteButtonSubmit(self, data):
-        try:
-            item = self.sources[data['choice']]
-        except KeyError:
-            self.logger.info("Invalid choice id passed %s", data['choice'])
-            return
-        #endtry
-
-        if item['type'] == 'dir':
-#            for root, dirs, files in os.walk(item['fullpath']):
-#                for file in files:
-#                    (name, ext) = os.path.splitext(file)
-#                    if ext in defines.projectExtensions:
-#                        os.remove(os.path.join(root, file))
-#            return
-            raise NotImplementedError
-        else:
-            try:
-                os.remove(item['fullpath'])
-            except OSError:
-                self.logger.error("Failed to remove project file")
-            return
-        #endif
-    #enddef
-
-
-    def netChange(self):
-        ip = self.display.inet.getIp()
-        if ip != "none" and self.octoprintAuth:
-            self.showItems(text = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth))
-        else:
-            self.showItems(text = _("Not connected to network"))
-        #endif
-    #enddef
-
-
-    def loadProject(self, project_filename):
-        pageWait = PageWait(self.display, line1 = _("Reading project data..."))
-        pageWait.show()
-        config = self.display.config
-        config.parseFile(project_filename)
-        if config.zipError is not None:
-            sleep(0.5)
-            self.display.page_error.setParams(
-                    text = _("""Your project has a problem: %s
-
-Re-export it and try again.""") % config.zipError)
-            return "error"
-        #endif
-
-        return "printpreview"
-    #endef
-
-#endclass
-
-
+@page
 class PageError(Page):
+    Name = "error"
 
     def __init__(self, display):
         super(PageError, self).__init__(display)
@@ -3467,7 +2375,9 @@ class PageError(Page):
 #endclass
 
 
+@page
 class PageTiltTower(Page):
+    Name = "tilttower"
 
     def __init__(self, display):
         super(PageTiltTower, self).__init__(display)
@@ -3624,7 +2534,9 @@ class PageTiltTower(Page):
 #endclass
 
 
+@page
 class PageDisplay(Page):
+    Name = "display"
 
     def __init__(self, display):
         super(PageDisplay, self).__init__(display)
@@ -3681,7 +2593,7 @@ class PageDisplay(Page):
     def button6ButtonRelease(self):
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("No USB storage present"))
             return "error"
         #endif
@@ -3689,7 +2601,7 @@ class PageDisplay(Page):
         test_file = os.path.join(savepath, "test.png")
 
         if not os.path.isfile(test_file):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot find the test image"))
             return "error"
         #endif
@@ -3699,7 +2611,7 @@ class PageDisplay(Page):
         except Exception:
             # TODO: This is not reached. Exceptions from screen do not propagate here
             self.logger.exception("Error displaying test image")
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot display the test image"))
             return "error"
         #endtry
@@ -3757,7 +2669,9 @@ class PageDisplay(Page):
 #endclass
 
 
+@page
 class PageInfiniteTest(Page):
+    Name = "infinitetest"
 
     def __init__(self, display):
         super(PageInfiniteTest, self).__init__(display)
@@ -3852,7 +2766,9 @@ class PageInfiniteTest(Page):
 #endclass
 
 
+@page
 class PageUvCalibration(Page):
+    Name = "uvcalibration"
 
     def __init__(self, display):
         super(PageUvCalibration, self).__init__(display)
@@ -3897,7 +2813,7 @@ class PageUvCalibration(Page):
             sleep(1)
         #endwhile
 
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.contButtonContinue,
                 text = _("Connect the UV LED meter and wait few seconds."))
         return "confirm"
@@ -3929,7 +2845,9 @@ class PageUvCalibration(Page):
 #endclass
 
 
+@page
 class PageUvMeterShow(Page):
+    Name = "uvmetershow"
 
     def __init__(self, display):
         super(PageUvMeterShow, self).__init__(display)
@@ -3960,7 +2878,9 @@ class PageUvMeterShow(Page):
 #enddef
 
 
+@page
 class PageUvCalibrationTest(PageUvMeterShow):
+    Name = "uvcalibrationtest"
 
     def prepare(self):
         if self.display.wizardData.uvFoundCurrent < 0:
@@ -3971,7 +2891,7 @@ class PageUvCalibrationTest(PageUvMeterShow):
 
 
     def backButtonRelease(self):
-        self.display.page_yesno.setParams(
+        self.display.pages['yesno'].setParams(
                 yesFce = self.toCalibration,
                 pageTitle = N_("Recalibrate?"),
                 text = _("The UV LED is already calibrated.\n\n"
@@ -3992,7 +2912,9 @@ class PageUvCalibrationTest(PageUvMeterShow):
 #endclass
 
 
+@page
 class PageUvMeter(PageUvMeterShow):
+    Name = "uvmeter"
 
     def prepare(self):
         pageWait = PageWait(self.display,
@@ -4001,7 +2923,7 @@ class PageUvMeter(PageUvMeterShow):
         pageWait.show()
 
         if not self.uvmeter.connect():
-            self.display.page_error.setParams(text = _("The UV LED meter is not "
+            self.display.pages['error'].setParams(text = _("The UV LED meter is not "
                 "detected.\n\nCheck the connection and try again."))
             self.allOff()
             return "error"
@@ -4009,7 +2931,7 @@ class PageUvMeter(PageUvMeterShow):
 
         pageWait.showItems(line2 = _("Reading data..."))
         if not self.uvmeter.read():
-            self.display.page_error.setParams(text = _("Cannot read data from the UV LED meter."
+            self.display.pages['error'].setParams(text = _("Cannot read data from the UV LED meter."
                 "\n\nCheck the connection and try again."))
             self.allOff()
             return "error"
@@ -4020,7 +2942,7 @@ class PageUvMeter(PageUvMeterShow):
         self.logger.info("UV calibration - current:%.1f  data:%s", realCurrent, str(data))
 
         if data['uvMean'] < self.display.hwConfig.uvCalibIntensity:
-            self.display.page_error.setParams(text = _("Requested intensity "
+            self.display.pages['error'].setParams(text = _("Requested intensity "
                 "cannot be reached by max. allowed current.\n\nChange the "
                 "values and try again."))
             self.allOff()
@@ -4053,7 +2975,7 @@ class PageUvMeter(PageUvMeterShow):
 
         realCurrent = self.display.hw.getUvLedCurrent()
         if not self.uvmeter.read():
-            self.display.page_error.setParams(text = _("Cannot read data from the UV LED meter."
+            self.display.pages['error'].setParams(text = _("Cannot read data from the UV LED meter."
                 "\n\nCheck the connection and try again."))
             self.allOff()
             return "error"
@@ -4066,7 +2988,7 @@ class PageUvMeter(PageUvMeterShow):
             self.allOff()
             if data['uvMean'] > 1.0 or data['uvMaxValue'] > 2:
                 self.display.wizardData.parseFile(defines.wizardDataFile)
-                self.display.page_error.setParams(text = _("The exposure display "
+                self.display.pages['error'].setParams(text = _("The exposure display "
                     "do not block the UV light enough. Replace it please."))
                 return "error"
             #endif
@@ -4074,7 +2996,7 @@ class PageUvMeter(PageUvMeterShow):
         #endif
 
         if int(self.testCurrent) == int(self.bottomCurrent) and data['uvMean'] > self.display.hwConfig.uvCalibIntensity:
-            self.display.page_error.setParams(text = _("Requested intensity "
+            self.display.pages['error'].setParams(text = _("Requested intensity "
                 "cannot be reached by min. allowed current.\n\nChange the "
                 "values and try again."))
             self.allOff()
@@ -4087,7 +3009,7 @@ class PageUvMeter(PageUvMeterShow):
 
         if int(round(data['uvMean'])) == self.display.hwConfig.uvCalibIntensity:
             if data['uvStdDev'] > 20.0:
-                self.display.page_error.setParams(text = _("The correct settings "
+                self.display.pages['error'].setParams(text = _("The correct settings "
                     "was found but standard deviation (%.1f) is greater than "
                     "allowed value (20.0).\n\nVerify the UV LED meter position "
                     "and calibration, then try again.") % data['uvStdDev'])
@@ -4105,7 +3027,7 @@ class PageUvMeter(PageUvMeterShow):
 
         self.iterCnt -= 1
         if not self.iterCnt:
-            self.display.page_error.setParams(text = _("Cannot find the correct "
+            self.display.pages['error'].setParams(text = _("Cannot find the correct "
                 "settings for the specified intensity.\n\nVerify the UV LED "
                 "meter position and calibration or change the values, then try "
                 "again."))
@@ -4127,7 +3049,9 @@ class PageUvMeter(PageUvMeterShow):
 #endclass
 
 
+@page
 class PageUvCalibrationConfirm(Page):
+    Name = "uvcalibrationconfirm"
 
     def __init__(self, display):
         super(PageUvCalibrationConfirm, self).__init__(display)
@@ -4154,12 +3078,12 @@ class PageUvCalibrationConfirm(Page):
     def yesButtonRelease(self):
         self.display.hwConfig.update(uvCurrent = self.display.wizardData.uvFoundCurrent)
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
         if not self.writeToFactory(self.writeAllDefaults):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("!!! Failed to save factory defaults !!!"))
             return "error"
         #endif
@@ -4181,7 +3105,9 @@ class PageUvCalibrationConfirm(Page):
 #endclass
 
 
+@page
 class PageDisplayTest(Page):
+    Name = "displaytest"
 
     def __init__(self, display):
         super(PageDisplayTest, self).__init__(display)
@@ -4218,7 +3144,7 @@ DO NOT open the cover.""")})
 
 
     def noButtonRelease(self):
-        self.display.page_error.setParams(
+        self.display.pages['error'].setParams(
             text = _("""Your display is probably broken.
 
 Please contact tech support!"""))
@@ -4242,7 +3168,9 @@ Please contact tech support!"""))
 #endclass
 
 
+@page
 class PageAdmin(Page):
+    Name = "admin"
 
     def __init__(self, display):
         super(PageAdmin, self).__init__(display)
@@ -4296,7 +3224,7 @@ class PageAdmin(Page):
 
 
     def button6ButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.button6Continue,
                 text = _("""This overwrites the motion controller with the selected firmware.
 
@@ -4313,7 +3241,7 @@ Are you sure?"""))
 
 
     def button7ButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.button7Continue,
                 text = _("""This will erase all profiles and other motion controller settings.
 
@@ -4332,7 +3260,7 @@ Are you sure?"""))
 
 
     def button8ButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.mc2net,
                 continueParams = { 'bootloader' : True },
                 text = _("""This will disable the GUI and connect the MC bootloader to TCP port.
@@ -4343,7 +3271,7 @@ Are you sure?"""))
 
 
     def button9ButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.mc2net,
                 continueParams = { 'bootloader' : False },
                 text = _("""This will disable the GUI and connect the motion controller to TCP port.
@@ -4356,7 +3284,7 @@ Are you sure?"""))
     def mc2net(self, bootloader = False):
         ip = self.display.inet.getIp()
         if ip == "none":
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     text = _("Not connected to network"))
             return "error"
         #endif
@@ -4374,7 +3302,7 @@ Are you sure?"""))
             str(defines.socatPort),
             str(baudrate)], preexec_fn=os.setsid).pid
 
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.mc2netStop,
                 continueParams = { 'pid' : pid },
                 backFce = self.mc2netStop,
@@ -4397,7 +3325,7 @@ Press Continue when done.""") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.s
 
 
     def button10ButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.button10Continue,
                 text = _("""Is there the correct amount of resin in the tank?
 
@@ -4428,7 +3356,7 @@ Is the tank secured with both screws?"""))
         volume = self.display.hw.getResinVolume()
         self.display.hw.powerLed("normal")
         if not volume:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     text = _("""Resin measuring failed!
 
 Is there the correct amount of resin in the tank?
@@ -4437,7 +3365,7 @@ Is the tank secured with both screws?"""))
             return "error"
         #endif
 
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.backButtonRelease,
                 text = _("Measured resin volume: %d ml") % volume)
         return "confirm"
@@ -4471,7 +3399,9 @@ Is the tank secured with both screws?"""))
 #endclass
 
 
+@page
 class PageNetUpdate(Page):
+    Name = "netupdate"
 
     def __init__(self, display):
         super(PageNetUpdate, self).__init__(display)
@@ -4517,21 +3447,21 @@ class PageNetUpdate(Page):
 
     def button14ButtonRelease(self):
         if self.display.wizardData.wizardResinVolume < 0:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = self.gotoWizard,
                     text = _("The wizard was not finished successfully!"))
             return "error"
         #endif
 
         if not self.display.hwConfig.calibrated:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = self.gotoCalib,
                     text = _("The calibration was not finished successfully!"))
             return "error"
         #endif
 
         if self.display.wizardData.uvFoundCurrent < 0:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                     backFce = self.gotoUVcalib,
                     text = _("The automatic UV LED calibration was not finished successfully!"))
             return "error"
@@ -4549,7 +3479,7 @@ class PageNetUpdate(Page):
                 uvCurrent = self.display.hwConfig.uvCurrent,
                 )
         if not self.writeToFactory(self.display.wizardData.writeFile):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("!!! Failed to save factory defaults !!!"))
             return "error"
         #endif
@@ -4561,11 +3491,11 @@ class PageNetUpdate(Page):
             mqtt.single(topic, data, qos=2, retain=True, hostname="mqttstage.prusa")
         except Exception as err:
             self.logger.error("mqtt message not delivered. %s", err)
-            self.display.page_error.setParams(text = _("Cannot send factory config!"))
+            self.display.pages['error'].setParams(text = _("Cannot send factory config!"))
             return "error"
         #endtry
 
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
                 continueFce = self.success,
                 text = _("Factory config was successfully sent."))
         return "confirm"
@@ -4633,7 +3563,7 @@ class PageNetUpdate(Page):
 
         except Exception as e:
             self.logger.error("Exaples fetch failed: " + str(e))
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Examples fetch failed"))
             return "error"
         #endexcept
@@ -4659,8 +3589,8 @@ class PageNetUpdate(Page):
 
 
     def update(self, name, url):
-        self.display.page_confirm.setParams(
-            continueFce = self.display.page_firmwareupdate.fetchUpdate,
+        self.display.pages['confirm'].setParams(
+            continueFce = self.display.pages['firmwareupdate'].fetchUpdate,
             continueParams = { 'fw_url': url },
             text = _("""Updating to %s.
 
@@ -4671,7 +3601,9 @@ Proceed update?""") % name)
 #endclass
 
 
+@page
 class PageLogging(Page):
+    Name = "logging"
 
     def __init__(self, display):
         super(PageLogging, self).__init__(display)
@@ -4719,7 +3651,7 @@ class PageSetup(Page):
         ''' export '''
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("No USB storage present"))
             return "error"
         #endif
@@ -4727,7 +3659,7 @@ class PageSetup(Page):
         config_file = os.path.join(savepath, defines.hwConfigFileName)
 
         if not self.display.hwConfig.writeFile(config_file):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -4738,7 +3670,7 @@ class PageSetup(Page):
         ''' import '''
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("No USB storage present"))
             return "error"
         #endif
@@ -4746,7 +3678,7 @@ class PageSetup(Page):
         config_file = os.path.join(savepath, defines.hwConfigFileName)
 
         if not os.path.isfile(config_file):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Cannot find configuration to import"))
             return "error"
         #endif
@@ -4757,14 +3689,14 @@ class PageSetup(Page):
             #endwith
         except Exception:
             self.logger.exception("import exception:")
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Cannot import configuration"))
             return "error"
         #endtry
 
         # TODO: Does import also means also save? There is special button for it.
         if not self.display.hwConfig.writeFile(defines.hwConfigFile):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Cannot save imported configuration"))
             return "error"
         #endif
@@ -4777,7 +3709,7 @@ class PageSetup(Page):
         ''' save '''
         self.display.hwConfig.update(**self.changed)
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -4786,7 +3718,9 @@ class PageSetup(Page):
 #enddef
 
 
+@page
 class PageSetupHw(PageSetup):
+    Name = "setuphw"
 
     def __init__(self, display):
         super(PageSetupHw, self).__init__(display)
@@ -4958,7 +3892,9 @@ class PageSetupHw(PageSetup):
 #endclass
 
 
+@page
 class PageSetupExposure(PageSetup):
+    Name = "setupexpo"
 
     def __init__(self, display):
         super(PageSetupExposure, self).__init__(display)
@@ -5094,7 +4030,9 @@ class PageSetupExposure(PageSetup):
 #endclass
 
 
+@page
 class PageException(Page):
+    Name = "exception"
 
     def __init__(self, display):
         super(PageException, self).__init__(display)
@@ -5172,7 +4110,9 @@ class MovePage(Page):
 #endclass
 
 
+@page
 class PageTowerMove(MovePage):
+    Name = "towermove"
 
     def __init__(self, display):
         super(PageTowerMove, self).__init__(display)
@@ -5235,7 +4175,9 @@ class PageTowerMove(MovePage):
 #endclass
 
 
+@page
 class PageTiltMove(MovePage):
+    Name = "tiltmove"
 
     def __init__(self, display):
         super(PageTiltMove, self).__init__(display)
@@ -5298,7 +4240,9 @@ class PageTiltMove(MovePage):
 #endclass
 
 
+@page
 class PageCalibration1(Page):
+    Name = "calibration1"
 
     def __init__(self, display):
         super(PageCalibration1, self).__init__(display)
@@ -5344,7 +4288,9 @@ class PageCalibration1(Page):
 #endclass
 
 
+@page
 class PageCalibration2(Page):
+    Name = "calibration2"
 
     def __init__(self, display):
         super(PageCalibration2, self).__init__(display)
@@ -5374,8 +4320,9 @@ Some SL1 printers may have two screws - see the handbook for more information.""
 
 #endclass
 
-
+@page
 class PageCalibration3(Page):
+    Name = "calibration3"
 
     def __init__(self, display):
         super(PageCalibration3, self).__init__(display)
@@ -5415,7 +4362,9 @@ class PageCalibration3(Page):
 #endclass
 
 
+@page
 class PageCalibration4(Page):
+    Name = "calibration4"
 
     def __init__(self, display):
         super(PageCalibration4, self).__init__(display)
@@ -5444,7 +4393,9 @@ class PageCalibration4(Page):
 #endclass
 
 
+@page
 class PageCalibration5(MovePage):
+    Name = "calibration5"
 
     def __init__(self, display):
         super(PageCalibration5, self).__init__(display)
@@ -5518,7 +4469,9 @@ class PageCalibration5(MovePage):
 #endclass
 
 
+@page
 class PageCalibration6(Page):
+    Name = "calibration6"
 
     def __init__(self, display):
         super(PageCalibration6, self).__init__(display)
@@ -5549,7 +4502,9 @@ The image is for illustation only.""")})
 #endclass
 
 
+@page
 class PageCalibration7(Page):
+    Name = "calibration7"
 
     def __init__(self, display):
         super(PageCalibration7, self).__init__(display)
@@ -5583,7 +4538,9 @@ class PageCalibration7(Page):
 #endclass
 
 
+@page
 class PageCalibration8(Page):
+    Name = "calibration8"
 
     def __init__(self, display):
         super(PageCalibration8, self).__init__(display)
@@ -5615,7 +4572,7 @@ Do not rotate the platform. It should be positioned according to the picture."""
         if self.display.hw.getTowerPositionMicroSteps() != self.display.hw._towerAboveSurface:
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
-            self.display.page_confirm.setParams(
+            self.display.pages['confirm'].setParams(
                 continueFce = self.positionFailed,
                 text = _("""Tower not at the expected position.
 
@@ -5633,7 +4590,7 @@ Click continue and read the instructions carefully."""))
         if self.display.hw.getTowerPositionMicroSteps() <= self.display.hw._towerMin:
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
-            self.display.page_confirm.setParams(
+            self.display.pages['confirm'].setParams(
                 continueFce = self.positionFailed,
                 text = _("""Tower not at the expected position.
 
@@ -5684,7 +4641,9 @@ Click continue and read the instructions carefully."""))
 #endclass
 
 
+@page
 class PageCalibration9(Page):
+    Name = "calibration9"
 
     def __init__(self, display):
         super(PageCalibration9, self).__init__(display)
@@ -5715,7 +4674,9 @@ Front edges of the platform and exposition display need to be parallel.""")})
 #endclass
 
 
+@page
 class PageCalibration10(Page):
+    Name = "calibration10"
 
     def __init__(self, display):
         super(PageCalibration10, self).__init__(display)
@@ -5751,7 +4712,7 @@ Some SL1 printers may have two screws - tighten them evenly, little by little. S
             tiltSlowTime = tiltSlowTime,
             calibrated = "yes")
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -5786,7 +4747,9 @@ Some SL1 printers may have two screws - tighten them evenly, little by little. S
 #endclass
 
 
+@page
 class PageCalibration11(Page):
+    Name = "calibration11"
 
     def __init__(self, display):
         super(PageCalibration11, self).__init__(display)
@@ -5824,7 +4787,9 @@ Area fill: %(area)d %%""") % {
 #endclass
 
 
+@page
 class PageCalibrationConfirm(Page):
+    Name = "calibrationconfirm"
 
     def __init__(self, display):
         super(PageCalibrationConfirm, self).__init__(display)
@@ -5849,7 +4814,9 @@ Machine will not work without going through it.""")})
 #endclass
 
 
+@page
 class PageTowerOffset(MovePage):
+    Name = "toweroffset"
 
     def __init__(self, display):
         super(PageTowerOffset, self).__init__(display)
@@ -5900,7 +4867,7 @@ class PageTowerOffset(MovePage):
     def okButtonRelease(self):
         self.display.hwConfig.update(calibTowerOffset = self.tmpTowerOffset)
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -5975,7 +4942,7 @@ class ProfilesPage(Page):
         ''' export '''
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("No USB storage present"))
             return "error"
         #endif
@@ -5988,7 +4955,7 @@ class ProfilesPage(Page):
             #endwith
         except Exception:
             self.logger.exception("export exception:")
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Cannot export profile"))
             return "error"
         #endtry
@@ -5999,7 +4966,7 @@ class ProfilesPage(Page):
         ''' import '''
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("No USB storage present"))
             return "error"
         #endif
@@ -6007,7 +4974,7 @@ class ProfilesPage(Page):
         profile_file = os.path.join(savepath, self.profilesFilename)
 
         if not os.path.isfile(profile_file):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Cannot find profile to import"))
             return "error"
         #endif
@@ -6020,7 +4987,7 @@ class ProfilesPage(Page):
             return
         except Exception:
             self.logger.exception("import exception:")
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Cannot import profile"))
             return "error"
         #endtry
@@ -6036,7 +5003,7 @@ class ProfilesPage(Page):
             self._setProfile()
         except Exception:
             self.logger.exception("import exception:")
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text=_("Cannot load default profile"))
             return "error"
         #endtry
@@ -6155,7 +5122,9 @@ class ProfilesPage(Page):
 #endclass
 
 
+@page
 class PageTiltProfiles(ProfilesPage):
+    Name = "tiltprofiles"
 
     def __init__(self, display):
         super(PageTiltProfiles, self).__init__(display)
@@ -6192,7 +5161,7 @@ class PageTiltProfiles(ProfilesPage):
             self.profiles = self.display.hw.getTiltProfiles()
         #endif
         self._setProfile()
-        self.display.page_tiltmove.changeProfiles(False)
+        self.display.pages['tiltmove'].changeProfiles(False)
     #enddef
 
 
@@ -6205,7 +5174,7 @@ class PageTiltProfiles(ProfilesPage):
 
     def button4ButtonRelease(self):
         ''' save '''
-        self.display.page_tiltmove.changeProfiles(True)
+        self.display.pages['tiltmove'].changeProfiles(True)
         self.display.hw.setTiltProfiles(self.profiles)
         self.profiles = None
         return super(PageTiltProfiles, self).backButtonRelease()
@@ -6213,7 +5182,7 @@ class PageTiltProfiles(ProfilesPage):
 
 
     def backButtonRelease(self):
-        self.display.page_tiltmove.changeProfiles(True)
+        self.display.pages['tiltmove'].changeProfiles(True)
         self.profiles = None
         return super(PageTiltProfiles, self).backButtonRelease()
     #endif
@@ -6221,7 +5190,9 @@ class PageTiltProfiles(ProfilesPage):
 #endclass
 
 
+@page
 class PageTowerProfiles(ProfilesPage):
+    Name = "towerprofiles"
 
     def __init__(self, display):
         super(PageTowerProfiles, self).__init__(display)
@@ -6258,7 +5229,7 @@ class PageTowerProfiles(ProfilesPage):
             self.profiles = self.display.hw.getTowerProfiles()
         #endif
         self._setProfile()
-        self.display.page_towermove.changeProfiles(False)
+        self.display.pages['towermove'].changeProfiles(False)
     #enddef
 
 
@@ -6271,7 +5242,7 @@ class PageTowerProfiles(ProfilesPage):
 
     def button4ButtonRelease(self):
         ''' save '''
-        self.display.page_towermove.changeProfiles(True)
+        self.display.pages['towermove'].changeProfiles(True)
         self.display.hw.setTowerProfiles(self.profiles)
         self.profiles = None
         return super(PageTowerProfiles, self).backButtonRelease()
@@ -6279,7 +5250,7 @@ class PageTowerProfiles(ProfilesPage):
 
 
     def backButtonRelease(self):
-        self.display.page_towermove.changeProfiles(True)
+        self.display.pages['towermove'].changeProfiles(True)
         self.profiles = None
         return super(PageTowerProfiles, self).backButtonRelease()
     #enddef
@@ -6287,7 +5258,9 @@ class PageTowerProfiles(ProfilesPage):
 #endclass
 
 
+@page
 class PageFansLeds(Page):
+    Name = "fansleds"
 
     def __init__(self, display):
         super(PageFansLeds, self).__init__(display)
@@ -6367,7 +5340,7 @@ class PageFansLeds(Page):
 
 
     def button1ButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
             continueFce=self.save_defaults,
             text=_("Save current values as factory defaults?")
         )
@@ -6379,7 +5352,7 @@ class PageFansLeds(Page):
         self._update_config()
 
         if not self.writeToFactory(self.saveDefaultsFile):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("!!! Failed to save factory defaults !!!"))
             return "error"
         #else
@@ -6389,7 +5362,7 @@ class PageFansLeds(Page):
 
 
     def button3ButtonRelease(self):
-        self.display.page_confirm.setParams(
+        self.display.pages['confirm'].setParams(
             continueFce=self.reset_to_defaults,
             text=_("Reset to factory defaults?")
         )
@@ -6406,7 +5379,7 @@ class PageFansLeds(Page):
         )
         self._reset_hw_values()
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -6426,7 +5399,7 @@ class PageFansLeds(Page):
         self.display.hw.saveUvStatistics()
         self._update_config()
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -6558,7 +5531,9 @@ class PageFansLeds(Page):
 #endclass
 
 
+@page
 class PageFeedMe(Page):
+    Name = "feedme"
 
     def __init__(self, display):
         super(PageFeedMe, self).__init__(display)
@@ -6595,7 +5570,9 @@ class PageFeedMe(Page):
 #endclass
 
 
+@page
 class PageTuneTilt(ProfilesPage):
+    Name = "tunetilt"
 
     def __init__(self, display):
         super(PageTuneTilt, self).__init__(display)
@@ -6636,7 +5613,7 @@ class PageTuneTilt(ProfilesPage):
             tiltUp = self.profiles[2],
         )
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -6645,7 +5622,7 @@ class PageTuneTilt(ProfilesPage):
 
 
     def backButtonRelease(self):
-        self.display.page_tiltmove.changeProfiles(True)
+        self.display.pages['tiltmove'].changeProfiles(True)
         return super(PageTuneTilt, self).backButtonRelease()
     #endif
 
@@ -6785,7 +5762,9 @@ class PageMedia(Page):
 #endclass
 
 
+@page
 class PageImage(PageMedia):
+    Name = "image"
 
     def __init__(self, display):
         super(PageImage, self).__init__(display)
@@ -6797,7 +5776,9 @@ class PageImage(PageMedia):
 #endclass
 
 
+@page
 class PageVideo(PageMedia):
+    Name = "video"
 
     def __init__(self, display):
         super(PageVideo, self).__init__(display)
@@ -6809,46 +5790,9 @@ class PageVideo(PageMedia):
 #endclass
 
 
-class PageSetLoginCredentials(Page):
-
-    def __init__(self, display):
-        super(PageSetLoginCredentials, self).__init__(display)
-        self.pageUI = "setlogincredentials"
-        self.pageTitle = N_("Login Credentials")
-    #enddef
-
-
-    def fillData(self):
-        return {
-            'api_key' : self.octoprintAuth,
-        }
-    #enddef
-
-
-    def show(self):
-        self.items.update(self.fillData())
-        super(PageSetLoginCredentials, self).show()
-    #enddef
-
-
-    def saveButtonSubmit(self, data):
-        apikey = data['api_key']
-
-        try:
-            subprocess.check_call(["/bin/api-keygen.sh", apikey])
-        except subprocess.CalledProcessError as e:
-            self.display.page_error.setParams(
-                text = _("Octoprint API key change failed"))
-            return "error"
-        #endexcept
-
-        return "_BACK_"
-    #enddef
-
-#endclass
-
-
+@page
 class PageUnboxing1(Page):
+    Name = "unboxing1"
 
     def __init__(self, display):
         super(PageUnboxing1, self).__init__(display)
@@ -6906,7 +5850,9 @@ In case you assembled your printer, you can skip this wizard by hitting the Back
 #endclass
 
 
+@page
 class PageUnboxing2(Page):
+    Name = "unboxing2"
 
     def __init__(self, display):
         super(PageUnboxing2, self).__init__(display)
@@ -6947,7 +5893,9 @@ class PageUnboxing2(Page):
 #endclass
 
 
+@page
 class PageUnboxing3(Page):
+    Name = "unboxing3"
 
     def __init__(self, display):
         super(PageUnboxing3, self).__init__(display)
@@ -6981,7 +5929,9 @@ class PageUnboxing3(Page):
 #endclass
 
 
+@page
 class PageUnboxing4(Page):
+    Name = "unboxing4"
 
     def __init__(self, display):
         super(PageUnboxing4, self).__init__(display)
@@ -6996,7 +5946,7 @@ class PageUnboxing4(Page):
     def contButtonRelease(self):
         self.display.hwConfig.update(showUnboxing = "no")
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -7021,7 +5971,9 @@ class PageUnboxing4(Page):
 #endclass
 
 
+@page
 class PageUnboxing5(Page):
+    Name = "unboxing5"
 
     def __init__(self, display):
         super(PageUnboxing5, self).__init__(display)
@@ -7051,7 +6003,9 @@ Continue?""")})
 #endclass
 
 
+@page
 class PageUnboxingConfirm(Page):
+    Name = "unboxingconfirm"
 
     def __init__(self, display):
         super(PageUnboxingConfirm, self).__init__(display)
@@ -7069,7 +6023,7 @@ Press 'Back' to return to the wizard.""")})
     def contButtonRelease(self):
         self.display.hwConfig.update(showUnboxing = "no")
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
         #endif
@@ -7084,7 +6038,9 @@ Press 'Back' to return to the wizard.""")})
 #endclass
 
 
+@page
 class PageWizard1(Page):
+    Name = "wizard1"
 
     def __init__(self, display):
         super(PageWizard1, self).__init__(display)
@@ -7104,7 +6060,7 @@ Continue?""")})
         if (not re.match("CZPX\d{4}X009X[C|K]\d{5}", self.display.hw.cpuSerialNo) or
         not re.match("CZPX\d{4}X012X[C|K|0|1]\d{5}", self.display.hw.mcSerialNo)):
 # FIXME we don't want cut off betatesters with MC without serial number
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 backFce = self.justContinue, # use as confirm
                 text = _("""Serial numbers in wrong format!
 
@@ -7135,7 +6091,7 @@ Please contact tech support!""" % {'a64' : self.display.hw.cpuSerialNo, 'mc' : s
             #endwhile
             homeStatus = self.display.hw.mcc.doGetInt("?tiho")
             if homeStatus == -2:
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     text = _("""Tilt endstop not reached!
 
 Please check if the tilt motor and optical endstop are connected properly."""))
@@ -7147,7 +6103,7 @@ Please check if the tilt motor and optical endstop are connected properly."""))
             #endif
         #endfor
         if homeStatus == -3:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("""Tilt home check failed!
 
 Please contact tech support!
@@ -7174,7 +6130,7 @@ Tilt profiles need to be changed."""))
         #endwhile
         #TODO make MC homing more accurate
         if self.display.hw.getTiltPosition() < -defines.tiltHomingTolerance or self.display.hw.getTiltPosition() > defines.tiltHomingTolerance:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("""Tilt axis check failed!
 
 Current position: %d
@@ -7197,7 +6153,7 @@ Please check if the tilting mechanism can move smoothly in its entire range.""")
             #endwhile
             homeStatus = self.display.hw.mcc.doGetInt("?twho")
             if homeStatus == -2:
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     text = _("""Tower endstop not reached!
 
 Please check if the tower motor is connected properly."""))
@@ -7209,7 +6165,7 @@ Please check if the tower motor is connected properly."""))
             #endif
         #endfor
         if homeStatus == -3:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("""Tower home check failed!
 
 Please contact tech support!
@@ -7235,7 +6191,9 @@ Tower profiles need to be changed."""))
 #endclass
 
 
+@page
 class PageWizard2(Page):
+    Name = "wizard2"
 
     def __init__(self, display):
         super(PageWizard2, self).__init__(display)
@@ -7266,7 +6224,9 @@ Make sure the tank is empty and clean.""")})
 #endclass
 
 
+@page
 class PageWizard3(Page):
+    Name = "wizard3"
 
     def __init__(self, display):
         super(PageWizard3, self).__init__(display)
@@ -7304,7 +6264,7 @@ class PageWizard3(Page):
         position = self.display.hw.getTowerPositionMicroSteps()
         #MC moves tower by 1024 steps forward in last step of !twho
         if position < self.display.hw._towerEnd or position > self.display.hw._towerEnd + 1024 + 127: #add tolerance half fullstep
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("""Tower axis check failed!
 
 Current position: %d
@@ -7319,7 +6279,7 @@ Please check if the ballscrew can move smoothly in its entire range.""") % posit
         sleep(defines.fanStartStopTime)  # wait for fans to stop
         rpm = self.display.hw.getFansRpm()
         if any(rpm):
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("""RPM detected when fans are expected to be off
 
 Check if all fans are properly connected.
@@ -7351,7 +6311,7 @@ RPM data: %s""") % rpm)
             rpm[i].remove(min(rpm[i]))
             avgRpm = sum(rpm[i]) // len(rpm[i])
             if not fanLimits[i][0] <= avgRpm <= fanLimits[i][1]:
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     text = _("""RPM of %(fan)s not in range!
 
 Please check if the fan is connected correctly.
@@ -7367,11 +6327,11 @@ RPM data: %(rpm)s""") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i] 
         pageWait.showItems(line1 = _("A64 temperature check"))
         A64temperature = self.display.hw.getCpuTemperature()
         if A64temperature > defines.maxA64Temp:
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("""A64 temperature is too high. Measured: %.1f °C!
 
 Shutting down in 10 seconds...""") % A64temperature)
-            self.display.page_error.show()
+            self.display.pages['error'].show()
             for i in range(10):
                 self.display.hw.beepAlarm(3)
                 sleep(1)
@@ -7384,7 +6344,7 @@ Shutting down in 10 seconds...""") % A64temperature)
         temperatures = self.display.hw.getMcTemperatures()
         for i in range(2):
             if temperatures[i] < 0:
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     text = _("""Can't read %s
 
 Please check if temperature sensors are connected correctly.""") % self.display.hw.getSensorName(i))
@@ -7396,7 +6356,7 @@ Please check if temperature sensors are connected correctly.""") % self.display.
                 maxTemp = defines.maxAmbientTemp
             #endif
             if not defines.minAmbientTemp < temperatures[i] < maxTemp:
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     text = _(u"""%(sensor)s not in range!
 
 Measured temperature: %(temp).1f °C.
@@ -7427,7 +6387,9 @@ Keep the printer out of direct sunlight at room temperature (18 - 32 °C).""")
 #endclass
 
 
+@page
 class PageWizard4(Page):
+    Name = "wizard4"
 
     def __init__(self, display):
         super(PageWizard4, self).__init__(display)
@@ -7465,7 +6427,7 @@ Make sure the tank is empty and clean.""")})
             volts = self.display.hw.getVoltages()
             del volts[-1]   #delete power supply voltage
             if max(volts) - min(volts) > diff:
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     text = _("""UV LED voltages differ too much!
 
 Please check if the UV LED panel is connected properly.
@@ -7490,7 +6452,7 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
             sleep(1)
             temp = self.display.hw.getUvLedTemperature()
             if temp > defines.maxUVTemp:
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     text = _("""UV LED too hot!
 
 Please check if the UV LED panel is attached to the heatsink.
@@ -7524,7 +6486,9 @@ Temperature data: %s""") % temp)
 #endclass
 
 
+@page
 class PageWizard5(Page):
+    Name = "wizard5"
 
     def __init__(self, display):
         super(PageWizard5, self).__init__(display)
@@ -7547,7 +6511,7 @@ class PageWizard5(Page):
         self.display.hw.setTowerPosition(self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight))
         volume = self.display.hw.getResinVolume()
         if not 110.0 <= volume <= defines.resinMaxVolume:    #to work properly even with loosen rocker brearing
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("""Resin sensor not working!
 
 Please check if the sensor is connected properly.
@@ -7566,7 +6530,7 @@ Measured %d ml.""") % volume)
 
         self.display.hwConfig.update(showWizard = "no")
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save wizard configuration"))
             return "error"
         #endif
@@ -7574,7 +6538,7 @@ Measured %d ml.""") % volume)
         # only in factory mode
         if self.display.hwConfig.factoryMode:
             if not self.writeToFactory(self.display.wizardData.writeFile):
-                self.display.page_error.setParams(
+                self.display.pages['error'].setParams(
                     text = _("!!! Failed to save factory defaults !!!"))
                 return "error"
             #endif
@@ -7596,7 +6560,9 @@ Measured %d ml.""") % volume)
 #endclass
 
 
+@page
 class PageWizard6(Page):
+    Name = "wizard6"
 
     def __init__(self, display):
         super(PageWizard6, self).__init__(display)
@@ -7626,7 +6592,9 @@ Continue to calibration?""")})
 #endclass
 
 
+@page
 class PageWizardConfirm(Page):
+    Name = "wizardconfirm"
 
     def __init__(self, display):
         super(PageWizardConfirm, self).__init__(display)
@@ -7645,7 +6613,7 @@ Press 'Continue' to exit the wizard, or 'Back' to return to the wizard.""")})
         self.allOff()
         self.display.hwConfig.update(showWizard = "no")
         if not self.display.hwConfig.writeFile():
-            self.display.page_error.setParams(
+            self.display.pages['error'].setParams(
                 text = _("Cannot save wizard configuration"))
             return "error"
         #endif
