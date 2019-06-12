@@ -527,6 +527,7 @@ class Exposure(object):
         self.position = 0
         self.actualLayer = 0
         self.expoCommands = queue.Queue()
+        self.screen.initOverlays()
         self.expoThread = ExposureThread(self.expoCommands, self, self.config.toPrint[0])
         self.screen.preloadImg(
                 filename = self.config.toPrint[0],
