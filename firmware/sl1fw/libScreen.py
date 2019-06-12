@@ -257,6 +257,11 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
+    def initOverlays(self):
+        self.overlays = dict()
+    #enddef
+
+
     def createMasks(self, perPartes):
         if perPartes:
             try:
@@ -425,6 +430,11 @@ class Screen(object):
 
     def inverse(self):
         self.commands.put({ 'fce' : "inverse" })
+    #enddef
+
+
+    def initOverlays(self):
+        self.commands.put({ 'fce' : "initOverlays" })
     #enddef
 
 
