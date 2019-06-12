@@ -1,12 +1,10 @@
 import unittest
-import gettext
-import os
-import logging
-
-gettext.install('sl1fw', 'locales')
 
 from sl1fw.libConfig import *
 from sl1fw import defines
+from sl1fw.tests.gettextSim import fake_gettext
+
+fake_gettext()
 
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 

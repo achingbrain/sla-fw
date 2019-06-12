@@ -1,9 +1,10 @@
 import unittest
 from mock import Mock
-import gettext
 import os
 
-gettext.install('sl1fw', 'locales')
+from sl1fw.tests.gettextSim import fake_gettext
+
+fake_gettext()
 
 from sl1fw import libExposure
 from sl1fw import libConfig

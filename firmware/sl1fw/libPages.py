@@ -43,10 +43,6 @@ from sl1fw import defines
 from sl1fw import libConfig
 
 
-# deferred translations
-def N_(message): return message
-
-
 class Page(object):
 
     def __init__(self, display):

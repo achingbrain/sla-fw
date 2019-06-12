@@ -2,10 +2,10 @@
 
 import os
 from time import sleep
-import gettext
 import unittest
+from sl1fw.tests.gettextSim import fake_gettext
 
-gettext.install('sl1fw', 'locales')
+fake_gettext()
 
 import logging
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)

@@ -8,6 +8,14 @@ import logging
 from systemd.journal import JournalHandler
 import gettext
 
+try:
+    # Python2
+    import __builtin__ as builtins
+except:
+    # Python 3
+    import builtins as builtins
+#endtry
+
 from sl1fw import libPrinter
 
 handler = JournalHandler(SYSLOG_IDENTIFIER = 'SL1FW')
@@ -31,6 +39,7 @@ logger.info("Avaiable translations: %s", ", ".join(langs.keys()))
 
 # use system locale settings
 gettext.install('sl1fw', 'locales')
+builtins.N_ = lambda x: x
 
 printer = libPrinter.Printer()
 printer.start()

@@ -1,11 +1,11 @@
 import unittest
 from mock import Mock
 import os
-import gettext
 import sys
 import time
+from sl1fw.tests.gettextSim import fake_gettext
 
-gettext.install('sl1fw')
+fake_gettext()
 
 sys.modules['gpio'] = Mock()
 
