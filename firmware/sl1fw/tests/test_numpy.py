@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 
 import unittest
-from time import sleep
 import pygame
 import numpy as np
 import os
