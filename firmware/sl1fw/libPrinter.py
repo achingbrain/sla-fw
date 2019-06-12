@@ -48,7 +48,8 @@ class Printer(object):
         from sl1fw.libScreen import Screen
         self.screen = Screen(self.hwConfig)
 
-        from sl1fw.libPages import PageWait, PageStart
+        from sl1fw.libPages import PageWait
+        from sl1fw.pages.start import PageStart
         from sl1fw.libDisplay import Display
         self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen)
 
@@ -87,7 +88,7 @@ class Printer(object):
                 self.screen.cleanup()
 
                 if self.hw.checkFailedBoot():
-                    self.display.page_error.setParams(
+                    self.display.pages['error'].setParams(
                         text=_(
                             "The printer has booted to an alernative boot slot due to a failed boot attempts using the "
                             "primary slot. This can happen after a failed update or due to hardware failure. Printer "
@@ -97,7 +98,7 @@ class Printer(object):
 
                 if firstRun:
                     if not self.hwConfig.defaultsSet():
-                        self.display.page_error.setParams(
+                        self.display.pages['error'].setParams(
                             text=_("Failed to load fans and LEDS factory calibration."))
                         self.display.doMenu("error")
                     #endif
@@ -113,7 +114,7 @@ class Printer(object):
                     #endif
                 #endif
 
-                self.display.page_home.readyBeep = True
+                self.display.pages['home'].readyBeep = True
                 self.display.doMenu("home")
                 firstRun = False
             #endwhile
@@ -121,7 +122,7 @@ class Printer(object):
         except Exception:
             self.logger.exception("run() exception:")
             self.hw.powerLed("error")
-            self.display.page_exception.setParams(text =
+            self.display.pages['exception'].setParams(text =
                     "An unexpected error has occured :-(.\n\n"
                     "The SL1 will finish the print if you are currently printing.\n\n"
                     "You can turn the printer off by pressing the front power button.\n\n"
