@@ -93,10 +93,9 @@ class Page(object):
     #enddef
 
 
-    def leave(self, newPage):
-        '''Override this to modify page this page is left for. This is used to show confirm page instead and return to
-        newPage later.'''
-        return newPage
+    def leave(self):
+        '''Override this to modify page this page is left for.'''
+        pass
     #enddef
 
 
@@ -686,9 +685,8 @@ Shutting down in 10 seconds...""") % A64temperature)
     def exitPrint(self):
         self.display.expo.doExitPrint()
         self.display.expo.canceled = True
-        self.display.page_systemwait.fill(
-            line1 = _("Job will be canceled after layer finish"))
-        return "systemwait"
+        self.display.setWaitPage(line1 = _("Job will be canceled after layer finish"))
+        return "_SELF_"
     #enddef
 
 
@@ -1084,10 +1082,16 @@ Check if fans are connected properly and can rotate without resistance.""" % ", 
         return "printstart"
     #enddef
 
+
     def backButtonRelease(self):
+        self._BACK_()
+        return "_BACK_"
+    #enddef
+
+
+    def _BACK_(self):
         self.allOff()
         self.ramdiskCleanup()
-        self.display.goBack(2)
     #enddef
 
 #endclass
@@ -1124,13 +1128,6 @@ Resin will have to be added during this print job."""),
 
     def changeButtonRelease(self):
         return "change"
-    #enddef
-
-
-    def backButtonRelease(self):
-        self.allOff()
-        self.ramdiskCleanup()
-        self.display.goBack(3)
     #enddef
 
 
@@ -1715,6 +1712,19 @@ def value_saturate(min, max):
 #enddef
 
 
+def confirm_leave(func):
+    def new_func(self):
+        retc = self.confirmChanges()
+        if retc:
+            return retc
+        else:
+            return func(self)
+        #endif
+    #enddef
+    return new_func
+#enddef
+
+
 class PageAdvancedSettings(Page):
 
     def __init__(self, display):
@@ -1871,36 +1881,42 @@ class PageAdvancedSettings(Page):
 
 
     # Move platform
+    @confirm_leave
     def towermoveButtonRelease(self):
         return "towermove"
     #enddef
 
 
     # Move resin tank
+    @confirm_leave
     def tiltmoveButtonRelease(self):
         return "tiltmove"
     #enddef
 
 
     # Time settings
+    @confirm_leave
     def timesettingsButtonRelease(self):
         return "timesettings"
     #enddef
 
 
     # Change language (TODO: Not in the graphical design, not yet implemented properly)
+    @confirm_leave
     def setlanguageButtonRelease(self):
         return "setlanguage"
     #enddef
 
 
     # Hostname
+    @confirm_leave
     def sethostnameButtonRelease(self):
         return "sethostname"
     #enddef
 
 
     # Change name/password
+    @confirm_leave
     def setremoteaccessButtonRelease(self):
         return "setlogincredentials"
     #enddef
@@ -1945,6 +1961,7 @@ class PageAdvancedSettings(Page):
 
 
     # Display test
+    @confirm_leave
     def displaytestButtonRelease(self):
         return "displaytest"
     #enddef
@@ -2015,18 +2032,21 @@ class PageAdvancedSettings(Page):
 
 
     # Firmware update
+    @confirm_leave
     def firmwareupdateButtonRelease(self):
         return "firmwareupdate"
     #enddef
 
 
     # Factory reset
+    @confirm_leave
     def factoryresetButtonRelease(self):
         return "factoryreset"
     #enddef
 
 
     # Admin
+    @confirm_leave
     def adminButtonRelease(self):
         if self.display.show_admin:
             return "admin"
@@ -2041,61 +2061,43 @@ class PageAdvancedSettings(Page):
 
 
     # Show wizard
+    @confirm_leave
     def wizardButtonRelease(self):
         return "wizard1"
     #enddef
 
 
-    # Back
-    def leave(self, newPage):
+    @confirm_leave
+    def backButtonRelease(self):
+        return super(PageAdvancedSettings, self).backButtonRelease()
+    #enddef
+
+
+    def confirmChanges(self):
         self.display.hw.stopFans()
-        if self.configwrapper.changed() and newPage != "confirm":
-            self.display.page_confirm.setParams(
-                continueFce = self._savechanges,
-                continueParams={'newPage': newPage},
-                backFce = self._discardchanges,
-                backParams={'newPage': newPage},
-                text = _("Save changes"))
-            return "confirm"
-        else:
-            return newPage
-        #endif
-    #enddef
-
-
-    def _savechanges(self, newPage):
-        sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
-        if not self.configwrapper.commit():
-            self.display.page_error.setParams(
-                text = _("Cannot save configuration"))
-            return "error"
-        #endif
-
-        if sensitivity_changed:
-            self.logger.info("Motor sensitivity changed. Updating profiles.")
-            self._updatesensitivity()
-        #endif
-
-        # TODO: This is wrong, display should handle this for us.
-        if newPage == "_BACK_":
-            self.display.goBack(2)
-        else:
-            self.display.setPage(newPage)
-        #endif
-    #enddef
-
-
-    def _discardchanges(self, newPage):
-        # TODO: This is wrong, it would be nice to have API to set just one fan
-        self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm,
-                                    self.display.hwConfig.fan2Pwm,
-                                    self.display.hwConfig.fan3Pwm))
-
-        # TODO: This is wrong, display should halde this for us.
-        if newPage == "_BACK_":
-            self.display.goBack(2)
-        else:
-            self.display.setPage(newPage)
+        if self.configwrapper.changed():
+            self.display.page_yesno.setParams(
+                    pageTitle = _("Save changes?"),
+                    text = _("Save changes?"))
+            if self.display.doMenu("yesno"):
+                # save changes
+                sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
+                if not self.configwrapper.commit():
+                    self.display.page_error.setParams(
+                        text = _("Cannot save configuration"))
+                    return "error"
+                #endif
+                if sensitivity_changed:
+                    self.logger.info("Motor sensitivity changed. Updating profiles.")
+                    self._updatesensitivity()
+                #endif
+            else:
+                # discard changes
+                # TODO: This is wrong, it would be nice to have API to set just one fan
+                self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm,
+                                            self.display.hwConfig.fan2Pwm,
+                                            self.display.hwConfig.fan3Pwm))
+            #endif
         #endif
     #enddef
 
@@ -2761,9 +2763,8 @@ class PagePrint(Page):
             if remain < defines.resinFeedWait:
                 self.display.page_feedme.manual = False
                 expo.doFeedMe()
-                self.display.page_systemwait.fill(
-                    line1 = _("Wait until layer finish..."))
-                return "systemwait"
+                pageWait = PageWait(self.display, line1 = _("Wait until layer finish..."))
+                pageWait.show()
             #endif
             if remain < defines.resinLowWarn:
                 self.display.hw.beepAlarm(1)
@@ -2813,9 +2814,8 @@ class PagePrint(Page):
     def doFeedme(self):
         self.display.page_feedme.manual = True
         self.display.expo.doFeedMeByButton()
-        self.display.page_systemwait.fill(
-            line1 = _("Wait until layer finish..."))
-        return "systemwait"
+        self.display.setWaitPage(line1 = _("Wait until layer finish..."))
+        return "_SELF_"
     #enddef
 
 
@@ -2831,9 +2831,8 @@ It may affect the printed object!"""))
 
     def doUpAndDown(self):
         self.display.expo.doUpAndDown()
-        self.display.page_systemwait.fill(
-            line1 = _("Up and down will be executed after layer finish."))
-        return "systemwait"
+        self.display.setWaitPage(line1 = _("Up and down will be executed after layer finish."))
+        return "_SELF_"
     #enddef
 
 
@@ -3263,7 +3262,6 @@ class PageSrcSelect(Page):
         self.currentRoot = "."
         self.old_items = None
         self.sources = {}
-        self.stack = False
         self.updateDataPeriod = 1
     #enddef
 
@@ -3370,7 +3368,7 @@ class PageSrcSelect(Page):
             self.currentRoot = os.path.join(self.currentRoot, item['path'])
             self.currentRoot = os.path.normpath(self.currentRoot)
             self.logger.info("Current project selection root: %s" % self.currentRoot)
-            return "sourceselect"
+            self.show()
         else:
             return self.loadProject(item['fullpath'])
         #endif
@@ -3429,12 +3427,6 @@ Re-export it and try again.""") % config.zipError)
 
         return "printpreview"
     #endef
-
-
-    def backButtonRelease(self):
-        self.currentRoot = "."
-        return super(PageSrcSelect, self).backButtonRelease()
-    #enddef
 
 #endclass
 
@@ -4239,13 +4231,12 @@ Please contact tech support!"""))
     #enddef
 
 
-    def leave(self, newPage):
+    def leave(self):
         self.display.hw.saveUvStatistics()
         # can't call allOff(), motorsRelease() is harmful for the wizard
         self.display.screen.getImgBlack()
         self.display.hw.uvLed(False)
         self.display.hw.stopFans()
-        return newPage
     #enddef
 
 #endclass
@@ -4315,7 +4306,8 @@ Are you sure?"""))
 
 
     def button6Continue(self):
-        self.display.hw.flashMC(self.display.page_systemwait, self.display.actualPage)
+        pageWait = PageWait(self.display)
+        self.display.hw.flashMC(pageWait, self.display.actualPage)
         return "_BACK_"
     #enddef
 
@@ -4398,7 +4390,8 @@ Press Continue when done.""") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.s
 
     def mc2netStop(self, pid):
         os.killpg(os.getpgid(pid), signal.SIGTERM)
-        self.display.hw.switchToMC(self.display.page_systemwait, self.display.actualPage)
+        pageWait = PageWait(self.display)
+        self.display.hw.switchToMC(pageWait, self.display.actualPage)
         return "_BACK_"
     #enddef
 
@@ -6588,7 +6581,7 @@ class PageFeedMe(Page):
             self.display.expo.setResinVolume(None)
         #endif
         self.display.expo.doBack()
-        return super(PageFeedMe, self).backButtonRelease()
+        return "_SELF_"
     #enddef
 
 
@@ -6596,7 +6589,7 @@ class PageFeedMe(Page):
         self.display.hw.powerLed("normal")
         self.display.expo.setResinVolume(defines.resinFilled)
         self.display.expo.doContinue()
-        return super(PageFeedMe, self).backButtonRelease()
+        return "_SELF_"
     #enddef
 
 #endclass

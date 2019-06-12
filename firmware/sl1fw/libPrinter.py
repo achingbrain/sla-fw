@@ -48,10 +48,11 @@ class Printer(object):
         from sl1fw.libScreen import Screen
         self.screen = Screen(self.hwConfig)
 
+        from sl1fw.libPages import PageWait, PageStart
         from sl1fw.libDisplay import Display
         self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen)
 
-        self.hw.connectMC(self.display.page_systemwait, self.display.actualPage)
+        self.hw.connectMC(PageWait(self.display), PageStart(self.display))
 
         self.inet.startNetMonitor(self.display.assignNetActive)
 
@@ -126,7 +127,7 @@ class Printer(object):
                     "You can turn the printer off by pressing the front power button.\n\n"
                     "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. Please send the log to us and help us improve the printer.\n\n"
                     "Thank you!")
-            self.display.setPage("exception")
+            self.display.forcePage("exception")
             if hasattr(self, 'expo') and self.expo.inProgress():
                 self.expo.waitDone()
             #endif
