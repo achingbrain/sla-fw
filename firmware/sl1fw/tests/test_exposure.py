@@ -8,16 +8,19 @@ fake_gettext()
 
 from sl1fw import libExposure
 from sl1fw import libConfig
+from sl1fw import defines
 
 
 class TestExposure(unittest.TestCase):
     PROJECT = os.path.join(os.path.dirname(__file__), "samples/empty-sample.sl1")
 
     def setUp(self):
-        hwConfig = libConfig.HwConfig()
+        defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
 
+        hwConfig = libConfig.HwConfig()
         self.config = libConfig.PrintConfig(hwConfig)
         display = Mock()
+        display.devices = []
         hw = Mock()
         hw.getUvLedState.return_value = (False, 0)
         screen = Mock()
