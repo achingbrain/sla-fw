@@ -8,6 +8,7 @@ fake_gettext()
 
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
+defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
 
 class TestHardwareConfig(unittest.TestCase):
     def setUp(self):
@@ -34,15 +35,43 @@ class TestHardwareConfig(unittest.TestCase):
 
         self.assertEqual(self.hwConfig.towerHeight, towerHeight, "Check towerHeight is set")
 
+        self.hwConfig.update(uvPwm = 222)
+
         self.hwConfig.logAllItems()
         self.hwConfig.logFile()
         self.assertTrue(self.hwConfig.writeFile("hwconfig.test"), "Write config file")
-        self.assertEqual(self.hwConfig.getSourceString(), "MCBoardVersion = 6\r\nshowUnboxing = no\r\nMCversionCheck = no\r\ntowerHeight = 1024", "Check file lines append")
+        self.assertEqual(self.hwConfig.getSourceString(), "MCBoardVersion = 6\r\nshowUnboxing = no\r\nMCversionCheck = no\r\ntowerHeight = 1024\r\nuvPwm = 222", "Check file lines append")
 
         self.hwConfig.update(MCBoardVersion = None)
         self.hwConfig.logFile()
         self.assertTrue(self.hwConfig.writeFile("hwconfig.test"), "Write config file")
-        self.assertEqual(self.hwConfig.getSourceString(), "showUnboxing = no\r\nMCversionCheck = no\r\ntowerHeight = 1024", "Check file lines delete")
+        self.assertEqual(self.hwConfig.getSourceString(), "showUnboxing = no\r\nMCversionCheck = no\r\ntowerHeight = 1024\r\nuvPwm = 222", "Check file lines delete")
+
+    def test_uvledpwm1(self):
+        hwConfig = HwConfig(os.path.join(os.path.dirname(__file__), "samples/hardware.cfg"))
+        self.assertEqual(hwConfig.uvPwm, 219, "UV LED PWM - No defaults at all")
+
+    def test_uvledpwm2(self):
+        hwConfig = HwConfig(os.path.join(os.path.dirname(__file__), "samples/hardware-current.cfg"))
+        self.assertEqual(hwConfig.uvPwm, 152, "UV LED PWM - current to PWM")
+
+    def test_uvledpwm3(self):
+        hwConfig = HwConfig(os.path.join(os.path.dirname(__file__), "samples/hardware-pwm.cfg"))
+        self.assertEqual(hwConfig.uvPwm, 142, "UV LED PWM - direct PWM")
+
+    def test_uvledpwm4(self):
+        with open(os.path.join(os.path.dirname(__file__), "samples/hardware-current.toml"), "r") as factory:
+            factory_defaults = toml.load(factory)
+        #endwith
+        hwConfig = HwConfig(os.path.join(os.path.dirname(__file__), "samples/hardware.cfg"), factory_defaults)
+        self.assertEqual(hwConfig.uvPwm, 243, "UV LED PWM - default current to PWM")
+
+    def test_uvledpwm5(self):
+        with open(os.path.join(os.path.dirname(__file__), "samples/hardware-pwm.toml"), "r") as factory:
+            factory_defaults = toml.load(factory)
+        #endwith
+        hwConfig = HwConfig(os.path.join(os.path.dirname(__file__), "samples/hardware.cfg"), factory_defaults)
+        self.assertEqual(hwConfig.uvPwm, 123, "UV LED PWM - default direct PWM")
 
 
 class TestPrintConfig(unittest.TestCase):

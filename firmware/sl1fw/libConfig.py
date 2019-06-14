@@ -397,7 +397,8 @@ class HwConfig(FileConfig):
         self.fan1Pwm = self._parseIntMinMax("fan1pwm", 60, 0, 100)
         self.fan2Pwm = self._parseIntMinMax("fan2pwm", 100, 0, 100)
         self.fan3Pwm = self._parseIntMinMax("fan3pwm", 40, 0, 100)
-        self.uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)
+        uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)
+        self.uvPwm = self._parseIntMinMax("uvpwm", int(round(uvCurrent / 3.2)), 0, 250)
         self.uvCalibTemp = self._parseIntMinMax("uvcalibtemp", 40, 30, 50)
         self.uvCalibIntensity = self._parseIntMinMax("uvcalibintensity", 140, 80, 200)
 
@@ -466,16 +467,17 @@ class WizardData(FileConfig):
         self.mcBoardRev = self._parseString("mcboardrev")
         self.towerHeight = self._parseInt("towerheight")
         self.tiltHeight = self._parseInt("tiltheight")
-        self.uvCurrent = self._parseFloat("uvcurrent")
+        uvCurrent = self._parseFloat("uvcurrent")
+        self.uvPwm = self._parseInt("uvpwm", int(round(uvCurrent / 3.2)))
 
         # following values are measured and saved in initial wizard
-        # data in mV for 0 mA, 300 mA, 600 mA
+        # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
         self.wizardUvVoltageRow1 = self._parseIntList("wizarduvvoltagerow1")
-        # data in mV for 0 mA, 300 mA, 600 mA
+        # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
         self.wizardUvVoltageRow2 = self._parseIntList("wizarduvvoltagerow2")
-        # data in mV for 0 mA, 300 mA, 600 mA
+        # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
         self.wizardUvVoltageRow3 = self._parseIntList("wizarduvvoltagerow3")
-        # fans rpm when using default pwm
+        # fans RPM when using default PWM
         self.wizardFanRpm = self._parseIntList("wizardfanrpm")
         # UV LED temperature at the beginning of test (should be close to ambient)
         self.wizardTempUvInit = self._parseFloat("wizardtempuvinit")
@@ -497,7 +499,8 @@ class WizardData(FileConfig):
         self.uvMinValue = self._parseInt("uvminvalue")
         self.uvMaxValue = self._parseInt("uvmaxvalue")
         self.uvPercDiff = self._parseFloatList("uvpercdiff")
-        self.uvFoundCurrent = self._parseFloat("uvfoundcurrent")
+        uvFoundCurrent = self._parseFloat("uvfoundcurrent")
+        self.uvFoundPwm = self._parseInt("uvfoundpwm", int(round(uvFoundCurrent / 3.2)))
     #enddef
 
 #endclass

@@ -64,6 +64,12 @@ class UvLedMeter(object):
     #enddef
 
 
+    def close(self):
+        self.port.close()
+        self.port = None
+    #enddef
+
+
     def read(self):
         self.np = None
         try:

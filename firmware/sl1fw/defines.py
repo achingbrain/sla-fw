@@ -5,7 +5,7 @@
 import os
 import sl1fw
 
-swVersion = "Gen3-190-611"
+swVersion = "Gen3-190-614"
 reqMcVersion = "SLA-control 0.9.10-422"
 
 home = "/home/root"
@@ -88,6 +88,8 @@ admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
 bootFailedStamp = os.path.join(persistentStorage, "failedboot")
 apikeyFile = os.path.join(configDir, "api.key")
 uvLedMeterDevice = "/dev/uvmeter"
-uvLedMeasMinCurr = 400.0
-uvLedMeasMaxCurr = 600.0
+uvLedMeasMinPwm = 125
+uvLedMeasMaxPwm = 188
+uvLedMeasMinPwm500k = 157
+uvLedMeasMaxPwm500k = 243
 factoryConfigFile = os.path.join(factoryMountPoint, "factory.toml")
