@@ -368,7 +368,9 @@ class Screen(object):
     #enddef
 
     def exit(self):
-        self.server.join()
+        if self.server.exitcode is None:
+            self.server.join()
+        #endif
     #enddef
 
     def getResolution(self):

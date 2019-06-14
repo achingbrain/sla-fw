@@ -14,6 +14,7 @@ class Printer(object):
 
     def __init__(self, debugDisplay=None):
         startTime = time()
+        self.running = True
 
         self.logger = logging.getLogger(__name__)
         self.logger.info("SL1 firmware started - version %s", defines.swVersion)
@@ -37,13 +38,17 @@ class Printer(object):
         from sl1fw.libInternet import Internet
         self.inet = Internet()
 
-        from sl1fw.libQtDisplay import QtDisplay
-        qtdisplay = QtDisplay()
+        if debugDisplay:
+            devices = [debugDisplay]
+        else:
+            from sl1fw.libQtDisplay import QtDisplay
+            qtdisplay = QtDisplay()
 
-        from sl1fw.libWebDisplay import WebDisplay
-        webdisplay = WebDisplay()
+            from sl1fw.libWebDisplay import WebDisplay
+            webdisplay = WebDisplay()
 
-        devices = list((qtdisplay, webdisplay))
+            devices = [qtdisplay, webdisplay]
+        #endif
 
         from sl1fw.libScreen import Screen
         self.screen = Screen(self.hwConfig)
@@ -67,6 +72,7 @@ class Printer(object):
 
 
     def exit(self):
+        self.running = False
         self.screen.exit()
         self.display.exit()
         self.inet.exit()
@@ -79,7 +85,7 @@ class Printer(object):
         firstRun = True
 
         try:
-            while True:
+            while self.running:
                 self.hw.uvLed(False)
                 self.hw.powerLed("normal")
 

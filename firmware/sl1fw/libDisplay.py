@@ -46,6 +46,7 @@ class Display(object):
         self.waitPageItems = None
         self.netState = None
         self.forcedPage = None
+        self.running = True
     #enddef
 
 
@@ -55,6 +56,7 @@ class Display(object):
 
 
     def exit(self):
+        self.running = False
         for device in self.devices:
             device.exit()
         #endfor
@@ -126,7 +128,7 @@ class Display(object):
         autorepeatDelay = 1
         callbackTime = 0.0  # call the callback immediately
         updateDataTime = callbackTime
-        while True:
+        while self.running:
 
             if self.forcedPage is not None:
                 actualPage = self.forcedPage
@@ -256,6 +258,11 @@ class Display(object):
 
     # TODO presunout pryc
     def shutDown(self, doShutDown, reboot=False):
+        if not defines.truePoweroff:
+            self.logger.debug("Skipping poweroff")
+            return
+        #endif
+
         self.forcePage("start")
         self.hw.uvLed(False)
         self.hw.motorsRelease()

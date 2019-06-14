@@ -1,25 +1,42 @@
-from mock import Mock
-
-
 class SystemBus:
     def __call__(self):
         return self
 
     def get(self, service, *args, **kwargs):
         if service == "de.pengutronix.rauc":
-            rauc = Rauc()
-
             return {
-                'de.pengutronix.rauc.Installer': rauc
+                'de.pengutronix.rauc.Installer': Rauc()
             }
+        elif service == "org.freedesktop.timedate1":
+            return TimeDate()
+        elif service == "org.freedesktop.hostname1":
+            return Hostname()
         else:
             raise Exception("Cannot provide fake service for unknown service name %s" % service)
 
 
-class Rauc(Mock):
+class TimeDate():
     def __init__(self):
-        super().__init__()
+        self.NTP = True
+        self.Timezone = 'America/Vancouver'
 
+    def SetNTP(self, state, *args):
+        self.NTP = state
+
+
+class Hostname():
+    def __init__(self):
+        self.StaticHostname = "prusa-sl1"
+
+    def SetStaticHostname(self, hostname, _):
+        self.StaticHostname = hostname
+
+    def SetHostname(self, hostname, _):
+        pass
+
+
+class Rauc(object):
+    def __init__(self):
         self.Operation = 'idle'
         self.Progress = (0, '', 0)
         self.BootSlot = 'A'

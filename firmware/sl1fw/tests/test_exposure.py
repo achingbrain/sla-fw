@@ -1,10 +1,15 @@
 import unittest
 from mock import Mock
 import os
+import sys
 
 from sl1fw.tests.gettextSim import fake_gettext
 
 fake_gettext()
+
+# This has to stay in order to prevent loading of real pydbus
+import sl1fw.tests.pydbusSim
+sys.modules['pydbus'] = sl1fw.tests.pydbusSim
 
 from sl1fw import libExposure
 from sl1fw import libConfig

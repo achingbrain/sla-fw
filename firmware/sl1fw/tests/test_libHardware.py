@@ -8,6 +8,10 @@ import sl1fw.tests.mcPortSim
 
 fake_gettext()
 
+# This has to stay in order to prevent loading of real pydbus
+import sl1fw.tests.pydbusSim
+sys.modules['pydbus'] = sl1fw.tests.pydbusSim
+
 sys.modules['gpio'] = Mock()
 sys.modules['sl1fw.libDebug'] = Mock()
 sys.modules['serial'] = sl1fw.tests.mcPortSim
