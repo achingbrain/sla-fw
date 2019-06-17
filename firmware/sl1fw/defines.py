@@ -6,7 +6,7 @@ import os
 import sl1fw
 
 swVersion = "Gen3-190-614"
-reqMcVersion = "SLA-control 0.9.10-422"
+reqMcVersion = "SLA-control 0.9.11-426"
 
 home = "/home/root"
 factoryMountPoint = "/usr/share/factory/defaults"
