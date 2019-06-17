@@ -18,8 +18,9 @@ from sl1fw import defines
 
 
 class MotConCom(object):
-    MCversion = ""
-    MCrevision = ""
+    MCFWversion = ""
+    MCFWrevision = -1
+    MCBoardRevision = (-1, -1)
     MCserial = ""
 
     commOKStr = re.compile('^(.*)ok$')
@@ -127,17 +128,31 @@ class MotConCom(object):
             #endfor
         #endif
 
-        self.MCversion = self.do("?ver")
-        if MCversionCheck and self.MCversion != defines.reqMcVersion:
+        self.MCFWversion = self.do("?ver")
+        if MCversionCheck and self.MCFWversion != defines.reqMcVersion:
             return _("Wrong motion controller firmware version")
         else:
-            self.logger.info("motion controller firmware version: %s", self.MCversion)
+            self.logger.info("motion controller firmware version: %s", self.MCFWversion)
         #endif
 
-        self.MCrevision = self.do("?rev")
-        if self.MCrevision:
-            self.logger.info("motion controller board revision: %s", self.MCrevision)
+        tmp = self.doGetIntList(args = ("?rev",))
+        if tmp and len(tmp) == 2 and 0 <= divmod(tmp[1], 32)[0] <= 7:
+            self.MCFWrevision = tmp[0]
+            self.logger.info("motion controller firmware for board revision: %s", self.MCFWrevision)
+
+            self.MCBoardRevision = divmod(tmp[1], 32)
+            self.logger.info("motion controller board revision: %d%s", self.MCBoardRevision[1], chr(self.MCBoardRevision[0] + ord('a')))
+        else:
+            self.logger.warning("invalid motion controller firmware/board revision: %s", str(tmp))
+            self.MCFWrevision = -1
+            self.MCBoardRevision = (-1, -1)
         #endif
+
+        if self.MCFWrevision != self.MCBoardRevision[1]:
+            self.logger.warning("motion controller firmware for board revision (%d) not"
+                    " match motion controller board revision (%d)!",
+                    self.MCFWrevision, self.MCBoardRevision[1])
+        #enddef
 
         self.MCserial = self.do("?ser")
         if self.MCserial:
@@ -530,7 +545,7 @@ class Hardware(object):
     def initDefaults(self):
         self.motorsRelease()
         self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm))
-        self.setUvLedCurrent(self.hwConfig.uvCurrent)
+        self.setUvLedPwm(self.hwConfig.uvPwm)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
         self.resinSensor(False)
         self.stopFans()
@@ -571,8 +586,30 @@ class Hardware(object):
 
 
     @property
-    def mcVersion(self):
-        return self.mcc.MCversion
+    def mcFwVersion(self):
+        return self.mcc.MCFWversion
+    #enddef
+
+
+    @property
+    def mcFwRevision(self):
+        return self.mcc.MCFWrevision
+    #enddef
+
+
+    @property
+    def mcBoardRevisionBin(self):
+        return (self.mcc.MCBoardRevision[1], (self.mcc.MCBoardRevision[0]))
+    #enddef
+
+
+    @property
+    def mcBoardRevision(self):
+        if self.mcc.MCBoardRevision[1] > -1 and self.mcc.MCBoardRevision[0] > -1:
+            return "%d%s" % (self.mcc.MCBoardRevision[1], chr(self.mcc.MCBoardRevision[0] + ord('a')))
+        else:
+            return "unk"
+        #endif
     #enddef
 
 
@@ -585,12 +622,6 @@ class Hardware(object):
     @property
     def cpuSerialNo(self):
         return self.cpuSerial
-    #enddef
-
-
-    @property
-    def mcRevision(self):
-        return self.mcc.MCrevision
     #enddef
 
 
@@ -858,18 +889,13 @@ class Hardware(object):
     #enddef
 
 
-    def setUvLedCurrent(self, current):
-        self.mcc.do("!upwm", int(round(current / 3.2)))
+    def setUvLedPwm(self, pwm):
+        self.mcc.do("!upwm", pwm)
     #enddef
 
 
-    def getUvLedCurrent(self):
-        raw = self.mcc.do("?upwm")
-        try:
-            return int(raw) * 3.2
-        except Exception:
-            return -1
-        #endtry
+    def getUvLedPwm(self):
+        return self.mcc.doGetInt("?upwm")
     #enddef
 
 
@@ -1058,7 +1084,7 @@ class Hardware(object):
     def getMcTemperatures(self):
         temps = self.mcc.doGetIntList(multiply = 0.1, args = ("?temp", "noSyslog"))
         if temps and len(temps) == 4:
-            self.logger.info("Temperatures [C]: %s", " ".join(map(lambda x: str(x), temps)))
+            self.logger.info("Temperatures [C]: %s", " ".join(map(lambda x: "%.1f" % x, temps)))
             return temps
         else:
             self.logger.warning("TEMPs count not match! (%s)", str(temps))

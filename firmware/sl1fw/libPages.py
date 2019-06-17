@@ -354,7 +354,7 @@ class Page(object):
             'fan1pwm': self.display.hwConfig.fan1Pwm,
             'fan2pwm': self.display.hwConfig.fan2Pwm,
             'fan3pwm': self.display.hwConfig.fan3Pwm,
-            'uvcurrent': self.display.hwConfig.uvCurrent,
+            'uvpwm': self.display.hwConfig.uvPwm,
         }
 
         with open(defines.hwConfigFactoryDefaultsFile, "w") as file:
@@ -723,6 +723,18 @@ Shutting down in 10 seconds...""") % A64temperature)
         self.display.hw.uvLed(False)
         self.display.hw.stopFans()
         self.display.hw.motorsRelease()
+    #enddef
+
+
+    def getMeasPwms(self):
+        br = self.display.hw.mcBoardRevisionBin
+        if br[0] >= 6 and br[1] >= 2:
+            self.measMinPwm = defines.uvLedMeasMinPwm500k
+            self.measMaxPwm = defines.uvLedMeasMaxPwm500k
+        else:
+            self.measMinPwm = defines.uvLedMeasMinPwm
+            self.measMaxPwm = defines.uvLedMeasMaxPwm
+        #endif
     #enddef
 
 #endclass
@@ -1866,7 +1878,7 @@ class PagePrint(Page):
         self.lastLayer = 0
 
         self.display.screen.getImgBlack()
-        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
         if not self.display.hwConfig.blinkExposure:
             self.display.hw.uvLed(True)
         #endif
@@ -2167,7 +2179,7 @@ class PageSysInfo(Page):
 
     def show(self):
         self.oldValues = {}
-        self.items['controller_version'] = self.display.hw.mcVersion
+        self.items['controller_version'] = self.display.hw.mcFwVersion
         self.items['controller_serial'] = self.display.hw.mcSerialNo
         self.items['api_key'] = self.octoprintAuth
         self.items['tilt_fast_time'] = self.display.hwConfig.tiltFastTime
@@ -2551,6 +2563,13 @@ class PageDisplay(Page):
     #enddef
 
 
+    def show(self):
+        state = self.display.hw.getUvLedState()[0]
+        self.items['button14'] = _("UV off") if state else _("UV on")
+        super(PageDisplay, self).show()
+    #enddef
+
+
     def button1ButtonRelease(self):
         self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice8_1440x2560.png"))
     #enddef
@@ -2631,7 +2650,7 @@ class PageDisplay(Page):
         self.showItems(button14 = _("UV off") if state else _("UV on"))
         if state:
             self.display.hw.startFans()
-            self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+            self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
         else:
             self.display.hw.stopFans()
         #endif
@@ -2694,7 +2713,7 @@ class PageInfiniteTest(Page):
         pageWait.show()
         self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
         self.display.hw.startFans()
-        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
         self.display.hw.uvLed(True)
         self.display.hw.towerSync()
         while True:
@@ -2765,11 +2784,16 @@ class PageUvCalibration(Page):
 
 
     def show(self):
+        self.getMeasPwms()
         self.items.update({
-            'text' : _(u"This will calibrate the UV LED current for intensity "
-            u"%(int)d on temperature %(temp)d °C.\n\nCalibrated UV LED meter "
-            u"connected to the USB port will be required after warm up.")
-            % { 'int' : self.display.hwConfig.uvCalibIntensity, 'temp' : self.display.hwConfig.uvCalibTemp }})
+            'text' : _(u"This will calibrate the UV LED (intensity %(int)d,"
+            u" temperature %(temp)d °C, range <%(minp)d, %(maxp)d>).\n\n"
+            u"Calibrated UV LED meter connected to the USB port will be required after warm up.")
+            % { 'int' : self.display.hwConfig.uvCalibIntensity,
+                'temp' : self.display.hwConfig.uvCalibTemp,
+                'minp' : self.measMinPwm,
+                'maxp' : self.measMaxPwm,
+                }})
         super(PageUvCalibration, self).show()
     #enddef
 
@@ -2781,7 +2805,7 @@ class PageUvCalibration(Page):
         pageWait.show()
 
         self.display.hw.startFans()
-        self.display.hw.setUvLedCurrent(defines.uvLedMeasMaxCurr)
+        self.display.hw.setUvLedPwm(self.measMaxPwm)
         self.display.screen.getImgBlack()
         self.display.screen.inverse()
         self.display.hw.uvLed(True)
@@ -2813,7 +2837,7 @@ class PageUvCalibration(Page):
 
     def off(self):
         self.allOff()
-        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
     #enddef
 
 
@@ -2847,7 +2871,7 @@ class PageUvMeterShow(Page):
 
     def generatePicture(self, data):
         imagePath = os.path.join(defines.ramdiskPath, "uvcalib.png")
-        self.uvmeter.savePic(800, 400, "%.1f mA" % data['uvFoundCurrent'], imagePath, data)
+        self.uvmeter.savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)
         self.setItems(image_path = "file://%s" % imagePath)
     #enddef
 
@@ -2869,7 +2893,7 @@ class PageUvCalibrationTest(PageUvMeterShow):
     Name = "uvcalibrationtest"
 
     def prepare(self):
-        if self.display.wizardData.uvFoundCurrent < 0:
+        if self.display.wizardData.uvFoundPwm < 1:
             return "uvcalibration"
         #enddef
         self.generatePicture(self.display.wizardData.getDict())
@@ -2920,29 +2944,32 @@ class PageUvMeter(PageUvMeterShow):
             self.display.pages['error'].setParams(text = _("Cannot read data from the UV LED meter."
                 "\n\nCheck the connection and try again."))
             self.allOff()
+            self.uvmeter.close()
             return "error"
         #endif
 
-        realCurrent = self.display.hw.getUvLedCurrent()
+        realPwm = self.display.hw.getUvLedPwm()
         data = self.uvmeter.getData()
-        self.logger.info("UV calibration - current:%.1f  data:%s", realCurrent, str(data))
+        self.logger.info("UV calibration - PWM:%d data:%s", realPwm, str(data))
 
         if data['uvMean'] < self.display.hwConfig.uvCalibIntensity:
             self.display.pages['error'].setParams(text = _("Requested intensity "
-                "cannot be reached by max. allowed current.\n\nChange the "
-                "values and try again."))
+                "cannot be reached by max. allowed PWM (weak UV LED?).\n\n"
+                "Change the values and try again."))
             self.allOff()
+            self.uvmeter.close()
             return "error"
         #endif
 
-        imagePath = os.path.join(defines.ramdiskPath, "uvcalib-%.1f.png" % realCurrent)
-        self.uvmeter.savePic(800, 400, "%.1f mA" % realCurrent, imagePath, data)
+        imagePath = os.path.join(defines.ramdiskPath, "uvcalib-%d.png" % realPwm)
+        self.uvmeter.savePic(800, 400, "PWM: %d" % realPwm, imagePath, data)
         self.setItems(image_path = "file://%s" % imagePath)
 
-        self.topCurrent = defines.uvLedMeasMaxCurr
-        self.bottomCurrent = defines.uvLedMeasMinCurr
-        self.testCurrent = self.bottomCurrent
-        self.display.hw.setUvLedCurrent(self.testCurrent)
+        self.getMeasPwms()
+        self.topPwm = self.measMaxPwm
+        self.bottomPwm = self.measMinPwm
+        self.testPwm = self.bottomPwm
+        self.display.hw.setUvLedPwm(self.testPwm)
         self.lastCallback = monotonic()
         self.iterCnt = 15
         self.finalTest = False
@@ -2959,19 +2986,21 @@ class PageUvMeter(PageUvMeterShow):
             return
         #endif
 
-        realCurrent = self.display.hw.getUvLedCurrent()
+        realPwm = self.display.hw.getUvLedPwm()
         if not self.uvmeter.read():
             self.display.pages['error'].setParams(text = _("Cannot read data from the UV LED meter."
                 "\n\nCheck the connection and try again."))
             self.allOff()
+            self.uvmeter.close()
             return "error"
         #endif
         data = self.uvmeter.getData()
-        self.logger.info("UV calibration - finalTest:%s current:%.1f data:%s",
-                "yes" if self.finalTest else "no", realCurrent, str(data))
+        self.logger.info("UV calibration - finalTest:%s PWM:%d data:%s",
+                "yes" if self.finalTest else "no", realPwm, str(data))
 
         if self.finalTest:
             self.allOff()
+            self.uvmeter.close()
             if data['uvMean'] > 1.0 or data['uvMaxValue'] > 2:
                 self.display.wizardData.parseFile(defines.wizardDataFile)
                 self.display.pages['error'].setParams(text = _("The exposure display "
@@ -2981,16 +3010,17 @@ class PageUvMeter(PageUvMeterShow):
             return "uvcalibrationconfirm"
         #endif
 
-        if int(self.testCurrent) == int(self.bottomCurrent) and data['uvMean'] > self.display.hwConfig.uvCalibIntensity:
+        if int(self.testPwm) == int(self.bottomPwm) and data['uvMean'] > self.display.hwConfig.uvCalibIntensity:
             self.display.pages['error'].setParams(text = _("Requested intensity "
-                "cannot be reached by min. allowed current.\n\nChange the "
-                "values and try again."))
+                "cannot be reached by min. allowed PWM (jammed UV meter?).\n\n"
+                "Change the values and try again."))
             self.allOff()
+            self.uvmeter.close()
             return "error"
         #endif
 
-        imagePath = os.path.join(defines.ramdiskPath, "uvcalib-%.1f.png" % realCurrent)
-        self.uvmeter.savePic(800, 400, "%.1f mA" % realCurrent, imagePath, data)
+        imagePath = os.path.join(defines.ramdiskPath, "uvcalib-%d.png" % realPwm)
+        self.uvmeter.savePic(800, 400, "PWM: %d" % realPwm, imagePath, data)
         self.showItems(image_path = "file://%s" % imagePath)
 
         if int(round(data['uvMean'])) == self.display.hwConfig.uvCalibIntensity:
@@ -3000,11 +3030,12 @@ class PageUvMeter(PageUvMeterShow):
                     "allowed value (20.0).\n\nVerify the UV LED meter position "
                     "and calibration, then try again.") % data['uvStdDev'])
                 self.allOff()
+                self.uvmeter.close()
                 return "error"
             #endif
 
             self.display.wizardData.update(**data)
-            self.display.wizardData.update(uvFoundCurrent = realCurrent)
+            self.display.wizardData.update(uvFoundPwm = realPwm)
             self.display.screen.getImgBlack()
             self.finalTest = True
             self.lastCallback = monotonic()
@@ -3018,17 +3049,18 @@ class PageUvMeter(PageUvMeterShow):
                 "meter position and calibration or change the values, then try "
                 "again."))
             self.allOff()
+            self.uvmeter.close()
             return "error"
         #endif
 
         if data['uvMean'] < self.display.hwConfig.uvCalibIntensity:
-            self.bottomCurrent = self.testCurrent
+            self.bottomPwm = self.testPwm
         else:
-            self.topCurrent = self.testCurrent
+            self.topPwm = self.testPwm
         #endif
 
-        self.testCurrent = (self.topCurrent - self.bottomCurrent) / 2 + self.bottomCurrent
-        self.display.hw.setUvLedCurrent(self.testCurrent)
+        self.testPwm = (self.topPwm - self.bottomPwm) // 2 + self.bottomPwm
+        self.display.hw.setUvLedPwm(self.testPwm)
         self.lastCallback = monotonic()
     #enddef
 
@@ -3050,11 +3082,11 @@ class PageUvCalibrationConfirm(Page):
 
     def show(self):
         self.items.update({
-            'text' : _("The result of calibration\nCurrent: %(cur).1f mA\n"
+            'text' : _("The result of calibration\nPWM: %(pwm)d\n"
                 "Intensity: %(int).1f\n"
                 "Standard deviation: %(dev).1f\n\n"
                 "Would you like to apply the calibration?")
-            % { 'cur' : self.display.wizardData.uvFoundCurrent,
+            % { 'pwm' : self.display.wizardData.uvFoundPwm,
                 'int' : self.display.wizardData.uvMean,
                 'dev' : self.display.wizardData.uvStdDev,
                 }})
@@ -3063,7 +3095,7 @@ class PageUvCalibrationConfirm(Page):
 
 
     def yesButtonRelease(self):
-        self.display.hwConfig.update(uvCurrent = self.display.wizardData.uvFoundCurrent)
+        self.display.hwConfig.update(uvPwm = self.display.wizardData.uvFoundPwm)
         if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
@@ -3437,7 +3469,7 @@ class PageNetUpdate(Page):
             return "error"
         #endif
 
-        if self.display.wizardData.uvFoundCurrent < 0:
+        if self.display.wizardData.uvFoundPwm < 0:
             self.display.pages['error'].setParams(
                     backFce = self.gotoUVcalib,
                     text = _("The automatic UV LED calibration was not finished successfully!"))
@@ -3449,11 +3481,11 @@ class PageNetUpdate(Page):
                 sl1fwVersion = defines.swVersion,
                 a64SerialNo = self.display.hw.cpuSerialNo,
                 mcSerialNo = self.display.hw.mcSerialNo,
-                mcFwVersion = self.display.hw.mcVersion,
-                mcBoardRev = self.display.hw.mcRevision,
+                mcFwVersion = self.display.hw.mcFwVersion,
+                mcBoardRev = self.display.hw.mcBoardRevision,
                 towerHeight = self.display.hwConfig.towerHeight,
                 tiltHeight = self.display.hwConfig.tiltHeight,
-                uvCurrent = self.display.hwConfig.uvCurrent,
+                uvPwm = self.display.hwConfig.uvPwm,
                 )
         if not self.writeToFactory(self.display.wizardData.writeFile):
             self.display.pages['error'].setParams(
@@ -3717,11 +3749,12 @@ class PageSetupHw(PageSetup):
 
                 'label2g8' : _("MC board version"),
                 })
-        self.temp = {}
     #enddef
 
 
     def show(self):
+        self.changed = {}
+        self.temp = {}
         self.temp['screwmm'] = self.display.hwConfig.screwMm
         self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
         self.temp['calibtoweroffset'] = self.display.hwConfig.calibTowerOffset
@@ -3886,11 +3919,12 @@ class PageSetupExposure(PageSetup):
                 'label2g5' : _("Up&down wait [s]"),
                 'label2g6' : _("Up&down every n-th l."),
                 })
-        self.temp = {}
     #enddef
 
 
     def show(self):
+        self.changed = {}
+        self.temp = {}
         self.temp['trigger'] = self.display.hwConfig.trigger
         self.temp['limit4fast'] = self.display.hwConfig.limit4fast
         self.temp['layertowerhop'] = self.display.hwConfig.layerTowerHop
@@ -5258,7 +5292,7 @@ class PageFansLeds(Page):
                 'label2g1' : _("UV LED fan PWM"),
                 'label2g2' : _("Blower fan PWM"),
                 'label2g3' : _("Rear fan PWM"),
-                'label2g5' : _("UV current [mA]"),
+                'label2g5' : _("UV LED PWM"),
                 'label2g6' : _("UV calib. temperature"),
                 'label2g7' : _("UV calib. intensity"),
 
@@ -5268,16 +5302,15 @@ class PageFansLeds(Page):
                 'back' : _("Back"),
                 })
         self.updateDataPeriod = 0.5
-        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'uvcurrent', 'uvcalibtemp', 'uvcalibintensity'))
+        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'uvpwm', 'uvcalibtemp', 'uvcalibintensity'))
         self.checkCooling = True
-        self.temp = {}
-        self.changed = {}
     #enddef
 
 
     def show(self):
         self.oldValues = {}
-
+        self.changed = {}
+        self.temp = {}
         self.temp['uvcalibtemp'] = self.display.hwConfig.uvCalibTemp
         self.temp['uvcalibintensity'] = self.display.hwConfig.uvCalibIntensity
         self.items['value2g6'] = self.temp['uvcalibtemp']
@@ -5299,11 +5332,11 @@ class PageFansLeds(Page):
         self._setItem(items, self.oldValues, 'state1g7', self.temp['cls'])
 
         self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'] = self.display.hw.getFansPwm()
-        self.temp['uvcurrent'] = self.display.hw.getUvLedCurrent()
+        self.temp['uvpwm'] = self.display.hw.getUvLedPwm()
         self._setItem(items, self.oldValues, 'value2g1', self.temp['fan1pwm'])
         self._setItem(items, self.oldValues, 'value2g2', self.temp['fan2pwm'])
         self._setItem(items, self.oldValues, 'value2g3', self.temp['fan3pwm'])
-        self._setItem(items, self.oldValues, 'value2g5', str(int(self.temp['uvcurrent'])))
+        self._setItem(items, self.oldValues, 'value2g5', self.temp['uvpwm'])
 
         if len(items):
             self.showItems(**items)
@@ -5342,7 +5375,8 @@ class PageFansLeds(Page):
 
     def reset_to_defaults(self):
         self.display.hwConfig.update(
-            uvCurrent = None,
+            uvCurrent = None,   # remove old value too
+            uvPwm = None,
             fan1Pwm = None,
             fan2Pwm = None,
             fan3Pwm = None,
@@ -5382,7 +5416,7 @@ class PageFansLeds(Page):
             (self.display.hwConfig.fan1Pwm,
              self.display.hwConfig.fan2Pwm,
              self.display.hwConfig.fan3Pwm))
-        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
     #enddef
 
 
@@ -5468,14 +5502,14 @@ class PageFansLeds(Page):
 
 
     def minus2g5Button(self):
-        self._value(self.temp, self.changed, 4, 'uvcurrent', 0, 800.1, -3.2, strFce=lambda x: str(int(x)))
-        self.display.hw.setUvLedCurrent(self.temp['uvcurrent'])
+        self._value(self.temp, self.changed, 4, 'uvpwm', 0, 250, -1)
+        self.display.hw.setUvLedPwm(self.temp['uvpwm'])
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(self.temp, self.changed, 4, 'uvcurrent', 0, 800.1, 3.2, strFce=lambda x: str(int(x)))
-        self.display.hw.setUvLedCurrent(self.temp['uvcurrent'])
+        self._value(self.temp, self.changed, 4, 'uvpwm', 0, 250, 1)
+        self.display.hw.setUvLedPwm(self.temp['uvpwm'])
     #enddef
 
 
@@ -6362,9 +6396,8 @@ class PageWizard4(Page):
         self.pageTitle = N_("Setup wizard step 4/5")
         self.items.update({
             'imageName' : "12_close_cover.jpg",
-            'text' : _("""Please close the orange lid.
-
-Make sure the tank is empty and clean.""")})
+            'text' : _("Please close the orange lid.\n\n"
+                "Make sure the tank is empty and clean.")})
     #enddef
 
 
@@ -6376,28 +6409,31 @@ Make sure the tank is empty and clean.""")})
             line1 = _("UV LED check"),
             line2 = _("Please wait..."))
         pageWait.show()
-        self.display.hw.setUvLedCurrent(0)
+        self.display.hw.setUvLedPwm(0)
         self.display.hw.uvLed(True)
-        uvCurrents = [100, 300, 600]
+        br = self.display.hw.mcBoardRevisionBin
+        if br[0] >= 6 and br[1] >= 2:
+            uvPwms = [40, 122, 243, 250]    # board rev 0.6c+
+        else:
+            uvPwms = [31, 94, 188, 219]     # board rev. < 0.6c
+        #endif
         diff = 0.4    # [mV] voltages in all rows cannot differ more than this limit
         row1 = list()
         row2 = list()
         row3 = list()
         for i in range(3):
-            self.display.hw.setUvLedCurrent(uvCurrents[i])
-            if self.display.hwConfig.MCBoardVersion < 6:    #for 05
-                sleep(10)    #wait to refresh all voltages
-            else:                                           #for 06+
-                sleep(5)    #wait to refresh all voltages
+            self.display.hw.setUvLedPwm(uvPwms[i])
+            if self.display.hw.mcFwRevision < 6:
+                sleep(10)   # wait to refresh all voltages (board rev. 0.5)
+            else:
+                sleep(5)    # wait to refresh all voltages (board rev. 0.6+)
             volts = self.display.hw.getVoltages()
-            del volts[-1]   #delete power supply voltage
+            del volts[-1]   # delete power supply voltage
             if max(volts) - min(volts) > diff:
                 self.display.pages['error'].setParams(
-                    text = _("""UV LED voltages differ too much!
-
-Please check if the UV LED panel is connected properly.
-
-Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : volts})
+                    text = _("UV LED voltages differ too much!\n\n"
+                        "Please check if the UV LED panel is connected properly.\n\n"
+                        "Data: %(pwm)d, %(value)s V") % { 'pwm' : uvPwms[i], 'value' : volts})
                 return "error"
             #endif
             row1.append(int(volts[0] * 1000))
@@ -6411,23 +6447,21 @@ Data: %(current)d mA, %(value)s V""") % { 'current' : uvCurrents[i], 'value' : v
 
         # UV LED temperature check
         pageWait.showItems(line1 = _("UV LED warmup check"))
-        self.display.hw.setUvLedCurrent(700)
+        self.display.hw.setUvLedPwm(uvPwms[3])
         for countdown in range(120, 0, -1):
             pageWait.showItems(line2 = _("Please wait %d s") % countdown)
             sleep(1)
             temp = self.display.hw.getUvLedTemperature()
             if temp > defines.maxUVTemp:
                 self.display.pages['error'].setParams(
-                    text = _("""UV LED too hot!
-
-Please check if the UV LED panel is attached to the heatsink.
-
-Temperature data: %s""") % temp)
+                    text = _("UV LED too hot!\n\n"
+                        "Please check if the UV LED panel is attached to the heatsink.\n\n"
+                        "Temperature data: %s") % temp)
                 return "error"
             #endif
         #endfor
         self.display.wizardData.update(wizardTempUvWarm = temp)
-        self.display.hw.setUvLedCurrent(self.display.hwConfig.uvCurrent)
+        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
         self.display.hw.powerLed("normal")
 
         return "displaytest"

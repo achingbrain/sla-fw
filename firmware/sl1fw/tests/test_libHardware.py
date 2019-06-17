@@ -44,12 +44,14 @@ class TestLibHardware(unittest.TestCase):
     def test_info_read(self):
         try:
             # Use this in Python3 only code:
-            self.assertRegex(self.hw.mcVersion, "SLA-control.*")
+            self.assertRegex(self.hw.mcFwVersion, "SLA-control.*")
         except AttributeError:
-            self.assertTrue(self.hw.mcVersion.startswith("SLA-control"))
+            self.assertTrue(self.hw.mcFwVersion.startswith("SLA-control"))
 
         self.assertEqual("CZPX0619X678XC12345", self.hw.mcSerialNo)
-        self.assertEqual("6 4", self.hw.mcRevision)
+        self.assertEqual(6, self.hw.mcFwRevision)
+        self.assertEqual((4, 0), self.hw.mcBoardRevisionBin)
+        self.assertEqual("4a", self.hw.mcBoardRevision)
 
     def test_motor_onoff(self):
         self.hw.motorsHold()
@@ -70,24 +72,24 @@ class TestLibHardware(unittest.TestCase):
         self.assertGreater(state[1], 5000)
 
         # Current settings
-        current = 640
-        self.hw.setUvLedCurrent(current)
-        self.assertEqual(current, self.hw.getUvLedCurrent())
+        pwm = 233
+        self.hw.setUvLedPwm(pwm)
+        self.assertEqual(pwm, self.hw.getUvLedPwm())
 
     # TODO: Fix test / functinoality
     # def test_dummy_switch(self):
     #     # Set current
-    #     current = 640
-    #     self.hw.setUvLedCurrent(current)
-    #     self.assertEqual(current, self.hw.getUvLedCurrent())
+    #     pwm = 640
+    #     self.hw.setUvLedPwm(pwm)
+    #     self.assertEqual(pwm, self.hw.getUvLedPwm())
     #
     #     # Switch to dummy and change current
     #     self.hw.switchToDummy()
-    #     self.hw.setUvLedCurrent(current + 10)
+    #     self.hw.setUvLedPwm(pwm + 10)
     #
     #     # Switch back adn see nothing changed
     #     self.hw.switchToMC(Mock(), Mock())
-    #     self.assertEqual(current, self.hw.getUvLedCurrent())
+    #     self.assertEqual(pwm, self.hw.getUvLedPwm())
 
     def test_erase(self):
         self.hw.eraseEeprom()
