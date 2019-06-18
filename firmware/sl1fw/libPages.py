@@ -824,9 +824,8 @@ class PagePrintPreview(PagePrintPreviewBase):
                 self.logger.debug("Zip file size: %d bytes" % filesize)
             except Exception:
                 self.logger.exception("filesize exception:")
-                return (_("""Can't read from the USB drive.
-
-Check it and try again."""), None, None)
+                return (_("Can't read from the USB drive.\n\n"
+                    "Check it and try again."), None, None)
             #endtry
 
             try:
@@ -840,11 +839,9 @@ Check it and try again."""), None, None)
                 #endif
             except Exception:
                 self.logger.exception("copyfile exception:")
-                confirm = _("""Loading the file into the printer's memory failed.
-
-The project will be printed from USB drive.
-
-DO NOT remove the USB drive!""")
+                confirm = _("Loading the file into the printer's memory failed.\n\n"
+                        "The project will be printed from USB drive.\n\n"
+                        "DO NOT remove the USB drive!")
                 newZipName = config.zipName
             #endtry
         #endif
@@ -855,15 +852,13 @@ DO NOT remove the USB drive!""")
             zf.close()
             if badfile is not None:
                 self.logger.error("Corrupted file: %s", badfile)
-                return (_("""Corrupted data detected.
-
-Re-export the file and try again."""), None, None)
+                return (_("Corrupted data detected.\n\n"
+                    "Re-export the file and try again."), None, None)
             #endif
         except Exception as e:
             self.logger.exception("zip read exception:")
-            return (_("""Can't read project data.
-
-Re-export the file and try again."""), None, None)
+            return (_("Can't read project data.\n\n"
+                "Re-export the file and try again."), None, None)
         #endtry
 
         return (None, confirm, newZipName)
@@ -878,10 +873,8 @@ Re-export the file and try again."""), None, None)
         for i in range(2):
             if temperatures[i] < 0:
                 self.display.pages['error'].setParams(
-                    backFce = self.backButtonRelease,
-                    text = _("""Can't read %s
-
-Please check if temperature sensors are connected correctly.""") % self.display.hw.getSensorName(i))
+                    text = _("Can't read %s\n\n"
+                        "Please check if temperature sensors are connected correctly.") % self.display.hw.getSensorName(i))
                 return "error"
             #endif
         #endfor
@@ -931,9 +924,7 @@ Please check if temperature sensors are connected correctly.""") % self.display.
         #endwhile
 
         if error:
-            self.display.pages['error'].setParams(
-                    backFce = self.backButtonRelease,
-                    text = error)
+            self.display.pages['error'].setParams(text = error)
             return "error"
         #endif
 
@@ -941,23 +932,15 @@ Please check if temperature sensors are connected correctly.""") % self.display.
 
         if self.display.hw.towerSyncFailed():
             self.display.pages['error'].setParams(
-                    backFce = self.backButtonRelease,
-                    text = _("""Tower homing failed!
-
-Check the printer's hardware.
-
-The print job was canceled."""))
+                    text = _("Tower homing failed!\n\n"
+                        "Check the printer's hardware."))
             return "error"
         #endif
 
         if self.display.hw.tiltSyncFailed():
             self.display.pages['error'].setParams(
-                    backFce = self.backButtonRelease,
-                    text = _("""Tilt homing failed!
-
-Check the printer's hardware.
-
-The print job was canceled."""))
+                    text = _("Tilt homing failed!\n\n"
+                        "Check the printer's hardware."))
             return "error"
         #endif
 
@@ -981,10 +964,8 @@ The print job was canceled."""))
                 #endif
             #endfor
             self.display.pages['error'].setParams(
-                    backFce = self.backButtonRelease,
-                    text = _("""Failed: %s
-
-Check if fans are connected properly and can rotate without resistance.""" % ", ".join(failedFans)))
+                    text = _("Failed: %s\n\n"
+                        "Check if fans are connected properly and can rotate without resistance." % ", ".join(failedFans)))
             return "error"
         #endif
 
@@ -1022,6 +1003,12 @@ Check if fans are connected properly and can rotate without resistance.""" % ", 
         self.ramdiskCleanup()
     #enddef
 
+
+    def _EXIT_(self):
+        self._BACK_()
+        return "_BACK_"
+    #enddef
+
 #endclass
 
 
@@ -1047,9 +1034,8 @@ class PagePrintStart(PagePrintPreviewBase):
                 })
         else:
             lines.update({
-                'text' : _("""Please fill the resin tank to the 100 % mark and close the cover.
-
-Resin will have to be added during this print job."""),
+                'text' : _("Please fill the resin tank to the 100 % mark and close the cover.\n\n"
+                    "Resin will have to be added during this print job."),
                 })
         self.items.update(lines)
         super(PagePrintStart, self).show()
@@ -1065,10 +1051,8 @@ Resin will have to be added during this print job."""),
 
         if not self.display.expo.loadProject():
             self.display.pages['error'].setParams(
-                    backFce = self.backButtonRelease,
-                    text = _("""Can't read data of your project.
-
-Regenerate it and try again."""))
+                    text = _("Can't read data of your project.\n\n"
+                        "Regenerate it and try again."))
             return "error"
         #endif
 
@@ -1082,19 +1066,15 @@ Regenerate it and try again."""))
             fail = True
 
             if not volume:
-                text = _("""Resin measuring failed!
-
-Is there the correct amount of resin in the tank?
-
-Is the tank secured with both screws?""")
+                text = _("Resin measuring failed!\n\n"
+                        "Is there the correct amount of resin in the tank?\n\n"
+                        "Is the tank secured with both screws?")
             elif volume < defines.resinMinVolume:
-                text = _("""Resin volume is too low!
-
-Add enough resin so it reaches at least the %d %% mark and try again.""") % self.display.hw.calcPercVolume(defines.resinMinVolume)
+                text = _("Resin volume is too low!\n\n"
+                        "Add enough resin so it reaches at least the %d %% mark and try again.") % self.display.hw.calcPercVolume(defines.resinMinVolume)
             elif volume > defines.resinMaxVolume:
-                text = _("""Resin volume is too high!
-
-Remove some resin from the tank and try again.""")
+                text = _("Resin volume is too high!\n\n"
+                        "Remove some resin from the tank and try again.")
             else:
                 fail = False
             #endif
@@ -1123,9 +1103,8 @@ Remove some resin from the tank and try again.""")
                         backFce = self.backButtonRelease,
                         continueFce = self.contButtonContinue1,
                         beep = True,
-                        text = _("""Your tank fill is approx %(measured)d %%
-
-For your project, %(requested)d %% is needed. A refill may be required during printing.""") \
+                        text = _("Your tank fill is approx %(measured)d %%\n\n"
+                            "For your project, %(requested)d %% is needed. A refill may be required during printing.") \
                         % { 'measured' : percMeas, 'requested' : self.percReq})
                 return "confirm"
             #endif
@@ -1152,9 +1131,22 @@ For your project, %(requested)d %% is needed. A refill may be required during pr
         self.pageWait.showItems(line3 = _("Moving platform down"))
         self.display.hw.setTowerProfile('moveFast')
         self.display.hw.towerToPosition(0.25)
-        while not self.display.hw.isTowerOnPosition():
+        while not self.display.hw.isTowerOnPosition(retries = 2):
             sleep(0.25)
         #endwhile
+        if self.display.hw.towerPositonFailed():
+            self.pageWait.showItems(line2 = _("There is a problem with platform position..."), line3 = _("Moving platform up"))
+            self.display.hw.setTowerProfile('moveFast')
+            self.display.hw.towerToTop()
+            while not self.display.hw.isTowerOnTop():
+                sleep(0.25)
+            #endwhile
+            self.display.pages['error'].setParams(
+                    text = _("The platform has failed to move to the desired position!\n\n"
+                        "Please clean any cured resin remains or other pieces that can block the move.\n\n"
+                        "If everything is clean, the printer needs service. Please contact tech support."))
+            return "error"
+        #endif
 
         if self.display.hwConfig.tilt:
             self.pageWait.showItems(line3 = _("Resin stirring"))
@@ -1162,6 +1154,11 @@ For your project, %(requested)d %% is needed. A refill may be required during pr
         #endif
 
         return "print"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
     #enddef
 
 #endclass
