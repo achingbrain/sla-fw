@@ -1234,23 +1234,36 @@ class Hardware(object):
     #enddef
 
 
-    def isTowerOnPosition(self):
+    def isTowerOnPosition(self, retries = None):
+        ''' check dest. position, retries = None is infinity '''
+        self._towerPositionRetries = retries
         if self.isTowerMoving():
             return False
         #endif
         while self._towerToPosition != self.getTowerPositionMicroSteps():
-            self.logger.warning("Tower is not on required position! Sync forced.")
-            self.mcc.debug.showItems(towerFailed = self._lastTowerProfile)
-            profileBackup = self._lastTowerProfile
-            self.towerSyncWait()
-            self.setTowerProfile(profileBackup)
-            self.towerMoveAbsolute(self._towerToPosition)
-            while self.isTowerMoving():
-                sleep(0.1)
-            #endwhile
+            if self._towerPositionRetries is None or self._towerPositionRetries:
+                if self._towerPositionRetries:
+                    self._towerPositionRetries -= 1
+                #endif
+                self.logger.warning("Tower is not on required position! Sync forced.")
+                self.mcc.debug.showItems(towerFailed = self._lastTowerProfile)
+                profileBackup = self._lastTowerProfile
+                self.towerSyncWait()
+                self.setTowerProfile(profileBackup)
+                self.towerMoveAbsolute(self._towerToPosition)
+                while self.isTowerMoving():
+                    sleep(0.1)
+                #endwhile
+            else:
+                self.logger.error("Tower position max tries reached!")
+                break
         #endwhile
-
         return True
+    #enddef
+
+
+    def towerPositonFailed(self):
+        return self._towerPositionRetries == 0
     #enddef
 
 
