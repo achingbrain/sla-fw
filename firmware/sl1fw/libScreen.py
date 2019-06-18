@@ -3,7 +3,6 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
-import sys
 import signal
 import logging
 from time import time
@@ -23,15 +22,13 @@ from sl1fw import defines
 
 class ScreenServer(multiprocessing.Process):
 
-    def __init__(self, commands, results, pixelSize, fbdev, fbset):
+    def __init__(self, commands, results, pixelSize):
         super(ScreenServer, self).__init__()
         self.logger = logging.getLogger(__name__)
         self.commands = commands
         self.results = results
         self.pixelSize = pixelSize
         self.stoprequest = multiprocessing.Event()
-        self.fbdev = fbdev
-        self.fbset = fbset
     #enddef
 
 
@@ -52,8 +49,8 @@ class ScreenServer(multiprocessing.Process):
         signal.signal(signal.SIGTERM, self.signalHandler)
         os.environ['SDL_NOMOUSE'] = '1'
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
-        if self.fbset:
-            subprocess.call(['/usr/sbin/fbset', '-fb', '/dev/fb0', '1440x2560-0'])
+        if defines.doFBSet:
+            subprocess.call(['/usr/sbin/fbset', '-fb', defines.fbFile, '1440x2560-0'])
         #endif
         pygame.init()
         self.screen = pygame.display.set_mode((1440,2560), pygame.FULLSCREEN, 32)
@@ -108,7 +105,7 @@ class ScreenServer(multiprocessing.Process):
 
 
     def _writefb(self):
-        with open(self.fbdev, 'wb') as fb:
+        with open(defines.fbFile, 'wb') as fb:
             fb.write(self.screen.get_buffer())
         #endwith
     #enddef
@@ -350,11 +347,11 @@ class ScreenServer(multiprocessing.Process):
 
 class Screen(object):
 
-    def __init__(self, hwConfig, fbdev="/dev/fb0", fbset=True):
+    def __init__(self, hwConfig):
         self.logger = logging.getLogger(__name__)
         self.commands = multiprocessing.Queue()
         self.results = multiprocessing.Queue()
-        self.server = ScreenServer(self.commands, self.results, hwConfig.pixelSize, fbdev, fbset)
+        self.server = ScreenServer(self.commands, self.results, hwConfig.pixelSize)
         self.server.start()
     #enddef
 

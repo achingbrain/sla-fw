@@ -53,6 +53,10 @@ wifiSetupFile = "/etc/hostapd.secrets.json"
 octoprintURI = ":8000"
 octoprintAuthFile = os.path.join(configDir, "slicer-upload-api.key")
 
+fbFile = "/dev/fb0"
+doFBSet = True
+truePoweroff = True
+
 resinMinVolume = 68.5
 resinMaxVolume = 200.0
 resinLowWarn = 60

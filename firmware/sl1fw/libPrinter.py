@@ -9,10 +9,10 @@ import toml
 
 from sl1fw import defines
 
+
 class Printer(object):
 
-    def __init__(self):
-
+    def __init__(self, debugDisplay=None):
         startTime = time()
 
         self.logger = logging.getLogger(__name__)
