@@ -12,7 +12,7 @@ from sl1fw import defines
 
 
 class TestExposure(unittest.TestCase):
-    PROJECT = os.path.join(os.path.dirname(__file__), "samples/empty-sample.sl1")
+    PROJECT = os.path.join(os.path.dirname(__file__), "samples/numbers.sl1")
 
     def setUp(self):
         defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")

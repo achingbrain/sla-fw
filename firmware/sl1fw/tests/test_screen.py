@@ -16,7 +16,7 @@ from sl1fw import libConfig
 
 
 class TestScreen(unittest.TestCase):
-    PROJECT = os.path.join(os.path.dirname(__file__), "samples/empty-sample.sl1")
+    PROJECT = os.path.join(os.path.dirname(__file__), "samples/numbers.sl1")
     FBDEV = "test.fbdev"
 
     def setUp(self):
@@ -74,7 +74,7 @@ class TestScreen(unittest.TestCase):
             lw = w
         #endfor
 
-        file = "empty-sample00000.png"
+        file = "numbers00000.png"
 
         self.screen.openZip(filename = TestScreen.PROJECT)
         self.screen.createMasks(perPartes = self.hwConfig.perPartes)
