@@ -1,3 +1,7 @@
+# part of SL1 firmware
+# 2014-2018 Futur3d - www.futur3d.net
+# 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+
 import pydbus
 import json
 from time import sleep
@@ -5,8 +9,7 @@ from glob import glob
 from os import path
 
 from sl1fw import defines
-from sl1fw.libPages import page, Page
-from sl1fw.libPages import PageWait
+from sl1fw.libPages import page, Page, PageWait
 
 
 @page

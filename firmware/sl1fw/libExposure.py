@@ -10,8 +10,7 @@ from datetime import datetime
 from time import sleep
 
 from sl1fw import defines
-
-from sl1fw import libPages
+from sl1fw.libPages import PageWait
 
 class ExposureThread(threading.Thread):
 
@@ -186,12 +185,12 @@ class ExposureThread(threading.Thread):
         self.expo.hw.powerLed("warn")
         if actualPosition is None:
             self.logger.warn("Wrong position from MC")
-            pageWait = libPages.PageWait(self.expo.display, line2 = _("Can't get tower position."))
+            pageWait = PageWait(self.expo.display, line2 = _("Can't get tower position."))
             pageWait.show()
             self.expo.hw.beepAlarm(3)
             sleep(5)
         else:
-            pageWait = libPages.PageWait(self.expo.display, line2 = _("Going to the top position"))
+            pageWait = PageWait(self.expo.display, line2 = _("Going to the top position"))
             pageWait.show()
             self.expo.hw.setTowerProfile('moveFast')
             self.expo.hw.towerToTop()
@@ -273,7 +272,7 @@ If you don't want to continue, press the Back button on top of the screen and th
         #endif
 
         self.expo.hw.powerLed("warn")
-        pageWait = libPages.PageWait(self.expo.display, line2 = _("Setting start positions..."))
+        pageWait = PageWait(self.expo.display, line2 = _("Setting start positions..."))
         pageWait.show()
 
         if not self.expo.hw.tiltSyncWait(retries = 1):
@@ -361,7 +360,7 @@ If you don't want to refill, please press the Back button on top of the screen."
                     self.doWait(beep)
 
                     if self.expo.hwConfig.tilt:
-                        pageWait = libPages.PageWait(self.expo.display, line2 = _("Stirring the resin"))
+                        pageWait = PageWait(self.expo.display, line2 = _("Stirring the resin"))
                         pageWait.show()
                         self.expo.hw.setTiltProfile('moveFast')
                         self.expo.hw.tiltDownWait()
@@ -469,7 +468,7 @@ If you don't want to refill, please press the Back button on top of the screen."
             self.expo.hw.beepRepeat(3)
 
             if not stuck:
-                pageWait = libPages.PageWait(self.expo.display, line1 = _("Moving platform to the top"))
+                pageWait = PageWait(self.expo.display, line1 = _("Moving platform to the top"))
                 pageWait.show()
 
                 self.expo.hw.setTowerProfile('moveFast')

@@ -1,11 +1,14 @@
+# part of SL1 firmware
+# 2014-2018 Futur3d - www.futur3d.net
+# 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+
 import os
 import logging
 from time import sleep
 import glob
 
 from sl1fw import defines
-from sl1fw.libPages import Page, page
-from sl1fw.libPages import PageWait
+from sl1fw.libPages import page, Page, PageWait
 
 
 class SourceDir:
@@ -281,9 +284,8 @@ class PageSrcSelect(Page):
         if config.zipError is not None:
             sleep(0.5)
             self.display.pages['error'].setParams(
-                    text = _("""Your project has a problem: %s
-
-Re-export it and try again.""") % config.zipError)
+                    text = _("Your project has a problem: %s\n\n"
+                        "Re-export it and try again.") % config.zipError)
             return "error"
         #endif
 

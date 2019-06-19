@@ -1,6 +1,6 @@
 TEMPLATE = sl1fw.pot
 
-SOURCES = ../*.py
+SOURCES = $(wildcard ../*.py ../pages/*.py)
 
 IN = $(wildcard */LC_MESSAGES/*.po)
 
