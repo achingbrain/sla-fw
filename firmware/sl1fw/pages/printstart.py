@@ -214,7 +214,7 @@ class PagePrintPreview(PagePrintPreviewBase):
             sleep(sleepTime)
         #endif
 
-        fansState = self.display.hw.getFansError()
+        fansState = self.display.hw.getFansError().values()
         if any(fansState):
             failedFans = []
             for num, state in enumerate(fansState):

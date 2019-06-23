@@ -191,30 +191,26 @@ class TestLibHardware(unittest.TestCase):
     def test_fans(self):
         self.assertFalse(self.hw.checkState('fans'))
 
-        self.assertEqual([False, False, False], self.hw.getFans())
+        self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFans())
         self.hw.startFans()
-        self.assertEqual([True, True, True], self.hw.getFans())
+        self.assertEqual({ 0:True, 1:True, 2:True }, self.hw.getFans())
 
-        fans = [True, False, True]
+        fans = { 0:True, 1:False, 2:True }
         self.hw.setFans(fans)
         self.assertEqual(fans, self.hw.getFans())
 
         self.hw.stopFans()
-        self.assertEqual([False, False, False], self.hw.getFans())
-        self.assertEqual((False, False, False), self.hw.getFansError())
+        self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFans())
+        self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
 
         # Check mask
-        self.assertEqual([False, False, False], self.hw.getFanCheckMask())
+        self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFanCheckMask())
 
-        mask = [True, True, True]
-        self.hw.setFanCheckMask(mask)
-        self.assertEqual(mask, self.hw.getFanCheckMask())
-
-        # PWMs
-        self.assertEqual([60, 100, 40], self.hw.getFansPwm())
-        pwms = [80, 20, 60]
-        self.hw.setFansPwm(pwms)
-        self.assertEqual(pwms, self.hw.getFansPwm())
+        # RPMs
+        # FIXME RPMs are not simulated
+        #rpms = { 0:1000, 1:500, 2:800 }
+        #self.hw.setFansRpm(rpms)
+        #self.assertEqual(rpms, self.hw.getFansRpm())
 
         # RPMs
         rpms = self.hw.getFansRpm()

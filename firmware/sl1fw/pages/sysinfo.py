@@ -42,7 +42,7 @@ class PageSysInfo(Page):
     def updateData(self):
         items = {}
         if self.skip > 10:
-            self._setItem(items, self.oldValues, 'fans', {'fan%d_rpm' % i: v for i, v in enumerate(self.display.hw.getFansRpm())})
+            self._setItem(items, self.oldValues, 'fans', {'fan%d_rpm' % i: v for i, v in self.display.hw.getFansRpm().items()})
             self._setItem(items, self.oldValues, 'temps', {'temp%d_celsius' % i: v for i, v in enumerate(self.display.hw.getMcTemperatures())})
             self._setItem(items, self.oldValues, 'cpu_temp', self.display.hw.getCpuTemperature())
             self._setItem(items, self.oldValues, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getVoltages())})

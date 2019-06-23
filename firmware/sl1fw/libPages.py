@@ -334,9 +334,9 @@ class Page(object):
 
     def saveDefaultsFile(self):
         defaults = {
-            'fan1pwm': self.display.hwConfig.fan1Pwm,
-            'fan2pwm': self.display.hwConfig.fan2Pwm,
-            'fan3pwm': self.display.hwConfig.fan3Pwm,
+            'fan1rpm': self.display.hwConfig.fan1Rpm,
+            'fan2rpm': self.display.hwConfig.fan2Rpm,
+            'fan3rpm': self.display.hwConfig.fan3Rpm,
             'uvpwm': self.display.hwConfig.uvPwm,
         }
 
@@ -359,11 +359,16 @@ class Page(object):
     #enddef
 
 
-    def _value(self, temp, changed, index, val, valmin, valmax, change, strFce = str):
+    def _value(self, temp, changed, index, val, valmin, valmax, change, strFce = str, minLimit = None):
         if valmin <= temp[val] + change <= valmax:
             temp[val] += change
             changed[val] = str(temp[val])
-            self.showItems(**{ 'value2g%d' % (index + 1) : strFce(temp[val]) })
+            if minLimit is not None and temp[val] < minLimit:
+                show = "OFF"
+            else:
+                show = strFce(temp[val])
+            #enddef
+            self.showItems(**{ 'value2g%d' % (index + 1) : show })
         else:
             self.display.hw.beepAlarm(1)
         #endif
@@ -604,7 +609,7 @@ class Page(object):
             return
         #endif
 
-        fansState = self.display.hw.getFansError()
+        fansState = self.display.hw.getFansError().values()
         if any(fansState):
             failedFans = []
             for num, state in enumerate(fansState):
