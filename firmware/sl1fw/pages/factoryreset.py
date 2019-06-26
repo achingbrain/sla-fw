@@ -2,8 +2,10 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
+import os
 from time import sleep
 import toml
+import pydbus
 
 from sl1fw import defines
 from sl1fw import libConfig
