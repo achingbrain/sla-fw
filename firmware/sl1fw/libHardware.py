@@ -517,9 +517,7 @@ class Hardware(object):
         if errorMessage:
             self.logger.warning("motion controller error: %s", errorMessage)
 
-            waitPage.fill(
-                    line1 = _("Updating motion controller firmware."),
-                    line2 = _("Please wait..."))
+            waitPage.fill(line1 = _("Updating motion controller firmware"))
             waitPage.show()
 
             if not self.mcc.flash(self.hwConfig.MCBoardVersion):
@@ -532,7 +530,7 @@ class Hardware(object):
                 self.ahojBabi(waitPage, errorMessage)
             #endif
 
-            waitPage.showItems(line1 = _("Erasing EEPROM."))
+            waitPage.showItems(line1 = _("Erasing EEPROM"))
             self.eraseEeprom()
 
             returnPage.show()
@@ -565,9 +563,7 @@ class Hardware(object):
 
 
     def flashMC(self, waitPage, returnPage):
-        waitPage.fill(
-                line1 = _("Forced update of the motion controller firmware."),
-                line2 = _("Please wait..."))
+        waitPage.fill(line1 = _("Forced update of the motion controller firmware"))
         waitPage.show()
         self.mcc.flash(self.hwConfig.MCBoardVersion)
         self.connectMC(waitPage, returnPage)
@@ -1603,7 +1599,7 @@ class Hardware(object):
         #endif
 
         # unstuck
-        self.logger.warning("Tilt unstucking...")
+        self.logger.warning("Tilt unstucking")
         self.setTiltProfile("layerRelease")
         count = 0
         step = 128

@@ -111,7 +111,7 @@ class PagePrint(Page):
             if remain < defines.resinFeedWait:
                 self.display.pages['feedme'].manual = False
                 expo.doFeedMe()
-                pageWait = PageWait(self.display, line1 = _("Wait until layer finish..."))
+                pageWait = PageWait(self.display, line1 = _("Wait until layer finish"))
                 pageWait.show()
             #endif
             if remain < defines.resinLowWarn:
@@ -162,7 +162,7 @@ class PagePrint(Page):
     def doFeedme(self):
         self.display.pages['feedme'].manual = True
         self.display.expo.doFeedMeByButton()
-        self.display.setWaitPage(line1 = _("Wait until layer finish..."))
+        self.display.setWaitPage(line1 = _("Wait until layer finish"))
         return "_SELF_"
     #enddef
 
@@ -178,7 +178,7 @@ class PagePrint(Page):
 
     def doUpAndDown(self):
         self.display.expo.doUpAndDown()
-        self.display.setWaitPage(line1 = _("Up and down will be executed after layer finish."))
+        self.display.setWaitPage(line1 = _("Up and down will be executed after layer finish"))
         return "_SELF_"
     #enddef
 

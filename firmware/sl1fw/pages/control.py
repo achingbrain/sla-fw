@@ -24,7 +24,7 @@ class PageControl(Page):
 
     def topButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = _("Moving platform to the top"))
+        pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
         pageWait.show()
         retc = self._syncTower(pageWait)
         self.display.hw.motorsHold()
@@ -35,7 +35,7 @@ class PageControl(Page):
 
     def tankresButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line2 = _("Tank reset"))
+        pageWait = PageWait(self.display, line1 = _("Tank reset"))
         pageWait.show()
         # assume tilt is up (there may be error from print)
         self.display.hw.setTiltPosition(self.display.hw._tiltEnd)

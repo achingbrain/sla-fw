@@ -8,6 +8,7 @@ import threading, queue
 import shutil
 from datetime import datetime
 from time import sleep
+from gettext import ngettext
 
 from sl1fw import defines
 from sl1fw.libPages import PageWait
@@ -185,26 +186,29 @@ class ExposureThread(threading.Thread):
         self.expo.hw.powerLed("warn")
         if actualPosition is None:
             self.logger.warn("Wrong position from MC")
-            pageWait = PageWait(self.expo.display, line2 = _("Can't get tower position."))
+            pageWait = PageWait(self.expo.display, line1 = _("Can't get tower position"))
             pageWait.show()
             self.expo.hw.beepAlarm(3)
             sleep(5)
         else:
-            pageWait = PageWait(self.expo.display, line2 = _("Going to the top position"))
+            pageWait = PageWait(self.expo.display, line1 = _("Going to the top position"))
             pageWait.show()
             self.expo.hw.setTowerProfile('moveFast')
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
-                pageWait.showItems(line3 = self.expo.hw.getTowerPosition())
+                pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
             #endwhile
-            pageWait.showItems(line3 = "")
+            pageWait.showItems(line2 = "")
 
             for sec in range(self.expo.hwConfig.upAndDownWait):
-                pageWait.showItems(line2 = _("Waiting... (%d)") % (self.expo.hwConfig.upAndDownWait - sec))
+                cnt = self.expo.hwConfig.upAndDownWait - sec
+                pageWait.showItems(line1 = ngettext("Printing will continue in %d second" % cnt,
+                    "Printing will continue in %d seconds" % cnt, cnt), line2 = "")
                 sleep(1)
                 if self.expo.hwConfig.coverCheck and not self.expo.hw.isCoverClosed():
-                    pageWait.showItems(line2 = _("Waiting... (cover is open)"))
+                    pageWait.showItems(line1 = _("Paused"),
+                        line2 = _("Close the cover to continue"))
                     while not self.expo.hw.isCoverClosed():
                         sleep(1)
                     #endwhile
@@ -212,14 +216,14 @@ class ExposureThread(threading.Thread):
             #endfor
 
             if self.expo.hwConfig.tilt:
-                pageWait.showItems(line2 = _("Stirring the resin"), line3 = "")
+                pageWait.showItems(line1 = _("Stirring the resin"), line2 = "")
                 self.expo.hw.stirResin()
             #endif
-            pageWait.showItems(line2 = _("Going back"), line3 = "")
+            pageWait.showItems(line1 = _("Going back"), line2 = "")
             self.expo.hw.towerMoveAbsolute(actualPosition)
             while not self.expo.hw.isTowerOnPosition():
                 sleep(0.25)
-                pageWait.showItems(line3 = self.expo.hw.getTowerPosition())
+                pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
             #endwhile
         #endif
         self.expo.hw.powerLed("normal")
@@ -272,7 +276,7 @@ If you don't want to continue, press the Back button on top of the screen and th
         #endif
 
         self.expo.hw.powerLed("warn")
-        pageWait = PageWait(self.expo.display, line2 = _("Setting start positions..."))
+        pageWait = PageWait(self.expo.display, line1 = _("Setting start positions"))
         pageWait.show()
 
         if not self.expo.hw.tiltSyncWait(retries = 1):
@@ -288,7 +292,7 @@ The print job was canceled."""))
             return False
         #endif
 
-        pageWait.showItems(line2 = _("Stirring the resin"))
+        pageWait.showItems(line1 = _("Stirring the resin"))
         self.expo.hw.stirResin()
         self.expo.hw.powerLed("normal")
         self.expo.display.forcePage("print")
@@ -360,7 +364,7 @@ If you don't want to refill, please press the Back button on top of the screen."
                     self.doWait(beep)
 
                     if self.expo.hwConfig.tilt:
-                        pageWait = PageWait(self.expo.display, line2 = _("Stirring the resin"))
+                        pageWait = PageWait(self.expo.display, line1 = _("Stirring the resin"))
                         pageWait.show()
                         self.expo.hw.setTiltProfile('moveFast')
                         self.expo.hw.tiltDownWait()

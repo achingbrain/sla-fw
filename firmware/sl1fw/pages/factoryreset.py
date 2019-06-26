@@ -91,8 +91,7 @@ class PageFactoryReset(Page):
         # disable factory mode
         self.writeToFactory(self._disableFactory)
 
-        pageWait = PageWait(self.display, line1 = _("Please wait..."),
-                line2 = _("Printer is being set to packing positions"))
+        pageWait = PageWait(self.display, line1 = _("Printer is being set to packing positions"))
         pageWait.show()
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait(3)
@@ -122,8 +121,7 @@ class PageFactoryReset(Page):
 
 
     def factoryResetStep2(self):
-        pageWait = PageWait(self.display, line1 = _("Please wait..."),
-                line2 = _("Printer is being set to packing positions"))
+        pageWait = PageWait(self.display, line1 = _("Printer is being set to packing positions"))
         pageWait.show()
 
         # slightly press the foam against printers base

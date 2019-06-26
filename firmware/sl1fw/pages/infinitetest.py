@@ -42,7 +42,7 @@ class PageInfiniteTest(Page):
 
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
-            line1 = _("Infinite test..."),
+            line1 = _("Infinite test"),
             line2 = _("Tower cycles: %d") % towerCounter,
             line3 = _("Tilt cycles: %d") % tiltCounter)
         pageWait.show()

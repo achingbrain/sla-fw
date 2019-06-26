@@ -185,7 +185,7 @@ class PageUvMeter(PageUvMeterShow):
             return "error"
         #endif
 
-        pageWait.showItems(line2 = _("Reading data..."))
+        pageWait.showItems(line2 = _("Reading data"))
         if not self.uvmeter.read():
             self.display.pages['error'].setParams(text = _("Cannot read data from the UV LED meter."
                 "\n\nCheck the connection and try again."))

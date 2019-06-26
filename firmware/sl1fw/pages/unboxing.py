@@ -40,10 +40,7 @@ class PageUnboxing1(Page):
                 sleep(0.5)
             #endwhile
         #endif
-        pageWait.showItems(
-            line1 = _("The printer is moving to allow for easier manipulation"),
-            line2 = _("Please wait...")
-        )
+        pageWait.showItems(line1 = _("The printer is moving to allow for easier manipulation"), line2 = "")
         self.display.hw.setTowerPosition(0)
         self.display.hw.setTowerProfile("homingFast")
         self.display.hw.towerMoveAbsolute(self.display.hwConfig.calcMicroSteps(30))
@@ -93,9 +90,7 @@ class PageUnboxing2(Page):
 
     def contButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display,
-            line1 = _("The printer is moving to allow for easier manipulation"),
-            line2 = _("Please wait..."))
+        pageWait = PageWait(self.display, line1 = _("The printer is moving to allow for easier manipulation"))
         pageWait.show()
         self.display.hw.towerSyncWait()
         self.display.hw.powerLed("normal")

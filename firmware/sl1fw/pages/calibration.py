@@ -31,9 +31,7 @@ class PageCalibration1(Page):
 
     def prepare(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display,
-            line1 = _("Printer homing"),
-            line2 = _("Please wait..."))
+        pageWait = PageWait(self.display, line1 = _("Printer homing"))
         pageWait.show()
 
         self.display.hw.towerSync()
@@ -120,9 +118,7 @@ class PageCalibration3(Page):
 
 
     def contButtonRelease(self):
-        pageWait = PageWait(self.display,
-            line1 = _("Setting start position."),
-            line2 = _("Please wait..."))
+        pageWait = PageWait(self.display, line1 = _("Setting start position"))
         pageWait.show()
 
         self.display.hw.powerLed("warn")
@@ -499,7 +495,7 @@ class PageCalibration10(Page):
 
     def contButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Measuring tilt times..."), line2 = _("Please wait..."))
+        pageWait = PageWait(self.display, line1 = _("Measuring tilt times"))
         pageWait.show()
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait()
@@ -542,7 +538,7 @@ class PageCalibration10(Page):
         tiltTime = 0
         total = self.display.hwConfig.measuringMoves
         for i in range(total):
-            pageWait.showItems(line3 = (_("Slow move %(count)d/%(total)d") if slowMove else _("Fast move %(count)d/%(total)d")) % { 'count' : i+1, 'total' : total })
+            pageWait.showItems(line2 = (_("Slow move %(count)d/%(total)d") if slowMove else _("Fast move %(count)d/%(total)d")) % { 'count' : i+1, 'total' : total })
             tiltStartTime = time()
             self.display.hw.tiltLayerUpWait()
             self.display.hw.tiltLayerDownWait(slowMove)

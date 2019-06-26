@@ -584,7 +584,7 @@ class Page(object):
                 self.display.hw.uvLed(False)
             #enddef
             self.display.hw.powerLed("error")
-            pageWait = PageWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down..."))
+            pageWait = PageWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down"))
             pageWait.show()
             self.display.hw.beepAlarm(3)
             while(temp > defines.maxUVTemp - 10): # hystereze
@@ -655,7 +655,7 @@ class Page(object):
             self.logger.warning("Printer is shuting down due to overheat! Measured %.1f °C on A64.", A64temperature)
             self.display.pages['error'].setParams(
                 text = _("Printers temperature is too high. Measured: %.1f °C!\n\n"
-                    "Shutting down in 10 seconds...") % A64temperature)
+                    "Shutting down in 10 seconds") % A64temperature)
             self.display.pages['error'].show()
             for i in range(10):
                 self.display.hw.beepAlarm(3)
@@ -721,7 +721,7 @@ class PageWait(Page):
     def __init__(self, display, **kwargs):
         super(PageWait, self).__init__(display)
         self.pageUI = "wait"
-        self.pageTitle = N_("Wait")
+        self.pageTitle = N_("Please wait")
         self.items.update(kwargs)
     #enddef
 
