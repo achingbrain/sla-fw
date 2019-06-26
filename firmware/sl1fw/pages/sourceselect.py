@@ -277,7 +277,7 @@ class PageSrcSelect(Page):
 
 
     def loadProject(self, project_filename):
-        pageWait = PageWait(self.display, line1 = _("Reading project data..."))
+        pageWait = PageWait(self.display, line1 = _("Reading project data"))
         pageWait.show()
         config = self.display.config
         config.parseFile(project_filename)

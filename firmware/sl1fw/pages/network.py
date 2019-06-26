@@ -104,7 +104,7 @@ class PageNetwork(Page):
 
 
     def setclient(self, ssid, psk):
-        pageWait = PageWait(self.display, line1 = _("Setting interface params..."))
+        pageWait = PageWait(self.display, line1 = _("Setting interface parameters"))
         pageWait.show()
 
         try:
@@ -117,8 +117,8 @@ class PageNetwork(Page):
             self.logger.error("Setting wifi client params failed: ssid:%s psk:%s", ssid, psk)
         #endtry
 
-        # Connecting...
-        pageWait.showItems(line1 = _("Connecting..."))
+        # Connecting
+        pageWait.showItems(line1 = _("Connecting"))
         for i in range(1, 10):
             sleep(1)
             if 'wlan0' in self.display.inet.getDevices():
@@ -135,7 +135,7 @@ class PageNetwork(Page):
 
 
     def setap(self, ssid, psk):
-        pageWait = PageWait(self.display, line1 = _("Setting interface params..."))
+        pageWait = PageWait(self.display, line1 = _("Setting interface parameters"))
         pageWait.show()
 
         try:
@@ -148,8 +148,8 @@ class PageNetwork(Page):
             self.logger.error("Setting wifi AP params failed: ssid:%s psk:%s", ssid, psk)
         #endtry
 
-        # Starting AP...
-        pageWait.showItems(line1 = _("Starting AP..."))
+        # Starting AP
+        pageWait.showItems(line1 = _("Starting Access Point"))
         for i in range(1, 10):
             sleep(1)
             if 'ap0' in self.display.inet.getDevices():

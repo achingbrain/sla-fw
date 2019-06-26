@@ -5,6 +5,7 @@
 
 import re
 from time import sleep
+from gettext import ngettext
 
 from sl1fw import defines
 from sl1fw import libConfig
@@ -54,9 +55,7 @@ class PageWizard1(Page):
         homeStatus = 0
 
         #tilt home check
-        pageWait = PageWait(self.display,
-            line1 = _("Tilt home check"),
-            line2 = _("Please wait..."))
+        pageWait = PageWait(self.display, line1 = _("Tilt home check"))
         pageWait.show()
         for i in range(3):
             self.display.hw.mcc.do("!tiho")
@@ -214,9 +213,7 @@ class PageWizard3(Page):
 
     def contButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display,
-            line1 = _("Tower axis check"),
-            line2 = _("Please wait..."))
+        pageWait = PageWait(self.display, line1 = _("Tower axis check"))
         pageWait.show()
         self.display.hw.setTowerProfile("homingFast")
         self.display.hw.towerMoveAbsolute(0)
@@ -246,7 +243,7 @@ class PageWizard3(Page):
         #endif
 
         # fan check
-        pageWait.showItems(line1 = _("Fans check (fans are stopped)"))
+        pageWait.showItems(line1 = _("Fans check"), line2 = _("(fans are stopped)"))
         self.display.hw.stopFans()
         sleep(defines.fanStartStopTime)  # wait for fans to stop
         rpm = self.display.hw.getFansRpm()
@@ -257,7 +254,7 @@ class PageWizard3(Page):
                     "RPM data: %s") % rpm)
             return "error"
         #endif
-        pageWait.showItems(line1 = _("Fans check (fans are running)"))
+        pageWait.showItems(line2 = _("(fans are running)"))
         # TODO rafactoring needed -> fans object(s)
                         #fan1        fan2        fan3
         fanLimits = [[50,300], [1100, 1700], [150, 500]]
@@ -271,7 +268,9 @@ class PageWizard3(Page):
             rpm[0].append(tmp[0])   #UV
             rpm[1].append(tmp[1])   #blower
             rpm[2].append(tmp[2])   #rear
-            pageWait.showItems(line1 = _("Fans check (fans are running). Remaining %d s") % (defines.fanMeasCycles - i))
+            cnt = defines.fanMeasCycles - i
+            pageWait.showItems(line3 = ngettext("Remaining %d second" % cnt,
+                    "Remaining %d seconds" % cnt, cnt))
             sleep(1)
         #endfor
 
@@ -375,9 +374,7 @@ class PageWizard4(Page):
         self.ensureCoverIsClosed()
 
         # UV LED voltage comparation
-        pageWait = PageWait(self.display,
-            line1 = _("UV LED check"),
-            line2 = _("Please wait..."))
+        pageWait = PageWait(self.display, line1 = _("UV LED check"))
         pageWait.show()
         self.display.hw.setUvLedPwm(0)
         self.display.hw.uvLed(True)
@@ -419,7 +416,8 @@ class PageWizard4(Page):
         pageWait.showItems(line1 = _("UV LED warmup check"))
         self.display.hw.setUvLedPwm(uvPwms[3])
         for countdown in range(120, 0, -1):
-            pageWait.showItems(line2 = _("Please wait %d s") % countdown)
+            pageWait.showItems(line2 = ngettext("Remaining %d second" % countdown,
+                    "Remaining %d seconds" % countdown, countdown))
             sleep(1)
             temp = self.display.hw.getUvLedTemperature()
             if temp > defines.maxUVTemp:
@@ -478,8 +476,7 @@ class PageWizard5(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Resin sensor check"),
-            line2 = _("Please wait..."),
-            line3 = _("DO NOT touch the printer"))
+            line2 = _("DO NOT touch the printer"))
         pageWait.show()
         self.display.hw.towerSyncWait()
         self.display.hw.setTowerPosition(self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight))

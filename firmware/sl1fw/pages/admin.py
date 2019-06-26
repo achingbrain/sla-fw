@@ -188,7 +188,7 @@ class PageAdmin(Page):
         self.display.hw.setTiltProfile('layerMoveSlow')
         self.display.hw.tiltUpWait()
 
-        pageWait.showItems(line2 = _("Measuring..."), line3 = _("Do NOT TOUCH the printer"))
+        pageWait.showItems(line1 = _("Measuring"), line2 = _("Do NOT TOUCH the printer"))
         volume = self.display.hw.getResinVolume()
         self.display.hw.powerLed("normal")
         if not volume:
