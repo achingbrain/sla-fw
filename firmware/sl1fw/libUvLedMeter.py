@@ -92,7 +92,7 @@ class UvLedMeter(object):
                 return False
             #endif
 
-            data = list(map(lambda x: int(x), line[1:].split(',')))
+            data = list([int(x) for x in line[1:].split(',')])
         except Exception as e:
             self.logger.exception("Invalid response:")
             return False
