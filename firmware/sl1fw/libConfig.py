@@ -137,7 +137,7 @@ class FileConfig(object):
             if val is None:
                 self._data[lowerkey] = None
             elif isinstance(val, list):
-                self._data[lowerkey] = " ".join([str(x) for x in val])
+                self._data[lowerkey] = " ".join(map(lambda x: str(x), val))
             else:
                 self._data[lowerkey] = str(val)
             #endif
@@ -252,7 +252,7 @@ class FileConfig(object):
 
     def _parseIntList(self, key, count = None, default = list()):
         try:
-            ret = list([int(x) for x in self._data.get(key, "").split()])
+            ret = list(map(lambda x: int(x), self._data.get(key, "").split()))
             if count and len(ret) != count:
                 return default
             #endif
@@ -291,7 +291,7 @@ class FileConfig(object):
 
     def _parseFloatList(self, key, count = 0, default = list()):
         try:
-            ret = list([float(x) for x in self._data.get(key, "").split()])
+            ret = list(map(lambda x: float(x), self._data.get(key, "").split()))
             if count and len(ret) != count:
                 return default
             #endif

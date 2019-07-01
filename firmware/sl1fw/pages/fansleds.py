@@ -134,7 +134,7 @@ class PageFansLeds(Page):
 
     def _update_config(self):
         # filter only wanted items
-        filtered = { k : v for k, v in [t for t in list(self.changed.items()) if t[0] in self.valuesToSave] }
+        filtered = { k : v for k, v in filter(lambda t: t[0] in self.valuesToSave, self.changed.items()) }
         self.display.hwConfig.update(**filtered)
     #enddef
 

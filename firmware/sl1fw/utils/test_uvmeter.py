@@ -17,10 +17,10 @@ if uvmeter.connect():
     logging.info("Arithmetic mean: %.1f", data['uvMean'])
     logging.info("Standard deviation: %.1f", data['uvStdDev'])
     logging.info("Teperature: %.1f", data['uvTemperature'])
-    logging.info("Values: %s", ", ".join([str(x) for x in data['uvSensorData']]))
+    logging.info("Values: %s", ", ".join(map(lambda x: str(x), data['uvSensorData'])))
     logging.info("MinValue: %d", data['uvMinValue'])
     logging.info("MaxValue: %d", data['uvMaxValue'])
-    logging.info("Differences: %s", ", ".join([str(x) + " %" for x in data['uvPercDiff']]))
+    logging.info("Differences: %s", ", ".join(map(lambda x: str(x) + " %", data['uvPercDiff'])))
 
     uvmeter.savePic(800, 400, "Test 128", "test.png")
 
