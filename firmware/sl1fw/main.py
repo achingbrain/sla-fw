@@ -8,7 +8,14 @@ import os
 import logging
 from systemd.journal import JournalHandler
 import gettext
-import builtins
+
+try:
+    # Python2
+    import __builtin__ as builtins
+except:
+    # Python 3
+    import builtins as builtins
+#endtry
 
 import sl1fw
 from sl1fw import libPrinter

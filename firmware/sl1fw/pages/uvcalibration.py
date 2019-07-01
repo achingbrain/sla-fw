@@ -5,7 +5,13 @@
 
 import os
 from time import sleep
-from time import monotonic
+# Python 2/3 imports
+try:
+    from time import monotonic
+except ImportError:
+    # TODO: Remove once we accept Python 3
+    from monotonic import monotonic
+#endtry
 
 from sl1fw import defines
 from sl1fw.libPages import page, Page, PageWait

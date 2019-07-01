@@ -26,7 +26,12 @@ class MCPortSim(object):
         :return: None
         """
         self.process.terminate()
-        self.process.wait(timeout=3)
+        try:
+            self.process.wait(timeout=3)
+        except TypeError:
+            # Python 2 code:
+            self.process.wait()
+
         self.reader_thread.join()
 
     def write(self, data):

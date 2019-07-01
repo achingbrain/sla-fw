@@ -5,12 +5,18 @@
 import os, sys
 import logging
 from time import sleep
-from time import monotonic
+# Python 2/3 imports
+try:
+    from time import monotonic
+except ImportError:
+    # TODO: Remove once we accept Python 3
+    from monotonic import monotonic
+#endtry
 
 from sl1fw import defines
 from sl1fw import libPages
 from sl1fw.libConfig import WizardData
-from sl1fw.pages import * # pylint: disable=unused-import
+from sl1fw.pages import *
 
 
 class Display(object):

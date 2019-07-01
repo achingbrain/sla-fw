@@ -1,4 +1,9 @@
-import builtins
+try:
+    # Python2
+    import __builtin__ as builtins
+except:
+    # Python 3
+    import builtins as builtins
 
 
 def _identity(message):
