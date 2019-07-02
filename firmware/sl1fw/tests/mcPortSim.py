@@ -10,8 +10,7 @@ class MCPortSim(object):
         self.logger = logging.getLogger(__name__)
 
         # Run MC simulator process
-        self.process = Popen([os.path.join(os.path.dirname(__file__), "samples/SLA-control-01.elf")],
-                             stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
         # Start thread for reading lines from process output
         # It is necessary as inWaiting call should be able to tell how many items are pending
