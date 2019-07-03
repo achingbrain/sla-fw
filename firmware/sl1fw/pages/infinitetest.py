@@ -94,7 +94,7 @@ class PageInfiniteTest(Page):
                     if tiltMayMove:
                         tiltCounter += 1
                         pageWait.showItems(line3 = _("Tilt cycles: %d") % tiltCounter)
-                        self.display.hw.setTiltProfile('moveFast')
+                        self.display.hw.setTiltProfile('homingFast')
                         self.display.hw.tiltSyncWait()
                     #endif
                 #endif

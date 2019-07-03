@@ -17,7 +17,7 @@ class PageCalibration1(Page):
     def __init__(self, display):
         super(PageCalibration1, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 1/10")
+        self.pageTitle = N_("Calibration step 1/11")
     #enddef
 
 
@@ -68,7 +68,7 @@ class PageCalibration2(Page):
     def __init__(self, display):
         super(PageCalibration2, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 2/10")
+        self.pageTitle = N_("Calibration step 2/11")
     #enddef
 
 
@@ -105,7 +105,7 @@ class PageCalibration3(Page):
     def __init__(self, display):
         super(PageCalibration3, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 3/10")
+        self.pageTitle = N_("Calibration step 3/11")
     #enddef
 
 
@@ -122,6 +122,7 @@ class PageCalibration3(Page):
         pageWait.show()
 
         self.display.hw.powerLed("warn")
+        self.display.hw.setTiltProfile('homingFast')
         self.display.hw.tiltMoveAbsolute(self.display.hw._tiltCalibStart)
         while self.display.hw.isTiltMoving():
             sleep(0.25)
@@ -150,7 +151,7 @@ class PageCalibration4(Page):
     def __init__(self, display):
         super(PageCalibration4, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 4/10")
+        self.pageTitle = N_("Calibration step 4/11")
     #enddef
 
 
@@ -186,7 +187,7 @@ class PageCalibration5(MovePage):
     def __init__(self, display):
         super(PageCalibration5, self).__init__(display)
         self.pageUI = "tiltmovecalibration"
-        self.pageTitle = N_("Calibration step 5/10")
+        self.pageTitle = N_("Calibration step 5/11")
         self.autorepeat = { "upslow" : (3, 1), "downslow" : (3, 1) }
     #enddef
 
@@ -262,7 +263,7 @@ class PageCalibration6(Page):
     def __init__(self, display):
         super(PageCalibration6, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 6/10")
+        self.pageTitle = N_("Calibration step 6/11")
     #enddef
 
 
@@ -299,7 +300,7 @@ class PageCalibration7(Page):
     def __init__(self, display):
         super(PageCalibration7, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 7/10")
+        self.pageTitle = N_("Calibration step 7/11")
     #enddef
 
 
@@ -340,7 +341,7 @@ class PageCalibration8(Page):
     def __init__(self, display):
         super(PageCalibration8, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 8/10")
+        self.pageTitle = N_("Calibration step 8/11")
     #enddef
 
 
@@ -354,12 +355,24 @@ class PageCalibration8(Page):
 
 
     def contButtonRelease(self):
+        self.display.pages['confirm'].setParams(
+            continueFce = self.continuePlatformCalib,
+            backFce = self.backButtonRelease,
+            pageTitle = N_("Calibration step 9/11"),
+            imageName = "12_close_cover.jpg",
+            text = _("Please close the orange lid."))
+        return "confirm"
+    #enddef
+
+
+    def continuePlatformCalib(self):
+        self.ensureCoverIsClosed()
+
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
-            line1 = _("Platform calibration"),
-            line2 = _("Keep it as horizontal as possible!"))
+            line1 = _("Platform calibration"))
         pageWait.show()
-        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.setTiltProfile('homingFast')
         self.display.hw.setTiltCurrent(defines.tiltCalibCurrent)
         self.display.hw.setTowerPosition(0)
         self.display.hw.setTowerProfile('homingFast')
@@ -443,7 +456,7 @@ class PageCalibration9(Page):
     def __init__(self, display):
         super(PageCalibration9, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 9/10")
+        self.pageTitle = N_("Calibration step 10/11")
     #enddef
 
 
@@ -480,7 +493,7 @@ class PageCalibration10(Page):
     def __init__(self, display):
         super(PageCalibration10, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Calibration step 10/10")
+        self.pageTitle = N_("Calibration step 11/11")
     #enddef
 
 
@@ -504,8 +517,8 @@ class PageCalibration10(Page):
         #endwhile
         tiltSlowTime = self.getTiltTime(pageWait, True)
         tiltFastTime = self.getTiltTime(pageWait, False)
-        self.display.hw.setTowerProfile('moveFast')
-        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.setTowerProfile('homingFast')
+        self.display.hw.setTiltProfile('homingFast')
         self.display.hw.tiltUpWait()
         self.display.hw.motorsHold()
         self.display.hwConfig.update(

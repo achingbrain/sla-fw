@@ -494,7 +494,7 @@ class Hardware(object):
 
         self._tiltMin = -12840        # whole turn
         self._tiltMax = 12840
-        self._tiltEnd = 5800    #top deadlock
+        self._tiltEnd = 6000    #top deadlock
         self._tiltCalibStart = 4300 
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
@@ -1391,7 +1391,7 @@ class Hardware(object):
     # 70 % - 100 % : 0.9 mm = 12.5 ml
 
     def getResinVolume(self):
-        self.setTowerProfile('moveFast')
+        self.setTowerProfile('homingFast')
         self.towerMoveAbsoluteWait(self._towerResinStartPos) # move quickly to safe distance
         self.resinSensor(True)
         sleep(1)
@@ -1717,7 +1717,7 @@ class Hardware(object):
 
     def stirResin(self):
         for i in range(self.hwConfig.stirringMoves):
-            self.setTiltProfile('moveFast')
+            self.setTiltProfile('homingFast')
             # do not verify end positions
             self.tiltUp()
             while self.isTiltMoving():

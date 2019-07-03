@@ -6,6 +6,7 @@
 import re
 from time import sleep
 from gettext import ngettext
+import pygame
 
 from sl1fw import defines
 from sl1fw import libConfig
@@ -19,7 +20,7 @@ class PageWizard1(Page):
     def __init__(self, display):
         super(PageWizard1, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Setup wizard step 1/5")
+        self.pageTitle = N_("Setup wizard step 1/10")
     #enddef
 
 
@@ -144,7 +145,7 @@ class PageWizard1(Page):
 
 
     def backButtonRelease(self):
-        return "wizardconfirm"
+        return "wizardskip"
     #enddef
 
 
@@ -163,7 +164,7 @@ class PageWizard2(Page):
     def __init__(self, display):
         super(PageWizard2, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Setup wizard step 2/5")
+        self.pageTitle = N_("Setup wizard step 2/10")
     #enddef
 
 
@@ -181,7 +182,7 @@ class PageWizard2(Page):
 
 
     def backButtonRelease(self):
-        return "wizardconfirm"
+        return "wizardskip"
     #enddef
 
 
@@ -199,7 +200,7 @@ class PageWizard3(Page):
     def __init__(self, display):
         super(PageWizard3, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Setup wizard step 3/5")
+        self.pageTitle = N_("Setup wizard step 3/10")
     #enddef
 
 
@@ -212,6 +213,18 @@ class PageWizard3(Page):
 
 
     def contButtonRelease(self):
+        self.display.pages['confirm'].setParams(
+            continueFce = self.continueTowerCheck,
+            backFce = self.backButtonRelease,
+            pageTitle = N_("Setup wizard step 4/10"),
+            imageName = "12_close_cover.jpg",
+            text = _("Please close the orange lid."))
+        return "confirm"
+    #enddef
+
+    def continueTowerCheck(self):
+        self.ensureCoverIsClosed()
+
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Tower axis check"))
         pageWait.show()
@@ -356,7 +369,7 @@ class PageWizard3(Page):
 
 
     def backButtonRelease(self):
-        return "wizardconfirm"
+        return "wizardskip"
     #enddef
 
 
@@ -374,20 +387,30 @@ class PageWizard4(Page):
     def __init__(self, display):
         super(PageWizard4, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Setup wizard step 4/5")
+        self.pageTitle = N_("Setup wizard step 5/10")
     #enddef
 
 
     def show(self):
         self.items.update({
-            'imageName' : "12_close_cover.jpg",
-            'text' : _("Please close the orange lid.\n\n"
-                "Make sure the tank is empty and clean.")})
+            'imageName' : "19_remove_tank.jpg",
+            'text' : _("Please unscrew and remove the resin tank.")})
         super(PageWizard4, self).show()
     #enddef
 
 
     def contButtonRelease(self):
+        self.display.pages['confirm'].setParams(
+            continueFce = self.continueUvCheck,
+            backFce = self.backButtonRelease,
+            pageTitle = N_("Setup wizard step 6/10"),
+            imageName = "18_close_cover_no_tank.jpg",
+            text = _("Please close the orange lid."))
+        return "confirm"
+    #enddef
+
+
+    def continueUvCheck(self):
         self.ensureCoverIsClosed()
 
         # UV LED voltage comparation
@@ -454,7 +477,7 @@ class PageWizard4(Page):
 
 
     def backButtonRelease(self):
-        return "wizardconfirm"
+        return "wizardskip"
     #enddef
 
 
@@ -477,19 +500,32 @@ class PageWizard5(Page):
     def __init__(self, display):
         super(PageWizard5, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Setup wizard step 5/5")
+        self.pageTitle = N_("Setup wizard step 7/10")
     #enddef
 
 
     def show(self):
         self.items.update({
             'imageName' : "11_insert_platform_60deg.jpg",
-            'text' : _("Leave the resin tank secured with screws and insert the platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
+            'text' : _("Screw the resin tank back in and insert the platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
         super(PageWizard5, self).show()
     #enddef
 
 
     def contButtonRelease(self):
+        self.display.pages['confirm'].setParams(
+            continueFce = self.continueResinCheck,
+            backFce = self.backButtonRelease,
+            pageTitle = N_("Setup wizard step 8/10"),
+            imageName = "12_close_cover.jpg",
+            text = _("Please close the orange lid."))
+        return "confirm"
+    #enddef
+
+
+    def continueResinCheck(self):
+        self.ensureCoverIsClosed()
+
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display,
             line1 = _("Resin sensor check"),
@@ -498,10 +534,11 @@ class PageWizard5(Page):
         self.display.hw.towerSyncWait()
         self.display.hw.setTowerPosition(self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight))
         volume = self.display.hw.getResinVolume()
-        if not 110.0 <= volume <= defines.resinMaxVolume:    #to work properly even with loosen rocker brearing
+        self.logger.debug("resin volume: %s", volume)
+        if not defines.resinWizardMinVolume <= volume <= defines.resinWizardMaxVolume:    #to work properly even with loosen rocker brearing
             self.display.pages['error'].setParams(
                 text = _("Resin sensor not working!\n\n"
-                    "Please check if the sensor is connected properly.\n\n"
+                    "Please check if the sensor is connected properly and tank is screwed down by both bolts.\n\n"
                     "Measured %d ml.") % volume)
             return "error"
         #endif
@@ -530,12 +567,52 @@ class PageWizard5(Page):
             #endif
         #endif
 
+        self.allOff()
         return "wizard6"
     #enddef
 
 
     def backButtonRelease(self):
-        return "wizardconfirm"
+        return "wizardskip"
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+@page
+class PageWizard6(Page):
+    Name = "wizard6"
+
+    def __init__(self, display):
+        super(PageWizard6, self).__init__(display)
+        self.pageUI = "yesno"
+        self.pageTitle = N_("Setup wizard step 9/10")
+    #enddef
+
+
+    def show(self):
+        self.items.update({
+            'text' : _("Do you want to setup a timezone?")})
+        super(PageWizard6, self).show()
+    #enddef
+
+
+    def yesButtonRelease(self):
+        return "settimezone"
+    #endif
+
+
+    def noButtonRelease(self):
+        return "wizard7"
+    #enddef
+
+
+    def _BACK_(self):
+        return "wizard7"
     #enddef
 
 
@@ -547,11 +624,60 @@ class PageWizard5(Page):
 
 
 @page
-class PageWizard6(Page):
-    Name = "wizard6"
+class PageWizard7(Page):
+    Name = "wizard7"
 
     def __init__(self, display):
-        super(PageWizard6, self).__init__(display)
+        super(PageWizard7, self).__init__(display)
+        self.pageUI = "yesno"
+        self.pageTitle = N_("Setup wizard step 10/10")
+    #enddef
+
+
+    def show(self):
+        pygame.mixer.quit()
+        pygame.mixer.init(44100, -16, 2, 2048)
+        pygame.mixer.music.load(defines.multimediaRootPath + "/chromag_-_the_prophecy.xm")
+        pygame.mixer.music.play(-1)
+        self.items.update({
+            'text' : _("Can you hear the music?")})
+        super(PageWizard7, self).show()
+    #enddef
+
+
+    def yesButtonRelease(self):
+        self.quitMixer()
+        return "wizard8"
+    #endif
+
+
+    def noButtonRelease(self):
+        self.quitMixer()
+        self.display.pages['error'].setParams(
+            text = _("Speaker not working.\nPlease check propper connection and wiring of the speaker."))
+        return "error"
+    #enddef
+
+
+    def quitMixer(self):
+        pygame.mixer.music.stop()
+        pygame.mixer.quit()
+    #enddef
+
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+@page
+class PageWizard8(Page):
+    Name = "wizard8"
+
+    def __init__(self, display):
+        super(PageWizard8, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Setup wizard done")
     #enddef
@@ -561,7 +687,7 @@ class PageWizard6(Page):
         self.items.update({
             'text' : _("Selftest OK.\n\n"
                 "Continue to calibration?")})
-        super(PageWizard6, self).show()
+        super(PageWizard8, self).show()
     #enddef
 
 
@@ -583,11 +709,11 @@ class PageWizard6(Page):
 
 
 @page
-class PageWizardConfirm(Page):
-    Name = "wizardconfirm"
+class PageWizardSkip(Page):
+    Name = "wizardskip"
 
     def __init__(self, display):
-        super(PageWizardConfirm, self).__init__(display)
+        super(PageWizardSkip, self).__init__(display)
         self.pageUI = "yesno"
         self.pageTitle = N_("Skip wizard?")
         self.checkPowerbutton = False
@@ -598,7 +724,7 @@ class PageWizardConfirm(Page):
         self.items.update({
             'text' : _("Do you really want to skip the wizard?\n\n"
                 "The machine may not work correctly without finishing this check.")})
-        super(PageWizardConfirm, self).show()
+        super(PageWizardSkip, self).show()
     #enddef
 
 

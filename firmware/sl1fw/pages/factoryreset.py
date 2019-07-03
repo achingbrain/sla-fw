@@ -100,12 +100,12 @@ class PageFactoryReset(Page):
         #endwhile
 
         # move tilt and tower to packing position
-        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.setTiltProfile('homingFast')
         self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
         while self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
-        self.display.hw.setTowerProfile('moveFast')
+        self.display.hw.setTowerProfile('homingFast')
         self.display.hw.towerMoveAbsolute(
             self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(74))
         while self.display.hw.isTowerMoving():

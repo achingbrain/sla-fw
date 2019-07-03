@@ -203,7 +203,7 @@ class PagePrintPreview(PagePrintPreviewBase):
             return "error"
         #endif
 
-        self.display.hw.setTiltProfile('moveFast')
+        self.display.hw.setTiltProfile('homingFast')
         self.display.hw.tiltUpWait()
         pageWait.showItems(line2 = _("Start positions OK"))
 
@@ -340,7 +340,7 @@ class PagePrintStart(PagePrintPreviewBase):
 
             if fail:
                 self.pageWait.showItems(line1 = _("There is a problem with resin volume"), line2 = _("Moving platform up"))
-                self.display.hw.setTowerProfile('moveFast')
+                self.display.hw.setTowerProfile('homingFast')
                 self.display.hw.towerToTop()
                 while not self.display.hw.isTowerOnTop():
                     sleep(0.25)
@@ -388,14 +388,14 @@ class PagePrintStart(PagePrintPreviewBase):
         #endif
 
         self.pageWait.showItems(line3 = _("Moving platform down"))
-        self.display.hw.setTowerProfile('moveFast')
+        self.display.hw.setTowerProfile('homingFast')
         self.display.hw.towerToPosition(0.25)
         while not self.display.hw.isTowerOnPosition(retries = 2):
             sleep(0.25)
         #endwhile
         if self.display.hw.towerPositonFailed():
             self.pageWait.showItems(line2 = _("There is a problem with platform position"), line3 = _("Moving platform up"))
-            self.display.hw.setTowerProfile('moveFast')
+            self.display.hw.setTowerProfile('homingFast')
             self.display.hw.towerToTop()
             while not self.display.hw.isTowerOnTop():
                 sleep(0.25)

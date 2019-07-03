@@ -193,7 +193,7 @@ class ExposureThread(threading.Thread):
         else:
             pageWait = PageWait(self.expo.display, line1 = _("Going to the top position"))
             pageWait.show()
-            self.expo.hw.setTowerProfile('moveFast')
+            self.expo.hw.setTowerProfile('homingFast')
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
@@ -366,7 +366,7 @@ If you don't want to refill, please press the Back button on top of the screen."
                     if self.expo.hwConfig.tilt:
                         pageWait = PageWait(self.expo.display, line1 = _("Stirring the resin"))
                         pageWait.show()
-                        self.expo.hw.setTiltProfile('moveFast')
+                        self.expo.hw.setTiltProfile('homingFast')
                         self.expo.hw.tiltDownWait()
                         self.expo.hw.stirResin()
                     #endif
@@ -475,7 +475,7 @@ If you don't want to refill, please press the Back button on top of the screen."
                 pageWait = PageWait(self.expo.display, line1 = _("Moving platform to the top"))
                 pageWait.show()
 
-                self.expo.hw.setTowerProfile('moveFast')
+                self.expo.hw.setTowerProfile('homingFast')
                 self.expo.hw.towerToTop()
                 while not self.expo.hw.isTowerOnTop():
                     sleep(0.25)

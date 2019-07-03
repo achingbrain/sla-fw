@@ -52,7 +52,6 @@ class PageDisplayTest(Page):
         return "error"
     #enddef
 
-
     def _EXIT_(self):
         return "_EXIT_"
     #enddef
