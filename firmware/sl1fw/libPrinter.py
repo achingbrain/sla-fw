@@ -6,6 +6,9 @@ import os
 import logging
 from time import time, sleep
 import toml
+from pydbus import SystemBus
+from gi.repository import GLib
+import threading
 
 from sl1fw import defines
 
@@ -63,6 +66,10 @@ class Printer(object):
         self.inet.startNetMonitor(self.display.assignNetActive)
 
         self.logger.info("Start time: %f secs", time() - startTime)
+
+        self.eventLoop = GLib.MainLoop()
+        self.eventThread = threading.Thread(target=self.loopThread)
+        self.eventThread.start()
     #endclass
 
 
@@ -77,6 +84,7 @@ class Printer(object):
         self.display.exit()
         self.inet.exit()
         self.hw.exit()
+        self.eventLoop.quit()
     #enddef
 
 
@@ -146,6 +154,12 @@ class Printer(object):
             self.display.shutDown(True)
         #endtry
 
+    #enddef
+
+    def loopThread(self):
+        self.logger.debug("Starting printer event loop")
+        self.eventLoop.run()
+        self.logger.debug("Printer event loop exited")
     #enddef
 
 #endclass
