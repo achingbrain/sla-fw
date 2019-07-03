@@ -4,25 +4,52 @@ stages:
   - build
   - test
 
+before_script:
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+  - cat ~/.ssh/known_hosts
+
 build:
   stage: build
+
   script:
     - cd firmware
     - python2 setup.py build
     - python3 setup.py build
 
+mcsim:
+  stage: build
+
+  script:
+    - git clone --single-branch --branch simulator_tester --depth 1 git@gitlab.com:prusa3d/sl1/mc-fw.git
+    - SIMULATION=1 make -C mc-fw/SLA-control-01 -j5
+    - mv mc-fw/SLA-control-01/SLA-control-01.elf ./
+
+  artifacts:
+    paths:
+      - SLA-control-01.elf
+
 test:
   stage: test
+
+  dependencies:
+    - mcsim
+
   script:
+    - export PATH="${PATH}:$(pwd)"
     - cd firmware
     - python2 -m unittest discover sl1fw.tests
     - python3 -m unittest discover sl1fw.tests
 
 pylint:
   stage: test
+
+  dependencies: []
+
   script:
     - cd firmware
     - python3 -m pylint --version
     - python3 -m pylint sl1fw --jobs 0 --errors-only --additional-builtins=_,N_ --extension-pkg-whitelist=pygame
+
   allow_failure: true
 
