@@ -2,6 +2,7 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
+from sl1fw import defines
 from sl1fw.libPages import page, Page
 
 
@@ -30,9 +31,9 @@ class PageFansLeds(Page):
                 'label1g5' : _("UV LED"),
                 'label1g7' : _("Trigger"),
 
-                'label2g1' : _("UV LED fan PWM"),
-                'label2g2' : _("Blower fan PWM"),
-                'label2g3' : _("Rear fan PWM"),
+                'label2g1' : _("UV LED fan RPM"),
+                'label2g2' : _("Blower fan RPM"),
+                'label2g3' : _("Rear fan RPM"),
                 'label2g5' : _("UV LED PWM"),
                 'label2g6' : _("UV calib. temperature"),
                 'label2g7' : _("UV calib. intensity"),
@@ -43,7 +44,7 @@ class PageFansLeds(Page):
                 'back' : _("Back"),
                 })
         self.updateDataPeriod = 0.5
-        self.valuesToSave = list(('fan1pwm', 'fan2pwm', 'fan3pwm', 'uvpwm', 'uvcalibtemp', 'uvcalibintensity'))
+        self.valuesToSave = list(('fan1rpm', 'fan2rpm', 'fan3rpm', 'uvpwm', 'uvcalibtemp', 'uvcalibintensity'))
         self.checkCooling = True
     #enddef
 
@@ -57,13 +58,21 @@ class PageFansLeds(Page):
         self.items['value2g6'] = self.temp['uvcalibtemp']
         self.items['value2g7'] = self.temp['uvcalibintensity']
 
+        self.temp['fan1rpm'] = self.display.hwConfig.fan1Rpm
+        self.temp['fan2rpm'] = self.display.hwConfig.fan2Rpm
+        self.temp['fan3rpm'] = self.display.hwConfig.fan3Rpm
+        self.items['value2g1'] = str(self.temp['fan1rpm'])
+        self.items['value2g2'] = str(self.temp['fan2rpm'])
+        self.items['value2g3'] = str(self.temp['fan3rpm']) if self.temp['fan3rpm'] >= defines.fanMinRPM else "OFF"
+
         super(PageFansLeds, self).show()
     #enddef
 
 
     def updateData(self):
         items = {}
-        self.temp['fs1'], self.temp['fs2'], self.temp['fs3'] = self.display.hw.getFans()
+        fans = self.display.hw.getFans()
+        self.temp['fs1'], self.temp['fs2'], self.temp['fs3'] = fans[0], fans[1], fans[2]
         self.temp['uls'] = self.display.hw.getUvLedState()[0]
         self.temp['cls'] = self.display.hw.getCameraLedState()
         self._setItem(items, self.oldValues, 'state1g1', self.temp['fs1'])
@@ -72,11 +81,7 @@ class PageFansLeds(Page):
         self._setItem(items, self.oldValues, 'state1g5', self.temp['uls'])
         self._setItem(items, self.oldValues, 'state1g7', self.temp['cls'])
 
-        self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm'] = self.display.hw.getFansPwm()
         self.temp['uvpwm'] = self.display.hw.getUvLedPwm()
-        self._setItem(items, self.oldValues, 'value2g1', self.temp['fan1pwm'])
-        self._setItem(items, self.oldValues, 'value2g2', self.temp['fan2pwm'])
-        self._setItem(items, self.oldValues, 'value2g3', self.temp['fan3pwm'])
         self._setItem(items, self.oldValues, 'value2g5', self.temp['uvpwm'])
 
         if len(items):
@@ -118,9 +123,9 @@ class PageFansLeds(Page):
         self.display.hwConfig.update(
             uvCurrent = None,   # remove old value too
             uvPwm = None,
-            fan1Pwm = None,
-            fan2Pwm = None,
-            fan3Pwm = None,
+            fan1Rpm = None,
+            fan2Rpm = None,
+            fan3Rpm = None,
         )
         self._reset_hw_values()
         if not self.display.hwConfig.writeFile():
@@ -153,10 +158,11 @@ class PageFansLeds(Page):
 
 
     def _reset_hw_values(self):
-        self.display.hw.setFansPwm(
-            (self.display.hwConfig.fan1Pwm,
-             self.display.hwConfig.fan2Pwm,
-             self.display.hwConfig.fan3Pwm))
+        self.display.hw.setFansRpm({
+            0 : self.display.hwConfig.fan1Rpm,
+            1 : self.display.hwConfig.fan2Rpm,
+            2 : self.display.hwConfig.fan3Rpm,
+            })
         self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
     #enddef
 
@@ -170,22 +176,25 @@ class PageFansLeds(Page):
 
     def state1g1ButtonRelease(self):
         self._onOff(self.temp, self.changed, 0, 'fs1')
-        self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
-        self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
+        self.display.hw.setFans({ 0 : self.temp['fs1'] })
+        self.display.fanErrorOverride = False
+        self.oldValues['state1g1'] = self.temp['fs1']
     #enddef
 
 
     def state1g2ButtonRelease(self):
         self._onOff(self.temp, self.changed, 1, 'fs2')
-        self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
-        self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
+        self.display.hw.setFans({ 1: self.temp['fs2'] })
+        self.display.fanErrorOverride = False
+        self.oldValues['state1g2'] = self.temp['fs2']
     #enddef
 
 
     def state1g3ButtonRelease(self):
         self._onOff(self.temp, self.changed, 2, 'fs3')
-        self.display.hw.setFans((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
-        self.display.hw.setFanCheckMask((self.temp['fs1'], self.temp['fs2'], self.temp['fs3']))
+        self.display.hw.setFans({ 2 : self.temp['fs3'] })
+        self.display.fanErrorOverride = False
+        self.oldValues['state1g3'] = self.temp['fs3']
     #enddef
 
 
@@ -207,38 +216,38 @@ class PageFansLeds(Page):
 
 
     def minus2g1Button(self):
-        self._value(self.temp, self.changed, 0, 'fan1pwm', 0, 100, -5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
+        self._value(self.temp, self.changed, 0, 'fan1rpm', 500, 3000, -100)
+        self.display.hw.setFansRpm({ 0 : self.temp['fan1rpm'] })
     #enddef
 
 
     def plus2g1Button(self):
-        self._value(self.temp, self.changed, 0, 'fan1pwm', 0, 100, 5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
+        self._value(self.temp, self.changed, 0, 'fan1rpm', 500, 3000, 100)
+        self.display.hw.setFansRpm({ 0 : self.temp['fan1rpm'] })
     #enddef
 
 
     def minus2g2Button(self):
-        self._value(self.temp, self.changed, 1, 'fan2pwm', 0, 100, -5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
+        self._value(self.temp, self.changed, 1, 'fan2rpm', 500, 4200, -100)
+        self.display.hw.setFansRpm({ 1: self.temp['fan2rpm'] })
     #enddef
 
 
     def plus2g2Button(self):
-        self._value(self.temp, self.changed, 1, 'fan2pwm', 0, 100, 5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
+        self._value(self.temp, self.changed, 1, 'fan2rpm', 500, 4200, 100)
+        self.display.hw.setFansRpm({ 1: self.temp['fan2rpm'] })
     #enddef
 
 
     def minus2g3Button(self):
-        self._value(self.temp, self.changed, 2, 'fan3pwm', 0, 100, -5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
+        self._value(self.temp, self.changed, 2, 'fan3rpm', 400, 5000, -100, minLimit = defines.fanMinRPM)
+        self.display.hw.setFansRpm({ 2 : self.temp['fan3rpm'] })
     #enddef
 
 
     def plus2g3Button(self):
-        self._value(self.temp, self.changed, 2, 'fan3pwm', 0, 100, 5)
-        self.display.hw.setFansPwm((self.temp['fan1pwm'], self.temp['fan2pwm'], self.temp['fan3pwm']))
+        self._value(self.temp, self.changed, 2, 'fan3rpm', 400, 5000, 100, minLimit = defines.fanMinRPM)
+        self.display.hw.setFansRpm({ 2 : self.temp['fan3rpm'] })
     #enddef
 
 

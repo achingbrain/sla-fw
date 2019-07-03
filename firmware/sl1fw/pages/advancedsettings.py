@@ -2,22 +2,25 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-from sl1fw.libPages import page, Page
+from sl1fw import defines
 from sl1fw import libConfig
+from sl1fw.libPages import page, Page
 
 
-def item_updater(str_func = None):
+def item_updater(str_func = None, minLimit = None):
     def new_decorator(func):
         def new_func(self, value):
             func(self, value)
 
-            key = func.__name__
-            if str_func:
+            if minLimit is not None and value < minLimit:
+                value = "OFF"
+            elif str_func:
                 value = str_func(getattr(self, func.__name__))
             else:
                 value = getattr(self, func.__name__)
             #endif
 
+            key = func.__name__
             self.showItems(**{key: value})
         #enddef
         return new_func
@@ -136,19 +139,16 @@ class PageAdvancedSettings(Page):
 
     @property
     def rear_fan_speed(self):
-        return self.configwrapper.fan3Pwm
+        return self.configwrapper.fan3Rpm
     #enddef
 
     @rear_fan_speed.setter
-    @value_saturate(0, 100)
-    @item_updater()
+    @value_saturate(400, 5000)
+    @item_updater(minLimit = defines.fanMinRPM)
     def rear_fan_speed(self, value):
-        self.configwrapper.fan3Pwm = value
-        # TODO: This is wrong, it would be nice to have API to set just one fan
-        self.display.hw.setFansPwm((self.configwrapper.fan1Pwm,
-                                   self.configwrapper.fan2Pwm,
-                                   self.configwrapper.fan3Pwm))
-        self.display.hw.setFans((False, False, True))
+        self.configwrapper.fan3Rpm = value
+        self.display.hw.setFansRpm({ 2 : self.configwrapper.fan3Rpm })
+        self.display.hw.setFans({ 2 : True })
     #enddef
 
 
@@ -203,7 +203,7 @@ class PageAdvancedSettings(Page):
             'tower_sensitivity': self.tower_sensitivity,
             'fast_tilt_limit': self.fast_tilt_limit,
             'tower_offset': "%+.3f" % self.tower_offset,
-            'rear_fan_speed': self.rear_fan_speed,
+            'rear_fan_speed': self.rear_fan_speed if self.rear_fan_speed >= defines.fanMinRPM else "OFF",
             'auto_power_off': self.auto_power_off,
             'cover_check': self.cover_check,
             'resin_sensor': self.resin_sensor,
@@ -300,10 +300,10 @@ class PageAdvancedSettings(Page):
 
     # Rear fan speed
     def minus_rearfanspeedButton(self):
-        self.rear_fan_speed -= 1
+        self.rear_fan_speed -= 100
     #enddef
     def plus_rearfanspeedButton(self):
-        self.rear_fan_speed += 1
+        self.rear_fan_speed += 100
     #enddef
 
 
@@ -406,7 +406,7 @@ class PageAdvancedSettings(Page):
 
 
     def confirmChanges(self):
-        self.display.hw.stopFans()
+        self.display.hw.setFans({ 2 : False })
         if self.configwrapper.changed():
             self.display.pages['yesno'].setParams(
                     pageTitle = N_("Save changes?"),
@@ -425,10 +425,7 @@ class PageAdvancedSettings(Page):
                 #endif
             else:
                 # discard changes
-                # TODO: This is wrong, it would be nice to have API to set just one fan
-                self.display.hw.setFansPwm((self.display.hwConfig.fan1Pwm,
-                                            self.display.hwConfig.fan2Pwm,
-                                            self.display.hwConfig.fan3Pwm))
+                self.display.hw.setFansRpm({ 2 : self.display.hwConfig.fan3Rpm })
             #endif
         #endif
     #enddef

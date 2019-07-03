@@ -31,6 +31,8 @@ class MotConCom(object):
             '3' : "syntax error",
             '4' : "parameter out of range",
             '5' : "operation not permitted",
+            '6' : "null pointer",
+            '7' : "command not found",
             }
 
     _statusBits = {
@@ -471,9 +473,23 @@ class Hardware(object):
                 2 : _("rear fan"),
                 }
 
+        self._fansRpm = {
+                0 : 0,
+                1 : 0,
+                2 : 0,
+                }
+
+        self._fansEnabled = {
+                0 : False,
+                1 : False,
+                2 : False,
+                }
+
         self._sensorsNames = {
                 0 : _("UV LED temperature"),
                 1 : _("Ambient temperature"),
+                2 : _("<reserved1>"),
+                3 : _("<reserved2>"),
                 }
 
         self._tiltMin = -12840        # whole turn
@@ -535,7 +551,11 @@ class Hardware(object):
 
     def initDefaults(self):
         self.motorsRelease()
-        self.setFansPwm((self.hwConfig.fan1Pwm, self.hwConfig.fan2Pwm, self.hwConfig.fan3Pwm))
+        self.setFansRpm({
+            0 : self.hwConfig.fan1Rpm,
+            1 : self.hwConfig.fan2Rpm,
+            2 : self.hwConfig.fan3Rpm,
+            })
         self.setUvLedPwm(self.hwConfig.uvPwm)
         self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
         self.resinSensor(False)
@@ -976,47 +996,35 @@ class Hardware(object):
 
 
     def startFans(self):
-        self.setFans((True, True, True))
-        # user can change speed of rear fan to 0 so we don't want to check it
-        self.setFanCheckMask((True, True, False))
+        self.setFans({ 0 : True, 1 : True, 2 : True })
     #enddef
 
 
     def stopFans(self):
-        self.setFans((False, False, False))
-        self.setFanCheckMask((False, False, False))
+        self.setFans({ 0 : False, 1 : False, 2 : False })
     #enddef
 
 
-    def setFans(self, fans):
-        self.mcc.doSetBoolList("!fans", fans)
-    #enddef
-
-
-    def getFans(self):
-        fans = self.mcc.doGetBoolList(bitCount = 3, args = ("?fans",))
-        if fans and len(fans) == 3:
-            return fans
-        else:
-            self.logger.warning("Fans bits count not match! (%s)", str(fans))
-            return list((False, False, False))
+    def setFans(self, fans = None):
+        if fans:
+            self._fansEnabled.update(fans)
         #endif
+        out = list()
+        for key in sorted(self._fansEnabled):
+            out.append(self._fansEnabled[key] and self._fansRpm[key] >= defines.fanMinRPM)
+        #endfor
+        self.mcc.doSetBoolList("!fans", out)
+        self.mcc.doSetBoolList("!fmsk", out)
     #enddef
 
 
-    def setFanCheckMask(self, mask):
-        self.mcc.doSetBoolList("!fmsk", mask)
+    def getFans(self, request = (0, 1, 2)):
+        return self.getFansBits("?fans", request)
     #enddef
 
 
-    def getFanCheckMask(self):
-        fans = self.mcc.doGetBoolList(bitCount = 3, args = ("?fmsk",))
-        if fans and len(fans) == 3:
-            return fans
-        else:
-            self.logger.warning("Fans check bits count not match! (%s)", str(fans))
-            return list((False, False, False))
-        #endif
+    def getFanCheckMask(self, request = (0, 1, 2)):
+        return self.getFansBits("?fmsk", request)
     #enddef
 
 
@@ -1025,42 +1033,64 @@ class Hardware(object):
         if not state:
             self.logger.warning("State check of fans has failed")
         elif not state['fans']:
-            return (False, False, False)
+            return { 0: False, 1: False, 2: False }
         #endif
 
-        fans = self.mcc.doGetBoolList(bitCount = 3, args = ("?fane",))
-        if fans and len(fans) == 3:
-            return fans
-        else:
-            self.logger.warning("Fans error bits count not match! (%s)", str(fans))
-            return (True, True, True)
-        #endif
+        return self.getFansBits("?fane", (0, 1, 2))
     #enddef
 
 
-    def setFansPwm(self, pwms):
-        self.mcc.do("!fpwm", " ".join(map(lambda x: str(int(x / 5)), pwms)), 0) # FIXME remove 0 after done in MC
-    #enddef
-
-
-    def getFansPwm(self):
-        pwms = self.mcc.doGetIntList(multiply = 5, args = ("?fpwm",))
-        if pwms and len(pwms) == 4:  # FIXME 3 after done in MC
-            return pwms[0:3]
+    def getFansBits(self, command, request):
+        bits = self.mcc.doGetBoolList(bitCount = 3, args = (command,))
+        if not bits or len(bits) != 3:
+            self.logger.warning("Fans bits count not match! (%s)", str(bits))
+            return dict.fromkeys(request, False)
         else:
-            self.logger.warning("PWMs count not match! (%s)", str(pwms))
-            return list((0, 0, 0))
+            retval = {}
+            for idx in request:
+                try:
+                    retval[idx] = bits[idx]
+                except Exception:
+                    self.logger.exception("exception:")
+                    return dict.fromkeys(request, False)
+                #endtry
+            #endfor
+            return retval
         #endif
     #enddef
 
 
-    def getFansRpm(self):
-        rpms = self.mcc.doGetIntList(multiply = 10, args = ("?frpm",))
-        if rpms and len(rpms) == 4: # FIXME 3 after done in MC
-            return rpms[0:3]
-        else:
+    def setFansRpm(self, rpms):
+        self._fansRpm.update(rpms)
+        out = list()
+        for key in sorted(self._fansRpm):
+            if self._fansRpm[key] < defines.fanMinRPM:
+                out.append(defines.fanMinRPM)
+            else:
+                out.append(self._fansRpm[key])
+            #endif
+        #endfor
+        self.mcc.do("!frpm", " ".join(map(str, out)))
+        self.setFans()
+    #enddef
+
+
+    def getFansRpm(self, request = (0, 1, 2)):
+        rpms = self.mcc.doGetIntList(multiply = 1, args = ("?frpm",))
+        if not rpms or len(rpms) != 3:
             self.logger.warning("RPMs count not match! (%s)", str(rpms))
-            return list((0, 0, 0))
+            return dict.fromkeys(request, 0)
+        else:
+            retval = {}
+            for idx in request:
+                try:
+                    retval[idx] = rpms[idx]
+                except Exception:
+                    self.logger.exception("exception:")
+                    return dict.fromkeys(request, 0)
+                #endtry
+            #endfor
+            return retval
         #endif
     #enddef
 

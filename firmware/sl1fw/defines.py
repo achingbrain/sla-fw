@@ -6,7 +6,7 @@ import os
 import sl1fw
 
 swVersion = "Gen3-190-614"
-reqMcVersion = "SLA-control 0.9.11-426"
+reqMcVersion = "SLA-control 0.9.11-426c"
 
 home = "/home/root"
 factoryMountPoint = "/usr/share/factory/defaults"
@@ -72,11 +72,12 @@ tiltHoldCurrent = 35
 tiltCalibCurrent = 40
 fanStartStopTime = 6.0       # in secs
 fanMeasCycles = 20
+fanMinRPM = 500
 
 minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance
 maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some tolerance
 maxA64Temp = 70.0
-maxUVTemp = 50.0
+maxUVTemp = 55.0
 
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
 manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"

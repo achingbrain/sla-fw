@@ -246,7 +246,7 @@ class PageWizard3(Page):
         pageWait.showItems(line1 = _("Fans check"), line2 = _("(fans are stopped)"))
         self.display.hw.stopFans()
         sleep(defines.fanStartStopTime)  # wait for fans to stop
-        rpm = self.display.hw.getFansRpm()
+        rpm = self.display.hw.getFansRpm().values()
         if any(rpm):
             self.display.pages['error'].setParams(
                 text = _("RPM detected when fans are expected to be off.\n\n"
@@ -257,9 +257,10 @@ class PageWizard3(Page):
         pageWait.showItems(line2 = _("(fans are running)"))
         # TODO rafactoring needed -> fans object(s)
                         #fan1        fan2        fan3
-        fanLimits = [[50,300], [1100, 1700], [150, 500]]
+        fanLimits = [[800, 1200], [3800, 4600], [800, 1200]]
         hwConfig = libConfig.HwConfig()
-        self.display.hw.setFansPwm((hwConfig.fan1Pwm, hwConfig.fan2Pwm, hwConfig.fan3Pwm))   #use default PWM. TODO measure fans in range of values
+        # TODO measure fans in range of values
+        self.display.hw.setFansRpm({ 0 : hwConfig.fan1Rpm, 1 : hwConfig.fan2Rpm, 2 : hwConfig.fan3Rpm })
         self.display.hw.startFans()
         sleep(defines.fanStartStopTime)  # let the fans spin up
         rpm = [[], [], []]
@@ -274,6 +275,20 @@ class PageWizard3(Page):
             sleep(1)
         #endfor
 
+        fansState = self.display.hw.getFansError().values()
+        if any(fansState):
+            failedFans = []
+            for num, state in enumerate(fansState):
+                if state:
+                    failedFans.append(self.display.hw.getFanName(num))
+                #endif
+            #endfor
+            self.display.pages['error'].setParams(
+                    text = _("Failed: %s\n\n"
+                        "Check if fans are connected properly and can rotate without resistance." % ", ".join(failedFans)))
+            return "error"
+        #endif
+
         avgRpms = list()
         for i in range(3): #iterate over fans
             rpm[i].remove(max(rpm[i]))
@@ -283,11 +298,13 @@ class PageWizard3(Page):
                 self.display.pages['error'].setParams(
                     text = _("RPM of %(fan)s not in range!\n\n"
                         "Please check if the fan is connected correctly.\n\n"
-                        "RPM data: %(rpm)s") % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i] })
+                        "RPM data: %(rpm)s avg: %(avg)d")
+                    % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i], 'avg' : avgRpm })
                 return "error"
             #endif
             avgRpms.append(avgRpm)
         #endfor
+
         self.display.wizardData.update(wizardFanRpm = avgRpms)
 
         # temperature check
