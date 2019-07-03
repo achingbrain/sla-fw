@@ -1,6 +1,15 @@
 from setuptools import setup, find_packages
+import setuptools.command.build_py
 from glob import glob
 from os import walk, path
+import subprocess
+
+
+class BuildPyWithLocalesCommand(setuptools.command.build_py.build_py):
+    def run(self):
+        subprocess.check_call(["make", "-C", "sl1fw/locales"])
+        setuptools.command.build_py.build_py.run(self)
+
 
 data_files = [
     ('/usr/share/sl1fw/scripts', glob('sl1fw/scripts/*')),
@@ -17,13 +26,14 @@ for root, dirs, files in walk('sl1fw/intranet'):
     content = [path.join(root, filename) for filename in files]
     data_files.append((target, content))
 
-print(data_files)
-
 setup(
     name="sl1fw",
     version="0.1",
     packages=find_packages(exclude=["sl1fw.tests"]),
     scripts=['sl1fw/main.py'],
     package_data={'sl1fw': ['data/*', 'locales/*/LC_MESSAGES/*.mo']},
-    data_files=data_files
+    data_files=data_files,
+    cmdclass={
+        'build_py': BuildPyWithLocalesCommand
+    }
 )
