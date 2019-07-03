@@ -52,7 +52,7 @@ class ScreenServer(multiprocessing.Process):
         if defines.doFBSet:
             subprocess.call(['/usr/sbin/fbset', '-fb', defines.fbFile, '1440x2560-0'])
         #endif
-        pygame.init()
+        pygame.font.init()
         self.screen = pygame.display.set_mode((1440,2560), pygame.FULLSCREEN, 32)
         self.screen.set_alpha(None)
         pygame.mouse.set_visible(False)

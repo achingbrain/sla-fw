@@ -23,6 +23,7 @@ class PageConfirm(Page):
         self.backFce = kwargs.pop("backFce", None)
         self.backParams = kwargs.pop("backParams", dict())
         self.beep = kwargs.pop("beep", False)
+        self.pageTitle = kwargs.pop("pageTitle", N_("Confirm"))
         self.items = kwargs
     #enddef
 

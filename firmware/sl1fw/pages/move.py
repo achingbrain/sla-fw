@@ -90,7 +90,7 @@ class PageTowerMove(MovePage):
     def _up(self, slowMoving):
         if not self.moving:
             if self.setProfiles:
-                self.display.hw.setTowerProfile('moveSlow' if slowMoving else 'moveFast')
+                self.display.hw.setTowerProfile('moveSlow' if slowMoving else 'homingFast')
             #endif
             self.display.hw.towerToMax()
             self.moving = True
@@ -106,7 +106,7 @@ class PageTowerMove(MovePage):
     def _down(self, slowMoving):
         if not self.moving:
             if self.setProfiles:
-                self.display.hw.setTowerProfile('moveSlow' if slowMoving else 'moveFast')
+                self.display.hw.setTowerProfile('moveSlow' if slowMoving else 'homingFast')
             #endif
             self.display.hw.towerToMin()
             self.moving = True
@@ -155,7 +155,7 @@ class PageTiltMove(MovePage):
     def _up(self, slowMoving):
         if not self.moving:
             if self.setProfiles:
-                self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'moveFast')
+                self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'homingFast')
             #endif
             self.display.hw.tiltToMax()
             self.moving = True
@@ -171,7 +171,7 @@ class PageTiltMove(MovePage):
     def _down(self, slowMoving):
         if not self.moving:
             if self.setProfiles:
-                self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'moveFast')
+                self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'homingFast')
             #endif
             self.display.hw.tiltToMin()
             self.moving = True

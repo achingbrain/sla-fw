@@ -59,11 +59,13 @@ truePoweroff = True
 
 resinMinVolume = 68.5
 resinMaxVolume = 200.0
+resinWizardMinVolume = 50.0
+resinWizardMaxVolume = 130.0
 resinLowWarn = 60
 resinFeedWait = 50
 resinFilled = 200
 
-defaultTowerHeight = 128    # mm
+defaultTowerHeight = 120    # mm
 defaultTiltHeight = 4900    # usteps
 defaultTowerOffset = 0.05   # mm
 tiltHomingTolerance = 30    # tilt axis check has this tolerance

@@ -295,8 +295,28 @@ class PageAdvancedSettings(Page):
     # Display test
     @confirm_leave
     def displaytestButtonRelease(self):
-        return "displaytest"
+        self.display.pages['confirm'].setParams(
+            continueFce = self.displaytestContinue,
+            pageTitle = _("Display test"),
+            imageName = "19_remove_tank.jpg",
+            text = _("Please unscrew and remove the resin tank."))
+        return "confirm"
     #enddef
+
+
+    def displaytestContinue(self):
+        self.display.pages['confirm'].setParams(
+            continueFce = self.displaytest,
+            pageTitle = _("Display test"),
+            imageName = "18_close_cover_no_tank.jpg",
+            text = _("Please close the orange lid."))
+        return "confirm"
+    #enddef
+
+
+    def displaytest(self):
+        return "displaytest"
+    #endif
 
     # Rear fan speed
     def minus_rearfanspeedButton(self):
