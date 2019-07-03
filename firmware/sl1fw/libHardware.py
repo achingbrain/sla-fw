@@ -66,29 +66,21 @@ class MotConCom(object):
             }
 
 
-    def __init__(self, instance_name, serial_port = None, debug = None):
+    def __init__(self, instance_name):
         self.portLock = Lock()
-        if debug:
-            self.debug = debug
-        else:
-            self.debug = Debug()
-        #endif
+        self.debug = Debug()
         
-        if serial_port:
-            self.port = serial_port
-        else:
-            self.port = serial.Serial(port=defines.motionControlDevice,
-                                     baudrate=115200,
-                                     bytesize=8,
-                                     parity='N',
-                                     stopbits=1,
-                                     timeout=1.0,
-                                     writeTimeout=1.0,
-                                     xonxoff=False,
-                                     rtscts=False,
-                                     dsrdtr=False,
-                                     interCharTimeout=None)
-        #endif
+        self.port = serial.Serial(port=defines.motionControlDevice,
+                                 baudrate=115200,
+                                 bytesize=8,
+                                 parity='N',
+                                 stopbits=1,
+                                 timeout=1.0,
+                                 writeTimeout=1.0,
+                                 xonxoff=False,
+                                 rtscts=False,
+                                 dsrdtr=False,
+                                 interCharTimeout=None)
 
         super(MotConCom, self).__init__()
         self.logger = logging.getLogger(instance_name)
@@ -102,6 +94,7 @@ class MotConCom(object):
 
     def exit(self):
         self.debug.exit()
+        self.port.close()
     #enddef
 
 
@@ -416,7 +409,7 @@ class DummyMotConCom(MotConCom):
 
 class Hardware(object):
 
-    def __init__(self, hwConfig, config, serial_port = None, debug = None):
+    def __init__(self, hwConfig, config):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.config = config
@@ -495,7 +488,7 @@ class Hardware(object):
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
 
-        self.mcc = MotConCom("MC_Main", serial_port=serial_port, debug=debug)
+        self.mcc = MotConCom("MC_Main")
         self.realMcc = self.mcc
         self.cpuSerial = self.readCpuSerial()
     #enddef

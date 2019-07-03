@@ -16,21 +16,20 @@ from sl1fw import libConfig
 
 
 class TestScreen(unittest.TestCase):
-    PROJECT = os.path.join(os.path.dirname(__file__), "samples/empty-sample.sl1")
-    FBDEV = "test.fbdev"
+    PROJECT = os.path.join(os.path.dirname(__file__), "samples/numbers.sl1")
+    FB_DEV = "test.fbdev"
 
     def setUp(self):
-        self.hwConfig = libConfig.HwConfig(defines.hwConfigFile)
-        logging.debug("before import")
-        from sl1fw.libScreen import Screen
-        logging.debug("after import")
+        defines.doFBSet = False
+        defines.fbFile = self.FB_DEV
 
-        self.screen = Screen(self.hwConfig, fbdev=TestScreen.FBDEV, fbset=False)
-        logging.debug("after init")
+        self.hwConfig = libConfig.HwConfig(defines.hwConfigFile)
+        from sl1fw.libScreen import Screen
+        self.screen = Screen(self.hwConfig)
 
     def tearDown(self):
         try:
-            os.remove(TestScreen.FBDEV)
+            os.remove(TestScreen.FB_DEV)
         except:
             pass
 
@@ -74,7 +73,7 @@ class TestScreen(unittest.TestCase):
             lw = w
         #endfor
 
-        file = "empty-sample00000.png"
+        file = "numbers00000.png"
 
         self.screen.openZip(filename = TestScreen.PROJECT)
         self.screen.createMasks(perPartes = self.hwConfig.perPartes)

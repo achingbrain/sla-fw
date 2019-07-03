@@ -86,14 +86,14 @@ class TestPrintConfig(unittest.TestCase):
 
         self.assertEqual(config.projectName, "no project", "Check empty project name")
 
-        config.parseFile(os.path.join(os.path.dirname(__file__), "samples/empty-sample.sl1"))
+        config.parseFile(os.path.join(os.path.dirname(__file__), "samples/numbers.sl1"))
 
         self.assertIs(config.zipError, None, "Test for no read errors")
 
         config.logAllItems()
         config.logFile()
 
-        self.assertEqual(config.projectName, "empty-sample", "Check projectName")
+        self.assertEqual(config.projectName, "numbers", "Check projectName")
         self.assertEqual(config.totalLayers, 20, "Check total layers count")
 
         logging.info(config.getSourceString())

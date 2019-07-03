@@ -4,19 +4,26 @@ import os
 import sys
 import time
 from sl1fw.tests.gettextSim import fake_gettext
+import sl1fw.tests.mcPortSim
 
 fake_gettext()
 
+# This has to stay in order to prevent loading of real pydbus
+import sl1fw.tests.pydbusSim
+sys.modules['pydbus'] = sl1fw.tests.pydbusSim
+
 sys.modules['gpio'] = Mock()
+sys.modules['sl1fw.libDebug'] = Mock()
+sys.modules['serial'] = sl1fw.tests.mcPortSim
 
 from sl1fw.libHardware import Hardware
 from sl1fw.libConfig import HwConfig, PrintConfig
-from sl1fw.tests.mcPortSim import MCPortSim
 from sl1fw import defines
 
 defines.cpuSNFile = os.path.join(os.path.dirname(__file__), "samples/nvmem")
 defines.cpuTempFile = os.path.join(os.path.dirname(__file__), "samples/cputemp")
 defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
+defines.doFBSet = False
 
 
 class TestLibHardware(unittest.TestCase):
@@ -25,13 +32,12 @@ class TestLibHardware(unittest.TestCase):
     def setUp(self):
         self.hwConfig = HwConfig(os.path.join(os.path.dirname(__file__), "samples/hardware.cfg"))
         self.config = PrintConfig(self.hwConfig)
-        self.mcsimport = MCPortSim()
-        self.hw = Hardware(self.hwConfig, self.config, serial_port=self.mcsimport, debug=Mock())
+        self.hw = Hardware(self.hwConfig, self.config)
 
         self.hw.connectMC(Mock(), Mock())
 
     def tearDown(self):
-        self.mcsimport.stop()
+     #   self.mcsimport.stop()
         if os.path.isfile(self.EEPROM_FILE):
             os.remove(self.EEPROM_FILE)
 

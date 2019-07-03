@@ -1,23 +1,31 @@
 import unittest
 from mock import Mock
 import os
+import sys
 
 from sl1fw.tests.gettextSim import fake_gettext
 
 fake_gettext()
 
+# This has to stay in order to prevent loading of real pydbus
+import sl1fw.tests.pydbusSim
+sys.modules['pydbus'] = sl1fw.tests.pydbusSim
+
 from sl1fw import libExposure
 from sl1fw import libConfig
+from sl1fw import defines
 
 
 class TestExposure(unittest.TestCase):
-    PROJECT = os.path.join(os.path.dirname(__file__), "samples/empty-sample.sl1")
+    PROJECT = os.path.join(os.path.dirname(__file__), "samples/numbers.sl1")
 
     def setUp(self):
-        hwConfig = libConfig.HwConfig()
+        defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
 
+        hwConfig = libConfig.HwConfig()
         self.config = libConfig.PrintConfig(hwConfig)
         display = Mock()
+        display.devices = []
         hw = Mock()
         hw.getUvLedState.return_value = (False, 0)
         screen = Mock()

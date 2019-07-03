@@ -5,7 +5,7 @@ import os
 import logging
 
 
-class MCPortSim(object):
+class Serial(object):
     def __init__(self, **kwargs):
         self.logger = logging.getLogger(__name__)
 
@@ -18,6 +18,9 @@ class MCPortSim(object):
         self.read_queue = Queue()
         self.reader_thread = threading.Thread(target=self._reader)
         self.reader_thread.start()
+
+    def close(self):
+        self.stop()
 
     def stop(self):
         """
