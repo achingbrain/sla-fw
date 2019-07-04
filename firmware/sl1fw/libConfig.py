@@ -394,7 +394,7 @@ class HwConfig(FileConfig):
         self.upAndDownEveryLayer = self._parseIntMinMax("upanddowneverylayer", 0, 0, 500)
 
         # Fans & LEDs
-        self.fan1Rpm = self._parseIntMinMax("fan1rpm", 1000, 500, 3000)
+        self.fan1Rpm = self._parseIntMinMax("fan1rpm", 1800, 500, 3000)
         self.fan2Rpm = self._parseIntMinMax("fan2rpm", 4200, 500, 4200)
         self.fan3Rpm = self._parseIntMinMax("fan3rpm", 1000, 400, 5000)
         uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)

@@ -26,6 +26,7 @@ class PageDisplayTest(Page):
 
 
     def show(self):
+        self.display.fanErrorOverride = True    #do not check fane. overheat check is sufficient
         self.items.update({
             'imageName' : "10_prusa_logo.jpg",
             'text' : _("Can you see company logo on the exposure display through the orange cover?\n\n"
@@ -52,12 +53,14 @@ class PageDisplayTest(Page):
         return "error"
     #enddef
 
+
     def _EXIT_(self):
         return "_EXIT_"
     #enddef
 
 
     def leave(self):
+        self.display.fanErrorOverride = False
         self.display.hw.saveUvStatistics()
         # can't call allOff(), motorsRelease() is harmful for the wizard
         self.display.screen.getImgBlack()

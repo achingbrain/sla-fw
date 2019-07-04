@@ -270,19 +270,21 @@ class PageWizard3(Page):
         pageWait.showItems(line2 = _("(fans are running)"))
         # TODO rafactoring needed -> fans object(s)
                         #fan1        fan2        fan3
-        fanLimits = [[800, 1200], [3800, 4600], [800, 1200]]
+        fanLimits = [[1600, 2000], [3800, 4600], [800, 1200]]
         hwConfig = libConfig.HwConfig()
         # TODO measure fans in range of values
         self.display.hw.setFansRpm({ 0 : hwConfig.fan1Rpm, 1 : hwConfig.fan2Rpm, 2 : hwConfig.fan3Rpm })
         self.display.hw.startFans()
-        sleep(defines.fanStartStopTime)  # let the fans spin up
         rpm = [[], [], []]
-        for i in range(defines.fanMeasCycles):
-            tmp = self.display.hw.getFansRpm()
-            rpm[0].append(tmp[0])   #UV
-            rpm[1].append(tmp[1])   #blower
-            rpm[2].append(tmp[2])   #rear
-            cnt = defines.fanMeasCycles - i
+        cnt = defines.fanMeasCycles + defines.fanStartStopTime * 2
+        for i in range(cnt):
+            if i >= defines.fanStartStopTime * 2: #let the fans spin up and control the rpms
+                tmp = self.display.hw.getFansRpm()
+                rpm[0].append(tmp[0])   #UV
+                rpm[1].append(tmp[1])   #blower
+                rpm[2].append(tmp[2])   #rear
+            #endif
+            cnt -= 1
             pageWait.showItems(line3 = ngettext("Remaining %d second" % cnt,
                     "Remaining %d seconds" % cnt, cnt))
             sleep(1)
@@ -374,6 +376,7 @@ class PageWizard3(Page):
 
 
     def _EXIT_(self):
+        self.allOff()
         return "_EXIT_"
     #enddef
 
