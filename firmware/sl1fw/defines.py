@@ -6,7 +6,7 @@ import os
 import sl1fw
 
 swVersion = "Gen3-190-614"
-reqMcVersion = "SLA-control 0.9.11-426c"
+reqMcVersion = "SLA-control 0.9.11-426d"
 
 home = "/home/root"
 factoryMountPoint = "/usr/share/factory/defaults"
@@ -72,8 +72,8 @@ tiltHomingTolerance = 30    # tilt axis check has this tolerance
 towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40
-fanStartStopTime = 6.0       # in secs
-fanMeasCycles = 20
+fanStartStopTime = 6       # in secs
+fanMeasCycles = 10
 fanMinRPM = 500
 
 minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance
