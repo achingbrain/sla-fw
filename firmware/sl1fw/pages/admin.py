@@ -38,7 +38,7 @@ class PageAdmin(Page):
                 'button11' : _("Net update"),
                 'button12' : _("Logging"),
                 'button13' : _("System Information"),
-                'button14' : "",
+                'button14' : _("Fan test"),
                 'button15' : _("Raise exception"),
                 })
         super(PageAdmin, self).show()
@@ -222,7 +222,7 @@ class PageAdmin(Page):
 
 
     def button14ButtonRelease(self):
-        pass
+        return "fantest"
     #enddef
 
 

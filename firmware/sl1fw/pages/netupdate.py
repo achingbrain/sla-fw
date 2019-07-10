@@ -116,7 +116,7 @@ class PageNetUpdate(Page):
 
 
     def gotoWizard(self):
-        return "wizard1"
+        return "wizardinit"
     #enddef
 
 

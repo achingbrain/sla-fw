@@ -14,11 +14,11 @@ from sl1fw.libPages import page, Page, PageWait
 
 
 @page
-class PageWizard1(Page):
-    Name = "wizard1"
+class PageWizardInit(Page):
+    Name = "wizardinit"
 
     def __init__(self, display):
-        super(PageWizard1, self).__init__(display)
+        super(PageWizardInit, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Setup wizard step 1/10")
     #enddef
@@ -28,7 +28,7 @@ class PageWizard1(Page):
         self.items.update({
             'text' : _("Welcome to the setup wizard.\n\n"
                 "This procedure is mandatory and it will help you to set up the printer.")})
-        super(PageWizard1, self).show()
+        super(PageWizardInit, self).show()
     #enddef
 
 
@@ -139,188 +139,6 @@ class PageWizard1(Page):
                     "Tower profiles need to be changed."))
             return "error"
         #endif
-        self.display.hw.powerLed("normal")
-        return "wizard2"
-    #enddef
-
-
-    def backButtonRelease(self):
-        return "wizardskip"
-    #enddef
-
-
-    def _EXIT_(self):
-        self.allOff()
-        return "_EXIT_"
-    #enddef
-
-#endclass
-
-
-@page
-class PageWizard2(Page):
-    Name = "wizard2"
-
-    def __init__(self, display):
-        super(PageWizard2, self).__init__(display)
-        self.pageUI = "confirm"
-        self.pageTitle = N_("Setup wizard step 2/10")
-    #enddef
-
-
-    def show(self):
-        self.items.update({
-            'imageName' : "04_tighten_screws.jpg",
-            'text' : _("Secure the resin tank with resin tank screws.\n\n"
-                "Make sure the tank is empty and clean.")})
-        super(PageWizard2, self).show()
-    #enddef
-
-    def contButtonRelease(self):
-        return "wizard3"
-    #enddef
-
-
-    def backButtonRelease(self):
-        return "wizardskip"
-    #enddef
-
-
-    def _EXIT_(self):
-        return "_EXIT_"
-    #enddef
-
-#endclass
-
-
-@page
-class PageWizard3(Page):
-    Name = "wizard3"
-
-    def __init__(self, display):
-        super(PageWizard3, self).__init__(display)
-        self.pageUI = "confirm"
-        self.pageTitle = N_("Setup wizard step 3/10")
-    #enddef
-
-
-    def show(self):
-        self.items.update({
-            'imageName' : "09_remove_platform.jpg",
-            'text' : _("Loosen the black knob and remove the platform.")})
-        super(PageWizard3, self).show()
-    #enddef
-
-
-    def contButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.continueTowerCheck,
-            backFce = self.backButtonRelease,
-            pageTitle = N_("Setup wizard step 4/10"),
-            imageName = "12_close_cover.jpg",
-            text = _("Please close the orange lid."))
-        return "confirm"
-    #enddef
-
-    def continueTowerCheck(self):
-        self.ensureCoverIsClosed()
-
-        self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Tower axis check"))
-        pageWait.show()
-        self.display.hw.setTowerProfile("homingFast")
-        self.display.hw.towerMoveAbsolute(0)
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        if self.display.hw.getTowerPositionMicroSteps() == 0:
-            #stop 10 mm before endstop to change sensitive profile
-            self.display.hw.towerMoveAbsolute(self.display.hw._towerEnd - 8000)
-            while self.display.hw.isTowerMoving():
-                sleep(0.25)
-            #endwhile
-            self.display.hw.setTowerProfile("homingSlow")
-            self.display.hw.towerMoveAbsolute(self.display.hw._towerMax)
-            while self.display.hw.isTowerMoving():
-                sleep(0.25)
-            #endwhile
-        #endif
-        position = self.display.hw.getTowerPositionMicroSteps()
-        #MC moves tower by 1024 steps forward in last step of !twho
-        if position < self.display.hw._towerEnd or position > self.display.hw._towerEnd + 1024 + 127: #add tolerance half fullstep
-            self.display.pages['error'].setParams(
-                text = _("Tower axis check failed!\n\n"
-                    "Current position: %d\n\n"
-                    "Please check if the ballscrew can move smoothly in its entire range.") % position)
-            return "error"
-        #endif
-
-        # fan check
-        pageWait.showItems(line1 = _("Fans check"), line2 = _("(fans are stopped)"))
-        self.display.hw.stopFans()
-        sleep(defines.fanStartStopTime)  # wait for fans to stop
-        rpm = self.display.hw.getFansRpm().values()
-        if any(rpm):
-            self.display.pages['error'].setParams(
-                text = _("RPM detected when fans are expected to be off.\n\n"
-                    "Check if all fans are properly connected.\n\n"
-                    "RPM data: %s") % rpm)
-            return "error"
-        #endif
-        pageWait.showItems(line2 = _("(fans are running)"))
-        # TODO rafactoring needed -> fans object(s)
-                        #fan1        fan2        fan3
-        fanLimits = [[1600, 2000], [3800, 4600], [800, 1200]]
-        hwConfig = libConfig.HwConfig()
-        # TODO measure fans in range of values
-        self.display.hw.setFansRpm({ 0 : hwConfig.fan1Rpm, 1 : hwConfig.fan2Rpm, 2 : hwConfig.fan3Rpm })
-        self.display.hw.startFans()
-        rpm = [[], [], []]
-        cnt = defines.fanMeasCycles + defines.fanStartStopTime * 2
-        for i in range(cnt):
-            if i >= defines.fanStartStopTime * 2: #let the fans spin up and control the rpms
-                tmp = self.display.hw.getFansRpm()
-                rpm[0].append(tmp[0])   #UV
-                rpm[1].append(tmp[1])   #blower
-                rpm[2].append(tmp[2])   #rear
-            #endif
-            cnt -= 1
-            pageWait.showItems(line3 = ngettext("Remaining %d second" % cnt,
-                    "Remaining %d seconds" % cnt, cnt))
-            sleep(1)
-        #endfor
-
-        fansState = self.display.hw.getFansError().values()
-        if any(fansState):
-            failedFans = []
-            for num, state in enumerate(fansState):
-                if state:
-                    failedFans.append(self.display.hw.getFanName(num))
-                #endif
-            #endfor
-            self.display.pages['error'].setParams(
-                    text = _("Failed: %s\n\n"
-                        "Check if fans are connected properly and can rotate without resistance." % ", ".join(failedFans)))
-            return "error"
-        #endif
-
-        avgRpms = list()
-        for i in range(3): #iterate over fans
-            rpm[i].remove(max(rpm[i]))
-            rpm[i].remove(min(rpm[i]))
-            avgRpm = sum(rpm[i]) // len(rpm[i])
-            if not fanLimits[i][0] <= avgRpm <= fanLimits[i][1]:
-                self.display.pages['error'].setParams(
-                    text = _("RPM of %(fan)s not in range!\n\n"
-                        "Please check if the fan is connected correctly.\n\n"
-                        "RPM data: %(rpm)s avg: %(avg)d")
-                    % { 'fan' : self.display.hw.getFanName(i), 'rpm' : rpm[i], 'avg' : avgRpm })
-                return "error"
-            #endif
-            avgRpms.append(avgRpm)
-        #endfor
-
-        self.display.wizardData.update(wizardFanRpm = avgRpms)
 
         # temperature check
         pageWait.showItems(line1 = _("A64 temperature check"))
@@ -366,12 +184,18 @@ class PageWizard3(Page):
                 wizardTempUvInit = temperatures[0],
                 wizardTempAmbient = temperatures[1])
         self.display.hw.powerLed("normal")
-        return "wizard4"
+
+        return "fantest"
     #enddef
 
 
     def backButtonRelease(self):
         return "wizardskip"
+    #enddef
+
+
+    def _BACK_(self):
+        return "wizarduvled"
     #enddef
 
 
@@ -384,13 +208,13 @@ class PageWizard3(Page):
 
 
 @page
-class PageWizard4(Page):
-    Name = "wizard4"
+class PageWizardUvLed(Page):
+    Name = "wizarduvled"
 
     def __init__(self, display):
-        super(PageWizard4, self).__init__(display)
+        super(PageWizardUvLed, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Setup wizard step 5/10")
+        self.pageTitle = N_("Setup wizard step 2/10")
     #enddef
 
 
@@ -398,15 +222,25 @@ class PageWizard4(Page):
         self.items.update({
             'imageName' : "19_remove_tank.jpg",
             'text' : _("Please unscrew and remove the resin tank.")})
-        super(PageWizard4, self).show()
+        super(PageWizardUvLed, self).show()
     #enddef
-
 
     def contButtonRelease(self):
         self.display.pages['confirm'].setParams(
+            continueFce = self.continueCloselid,
+            backFce = self.backButtonRelease,
+            pageTitle = N_("Setup wizard step 3/10"),
+            imageName = "09_remove_platform.jpg",
+            text = _("Loosen the black knob and remove the platform."))
+        return "confirm"
+    #enddef
+
+
+    def continueCloselid(self):
+        self.display.pages['confirm'].setParams(
             continueFce = self.continueUvCheck,
             backFce = self.backButtonRelease,
-            pageTitle = N_("Setup wizard step 6/10"),
+            pageTitle = N_("Setup wizard step 4/10"),
             imageName = "18_close_cover_no_tank.jpg",
             text = _("Please close the orange lid."))
         return "confirm"
@@ -415,7 +249,7 @@ class PageWizard4(Page):
 
     def continueUvCheck(self):
         self.ensureCoverIsClosed()
-
+        self.display.hw.startFans()
         # UV LED voltage comparation
         pageWait = PageWait(self.display, line1 = _("UV LED check"))
         pageWait.show()
@@ -427,7 +261,7 @@ class PageWizard4(Page):
         else:
             uvPwms = [31, 94, 188, 219]     # board rev. < 0.6c
         #endif
-        diff = 0.4    # [mV] voltages in all rows cannot differ more than this limit
+        diff = 0.55    # [mV] voltages in all rows cannot differ more than this limit
         row1 = list()
         row2 = list()
         row3 = list()
@@ -440,6 +274,7 @@ class PageWizard4(Page):
             volts = self.display.hw.getVoltages()
             del volts[-1]   # delete power supply voltage
             if max(volts) - min(volts) > diff:
+                self.display.hw.uvLed(False)
                 self.display.pages['error'].setParams(
                     text = _("UV LED voltages differ too much!\n\n"
                         "Please check if the UV LED panel is connected properly.\n\n"
@@ -464,6 +299,7 @@ class PageWizard4(Page):
             sleep(1)
             temp = self.display.hw.getUvLedTemperature()
             if temp > defines.maxUVTemp:
+                self.display.hw.uvLed(False)
                 self.display.pages['error'].setParams(
                     text = _("UV LED too hot!\n\n"
                         "Please check if the UV LED panel is attached to the heatsink.\n\n"
@@ -485,11 +321,12 @@ class PageWizard4(Page):
 
 
     def _OK_(self):
-        return "wizard5"
+        return "wizardtoweraxis"
     #enddef
 
 
     def _EXIT_(self):
+        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -497,11 +334,90 @@ class PageWizard4(Page):
 
 
 @page
-class PageWizard5(Page):
-    Name = "wizard5"
+class PageWizardTowerAxis(Page):
+    Name = "wizardtoweraxis"
 
     def __init__(self, display):
-        super(PageWizard5, self).__init__(display)
+        super(PageWizardTowerAxis, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Setup wizard step 5/10")
+    #enddef
+
+
+    def show(self):
+        self.items.update({
+            'imageName' : "04_tighten_screws.jpg",
+            'text' : _("Secure the resin tank with resin tank screws.\n\n"
+                "Make sure the tank is empty and clean.")})
+        super(PageWizardTowerAxis, self).show()
+    #enddef
+
+
+    def contButtonRelease(self):
+        self.display.pages['confirm'].setParams(
+            continueFce = self.continueTowerCheck,
+            backFce = self.backButtonRelease,
+            pageTitle = N_("Setup wizard step 6/10"),
+            imageName = "12_close_cover.jpg",
+            text = _("Please close the orange lid."))
+        return "confirm"
+    #enddef
+
+    def continueTowerCheck(self):
+        self.ensureCoverIsClosed()
+
+        self.display.hw.powerLed("warn")
+        pageWait = PageWait(self.display, line1 = _("Tower axis check"))
+        pageWait.show()
+        self.display.hw.setTowerProfile("homingFast")
+        self.display.hw.towerMoveAbsolute(0)
+        while self.display.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+        if self.display.hw.getTowerPositionMicroSteps() == 0:
+            #stop 10 mm before endstop to change sensitive profile
+            self.display.hw.towerMoveAbsolute(self.display.hw._towerEnd - 8000)
+            while self.display.hw.isTowerMoving():
+                sleep(0.25)
+            #endwhile
+            self.display.hw.setTowerProfile("homingSlow")
+            self.display.hw.towerMoveAbsolute(self.display.hw._towerMax)
+            while self.display.hw.isTowerMoving():
+                sleep(0.25)
+            #endwhile
+        #endif
+        position = self.display.hw.getTowerPositionMicroSteps()
+        #MC moves tower by 1024 steps forward in last step of !twho
+        if position < self.display.hw._towerEnd or position > self.display.hw._towerEnd + 1024 + 127: #add tolerance half fullstep
+            self.display.pages['error'].setParams(
+                text = _("Tower axis check failed!\n\n"
+                    "Current position: %d\n\n"
+                    "Please check if the ballscrew can move smoothly in its entire range.") % position)
+            return "error"
+        #endif
+        return "wizardresinsensor"
+    #enddef
+
+
+    def backButtonRelease(self):
+        return "wizardskip"
+    #enddef
+
+
+    def _EXIT_(self):
+        self.allOff()
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+@page
+class PageWizardResinSensor(Page):
+    Name = "wizardresinsensor"
+
+    def __init__(self, display):
+        super(PageWizardResinSensor, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Setup wizard step 7/10")
     #enddef
@@ -510,8 +426,8 @@ class PageWizard5(Page):
     def show(self):
         self.items.update({
             'imageName' : "11_insert_platform_60deg.jpg",
-            'text' : _("Screw the resin tank back in and insert the platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
-        super(PageWizard5, self).show()
+            'text' : _("Insert the platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
+        super(PageWizardResinSensor, self).show()
     #enddef
 
 
@@ -571,7 +487,7 @@ class PageWizard5(Page):
         #endif
 
         self.allOff()
-        return "wizard6"
+        return "wizardtimezone"
     #enddef
 
 
@@ -581,17 +497,18 @@ class PageWizard5(Page):
 
 
     def _EXIT_(self):
+        self.allOff()
         return "_EXIT_"
     #enddef
 
 #endclass
 
 @page
-class PageWizard6(Page):
-    Name = "wizard6"
+class PageWizardTimezone(Page):
+    Name = "wizardtimezone"
 
     def __init__(self, display):
-        super(PageWizard6, self).__init__(display)
+        super(PageWizardTimezone, self).__init__(display)
         self.pageUI = "yesno"
         self.pageTitle = N_("Setup wizard step 9/10")
     #enddef
@@ -600,7 +517,7 @@ class PageWizard6(Page):
     def show(self):
         self.items.update({
             'text' : _("Do you want to setup a timezone?")})
-        super(PageWizard6, self).show()
+        super(PageWizardTimezone, self).show()
     #enddef
 
 
@@ -610,16 +527,17 @@ class PageWizard6(Page):
 
 
     def noButtonRelease(self):
-        return "wizard7"
+        return "wizardspeaker"
     #enddef
 
 
     def _BACK_(self):
-        return "wizard7"
+        return "wizardspeaker"
     #enddef
 
 
     def _EXIT_(self):
+        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -627,11 +545,11 @@ class PageWizard6(Page):
 
 
 @page
-class PageWizard7(Page):
-    Name = "wizard7"
+class PageWizardSpeaker(Page):
+    Name = "wizardspeaker"
 
     def __init__(self, display):
-        super(PageWizard7, self).__init__(display)
+        super(PageWizardSpeaker, self).__init__(display)
         self.pageUI = "yesno"
         self.pageTitle = N_("Setup wizard step 10/10")
         pygame.mixer.init(44100, -16, 2, 2048)
@@ -643,13 +561,13 @@ class PageWizard7(Page):
         pygame.mixer.music.play(-1)
         self.items.update({
             'text' : _("Can you hear the music?")})
-        super(PageWizard7, self).show()
+        super(PageWizardSpeaker, self).show()
     #enddef
 
 
     def yesButtonRelease(self):
         pygame.mixer.music.stop()
-        return "wizard8"
+        return "wizardfinish"
     #endif
 
 
@@ -662,6 +580,7 @@ class PageWizard7(Page):
 
 
     def _EXIT_(self):
+        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -669,11 +588,11 @@ class PageWizard7(Page):
 
 
 @page
-class PageWizard8(Page):
-    Name = "wizard8"
+class PageWizardFinish(Page):
+    Name = "wizardfinish"
 
     def __init__(self, display):
-        super(PageWizard8, self).__init__(display)
+        super(PageWizardFinish, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Setup wizard done")
     #enddef
@@ -683,7 +602,7 @@ class PageWizard8(Page):
         self.items.update({
             'text' : _("Selftest OK.\n\n"
                 "Continue to calibration?")})
-        super(PageWizard8, self).show()
+        super(PageWizardFinish, self).show()
     #enddef
 
 
@@ -693,11 +612,13 @@ class PageWizard8(Page):
 
 
     def backButtonRelease(self):
+        self.allOff()
         return "_EXIT_"
     #enddef
 
 
     def _EXIT_(self):
+        self.allOff()
         return "_EXIT_"
     #enddef
 
