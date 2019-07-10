@@ -6,7 +6,13 @@ import os
 import logging
 from time import time, sleep
 import toml
+from pydbus import SystemBus
+from gi.repository import GLib
+import threading
+import gettext
+import re
 
+import sl1fw
 from sl1fw import defines
 
 
@@ -62,6 +68,10 @@ class Printer(object):
 
         self.inet.startNetMonitor(self.display.assignNetActive)
 
+        self.eventLoop = GLib.MainLoop()
+        self.eventThread = threading.Thread(target=self.loopThread)
+        self.eventThread.start()
+
         self.logger.info("Start time: %f secs", time() - startTime)
     #endclass
 
@@ -77,6 +87,7 @@ class Printer(object):
         self.display.exit()
         self.inet.exit()
         self.hw.exit()
+        self.eventLoop.quit()
     #enddef
 
 
@@ -146,6 +157,38 @@ class Printer(object):
             self.display.shutDown(True)
         #endtry
 
+    #enddef
+
+    def loopThread(self):
+        self.logger.debug("Registering dbus event handlers")
+        locale = SystemBus().get("org.freedesktop.locale1")
+        locale.PropertiesChanged.connect(self.localeChanged)
+
+        self.logger.debug("Starting printer event loop")
+        self.eventLoop.run()
+        self.logger.debug("Printer event loop exited")
+    #enddef
+
+    def localeChanged(self, service, changed, data):
+        if not 'Locale' in changed:
+            return
+        #endif
+
+        try:
+            lang = re.sub(r"LANG=(.*)\..*", r"\g<1>", changed['Locale'][0])
+        except:
+            self.logger.exception("Failed to determine new locale language")
+            return
+        #endtry
+
+        try:
+            self.logger.debug("Obtaining translation: %s" % lang)
+            translation = gettext.translation('sl1fw', localedir=defines.localedir, languages=[lang], fallback=True)
+            self.logger.debug("Installing translation: %s" % lang)
+            translation.install()
+        except:
+            self.logger.exception("Translation for %s cannot be installed.", lang)
+        #endtry
     #enddef
 
 #endclass

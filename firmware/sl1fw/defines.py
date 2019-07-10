@@ -81,6 +81,7 @@ maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some to
 maxA64Temp = 70.0
 maxUVTemp = 55.0
 
+localedir = os.path.join(swPath, "locales")
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
 manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
 videosURL = "https://www.prusa3d.com/SL1guide/"
