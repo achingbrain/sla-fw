@@ -61,7 +61,7 @@ class PageHome(Page):
 
 
     def showWizard(self):
-        return "wizard1"
+        return "wizardinit"
     #enddef
 
 

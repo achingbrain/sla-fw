@@ -125,7 +125,7 @@ class Printer(object):
                         sleep(0.5)
                     elif self.hwConfig.showWizard:
                         self.hw.beepRepeat(1)
-                        self.display.doMenu("wizard1")
+                        self.display.doMenu("wizardinit")
                         sleep(0.5)
                     #endif
                 #endif

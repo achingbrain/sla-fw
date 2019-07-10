@@ -58,7 +58,7 @@ class PageUnboxing1(Page):
 
 
     def _BACK_(self):
-        return "wizard1"
+        return "wizardinit"
     #enddef
 
 
@@ -222,7 +222,7 @@ class PageUnboxing5(Page):
 
 
     def contButtonRelease(self):
-        return "wizard1"
+        return "wizardinit"
     #enddef
 
 

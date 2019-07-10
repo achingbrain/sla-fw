@@ -415,7 +415,7 @@ class PageAdvancedSettings(Page):
     # Show wizard
     @confirm_leave
     def wizardButtonRelease(self):
-        return "wizard1"
+        return "wizardinit"
     #enddef
 
 
