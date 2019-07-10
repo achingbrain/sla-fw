@@ -37,6 +37,7 @@ class TestLibHardware(unittest.TestCase):
         defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
         defines.hwConfigFactoryDefaultsFile = os.path.join(os.path.dirname(__file__), "samples/hardware.toml")
         defines.templates = os.path.join(os.path.dirname(__file__), "../intranet/templates")
+        defines.multimediaRootPath = os.path.join(os.path.dirname(__file__), "../multimedia")
         defines.hwConfigFile = self.HARDWARE_FILE
         defines.fbFile = self.FB_DEV_FILE
         defines.doFBSet = False

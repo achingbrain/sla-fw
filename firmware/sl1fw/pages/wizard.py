@@ -634,13 +634,12 @@ class PageWizard7(Page):
         super(PageWizard7, self).__init__(display)
         self.pageUI = "yesno"
         self.pageTitle = N_("Setup wizard step 10/10")
+        pygame.mixer.init(44100, -16, 2, 2048)
+        pygame.mixer.music.load(defines.multimediaRootPath + "/chromag_-_the_prophecy.xm")
     #enddef
 
 
     def show(self):
-        pygame.mixer.quit()
-        pygame.mixer.init(44100, -16, 2, 2048)
-        pygame.mixer.music.load(defines.multimediaRootPath + "/chromag_-_the_prophecy.xm")
         pygame.mixer.music.play(-1)
         self.items.update({
             'text' : _("Can you hear the music?")})
@@ -649,22 +648,16 @@ class PageWizard7(Page):
 
 
     def yesButtonRelease(self):
-        self.quitMixer()
+        pygame.mixer.music.stop()
         return "wizard8"
     #endif
 
 
     def noButtonRelease(self):
-        self.quitMixer()
+        pygame.mixer.music.stop()
         self.display.pages['error'].setParams(
             text = _("Speaker not working.\nPlease check propper connection and wiring of the speaker."))
         return "error"
-    #enddef
-
-
-    def quitMixer(self):
-        pygame.mixer.music.stop()
-        pygame.mixer.quit()
     #enddef
 
 
