@@ -11,6 +11,7 @@ from sl1fw.tests.gettextSim import fake_gettext
 from sl1fw.tests.testdisplay import TestDisplay
 import sl1fw.tests.mcPortSim
 import sl1fw.tests.pydbusSim
+import sl1fw.tests.libInternetSim
 
 fake_gettext()
 
@@ -18,6 +19,7 @@ sys.modules['gpio'] = Mock()
 sys.modules['sl1fw.libDebug'] = Mock()
 sys.modules['serial'] = sl1fw.tests.mcPortSim
 sys.modules['pydbus'] = sl1fw.tests.pydbusSim
+sys.modules['sl1fw.libInternet'] = sl1fw.tests.libInternetSim
 
 from sl1fw import libPrinter
 from sl1fw import defines

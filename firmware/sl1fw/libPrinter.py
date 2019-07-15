@@ -10,6 +10,7 @@ from gi.repository import GLib
 import threading
 import gettext
 import re
+from dbus.mainloop.glib import DBusGMainLoop
 
 from sl1fw import defines
 
@@ -73,11 +74,13 @@ class Printer(object):
 
         self.hw.connectMC(PageWait(self.display), PageStart(self.display))
 
-        self.inet.startNetMonitor(self.display.assignNetActive)
-
+        # Start DBus event loop in separate thread
+        DBusGMainLoop(set_as_default=True)
         self.eventLoop = GLib.MainLoop()
         self.eventThread = threading.Thread(target=self.loopThread)
         self.eventThread.start()
+
+        self.inet.startNetMonitor(self.display.assignNetActive)
 
         self.logger.info("Start time: %f secs", time() - startTime)
     #endclass
@@ -93,7 +96,6 @@ class Printer(object):
         self.display.exit()
         self.exited.wait()
         self.screen.exit()
-        self.inet.exit()
         self.hw.exit()
         self.eventLoop.quit()
         self.eventThread.join()

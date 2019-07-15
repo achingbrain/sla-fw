@@ -1,3 +1,6 @@
+import pydbus
+
+
 class SystemBus:
     def __call__(self):
         return self
@@ -13,6 +16,9 @@ class SystemBus:
             return Hostname()
         elif service == "org.freedesktop.locale1":
             return Locale()
+        elif service == "org.freedesktop.NetworkManager":
+            # Temporary, fix we should provide fake object
+            return pydbus.SystemBus().get(service, *args, **kwargs)
         else:
             raise Exception("Cannot provide fake service for unknown service name %s" % service)
 

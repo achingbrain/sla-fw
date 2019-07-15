@@ -181,7 +181,7 @@ class PageSrcSelect(Page):
 
 
     def fillData(self):
-        ip = self.display.inet.getIp()
+        ip = self.display.inet.ip
         if ip != "none" and self.octoprintAuth:
             text = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
         else:
@@ -258,8 +258,8 @@ class PageSrcSelect(Page):
 
 
     def netChange(self):
-        ip = self.display.inet.getIp()
-        if ip != "none" and self.octoprintAuth:
+        ip = self.display.inet.ip
+        if ip != None and self.octoprintAuth:
             self.showItems(text = "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth))
         else:
             self.showItems(text = _("Not connected to network"))
