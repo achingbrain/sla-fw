@@ -13,7 +13,7 @@ from time import sleep
 from sl1fw import defines
 from sl1fw import libPages
 from sl1fw.api.printer0 import Printer0
-from sl1fw.libConfig import WizardData, HwConfig, ConfigException
+from sl1fw.libConfig import HwConfig, ConfigException
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
 from sl1fw.libScreen import Screen
@@ -31,15 +31,10 @@ class Display:
         self.inet = inet
         self.screen = screen
         self.printer0 = printer0
-        self.wizardData = WizardData(Path(defines.wizardDataFile), is_master=True)
+        self.wizardData = None
+        self.uvcalibData = None
         self.expo = None
         self.running = False
-
-        try:
-            self.wizardData.read_file()
-        except ConfigException:
-            self.logger.warning("Failed to read wizarddata", exc_info=True)
-        #endtry
 
         # Instantiate pages
         self.pages = {}

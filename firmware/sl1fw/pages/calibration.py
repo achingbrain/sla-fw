@@ -10,14 +10,14 @@ from sl1fw.libConfig import ConfigException
 from sl1fw.libPages import Page, PageWait
 from sl1fw.pages import page
 from sl1fw.pages.move import MovePage
-
+from sl1fw.pages.uvcalibration import PageUvCalibration
 
 @page
-class PageCalibration1(Page):
-    Name = "calibration1"
+class PageCalibrationStart(Page):
+    Name = "calibrationstart"
 
     def __init__(self, display):
-        super(PageCalibration1, self).__init__(display)
+        super(PageCalibrationStart, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Calibration step 1/11")
     #enddef
@@ -27,7 +27,7 @@ class PageCalibration1(Page):
         self.items.update({
             'imageName' : "06_tighten_knob.jpg",
             'text' : _("If the platform is not yet inserted, insert it according to the picture at 0° angle and secure it with the black knob.")})
-        super(PageCalibration1, self).show()
+        super(PageCalibrationStart, self).show()
     #enddef
 
 
@@ -542,12 +542,12 @@ class PageCalibration10(Page):
             return "error"
         #endtry
         self.display.hw.powerLed("normal")
-        return "calibration11"
+        return PageCalibrationRecalibrateUV.Name
     #endif
 
 
     def backButtonRelease(self):
-        return "calibrationconfirm"
+        return PageCalibrationConfirm.Name
     #enddef
 
 
@@ -573,13 +573,71 @@ class PageCalibration10(Page):
 
 
 @page
-class PageCalibration11(Page):
-    Name = "calibration11"
+class PageCalibrationRecalibrateUV(Page):
+    Name = "calibratiorecalibratenuv"
 
     def __init__(self, display):
-        super(PageCalibration11, self).__init__(display)
+        super(PageCalibrationRecalibrateUV, self).__init__(display)
+        self.pageUI = "yesno"
+        self.pageTitle = N_("Calibrate UV?")
+    #enddef
+
+    def prepare(self):
+        if self.display.hwConfig.uvPwm < 1:
+            while self.display.hwConfig.uvPwm < 1:
+                self.display.doMenu(PageUvCalibration.Name)
+            #endwhile
+
+            return PageCalibrationEnd.Name
+        #endif
+    #enddef
+
+
+    def show(self):
+        self.items.update({ 'text' : _("The UV LED is already calibrated.\n\n"
+                    "Would you like to recalibrate?")})
+        super(PageCalibrationRecalibrateUV, self).show()
+    #enddef
+
+
+    def yesButtonRelease(self):
+        self.display.doMenu(PageUvCalibration.Name)
+        return PageCalibrationEnd.Name
+    #enddef
+
+
+    def noButtonRelease(self):
+        return PageCalibrationEnd.Name
+    #enddef
+
+    def _EXIT_(self):
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+
+@page
+class PageCalibrationEnd(Page):
+    Name = "calibrationend"
+
+    def __init__(self, display):
+        super(PageCalibrationEnd, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Calibration done")
+    #enddef
+
+
+    def prepare(self):
+        self.display.hwConfig.calibrated = True
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
+            self.display.pages['error'].setParams(
+                text=_("Cannot save configuration"))
+            return "error"
+        #endtry
     #enddef
 
 
@@ -593,13 +651,13 @@ class PageCalibration11(Page):
                 'fast' : self.display.hwConfig.tiltFastTime,
                 'slow' : self.display.hwConfig.tiltSlowTime,
                 'area' : self.display.hwConfig.limit4fast }})
-        super(PageCalibration11, self).show()
+        super(PageCalibrationEnd, self).show()
     #enddef
 
 
     def contButtonRelease(self):
         return "_EXIT_"
-    #endif
+    #enddef
 
 
     def backButtonRelease(self):

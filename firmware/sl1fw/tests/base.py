@@ -5,6 +5,8 @@ from pathlib import Path
 from unittest import TestCase
 from mock import Mock
 
+from PIL import Image, ImageChops
+
 from sl1fw import defines
 from sl1fw.tests import samples
 import sl1fw.tests.mocks.mc_port
@@ -28,3 +30,9 @@ class Sl1fwTestCase(TestCase):
 
     def setUp(self) -> None:
         defines.testing = True
+
+    def compareImages(self, path1: str, path2: str) -> bool:
+        one = Image.open(path1)
+        two = Image.open(path2)
+        diff = ImageChops.difference(one, two)
+        return diff.getbbox() != None

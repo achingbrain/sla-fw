@@ -868,7 +868,7 @@ class HwConfig(Config):
     fan1Rpm = IntValue(1800, minimum=500, maximum=3000, factory=True, doc="UV LED fan RPMs.")
     fan2Rpm = IntValue(3700, minimum=500, maximum=3700, factory=True, doc="Blower fan RPMs.")
     fan3Rpm = IntValue(1000, minimum=400, maximum=5000, factory=True, doc="Rear fan RPMs.")
-    uvCurrent = FloatValue(700.8, minimum=0.0, maximum=800.0, doc="UV LED current, DEPRECATED.")
+    uvCurrent = FloatValue(0.0, minimum=0.0, maximum=800.0, doc="UV LED current, DEPRECATED.")
     uvPwm = IntValue(
         lambda self: int(round(self.uvCurrent / 3.2)),
         minimum=0,
@@ -876,8 +876,9 @@ class HwConfig(Config):
         factory=True,
         doc="Calibrated UV LED PWM.",
     )
-    uvCalibTemp = IntValue(40, minimum=30, maximum=50)
-    uvCalibIntensity = IntValue(140, minimum=80, maximum=200)
+    uvWarmUpTime = IntValue(120, minimum=0, maximum=300, doc="UV LED calibration warmup time. [seconds]")
+    uvCalibIntensity = IntValue(150, minimum=90, maximum=200, doc="UV LED calibration intensity.")
+    uvCalibMinIntEdge = IntValue(90, minimum=80, maximum=150, doc="UV LED calibration minimum intensity at the edge.")
 
     # Tilt & Tower -> Tilt tune
     raw_tiltdownlargefill = IntListValue([5, 650, 1000, 4, 1, 0, 64, 3], length=8, key="tiltdownlargefill")
@@ -917,56 +918,6 @@ class HwConfig(Config):
     tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off.")
     showWizard = BoolValue(True, doc="Display wizard at startup if True.")
     showUnboxing = BoolValue(True, doc="Display unboxing wizard at startup if True.")
-
-
-class WizardData(Config):
-    # following values are for quality monitoring systems
-    osVersion = TextValue()
-    a64SerialNo = TextValue()
-    mcSerialNo = TextValue()
-    mcFwVersion = TextValue()
-    mcBoardRev = TextValue()
-    towerHeight = IntValue(-1)
-    tiltHeight = IntValue(-1)
-    uvCurrent = FloatValue(700.8, minimum=0.0, maximum=800.0)
-    uvPwm = IntValue(lambda self: int(round(self.uvCurrent / 3.2)), minimum=0, maximum=250)
-
-    # following values are measured and saved in initial wizard
-    # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
-    wizardUvVoltageRow1 = IntListValue(list())
-    # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
-    wizardUvVoltageRow2 = IntListValue(list())
-    # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
-    wizardUvVoltageRow3 = IntListValue(list())
-    # fans RPM when using default PWM
-    wizardFanRpm = IntListValue(list())
-    # UV LED temperature at the beginning of test (should be close to ambient)
-    wizardTempUvInit = FloatValue(-1)
-    # UV LED temperature after warmup test
-    wizardTempUvWarm = FloatValue(-1)
-    # ambient sensor temperature
-    wizardTempAmbient = FloatValue(-1)
-    # A64 temperature
-    wizardTempA64 = FloatValue(-1)
-    # measured fake resin volume in wizard (without resin with rotated platform)
-    wizardResinVolume = IntValue(-1)
-    # tower axis sensitivity for homing
-    towerSensitivity = IntValue(-1)
-    # wizard was successfully finished
-    wizardDone = IntValue(0)
-
-    # following values are measured and saved in automatic UV LED calibration
-    uvSensorData = IntListValue(list())
-    uvTemperature = FloatValue(-273.2)
-    uvDateTime = TextValue("_NOT_SET_")
-    uvMean = FloatValue(-1)
-    uvStdDev = FloatValue(-1)
-    uvMinValue = IntValue(-1)
-    uvMaxValue = IntValue(-1)
-    uvPercDiff = FloatListValue(list())
-
-    uvFoundCurrent = FloatValue(700.8, minimum=0.0, maximum=800.0, key="uvFoundCurrent")
-    uvFoundPwm = IntValue(lambda self: int(round(self.uvFoundCurrent / 3.2)), minimum=0, maximum=250, factory=True)
 
 
 class PrintConfig(Config):
@@ -1139,23 +1090,28 @@ class TomlConfig:
     def __init__(self, filename):
         self.logger = logging.getLogger(__name__)
         self.filename = filename
+        self.data = {}
 
     def load(self):
         try:
             with open(self.filename, "r") as f:
-                data = toml.load(f)
+                self.data = toml.load(f)
         except FileNotFoundError:
             self.logger.warning("File '%s' not found", self.filename)
-            data = {}
+            self.data = {}
         except Exception:
             self.logger.exception("Failed to load toml file")
-            data = {}
-        return data
+            self.data = {}
+        return self.data
+
+    def save_raw(self):
+        with open(self.filename, "w") as f:
+            toml.dump(self.data, f)
 
     def save(self, data):
         try:
-            with open(self.filename, "w") as f:
-                toml.dump(data, f)
+            self.data = data
+            self.save_raw()
         except Exception:
             self.logger.exception("Failed to save toml file")
             return False

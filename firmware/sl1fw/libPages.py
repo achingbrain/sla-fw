@@ -561,14 +561,21 @@ class Page:
 
 
     def getMeasPwms(self):
-        br = self.display.hw.mcBoardRevisionBin
-        if br[0] >= 6 and br[1] >= 2:
-            self.measMinPwm = defines.uvLedMeasMinPwm500k
-            self.measMaxPwm = defines.uvLedMeasMaxPwm500k
+        if self.display.hw.is500khz:
+            return defines.uvLedMeasMinPwm500k, defines.uvLedMeasMaxPwm500k
         else:
-            self.measMinPwm = defines.uvLedMeasMinPwm
-            self.measMaxPwm = defines.uvLedMeasMaxPwm
+            return defines.uvLedMeasMinPwm, defines.uvLedMeasMaxPwm
         #endif
+    #enddef
+
+    def getMinPwm(self):
+        min, max = self.getMeasPwms()
+        return min
+    #enddef
+
+    def getMaxPwm(self):
+        min, max = self.getMeasPwms()
+        return max
     #enddef
 
 #endclass

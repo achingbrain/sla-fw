@@ -6,13 +6,52 @@
 import re
 from gettext import ngettext
 from time import sleep
+from dataclasses import dataclass, asdict
+import distro
 
 import pygame
 
 from sl1fw import defines
-from sl1fw.libConfig import ConfigException
+from sl1fw.libConfig import ConfigException, TomlConfig
 from sl1fw.libPages import Page, PageWait
 from sl1fw.pages import page
+from sl1fw.pages.calibration import PageCalibrationStart
+
+
+@dataclass(init=False)
+class WizardData:
+    # following values are for quality monitoring systems
+    osVersion: str
+    a64SerialNo: str
+    mcSerialNo: str
+    mcFwVersion: str
+    mcBoardRev: str
+    towerHeight: int
+    tiltHeight: int
+    uvPwm: int
+
+    # following values are measured and saved in initial wizard
+    # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
+    wizardUvVoltageRow1: list
+    # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
+    wizardUvVoltageRow2: list
+    # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
+    wizardUvVoltageRow3: list
+    # fans RPM when using default PWM
+    wizardFanRpm: list
+    # UV LED temperature at the beginning of test (should be close to ambient)
+    wizardTempUvInit: float
+    # UV LED temperature after warmup test
+    wizardTempUvWarm: float
+    # ambient sensor temperature
+    wizardTempAmbient: float
+    # A64 temperature
+    wizardTempA64: float
+    # measured fake resin volume in wizard (without resin with rotated platform)
+    wizardResinVolume: int
+    # tower axis sensitivity for homing
+    towerSensitivity: int
+#endclass
 
 
 @page
@@ -54,6 +93,7 @@ class PageWizardInit(Page):
 
 
     def justContinue(self):
+        self.display.wizardData = WizardData()
         self.display.hw.powerLed("warn")
         homeStatus = 0
 
@@ -114,21 +154,17 @@ class PageWizardInit(Page):
 
         #tower home check
         pageWait.showItems(line1 = _("Tower home check"))
+        self.display.wizardData.towerSensitivity = 0    # default value
         for i in range(3):
             if not self.display.hw.towerSyncWait():
-                return "towersensitivity"
+                if not self.display.doMenu("towersensitivity"):
+                    return self._EXIT_()
+                #endif
+            #endif
         #endfor
+        self.display.hw.powerLed("normal")
 
-        return "fantest"
-    #enddef
-
-
-    # FIXME: this value is returned at the end of towersensitivity. We can proceed fantest
-    def _OK_(self):
         #temperature check
-        pageWait = PageWait(self.display, line1 = _("A64 temperature check"))
-        pageWait.show()
-
         A64temperature = self.display.hw.getCpuTemperature()
         if A64temperature > defines.maxA64Temp:
             self.display.pages['error'].setParams(
@@ -143,7 +179,6 @@ class PageWizardInit(Page):
             return "error"
         #endif
 
-        self.showItems(line1 = _("Thermistors temperature check"))
         temperatures = self.display.hw.getMcTemperatures()
         for i in range(2):
             if temperatures[i] < 0:
@@ -169,14 +204,11 @@ class PageWizardInit(Page):
         self.display.wizardData.wizardTempA64 = A64temperature
         self.display.wizardData.wizardTempUvInit = temperatures[0]
         self.display.wizardData.wizardTempAmbient = temperatures[1]
-        self.display.hw.powerLed("normal")
 
-        return "fantest"
-    #enddef
+        if not self.display.doMenu("fantest"):
+            return self._EXIT_()
+        #endif
 
-
-    # FIXME: this value is returned at the end of fantest. We can proceed wizarduvled
-    def _NOK_(self):
         return "wizarduvled"
     #enddef
 
@@ -240,8 +272,7 @@ class PageWizardUvLed(Page):
         pageWait.show()
         self.display.hw.uvLedPwm = 0
         self.display.hw.uvLed(True)
-        br = self.display.hw.mcBoardRevisionBin
-        if br[0] >= 6 and br[1] >= 2:
+        if self.display.hw.is500khz:
             uvPwms = [40, 122, 243, 250]    # board rev 0.6c+
         else:
             uvPwms = [31, 94, 188, 219]     # board rev. < 0.6c
@@ -292,10 +323,13 @@ class PageWizardUvLed(Page):
             #endif
         #endfor
         self.display.wizardData.wizardTempUvWarm = temp
-        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
-        self.display.hw.powerLed("normal")
+        self.display.hw.uvLedPwm = uvPwms[2]
 
-        return "displaytest"
+        if not self.display.doMenu("displaytest"):
+            return self._EXIT_()
+        #endif
+
+        return "wizardtoweraxis"
     #enddef
 
 
@@ -304,13 +338,7 @@ class PageWizardUvLed(Page):
     #enddef
 
 
-    def _OK_(self):
-        return "wizardtoweraxis"
-    #enddef
-
-
     def _EXIT_(self):
-        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -391,7 +419,6 @@ class PageWizardTowerAxis(Page):
 
 
     def _EXIT_(self):
-        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -466,12 +493,30 @@ class PageWizardResinSensor(Page):
             return "error"
         #endif
 
-        # store data only in factory mode or after first successful run on kit
-        if self.display.printer0.factory_mode or (self.display.hw.isKit and not self.display.wizardData.wizardDone):
-            self.display.wizardData.wizardDone = 1
-            if not self.writeToFactory(self.display.wizardData.write):
+        wizardConfig = TomlConfig(defines.wizardDataFile)
+        savedData = wizardConfig.load()
+
+        # store data only in factory mode or not saved before
+        if self.display.printer0.factory_mode or not savedData:
+            self.display.wizardData.osVersion = distro.version()
+            self.display.wizardData.a64SerialNo = self.display.hw.cpuSerialNo
+            self.display.wizardData.mcSerialNo = self.display.hw.mcSerialNo
+            self.display.wizardData.mcFwVersion = self.display.hw.mcFwVersion
+            self.display.wizardData.mcBoardRev = self.display.hw.mcBoardRevision
+            self.display.wizardData.towerHeight = self.display.hwConfig.towerHeight
+            self.display.wizardData.tiltHeight = self.display.hwConfig.tiltHeight
+            self.display.wizardData.uvPwm = self.display.hwConfig.uvPwm
+            try:
+                wizardConfig.data = asdict(self.display.wizardData)
+            except AttributeError:
+                self.logger.exception("wizardData is not completely filled")
                 self.display.pages['error'].setParams(
-                    text = _("!!! Failed to save factory defaults !!!"))
+                    text = _("!!! Failed to serialize wizard data !!!"))
+                return "error"
+            #endtry
+            if not self.writeToFactory(wizardConfig.save_raw):
+                self.display.pages['error'].setParams(
+                    text = _("!!! Failed to save wizard data !!!"))
                 return "error"
             #endif
         #endif
@@ -487,7 +532,6 @@ class PageWizardResinSensor(Page):
 
 
     def _EXIT_(self):
-        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -527,7 +571,6 @@ class PageWizardTimezone(Page):
 
 
     def _EXIT_(self):
-        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -570,7 +613,6 @@ class PageWizardSpeaker(Page):
 
 
     def _EXIT_(self):
-        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -597,18 +639,16 @@ class PageWizardFinish(Page):
 
 
     def contButtonRelease(self):
-        return "calibration1"
+        return PageCalibrationStart.Name
     #enddef
 
 
     def backButtonRelease(self):
-        self.allOff()
         return "_EXIT_"
     #enddef
 
 
     def _EXIT_(self):
-        self.allOff()
         return "_EXIT_"
     #enddef
 
@@ -636,7 +676,6 @@ class PageWizardSkip(Page):
 
 
     def yesButtonRelease(self):
-        self.allOff()
         self.display.hwConfig.showWizard = False
         try:
             self.display.hwConfig.write()

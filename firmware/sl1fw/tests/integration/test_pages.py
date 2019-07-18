@@ -220,7 +220,11 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.waitPage("confirm")  # Tighten the small screw
         self.press("cont")
         self.waitPage("wait")  # Measuring tilt times
-        self.waitPage("confirm", timeout_sec=120)  # Calibration done
+        # Fake UV calibration
+        self.printer.hwConfig.uvPwm = 219
+        self.waitPage("yesno", timeout_sec=120)  # The UV LED is already calibrated ...
+        self.press("no")
+        self.waitPage("confirm")  # Calibration done
         self.press("cont")
 
         self.waitPage("settings")

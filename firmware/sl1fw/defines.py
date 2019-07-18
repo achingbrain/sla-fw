@@ -21,7 +21,8 @@ hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
 loggingConfig = Path(configDir) / "loggerConfig.json"
 hwConfigFactoryDefaultsFile = os.path.join(factoryMountPoint, "hardware.toml")
-wizardDataFile = os.path.join(factoryMountPoint, "wizardData.cfg")  # TODO cfg->toml
+wizardDataFile = os.path.join(factoryMountPoint, "wizard_data.toml")
+uvCalibDataFile = os.path.join(factoryMountPoint, "uvcalib_data.toml")
 
 perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 
@@ -108,11 +109,14 @@ admincheckURL = "https://sl1.prusa3d.com/check-admin"
 admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
 bootFailedStamp = os.path.join(persistentStorage, "failedboot")
 apikeyFile = os.path.join(configDir, "api.key")
-uvLedMeterDevice = "/dev/uvmeter"
+uvLedMeterMaxWait_s = 10
 uvLedMeasMinPwm = 125
 uvLedMeasMaxPwm = 188
 uvLedMeasMinPwm500k = 157
 uvLedMeasMaxPwm500k = 243
+uvMeterErrorComm = 1
+uvMeterErrorTrans = 2
+uvMeterErrorInt = 3
 factoryConfigFile = os.path.join(factoryMountPoint, "factory.toml")
 logsBase = "/var/log/journal"
 testing = False

@@ -11,7 +11,6 @@ from queue import Empty
 from io import BytesIO
 import subprocess
 import zipfile
-import lazy_import
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import numpy
@@ -150,10 +149,27 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def fillArea(self, area):
+    def fillArea(self, area, color = 0):
         surf = ImageDraw.Draw(self.screen)
-        surf.rectangle((area['x'], area['y'], area['x'] + area['l'], area['y'] + area['w']), 0)
+        surf.rectangle((area['x'], area['y'], area['x'] + area['w'], area['y'] + area['h']), color)
         self._writefb()
+    #enddef
+
+
+    def fillAreaPerc(self, area, color):
+        self.logger.debug("area: %s", str(area))
+        areaPixels = {}
+        areaPixels['x'] = self._calcPixels(area['x'], self.width)
+        areaPixels['y'] = self._calcPixels(area['y'], self.height)
+        areaPixels['w'] = self._calcPixels(area['w'], self.width)
+        areaPixels['h'] = self._calcPixels(area['h'], self.height)
+        self.logger.debug("areaPixels: %s", str(areaPixels))
+        self.fillArea(areaPixels, color)
+    #enddef
+
+
+    def _calcPixels(self, perc, whole):
+        return int((perc * whole) / 100)
     #enddef
 
 
@@ -336,7 +352,7 @@ class ScreenServer(multiprocessing.Process):
                     for j in range(divide[y]):
                         w = (i+1) * stepW
                         h = (j+1) * stepH
-                        rect = {'x': lw, 'y': lh, 'l': stepW, 'w': stepH}
+                        rect = {'x': lw, 'y': lh, 'w': stepW, 'h': stepH}
                         self.logger.debug("%.1f - %s", etime, str(rect))
                         self.calibAreas.append({ 'time' : etime, 'rect' : rect })
                         etime += calibrateTime
@@ -384,8 +400,8 @@ class ScreenServer(multiprocessing.Process):
         self.logger.debug("first bbox: %s  padding: %s", firstbbox, firstPadding)
         areaSize = self.calibAreas[0]['rect']
 
-        if areaSize['l'] < projSize[0]:
-            shrink = (projSize[0] - areaSize['l']) // 2
+        if areaSize['w'] < projSize[0]:
+            shrink = (projSize[0] - areaSize['w']) // 2
             self.logger.debug("shrink l: %d", shrink)
             maxbbox[0] += shrink
             maxbbox[2] -= shrink
@@ -401,8 +417,8 @@ class ScreenServer(multiprocessing.Process):
             #endif
         #endif
 
-        if areaSize['w'] < projSize[1]:
-            shrink = (projSize[1] - areaSize['w']) // 2
+        if areaSize['h'] < projSize[1]:
+            shrink = (projSize[1] - areaSize['h']) // 2
             self.logger.debug("shrink w: %d", shrink)
             maxbbox[1] += shrink
             maxbbox[3] -= shrink
@@ -422,7 +438,7 @@ class ScreenServer(multiprocessing.Process):
             self.logger.warning("project size %dx%d was reduced to %dx%d to fit area size %dx%d",
                     projSize[0], projSize[1],
                     maxbbox[2] - maxbbox[0], maxbbox[3] - maxbbox[1],
-                    areaSize['l'], areaSize['w'])
+                    areaSize['w'], areaSize['h'])
             projSize = list((maxbbox[2] - maxbbox[0], maxbbox[3] - maxbbox[1]))
             self.logger.debug("max bbox: %s  project size: %s", maxbbox, projSize)
             self.logger.debug("first bbox: %s  padding: %s", firstbbox, firstPadding)
@@ -444,12 +460,12 @@ class ScreenServer(multiprocessing.Process):
             self.logger.debug("ofsetX: %d  ofsetY: %d", ofsetX, ofsetY)
 
             areaRect = area['rect']
-            place = areaRect['x'] + (areaRect['l'] - projSize[0]) // 2, areaRect['y'] + (areaRect['w'] - projSize[1]) // 2
+            place = areaRect['x'] + (areaRect['w'] - projSize[0]) // 2, areaRect['y'] + (areaRect['h'] - projSize[1]) // 2
             self.logger.debug("placeX: %d  placeY: %d", place[0], place[1])
             self.pasteData['dest'].append(list(place))
 
             firstSizeX = maxbbox[2] - firstPadding[2] - maxbbox[0] - firstPadding[0]
-            startX = areaRect['x'] + (firstSizeX - padX) // 2 + (areaRect['l'] - firstSizeX) // 2
+            startX = areaRect['x'] + (firstSizeX - padX) // 2 + (areaRect['w'] - firstSizeX) // 2
             startY = place[1] + firstPadding[1] - padY + penetration
             if startY < areaRect['y']:
                 startY = areaRect['y']
@@ -547,6 +563,12 @@ class Screen:
 
     def fillArea(self, **kwargs):
         kwargs['fce'] = 'fillArea'
+        self.commands.put(kwargs)
+    #enddef
+
+
+    def fillAreaPerc(self, **kwargs):
+        kwargs['fce'] = 'fillAreaPerc'
         self.commands.put(kwargs)
     #enddef
 

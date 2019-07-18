@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 
 import unittest
-from pathlib import Path
 from PIL import Image
 import numpy as np
-import os
 
 from sl1fw.tests.base import Sl1fwTestCase
-
-from sl1fw import defines
 
 
 class TestNumpy(unittest.TestCase):

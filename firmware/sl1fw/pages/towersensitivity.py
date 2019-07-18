@@ -60,7 +60,9 @@ class PageTowerSensitivity(Page):
         if tries == 0:
             self.display.hwConfig.towerSensitivity = towerSensitivity
             self.display.hw.setTowerPosition(self.display.hw._towerEnd)
-            self.display.wizardData.towerSensitivity = self.display.hwConfig.towerSensitivity
+            if self.display.wizardData:
+                self.display.wizardData.towerSensitivity = self.display.hwConfig.towerSensitivity
+            #endif
             self.display.hwConfig.towerSensitivity = self.display.hwConfig.towerSensitivity
 
             try:
@@ -73,12 +75,7 @@ class PageTowerSensitivity(Page):
             #endif
         #endif
 
-        # FIXME: hack to be properly handled in wizard
         return "_OK_"
-    #enddef
-
-    def _EXIT_(self):
-        return "_EXIT_"
     #enddef
 
 #endclass

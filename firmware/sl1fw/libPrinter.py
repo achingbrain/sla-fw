@@ -160,14 +160,14 @@ class Printer:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("wizardinit")
                 sleep(0.5)
-            elif not self.display.hwConfig.calibrated:
+            elif not self.hwConfig.calibrated:
                 self.display.pages['yesno'].setParams(
                         pageTitle = N_("Calibrate now?"),
                         text = _("Printer is not calibrated!\n\n"
                                  "Calibrate now?"))
                 self.hw.beepRepeat(1)
                 if self.display.doMenu("yesno"):
-                    self.display.doMenu("calibration1")
+                    self.display.doMenu("calibrationstart")
                 #endif
             #endif
         #endif

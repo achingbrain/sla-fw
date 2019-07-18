@@ -87,10 +87,12 @@ class PageFanTest(Page):
             #endif
             avgRpms.append(avgRpm)
         #endfor
-        self.display.wizardData.wizardFanRpm = avgRpms
 
-        # FIXME: hack to be properly handled in wizard
-        return "_NOK_"
+        if self.display.wizardData:
+            self.display.wizardData.wizardFanRpm = avgRpms
+        #endif
+
+        return "_OK_"
     #enddef
 
     def leave(self):

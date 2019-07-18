@@ -37,8 +37,9 @@ class PageFansLeds(Page):
                 'label2g2' : _("Blower fan RPM"),
                 'label2g3' : _("Rear fan RPM"),
                 'label2g5' : _("UV LED PWM"),
-                'label2g6' : _("UV calib. temperature"),
+                'label2g6' : _("UV calib. warm-up [s]"),
                 'label2g7' : _("UV calib. intensity"),
+                'label2g8' : _("UV cal. min. int. edge"),
 
                 'button1' : _("Save defaults"),
                 'button3' : _("Defaults"),
@@ -46,7 +47,7 @@ class PageFansLeds(Page):
                 'back' : _("Back"),
                 })
         self.updateDataPeriod = 0.5
-        self.valuesToSave = list(('fan1rpm', 'fan2rpm', 'fan3rpm', 'uvpwm', 'uvcalibtemp', 'uvcalibintensity'))
+        self.valuesToSave = list(('fan1rpm', 'fan2rpm', 'fan3rpm', 'uvpwm', 'uvwarmuptime', 'uvcalibintensity', 'uvcalibminintedge'))
         self.checkCooling = True
     #enddef
 
@@ -55,10 +56,12 @@ class PageFansLeds(Page):
         self.oldValues = {}
         self.changed = {}
         self.temp = {}
-        self.temp['uvcalibtemp'] = self.display.hwConfig.uvCalibTemp
+        self.temp['uvwarmuptime'] = self.display.hwConfig.uvWarmUpTime
         self.temp['uvcalibintensity'] = self.display.hwConfig.uvCalibIntensity
-        self.items['value2g6'] = self.temp['uvcalibtemp']
+        self.temp['uvcalibminintedge'] = self.display.hwConfig.uvCalibMinIntEdge
+        self.items['value2g6'] = self.temp['uvwarmuptime']
         self.items['value2g7'] = self.temp['uvcalibintensity']
+        self.items['value2g8'] = self.temp['uvcalibminintedge']
 
         self.temp['fan1rpm'] = self.display.hwConfig.fan1Rpm
         self.temp['fan2rpm'] = self.display.hwConfig.fan2Rpm
@@ -143,6 +146,9 @@ class PageFansLeds(Page):
     def _update_config(self):
         # filter only wanted items
         filtered = { k : v for k, v in [t for t in self.changed.items() if t[0] in self.valuesToSave] }
+        if 'uvpwm' in filtered:
+            del self.display.hwConfig.uvCurrent   # remove old value too
+        #enddef
         self.display.hwConfig.get_writer().commit_dict(filtered)
     #enddef
 
@@ -270,12 +276,12 @@ class PageFansLeds(Page):
 
 
     def minus2g6Button(self):
-        self._value(self.temp, self.changed, 5, 'uvcalibtemp', 30, 50, -1)
+        self._value(self.temp, self.changed, 5, 'uvwarmuptime', 0, 300, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        self._value(self.temp, self.changed, 5, 'uvcalibtemp', 30, 50, 1)
+        self._value(self.temp, self.changed, 5, 'uvwarmuptime', 0, 300, 1)
     #enddef
 
 
@@ -286,6 +292,16 @@ class PageFansLeds(Page):
 
     def plus2g7Button(self):
         self._value(self.temp, self.changed, 6, 'uvcalibintensity', 80, 200, 1)
+    #enddef
+
+
+    def minus2g8Button(self):
+        self._value(self.temp, self.changed, 7, 'uvcalibminintedge', 80, 200, -1)
+    #enddef
+
+
+    def plus2g8Button(self):
+        self._value(self.temp, self.changed, 7, 'uvcalibminintedge', 80, 200, 1)
     #enddef
 
 #endclass

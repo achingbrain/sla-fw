@@ -1,0 +1,10 @@
+uvSensorType = 1
+uvSensorData = [ 150, 118,]
+uvTemperature = 40.0
+uvDateTime = "14.10.2019 12:58:32"
+uvMean = 150.4
+uvStdDev = 0.0
+uvMinValue = 118
+uvMaxValue = 150
+uvPercDiff = [ 12.1, -12.1,]
+uvFoundPwm = 210

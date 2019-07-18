@@ -6,12 +6,10 @@ import logging
 import zipfile
 import filecmp
 import numpy
-from pathlib import Path
 
 from sl1fw.tests.base import Sl1fwTestCase
 
 from sl1fw import defines
-from sl1fw import libConfig
 
 
 class TestScreen(Sl1fwTestCase):
@@ -30,6 +28,7 @@ class TestScreen(Sl1fwTestCase):
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.livePreviewImage = str(self.PREVIEW_FILE)
         defines.displayUsageData = str(self.DISPLAY_USAGE)
+        defines.testing = True
 
         from sl1fw.libScreen import Screen
         self.screen = Screen()

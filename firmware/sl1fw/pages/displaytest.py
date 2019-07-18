@@ -55,11 +55,6 @@ class PageDisplayTest(Page):
     #enddef
 
 
-    def _EXIT_(self):
-        return "_EXIT_"
-    #enddef
-
-
     def leave(self):
         self.display.fanErrorOverride = False
         self.display.hw.saveUvStatistics()

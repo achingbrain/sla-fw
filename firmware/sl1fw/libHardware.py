@@ -659,7 +659,7 @@ class Hardware:
 
     @property
     def mcBoardRevisionBin(self):
-        return self.mcc.MCBoardRevision[1], (self.mcc.MCBoardRevision[0])
+        return self.mcc.MCBoardRevision[1], self.mcc.MCBoardRevision[0]
     #enddef
 
 
@@ -688,6 +688,13 @@ class Hardware:
     @property
     def isKit(self):
         return self.boardData[1]
+    #enddef
+
+
+    @property
+    def is500khz(self):
+        br = self.mcBoardRevisionBin
+        return br[0] >= 6 and br[1] >= 2
     #enddef
 
 
@@ -979,7 +986,7 @@ class Hardware:
 
     @uvLedPwm.setter
     def uvLedPwm(self, pwm):
-        self.mcc.do("!upwm", pwm)
+        self.mcc.do("!upwm", int(pwm))
     #enddef
 
 

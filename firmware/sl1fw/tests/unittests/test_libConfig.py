@@ -4,7 +4,7 @@ from shutil import copyfile
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libConfig import HwConfig, PrintConfig, Config, FloatValue, IntListValue, IntValue, BoolValue, \
-    FloatListValue, TextValue, ConfigWriter, WizardData
+    FloatListValue, TextValue, ConfigWriter
 from sl1fw import defines
 
 
@@ -161,7 +161,8 @@ class TestHardwareConfig(Sl1fwTestCase):
 
     def setUp(self):
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
-        defines.hwConfigFile = str(self.SAMPLES_DIR / "hardware.cfg")
+        defines.hwConfigFactoryDefaultsFile = str(self.SAMPLES_DIR / "hardware.toml")
+        defines.hwConfigFile = str(self.SAMPLES_DIR / "hardware-toml.cfg")
         copyfile(defines.hwConfigFile, "hwconfig.test")
 
     def tearDown(self):
@@ -182,6 +183,17 @@ class TestHardwareConfig(Sl1fwTestCase):
     def get_config_content(path: Path):
         with open(str(path), "r") as f:
             return f.read()
+
+    def test_update(self):
+        hw_config = HwConfig(self.test_config_path, factory_file_path=Path(defines.hwConfigFactoryDefaultsFile), is_master=True)
+        hw_config.read_file()
+        print(hw_config)
+        hw_config.factoryMode = True
+        print(hw_config.calcMicroSteps(defines.defaultTowerHeight))
+        hw_config.showWizard = False
+        hw_config.write()
+        print(self.get_config_content(self.test_config_path))
+
 
     def test_write(self):
         hw_config = HwConfig(self.test_config_path, is_master=True)
@@ -221,7 +233,7 @@ class TestHardwareConfig(Sl1fwTestCase):
         hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
         hw_config.read_file()
         print(hw_config.uvPwm)
-        self.assertEqual(219, hw_config.uvPwm, "UV LED PWM - No defaults at all")
+        self.assertEqual(0, hw_config.uvPwm, "UV LED PWM - No defaults at all")
 
     def test_uvledpwm2(self):
         hw_config = HwConfig(self.SAMPLES_DIR / "hardware-current.cfg")
@@ -273,41 +285,6 @@ class TestPrintConfig(Sl1fwTestCase):
         self.assertEqual(config.expTime, 5, "Check expTime value")
 
         # config.write("printconfig.txt")
-
-
-class TestWizardData(Sl1fwTestCase):
-    def setUp(self):
-        self.test_wizarddata = Path("wizardData.test")
-        copyfile(self.SAMPLES_DIR / "wizardData.cfg", self.test_wizarddata)
-        self.wizardData = WizardData(self.test_wizarddata, is_master=True)
-
-    def tearDown(self):
-        if self.test_wizarddata.exists():
-            self.test_wizarddata.unlink()
-
-    def test_lists(self):
-        sensor_data = [98, 105, 108, 128, 136, 111, 145]
-        perc_diff = [-23.4, -17.9, -15.6, 0.0, 6.3, -13.3, 13.3, -6.2, -10.9, -18.7]
-        writer = ConfigWriter(self.wizardData)
-        writer.uvSensorData = sensor_data
-        writer.uvPercDiff = perc_diff
-        writer.commit()
-
-        self.assertEqual(self.wizardData.uvSensorData, sensor_data, "Check uvSensorData is set")
-        self.assertEqual(self.wizardData.uvPercDiff, perc_diff, "Check uvSensorData is set")
-
-        print(self.wizardData)
-
-        self.wizardData.write(self.test_wizarddata)
-        with self.test_wizarddata.open("r") as f:
-            self.assertEqual(
-                "uvSensorData = [ 98, 105, 108, 128, 136, 111, 145,]\n"
-                "uvPercDiff = [ -23.4, -17.9, -15.6, 0.0, 6.3, -13.3, 13.3, -6.2, -10.9, -18.7,]\n",
-                f.read(),
-                "Check file lines")
-
-        self.assertEqual(self.wizardData.uvSensorData, sensor_data, "Test sensor data read")
-        self.assertEqual(self.wizardData.uvPercDiff, perc_diff, "Test perc diff read")
 
 
 class TestConfigHelper(Sl1fwTestCase):

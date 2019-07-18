@@ -30,7 +30,6 @@ class PageNetUpdate(Page):
     def show(self):
         # Create item for downloading examples
         self.items.update({
-            "button14" : _("Send factory config"),
             "button15" : _("Download examples"),
         })
 
@@ -63,84 +62,6 @@ class PageNetUpdate(Page):
         #endfor
 
         super(PageNetUpdate, self).show()
-    #enddef
-
-
-    def button14ButtonRelease(self):
-        if not self.display.hw.isKit:
-            if self.display.wizardData.wizardResinVolume < 0:
-                self.display.pages['error'].setParams(
-                        backFce = self.gotoWizard,
-                        text = _("The wizard was not finished successfully!"))
-                return "error"
-            #endif
-
-            if not self.display.hwConfig.calibrated:
-                self.display.pages['error'].setParams(
-                        backFce = self.gotoCalib,
-                        text = _("The calibration was not finished successfully!"))
-                return "error"
-            #endif
-        #enddef
-
-        if self.display.wizardData.uvFoundPwm < 1:
-            self.display.pages['error'].setParams(
-                    backFce = self.gotoUVcalib,
-                    text = _("The automatic UV LED calibration was not finished successfully!"))
-            return "error"
-        #endif
-
-        writer = self.display.wizardData.get_writer()
-        writer.osVersion = distro.version()
-        writer.a64SerialNo = self.display.hw.cpuSerialNo
-        writer.mcSerialNo = self.display.hw.mcSerialNo
-        writer.mcFwVersion = self.display.hw.mcFwVersion
-        writer.mcBoardRev = self.display.hw.mcBoardRevision
-        writer.towerHeight = self.display.hwConfig.towerHeight
-        writer.tiltHeight = self.display.hwConfig.tiltHeight
-        writer.uvPwm = self.display.hwConfig.uvPwm
-
-        if not self.writeToFactory(writer.commit):
-            self.display.pages['error'].setParams(
-                text = _("!!! Failed to save factory defaults !!!"))
-            return "error"
-        #endif
-
-        topic = "prusa/sl1/factoryConfig"
-        data = json.dumps(self.display.wizardData.as_dictionary(nondefault=True))
-        self.logger.debug("mqtt data: %s", data)
-        try:
-            mqtt.single(topic, data, qos=2, retain=True, hostname="mqttstage.prusa")
-        except Exception as err:
-            self.logger.error("mqtt message not delivered. %s", err)
-            self.display.pages['error'].setParams(text = _("Cannot send factory config!"))
-            return "error"
-        #endtry
-
-        self.display.pages['confirm'].setParams(
-                continueFce = self.success,
-                text = _("Factory config was successfully sent."))
-        return "confirm"
-    #enddef
-
-
-    def gotoWizard(self):
-        return "wizardinit"
-    #enddef
-
-
-    def gotoCalib(self):
-        return "calibration1"
-    #enddef
-
-
-    def gotoUVcalib(self):
-        return "uvcalibrationtest"
-    #enddef
-
-
-    def success(self):
-        return "_BACK_"
     #enddef
 
 

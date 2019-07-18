@@ -5,7 +5,8 @@
 import logging
 import os
 import shutil
-import threading, queue
+import threading
+import queue
 import zipfile
 from time import sleep, time
 from gettext import ngettext
@@ -305,7 +306,7 @@ class ExposureThread(threading.Thread):
                     #endif
                 #endif
 
-                if command == "feedme" or command == "feedmeByButton":
+                if command in ("feedme", "feedmeByButton"):
                     self.expo.hw.powerLed("warn")
                     if self.expo.hwConfig.tilt:
                         self.expo.hw.tiltLayerUpWait()

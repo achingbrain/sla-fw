@@ -60,9 +60,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         try:
             self.thread.start()
             self.waitPage("splash")
-            # Skip failed to load factory defaults
-            self.waitPage("error")
-            self.press("ok")
 
             # Skip wizard
             self.waitPage("confirm")
