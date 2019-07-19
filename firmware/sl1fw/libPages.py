@@ -9,6 +9,7 @@ from time import time, sleep
 import toml
 import subprocess
 import glob
+import tarfile
 
 # Python 2/3 imports
 try:
@@ -298,12 +299,15 @@ class Page(object):
 
         timestamp = str(int(time()))
         serial = self.display.hw.cpuSerialNo
-        log_file = os.path.join(save_path, "log.%s.%s.txt.gz" % (serial, timestamp))
+        log_file = os.path.join(save_path, "log.%s.%s.tar" % (serial, timestamp))
+        arcname = "%s.%s" % (serial, timestamp)
 
         try:
-            subprocess.check_call(
-                ["/bin/sh", "-c", "journalctl | gzip > %s; sync" % log_file])
-        except subprocess.CalledProcessError as e:
+            subprocess.check_call(["/usr/bin/journalctl", "--sync"])
+            with tarfile.open(log_file, "w") as tar:
+                tar.add(defines.logsBase, arcname=arcname)
+        except:
+            self.logger.error("Saving logs failed")
             self.display.pages['error'].setParams(text=_("Log save failed"))
             return "error"
         #endexcept
