@@ -101,3 +101,4 @@ uvLedMeasMaxPwm = 188
 uvLedMeasMinPwm500k = 157
 uvLedMeasMaxPwm500k = 243
 factoryConfigFile = os.path.join(factoryMountPoint, "factory.toml")
+logsBase = "/var/log/journal"
