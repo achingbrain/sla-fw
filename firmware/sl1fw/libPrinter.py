@@ -41,6 +41,12 @@ class Printer(object):
         from sl1fw.libHardware import Hardware
         self.hw = Hardware(self.hwConfig, self.config)
 
+        # needed before init of other components (display etc)
+        if self.hwConfig.factoryMode and self.hw.isKit:
+            self.hwConfig.factoryMode = False
+            self.logger.warning("Factory mode disabled for kit")
+        #endif
+
         from sl1fw.libInternet import Internet
         self.inet = Internet()
 
@@ -113,7 +119,7 @@ class Printer(object):
                 #endif
 
                 if firstRun:
-                    if not self.hwConfig.defaultsSet():
+                    if not self.hwConfig.defaultsSet() and not self.hw.isKit:
                         self.display.pages['error'].setParams(
                             text=_("Failed to load fans and LEDS factory calibration."))
                         self.display.doMenu("error")
@@ -121,7 +127,13 @@ class Printer(object):
 
                     if self.hwConfig.showUnboxing:
                         self.hw.beepRepeat(1)
-                        self.display.doMenu("unboxing1")
+                        if self.hw.isKit:
+                            # force page title
+                            self.display.pages['unboxing4'].pageTitle = N_("Unboxing step 1/1")
+                            self.display.doMenu("unboxing4")
+                        else:
+                            self.display.doMenu("unboxing1")
+                        #endif
                         sleep(0.5)
                     elif self.hwConfig.showWizard:
                         self.hw.beepRepeat(1)

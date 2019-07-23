@@ -21,8 +21,7 @@ class PageUnboxing1(Page):
     def show(self):
         self.items.update({
             'imageName' : "16_sticker_open_cover.jpg",
-            'text' : _("Please remove the safety sticker on the right and open the orange cover.\n\n"
-                "In case you assembled your printer, you can skip this wizard by hitting the Back button.")})
+            'text' : _("Please remove the safety sticker on the right and open the orange cover.")})
         super(PageUnboxing1, self).show()
     #enddef
 
@@ -253,9 +252,8 @@ class PageUnboxingConfirm(Page):
     def show(self):
         self.items.update({
             'text' : _("Do you really want to skip the unboxing wizard?\n\n"
-                "Press 'Yes' only in case you've assembled the printer as a kit,"
-                " or you went through this wizard previously and the printer is"
-                " unpacked.")})
+                "Press 'Yes' only in case you went through this wizard "
+                "previously and the printer is unpacked.")})
         super(PageUnboxingConfirm, self).show()
     #enddef
 
