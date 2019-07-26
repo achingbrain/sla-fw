@@ -9,7 +9,7 @@ from time import time, sleep
 import toml
 import subprocess
 import glob
-import tarfile
+import datetime
 
 # Python 2/3 imports
 try:
@@ -297,15 +297,19 @@ class Page(object):
         pageWait = PageWait(self.display, line1=_("Saving logs"))
         pageWait.show()
 
-        timestamp = str(int(time()))
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         serial = self.display.hw.cpuSerialNo
-        log_file = os.path.join(save_path, "log.%s.%s.tar" % (serial, timestamp))
-        arcname = "%s.%s" % (serial, timestamp)
+        log_file = os.path.join(save_path, "log.%s.%s.txt.xz" % (serial, timestamp))
 
         try:
-            subprocess.check_call(["/usr/bin/journalctl", "--sync"])
-            with tarfile.open(log_file, "w") as tar:
-                tar.add(defines.logsBase, arcname=arcname)
+            subprocess.check_call(["/bin/bash", "-c", """
+                (
+                    for i in $(journalctl --list-boots | awk '{print $1}'); do
+                        echo "########## REBOOT: ${i} ##########";
+                        journalctl --no-pager --boot ${i};
+                    done;
+                ) | xz -T0 > %s""" % log_file])
+            os.sync()
         except:
             self.logger.error("Saving logs failed")
             self.display.pages['error'].setParams(text=_("Log save failed"))
