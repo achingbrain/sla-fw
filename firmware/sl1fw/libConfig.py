@@ -489,6 +489,8 @@ class WizardData(FileConfig):
         self.wizardTempA64 = self._parseFloat("wizardtempa64")
         # measured fake resin volume in wizard (without resin with rotated platform)
         self.wizardResinVolume = self._parseInt("wizardresinvolume")
+        # wizard was successfully finished
+        self.wizardDone = self._parseInt("wizarddone", 0)
 
         # following values are measured and saved in automatic UV LED calibration
         self.uvSensorData = self._parseIntList("uvsensordata")
