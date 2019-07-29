@@ -506,7 +506,7 @@ class Hardware(object):
 
         self.mcc = MotConCom("MC_Main")
         self.realMcc = self.mcc
-        self.cpuSerial = self.readCpuSerial()
+        self.boardData = self.readCpuSerial()
     #enddef
 
 
@@ -630,13 +630,20 @@ class Hardware(object):
 
     @property
     def cpuSerialNo(self):
-        return self.cpuSerial
+        return self.boardData[0]
+    #enddef
+
+
+    @property
+    def isKit(self):
+        return self.boardData[1]
     #enddef
 
 
     def readCpuSerial(self):
         ot = { 0 : "CZP" }
         serial = "*INVALID*"
+        is_kit = True   # kit is more strict
         try:
             with open(defines.cpuSNFile, 'rb') as nvmem:
                 s = bitstring.BitArray(bytes = nvmem.read())
@@ -669,7 +676,7 @@ class Hardware(object):
         except Exception:
             self.logger.exception("CPU serial:")
         #endtry
-        return serial
+        return (serial, is_kit)
     #enddef
 
 
