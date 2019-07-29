@@ -42,10 +42,12 @@ class Printer(object):
         self.hw = Hardware(self.hwConfig, self.config)
 
         # needed before init of other components (display etc)
-        if self.hwConfig.factoryMode and self.hw.isKit:
-            self.hwConfig.factoryMode = False
-            self.logger.warning("Factory mode disabled for kit")
-        #endif
+        # TODO: Enable this once kit A64 do not require being turned during manufacturing.
+        #   Currently calibration needs to be performed in the factory.
+        # if self.hwConfig.factoryMode and self.hw.isKit:
+        #     self.hwConfig.factoryMode = False
+        #     self.logger.warning("Factory mode disabled for kit")
+        # #endif
 
         from sl1fw.libInternet import Internet
         self.inet = Internet()
