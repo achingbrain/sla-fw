@@ -477,8 +477,9 @@ class PageWizardResinSensor(Page):
             return "error"
         #endif
 
-        # only in factory mode
-        if self.display.hwConfig.factoryMode:
+        # store data only in factory mode or after first successful run on kit
+        if self.display.hwConfig.factoryMode or (self.display.hw.isKit and not self.display.wizardData.wizardDone):
+            self.display.wizardData.update(wizardDone = 1)
             if not self.writeToFactory(self.display.wizardData.writeFile):
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save factory defaults !!!"))

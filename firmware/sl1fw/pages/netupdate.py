@@ -59,21 +59,23 @@ class PageNetUpdate(Page):
 
 
     def button14ButtonRelease(self):
-        if self.display.wizardData.wizardResinVolume < 0:
-            self.display.pages['error'].setParams(
-                    backFce = self.gotoWizard,
-                    text = _("The wizard was not finished successfully!"))
-            return "error"
-        #endif
+        if not self.display.hw.isKit:
+            if self.display.wizardData.wizardResinVolume < 0:
+                self.display.pages['error'].setParams(
+                        backFce = self.gotoWizard,
+                        text = _("The wizard was not finished successfully!"))
+                return "error"
+            #endif
 
-        if not self.display.hwConfig.calibrated:
-            self.display.pages['error'].setParams(
-                    backFce = self.gotoCalib,
-                    text = _("The calibration was not finished successfully!"))
-            return "error"
-        #endif
+            if not self.display.hwConfig.calibrated:
+                self.display.pages['error'].setParams(
+                        backFce = self.gotoCalib,
+                        text = _("The calibration was not finished successfully!"))
+                return "error"
+            #endif
+        #enddef
 
-        if self.display.wizardData.uvFoundPwm < 0:
+        if self.display.wizardData.uvFoundPwm < 1:
             self.display.pages['error'].setParams(
                     backFce = self.gotoUVcalib,
                     text = _("The automatic UV LED calibration was not finished successfully!"))
