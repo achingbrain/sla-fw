@@ -20,29 +20,29 @@ class PageNetwork(Page):
 
 
     def fillData(self):
-        wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+        wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
 
         aps = {}
-        for ap in wifisetup.GetAPs():
+        for ap in wificonfig.GetAPs():
             aps[ap['ssid']] = ap
 
         return {
             'devlist' : self.display.inet.getDevices(),
-            'wifi_mode' : wifisetup.WifiMode,
-            'client_ssid' : wifisetup.Client['ssid'],
-            'client_psk' : wifisetup.Client['psk'],
-            'ap_ssid' : wifisetup.Hotspot['ssid'],
-            'ap_psk' : wifisetup.Hotspot['psk'],
+            'wifi_mode' : wificonfig.WifiMode,
+            'client_ssid' : wificonfig.Client['ssid'],
+            'client_psk' : wificonfig.Client['psk'],
+            'ap_ssid' : wificonfig.Hotspot['ssid'],
+            'ap_psk' : wificonfig.Hotspot['psk'],
             'aps' : list(aps.values()),
-            'wifi_ssid' : wifisetup.WifiConnectedSSID,
-            'wifi_signal' : wifisetup.WifiConnectedSignal,
+            'wifi_ssid' : wificonfig.WifiConnectedSSID,
+            'wifi_signal' : wificonfig.WifiConnectedSignal,
         }
     #enddef
 
 
     def show(self):
-        wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
-        wifisetup.Scan()
+        wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
+        wificonfig.Scan()
         self.items.update(self.fillData())
         super(PageNetwork, self).show()
     #enddef
@@ -84,9 +84,9 @@ class PageNetwork(Page):
 
     def wifionButtonSubmit(self, data):
         try:
-            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
-            wifisetup.StartAP()
-            wifisetup.EnableAP()
+            wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
+            wificonfig.StartAP()
+            wificonfig.EnableAP()
         except:
             self.logger.error("Setting wifi ap mode (wifi on)")
         #endtry
@@ -95,9 +95,9 @@ class PageNetwork(Page):
 
     def wifioff(self):
         try:
-            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
-            wifisetup.StopWifi()
-            wifisetup.DisableWifi()
+            wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
+            wificonfig.StopWifi()
+            wificonfig.DisableWifi()
         except:
             self.logger.error("Turning wifi off failed")
         #endtry
@@ -110,13 +110,13 @@ class PageNetwork(Page):
         pageWait.show()
 
         try:
-            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
-            wifisetup.Client = {
+            wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
+            wificonfig.Client = {
                 'ssid': ssid,
                 'psk': psk,
             }
-            wifisetup.StartClient()
-            wifisetup.EnableClient()
+            wificonfig.StartClient()
+            wificonfig.EnableClient()
         except:
             self.logger.exception("Setting wifi client params failed: ssid:%s psk:%s", ssid, psk)
         #endtry
@@ -124,10 +124,10 @@ class PageNetwork(Page):
         # Connecting
         pageWait.showItems(line1 = _("Connecting"))
         try:
-            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
+            wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
             for i in range(1, 10):
                 sleep(1)
-                if wifisetup.WifiConnectedSSID == ssid:
+                if wificonfig.WifiConnectedSSID == ssid:
                     # Connection "ok"
                     return "_BACK_"
                 #endfor
@@ -148,13 +148,13 @@ class PageNetwork(Page):
         pageWait.show()
 
         try:
-            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
-            wifisetup.Hotspot = {
+            wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
+            wificonfig.Hotspot = {
                 'ssid': ssid,
                 'psk': psk,
             }
-            wifisetup.StartAP()
-            wifisetup.EnableAP()
+            wificonfig.StartAP()
+            wificonfig.EnableAP()
         except:
             self.logger.error("Setting wifi AP params failed: ssid:%s psk:%s", ssid, psk)
         #endtry
@@ -163,7 +163,7 @@ class PageNetwork(Page):
         pageWait.showItems(line1 = _("Starting Access Point"))
         for i in range(1, 10):
             sleep(1)
-            if wifisetup.WifiMode == "ap":
+            if wificonfig.WifiMode == "ap":
                 # AP "ok"
                 return "_BACK_"
             #endfor

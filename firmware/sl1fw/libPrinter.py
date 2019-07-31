@@ -180,7 +180,7 @@ class Printer(object):
         self.logger.debug("Registering dbus event handlers")
         locale = SystemBus().get("org.freedesktop.locale1")
         locale.PropertiesChanged.connect(self.localeChanged)
-        wificonfig = SystemBus().get("cz.prusa3d.sl1.wifisetup")
+        wificonfig = SystemBus().get("cz.prusa3d.sl1.wificonfig")
         wificonfig.PropertiesChanged.connect(self.wificonfigChanged)
 
         self.logger.debug("Starting printer event loop")

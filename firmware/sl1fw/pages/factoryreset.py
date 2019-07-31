@@ -68,8 +68,8 @@ class PageFactoryReset(Page):
 
         # Reset wifi
         try:
-            wifisetup = pydbus.SystemBus().get('cz.prusa3d.sl1.wifisetup')
-            wifisetup.Reset()
+            wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
+            wificonfig.Reset()
         except:
             self.logger.exception("Failed to reset wifi config")
         #endtry
