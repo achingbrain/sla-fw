@@ -19,7 +19,7 @@ sys.modules['gpio'] = Mock()
 sys.modules['sl1fw.libDebug'] = Mock()
 sys.modules['serial'] = sl1fw.tests.mcPortSim
 sys.modules['pydbus'] = sl1fw.tests.pydbusSim
-sys.modules['sl1fw.libInternet'] = sl1fw.tests.libInternetSim
+sys.modules['sl1fw.libNetwork'] = sl1fw.tests.libNetworkSim
 
 from sl1fw import libPrinter
 from sl1fw import defines

@@ -49,8 +49,8 @@ class Printer(object):
         #     self.logger.warning("Factory mode disabled for kit")
         # #endif
 
-        from sl1fw.libInternet import Internet
-        self.inet = Internet()
+        from sl1fw.libNetwork import Network
+        self.inet = Network()
 
         if debugDisplay:
             devices = [debugDisplay]
