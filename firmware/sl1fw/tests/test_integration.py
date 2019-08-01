@@ -11,7 +11,7 @@ from sl1fw.tests.gettextSim import fake_gettext
 from sl1fw.tests.testdisplay import TestDisplay
 import sl1fw.tests.mcPortSim
 import sl1fw.tests.pydbusSim
-import sl1fw.tests.libInternetSim
+import sl1fw.tests.libNetworkSim
 
 fake_gettext()
 

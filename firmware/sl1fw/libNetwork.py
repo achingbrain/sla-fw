@@ -15,13 +15,16 @@ class Network(object):
     def startNetMonitor(self, assignNetActive):
         self.assignActive = assignNetActive
         # TODO: networkmanager wrapper has some problem with events. Lets handle this manually
-        #NetworkManager.NetworkManager.OnStateChanged(self.state_changed)
+        # NetworkManager.NetworkManager.OnStateChanged(self.state_changed)
         pydbus.SystemBus().get("org.freedesktop.NetworkManager").PropertiesChanged.connect(self.state_changed)
 
         # Trigger property change on start to set initial connected state
-        self.state_changed()
+        self.state_changed({'State': None})
 
-    def state_changed(self, *args, **kwargs):
+    def state_changed(self, changed):
+        if not {'Connectivity', 'State', 'ActivatingConnection', 'WirelessEnabled'} & set(changed.keys()):
+            return
+
         self.logger.debug("Networkmanager state changed")
 
         if self.assignActive:

@@ -218,7 +218,7 @@ class Printer(object):
         #endif
 
         if self.display.actualPage == self.display.pages['network']:
-            self.display.pages['network'].netChange()
+            self.display.pages['network'].apsChanged()
         #endif
     #enddef
 
