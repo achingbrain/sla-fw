@@ -21,6 +21,7 @@ sys.modules['pydbus'] = sl1fw.tests.pydbusSim
 
 from sl1fw import libPrinter
 from sl1fw import defines
+from sl1fw.pages.printstart import PagePrintPreview
 
 
 class TestLibHardware(unittest.TestCase):
@@ -44,10 +45,14 @@ class TestLibHardware(unittest.TestCase):
         defines.truePoweroff = False
         defines.internalProjectPath = os.path.join(os.path.dirname(__file__), "samples")
         defines.ramdiskPath = tempfile.gettempdir()
+        defines.jobCounter = os.path.join(defines.ramdiskPath, "jobcounter")
         defines.octoprintAuthFile = os.path.join(os.path.dirname(__file__), "samples/slicer-upload-api.key")
+        defines.livePreviewImage = os.path.join(defines.ramdiskPath, "live.png")
 
         os.environ['SDL_AUDIODRIVER'] = "disk"
         os.environ['SDL_DISKAUDIOFILE'] = self.SDL_AUDIO_FILE
+
+        PagePrintPreview.FanCheckOverride = True
 
         self.display = TestDisplay()
         self.printer = libPrinter.Printer(debugDisplay=self.display)
@@ -90,12 +95,13 @@ class TestLibHardware(unittest.TestCase):
                 os.remove(file)
 
     def press(self, identifier, data=None):
-        print("Pressing button: %s" % identifier)
+        print("Pressing button: %s on page %s" % (identifier, self.display.page))
         self.display.add_event(self.display.page, identifier, pressed=True, data=data)
         self.display.add_event(self.display.page, identifier, pressed=False, data=data)
 
     def waitPage(self, page, timeout_sec=3):
         self.assertEqual(page, self.display.read_page(timeout_sec=timeout_sec))
+        print("Wait done for: %s" % page)
 
     def switchPage(self, page):
         self.press(page)
@@ -147,7 +153,7 @@ class TestLibHardware(unittest.TestCase):
         self.press("ntpenable")
 
         self.switchPage("settime")
-        # TODO: Try changin time
+        # TODO: Try changing time
         self.press("back")
         self.waitPage("timesettings")
 
@@ -182,22 +188,31 @@ class TestLibHardware(unittest.TestCase):
         self.press("back")
         self.waitPage("advancedsettings")
 
-        # TODO: Test wizard
-
         # TODO: Test changing settings
 
         # Test display test - passing
-        # TODO: Display test requires cover to be closed
-        # self.switchPage("displaytest")
-        # self.press("yes")
-        # self.waitPage("advancedsettings")
-        #
-        # # Test display test - failing
-        # self.switchPage("displaytest")
-        # self.press("no")
-        # self.waitPage("error")
-        # self.press("ok")
-        # self.waitPage("advancedsettings")
+        self.printer.hwConfig.coverCheck = False
+        self.press("displaytest")
+        self.waitPage("confirm")  # Please unscrew and remove ...
+        self.press("cont")
+        self.waitPage("confirm")  # Please close the orange lid...
+        self.press("cont")
+        self.waitPage("yesno")  # Can you see company logo...
+        self.press("yes")
+        self.waitPage("advancedsettings")
+
+        # Test display test - failing
+        self.printer.hwConfig.coverCheck = False
+        self.press("displaytest")
+        self.waitPage("confirm")  # Please unscrew and remove ...
+        self.press("cont")
+        self.waitPage("confirm")  # Please close the orange lid...
+        self.press("cont")
+        self.waitPage("yesno")  # Can you see company logo...
+        self.press("no")
+        self.waitPage("error") # No logo, contact service
+        self.press("ok")
+        self.waitPage("advancedsettings")
 
         # Test firmware update
         self.press("firmwareupdate")
@@ -224,6 +239,9 @@ class TestLibHardware(unittest.TestCase):
     def test_print(self):
         # Fake calibration
         self.printer.hwConfig.calibrated = True
+        self.printer.hwConfig.fanCheck = False
+        self.printer.hwConfig.coverCheck = False
+        self.printer.hwConfig.resinSensor = False
 
         self.press("print")
         self.waitPage("sourceselect")
@@ -231,27 +249,61 @@ class TestLibHardware(unittest.TestCase):
         self.waitPage("wait")
         self.waitPage("printpreview")
         self.press("cont")
-        self.waitPage("wait")
-        # Ambient temperature is over recommended value.
-        self.waitPage("yesno")
-        self.press("no")
-        self.waitPage("printpreview")
-
-        # TODO: Say yes - continue print testing
-
-        # Return to home
-        self.press("back")
-        self.waitPage("sourceselect")
-        self.press("back")
-        self.waitPage("home")
+        self.waitPage("wait", timeout_sec=30)
+        self.waitPage("wait", timeout_sec=30)
+        self.waitPage("printstart", timeout_sec=30)
+        self.press("cont")
+        self.waitPage("wait", timeout_sec=30)
+        self.waitPage("print", timeout_sec=30)  # Actual printing
+        self.waitPage("wait", timeout_sec=120)  # Moving platform to the top
+        self.waitPage("print", timeout_sec=30)  # TODO: Why do we return to print?
+        self.waitPage("home")  # Return home after print
 
     def test_wizard(self):
         # TODO: Test wizard
         pass
 
     def test_calibration(self):
-        # TODO: Test calibration
-        pass
+        self.printer.hwConfig.coverCheck = False
+
+        self.switchPage("settings")
+        self.press("recalibration")
+        self.waitPage("yesno") # Calibrate printer now?
+        self.press("yes")
+        self.waitPage("wait")  # Printer homing
+        self.waitPage("confirm", timeout_sec=30) # If the platform ...
+        self.press("cont")
+        self.waitPage("confirm")  # Losen the small screw ...
+        self.press("cont")
+        self.waitPage("confirm")  # Unscrew the tank ...
+        self.press("cont")
+        self.waitPage("wait", timeout_sec=60)  # Moving to start position
+        self.waitPage("confirm")  # IN the next step, move ...
+        self.press("cont")
+        self.waitPage("tiltmovecalibration")
+        self.press("slowDown")
+        self.press("slowUp")
+        self.press("ok")
+        self.waitPage("confirm")  # Make sure the platform, tank ...
+        self.press("cont")
+        self.waitPage("confirm")  # Return the tank to the original
+        self.press("cont")
+        self.waitPage("confirm")  # Check whenever the platform ...
+        self.press("cont")
+        self.waitPage("confirm")  # Please close the orange lid.
+        self.press("cont")
+        self.waitPage("wait")  # Platform calibration
+        self.waitPage("confirm", timeout_sec=30)  # Adjust the platform ...
+        self.press("cont")
+        self.waitPage("confirm")  # Tighten the small screw
+        self.press("cont")
+        self.waitPage("wait")  # Measuring tilt times
+        self.waitPage("confirm", timeout_sec=60)  # Calibration done
+        self.press("cont")
+
+        self.waitPage("settings")
+        self.press("back")
+        self.waitPage("home")
 
 
 if __name__ == '__main__':

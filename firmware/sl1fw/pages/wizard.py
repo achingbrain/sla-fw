@@ -253,7 +253,7 @@ class PageWizardUvLed(Page):
         # UV LED voltage comparation
         pageWait = PageWait(self.display, line1 = _("UV LED check"))
         pageWait.show()
-        self.display.hw.setUvLedPwm(0)
+        self.display.hw.uvLedPwm = 0
         self.display.hw.uvLed(True)
         br = self.display.hw.mcBoardRevisionBin
         if br[0] >= 6 and br[1] >= 2:
@@ -266,7 +266,7 @@ class PageWizardUvLed(Page):
         row2 = list()
         row3 = list()
         for i in range(3):
-            self.display.hw.setUvLedPwm(uvPwms[i])
+            self.display.hw.uvLedPwm = uvPwms[i]
             if self.display.hw.mcFwRevision < 6:
                 sleep(10)   # wait to refresh all voltages (board rev. 0.5)
             else:
@@ -292,7 +292,7 @@ class PageWizardUvLed(Page):
 
         # UV LED temperature check
         pageWait.showItems(line1 = _("UV LED warmup check"))
-        self.display.hw.setUvLedPwm(uvPwms[3])
+        self.display.hw.uvLedPwm = uvPwms[3]
         for countdown in range(120, 0, -1):
             pageWait.showItems(line2 = ngettext("Remaining %d second" % countdown,
                     "Remaining %d seconds" % countdown, countdown))
@@ -308,7 +308,7 @@ class PageWizardUvLed(Page):
             #endif
         #endfor
         self.display.wizardData.update(wizardTempUvWarm = temp)
-        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
+        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
         self.display.hw.powerLed("normal")
 
         return "displaytest"

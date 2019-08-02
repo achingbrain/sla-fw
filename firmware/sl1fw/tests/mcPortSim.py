@@ -1,7 +1,6 @@
 from subprocess import Popen, PIPE
 import threading
 from queue import Queue
-import os
 import logging
 
 

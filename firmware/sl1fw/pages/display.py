@@ -125,7 +125,7 @@ class PageDisplay(Page):
         self.showItems(button14 = _("UV off") if state else _("UV on"))
         if state:
             self.display.hw.startFans()
-            self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
+            self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
         else:
             self.display.hw.stopFans()
         #endif

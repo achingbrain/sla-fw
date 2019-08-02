@@ -81,7 +81,7 @@ class PageFansLeds(Page):
         self._setItem(items, self.oldValues, 'state1g5', self.temp['uls'])
         self._setItem(items, self.oldValues, 'state1g7', self.temp['cls'])
 
-        self.temp['uvpwm'] = self.display.hw.getUvLedPwm()
+        self.temp['uvpwm'] = self.display.hw.uvLedPwm
         self._setItem(items, self.oldValues, 'value2g5', self.temp['uvpwm'])
 
         if len(items):
@@ -163,7 +163,7 @@ class PageFansLeds(Page):
             1 : self.display.hwConfig.fan2Rpm,
             2 : self.display.hwConfig.fan3Rpm,
             })
-        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
+        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
     #enddef
 
 
@@ -253,13 +253,13 @@ class PageFansLeds(Page):
 
     def minus2g5Button(self):
         self._value(self.temp, self.changed, 4, 'uvpwm', 0, 250, -1)
-        self.display.hw.setUvLedPwm(self.temp['uvpwm'])
+        self.display.hw.uvLedPwm = self.temp['uvpwm']
     #enddef
 
 
     def plus2g5Button(self):
         self._value(self.temp, self.changed, 4, 'uvpwm', 0, 250, 1)
-        self.display.hw.setUvLedPwm(self.temp['uvpwm'])
+        self.display.hw.uvLedPwm = self.temp['uvpwm']
     #enddef
 
 

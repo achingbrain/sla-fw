@@ -51,7 +51,7 @@ class PageUvCalibration(Page):
         pageWait.show()
 
         self.display.hw.startFans()
-        self.display.hw.setUvLedPwm(self.measMaxPwm)
+        self.display.hw.uvLedPwm = self.measMaxPwm
         self.display.screen.getImgBlack()
         self.display.screen.inverse()
         self.display.hw.uvLed(True)
@@ -83,7 +83,7 @@ class PageUvCalibration(Page):
 
     def off(self):
         self.allOff()
-        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
+        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
     #enddef
 
 
@@ -194,7 +194,7 @@ class PageUvMeter(PageUvMeterShow):
             return "error"
         #endif
 
-        realPwm = self.display.hw.getUvLedPwm()
+        realPwm = self.display.hw.uvLedPwm
         data = self.uvmeter.getData()
         self.logger.info("UV calibration - PWM:%d data:%s", realPwm, str(data))
 
@@ -215,7 +215,7 @@ class PageUvMeter(PageUvMeterShow):
         self.topPwm = self.measMaxPwm
         self.bottomPwm = self.measMinPwm
         self.testPwm = self.bottomPwm
-        self.display.hw.setUvLedPwm(self.testPwm)
+        self.display.hw.uvLedPwm = self.testPwm
         self.lastCallback = monotonic()
         self.iterCnt = 15
         self.finalTest = False
@@ -232,7 +232,7 @@ class PageUvMeter(PageUvMeterShow):
             return
         #endif
 
-        realPwm = self.display.hw.getUvLedPwm()
+        realPwm = self.display.hw.uvLedPwm
         if not self.uvmeter.read():
             self.display.pages['error'].setParams(text = _("Cannot read data from the UV LED meter."
                 "\n\nCheck the connection and try again."))
@@ -306,7 +306,7 @@ class PageUvMeter(PageUvMeterShow):
         #endif
 
         self.testPwm = (self.topPwm - self.bottomPwm) // 2 + self.bottomPwm
-        self.display.hw.setUvLedPwm(self.testPwm)
+        self.display.hw.uvLedPwm = self.testPwm
         self.lastCallback = monotonic()
     #enddef
 

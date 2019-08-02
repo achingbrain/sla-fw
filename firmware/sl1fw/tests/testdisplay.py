@@ -21,6 +21,10 @@ class TestDisplay(VirtualDisplay):
         super(TestDisplay, self).setItems(items)
         print("Items: %s" % items)
 
+    def showItems(self, items):
+        super(TestDisplay, self).showItems(items)
+        print("Items: %s" % items)
+
     def add_event(self, page, id, pressed, data):
         self.events.put({
             'page': page,

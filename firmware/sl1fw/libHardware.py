@@ -503,6 +503,8 @@ class Hardware(object):
         self._towerCalibPos = self.hwConfig.calcMicroSteps(1)
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
+        self._tiltSyncRetries = None
+        self._towerSyncRetries = None
 
         self.mcc = MotConCom("MC_Main")
         self.realMcc = self.mcc
@@ -556,8 +558,8 @@ class Hardware(object):
             1 : self.hwConfig.fan2Rpm,
             2 : self.hwConfig.fan3Rpm,
             })
-        self.setUvLedPwm(self.hwConfig.uvPwm)
-        self.setPowerLedPwm(self.hwConfig.pwrLedPwm)
+        self.uvLedPwm = self.hwConfig.uvPwm
+        self.powerLedPwm = self.hwConfig.pwrLedPwm
         self.resinSensor(False)
         self.stopFans()
     #enddef
@@ -844,27 +846,24 @@ class Hardware(object):
 
     def powerLed(self, state):
         mode, speed = self._powerLedStates.get(state, (1, 1))
-        self.powerLedMode(mode)
-        self.setPowerLedSpeed(speed)
+        self.powerLedMode = mode
+        self.powerLedSpeed = speed
     #enddef
 
 
+    @property
+    def powerLedMode(self):
+        return self.mcc.doGetInt("?pled")
+    #enddef
+
+    @powerLedMode.setter
     def powerLedMode(self, value):
         self.mcc.do("!pled", value)
     #enddef
 
 
-    def getPowerLedMode(self):
-        return self.mcc.doGetInt("?pled")
-    #enddef
-
-
-    def setPowerLedPwm(self, pwm):
-        self.mcc.do("!ppwm", int(pwm / 5))
-    #enddef
-
-
-    def getPowerLedPwm(self):
+    @property
+    def powerLedPwm(self):
         pwm = self.mcc.do("?ppwm")
         try:
             return int(pwm) * 5
@@ -874,13 +873,21 @@ class Hardware(object):
     #enddef
 
 
-    def setPowerLedSpeed(self, speed):
-        self.mcc.do("!pspd", speed)
+    @powerLedPwm.setter
+    def powerLedPwm(self, pwm):
+        self.mcc.do("!ppwm", int(pwm / 5))
     #enddef
 
 
-    def getPowerLedSpeed(self):
+    @property
+    def powerLedSpeed(self):
         return self.mcc.doGetInt("?pspd")
+    #enddef
+
+
+    @powerLedSpeed.setter
+    def powerLedSpeed(self, speed):
+        self.mcc.do("!pspd", speed)
     #enddef
 
 
@@ -905,14 +912,18 @@ class Hardware(object):
     #enddef
 
 
-    def setUvLedPwm(self, pwm):
+    @property
+    def uvLedPwm(self):
+        return self.mcc.doGetInt("?upwm")
+    #enddef
+
+    @uvLedPwm.setter
+    def uvLedPwm(self, pwm):
         self.mcc.do("!upwm", pwm)
     #enddef
 
 
-    def getUvLedPwm(self):
-        return self.mcc.doGetInt("?upwm")
-    #enddef
+
 
 
     def getUvStatistics(self):
@@ -1685,6 +1696,9 @@ class Hardware(object):
     #enddef
 
 
+    # TODO: Get rid of this
+    # TODO: Fix inconsistency getTowerPosition returns formated string with mm
+    # TODO: Property could handle this a bit more consistently
     def getTiltPosition(self):
         steps = self.getTiltPositionMicroSteps()
         if steps is None:
