@@ -2,7 +2,7 @@ import unittest
 from mock import Mock
 import os
 import sys
-import time
+from time import sleep
 from sl1fw.tests.gettextSim import fake_gettext
 import sl1fw.tests.mcPortSim
 
@@ -37,7 +37,6 @@ class TestLibHardware(unittest.TestCase):
         self.hw.connectMC(Mock(), Mock())
 
     def tearDown(self):
-     #   self.mcsimport.stop()
         if os.path.isfile(self.EEPROM_FILE):
             os.remove(self.EEPROM_FILE)
 
@@ -69,7 +68,7 @@ class TestLibHardware(unittest.TestCase):
     def test_uv_led(self):
         # Default state
         self.assertEqual([0, 0], self.hw.getUvLedState())
-        time.sleep(1)
+        sleep(1)
 
         # Active state
         self.hw.uvLed(1, 10000)
@@ -79,23 +78,23 @@ class TestLibHardware(unittest.TestCase):
 
         # Current settings
         pwm = 233
-        self.hw.setUvLedPwm(pwm)
-        self.assertEqual(pwm, self.hw.getUvLedPwm())
+        self.hw.uvLedPwm = pwm
+        self.assertEqual(pwm, self.hw.uvLedPwm)
 
     # TODO: Fix test / functinoality
     # def test_dummy_switch(self):
     #     # Set current
     #     pwm = 640
-    #     self.hw.setUvLedPwm(pwm)
-    #     self.assertEqual(pwm, self.hw.getUvLedPwm())
+    #     self.hw.uvLedPwm = pwm
+    #     self.assertEqual(pwm, self.hw.uvLedPwm)
     #
     #     # Switch to dummy and change current
     #     self.hw.switchToDummy()
-    #     self.hw.setUvLedPwm(pwm + 10)
+    #     self.hw.uvLedPwm = pwm + 10
     #
     #     # Switch back adn see nothing changed
     #     self.hw.switchToMC(Mock(), Mock())
-    #     self.assertEqual(pwm, self.hw.getUvLedPwm())
+    #     self.assertEqual(pwm, self.hw.uvLedPwm)
 
     def test_erase(self):
         self.hw.eraseEeprom()
@@ -136,22 +135,21 @@ class TestLibHardware(unittest.TestCase):
         self.hw.beepAlarm(3)
 
     def test_power_led(self):
-        self.assertEqual(1, self.hw.getPowerLedMode())
-        self.assertEqual(8, self.hw.getPowerLedSpeed())
-        self.assertEqual(100, self.hw.getPowerLedPwm())
+        power_led_mode = 1
+        self.hw.powerLedMode = power_led_mode
+        self.assertEqual(power_led_mode, self.hw.powerLedMode)
+
+        power_led_speed = 8
+        self.hw.powerLedSpeed = power_led_speed
+        self.assertEqual(power_led_speed, self.hw.powerLedSpeed)
+
+        power_led_pwm = 100
+        self.hw.powerLedPwm = power_led_pwm
+        self.assertEqual(power_led_pwm, self.hw.powerLedPwm)
 
         self.hw.powerLed("warn")
-        self.assertEqual(2, self.hw.getPowerLedMode())
-        self.assertEqual(10, self.hw.getPowerLedSpeed())
-
-        # TODO: Not passing with MC simulator
-        # pwm = 255
-        # self.hw.setPowerLedPwm(pwm)
-        # self.assertEqual(pwm, self.hw.getPowerLedPwm())
-
-        speed = 42
-        self.hw.setPowerLedSpeed(speed)
-        self.assertEqual(42, self.hw.getPowerLedSpeed())
+        self.assertEqual(2, self.hw.powerLedMode)
+        self.assertEqual(10, self.hw.powerLedSpeed)
 
     def test_uv_statistics(self):
         # TODO: getUvStatistics simulator seems to return random garbage 4294967295
@@ -201,7 +199,8 @@ class TestLibHardware(unittest.TestCase):
 
         self.hw.stopFans()
         self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFans())
-        self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
+        # TODO: Unreliable
+        # self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
 
         # Check mask
         self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFanCheckMask())
@@ -235,67 +234,192 @@ class TestLibHardware(unittest.TestCase):
     def test_sensor_naming(self):
         self.assertEqual("UV LED temperature", self.hw.getSensorName(0))
 
-    def test_mechanics(self):
-        # TODO: This test is weak and some functionality is even not enabled due to MC sim deficiencies
+    def test_tilt_sync(self):
+        self.hw.tiltSync()
+        for i in range(1, 100):
+            if self.hw.isTiltSynced():
+                break
+            sleep(0.1)
+        self.assertTrue(self.hw.isTiltSynced())
 
+    def test_tilt_sync_wait(self):
+        self.hw.tiltSyncWait()
+        self.assertTrue(self.hw.isTiltSynced())
+
+    def test_tilt_move(self):
+        position = 10000
+        self.hw.tiltMoveAbsolute(position)
+        while self.hw.isTiltMoving():
+            sleep(0.1)
+        self.assertFalse(self.hw.isTiltMoving())
+        self.assertTrue(self.hw.isTiltOnPosition())
+        self.assertEqual(position, self.hw.getTiltPosition())
+
+    def test_tilt_home(self):
+        self.hw.tiltHomeCalibrateWait()
+        while self.hw.isTiltMoving():
+            sleep(0.1)
+        self.assertLess(self.hw.getTiltPosition(), 1000)
+
+    def test_tilt_stop(self):
+        position = 1000000
+        self.hw.tiltMoveAbsolute(position)
+        self.hw.tiltStop()
+        self.assertFalse(self.hw.isTiltMoving())
+
+    def test_tilt_up(self):
+        self.hw.tiltUp()
+        while self.hw.isTiltMoving():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTiltUp())
+
+    def test_tilt_up_wait(self):
+        self.hw.tiltUpWait()
+        self.assertTrue(self.hw.isTiltUp())
+
+    def test_tilt_down(self):
+        self.hw.tiltDown()
+        while self.hw.isTiltMoving():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTiltDown())
+
+    def test_tilt_down_wait(self):
+        self.hw.tiltDownWait()
+        self.assertTrue(self.hw.isTiltDown())
+
+    def test_tilt_max(self):
+        self.hw.tiltToMax()
+        while self.hw.isTiltMoving():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTiltOnMax())
+
+    def test_tilt_min(self):
+        self.hw.tiltToMin()
+        while self.hw.isTiltMoving():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTiltOnMin())
+
+    def test_tilt_set_position(self):
+        position = 10000
+        self.hw.setTiltPosition(position)
+        self.assertEqual(position, self.hw.getTiltPosition())
+        self.assertEqual(position, self.hw.getTiltPositionMicroSteps())
+
+    def test_tilt_layer_up(self):
+        self.hw.tiltLayerUpWait()
+
+    def test_tilt_layer_down(self):
+        self.hw.tiltLayerDownWait()
+
+    def test_tilt_profile(self):
+        self.hw.setTiltProfile('homingFast')
+
+    def test_tilt_current(self):
+        self.hw.setTiltCurrent(32)
+        # TODO: test result
+
+    def test_tilt_sync_failed(self):
+        self.assertFalse(self.hw.tiltSyncFailed())
+
+    def test_tower_hold_tilt_release(self):
         self.hw.towerHoldTiltRelease()
-        # self.hw.towerHomeCalibrateWait()
-        self.hw.towerSync()
+        # TODO: test result
 
+    def test_tower_home_calibrate_wait(self):
+        self.hw.towerHomeCalibrateWait()
+        self.assertEqual(0, self.hw.getTiltPositionMicroSteps())
+
+    def test_tower_sync(self):
         self.assertFalse(self.hw.isTowerSynced())
+        self.hw.towerSync()
+        self.assertFalse(self.hw.towerSyncFailed())
+        while not self.hw.isTowerSynced():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTowerSynced())
 
-        # self.hw.towerSyncWait()
-        self.hw.towerSyncFailed()
+    def test_tower_sync_wait(self):
+        self.assertFalse(self.hw.isTowerSynced())
+        self.hw.towerSyncWait()
+        self.assertTrue(self.hw.isTowerSynced())
+        self.assertFalse(self.hw.towerSyncFailed())
 
-        # self.hw.towerMoveAbsoluteWait(1000)
-        self.hw.towerMoveAbsolute(1000)
-        self.hw.towerToPosition(10)
+    def test_tower_printstart(self):
+        self.hw.setTowerProfile('homingFast')
+        self.hw.towerToPosition(0.25)
+        while not self.hw.isTowerOnPosition(retries=2):
+            sleep(0.25)
+        self.assertFalse(self.hw.towerPositonFailed())
+
+    def test_tower_move(self):
+        position = 100000
+        self.hw.towerMoveAbsolute(position)
+        self.assertTrue(self.hw.isTowerMoving())
+        while self.hw.isTowerMoving():
+            sleep(0.1)
+        self.assertFalse(self.hw.isTowerMoving())
+        self.assertEqual(position, self.hw.getTowerPositionMicroSteps())
+
+    def test_tower_move_wait(self):
+        position = 100000
+        self.hw.towerMoveAbsoluteWait(position)
+        self.assertFalse(self.hw.isTowerMoving())
+        self.assertEqual(position, self.hw.getTowerPositionMicroSteps())
+        self.assertTrue(self.hw.isTowerOnPosition())
+
+    def test_tower_to_position(self):
+        position_mm = 10
+        self.hw.towerToPosition(position_mm)
+        while self.hw.isTowerMoving():
+            sleep(0.1)
+        self.assertEqual("%.3f mm" % position_mm, self.hw.getTowerPosition())
+
+    def test_tower_stop(self):
+        position = 100000
+        self.hw.towerMoveAbsolute(position)
+        self.assertTrue(self.hw.isTowerMoving())
         self.hw.towerStop()
         self.assertFalse(self.hw.isTowerMoving())
-        # self.assertFalse(self.hw.isTowerOnPosition())
-        self.hw.towerToZero()
-        self.assertFalse(self.hw.isTowerOnZero())
-        self.hw.towerToTop()
-        self.assertFalse(self.hw.isTowerOnTop())
-        self.hw.setTowerOnMax()
-        self.hw.towerToMax()
-        self.assertFalse(self.hw.isTowerOnMax())
-        self.hw.towerToMin()
-        self.assertFalse(self.hw.isTowerOnMin())
-        self.hw.setTowerPosition(1000)
-        self.hw.getTowerPosition()
-        self.hw.getTowerPositionMicroSteps()
-        self.hw.setTowerProfile("homingFast")
-        self.hw.setTowerCurrent(0)
-        # self.hw.tiltHomeCalibrateWait()
-        self.hw.tiltSync()
-        self.assertFalse(self.hw.isTiltSynced())
-        # self.hw.tiltSyncWait()
-        self.hw.tiltSyncFailed()
-        self.hw.tiltMoveAbsolute(1000)
-        self.hw.tiltStop()
-        self.assertTrue(self.hw.isTiltMoving())
-        self.assertFalse(self.hw.isTiltOnPosition())
-        self.hw.tiltDown()
-        self.assertFalse(self.hw.isTiltDown())
-        # self.hw.tiltDownWait()
-        self.hw.tiltUp()
-        self.hw.isTiltUp()
-        # self.hw.tiltUpWait()
-        self.hw.tiltToMax()
-        self.assertFalse(self.hw.isTiltOnMax())
-        self.hw.tiltToMin()
-        self.hw.isTiltOnMin()
-        # self.hw.tiltLayerDownWait()
-        # self.hw.tiltLayerUpWait()
-        self.hw.setTiltPosition(1000)
-        self.hw.getTiltPosition()
-        self.hw.getTiltPositionMicroSteps()
-        self.hw.setTiltProfile(0)
-        self.hw.setTiltCurrent(0)
 
-    # def test_resin_stir(self):
-    #     self.hw.stirResin()
+    def test_tower_max(self):
+        self.hw.towerToMax()
+        while self.hw.isTowerMoving():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTowerOnMax())
+
+    def test_tower_min(self):
+        self.hw.towerToMin()
+        while self.hw.isTowerMoving():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTowerOnMin())
+
+    def test_tower_zero(self):
+        self.hw.towerToZero()
+        while self.hw.isTowerMoving():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTowerOnZero())
+
+    def test_tower_top(self):
+        self.hw.towerToTop()
+        while self.hw.isTowerMoving():
+            sleep(0.1)
+        self.assertTrue(self.hw.isTowerOnTop())
+
+    def test_tower_position(self):
+        position = 1000000
+        self.hw.setTowerPosition(position)
+        self.assertEqual("%.3f mm" % (position / 800), self.hw.getTowerPosition())
+
+    def test_tower_profile(self):
+        self.hw.setTowerProfile("homingFast")
+        # TODO: test result
+
+    def test_tower_current(self):
+        current = 32
+        self.hw.setTowerCurrent(current)
+        # TODO: test result
+
+    def test_resin_stir(self):
+        self.hw.stirResin()
 
 
 if __name__ == '__main__':

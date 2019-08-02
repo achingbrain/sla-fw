@@ -11,6 +11,8 @@ class SystemBus:
             return TimeDate()
         elif service == "org.freedesktop.hostname1":
             return Hostname()
+        elif service == "org.freedesktop.locale1":
+            return Locale()
         else:
             raise Exception("Cannot provide fake service for unknown service name %s" % service)
 
@@ -76,3 +78,11 @@ class Rauc(object):
                                                                 'type': 'ext4',
                                                                 'activated.timestamp': '2019-06-17T13:42:07Z',
                                                                 'size': 655414272})]
+
+
+class Locale:
+    def __init__(self):
+        self.PropertiesChanged = self
+
+    def connect(self, callback):
+        pass

@@ -48,7 +48,7 @@ class PageInfiniteTest(Page):
         pageWait.show()
         self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
         self.display.hw.startFans()
-        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
+        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
         self.display.hw.uvLed(True)
         self.display.hw.towerSync()
         while True:

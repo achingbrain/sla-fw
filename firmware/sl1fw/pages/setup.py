@@ -255,13 +255,13 @@ class PageSetupHw(PageSetup):
 
     def minus2g6Button(self):
         self._value(self.temp, self.changed, 5, 'pwrledpwm', 0, 100, -5)
-        self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
+        self.display.hw.powerLedPwm = self.temp['pwrledpwm']
     #enddef
 
 
     def plus2g6Button(self):
         self._value(self.temp, self.changed, 5, 'pwrledpwm', 0, 100, 5)
-        self.display.hw.setPowerLedPwm(self.temp['pwrledpwm'])
+        self.display.hw.powerLedPwm = self.temp['pwrledpwm']
     #enddef
 
 
@@ -276,7 +276,7 @@ class PageSetupHw(PageSetup):
 
 
     def backButtonRelease(self):
-        self.display.hw.setPowerLedPwm(self.display.hwConfig.pwrLedPwm)
+        self.display.hw.powerLedPwm = self.display.hwConfig.pwrLedPwm
         return super(PageSetupHw, self).backButtonRelease()
     #enddef
 

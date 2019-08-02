@@ -45,7 +45,7 @@ class PagePrint(Page):
         self.lastLayer = 0
 
         self.display.screen.getImgBlack()
-        self.display.hw.setUvLedPwm(self.display.hwConfig.uvPwm)
+        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
         if not self.display.hwConfig.blinkExposure:
             self.display.hw.uvLed(True)
         #endif

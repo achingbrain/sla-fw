@@ -21,7 +21,7 @@ mcsim:
   stage: build
 
   script:
-    - git clone --single-branch --branch simulator_tester --depth 1 git@gitlab.com:prusa3d/sl1/mc-fw.git
+    - git clone --single-branch --branch simulate_moves --depth 1 git@gitlab.com:prusa3d/sl1/mc-fw.git
     - SIMULATION=1 make -C mc-fw/SLA-control-01 -j5
     - mv mc-fw/SLA-control-01/SLA-control-01.elf ./
 
@@ -38,8 +38,8 @@ test:
   script:
     - export PATH="${PATH}:$(pwd)"
     - cd firmware
-    - python2 -m unittest discover sl1fw.tests
-    - python3 -m unittest discover sl1fw.tests
+    - python3-coverage run -m unittest discover sl1fw.tests
+    - python3-coverage report --include "sl1fw*"
 
 pylint:
   stage: test

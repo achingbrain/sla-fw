@@ -57,6 +57,10 @@ class PagePrintPreviewBase(Page):
 class PagePrintPreview(PagePrintPreviewBase):
     Name = "printpreview"
 
+    # For integration test only
+    # TODO: Make MC sim simulate fans spinning
+    FanCheckOverride = False
+
     def __init__(self, display):
         super(PagePrintPreview, self).__init__(display)
         self.pageUI = "printpreview"
@@ -215,7 +219,7 @@ class PagePrintPreview(PagePrintPreviewBase):
         #endif
 
         fansState = self.display.hw.getFansError().values()
-        if any(fansState):
+        if any(fansState) and not self.FanCheckOverride:
             failedFans = []
             for num, state in enumerate(fansState):
                 if state:
