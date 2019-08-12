@@ -76,11 +76,6 @@ class TestLibHardware(unittest.TestCase):
         # cProfile.runctx('self.printer.start()', globals=globals(), locals=locals())
 
     def tearDown(self):
-        # Turn off the system
-        self.press("turnoff")
-        self.waitPage("yesno")
-        self.press("yes")
-
         self.printer.exit()
         self.thread.join()
 
@@ -107,8 +102,11 @@ class TestLibHardware(unittest.TestCase):
         self.press(page)
         self.waitPage(page)
 
-    def test_init(self):
-        pass
+    def test_turnoff(self):
+        # Turn off
+        self.press("turnoff")
+        self.waitPage("yesno")
+        self.press("yes")
 
     def test_control(self):
         self.switchPage("control")
@@ -116,6 +114,8 @@ class TestLibHardware(unittest.TestCase):
         # self.press("top")
         # self.press("tankres")
         self.press("disablesteppers")
+
+        self.test_turnoff()
 
     def test_support(self):
         self.switchPage("settings")
@@ -131,6 +131,8 @@ class TestLibHardware(unittest.TestCase):
 
         self.press("back")
         self.waitPage("home")
+
+        self.test_turnoff()
 
     def test_advancedsettings(self):
         self.switchPage("settings")
@@ -227,6 +229,8 @@ class TestLibHardware(unittest.TestCase):
         self.press("back")
         self.waitPage("home")
 
+        self.test_turnoff()
+
     def test_print_not_calibrated(self):
         # Try to print
         self.press("print")
@@ -235,6 +239,8 @@ class TestLibHardware(unittest.TestCase):
         # Return to home
         self.press("no")
         self.waitPage("home")
+
+        self.test_turnoff()
 
     def test_print(self):
         # Fake calibration
@@ -259,9 +265,10 @@ class TestLibHardware(unittest.TestCase):
         self.waitPage("print", timeout_sec=30)  # TODO: Why do we return to print?
         self.waitPage("home")  # Return home after print
 
+        self.test_turnoff()
+
     def test_wizard(self):
-        # TODO: Test wizard
-        pass
+        self.test_turnoff()
 
     def test_calibration(self):
         self.printer.hwConfig.coverCheck = False
@@ -305,6 +312,7 @@ class TestLibHardware(unittest.TestCase):
         self.press("back")
         self.waitPage("home")
 
+        self.test_turnoff()
 
 if __name__ == '__main__':
     unittest.main()
