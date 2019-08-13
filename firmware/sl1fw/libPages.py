@@ -181,7 +181,7 @@ class Page(object):
 
     def downloadURL(self, url, dest, title=None, timeout_sec=10):
         """Fetches file specified by url info destination while displaying progress. This is implemented as chunked
-        copy from source file descriptor to the deestination file descriptor. The progress is updated once the cunk is
+        copy from source file descriptor to the destination file descriptor. The progress is updated once the chunk is
         copied. The source file descriptor is either standard file when the source is mounted USB drive or urlopen
         result."""
 

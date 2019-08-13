@@ -143,58 +143,42 @@ class PageNetUpdate(Page):
                 os.makedirs(defines.internalProjectPath)
             #endif
 
-            # TODO: With python 3 we could:
-            # with tempfile.TemporaryFile() as archive:
-            archive = tempfile.mktemp(suffix=".tar.gz")
+            with tempfile.NamedTemporaryFile() as archive:
+                self.downloadURL(defines.examplesURL, archive.name, title=_("Fetching examples"))
 
-            self.downloadURL(defines.examplesURL, archive, title=_("Fetching examples"))
+                pageWait = PageWait(self.display, line1=_("Decompressing examples"))
+                pageWait.show()
+                pageWait.showItems(line1=_("Extracting examples"))
 
-            pageWait = PageWait(self.display, line1=_("Decompressing examples"))
-            pageWait.show()
-            pageWait.showItems(line1=_("Extracting examples"))
+                with tempfile.TemporaryDirectory() as temp:
+                    with tarfile.open(fileobj=archive) as tar:
+                        for member in tar.getmembers():
+                            tar.extract(member, temp)
+                        #endfor
+                    #endwith
 
-            #TODO: With python 3 we could:
-            #with tempfile.TemporaryDirectory() as temp:
-            temp = tempfile.mkdtemp()
-            with tarfile.open(archive) as tar:
-                for member in tar.getmembers():
-                    tar.extract(member, temp)
-                #endfor
-            #endwith
-            pageWait.showItems(line1=_("Storing examples"))
-            for item in os.listdir(temp):
-                dest = os.path.join(defines.internalProjectPath, item)
-                if os.path.exists(dest):
-                    shutil.rmtree(dest)
-                #endif
-                shutil.copytree(os.path.join(temp, item), dest)
-            #endfor
+                    pageWait.showItems(line1=_("Storing examples"))
+                    for item in os.listdir(temp):
+                        dest = os.path.join(defines.internalProjectPath, item)
+                        if os.path.exists(dest):
+                            shutil.rmtree(dest)
+                        #endif
+                        shutil.copytree(os.path.join(temp, item), dest)
+                    #endfor
 
-            pageWait.showItems(line1=_("Cleaning up"))
+                    pageWait.showItems(line1=_("Cleaning up"))
+                #endwith
             #endwith
 
             return "_BACK_"
         #endtry
 
         except Exception as e:
-            self.logger.error("Exaples fetch failed: " + str(e))
+            self.logger.exception("Exaples fetch failed: " + str(e))
             self.display.pages['error'].setParams(
                 text=_("Examples fetch failed"))
             return "error"
         #endexcept
-
-        finally:
-            try:
-                if os.path.exists(archive):
-                    os.remove(archive)
-                #endif
-                if os.path.exists(temp):
-                    shutil.rmtree(temp)
-                #endif
-            except:
-                self.logger.exception("Failed to remove examples debries")
-            #endtry
-        #endtry
     #enddef
 
 
