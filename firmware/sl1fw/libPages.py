@@ -5,23 +5,12 @@
 
 import os
 import logging
-from time import time, sleep
+from time import sleep
 import toml
 import subprocess
 import glob
 import datetime
-
-# Python 2/3 imports
-try:
-    from urllib.parse import urlparse, urlencode
-    from urllib.request import urlopen, Request
-    from urllib.error import HTTPError
-except ImportError:
-    # TODO: Remove once we accept Python 3
-    from urlparse import urlparse
-    from urllib import urlencode
-    from urllib2 import urlopen, Request, HTTPError
-#endtry
+from urllib.request import urlopen, Request
 
 from sl1fw import defines
 from sl1fw import libConfig
@@ -213,22 +202,12 @@ class Page(object):
             source = urlopen(req, timeout=timeout_sec)
 
             # Default files size (sometimes HTTP server does not know size)
-            file_size = None
-
-            # Try to read header using Python 3 API
-            try:
-                file_size = int(source.info().get("Content-Length"))
-            except:
-                self.logger.exception("Failed to read file content length header Python 3 way")
-
-                # Try to header read using Python 2 API
-                try:
-                    # TODO: Remove once we accept Python3
-                    file_size = int(source.info().getheaders("Content-Length")[0])
-                except:
-                    self.logger.exception("Failed to read file content length header Python 2 way")
-                #endtry
-            #endtry
+            content_length = source.info().get("Content-Length")
+            if content_length is not None:
+                file_size = int(content_length)
+            else:
+                file_size = None
+            #endif
 
             block_size = 8 * 1024
         else:

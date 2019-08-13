@@ -47,12 +47,7 @@ class TestLibHardware(unittest.TestCase):
         self.assertEqual("CZPX0819X009XC00151", self.hw.cpuSerialNo)
 
     def test_info_read(self):
-        try:
-            # Use this in Python3 only code:
-            self.assertRegex(self.hw.mcFwVersion, "SLA-control.*")
-        except AttributeError:
-            self.assertTrue(self.hw.mcFwVersion.startswith("SLA-control"))
-
+        self.assertRegex(self.hw.mcFwVersion, "SLA-control.*")
         self.assertEqual("CZPX0619X678XC12345", self.hw.mcSerialNo)
         self.assertEqual(6, self.hw.mcFwRevision)
         self.assertEqual((4, 0), self.hw.mcBoardRevisionBin)

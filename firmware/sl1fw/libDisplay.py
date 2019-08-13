@@ -5,18 +5,11 @@
 import os, sys
 import logging
 from time import sleep
-# Python 2/3 imports
-try:
-    from time import monotonic
-except ImportError:
-    # TODO: Remove once we accept Python 3
-    from monotonic import monotonic
-#endtry
-
+from time import monotonic
 from sl1fw import defines
 from sl1fw import libPages
 from sl1fw.libConfig import WizardData
-from sl1fw.pages import *
+from sl1fw.pages import * # This is actually used to import all the pages from pages package
 
 
 class Display(object):
