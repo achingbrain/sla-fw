@@ -2,7 +2,6 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import os
 import logging
 from time import time, sleep
 import toml
@@ -12,7 +11,6 @@ import threading
 import gettext
 import re
 
-import sl1fw
 from sl1fw import defines
 
 

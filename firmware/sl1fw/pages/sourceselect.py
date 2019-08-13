@@ -44,20 +44,11 @@ class SourceDir:
     #enddef
 
 
-    def processItem(self, item, path):
+    def processItem(self, item: str, path: str):
         # Skip . link
         if item.startswith('.'):
             raise SourceDir.NotProject(". dir")
         #endif
-
-        # Skip files that fail to decode as utf-8
-        try:
-            item.decode('utf-8')
-        except ValueError:
-            raise Exception('Invalid filename')
-        except AttributeError as e:
-            pass  # Python3 compat
-        #endtry
 
         # Add directory to result
         full_path = os.path.join(path, item)

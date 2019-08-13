@@ -173,7 +173,7 @@ class MotConCom(object):
 
     def doGetIntList(self, base = 10, multiply = 1, args = ()):
         try:
-            return list(map(lambda x: int(x, base) * multiply, self.do(*args).split(" ")))
+            return list([int(x, base) * multiply for x in self.do(*args).split(" ")])
         except Exception:
             self.logger.exception("exception:")
             return None
@@ -454,8 +454,8 @@ class Hardware(object):
                 }
 
         # get sorted profiles names
-        self._tiltProfileNames = list(map(lambda x: x[0], sorted(self._tiltProfiles.items(), key=lambda kv: kv[1])))
-        self._towerProfileNames = list(map(lambda x: x[0], sorted(self._towerProfiles.items(), key=lambda kv: kv[1])))
+        self._tiltProfileNames = [x[0] for x in sorted(list(self._tiltProfiles.items()), key=lambda kv: kv[1])]
+        self._towerProfileNames = [x[0] for x in sorted(list(self._towerProfiles.items()), key=lambda kv: kv[1])]
 
         self._tiltAdjust = {
             'homingFast': [[20,5],[20,6],[20,7],[21,9],[22,12]],
@@ -755,7 +755,7 @@ class Hardware(object):
         for profId in range(8):
             try:
                 profData = self.mcc.do(getProfileDataCmd, profId).split(" ")
-                profiles.append(list(map(lambda x: int(x), profData)))
+                profiles.append([int(x) for x in profData])
             except Exception:
                 self.logger.exception("parse profile:")
                 profiles.append(list((-1, -1, -1, -1, -1, -1, -1)))
@@ -1121,7 +1121,7 @@ class Hardware(object):
     def getMcTemperatures(self):
         temps = self.mcc.doGetIntList(multiply = 0.1, args = ("?temp", "noSyslog"))
         if temps and len(temps) == 4:
-            self.logger.info("Temperatures [C]: %s", " ".join(map(lambda x: "%.1f" % x, temps)))
+            self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
             return temps
         else:
             self.logger.warning("TEMPs count not match! (%s)", str(temps))
