@@ -37,9 +37,10 @@ class Display(object):
         self.checkCoolingExpo = True
         self.backActions = set(("_EXIT_", "_BACK_", "_OK_", "_NOK_"))
         self.waitPageItems = None
-        self.netState = None
         self.forcedPage = None
         self.running = True
+
+        self.inet.register_net_change_handler(self.assignNetActive)
     #enddef
 
 
@@ -88,7 +89,7 @@ class Display(object):
         for device in self.devices:
             device.assignNetActive(value)
         #endfor
-        self.netState = value
+        self.actualPage.netChange()
     #enddef
 
 
@@ -127,11 +128,6 @@ class Display(object):
                 actualPage = self.forcedPage
                 self.forcedPage = None
             #enddef
-
-            if self.netState is not None:
-                actualPage.netChange()
-                self.netState = None
-            #endif
 
             now = monotonic()
 

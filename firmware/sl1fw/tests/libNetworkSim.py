@@ -6,5 +6,8 @@ class Network(object):
         }
         self.hostname = "test_hostname"
 
-    def startNetMonitor(self, assignNetActive):
+    def start_net_monitor(self):
+        pass
+
+    def register_net_change_handler(self, _):
         pass

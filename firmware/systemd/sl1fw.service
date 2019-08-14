@@ -1,5 +1,7 @@
 [Unit]
 Description=SL1 firmware
+Requires=NetworkManager.service
+After=NetworkManager.service
 
 [Service]
 ExecStartPre=/usr/bin/sh -c "/usr/bin/echo 0 > /sys/class/vtconsole/vtcon1/bind"

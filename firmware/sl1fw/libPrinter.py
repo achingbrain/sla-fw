@@ -80,7 +80,7 @@ class Printer(object):
         self.eventThread = threading.Thread(target=self.loopThread)
         self.eventThread.start()
 
-        self.inet.startNetMonitor(self.display.assignNetActive)
+        self.inet.start_net_monitor()
 
         self.logger.info("Start time: %f secs", time() - startTime)
     #endclass

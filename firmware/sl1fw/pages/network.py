@@ -17,25 +17,41 @@ class PageNetwork(Page):
         self.pageUI = "network"
         self.pageTitle = N_("Network")
         self.wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
+        self.olditems = None
     #enddef
 
 
     def fillData(self):
+        items = {}
+        items.update(self.fillNetworkData())
+        items.update(self.fillAPData())
+        return items
+    #enddef
+
+
+    def fillAPData(self):
         return {
-            'devlist' : self.display.inet.getDevices(),
-            'wifi_mode' : wificonfig.WifiMode,
-            'client_ssid' : wificonfig.Client['ssid'],  # Deprecated
-            'client_psk' : wificonfig.Client['psk'],  # Deprecated
-            'ap_ssid' : wificonfig.Hotspot['ssid'],
-            'ap_psk' : wificonfig.Hotspot['psk'],
-            'aps' : list(aps.values()),
-            'wifi_ssid' : wificonfig.WifiConnectedSSID,
-            'wifi_signal' : wificonfig.WifiConnectedSignal,
+            'aps': list(self.wificonfig.APs)
+        }
+    #enddef
+
+
+    def fillNetworkData(self):
+        return {
+            'devlist': self.display.inet.devices,
+            'wifi_mode': self.wificonfig.WifiMode,
+            'client_ssid': self.wificonfig.Client['ssid'],  # Deprecated
+            'client_psk': self.wificonfig.Client['psk'],  # Deprecated
+            'ap_ssid': self.wificonfig.Hotspot['ssid'],
+            'ap_psk': self.wificonfig.Hotspot['psk'],
+            'wifi_ssid': self.wificonfig.WifiConnectedSSID,
+            'wifi_signal': self.wificonfig.WifiConnectedSignal,
         }
     #enddef
 
 
     def show(self):
+        self.olditems = None
         self.wificonfig.Scan()
         self.items.update(self.fillData())
         super(PageNetwork, self).show()
@@ -43,12 +59,18 @@ class PageNetwork(Page):
 
 
     def netChange(self):
-        self.showItems(**self.fillData())
+        items = self.fillNetworkData()
+        if items != self.olditems:
+            self.showItems(**items)
+            self.olditems = items
+        else:
+            self.logger.debug("Skipping items update on netchange, items are the same")
+        #endif
     #enddef
 
 
     def apsChanged(self):
-        self.showItems(aps = list(self.wificonfig.APs))
+        self.showItems(**self.fillAPData())
     #enddef
 
 

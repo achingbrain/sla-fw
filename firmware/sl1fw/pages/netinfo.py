@@ -21,7 +21,10 @@ class PageNetInfo(Page):
     def fillData(self):
         wifi = pydbus.SystemBus().get("cz.prusa3d.sl1.wificonfig")
 
-        items = {}
+        items = {
+            'devlist': self.display.inet.devices,
+            'wifi_mode': wifi.WifiMode
+        }
 
         if wifi.WifiMode == "ap":
             try:
@@ -36,12 +39,12 @@ class PageNetInfo(Page):
                 items['text'] = _("Error reading Wi-fi setup!")
             #endtry
         elif wifi.WifiMode == "client":
-                # client mode
-                ip = self.display.inet.ip
-                items['mode'] = "client"
-                items['client_ip'] = ip
-                items['client_hostname'] = self.display.inet.hostname
-                items['qr'] = "http://maker:%s@%s/" % (self.octoprintAuth, ip)
+            # client mode
+            ip = self.display.inet.ip
+            items['mode'] = "client"
+            items['client_ip'] = ip
+            items['client_hostname'] = self.display.inet.hostname
+            items['qr'] = "http://maker:%s@%s/" % (self.octoprintAuth, ip)
             #endif
         else:
             # no internet connection
