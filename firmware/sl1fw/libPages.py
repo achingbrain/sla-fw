@@ -287,7 +287,7 @@ class Page(object):
                         echo "########## REBOOT: ${i} ##########";
                         journalctl --no-pager --boot ${i};
                     done;
-                ) | xz -T0 > %s""" % log_file])
+                ) | xz -T0 -0 > %s""" % log_file])
             os.sync()
         except:
             self.logger.error("Saving logs failed")
