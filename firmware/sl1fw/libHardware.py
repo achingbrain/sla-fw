@@ -1491,7 +1491,7 @@ class Hardware(object):
     def tiltSyncWait(self, retries = None):
         self.tiltSync(retries)
         while not self.isTiltSynced():
-            pass
+            sleep(0.1)
         #endwhile
         return not self.tiltSyncFailed()
     #enddef
