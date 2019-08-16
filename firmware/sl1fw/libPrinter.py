@@ -19,6 +19,7 @@ class Printer(object):
     def __init__(self, debugDisplay=None):
         startTime = time()
         self.running = True
+        self.exited = threading.Event()
 
         self.logger = logging.getLogger(__name__)
         self.logger.info("SL1 firmware started - version %s", defines.swVersion)
@@ -89,17 +90,20 @@ class Printer(object):
 
     def exit(self):
         self.running = False
-        self.screen.exit()
         self.display.exit()
+        self.exited.wait()
+        self.screen.exit()
         self.inet.exit()
         self.hw.exit()
         self.eventLoop.quit()
+        self.eventThread.join()
     #enddef
 
 
     def start(self):
         from sl1fw.libExposure import Exposure
         firstRun = True
+        self.exited.clear()
 
         try:
             while self.running:
@@ -169,6 +173,7 @@ class Printer(object):
             self.display.shutDown(True)
         #endtry
 
+        self.exited.set()
     #enddef
 
     def loopThread(self):

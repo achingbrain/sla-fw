@@ -37,8 +37,11 @@ class Serial(object):
         :return: None
         """
         self.logger.debug("MCSim: writting: %s", data)
-        self.process.stdin.write(data)
-        self.process.stdin.flush()
+        try:
+            self.process.stdin.write(data)
+            self.process.stdin.flush()
+        except:
+            self.logger.exception("Failed to write to simulated port")
 
     def readline(self):
         """
