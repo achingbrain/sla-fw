@@ -261,7 +261,7 @@ class TestLibHardware(unittest.TestCase):
         self.press("cont")
         self.waitPage("wait", timeout_sec=30)
         self.waitPage("print", timeout_sec=30)  # Actual printing
-        self.waitPage("wait", timeout_sec=120)  # Moving platform to the top
+        self.waitPage("wait", timeout_sec=240)  # Moving platform to the top
         self.waitPage("print", timeout_sec=30)  # TODO: Why do we return to print?
         self.waitPage("home")  # Return home after print
 
@@ -305,7 +305,7 @@ class TestLibHardware(unittest.TestCase):
         self.waitPage("confirm")  # Tighten the small screw
         self.press("cont")
         self.waitPage("wait")  # Measuring tilt times
-        self.waitPage("confirm", timeout_sec=60)  # Calibration done
+        self.waitPage("confirm", timeout_sec=120)  # Calibration done
         self.press("cont")
 
         self.waitPage("settings")
