@@ -15,25 +15,6 @@ from sl1fw import defines
 from sl1fw import libConfig
 
 
-class PageRegistry(object):
-    def __init__(self):
-        self._pages = {}
-
-    def __call__(self, page_class):
-        self._pages[page_class.Name] = page_class
-        return page_class
-    #enddef
-
-    def getpages(self):
-        return self._pages
-    #enddef
-
-#endclass
-
-
-page = PageRegistry()
-
-
 class Page(object):
 
     def __init__(self, display):
@@ -723,7 +704,6 @@ class Page(object):
 #endclass
 
 
-@page
 class PageWait(Page):
     Name = "wait"
 

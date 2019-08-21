@@ -4,7 +4,8 @@
 
 from sl1fw import defines
 from sl1fw import libConfig
-from sl1fw.libPages import page, Page
+from sl1fw.pages import page
+from sl1fw.libPages import Page
 
 
 def item_updater(str_func = None, minLimit = None):

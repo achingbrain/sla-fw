@@ -4,8 +4,8 @@
 
 import subprocess
 
-from sl1fw.libPages import page, Page
-
+from sl1fw.libPages import Page
+from sl1fw.pages import page
 
 @page
 class PageSetLoginCredentials(Page):

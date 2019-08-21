@@ -6,7 +6,8 @@ from time import time
 
 from sl1fw import defines
 from sl1fw.libConfig import TomlConfig
-from sl1fw.libPages import page, Page
+from sl1fw.pages import page
+from sl1fw.libPages import Page
 from sl1fw.pages.home import PageHome
 from sl1fw.pages.sourceselect import PageSrcSelect
 from sl1fw.pages.printstart import PagePrintPreview
