@@ -38,7 +38,7 @@ class PageNetInfo(Page):
                 items['mode'] = None
                 items['text'] = _("Error reading Wi-fi setup!")
             #endtry
-        elif wifi.WifiMode == "client":
+        elif wifi.WifiMode == "client" or self.display.inet.ip:
             # client mode
             ip = self.display.inet.ip
             items['mode'] = "client"
