@@ -27,6 +27,7 @@ perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 configFile = "config.ini"
 maskFilename = "mask.png"
 projectExtensions = set((".dwz", ".sl1"))
+lastProjectData = os.path.join(persistentStorage, "lastProject.toml")
 
 cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
 cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"

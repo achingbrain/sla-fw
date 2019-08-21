@@ -504,6 +504,7 @@ class PrintConfig(FileConfig):
     def __init__(self, hwConfig, configFile = None):
         self._hwConfig = hwConfig
         self.zipName = None
+        self.origin = None
         self.modificationTime = None
         super(PrintConfig, self).__init__("PrintConfig", configFile)
     #enddef
@@ -555,7 +556,7 @@ class PrintConfig(FileConfig):
         # Set paths
         dirName = os.path.dirname(zipName)
         self._configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
-        self.zipName = zipName
+        self.origin = self.zipName = zipName
 
         for filename in namelist:
             fName, fExt = os.path.splitext(filename)

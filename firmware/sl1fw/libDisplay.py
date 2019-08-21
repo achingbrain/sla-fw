@@ -134,9 +134,7 @@ class Display(object):
             if actualPage.callbackPeriod and now - callbackTime > actualPage.callbackPeriod:
                 callbackTime = now
                 newPage = actualPage.callback()
-                if newPage == "_EXIT_":
-                    break
-                elif newPage is not None:
+                if newPage is not None:
                     if actualPage.stack:
                         pageStack.append(actualPage)
                     #endif
@@ -218,6 +216,9 @@ class Display(object):
                         #endif
                         continue
                     elif newPage is not None:
+                        if actualPage.clearStack:
+                            pageStack = list()
+                        #endif
                         if actualPage.stack:
                             pageStack.append(actualPage)
                         #endif

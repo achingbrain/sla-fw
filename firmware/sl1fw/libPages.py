@@ -43,6 +43,7 @@ class Page(object):
         self.display = display
         self.autorepeat = {}
         self.stack = True
+        self.clearStack = False
         self.items = dict()
 
         self.updateDataPeriod = None
@@ -666,6 +667,22 @@ class Page(object):
         self.display.setWaitPage(line1 = _("Job will be canceled after layer finish"))
         return "_SELF_"
     #enddef
+
+
+    def loadProject(self, project_filename):
+        pageWait = PageWait(self.display, line1 = _("Reading project data"))
+        pageWait.show()
+        config = self.display.config
+        config.parseFile(project_filename)
+        if config.zipError is not None:
+            sleep(0.5)
+            self.display.pages['error'].setParams(
+                    text = _("Your project has a problem: %s\n\n"
+                        "Re-export it and try again.") % config.zipError)
+            return False
+        #endif
+        return True
+    #endef
 
 
     def ramdiskCleanup(self):

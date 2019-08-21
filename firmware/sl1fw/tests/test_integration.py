@@ -39,6 +39,7 @@ class TestIntegration(unittest.TestCase):
         defines.cpuTempFile = os.path.join(os.path.dirname(__file__), "samples/cputemp")
         defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
         defines.hwConfigFactoryDefaultsFile = os.path.join(os.path.dirname(__file__), "samples/hardware.toml")
+        defines.lastProjectData = os.path.join(os.path.dirname(__file__), "samples/lastProject.toml")
         defines.templates = os.path.join(os.path.dirname(__file__), "../intranet/templates")
         defines.multimediaRootPath = os.path.join(os.path.dirname(__file__), "../multimedia")
         defines.hwConfigFile = self.HARDWARE_FILE
@@ -70,6 +71,10 @@ class TestIntegration(unittest.TestCase):
         self.press("back")
         self.waitPage("yesno")
         self.press("yes")
+        if os.path.isfile(defines.lastProjectData):
+            self.waitPage("finished")
+            self.press("home")
+        #endif
         self.waitPage("home")
 
     def printer_thread(self):
@@ -263,10 +268,8 @@ class TestIntegration(unittest.TestCase):
         self.waitPage("wait", timeout_sec=30)
         self.waitPage("print", timeout_sec=30)  # Actual printing
         self.waitPage("wait", timeout_sec=240)  # Moving platform to the top
-        self.waitPage("print", timeout_sec=30)  # TODO: Why do we return to print?
-        self.waitPage("home")  # Return home after print
-
-        self.test_turnoff()
+        self.waitPage("finished", timeout_sec=30)
+        # auto off enabled
 
     def test_wizard(self):
         self.test_turnoff()

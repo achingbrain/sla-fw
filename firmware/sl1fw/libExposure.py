@@ -453,7 +453,7 @@ If you don't want to refill, please press the Back button on top of the screen."
                 wasStirring = False
 
                 # /1000 - we want cm3 (=ml) not mm3
-                self.expo.resinCount += whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000
+                self.expo.resinCount += float(whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000)
                 self.logger.debug("resinCount: %f" % self.expo.resinCount)
 
                 if self.expo.hwConfig.trigger:
@@ -466,7 +466,6 @@ If you don't want to refill, please press the Back button on top of the screen."
 
             self.expo.hw.saveUvStatistics()
             self.expo.hw.uvLed(False)
-            self.expo.hw.beepRepeat(3)
 
             if not stuck:
                 pageWait = PageWait(self.expo.display, line1 = _("Moving platform to the top"))
@@ -479,15 +478,13 @@ If you don't want to refill, please press the Back button on top of the screen."
                 #endwhile
             #endif
 
-            # TODO extra page finalPrint
-            self.expo.display.forcePage("print")
-            self.expo.display.actualPage.showItems(percent = "100%", progress = 100)
-            #self.logger.debug("thread ended")
-
         except Exception as e:
             self.logger.exception("run() exception:")
             self.expo.exception = e
         #endtry
+
+        self.expo.display.forcePage("finished")
+        #self.logger.debug("thread ended")
     #enddef
 
 #endclass
@@ -547,7 +544,7 @@ class Exposure(object):
 
     def inProgress(self):
         if self.expoThread:
-            return self.expoThread.isAlive()
+            return self.expoThread.is_alive()
         else:
             return False
         #endif

@@ -46,6 +46,7 @@ class PagePrint(Page):
         self.logger.debug("printStartTime: " + str(self.printStartTime))
 
         self.display.expo.start()
+        self.display.pages['finished'].data = None
     #enddef
 
 
@@ -61,25 +62,6 @@ class PagePrint(Page):
 
         self.callbackSkip += 1
         expo = self.display.expo
-        hwConfig = self.display.hwConfig
-
-        if not expo.inProgress():
-
-            if expo.exception is not None:
-                raise Exception("Exposure thread exception: %s" % str(expo.exception))
-            #endif
-
-            printTime = int((time() - self.printStartTime) / 60)
-            self.logger.info("Job finished - real printing time is %s minutes", printTime)
-            self.jobLog(" - print time: %s  resin: %.1f ml" % (printTime, expo.resinCount) )
-
-            self.display.hw.stopFans()
-            self.display.hw.motorsRelease()
-            if hwConfig.autoOff and not expo.canceled:
-                self.display.shutDown(True)
-            #endif
-            return "_EXIT_"
-        #endif
 
         if self.lastLayer == expo.actualLayer:
             return
@@ -87,10 +69,11 @@ class PagePrint(Page):
 
         self.lastLayer = expo.actualLayer
         config = self.display.config
+        calcMM = self.display.hwConfig.calcMM
 
         time_remain_min = self.countRemainTime(expo.actualLayer, expo.slowLayers)
         time_elapsed_min = int(round((time() - self.printStartTime) / 60))
-        positionMM = hwConfig.calcMM(expo.position)
+        positionMM = calcMM(expo.position)
         percent = int(100 * (self.lastLayer-1) / config.totalLayers)
         self.logger.info("Layer: %d/%d  Height: %.3f/%.3f mm  Elapsed[min]: %d  Remain[min]: %d  Percent: %d",
                 self.lastLayer, config.totalLayers, positionMM,
@@ -117,8 +100,8 @@ class PagePrint(Page):
                 'time_elapsed_min' : time_elapsed_min,
                 'current_layer' : self.lastLayer,
                 'total_layers' : config.totalLayers,
-                'layer_height_first_mm' : self.display.hwConfig.calcMM(config.layerMicroStepsFirst),
-                'layer_height_mm' : hwConfig.calcMM(config.layerMicroSteps),
+                'layer_height_first_mm' : calcMM(config.layerMicroStepsFirst),
+                'layer_height_mm' : calcMM(config.layerMicroSteps),
                 'position_mm' : positionMM,
                 'total_mm' : self.totalHeight,
                 'project_name' : config.projectName,

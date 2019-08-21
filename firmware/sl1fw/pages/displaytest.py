@@ -43,7 +43,7 @@ class PageDisplayTest(Page):
 
     def yesButtonRelease(self):
         return "_OK_"
-    #endif
+    #enddef
 
 
     def noButtonRelease(self):
