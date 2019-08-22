@@ -27,12 +27,16 @@ class PageFactoryReset(Page):
     def show(self):
         self.items.update({
             'text' : _("Do you really want to perform the factory reset?\n\n"
-                "All settings will be deleted!")})
+                "All settings will be erased!")})
         super(PageFactoryReset, self).show()
     #enddef
 
 
     def yesButtonRelease(self):
+        # http://www.wavsource.com/snds_2018-06-03_5106726768923853/movie_stars/schwarzenegger/erased.wav
+        pageWait = PageWait(self.display, line1 = _("Relax... You've been erased."))
+        pageWait.show()
+
         inFactoryMode = self.display.hwConfig.factoryMode
         try:
             with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
@@ -48,6 +52,9 @@ class PageFactoryReset(Page):
                 text=_("Cannot save factory defaults configuration"))
             return "error"
         #endif
+
+        # erase MC EEPROM
+        self.display.hw.eraseEeprom()
 
         # Reset hostname
         try:
@@ -91,8 +98,7 @@ class PageFactoryReset(Page):
         # disable factory mode
         self.writeToFactory(self._disableFactory)
 
-        pageWait = PageWait(self.display, line1 = _("Printer is being set to packing positions"))
-        pageWait.show()
+        pageWait.showItems(line1 = _("Printer is being set to packing positions"))
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait(3)
         while not self.display.hw.isTowerSynced():
