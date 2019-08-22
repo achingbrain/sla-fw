@@ -2,9 +2,8 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import json
+import pydbus
 
-from sl1fw import defines
 from sl1fw.libPages import page, Page
 
 
@@ -20,33 +19,32 @@ class PageNetInfo(Page):
 
 
     def fillData(self):
-        apDeviceName = "ap0"
-        items = {}
-        devices = self.display.inet.getDevices()
-        if devices:
-            if apDeviceName in devices:
-                # AP mode
-                try:
-                    with open(defines.wifiSetupFile, "r") as f:
-                        wifiData = json.loads(f.read())
-                    #endwith
-                    ip = devices[apDeviceName]
-                    items['mode'] = "ap"
-                    items['ap_ssid'] = wifiData['ssid']
-                    items['ap_psk'] = wifiData['psk']
-                    items['qr'] = "WIFI:S:%s;T:WPA;P:%s;H:false;" % (wifiData['ssid'], wifiData['psk'])
-                except Exception:
-                    self.logger.exception("wifi setup file exception:")
-                    items['mode'] = None
-                    items['text'] = _("Error reading Wi-fi setup!")
-                #endtry
-            else:
-                # client mode
-                ip = self.display.inet.getIp()
-                items['mode'] = "client"
-                items['client_ip'] = ip
-                items['client_hostname'] = self.display.inet.getHostname()
-                items['qr'] = "http://maker:%s@%s/" % (self.octoprintAuth, ip)
+        wifi = pydbus.SystemBus().get("cz.prusa3d.sl1.wificonfig")
+
+        items = {
+            'devlist': self.display.inet.devices,
+            'wifi_mode': wifi.WifiMode
+        }
+
+        if wifi.WifiMode == "ap":
+            try:
+                wifiData = wifi.Hotspot
+                items['mode'] = "ap"
+                items['ap_ssid'] = wifiData['ssid']
+                items['ap_psk'] = wifiData['psk']
+                items['qr'] = "WIFI:S:%s;T:WPA;P:%s;H:false;" % (wifiData['ssid'], wifiData['psk'])
+            except Exception:
+                self.logger.exception("wifi setup file exception:")
+                items['mode'] = None
+                items['text'] = _("Error reading Wi-fi setup!")
+            #endtry
+        elif wifi.WifiMode == "client" or self.display.inet.ip:
+            # client mode
+            ip = self.display.inet.ip
+            items['mode'] = "client"
+            items['client_ip'] = ip
+            items['client_hostname'] = self.display.inet.hostname
+            items['qr'] = "http://maker:%s@%s/" % (self.octoprintAuth, ip)
             #endif
         else:
             # no internet connection

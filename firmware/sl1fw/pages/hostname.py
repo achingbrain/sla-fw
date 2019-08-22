@@ -15,22 +15,12 @@ class PageSetHostname(Page):
         super(PageSetHostname, self).__init__(display)
         self.pageUI = "sethostname"
         self.pageTitle = N_("Set Hostname")
-        self._hostname = None
-    #enddef
-
-
-    @property
-    def hostname(self):
-        if not self._hostname:
-            self._hostname = pydbus.SystemBus().get("org.freedesktop.hostname1")
-        #endif
-        return self._hostname
     #enddef
 
 
     def fillData(self):
         return {
-            'hostname' : self.hostname.StaticHostname,
+            'hostname' : self.display.inet.hostname
         }
     #enddef
 
@@ -43,10 +33,9 @@ class PageSetHostname(Page):
 
     def sethostnameButtonSubmit(self, data):
         try:
-            hostname = data['hostname']
-            self.hostname.SetStaticHostname(hostname, False)
-            self.hostname.SetHostname(hostname, False)
+            self.display.inet.hostname = data['hostname']
         except:
+            self.logger.exception("Failed to set hostname")
             self.display.pages['error'].setParams(
                 text=_("Failed to set hostname"))
             return "error"

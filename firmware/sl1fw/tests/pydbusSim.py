@@ -1,3 +1,6 @@
+import pydbus
+
+
 class SystemBus:
     def __call__(self):
         return self
@@ -13,6 +16,11 @@ class SystemBus:
             return Hostname()
         elif service == "org.freedesktop.locale1":
             return Locale()
+        elif service == "org.freedesktop.NetworkManager":
+            # Temporary, fix we should provide fake object
+            return pydbus.SystemBus().get(service, *args, **kwargs)
+        elif service == "cz.prusa3d.sl1.wificonfig":
+            return WifiConfig()
         else:
             raise Exception("Cannot provide fake service for unknown service name %s" % service)
 
@@ -86,3 +94,47 @@ class Locale:
 
     def connect(self, callback):
         pass
+
+
+class WifiConfig():
+    def __init__(self):
+        self.APs = []
+        self.Client = {
+            'ssid': "test",
+            'psk': "testtest"
+        }
+        self.Hotspot = {
+            'ssid': "test",
+            'psk': "testtest"
+        }
+        self.PropertiesChanged = self
+
+    def connect(self, *args, **kwargs):
+        pass
+
+    def Connect(self, ssid, psk):
+        pass
+
+    def StartHotspot(self, ssid, psk):
+        pass
+
+    def EnableWifi(self):
+        pass
+
+    def DisableWifi(self):
+        pass
+
+    def Reset(self):
+        pass
+
+    def Scan(self):
+        pass
+
+    def WifiMode(self):
+        return "off"
+
+    def WifiConnectedSSID(self):
+        return ""
+
+    def WifiConnectedSignal(self):
+        return 0

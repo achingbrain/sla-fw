@@ -10,6 +10,7 @@ from gi.repository import GLib
 import threading
 import gettext
 import re
+from dbus.mainloop.glib import DBusGMainLoop
 
 from sl1fw import defines
 
@@ -48,8 +49,8 @@ class Printer(object):
         #     self.logger.warning("Factory mode disabled for kit")
         # #endif
 
-        from sl1fw.libInternet import Internet
-        self.inet = Internet()
+        from sl1fw.libNetwork import Network
+        self.inet = Network()
 
         if debugDisplay:
             devices = [debugDisplay]
@@ -73,11 +74,13 @@ class Printer(object):
 
         self.hw.connectMC(PageWait(self.display), PageStart(self.display))
 
-        self.inet.startNetMonitor(self.display.assignNetActive)
-
+        # Start DBus event loop in separate thread
+        DBusGMainLoop(set_as_default=True)
         self.eventLoop = GLib.MainLoop()
         self.eventThread = threading.Thread(target=self.loopThread)
         self.eventThread.start()
+
+        self.inet.start_net_monitor()
 
         self.logger.info("Start time: %f secs", time() - startTime)
     #endclass
@@ -93,7 +96,6 @@ class Printer(object):
         self.display.exit()
         self.exited.wait()
         self.screen.exit()
-        self.inet.exit()
         self.hw.exit()
         self.eventLoop.quit()
         self.eventThread.join()
@@ -180,6 +182,8 @@ class Printer(object):
         self.logger.debug("Registering dbus event handlers")
         locale = SystemBus().get("org.freedesktop.locale1")
         locale.PropertiesChanged.connect(self.localeChanged)
+        wificonfig = SystemBus().get("cz.prusa3d.sl1.wificonfig")
+        wificonfig.PropertiesChanged.connect(self.wificonfigChanged)
 
         self.logger.debug("Starting printer event loop")
         self.eventLoop.run()
@@ -206,6 +210,16 @@ class Printer(object):
         except:
             self.logger.exception("Translation for %s cannot be installed.", lang)
         #endtry
+    #enddef
+
+    def wificonfigChanged(self, service, changed, data):
+        if not 'APs' in changed:
+            return
+        #endif
+
+        if self.display.actualPage == self.display.pages['network']:
+            self.display.pages['network'].apsChanged()
+        #endif
     #enddef
 
 #endclass
