@@ -6,7 +6,6 @@
 import os
 import logging
 from time import sleep
-import toml
 import subprocess
 import glob
 import datetime
@@ -325,12 +324,12 @@ class Page(object):
             'fan2rpm': self.display.hwConfig.fan2Rpm,
             'fan3rpm': self.display.hwConfig.fan3Rpm,
             'uvpwm': self.display.hwConfig.uvPwm,
-            'towersensitivity': self.display.hwConfig.towerSensitivity
+            'towersensitivity': self.display.hwConfig.towerSensitivity,
         }
 
-        with open(defines.hwConfigFactoryDefaultsFile, "w") as file:
-            toml.dump(defaults, file)
-        #endwith
+        if not libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).save(defaults):
+            self.logger.error("Defaults was not saved!")
+        #endif
 
         self.display.hwConfig._defaults = defaults
     #enddef

@@ -4,7 +4,6 @@
 
 import logging
 from time import time, sleep
-import toml
 from pydbus import SystemBus
 from gi.repository import GLib
 import threading
@@ -26,14 +25,7 @@ class Printer(object):
         self.logger.info("SL1 firmware started")
 
         from sl1fw import libConfig
-        try:
-            with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
-                factory_defaults = toml.load(factory)
-            #endwith
-        except:
-            self.logger.exception("Failed to load factory defaults")
-            factory_defaults = {}
-        #endtry
+        factory_defaults = libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).load()
         self.hwConfig = libConfig.HwConfig(defines.hwConfigFile, defaults = factory_defaults)
         self.hwConfig.logAllItems()
         self.config = libConfig.PrintConfig(self.hwConfig)
