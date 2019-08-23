@@ -325,6 +325,7 @@ class Page(object):
             'fan2rpm': self.display.hwConfig.fan2Rpm,
             'fan3rpm': self.display.hwConfig.fan3Rpm,
             'uvpwm': self.display.hwConfig.uvPwm,
+            'towersensitivity': self.display.hwConfig.towerSensitivity
         }
 
         with open(defines.hwConfigFactoryDefaultsFile, "w") as file:

@@ -56,6 +56,9 @@ class PageFactoryReset(Page):
         # erase MC EEPROM
         self.display.hw.eraseEeprom()
 
+        # set homing profiles to factory defaults
+        self.display.hw.updateMotorSensitivity(self.display.hwConfig.tiltSensitivity, self.display.hwConfig.towerSensitivity)
+
         # Reset hostname
         try:
             hostnamectl = pydbus.SystemBus().get("org.freedesktop.hostname1")
