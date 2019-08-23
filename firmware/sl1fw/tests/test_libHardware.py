@@ -178,7 +178,7 @@ class TestLibHardware(unittest.TestCase):
     def test_cover_closed(self):
         self.assertFalse(self.hw.isCoverClosed())
 
-    def test_power_sitch(self):
+    def test_power_switch(self):
         self.assertFalse(self.hw.getPowerswitchState())
 
     def test_fans(self):

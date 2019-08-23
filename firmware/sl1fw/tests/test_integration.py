@@ -26,7 +26,7 @@ from sl1fw import defines
 from sl1fw.pages.printstart import PagePrintPreview
 
 
-class TestLibHardware(unittest.TestCase):
+class TestIntegration(unittest.TestCase):
     EEPROM_FILE = "EEPROM.dat"
     FB_DEV_FILE = "FBDEV.dat"
     HARDWARE_FILE = "hardware.cfg"
