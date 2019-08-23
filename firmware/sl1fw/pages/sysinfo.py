@@ -18,7 +18,6 @@ class PageSysInfo(Page):
                 'serial_number': self.display.hw.cpuSerialNo,
                 'system_name': self.display.hwConfig.os.name,
                 'system_version': self.display.hwConfig.os.version,
-                'firmware_version': defines.swVersion,
                 })
         self.updateDataPeriod = 0.5
         self.skip = 11

@@ -460,7 +460,6 @@ class WizardData(FileConfig):
     def _parseData(self):
         # following values are for quality monitoring systems
         self.osVersion = self._parseString("osversion")
-        self.sl1fwVersion = self._parseString("sl1fwversion")
         self.a64SerialNo = self._parseString("a64serialno")
         self.mcSerialNo = self._parseString("mcserialno")
         self.mcFwVersion = self._parseString("mcfwversion")

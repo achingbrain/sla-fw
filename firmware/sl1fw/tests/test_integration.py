@@ -47,7 +47,6 @@ class TestIntegration(unittest.TestCase):
         defines.truePoweroff = False
         defines.internalProjectPath = os.path.join(os.path.dirname(__file__), "samples")
         defines.ramdiskPath = tempfile.gettempdir()
-        defines.jobCounter = os.path.join(defines.ramdiskPath, "jobcounter")
         defines.octoprintAuthFile = os.path.join(os.path.dirname(__file__), "samples/slicer-upload-api.key")
         defines.livePreviewImage = os.path.join(defines.ramdiskPath, "live.png")
 

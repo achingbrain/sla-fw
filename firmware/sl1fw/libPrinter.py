@@ -23,7 +23,7 @@ class Printer(object):
         self.exited = threading.Event()
 
         self.logger = logging.getLogger(__name__)
-        self.logger.info("SL1 firmware started - version %s", defines.swVersion)
+        self.logger.info("SL1 firmware started")
 
         from sl1fw import libConfig
         try:

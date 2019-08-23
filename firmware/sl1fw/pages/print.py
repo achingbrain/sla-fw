@@ -29,14 +29,6 @@ class PagePrint(Page):
 
         config = self.display.config
 
-        # FIXME move to MC counters
-        coLog = "job:%s+exp=%.1f/%d+step=%d" % (
-                config.projectName,
-                config.expTime,
-                int(config.expTimeFirst),
-                config.layerMicroSteps)
-        self.jobLog("\n%s" % (coLog))
-
         self.display.hw.setTowerProfile('layer')
         self.display.hw.towerMoveAbsoluteWait(0)    # first layer will move up
 
@@ -200,13 +192,6 @@ class PagePrint(Page):
         if self.display.show_admin:
             return "admin"
         #endif
-    #enddef
-
-
-    def jobLog(self, text):
-        with open(defines.jobCounter, "a") as jobfile:
-            jobfile.write(text)
-        #endwith
     #enddef
 
 #endclass
