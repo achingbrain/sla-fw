@@ -1230,7 +1230,7 @@ class Hardware(object):
     def towerSyncWait(self):
         self.towerSync(None)
         while not self.isTowerSynced():
-            pass
+            sleep(0.1)
         #endwhile
         return not self.towerSyncFailed()
     #enddef
