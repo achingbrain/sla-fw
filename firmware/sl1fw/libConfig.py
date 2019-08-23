@@ -489,6 +489,8 @@ class WizardData(FileConfig):
         self.wizardTempA64 = self._parseFloat("wizardtempa64")
         # measured fake resin volume in wizard (without resin with rotated platform)
         self.wizardResinVolume = self._parseInt("wizardresinvolume")
+        # tower axis sensitivity for homing
+        self.towerSensitivity = self._parseInt("towersensitivity")
         # wizard was successfully finished
         self.wizardDone = self._parseInt("wizarddone", 0)
 

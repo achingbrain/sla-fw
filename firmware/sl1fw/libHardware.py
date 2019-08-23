@@ -457,12 +457,14 @@ class Hardware(object):
         self._tiltProfileNames = [x[0] for x in sorted(list(self._tiltProfiles.items()), key=lambda kv: kv[1])]
         self._towerProfileNames = [x[0] for x in sorted(list(self._towerProfiles.items()), key=lambda kv: kv[1])]
 
-        self._tiltAdjust = {
+        self.tiltAdjust = {
+            #               -2      -1      0     +1     +2
             'homingFast': [[20,5],[20,6],[20,7],[21,9],[22,12]],
             'homingSlow': [[16,3],[16,5],[16,7],[16,9],[16,11]]
         }
 
-        self._towerAdjust = {
+        self.towerAdjust = {
+            #               -2      -1      0     +1     +2
             'homingFast': [[22,0],[22,2],[22,4],[22,6],[22,8]],
             'homingSlow': [[14,0],[15,0],[16,1],[16,3],[16,5]]
         }
@@ -509,6 +511,7 @@ class Hardware(object):
         self.mcc = MotConCom("MC_Main")
         self.realMcc = self.mcc
         self.boardData = self.readCpuSerial()
+
     #enddef
 
 
@@ -1750,6 +1753,26 @@ class Hardware(object):
             #endwhile
             self.tiltSyncWait()
         #endfor
+    #enddef
+
+    def updateMotorSensitivity(self, tiltSensitivity = 0, towerSensitivity = 0):
+        # adjust tilt profiles
+        profiles = self.getTiltProfiles()
+        profiles[0][4] = self.tiltAdjust['homingFast'][tiltSensitivity + 2][0]
+        profiles[0][5] = self.tiltAdjust['homingFast'][tiltSensitivity + 2][1]
+        profiles[1][4] = self.tiltAdjust['homingSlow'][tiltSensitivity + 2][0]
+        profiles[1][5] = self.tiltAdjust['homingSlow'][tiltSensitivity + 2][1]
+        self.setTiltProfiles(profiles)
+        self.logger.info("tilt profiles changed to: %s", profiles)
+
+        # adjust tower profiles
+        profiles = self.getTowerProfiles()
+        profiles[0][4] = self.towerAdjust['homingFast'][towerSensitivity + 2][0]
+        profiles[0][5] = self.towerAdjust['homingFast'][towerSensitivity + 2][1]
+        profiles[1][4] = self.towerAdjust['homingSlow'][towerSensitivity + 2][0]
+        profiles[1][5] = self.towerAdjust['homingSlow'][towerSensitivity + 2][1]
+        self.setTowerProfiles(profiles)
+        self.logger.info("tower profiles changed to: %s", profiles)
     #enddef
 
 #endclass

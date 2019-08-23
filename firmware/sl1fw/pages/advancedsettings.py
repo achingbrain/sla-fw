@@ -441,36 +441,13 @@ class PageAdvancedSettings(Page):
                 #endif
                 if sensitivity_changed:
                     self.logger.info("Motor sensitivity changed. Updating profiles.")
-                    self._updatesensitivity()
+                    self.display.hw.updateMotorSensitivity(self.display.hwConfig.tiltSensitivity, self.display.hwConfig.towerSensitivity)
                 #endif
             else:
                 # discard changes
                 self.display.hw.setFansRpm({ 2 : self.display.hwConfig.fan3Rpm })
             #endif
         #endif
-    #enddef
-
-
-    def _updatesensitivity(self):
-        # adjust tilt profiles
-        profiles = self.display.hw.getTiltProfiles()
-        self.logger.debug("profiles %s", profiles)
-        profiles[0][4] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensitivity + 2][0]
-        profiles[0][5] = self.display.hw._tiltAdjust['homingFast'][self.display.hwConfig.tiltSensitivity + 2][1]
-        profiles[1][4] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensitivity + 2][0]
-        profiles[1][5] = self.display.hw._tiltAdjust['homingSlow'][self.display.hwConfig.tiltSensitivity + 2][1]
-        self.display.hw.setTiltProfiles(profiles)
-        self.logger.debug("profiles %s", profiles)
-
-        # adjust tower profiles
-        profiles = self.display.hw.getTowerProfiles()
-        self.logger.debug("profiles %s", profiles)
-        profiles[0][4] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensitivity + 2][0]
-        profiles[0][5] = self.display.hw._towerAdjust['homingFast'][self.display.hwConfig.towerSensitivity + 2][1]
-        profiles[1][4] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensitivity + 2][0]
-        profiles[1][5] = self.display.hw._towerAdjust['homingSlow'][self.display.hwConfig.towerSensitivity + 2][1]
-        self.display.hw.setTowerProfiles(profiles)
-        self.logger.debug("profiles %s", profiles)
     #enddef
 
 #endclass

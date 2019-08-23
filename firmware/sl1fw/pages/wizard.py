@@ -115,28 +115,48 @@ class PageWizardInit(Page):
 
         #tower home check
         pageWait.showItems(line1 = _("Tower home check"))
-        for i in range(3):
+        towerSensitivity = -1    # use default sesnsitivity first, then try from 0
+        i = 0
+        while True:
             self.display.hw.mcc.do("!twho")
             while self.display.hw.mcc.doGetInt("?twho") > 0:
                 sleep(0.25)
             #endwhile
             homeStatus = self.display.hw.mcc.doGetInt("?twho")
-            if homeStatus == -2:
+            if homeStatus == 0:
+                i += 1
+                if i > 3:
+                    break
+                #endif
+            elif homeStatus == -2:
                 self.display.pages['error'].setParams(
                     text = _("Tower endstop not reached!\n\n"
                         "Please check if the tower motor is connected properly."))
                 return "error"
-            elif homeStatus == 0:
-                self.display.hw.towerHomeCalibrateWait()
-                self.display.hw.setTowerPosition(self.display.hw._towerEnd)
-                break
+            elif homeStatus == -3:  #if homing failed try different tower homing profiles (only positive values of motor sensitivity)
+                towerSensitivity += 1   #try next motor sensitivity
+                self.logger.debug("tower sensitivity: %d", towerSensitivity)
+                if towerSensitivity >= len(self.display.hw.towerAdjust['homingFast']) - 2:
+                    self.display.pages['error'].setParams(
+                        text = _("Tower home check failed!\n\n"
+                            "Please contact tech support!\n\n"
+                            "Tower profiles need to be changed."))
+                    return "error"
+                self.display.hw.updateMotorSensitivity(self.display.hwConfig.tiltSensitivity, towerSensitivity)
+                i = 0   #start over tower home check
+                continue
             #endif
-        #endfor
-        if homeStatus == -3:
+        #endwhile
+        self.display.hwConfig.towerSensitivity = towerSensitivity
+        self.display.hw.towerHomeCalibrateWait()
+        self.display.hw.setTowerPosition(self.display.hw._towerEnd)
+        self.display.wizardData.update(
+            towerSensitivity = self.display.hwConfig.towerSensitivity)
+        self.display.hwConfig.update(
+            towerSensitivity = self.display.hwConfig.towerSensitivity)
+        if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
-                text = _("Tower home check failed!\n\n"
-                    "Please contact tech support!\n\n"
-                    "Tower profiles need to be changed."))
+                text = _("Cannot save wizard configuration"))
             return "error"
         #endif
 
