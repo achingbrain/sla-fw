@@ -6,7 +6,6 @@
 import os
 import logging
 from time import sleep
-import toml
 import subprocess
 import glob
 import datetime
@@ -44,6 +43,7 @@ class Page(object):
         self.display = display
         self.autorepeat = {}
         self.stack = True
+        self.clearStack = False
         self.items = dict()
 
         self.updateDataPeriod = None
@@ -325,12 +325,12 @@ class Page(object):
             'fan2rpm': self.display.hwConfig.fan2Rpm,
             'fan3rpm': self.display.hwConfig.fan3Rpm,
             'uvpwm': self.display.hwConfig.uvPwm,
-            'towersensitivity': self.display.hwConfig.towerSensitivity
+            'towersensitivity': self.display.hwConfig.towerSensitivity,
         }
 
-        with open(defines.hwConfigFactoryDefaultsFile, "w") as file:
-            toml.dump(defaults, file)
-        #endwith
+        if not libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).save(defaults):
+            self.logger.error("Defaults was not saved!")
+        #endif
 
         self.display.hwConfig._defaults = defaults
     #enddef
@@ -667,6 +667,22 @@ class Page(object):
         self.display.setWaitPage(line1 = _("Job will be canceled after layer finish"))
         return "_SELF_"
     #enddef
+
+
+    def loadProject(self, project_filename):
+        pageWait = PageWait(self.display, line1 = _("Reading project data"))
+        pageWait.show()
+        config = self.display.config
+        config.parseFile(project_filename)
+        if config.zipError is not None:
+            sleep(0.5)
+            self.display.pages['error'].setParams(
+                    text = _("Your project has a problem: %s\n\n"
+                        "Re-export it and try again.") % config.zipError)
+            return False
+        #endif
+        return True
+    #endef
 
 
     def ramdiskCleanup(self):

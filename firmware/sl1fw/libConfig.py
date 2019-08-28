@@ -341,18 +341,8 @@ class HwConfig(FileConfig):
     def __init__(self, configFile = None, defaults = {}):
         super(HwConfig, self).__init__("HwConfig", configFile, defaults)
         self.os = OsConfig()
-        self.factoryMode = False
-
         # Load factory mode configuration
-        try:
-            with open(defines.factoryConfigFile, "r") as f:
-                if toml.load(f)['factoryMode']:
-                    self.factoryMode = True
-                #endif
-            #endwith
-        except:
-            self._logger.exception("Failed to load factory configuration, keeping disabled")
-        #endtry
+        self.factoryMode = TomlConfig(defines.factoryConfigFile).load().get('factoryMode', False)
     #enddef
 
     def _parseData(self):
@@ -460,7 +450,6 @@ class WizardData(FileConfig):
     def _parseData(self):
         # following values are for quality monitoring systems
         self.osVersion = self._parseString("osversion")
-        self.sl1fwVersion = self._parseString("sl1fwversion")
         self.a64SerialNo = self._parseString("a64serialno")
         self.mcSerialNo = self._parseString("mcserialno")
         self.mcFwVersion = self._parseString("mcfwversion")
@@ -515,6 +504,7 @@ class PrintConfig(FileConfig):
     def __init__(self, hwConfig, configFile = None):
         self._hwConfig = hwConfig
         self.zipName = None
+        self.origin = None
         self.modificationTime = None
         super(PrintConfig, self).__init__("PrintConfig", configFile)
     #enddef
@@ -566,7 +556,7 @@ class PrintConfig(FileConfig):
         # Set paths
         dirName = os.path.dirname(zipName)
         self._configFile = os.path.join(dirName, "FAKE_" + defines.configFile)
-        self.zipName = zipName
+        self.origin = self.zipName = zipName
 
         for filename in namelist:
             fName, fExt = os.path.splitext(filename)
@@ -623,6 +613,42 @@ class PrintConfig(FileConfig):
 
         self.totalLayers = self.layersSlow + self.layersFast
         self.zipError = _("No data was read.")
+    #enddef
+
+#endclass
+
+
+class TomlConfig(object):
+
+    def __init__(self, filename):
+        self.logger = logging.getLogger(__name__)
+        self.filename = filename
+    #enddef
+
+
+    def load(self):
+        try:
+            with open(self.filename, "r") as f:
+                data = toml.load(f)
+            #endwith
+        except:
+            self.logger.exception("Failed to load toml file")
+            data = {}
+        #endtry
+        return data
+    #enddef
+
+
+    def save(self, data):
+        try:
+            with open(self.filename, "w") as f:
+                toml.dump(data, f)
+            #endwith
+        except:
+            self.logger.exception("Failed to save toml file")
+            return False
+        #endtry
+        return True
     #enddef
 
 #endclass

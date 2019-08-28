@@ -2,9 +2,9 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
+import os
 import logging
 from time import time, sleep
-import toml
 from pydbus import SystemBus
 from gi.repository import GLib
 import threading
@@ -13,6 +13,7 @@ import re
 from dbus.mainloop.glib import DBusGMainLoop
 
 from sl1fw import defines
+from sl1fw import libConfig
 
 
 class Printer(object):
@@ -23,17 +24,9 @@ class Printer(object):
         self.exited = threading.Event()
 
         self.logger = logging.getLogger(__name__)
-        self.logger.info("SL1 firmware started - version %s", defines.swVersion)
+        self.logger.info("SL1 firmware started")
 
-        from sl1fw import libConfig
-        try:
-            with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
-                factory_defaults = toml.load(factory)
-            #endwith
-        except:
-            self.logger.exception("Failed to load factory defaults")
-            factory_defaults = {}
-        #endtry
+        factory_defaults = libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).load()
         self.hwConfig = libConfig.HwConfig(defines.hwConfigFile, defaults = factory_defaults)
         self.hwConfig.logAllItems()
         self.config = libConfig.PrintConfig(self.hwConfig)
@@ -148,8 +141,18 @@ class Printer(object):
                     #endif
                 #endif
 
-                self.display.pages['home'].readyBeep = True
-                self.display.doMenu("home")
+                lastProject = libConfig.TomlConfig(defines.lastProjectData).load()
+                if lastProject:
+                    self.display.pages['finished'].data = lastProject
+                    try:
+                        os.remove(defines.lastProjectData)
+                    except Exception as e:
+                        self.logger.exception("LastProject cleanup exception:")
+                    #endtry
+                    self.display.doMenu("finished")
+                else:
+                    self.display.doMenu("home")
+                #endif
                 firstRun = False
             #endwhile
 
@@ -174,6 +177,10 @@ class Printer(object):
             #endwhile
             self.display.shutDown(True)
         #endtry
+
+        if hasattr(self, 'expo') and self.expo.inProgress():
+            self.expo.waitDone()
+        #endif
 
         self.exited.set()
     #enddef

@@ -5,10 +5,8 @@
 import os
 import sl1fw
 
-swVersion = "Gen3-190-614"
 reqMcVersion = "SLA-control 0.10.1-442"
 
-home = "/home/root"
 factoryMountPoint = "/usr/share/factory/defaults"
 persistentStorage = "/var/sl1fw"
 
@@ -16,7 +14,6 @@ swPath = os.path.dirname(sl1fw.__file__)
 dataPath = os.path.join(swPath, "data")
 ramdiskPath = "/run/sl1fw"
 mediaRootPath = "/run/media/root"
-jobCounter = os.path.join(home, "jobs.log")
 configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
@@ -30,15 +27,14 @@ perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 configFile = "config.ini"
 maskFilename = "mask.png"
 projectExtensions = set((".dwz", ".sl1"))
+lastProjectData = os.path.join(persistentStorage, "lastProject.toml")
 
 cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
 cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 
 scriptDir = "/usr/share/sl1fw/scripts"
-usbUpdatePath = "/mnt/rootfs"
 flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
 Mc2NetCommand = os.path.join(scriptDir, "MC2Net.sh")
-WiFiCommand = os.path.join(scriptDir, "wifi.sh")
 
 webDisplayPort = 16384
 qtDisplayPort = 32768

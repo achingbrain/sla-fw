@@ -8,7 +8,7 @@ from time import sleep
 import glob
 
 from sl1fw import defines
-from sl1fw.libPages import page, Page, PageWait
+from sl1fw.libPages import page, Page
 
 
 class SourceDir:
@@ -219,7 +219,11 @@ class PageSrcSelect(Page):
             self.logger.info("Current project selection root: %s" % self.currentRoot)
             self.show()
         else:
-            return self.loadProject(item['fullpath'])
+            if not self.loadProject(item['fullpath']):
+                return "error"
+            else:
+                return "printpreview"
+            #endif
         #endif
     #enddef
 
@@ -263,22 +267,5 @@ class PageSrcSelect(Page):
             return _("Not connected to network")
         #endif
     #enddef
-
-
-    def loadProject(self, project_filename):
-        pageWait = PageWait(self.display, line1 = _("Reading project data"))
-        pageWait.show()
-        config = self.display.config
-        config.parseFile(project_filename)
-        if config.zipError is not None:
-            sleep(0.5)
-            self.display.pages['error'].setParams(
-                    text = _("Your project has a problem: %s\n\n"
-                        "Re-export it and try again.") % config.zipError)
-            return "error"
-        #endif
-
-        return "printpreview"
-    #endef
 
 #endclass

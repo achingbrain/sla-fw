@@ -84,7 +84,6 @@ class PageNetUpdate(Page):
 
         self.display.wizardData.update(
                 osVersion = self.display.hwConfig.os.versionId,
-                sl1fwVersion = defines.swVersion,
                 a64SerialNo = self.display.hw.cpuSerialNo,
                 mcSerialNo = self.display.hw.mcSerialNo,
                 mcFwVersion = self.display.hw.mcFwVersion,

@@ -4,7 +4,6 @@
 
 import os
 from time import sleep
-import toml
 import pydbus
 
 from sl1fw import defines
@@ -38,14 +37,7 @@ class PageFactoryReset(Page):
         pageWait.show()
 
         inFactoryMode = self.display.hwConfig.factoryMode
-        try:
-            with open(defines.hwConfigFactoryDefaultsFile, "r") as factory:
-                factory_defaults = toml.load(factory)
-            #endwith
-        except:
-            self.logger.exception("Failed to load factory defaults")
-            factory_defaults = {}
-        #endtry
+        factory_defaults = libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).load()
         self.display.hwConfig = libConfig.HwConfig(defaults=factory_defaults)
         if not self.display.hwConfig.writeFile(filename=defines.hwConfigFile):
             self.display.pages['error'].setParams(
@@ -151,11 +143,9 @@ class PageFactoryReset(Page):
 
 
     def _disableFactory(self):
-        with open(defines.factoryConfigFile, "w") as f:
-            toml.dump({
-                'factoryMode': False
-            }, f)
-        #endwith
+        if not libConfig.TomlConfig(defines.factoryConfigFile).save({ 'factoryMode': False }):
+            self.logger.error("Factory mode was not disabled!")
+        #endif
     #enddef
 
 #endclass
