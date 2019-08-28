@@ -178,6 +178,10 @@ class Printer(object):
             self.display.shutDown(True)
         #endtry
 
+        if hasattr(self, 'expo') and self.expo.inProgress():
+            self.expo.waitDone()
+        #endif
+
         self.exited.set()
     #enddef
 
