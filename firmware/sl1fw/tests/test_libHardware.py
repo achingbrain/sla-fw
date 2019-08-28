@@ -1,3 +1,4 @@
+import logging
 import unittest
 from mock import Mock
 import os
@@ -20,16 +21,19 @@ from sl1fw.libHardware import Hardware
 from sl1fw.libConfig import HwConfig, PrintConfig
 from sl1fw import defines
 
-defines.cpuSNFile = os.path.join(os.path.dirname(__file__), "samples/nvmem")
-defines.cpuTempFile = os.path.join(os.path.dirname(__file__), "samples/cputemp")
-defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
-defines.doFBSet = False
+logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
 
 class TestLibHardware(unittest.TestCase):
     EEPROM_FILE = "EEPROM.dat"
 
     def setUp(self):
+
+        defines.cpuSNFile = os.path.join(os.path.dirname(__file__), "samples/nvmem")
+        defines.cpuTempFile = os.path.join(os.path.dirname(__file__), "samples/cputemp")
+        defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
+        defines.doFBSet = False
+
         self.hwConfig = HwConfig(os.path.join(os.path.dirname(__file__), "samples/hardware.cfg"))
         self.config = PrintConfig(self.hwConfig)
         self.hw = Hardware(self.hwConfig, self.config)
