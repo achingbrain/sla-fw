@@ -1,3 +1,4 @@
+import logging
 import unittest
 from mock import Mock
 import sys
@@ -24,6 +25,8 @@ sys.modules['sl1fw.libNetwork'] = sl1fw.tests.libNetworkSim
 from sl1fw import libPrinter
 from sl1fw import defines
 from sl1fw.pages.printstart import PagePrintPreview
+
+logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
 
 class TestIntegration(unittest.TestCase):
@@ -74,7 +77,6 @@ class TestIntegration(unittest.TestCase):
         if os.path.isfile(defines.lastProjectData):
             self.waitPage("finished")
             self.press("home")
-        #endif
         self.waitPage("home")
 
     def printer_thread(self):
@@ -116,9 +118,12 @@ class TestIntegration(unittest.TestCase):
 
     def test_control(self):
         self.switchPage("control")
-        # TODO: Make this test work
-        # self.press("top")
-        # self.press("tankres")
+        self.press("top")
+        self.waitPage("wait")
+        self.waitPage("control", timeout_sec=30)
+        self.press("tankres")
+        self.waitPage("wait")
+        self.waitPage("control", timeout_sec=30)
         self.press("disablesteppers")
 
         self.test_turnoff()

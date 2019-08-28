@@ -94,7 +94,7 @@ class TestPrintConfig(unittest.TestCase):
         config.logFile()
 
         self.assertEqual(config.projectName, "numbers", "Check projectName")
-        self.assertEqual(config.totalLayers, 20, "Check total layers count")
+        self.assertEqual(config.totalLayers, 2, "Check total layers count")
 
         logging.info(config.getSourceString())
         config.update(expTime = "5")

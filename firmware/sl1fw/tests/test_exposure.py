@@ -1,3 +1,4 @@
+import logging
 import unittest
 from mock import Mock
 import os
@@ -14,6 +15,8 @@ sys.modules['pydbus'] = sl1fw.tests.pydbusSim
 from sl1fw import libExposure
 from sl1fw import libConfig
 from sl1fw import defines
+
+logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
 
 class TestExposure(unittest.TestCase):
