@@ -32,7 +32,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.hwConfigFactoryDefaultsFile = str(self.SAMPLES_DIR / "hardware.toml")
-        defines.lastProjectData = str(self.SAMPLES_DIR / "lastProject.toml")
+        defines.lastProjectData = str(self.SAMPLES_DIR / "last_project.toml")
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigFile = self.HARDWARE_FILE

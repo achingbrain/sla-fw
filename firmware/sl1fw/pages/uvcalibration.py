@@ -126,7 +126,7 @@ class PageUvMeterShow(Page):
         return "_BACK_"
     #enddef
 
-#enddef
+#endclass
 
 
 @page

@@ -7,7 +7,7 @@ import os
 import shutil
 import threading, queue
 import zipfile
-from time import sleep
+from time import sleep, time
 from gettext import ngettext
 from typing import Optional
 
@@ -17,6 +17,8 @@ from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libPages import PageWait
 from sl1fw.libScreen import Screen
+
+from sl1fw.libConfig import TomlConfigStats
 
 
 class ExposureThread(threading.Thread):
@@ -57,15 +59,15 @@ class ExposureThread(threading.Thread):
 
                 self.calibAreas = list()
                 lw = 0
-                time = config.expTime
+                etime = config.expTime
                 for i in range(divide[x]):
                     lh = 0
                     for j in range(divide[y]):
                         w = (i+1) * stepW
                         h = (j+1) * stepH
                         #self.logger.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)
-                        self.calibAreas.append(((lw, lh), (stepW, stepH), time))
-                        time += config.calibrateTime
+                        self.calibAreas.append(((lw, lh), (stepW, stepH), etime))
+                        etime += config.calibrateTime
                         lh = h
                     #endfor
                     lw = w
@@ -109,24 +111,24 @@ class ExposureThread(threading.Thread):
         #endif
 
         if self.calibAreas is not None:
-            time = exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2]
+            etime = exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2]
         else:
-            time = exposureTime
+            etime = exposureTime
         #endif
         self.expo.hw.getMcTemperatures()
         self.logger.debug("exposure started")
-        self.expo.display.actualPage.showItems(exposure = time)
+        self.expo.display.actualPage.showItems(exposure = etime)
         whitePixels = self.expo.screen.blitImg(second = second)
 
         if self.expo.hwConfig.blinkExposure:
             if self.calibAreas is not None:
-                time = 1000 * (exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2])
-                self.expo.hw.uvLed(True, time)
+                etime = 1000 * (exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2])
+                self.expo.hw.uvLed(True, etime)
 
                 for area in self.calibAreas:
-                    while time > 1000 * (self.calibAreas[-1][2] - area[2]):
+                    while etime > 1000 * (self.calibAreas[-1][2] - area[2]):
                         sleep(0.005)
-                        UVIsOn, time = self.expo.hw.getUvLedState()
+                        UVIsOn, etime = self.expo.hw.getUvLedState()
                         if not UVIsOn:
                             break
                         #endif
@@ -144,7 +146,7 @@ class ExposureThread(threading.Thread):
                 UVIsOn = True
                 while UVIsOn:
                     sleep(0.1)
-                    UVIsOn, time = self.expo.hw.getUvLedState()
+                    UVIsOn, etime = self.expo.hw.getUvLedState()
                 #endwhile
             #endif
         else:
@@ -271,11 +273,9 @@ class ExposureThread(threading.Thread):
             continueFce = self.expo.doContinue,
             backFce = self.expo.doBack,
             beep = True,
-            text = _("""The printer got stuck and needs user assistance.
-
-Release the tank mechanism and press Continue.
-
-If you don't want to continue, press the Back button on top of the screen and the actual job will be canceled."""))
+            text = _("The printer got stuck and needs user assistance.\n\n"
+                "Release the tank mechanism and press Continue.\n\n"
+                "If you don't want to continue, press the Back button on top of the screen and the actual job will be canceled."))
         self.expo.display.forcePage("confirm")
         if self.doWait(True) == "back":
             return False
@@ -288,11 +288,9 @@ If you don't want to continue, press the Back button on top of the screen and th
         if not self.expo.hw.tiltSyncWait(retries = 1):
             self.expo.display.pages['error'].setParams(
                     backFce = self.expo.doBack,
-                    text = _("""Tilt homing failed!
-
-Check the printer's hardware.
-
-The print job was canceled."""))
+                    text = _("Tilt homing failed!\n\n"
+                        "Check the printer's hardware.\n\n"
+                        "The print job was canceled."))
             self.expo.display.forcePage("error")
             self.doWait(True)
             return False
@@ -308,6 +306,10 @@ The print job was canceled."""))
 
     def run(self):
         #self.logger.debug("thread started")
+        self.expo.printStartTime = time()
+        statsFile = TomlConfigStats(defines.statsData, self.expo.hw)
+        stats = statsFile.load()
+        seconds = 0
         try:
             config = self.expo.config
             prevWhitePixels = 0
@@ -363,11 +365,9 @@ The print job was canceled."""))
                         reason = _("Manual resin refill")
                         beep = False
                     #endif
-                    self.expo.display.pages['feedme'].showItems(text = _("""%s
-
-Please refill the tank up to the 100 %% mark and press Done.
-
-If you don't want to refill, please press the Back button on top of the screen.""") % reason)
+                    self.expo.display.pages['feedme'].showItems(text = _("%s\n\n"
+                        "Please refill the tank up to the 100 %% mark and press Done.\n\n"
+                        "If you don't want to refill, please press the Back button on top of the screen.""") % reason)
                     self.expo.display.forcePage("feedme")
                     self.doWait(beep)
 
@@ -392,39 +392,39 @@ If you don't want to refill, please press the Back button on top of the screen."
                 # first layer - extra height + extra time
                 if not i:
                     step = config.layerMicroStepsFirst
-                    time = config.expTimeFirst
+                    etime = config.expTimeFirst
                 # second two layers - normal height + extra time
                 elif i < 3:
                     step = config.layerMicroSteps
-                    time = config.expTimeFirst
+                    etime = config.expTimeFirst
                 # next config.fadeLayers is fade between config.expTimeFirst and config.expTime
                 elif i < config.fadeLayers + 3:
                     step = config.layerMicroSteps
                     # expTimes may be changed during print
                     timeLoss = (config.expTimeFirst - config.expTime) / float(config.fadeLayers)
                     self.logger.debug("timeLoss: %0.3f", timeLoss)
-                    time = config.expTimeFirst - (i - 2) * timeLoss
+                    etime = config.expTimeFirst - (i - 2) * timeLoss
                 # standard parameters to first change
                 elif i + 1 < config.slice2:
                     step = config.layerMicroSteps
-                    time = config.expTime
+                    etime = config.expTime
                 # parameters of second change
                 elif i + 1 < config.slice3:
                     step = config.layerMicroSteps2
-                    time = config.expTime2
+                    etime = config.expTime2
                 # parameters of third change
                 else:
                     step = config.layerMicroSteps3
-                    time = config.expTime3
+                    etime = config.expTime3
                 #endif
 
-                time += exposureCompensation
+                etime += exposureCompensation
                 exposureCompensation = 0.0
 
                 self.expo.actualLayer = i + 1
                 self.expo.position += step
                 self.logger.debug("LAYER %04d/%04d (%s)  steps: %d  position: %d time: %.3f  slowLayers: %d",
-                        self.expo.actualLayer, totalLayers, config.toPrint[i], step, self.expo.position, time, self.expo.slowLayers)
+                        self.expo.actualLayer, totalLayers, config.toPrint[i], step, self.expo.position, etime, self.expo.slowLayers)
 
                 if i < 2:
                     overlayName = 'calibPad'
@@ -436,7 +436,7 @@ If you don't want to refill, please press the Back button on top of the screen."
 
                 (success, whitePixels) = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                         self.expo.position + self.expo.hwConfig.calibTowerOffset,
-                        time,
+                        etime,
                         overlayName,
                         prevWhitePixels,
                         wasStirring,
@@ -453,7 +453,7 @@ If you don't want to refill, please press the Back button on top of the screen."
                 if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
                     (success, dummy) = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                             self.expo.position + self.expo.hwConfig.calibTowerOffset,
-                            time,
+                            etime,
                             overlayName,
                             whitePixels,
                             wasStirring,
@@ -471,6 +471,9 @@ If you don't want to refill, please press the Back button on top of the screen."
                 # /1000 - we want cm3 (=ml) not mm3
                 self.expo.resinCount += float(whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000)
                 self.logger.debug("resinCount: %f" % self.expo.resinCount)
+
+                seconds = time() - self.expo.printStartTime
+                self.expo.printTime = int(seconds / 60)
 
                 if self.expo.hwConfig.trigger:
                     self.expo.hw.cameraLed(True)
@@ -493,6 +496,14 @@ If you don't want to refill, please press the Back button on top of the screen."
                     sleep(0.25)
                 #endwhile
             #endif
+
+            self.logger.info("Job finished - real printing time is %s minutes", self.expo.printTime)
+
+            stats['projects'] += 1
+            stats['layers'] += self.expo.actualLayer
+            stats['total_seconds'] += seconds
+            statsFile.save(stats)
+            self.expo.screen.saveDisplayUsage()
 
             self.expo.display.forcePage("finished")
 
@@ -540,6 +551,8 @@ class Exposure(object):
         self.expoThread = None
         self.slowLayers = 0
         self.totalHeight = None
+        self.printStartTime = 0
+        self.printTime = 0
     #enddef
 
 
@@ -714,6 +727,7 @@ class Exposure(object):
             self.resinVolume = volume + int(self.resinCount)
         #endif
     #enddef
+
 
     def countRemainTime(self):
         config = self.config

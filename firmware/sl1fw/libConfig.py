@@ -636,6 +636,9 @@ class TomlConfig(object):
             with open(self.filename, "r") as f:
                 data = toml.load(f)
             #endwith
+        except FileNotFoundError:
+            self.logger.warning("File '%s' not found", self.filename)
+            data = {}
         except:
             self.logger.exception("Failed to load toml file")
             data = {}
@@ -654,6 +657,27 @@ class TomlConfig(object):
             return False
         #endtry
         return True
+    #enddef
+
+#endclass
+
+
+class TomlConfigStats(TomlConfig):
+
+    def __init__(self, filename, hw):
+        super(TomlConfigStats, self).__init__(filename)
+        self.hw = hw
+    #enddef
+
+    def load(self):
+        data = super(TomlConfigStats, self).load()
+        if not data:
+            data['projects'] = 0
+            data['layers'] = 0
+            # this is not so accurate but better than nothing
+            data['total_seconds'] = self.hw.getUvStatistics()[0]
+        #endif
+        return data
     #enddef
 
 #endclass

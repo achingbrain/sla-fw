@@ -2,8 +2,6 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-from time import time
-
 from sl1fw import defines
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages import page
@@ -32,12 +30,9 @@ class PageFinished(Page):
         if not self.data:
             expo = self.display.expo
 
-            printTime = int((time() - self.display.pages['print'].printStartTime) / 60)
-            self.logger.info("Job finished - real printing time is %s minutes", printTime)
-
             self.data = {
-                'name' : self.display.expo.config.projectName,
-                'print_time' : printTime,
+                'name' : expo.config.projectName,
+                'print_time' : expo.printTime,
                 'layers' : expo.actualLayer,
                 'consumed_resin' : expo.resinCount,
                 'project_file' : self.display.expo.config.origin,

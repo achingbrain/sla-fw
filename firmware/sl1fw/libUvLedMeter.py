@@ -7,7 +7,7 @@ import os
 import logging
 import serial
 import numpy
-import pygame
+import pygame   # TODO replace with PIL.Image
 from datetime import datetime
 from time import sleep
 

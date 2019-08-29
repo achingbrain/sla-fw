@@ -13,6 +13,7 @@ from sl1fw import libConfig
 class TestScreen(Sl1fwTestCase):
     PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1")
     FB_DEV = str(Sl1fwTestCase.TEMP_DIR / "test.fbdev")
+    DISPLAY_USAGE = str(Sl1fwTestCase.TEMP_DIR / "display_usage.npz")
 
     def __init__(self, *args, **kwargs):
         self.hw_config = None
@@ -22,6 +23,7 @@ class TestScreen(Sl1fwTestCase):
         defines.doFBSet = False
         defines.fbFile = self.FB_DEV
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory/factory.toml")
+        defines.displayUsageData = self.DISPLAY_USAGE
 
         self.hw_config = libConfig.HwConfig(defines.hwConfigFile)
         from sl1fw.libScreen import Screen
@@ -70,9 +72,9 @@ class TestScreen(Sl1fwTestCase):
                 calib_areas.append(((lw, lh), (step_w, step_h), time))
                 time += time_step
                 lh = h
-            # endfor
+            #endfor
             lw = w
-        # endfor
+        #endfor
 
         file = "numbers00000.png"
 
@@ -83,36 +85,7 @@ class TestScreen(Sl1fwTestCase):
         self.screen.preloadImg(filename=file, overlayName='calibPad', whitePixelsThd=50)
         self.screen.blitImg()
 
-        # screen.testBlit(filename = file, overlayName = 'calibPad')
-        # sleep(5)
-        #
-        # lastArea = calibAreas[0]
-        # for area in calibAreas[1:]:
-        #    screen.fillArea(area = (lastArea[0], lastArea[1]))
-        #    logging.debug("blank area")
-        #    sleep(area[2] - lastArea[2])
-        #    lastArea = area
-        #
-        # screen.getImgBlack()
-        # sleep(1)
-        #
-        # screen.testBlit(filename = "zaba.png", overlayName = 'calib')
-        # sleep(5)
-        #
-        # screen.getImgBlack()
-        # sleep(1)
-        #
-        # screen.testBlit(filename = "zaba.png", overlayName = 'ppm1')
-        # sleep(5)
-        #
-        # screen.testBlit(filename = "zaba.png", overlayName = 'ppm2')
-        # sleep(5)
-        #
-        # screen.testBlit(filename = "white.png")
-        # sleep(1)
-        # screen.testBlit(filename = "white.png", overlayName = 'mask')
-        # sleep(2)
-
+        self.screen.saveDisplayUsage()
 
 if __name__ == '__main__':
     unittest.main()

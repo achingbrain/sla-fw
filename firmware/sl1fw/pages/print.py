@@ -30,8 +30,7 @@ class PagePrint(Page):
         #endif
         self.display.expo.prepare()
         self.lastLayer = 0
-        self.printStartTime = time()
-        self.logger.debug("printStartTime: " + str(self.printStartTime))
+
         self.display.expo.start()
         self.display.pages['finished'].data = None
     #enddef
@@ -59,7 +58,7 @@ class PagePrint(Page):
         calcMM = self.display.hwConfig.calcMM
 
         time_remain_min = self.display.expo.countRemainTime()
-        time_elapsed_min = int(round((time() - self.printStartTime) / 60))
+        time_elapsed_min = int(round((time() - self.display.expo.printStartTime) / 60))
         positionMM = calcMM(expo.position)
         percent = int(100 * (self.lastLayer-1) / config.totalLayers)
         self.logger.info("Layer: %d/%d  Height: %.3f/%.3f mm  Elapsed[min]: %d  Remain[min]: %d  Percent: %d",

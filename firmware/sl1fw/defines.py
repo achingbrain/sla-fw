@@ -27,7 +27,13 @@ perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 configFile = "config.ini"
 maskFilename = "mask.png"
 projectExtensions = set((".dwz", ".sl1"))
-lastProjectData = os.path.join(persistentStorage, "lastProject.toml")
+lastProjectData = os.path.join(persistentStorage, "last_project.toml")
+statsData = os.path.join(persistentStorage, "stats.toml")
+serviceData = os.path.join(persistentStorage, "service.toml")
+
+displayUsageSize = (288, 5, 512, 5) # 288 * 5 = 1440; 512 * 5 = 2560
+displayUsageData = os.path.join(persistentStorage, "display_usage.npz")
+displayUsagePalette = os.path.join(dataPath, "heatmap_palette.txt")
 
 cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
 cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"

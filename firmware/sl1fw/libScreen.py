@@ -145,6 +145,7 @@ class ScreenServer(multiprocessing.Process):
     def openZip(self, filename):
         self.nextImage1 = None
         self.nextImage2 = None
+        self.usage = numpy.zeros((defines.displayUsageSize[0], defines.displayUsageSize[2]))
         try:
             self.zf = zipfile.ZipFile(filename, 'r')
             return True
@@ -172,11 +173,13 @@ class ScreenServer(multiprocessing.Process):
             self.logger.debug("load time: %f secs", time() - startTimeFirst)
 
             startTime = time()
-            pixels = pygame.surfarray.pixels3d(self.nextImage1)
+            pixels = pygame.surfarray.pixels3d(self.nextImage1).mean(axis=2)
             hist = numpy.histogram(pixels, [0, 51, 102, 153, 204, 255])
+            # 1500 layers on 0.1 mm layer height <0:255> -> <0.0:1.0>
+            self.usage += numpy.reshape(pixels, defines.displayUsageSize).mean(axis=3).mean(axis=1) / 382500
             del pixels
-            self.whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4]) / 3
-            self.logger.debug("pixelcount time: %f secs, whitePixels: %f", time() - startTime, self.whitePixels)
+            self.whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4])
+            self.logger.debug("pixels manipulations time: %f secs, whitePixels: %f", time() - startTime, self.whitePixels)
 
             overlay = self.overlays.get(overlayName, None)
             if overlay:
@@ -334,15 +337,16 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def testBlit(self, filename, overlayName = None):
-        image = pygame.image.load(filename).convert()
-        self.screen.blit(image, (0,0))
-        overlay = self.overlays.get(overlayName, None)
-        if overlay:
-            self.screen.blit(overlay, (0,0))
-        #endif
-        pygame.display.flip()
-        self._writefb()
+    def saveDisplayUsage(self):
+        try:
+            with numpy.load(defines.displayUsageData) as npzfile:
+                savedData = npzfile['display_usage']
+                self.usage += savedData
+            #endwith
+        except Exception as e:
+            self.logger.exception("load display usage failed")
+        #endtry
+        numpy.savez_compressed(defines.displayUsageData, display_usage = self.usage)
     #enddef
 
 #endclass
@@ -455,9 +459,8 @@ class Screen(object):
     #enddef
 
 
-    def testBlit(self, **kwargs):
-        kwargs['fce'] = 'testBlit'
-        self.commands.put(kwargs)
+    def saveDisplayUsage(self):
+        self.commands.put({ 'fce' : "saveDisplayUsage" })
     #enddef
 
 #endclass
