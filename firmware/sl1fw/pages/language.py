@@ -4,7 +4,8 @@
 
 import pydbus
 
-from sl1fw.libPages import page, Page
+from sl1fw.pages import page
+from sl1fw.libPages import Page
 
 
 @page

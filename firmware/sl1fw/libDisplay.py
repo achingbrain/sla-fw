@@ -9,7 +9,7 @@ from time import monotonic
 from sl1fw import defines
 from sl1fw import libPages
 from sl1fw.libConfig import WizardData
-from sl1fw.pages import * # This is actually used to import all the pages from pages package
+from sl1fw.pages import pages
 
 
 class Display(object):
@@ -27,7 +27,7 @@ class Display(object):
 
         # Instantiate pages
         self.pages = {}
-        for page, page_class in libPages.page.getpages().items():
+        for page, page_class in pages.items():
             self.pages[page] = page_class(self)
         #endfor
 
@@ -123,7 +123,6 @@ class Display(object):
         callbackTime = 0.0  # call the callback immediately
         updateDataTime = callbackTime
         while self.running:
-
             if self.forcedPage is not None:
                 actualPage = self.forcedPage
                 self.forcedPage = None

@@ -4,11 +4,11 @@
 
 import os
 import logging
-from time import sleep
 import glob
 
 from sl1fw import defines
-from sl1fw.libPages import page, Page
+from sl1fw.pages import page
+from sl1fw.libPages import Page
 
 
 class SourceDir:
