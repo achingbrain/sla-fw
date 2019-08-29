@@ -727,7 +727,8 @@ class Hardware(object):
 
     def eraseEeprom(self):
         self.mcc.do("!eecl")
-        self.mcc.do("!rst")    # FIXME MC issue
+        self.mcc.do("!rst")  # FIXME MC issue
+        sleep(1.5)  # FIXME another MC issue (avoid using MC before it is initialized)
     #enddef
 
 
