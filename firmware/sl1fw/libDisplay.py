@@ -14,7 +14,7 @@ from sl1fw.pages import pages
 
 class Display(object):
 
-    def __init__(self, hwConfig, config, devices, hw, inet, screen):
+    def __init__(self, hwConfig, config, devices, hw, inet, screen, printer0):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.config = config
@@ -23,6 +23,7 @@ class Display(object):
         self.hw = hw
         self.inet = inet
         self.screen = screen
+        self.printer0 = printer0
         self.wizardData = WizardData(defines.wizardDataFile)
 
         # Instantiate pages
@@ -31,6 +32,7 @@ class Display(object):
             self.pages[page] = page_class(self)
         #endfor
 
+        self.actualPageStack = None
         self.actualPage = self.pages['start']
 
         self.fanErrorOverride = False
@@ -117,6 +119,7 @@ class Display(object):
 
     def doMenu(self, startPage):
         pageStack = list()
+        self.actualPageStack = pageStack
         actualPage = self._setPage(startPage)
         autorepeatFce = None
         autorepeatDelay = 1
@@ -192,6 +195,7 @@ class Display(object):
                         while newPage in self.backActions:
                             if len(pageStack):
                                 actualPage = pageStack.pop()
+                                self.actualPage = actualPage
                             elif newPage == "_OK_":
                                 return True
                             else:

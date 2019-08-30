@@ -598,6 +598,9 @@ class Hardware(object):
         self.connectMC(waitPage, actualPage)
     #enddef
 
+    @property
+    def tilt_end(self) -> int:
+        return self._tiltEnd
 
     @property
     def mcFwVersion(self):

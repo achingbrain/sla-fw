@@ -18,8 +18,10 @@ data_files = [
     ('/usr/lib/systemd/system', ['systemd/sl1fw.service']),
     ('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']),
     ('/etc/nginx/sites-available', ['nginx/sl1fw']),
-    ('/usr/share/factory/defaults', ['factory/factory.toml'])
+    ('/usr/share/factory/defaults', ['factory/factory.toml']),
+    ('/usr/share/dbus-1/system.d', ['dbus/cz.prusa3d.sl1.printer0.conf'])
 ]
+
 
 for root, dirs, files in walk('sl1fw/intranet'):
     target = path.join("/srv/http/intranet/", path.relpath(root, 'sl1fw/intranet'))

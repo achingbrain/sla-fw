@@ -14,6 +14,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 
 from sl1fw import defines
 from sl1fw import libConfig
+from sl1fw.api.printer0 import Printer0
 
 
 class Printer(object):
@@ -60,14 +61,19 @@ class Printer(object):
         from sl1fw.libScreen import Screen
         self.screen = Screen(self.hwConfig)
 
+        self.logger.debug("Registering printer dbus services")
+        self.printer0 = Printer0(self)
+        SystemBus().publish(self.printer0.INTERFACE, self.printer0)
+
         from sl1fw.libPages import PageWait
         from sl1fw.pages.start import PageStart
         from sl1fw.libDisplay import Display
-        self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen)
+        self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen, self.printer0)
 
         self.hw.connectMC(PageWait(self.display), PageStart(self.display))
 
         # Start DBus event loop in separate thread
+        self.logger.debug("Starting dbus event loop")
         DBusGMainLoop(set_as_default=True)
         self.eventLoop = GLib.MainLoop()
         self.eventThread = threading.Thread(target=self.loopThread)
@@ -185,7 +191,7 @@ class Printer(object):
         self.exited.set()
     #enddef
 
-    def loopThread(self):
+    def loopThread(self) -> None:
         self.logger.debug("Registering dbus event handlers")
         locale = SystemBus().get("org.freedesktop.locale1")
         locale.PropertiesChanged.connect(self.localeChanged)
@@ -227,6 +233,14 @@ class Printer(object):
         if self.display.actualPage == self.display.pages['network']:
             self.display.pages['network'].apsChanged()
         #endif
+    #enddef
+
+    def get_actual_page(self):
+        return self.display.actualPage
+    #enddef
+
+    def get_actual_page_stack(self):
+        return self.display.actualPageStack
     #enddef
 
 #endclass
