@@ -24,6 +24,9 @@ class SystemBus:
         else:
             raise Exception("Cannot provide fake service for unknown service name %s" % service)
 
+    def publish(self, path, service):
+        pass
+
 
 class TimeDate():
     def __init__(self):
