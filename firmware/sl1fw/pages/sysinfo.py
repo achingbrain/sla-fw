@@ -2,7 +2,6 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.libPages import Page
 
@@ -15,55 +14,47 @@ class PageSysInfo(Page):
         super(PageSysInfo, self).__init__(display)
         self.pageUI = "sysinfo"
         self.pageTitle = N_("System Information")
-        self.items.update({
-                'serial_number': self.display.hw.cpuSerialNo,
-                'system_name': self.display.hwConfig.os.name,
-                'system_version': self.display.hwConfig.os.version,
-                })
         self.updateDataPeriod = 0.5
-        self.skip = 11
         self.checkPowerbutton = False
     #enddef
 
 
+    def fillData(self):
+        return {
+            'serial_number': self.display.printer0.serial_number,
+            'system_name': self.display.printer0.system_name,
+            'system_version': self.display.printer0.system_version,
+            'controller_version': self.display.printer0.controller_version,
+            'controller_serial': self.display.printer0.controller_serial,
+            'api_key': self.display.printer0.api_key,
+            'tilt_fast_time': self.display.printer0.tilt_fast_time_sec,
+            'tilt_slow_time': self.display.printer0.tilt_slow_time_sec,
+            'fans': self.display.printer0.fans,
+            'temps': self.display.printer0.temps,
+            'cpu_temp': self.display.printer0.cpu_temp,
+            'leds': self.display.printer0.leds,
+            'devlist': self.display.printer0.devlist,
+            'uv_statistics': self.display.printer0.uv_statistics,
+            'resin_sensor_state': self.display.printer0.resin_sensor_state,
+            'cover_state': self.display.printer0.cover_state,
+            'power_switch_state': self.display.printer0.power_switch_state
+        }
+    #enddef
+
+
     def show(self):
-        self.oldValues = {}
-        self.items['controller_version'] = self.display.hw.mcFwVersion
-        self.items['controller_serial'] = self.display.hw.mcSerialNo
-        self.items['api_key'] = self.octoprintAuth
-        self.items['tilt_fast_time'] = self.display.hwConfig.tiltFastTime
-        self.items['tilt_slow_time'] = self.display.hwConfig.tiltSlowTime
-        self.display.hw.resinSensor(True)
-        self.skip = 11
+        self.display.printer0.enable_resin_sensor(True)
         super(PageSysInfo, self).show()
     #enddef
 
 
     def updateData(self):
-        items = {}
-        if self.skip > 10:
-            self._setItem(items, self.oldValues, 'fans', {'fan%d_rpm' % i: v for i, v in self.display.hw.getFansRpm().items()})
-            self._setItem(items, self.oldValues, 'temps', {'temp%d_celsius' % i: v for i, v in enumerate(self.display.hw.getMcTemperatures())})
-            self._setItem(items, self.oldValues, 'cpu_temp', self.display.hw.getCpuTemperature())
-            self._setItem(items, self.oldValues, 'leds', {'led%d_voltage_volt' % i: v for i, v in enumerate(self.display.hw.getVoltages())})
-            self._setItem(items, self.oldValues, 'devlist', self.display.inet.devices)
-            self._setItem(items, self.oldValues, 'uv_statistics', {'uv_stat%d' % i: v for i, v in enumerate(self.display.hw.getUvStatistics())})   #uv_stats0 - time counter [s] #TODO add uv average current, uv average temperature
-            self.skip = 0
-        #endif
-        self._setItem(items, self.oldValues, 'resin_sensor_state', self.display.hw.getResinSensorState())
-        self._setItem(items, self.oldValues, 'cover_state', self.display.hw.isCoverClosed())
-        self._setItem(items, self.oldValues, 'power_switch_state', self.display.hw.getPowerswitchState())
-
-        if len(items):
-            self.showItems(**items)
-        #endif
-
-        self.skip += 1
+        self.showItems(**self.fillData())
     #enddef
 
 
     def backButtonRelease(self):
-        self.display.hw.resinSensor(False)
+        self.display.printer0.enable_resin_sensor(False)
         return super(PageSysInfo, self).backButtonRelease()
     #enddef
 
