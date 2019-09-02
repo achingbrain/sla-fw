@@ -11,7 +11,6 @@ before_script:
 
 build:
   stage: build
-
   script:
     - cd firmware
     - python2 setup.py build
@@ -19,37 +18,42 @@ build:
 
 mcsim:
   stage: build
-
   script:
     - git clone --single-branch --branch master --depth 1 git@gitlab.com:prusa3d/sl1/mc-fw.git
     - BOARD=6 SIMULATION=1 make -C mc-fw/SLA-control-01 -j5
     - mv mc-fw/SLA-control-01/SLA-control_rev06.elf ./SLA-control-01.elf
-
   artifacts:
     paths:
       - SLA-control-01.elf
 
-test:
+unittest:
   stage: test
-
   dependencies:
     - mcsim
-
+  needs: [mcsim]
   script:
     - export PATH="${PATH}:$(pwd)"
     - cd firmware
-    - python3-coverage run -m unittest discover --failfast --verbose sl1fw.tests
+    - python3-coverage run -m unittest discover --failfast --verbose sl1fw.tests.unittests
     - python3-coverage report --include "sl1fw*"
+
+integration:
+  stage: test
+  dependencies:
+    - mcsim
+  needs: [mcsim]
+  script:
+    - export PATH="${PATH}:$(pwd)"
+    - cd firmware
+    - python3 -m unittest discover --failfast --verbose sl1fw.tests.integration
 
 pylint:
   stage: test
-
   dependencies: []
-
+  needs: []
   script:
     - cd firmware
     - python3 -m pylint --version
     - python3 -m pylint sl1fw --jobs 0 --errors-only --additional-builtins=_,N_ --extension-pkg-whitelist=pygame
-
   allow_failure: true
 
