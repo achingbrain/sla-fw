@@ -1,61 +1,53 @@
-import logging
-import unittest
-from mock import Mock
-import sys
+from pathlib import Path
 import os
 import threading
 from shutil import copyfile
 import tempfile
 # import cProfile
 
-from sl1fw.tests.gettextSim import fake_gettext
-from sl1fw.tests.testdisplay import TestDisplay
-import sl1fw.tests.mcPortSim
-import sl1fw.tests.pydbusSim
-import sl1fw.tests.libNetworkSim
+from sl1fw.tests.test_base import Sl1fwTestCase
 
-fake_gettext()
-
-sys.modules['gpio'] = Mock()
-sys.modules['sl1fw.libDebug'] = Mock()
-sys.modules['serial'] = sl1fw.tests.mcPortSim
-sys.modules['pydbus'] = sl1fw.tests.pydbusSim
-sys.modules['sl1fw.libNetwork'] = sl1fw.tests.libNetworkSim
-
+from sl1fw.tests.mocks.testdisplay import TestDisplay
 from sl1fw import libPrinter
 from sl1fw import defines
 from sl1fw.pages.printstart import PagePrintPreview
+from sl1fw.tests import integration
 
-logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
+class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
+    EEPROM_FILE = str(Path(integration.__file__).parent / "EEPROM.dat")
+    FB_DEV_FILE = str(Sl1fwTestCase.TEMP_DIR / "FBDEV.dat")
+    HARDWARE_FILE = str(Sl1fwTestCase.TEMP_DIR / "hardware.cfg")
+    SDL_AUDIO_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.sdlaudio.raw")
 
-class TestIntegrationBase(unittest.TestCase):
-    EEPROM_FILE = "EEPROM.dat"
-    FB_DEV_FILE = "FBDEV.dat"
-    HARDWARE_FILE = "hardware.cfg"
-    SDL_AUDIO_FILE = os.path.join(tempfile.gettempdir(), "sl1fw.sdlaudio.raw")
+    def __init__(self, *args, **kwargs):
+        self.display = None
+        self.printer = None
+        self.thread = None
+
+        super().__init__(*args, **kwargs)
 
     def setUp(self):
-        copyfile(os.path.join(os.path.dirname(__file__), "samples/hardware.cfg"), self.HARDWARE_FILE)
+        copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
 
-        defines.cpuSNFile = os.path.join(os.path.dirname(__file__), "samples/nvmem")
-        defines.cpuTempFile = os.path.join(os.path.dirname(__file__), "samples/cputemp")
-        defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
-        defines.hwConfigFactoryDefaultsFile = os.path.join(os.path.dirname(__file__), "samples/hardware.toml")
-        defines.lastProjectData = os.path.join(os.path.dirname(__file__), "samples/lastProject.toml")
-        defines.templates = os.path.join(os.path.dirname(__file__), "../intranet/templates")
-        defines.multimediaRootPath = os.path.join(os.path.dirname(__file__), "../multimedia")
+        defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
+        defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
+        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
+        defines.hwConfigFactoryDefaultsFile = str(self.SAMPLES_DIR / "hardware.toml")
+        defines.lastProjectData = str(self.SAMPLES_DIR / "lastProject.toml")
+        defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
+        defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigFile = self.HARDWARE_FILE
         defines.fbFile = self.FB_DEV_FILE
         defines.doFBSet = False
         defines.truePoweroff = False
-        defines.internalProjectPath = os.path.join(os.path.dirname(__file__), "samples")
+        defines.internalProjectPath = str(self.SAMPLES_DIR)
         defines.ramdiskPath = tempfile.gettempdir()
-        defines.octoprintAuthFile = os.path.join(os.path.dirname(__file__), "samples/slicer-upload-api.key")
-        defines.livePreviewImage = os.path.join(defines.ramdiskPath, "live.png")
+        defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
+        defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
 
         os.environ['SDL_AUDIODRIVER'] = "disk"
-        os.environ['SDL_DISKAUDIOFILE'] = self.SDL_AUDIO_FILE
+        os.environ['SDL_DISKAUDIOFILE'] = str(self.SDL_AUDIO_FILE)
 
         PagePrintPreview.FanCheckOverride = True
 
@@ -109,4 +101,3 @@ class TestIntegrationBase(unittest.TestCase):
     def switchPage(self, page):
         self.press(page)
         self.waitPage(page)
-

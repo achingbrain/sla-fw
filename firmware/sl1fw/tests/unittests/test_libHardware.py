@@ -1,40 +1,31 @@
-import logging
-import unittest
-from mock import Mock
 import os
-import sys
+import unittest
 from time import sleep
-from sl1fw.tests.gettextSim import fake_gettext
-import sl1fw.tests.mcPortSim
+from mock import Mock
 
-fake_gettext()
-
-# This has to stay in order to prevent loading of real pydbus
-import sl1fw.tests.pydbusSim
-sys.modules['pydbus'] = sl1fw.tests.pydbusSim
-
-sys.modules['gpio'] = Mock()
-sys.modules['sl1fw.libDebug'] = Mock()
-sys.modules['serial'] = sl1fw.tests.mcPortSim
+from sl1fw.tests.test_base import Sl1fwTestCase
 
 from sl1fw.libHardware import Hardware
 from sl1fw.libConfig import HwConfig, PrintConfig
 from sl1fw import defines
 
-logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
+class TestLibHardware(Sl1fwTestCase):
+    EEPROM_FILE = Sl1fwTestCase.TEMP_DIR / "EEPROM.dat"
 
-class TestLibHardware(unittest.TestCase):
-    EEPROM_FILE = "EEPROM.dat"
+    def __init__(self, *args, **kwargs):
+        self.hwConfig = None
+        self.config = None
+        self.hw = None
+        super().__init__(*args, **kwargs)
 
     def setUp(self):
-
-        defines.cpuSNFile = os.path.join(os.path.dirname(__file__), "samples/nvmem")
-        defines.cpuTempFile = os.path.join(os.path.dirname(__file__), "samples/cputemp")
-        defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
+        defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
+        defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
+        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory/factory.toml")
         defines.doFBSet = False
 
-        self.hwConfig = HwConfig(os.path.join(os.path.dirname(__file__), "samples/hardware.cfg"))
+        self.hwConfig = HwConfig(str(self.SAMPLES_DIR / "hardware.cfg"))
         self.config = PrintConfig(self.hwConfig)
         self.hw = Hardware(self.hwConfig, self.config)
 
@@ -159,7 +150,7 @@ class TestLibHardware(unittest.TestCase):
 
     def test_voltages(self):
         voltages = self.hw.getVoltages()
-        self.assertEqual(4 , len(voltages))
+        self.assertEqual(4, len(voltages))
         for voltage in voltages:
             self.assertEqual(float, type(voltage))
 
@@ -188,27 +179,27 @@ class TestLibHardware(unittest.TestCase):
     def test_fans(self):
         self.assertFalse(self.hw.checkState('fans'))
 
-        self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFans())
+        self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
         self.hw.startFans()
-        self.assertEqual({ 0:True, 1:True, 2:True }, self.hw.getFans())
+        self.assertEqual({0: True, 1: True, 2: True}, self.hw.getFans())
 
-        fans = { 0:True, 1:False, 2:True }
+        fans = {0: True, 1: False, 2: True}
         self.hw.setFans(fans)
         self.assertEqual(fans, self.hw.getFans())
 
         self.hw.stopFans()
-        self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFans())
+        self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
         # TODO: Unreliable
         # self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
 
         # Check mask
-        self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFanCheckMask())
+        self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFanCheckMask())
 
         # RPMs
         # FIXME RPMs are not simulated
-        #rpms = { 0:1000, 1:500, 2:800 }
-        #self.hw.setFansRpm(rpms)
-        #self.assertEqual(rpms, self.hw.getFansRpm())
+        # rpms = { 0:1000, 1:500, 2:800 }
+        # self.hw.setFansRpm(rpms)
+        # self.assertEqual(rpms, self.hw.getFansRpm())
 
         # RPMs
         rpms = self.hw.getFansRpm()
@@ -363,7 +354,7 @@ class TestLibHardware(unittest.TestCase):
         self.hw.towerMoveAbsoluteWait(position)
         self.assertFalse(self.hw.isTowerMoving())
         self.assertEqual(position, self.hw.getTowerPositionMicroSteps())
-        self.assertTrue(self.hw.isTowerOnPosition())
+        self.assertTrue(self.hw.isTowerOnPosition(retries=5))
 
     def test_tower_to_position(self):
         position_mm = 10

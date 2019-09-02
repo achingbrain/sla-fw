@@ -1,39 +1,34 @@
-import logging
 import unittest
 from mock import Mock
-import os
-import sys
 
-from sl1fw.tests.gettextSim import fake_gettext
-
-fake_gettext()
-
-# This has to stay in order to prevent loading of real pydbus
-import sl1fw.tests.pydbusSim
-sys.modules['pydbus'] = sl1fw.tests.pydbusSim
+from sl1fw.tests.test_base import Sl1fwTestCase
 
 from sl1fw import libExposure
 from sl1fw import libConfig
 from sl1fw import defines
 
-logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
+class TestExposure(Sl1fwTestCase):
+    PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1")
 
-class TestExposure(unittest.TestCase):
-    PROJECT = os.path.join(os.path.dirname(__file__), "samples/numbers.sl1")
+    def __init__(self, *args, **kwargs):
+        self.config = None
+        self.exposure = None
+
+        super().__init__(*args, **kwargs)
 
     def setUp(self):
-        defines.factoryConfigFile = os.path.join(os.path.dirname(__file__), "../../factory/factory.toml")
+        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
 
-        hwConfig = libConfig.HwConfig()
-        self.config = libConfig.PrintConfig(hwConfig)
+        hw_config = libConfig.HwConfig()
+        self.config = libConfig.PrintConfig(hw_config)
         display = Mock()
         display.devices = []
         hw = Mock()
         hw.getUvLedState.return_value = (False, 0)
         screen = Mock()
         screen.blitImg.return_value = 100
-        self.exposure = libExposure.Exposure(hwConfig, self.config, display, hw, screen)
+        self.exposure = libExposure.Exposure(hw_config, self.config, display, hw, screen)
 
     def test_exposure_init(self):
         pass

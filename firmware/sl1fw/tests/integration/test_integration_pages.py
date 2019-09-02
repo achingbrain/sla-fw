@@ -1,9 +1,9 @@
 import unittest
 
-from sl1fw.tests.test_integration_base import TestIntegrationBase
+from sl1fw.tests.integration.test_integration_base import Sl1FwIntegrationTestCaseBase
 
 
-class TestIntegrationPages(TestIntegrationBase):
+class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_turnoff(self):
         # Turn off
         self.press("turnoff")
@@ -117,7 +117,7 @@ class TestIntegrationPages(TestIntegrationBase):
         self.press("cont")
         self.waitPage("yesno")  # Can you see company logo...
         self.press("no")
-        self.waitPage("error") # No logo, contact service
+        self.waitPage("error")  # No logo, contact service
         self.press("ok")
         self.waitPage("advancedsettings")
 
@@ -178,17 +178,17 @@ class TestIntegrationPages(TestIntegrationBase):
 
         self.switchPage("settings")
         self.press("recalibration")
-        self.waitPage("yesno") # Calibrate printer now?
+        self.waitPage("yesno")  # Calibrate printer now?
         self.press("yes")
         self.waitPage("wait")  # Printer homing
-        self.waitPage("confirm", timeout_sec=30) # If the platform ...
+        self.waitPage("confirm", timeout_sec=30)  # If the platform ...
         self.press("cont")
-        self.waitPage("confirm")  # Losen the small screw ...
+        self.waitPage("confirm")  # Loosen the small screw ...
         self.press("cont")
         self.waitPage("confirm")  # Unscrew the tank ...
         self.press("cont")
         self.waitPage("wait", timeout_sec=60)  # Moving to start position
-        self.waitPage("confirm")  # IN the next step, move ...
+        self.waitPage("confirm")  # In the next step, move ...
         self.press("cont")
         self.waitPage("tiltmovecalibration")
         self.press("slowDown")
@@ -216,6 +216,7 @@ class TestIntegrationPages(TestIntegrationBase):
         self.waitPage("home")
 
         self.test_turnoff()
+
 
 if __name__ == '__main__':
     unittest.main()
