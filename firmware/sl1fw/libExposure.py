@@ -104,6 +104,7 @@ class ExposureThread(threading.Thread):
         else:
             time = exposureTime
         #endif
+        self.expo.hw.getMcTemperatures()
         self.logger.debug("exposure started")
         self.expo.display.actualPage.showItems(exposure = time)
         whitePixels = self.expo.screen.blitImg(second = second)
@@ -152,6 +153,7 @@ class ExposureThread(threading.Thread):
 
         self.expo.screen.getImgBlack()
         self.logger.debug("exposure done")
+        self.expo.hw.getMcTemperatures()
 
         if picture is not None:
             self.expo.screen.preloadImg(

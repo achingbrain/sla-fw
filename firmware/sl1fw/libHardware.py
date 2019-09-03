@@ -1300,18 +1300,20 @@ class Hardware(object):
 
 
     @safe_call([-273.2, -273.2, -273.2, -273.2], (MotionControllerException, ValueError))
-    def getMcTemperatures(self):
+    def getMcTemperatures(self, logTemps = True):
         temps = self.mcc.doGetIntList("?temp", multiply = 0.1)
         if len(temps) != 4:
             raise ValueError(f"TEMPs count not match! ({temps})")
         #endif
-        self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
+        if logTemps:
+            self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
+        #endif
         return temps
     #enddef
 
 
     def getUvLedTemperature(self):
-        return self.getMcTemperatures()[self._ledTempIdx]
+        return self.getMcTemperatures(logTemps = False)[self._ledTempIdx]
     #endif
 
 
