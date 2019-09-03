@@ -23,6 +23,7 @@ class Printer(object):
         startTime = time()
         self.running = True
         self.exited = threading.Event()
+        # TODO: Event should be set by default to enable test tear down
 
         self.logger = logging.getLogger(__name__)
         self.logger.info("SL1 firmware started")
@@ -32,6 +33,7 @@ class Printer(object):
         self.hwConfig.logAllItems()
         self.config = libConfig.PrintConfig(self.hwConfig)
 
+        # TODO: This executes a new thread in case of tests, and we are in __init__
         from sl1fw.libHardware import Hardware
         self.hw = Hardware(self.hwConfig, self.config)
 
@@ -49,15 +51,18 @@ class Printer(object):
         if debugDisplay:
             devices = [debugDisplay]
         else:
+            # TODO: This executes a new thread and we are in __init__
             from sl1fw.libQtDisplay import QtDisplay
             qtdisplay = QtDisplay()
 
+            # TODO: This executes a new thread and we are in __init__
             from sl1fw.libWebDisplay import WebDisplay
             webdisplay = WebDisplay()
 
             devices = [qtdisplay, webdisplay]
         #endif
 
+        # TODO: This executes a new thread and we are in __init__
         from sl1fw.libScreen import Screen
         self.screen = Screen(self.hwConfig)
 
@@ -77,6 +82,7 @@ class Printer(object):
         DBusGMainLoop(set_as_default=True)
         self.eventLoop = GLib.MainLoop()
         self.eventThread = threading.Thread(target=self.loopThread)
+        # TODO: This executes a new thread and we are in __init__
         self.eventThread.start()
 
         self.inet.start_net_monitor()

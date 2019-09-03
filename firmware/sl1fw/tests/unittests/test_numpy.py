@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 
 import unittest
+from pathlib import Path
 import pygame
 import numpy as np
 import os
 
+import sl1fw
+
 
 class TestNumpy(unittest.TestCase):
-    ZABA = os.path.join(os.path.dirname(__file__), "../../../zaba.png")
+    ZABA = str(Path(sl1fw.__file__).parent / ".." / ".." / "zaba.png")
+
+    def __init__(self, *args, **kwargs):
+        self.screen = None
+        super().__init__(*args, **kwargs)
 
     def setUp(self):
         os.environ['SDL_NOMOUSE'] = '1'
@@ -19,8 +26,8 @@ class TestNumpy(unittest.TestCase):
 
     def test_numpy(self):
         obr = pygame.image.load(TestNumpy.ZABA).convert()
-        obrRect = obr.get_rect()
-        self.screen.blit(obr, obrRect)
+        obr_rect = obr.get_rect()
+        self.screen.blit(obr, obr_rect)
         pygame.display.flip()
 
         pixels = pygame.surfarray.pixels3d(self.screen)

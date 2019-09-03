@@ -5,7 +5,8 @@ class SystemBus:
     def __call__(self):
         return self
 
-    def get(self, service, *args, **kwargs):
+    @staticmethod
+    def get(service, *args, **kwargs):
         if service == "de.pengutronix.rauc":
             return {
                 'de.pengutronix.rauc.Installer': Rauc()
@@ -17,8 +18,7 @@ class SystemBus:
         elif service == "org.freedesktop.locale1":
             return Locale()
         elif service == "org.freedesktop.NetworkManager":
-            # Temporary, fix we should provide fake object
-            return pydbus.SystemBus().get(service, *args, **kwargs)
+            return NetworkManager()
         elif service == "cz.prusa3d.sl1.wificonfig":
             return WifiConfig()
         else:
@@ -99,7 +99,7 @@ class Locale:
         pass
 
 
-class WifiConfig():
+class WifiConfig:
     def __init__(self):
         self.APs = []
         self.Client = {
@@ -112,32 +112,59 @@ class WifiConfig():
         }
         self.PropertiesChanged = self
 
-    def connect(self, *args, **kwargs):
+    @staticmethod
+    def connect(*args, **kwargs):
         pass
 
-    def Connect(self, ssid, psk):
+    @staticmethod
+    def Connect(ssid, psk):
         pass
 
-    def StartHotspot(self, ssid, psk):
+    @staticmethod
+    def StartHotspot(ssid, psk):
         pass
 
-    def EnableWifi(self):
+    @staticmethod
+    def EnableWifi():
         pass
 
-    def DisableWifi(self):
+    @staticmethod
+    def DisableWifi():
         pass
 
-    def Reset(self):
+    @staticmethod
+    def Reset():
         pass
 
+    @staticmethod
     def Scan(self):
         pass
 
-    def WifiMode(self):
+    @staticmethod
+    def WifiMode():
         return "off"
 
-    def WifiConnectedSSID(self):
+    @staticmethod
+    def WifiConnectedSSID():
         return ""
 
-    def WifiConnectedSignal(self):
+    @staticmethod
+    def WifiConnectedSignal():
         return 0
+
+
+class NetworkManager:
+    def __init__(self):
+        self.PropertiesChanged = self
+        self.PrimaryConnection = "/"
+
+    @staticmethod
+    def state():
+        return 0
+
+    @staticmethod
+    def GetAllDevices():
+        return []
+
+    def connect(self, callback):
+        pass
