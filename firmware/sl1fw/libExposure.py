@@ -179,50 +179,48 @@ class ExposureThread(threading.Thread):
 
 
     def doUpAndDown(self):
-        actualPosition = self.expo.hw.getTowerPositionMicroSteps()
         self.expo.hw.powerLed("warn")
-        if actualPosition is None:
-            self.logger.warn("Wrong position from MC")
-            pageWait = PageWait(self.expo.display, line1 = _("Can't get tower position"))
-            pageWait.show()
-            self.expo.hw.beepAlarm(3)
-            sleep(5)
-        else:
-            pageWait = PageWait(self.expo.display, line1 = _("Going to the top position"))
-            pageWait.show()
-            self.expo.hw.setTowerProfile('homingFast')
-            self.expo.hw.towerToTop()
-            while not self.expo.hw.isTowerOnTop():
-                sleep(0.25)
-                pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
-            #endwhile
-            pageWait.showItems(line2 = "")
-
-            for sec in range(self.expo.hwConfig.upAndDownWait):
-                cnt = self.expo.hwConfig.upAndDownWait - sec
-                pageWait.showItems(line1 = ngettext("Printing will continue in %d second" % cnt,
-                    "Printing will continue in %d seconds" % cnt, cnt), line2 = "")
-                sleep(1)
-                if self.expo.hwConfig.coverCheck and not self.expo.hw.isCoverClosed():
-                    pageWait.showItems(line1 = _("Paused"),
-                        line2 = _("Close the cover to continue"))
-                    while not self.expo.hw.isCoverClosed():
-                        sleep(1)
-                    #endwhile
-                #endif
-            #endfor
-
-            if self.expo.hwConfig.tilt:
-                pageWait.showItems(line1 = _("Stirring the resin"), line2 = "")
-                self.expo.hw.stirResin()
-            #endif
-            pageWait.showItems(line1 = _("Going back"), line2 = "")
-            self.expo.hw.towerMoveAbsolute(actualPosition)
-            while not self.expo.hw.isTowerOnPosition():
-                sleep(0.25)
-                pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
-            #endwhile
+        if self.expo.hwConfig.blinkExposure and self.expo.hwConfig.upAndDownUvOn:
+            self.expo.hw.uvLed(True)
         #endif
+        pageWait = PageWait(self.expo.display, line1 = _("Going to the top position"))
+        pageWait.show()
+        self.expo.hw.setTowerProfile('homingFast')
+        self.expo.hw.towerToTop()
+        while not self.expo.hw.isTowerOnTop():
+            sleep(0.25)
+            pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
+        #endwhile
+        pageWait.showItems(line2 = "")
+
+        for sec in range(self.expo.hwConfig.upAndDownWait):
+            cnt = self.expo.hwConfig.upAndDownWait - sec
+            pageWait.showItems(line1 = ngettext("Printing will continue in %d second" % cnt,
+                "Printing will continue in %d seconds" % cnt, cnt), line2 = "")
+            sleep(1)
+            if self.expo.hwConfig.coverCheck and not self.expo.hw.isCoverClosed():
+                pageWait.showItems(line1 = _("Paused"),
+                    line2 = _("Close the cover to continue"))
+                while not self.expo.hw.isCoverClosed():
+                    sleep(1)
+                #endwhile
+            #endif
+        #endfor
+
+        if self.expo.hwConfig.tilt:
+            pageWait.showItems(line1 = _("Stirring the resin"), line2 = "")
+            self.expo.hw.stirResin()
+        #endif
+        pageWait.showItems(line1 = _("Going back"), line2 = "")
+        self.expo.position += self.expo.hwConfig.upAndDownZoffset
+        if self.expo.position < 0:
+            self.expo.position = 0
+        #endif
+        self.expo.hw.towerMoveAbsolute(self.expo.position)
+        while not self.expo.hw.isTowerOnPosition():
+            sleep(0.25)
+            pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
+        #endwhile
         self.expo.hw.powerLed("normal")
         self.expo.display.forcePage("print")
     #endif
@@ -305,6 +303,7 @@ The print job was canceled."""))
             totalLayers = config.totalLayers
             stuck = False
             wasStirring = True
+            exposureCompensation = 0.0
 
             for i in range(totalLayers):
 
@@ -320,6 +319,7 @@ The print job was canceled."""))
                 if command == "updown":
                     self.doUpAndDown()
                     wasStirring = True
+                    exposureCompensation = self.expo.hwConfig.upAndDownExpoComp / 10.0
                 #endif
 
                 if command == "exit":
@@ -374,6 +374,8 @@ If you don't want to refill, please press the Back button on top of the screen."
 
                 if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
                     self.doUpAndDown()
+                    wasStirring = True
+                    exposureCompensation = self.expo.hwConfig.upAndDownExpoComp / 10.0
                 #endif
 
                 # first layer - extra height + extra time
@@ -404,6 +406,9 @@ If you don't want to refill, please press the Back button on top of the screen."
                     step = config.layerMicroSteps3
                     time = config.expTime3
                 #endif
+
+                time += exposureCompensation
+                exposureCompensation = 0.0
 
                 self.expo.actualLayer = i + 1
                 self.expo.position += step
