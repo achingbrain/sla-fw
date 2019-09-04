@@ -2,8 +2,10 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
+import os
 import logging
 from typing import Optional, Any, Callable
+from urllib.request import urlopen, Request
 
 import pydbus
 
@@ -105,3 +107,59 @@ class Network(object):
         :return:
         """
         return self.bus.get(self.NETWORKMANAGER_SERVICE, path)
+
+    def download_url(self, url, dest, version_id, cpu_serial_no, page=None, timeout_sec=10) -> None:
+        """Fetches file specified by url info destination while displaying progress. This is implemented as chunked
+        copy from source file descriptor to the destination file descriptor. The progress is updated once the chunk is
+        copied. The source file descriptor is either standard file when the source is mounted USB drive or urlopen
+        result."""
+
+        if page:
+            page.showItems(line2="0%")
+
+        self.logger.info("Downloading %s" % url)
+
+        if url.startswith("http://") or url.startswith("https://"):
+            # URL is HTTP, source is url
+            req = Request(url)
+            req.add_header('User-Agent', 'Prusa-SL1')
+            req.add_header('Prusa-SL1-version', version_id)
+            req.add_header('Prusa-SL1-serial', cpu_serial_no)
+            source = urlopen(req, timeout=timeout_sec)
+
+            # Default files size (sometimes HTTP server does not know size)
+            content_length = source.info().get("Content-Length")
+            if content_length is not None:
+                file_size = int(content_length)
+            else:
+                file_size = None
+
+            block_size = 8 * 1024
+        else:
+            # URL is file, source is file
+            self.logger.info("Copying file %s" % url)
+            source = open(url, "rb")
+            file_size = os.path.getsize(url)
+            block_size = 1024 * 1024
+
+        with open(dest, 'wb') as file:
+            old_progress = 0
+            while True:
+                buffer = source.read(block_size)
+                if not buffer or buffer == '':
+                    break
+                file.write(buffer)
+
+                if file_size is not None:
+                    progress = int(100 * file.tell() / file_size)
+                else:
+                    progress = 0
+
+                if page and progress != old_progress:
+                    page.showItems(line2="%d%%" % progress)
+                    old_progress = progress
+
+            if file_size and file.tell() != file_size:
+                raise Exception("Download of %s failed to read whole file %d != %d", url, file_size, file.tell())
+
+        source.close()

@@ -21,6 +21,7 @@ class Printer(object):
 
     def __init__(self, debugDisplay=None):
         startTime = time()
+        self.admin_check = None
         self.running = True
         self.exited = threading.Event()
         # TODO: Event should be set by default to enable test tear down
@@ -98,6 +99,9 @@ class Printer(object):
 
     def exit(self):
         self.running = False
+        if self.admin_check:
+            self.admin_check.exit()
+        #endif
         self.display.exit()
         self.exited.wait()
         self.screen.exit()
@@ -108,6 +112,11 @@ class Printer(object):
 
 
     def start(self):
+        if not self.hwConfig.factoryMode:
+            from sl1fw.libAsync import Admin_check
+            self.admin_check = Admin_check(self.display, self.inet)
+        #endif
+
         from sl1fw.libExposure import Exposure
         firstRun = True
         self.exited.clear()
