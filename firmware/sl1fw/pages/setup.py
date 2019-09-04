@@ -299,6 +299,7 @@ class PageSetupExposure(PageSetup):
                 'label1g1' : _("Blink exposure"),
                 'label1g2' : _("Per-Partes expos."),
                 'label1g3' : _("Use tilt"),
+                'label1g4' : _("Up&down UV on"),
 
                 'label2g1' : _("Layer trigger [s]"),
                 'label2g2' : _("Layer tower hop [mm]"),
@@ -306,6 +307,8 @@ class PageSetupExposure(PageSetup):
                 'label2g4' : _("Delay after expos. [s]"),
                 'label2g5' : _("Up&down wait [s]"),
                 'label2g6' : _("Up&down every n-th l."),
+                'label2g7' : _("Up&down Z offset [mm]"),
+                'label2g8' : _("Up&down expo comp [s]"),
                 })
         self.changed = {}
         self.temp = {}
@@ -316,23 +319,34 @@ class PageSetupExposure(PageSetup):
         self.temp['delayafterexposure'] = self.display.hwConfig.delayAfterExposure
         self.temp['upanddownwait'] = self.display.hwConfig.upAndDownWait
         self.temp['upanddowneverylayer'] = self.display.hwConfig.upAndDownEveryLayer
+        self.temp['upanddownzoffset'] = self.display.hwConfig.upAndDownZoffset
+        self.temp['upanddownexpocomp'] = self.display.hwConfig.upAndDownExpoComp
 
         self.items['value2g1'] = self._strTenth(self.temp['trigger'])
-        self.items['value2g2'] = self._strZHop(self.temp['layertowerhop'])
+        self.items['value2g2'] = self._strZMove(self.temp['layertowerhop'])
         self.items['value2g3'] = self._strTenth(self.temp['delaybeforeexposure'])
         self.items['value2g4'] = self._strTenth(self.temp['delayafterexposure'])
         self.items['value2g5'] = str(self.temp['upanddownwait'])
         self.items['value2g6'] = str(self.temp['upanddowneverylayer'])
+        self.items['value2g7'] = self._strZMove(self.temp['upanddownzoffset'])
+        self.items['value2g8'] = self._strTenth(self.temp['upanddownexpocomp'])
 
         self.temp['blinkexposure'] = self.display.hwConfig.blinkExposure
         self.temp['perpartesexposure'] = self.display.hwConfig.perPartes
         self.temp['tilt'] = self.display.hwConfig.tilt
+        self.temp['upanddownuvon'] = self.display.hwConfig.upAndDownUvOn
 
         self.items['state1g1'] = int(self.temp['blinkexposure'])
         self.items['state1g2'] = int(self.temp['perpartesexposure'])
         self.items['state1g3'] = int(self.temp['tilt'])
+        self.items['state1g4'] = int(self.temp['upanddownuvon'])
 
         super(PageSetupExposure, self).show()
+    #enddef
+
+
+    def _strZMove(self, value):
+        return "%.3f" % self.display.hwConfig.calcMM(value)
     #enddef
 
 
@@ -351,8 +365,13 @@ class PageSetupExposure(PageSetup):
         if not self.temp['tilt'] and not self.temp['layertowerhop']:
             self.temp['layertowerhop'] = self.display.hwConfig.calcMicroSteps(5)
             self.changed['layertowerhop'] = str(self.temp['layertowerhop'])
-            self.showItems(**{ 'value2g4' : self._strZHop(self.temp['layertowerhop']) })
+            self.showItems(**{ 'value2g2' : self._strZMove(self.temp['layertowerhop']) })
         #endif
+    #enddef
+
+
+    def state1g4ButtonRelease(self):
+        self._onOff(self.temp, self.changed, 3, 'upanddownuvon')
     #enddef
 
 
@@ -367,7 +386,7 @@ class PageSetupExposure(PageSetup):
 
 
     def minus2g2Button(self):
-        self._value(self.temp, self.changed, 1, 'layertowerhop', 0, 8000, -20, self._strZHop)
+        self._value(self.temp, self.changed, 1, 'layertowerhop', 0, 8000, -20, self._strZMove)
         if not self.temp['tilt'] and not self.temp['layertowerhop']:
             self.temp['tilt'] = True
             self.changed['tilt'] = "on"
@@ -377,7 +396,7 @@ class PageSetupExposure(PageSetup):
 
 
     def plus2g2Button(self):
-        self._value(self.temp, self.changed, 1, 'layertowerhop', 0, 8000, 20, self._strZHop)
+        self._value(self.temp, self.changed, 1, 'layertowerhop', 0, 8000, 20, self._strZMove)
     #enddef
 
 
@@ -418,6 +437,26 @@ class PageSetupExposure(PageSetup):
 
     def plus2g6Button(self):
         self._value(self.temp, self.changed, 5, 'upanddowneverylayer', 0, 500, 1)
+    #enddef
+
+
+    def minus2g7Button(self):
+        self._value(self.temp, self.changed, 6, 'upanddownzoffset', -800, 800, -1, self._strZMove)
+    #enddef
+
+
+    def plus2g7Button(self):
+        self._value(self.temp, self.changed, 6, 'upanddownzoffset', -800, 800, 1, self._strZMove)
+    #enddef
+
+
+    def minus2g8Button(self):
+        self._value(self.temp, self.changed, 7, 'upanddownexpocomp', -10, 300, -1, self._strTenth)
+    #enddef
+
+
+    def plus2g8Button(self):
+        self._value(self.temp, self.changed, 7, 'upanddownexpocomp', -10, 300, 1, self._strTenth)
     #enddef
 
 #endclass

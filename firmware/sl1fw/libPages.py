@@ -385,11 +385,6 @@ class Page(object):
     #enddef
 
 
-    def _strZHop(self, value):
-        return "%.3f" % self.display.hwConfig.calcMM(value)
-    #enddef
-
-
     def _strOffset(self, value):
         return "%+.3f" % self.display.hwConfig.calcMM(value)
     #enddef

@@ -375,6 +375,7 @@ class HwConfig(FileConfig):
         self.blinkExposure = self._parseBool("blinkexposure", True)
         self.perPartes = self._parseBool("perpartesexposure", False)
         self.tilt = self._parseBool("tilt", True)
+        self.upAndDownUvOn = self._parseBool("upanddownuvon", False)
 
         self.trigger = self._parseIntMinMax("trigger", 0, 0, 20)
         self.layerTowerHop = self._parseIntMinMax("layertowerhop", 0, 0, 8000)
@@ -382,6 +383,8 @@ class HwConfig(FileConfig):
         self.delayAfterExposure = self._parseIntMinMax("delayafterexposure", 0, 0, 300)
         self.upAndDownWait = self._parseIntMinMax("upanddownwait", 10, 0, 600)
         self.upAndDownEveryLayer = self._parseIntMinMax("upanddowneverylayer", 0, 0, 500)
+        self.upAndDownZoffset = self._parseIntMinMax("upanddownzoffset", 0, -800, 800)
+        self.upAndDownExpoComp = self._parseIntMinMax("upanddownexpocomp", 0, -10, 300)
 
         # Fans & LEDs
         self.fan1Rpm = self._parseIntMinMax("fan1rpm", 1800, 500, 3000)
