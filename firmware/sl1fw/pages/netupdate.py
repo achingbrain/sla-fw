@@ -34,9 +34,15 @@ class PageNetUpdate(Page):
         })
 
         try:
+            pageWait = PageWait(self.display, line1=_("Downloading firmware list"))
+            pageWait.show()
             query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
-            self.downloadURL(query_url, defines.firmwareListTemp, title=_("Downloading firmware list"),
-                             timeout_sec=5)
+            self.display.inet.download_url(query_url,
+                    defines.firmwareListTemp,
+                    self.display.hwConfig.os.versionId,
+                    self.display.hw.cpuSerialNo,
+                    page=pageWait,
+                    timeout_sec=5)
 
             with open(defines.firmwareListTemp) as list_file:
                 self.firmwares = list(enumerate(json.load(list_file)))
@@ -144,11 +150,15 @@ class PageNetUpdate(Page):
             #endif
 
             with tempfile.NamedTemporaryFile() as archive:
-                self.downloadURL(defines.examplesURL, archive.name, title=_("Fetching examples"))
-
-                pageWait = PageWait(self.display, line1=_("Decompressing examples"))
+                pageWait = PageWait(self.display, line1=_("Fetching examples"))
                 pageWait.show()
-                pageWait.showItems(line1=_("Extracting examples"))
+                self.display.inet.download_url(defines.examplesURL,
+                        archive.name,
+                        self.display.hwConfig.os.versionId,
+                        self.display.hw.cpuSerialNo,
+                        page=pageWait)
+
+                pageWait.showItems(line1=_("Extracting examples"), line2="")
 
                 with tempfile.TemporaryDirectory() as temp:
                     with tarfile.open(fileobj=archive) as tar:

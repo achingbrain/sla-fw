@@ -29,9 +29,15 @@ class PageFirmwareUpdate(Page):
 
     def getNetFirmwares(self):
         try:
+            pageWait = PageWait(self.display, line1=_("Downloading firmware list"))
+            pageWait.show()
             query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
-            self.downloadURL(query_url, defines.firmwareListTemp, title=_("Downloading firmware list"),
-                             timeout_sec=3)
+            self.display.inet.download_url(query_url,
+                    defines.firmwareListTemp,
+                    self.display.hwConfig.os.versionId,
+                    self.display.hw.cpuSerialNo,
+                    page=pageWait,
+                    timeout_sec=3)
             with open(defines.firmwareListTemp) as list_file:
                 return json.load(list_file)
             #endwith
@@ -112,7 +118,13 @@ class PageFirmwareUpdate(Page):
 
     def fetchUpdate(self, fw_url):
         try:
-            self.downloadURL(fw_url, defines.firmwareTempFile, _("Fetching firmware"))
+            pageWait = PageWait(self.display, line1=_("Fetching firmware"))
+            pageWait.show()
+            self.display.inet.download_url(fw_url,
+                    defines.firmwareTempFile,
+                    self.display.hwConfig.os.versionId,
+                    self.display.hw.cpuSerialNo,
+                    page=pageWait)
         #endtry
         except Exception as e:
             self.logger.error("Firmware fetch failed: " + str(e))
