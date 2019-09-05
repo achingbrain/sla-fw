@@ -132,7 +132,7 @@ class Printer(object):
                 if firstRun:
                     if not self.hwConfig.defaultsSet() and not self.hw.isKit:
                         self.display.pages['error'].setParams(
-                            text=_("Failed to load fans and LEDS factory calibration."))
+                            text=_("Failed to load fans and LEDs factory calibration."))
                         self.display.doMenu("error")
                     #endif
 
@@ -150,6 +150,15 @@ class Printer(object):
                         self.hw.beepRepeat(1)
                         self.display.doMenu("wizardinit")
                         sleep(0.5)
+                    elif not self.display.hwConfig.calibrated:
+                        self.display.pages['yesno'].setParams(
+                                pageTitle = N_("Calibrate now?"),
+                                text = _("Printer is not calibrated!\n\n"
+                                    "Calibrate now?"))
+                        self.hw.beepRepeat(1)
+                        if self.display.doMenu("yesno"):
+                            self.display.doMenu("calibration1")
+                        #endif
                     #endif
                 #endif
 
