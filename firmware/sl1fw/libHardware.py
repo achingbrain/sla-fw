@@ -3,18 +3,137 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import logging
+from enum import Enum
+from typing import Optional
 import serial
 import re
-from time import time, sleep
+from time import sleep
 from multiprocessing import Lock
 import bitstring
 from math import ceil
 import pydbus
 import os
+from collections import deque
 
 from sl1fw.libDebug import Debug
-
 from sl1fw import defines
+
+
+class MotionControllerTracingSerial(serial.Serial):
+    """
+    This is an extension of Serial that supports logging of traces and reading of decode text lines.
+    """
+    TRACE_LINES = 30
+
+    class LineMarker(Enum):
+        INPUT = ">"
+        GARBAGE = "|"
+        OUTPUT = "<"
+    #endclass
+
+    class LineTrace:
+        def __init__(self, marker, line: bytes):
+            self._line = line
+            self._marker = marker
+            self._repeats = 1
+        #enddef
+
+        def __eq__(self, other):
+            if not isinstance(other, self.__class__):
+                return False
+            else:
+                return self._line == other._line and self._marker == other._marker
+            #endif
+        #enddef
+
+        def repeat(self):
+            self._repeats += 1
+        #enddef
+
+        def __str__(self):
+            if self._repeats > 1:
+                return f"{self._repeats}x {self._marker.value} {self._line}"
+            else:
+                return f"{self._marker.value} {self._line}"
+            #endif
+        #enddef
+    #endclass
+
+    def __init__(self, *args, **kwargs):
+        self.__trace = deque(maxlen=self.TRACE_LINES)
+        self.__last_marker = {}
+        self.__debug = kwargs['debug']
+        del kwargs['debug']
+        super().__init__(*args, **kwargs)
+
+    def __append_trace(self, current_trace):
+        # < b'?mot\n' -3
+        # > b'1 ok\n' -2
+        # < b'?mot\n' -1
+        # > b'1 ok\n' current_trace
+
+        if len(self.__trace) > 3 and \
+                self.__trace[-3] == self.__trace[-1] and \
+                self.__trace[-2] == current_trace:
+            self.__trace[-3].repeat()
+            self.__trace[-2].repeat()
+            del self.__trace[-1]
+        else:
+            self.__trace.append(current_trace)
+        #endif
+    #enddef
+
+    def readline(self, garbage=False) -> bytes:
+        """
+        Read raw line from motion controller
+        :param garbage: Whenever to mark line read as garbage in command trace
+        :return: Line read as raw bytes
+        """
+        marker = self.LineMarker.GARBAGE if garbage else self.LineMarker.INPUT
+        ret = super().readline()
+        trace = self.LineTrace(marker, ret)
+        self.__append_trace(trace)
+        self.__debug.log(str(trace))
+        return ret
+    #enddef
+
+    def write(self, data: bytes) -> int:
+        """
+        Write data to a motion controller
+        :param data: Data to be written
+        :return: Number of bytes written
+        """
+        self.__append_trace(self.LineTrace(self.LineMarker.OUTPUT, data))
+        self.__debug.log(f"< {data}")
+        return super().write(data)
+    #enddef
+
+    @property
+    def trace(self) -> str:
+        """
+        Get formated motion controller command trace
+        :return: Trace string
+        """
+        return f"last {self.TRACE_LINES} lines:\n" + "\n".join([str(x) for x in self.__trace])
+    #enddef
+
+    def read_text_line(self, garbage=False) -> str:
+        """
+        Read line from serial as stripped decoded text
+        :param garbage: Mark this data as garbage. LIne will be amrked as such in trace
+        :return: Line read from motion controller
+        """
+        return self.readline(garbage=garbage).decode("ascii").strip()
+    #enddef
+#endclass
+
+
+class MotionControllerException(Exception):
+    def __init__(self, message: str, serial: MotionControllerTracingSerial):
+        self.__serial = serial
+        super().__init__(f"{message}, trace: {serial.trace}")
+    #enddef
+#endclass
 
 
 class MotConCom(object):
@@ -71,18 +190,20 @@ class MotConCom(object):
     def __init__(self, instance_name):
         self.portLock = Lock()
         self.debug = Debug()
-        
-        self.port = serial.Serial(port=defines.motionControlDevice,
-                                 baudrate=115200,
-                                 bytesize=8,
-                                 parity='N',
-                                 stopbits=1,
-                                 timeout=1.0,
-                                 writeTimeout=1.0,
-                                 xonxoff=False,
-                                 rtscts=False,
-                                 dsrdtr=False,
-                                 interCharTimeout=None)
+        self.port_trace = deque(maxlen=10)
+
+        self.port = MotionControllerTracingSerial(port=defines.motionControlDevice,
+                                                  baudrate=115200,
+                                                  bytesize=8,
+                                                  parity='N',
+                                                  stopbits=1,
+                                                  timeout=1.0,
+                                                  writeTimeout=1.0,
+                                                  xonxoff=False,
+                                                  rtscts=False,
+                                                  dsrdtr=False,
+                                                  interCharTimeout=None,
+                                                  debug=self.debug)
 
         super(MotConCom, self).__init__()
         self.logger = logging.getLogger(instance_name)
@@ -113,7 +234,7 @@ class MotConCom(object):
         #endif
 
         if state['reset']:
-            resetBits = self.doGetBoolList(bitCount = 8, args = ("?rst",))
+            resetBits = self.doGetBoolList("?rst", bitCount = 8)
             bit = 0
             for val in resetBits:
                 if val:
@@ -130,8 +251,8 @@ class MotConCom(object):
             self.logger.info("motion controller firmware version: %s", self.MCFWversion)
         #endif
 
-        tmp = self.doGetIntList(args = ("?rev",))
-        if tmp and len(tmp) == 2 and 0 <= divmod(tmp[1], 32)[0] <= 7:
+        tmp = self.doGetIntList("?rev")
+        if len(tmp) == 2 and 0 <= divmod(tmp[1], 32)[0] <= 7:
             self.MCFWrevision = tmp[0]
             self.logger.info("motion controller firmware for board revision: %s", self.MCFWrevision)
 
@@ -162,58 +283,35 @@ class MotConCom(object):
 
 
     def doGetInt(self, *args):
-        try:
-            return int(self.do(*args))
-        except Exception:
-            self.logger.exception("exception:")
-            return None
-        #endtry
+        return self.do(*args, return_process=int)
     #enddef
 
 
-    def doGetIntList(self, base = 10, multiply = 1, args = ()):
-        try:
-            return list([int(x, base) * multiply for x in self.do(*args).split(" ")])
-        except Exception:
-            self.logger.exception("exception:")
-            return None
-        #endtry
+    def doGetIntList(self, cmd, args = (), base = 10, multiply: float = 1):
+        return self.do(cmd, *args, return_process=lambda ret: list([int(x, base) * multiply for x in ret.split(" ")]))
     #enddef
 
 
-    def doGetBool(self, *args):
-        try:
-            return self.do(*args) == "1"
-        except Exception:
-            self.logger.exception("exception:")
-            return None
-        #endtry
+    def doGetBool(self, cmd, *args):
+        return self.do(cmd, *args, return_process=lambda x: x == "1")
     #enddef
 
 
-    def doGetBoolList(self, bitCount, args = ()):
-        bits = list()
-        try:
-            num = int(self.do(*args))
+    def doGetBoolList(self, cmd, bitCount, args = ()):
+        def process(data):
+            bits = list()
+            num = int(data)
             for i in range(bitCount):
                 bits.append(True if num & (1 << i) else False)
             #endfor
             return bits
-        except Exception:
-            self.logger.exception("exception:")
-            return None
-        #endtry
+        #enddef
+        return self.do(cmd, *args, return_process=process)
     #enddef
 
 
     def doGetHexedString(self, *args):
-        try:
-            # TODO: Check this is working ok. This was ported to python 3 but not actually used anywhere to check.
-            return bytes.fromhex(self.do(*args)).decode('ascii')
-        except Exception:
-            self.logger.exception("exception:")
-            return None
-        #endtry
+        return self.do(*args, return_process=lambda x: bytes.fromhex(x).decode('ascii'))
     #enddef
 
 
@@ -228,76 +326,56 @@ class MotConCom(object):
     #enddef
 
 
-    def do(self, *args):
-        if "noSyslog" in args:
-            syslog = False
-        else:
-            syslog = True
-        #endif
-        self.portLock.acquire()
-        while self.port.inWaiting():
-            try:
-                msg = "| %s" % self.port.readline().strip().decode("ascii").encode()
-                if syslog:
-                    self.logger.debug(msg)
-                #endif
-                self.debug.log(msg)
-            except Exception:
-                self.logger.exception("exception:")
-            #endtry
-        #endwhile
-
-        params = " ".join(str(x) for x in args if x != "noSyslog")
-        msg = "> %s" % params
-        if syslog:
-            self.logger.debug(msg)
-        #endif
-        self.debug.log(msg)
-
-        try:
-            self.port.write(str('%s\n' % params).encode('ascii'))
-
-            while True:
+    def do(self, cmd, *args, return_process=lambda x: x):
+        with self.portLock:
+            # Read garbage already pending to be read
+            # TODO: This is not correct, there should be no random garbage around
+            while self.port.inWaiting():
                 try:
-                    line = self.port.readline().strip().decode("ascii")
-                except:
-                    line = ""
-                msg = "< %s" % line
-                if syslog:
-                    self.logger.debug(msg)
-                #endif
-                self.debug.log(msg)
-
-                if line == '':
-                    return None
-                #endif
-
-                match = self.commOKStr.match(line)
-
-                if match is not None:
-                    return match.group(1).strip() if match.group(1) else True
-                #endif
-
-                match = self.commErrStr.match(line)
-                if match is not None:
-                    err = self.commErrors.get(match.group(1), "unknown error")
-                    self.logger.error("error: '%s'", err)
-                    return None
-                else:
-                    msg = "| %s" % line
-                    if syslog:
-                        self.logger.debug(msg)
-                    #endif
-                    self.debug.log(msg)
-                #endif
+                    line = self.port.read_text_line(garbage=True)
+                    self.logger.debug(f"Garbage pending in MC port: {line}")
+                except (serial.SerialException, UnicodeError) as e:
+                    raise MotionControllerException(f"Failed garbage read", self.port) from e
+                #endtry
             #endwhile
 
-        except Exception:
-            self.logger.exception("exception:")
-            return None
-        finally:
-            self.portLock.release()
-        #endtry
+            # Write command
+            cmd_string = ' '.join(str(x) for x in (cmd,) + args)
+            try:
+                self.port.write(f"{cmd_string}\n".encode('ascii'))
+            except serial.SerialTimeoutException as e:
+                raise MotionControllerException(f"Timeout writing serial port", self.port) from e
+            #endtry
+
+            # Read until some response is received
+            while True:
+                line = self.port.read_text_line()
+
+                ok_match = self.commOKStr.match(line)
+
+                if ok_match is not None:
+                    response = ok_match.group(1).strip() if ok_match.group(1) else ""
+                    try:
+                        return return_process(response)
+                    except Exception as e:
+                        raise MotionControllerException("Failed to process MC response", self.port) from e
+                    #endtry
+                #endif
+
+                err_match = self.commErrStr.match(line)
+                if err_match is not None:
+                    err = self.commErrors.get(err_match.group(1), "unknown error")
+                    self.logger.error("error: '%s'", err)
+                    raise MotionControllerException(f"MC command failed with error: {err}", self.port)
+                else:
+                    if line.startswith("#"):
+                        self.logger.debug(f"Garbage response received: {line}")
+                    else:
+                        raise MotionControllerException(f"MC command resulted in non-response line", self.port)
+                    #endif
+                #endif
+            #endwhile
+        #endwith
     #enddef
 
 
@@ -347,8 +425,8 @@ class MotConCom(object):
         if not request:
             request = self._statusBits.keys()
         #endif
-        bits = self.doGetBoolList(bitCount = 16, args = ("?", "noSyslog"))
-        if not bits or len(bits) != 16:
+        bits = self.doGetBoolList("?", bitCount = 16)
+        if len(bits) != 16:
             self.logger.warning("State bits count not match! (%s)", str(bits))
             return None
         else:
@@ -368,25 +446,11 @@ class MotConCom(object):
 #endclass
 
 
-class DummyDebug(object):
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-    #enddef
-
-    def showItems(self, *args, **kwargs):
-        self.logger.debug("mcc.debug.showItems called while using dummy MotConCom")
-    #enddef
-
-    def exit(self):
-        pass
-    #enddef
-#endclass
-
-
 class DummyMotConCom(MotConCom):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.debug = DummyDebug()
+        self.debug = self
+        self.port = self
         # Super init intentionally omitted in order to avoid port init
     #enddef
 
@@ -403,10 +467,46 @@ class DummyMotConCom(MotConCom):
         return retval
     #enddef
 
-    def do(self, *args):
-        self.logger.debug("mcc.do called while using dummy MotConCom")
+    def do(self, cmd, *args):
+        self.logger.debug(f"mcc.do called while using dummy MotConCom: {cmd} {args}")
+    #enddef
+
+    def close(self) -> None:
+        pass
+    #enddef
+
+    def showItems(self, *args, **kwargs):
+        self.logger.debug("mcc.debug.showItems called while using dummy MotConCom")
+    #enddef
+
+    def exit(self):
+        pass
     #enddef
 #endclass
+
+
+def safe_call(default_value, exceptions):
+    """
+    Decorate method to be safe to call
+
+    Wraps method call in try-cache block, cache excptions and in case of troubles log exception and return
+    safe default value.
+
+    :param default_value: Value to return if wrapped function failes
+    :param exceptions: Exceptions to catch
+    :return: Decorator
+    """
+    def decor(method):
+        def func(self, *args, **kwargs):
+            try:
+                return method(self, *args, **kwargs)
+            except exceptions:
+                self.logger.exception(f"Call to {method.__name__} failed, returning safe default")
+                return default_value
+            #endtry
+        return func
+    return decor
+#enddef
 
 
 class Hardware(object):
@@ -810,14 +910,14 @@ class Hardware(object):
         samplesList = list()
         samplesCount = self.mcc.doGetInt("?sgbc")
         while samplesCount > 0:
-            samples = self.mcc.doGetIntList(base = 16, args = ("?sgbd",))
-            if samples:
+            try:
+                samples = self.mcc.doGetIntList("?sgbd", base = 16)
                 samplesCount -= len(samples)
                 samplesList.extend(samples)
-            else:
-                self.logger.warning("Values count not match! (%s)", str(samples))
+            except MotionControllerException as e:
+                self.logger.exception("Problem reading stall guard buffer")
                 break
-            #endif
+            #endtry
         #endwhile
         return samplesList
     #enddef
@@ -825,7 +925,7 @@ class Hardware(object):
 
     def beep(self, frequency, lenght):
         if not self.hwConfig.mute:
-            self.mcc.do("!beep", frequency, int(lenght * 1000), "noSyslog")
+            self.mcc.do("!beep", frequency, int(lenght * 1000))
         #endif
     #enddef
 
@@ -871,10 +971,11 @@ class Hardware(object):
 
     @property
     def powerLedPwm(self):
-        pwm = self.mcc.do("?ppwm")
         try:
+            pwm = self.mcc.do("?ppwm")
             return int(pwm) * 5
-        except Exception:
+        except MotionControllerException:
+            self.logger.exception("Failed to read power led pwm")
             return -1
         #endtry
     #enddef
@@ -882,17 +983,23 @@ class Hardware(object):
 
     @powerLedPwm.setter
     def powerLedPwm(self, pwm):
-        self.mcc.do("!ppwm", int(pwm / 5))
+        try:
+            self.mcc.do("!ppwm", int(pwm / 5))
+        except MotionControllerException:
+            self.logger.exception("Failed to set power led pwm")
+        #endtry
     #enddef
 
 
     @property
+    @safe_call(-1, MotionControllerException)
     def powerLedSpeed(self):
         return self.mcc.doGetInt("?pspd")
     #enddef
 
 
     @powerLedSpeed.setter
+    @safe_call(None, MotionControllerException)
     def powerLedSpeed(self, speed):
         self.mcc.do("!pspd", speed)
     #enddef
@@ -908,13 +1015,13 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call([0, 0], (ValueError, MotionControllerException))
     def getUvLedState(self):
-        uvData = self.mcc.doGetIntList(args = ("?uled", "noSyslog"))
-        if uvData and 0 < len(uvData) < 3:
+        uvData = self.mcc.doGetIntList("?uled")
+        if 0 < len(uvData) < 3:
             return uvData if len(uvData) == 2 else list((uvData[0], 0))
         else:
-            self.logger.warning("UV data count not match! (%s)", str(uvData))
-            return list((0, 0))
+            raise ValueError(f"UV data count not match! ({uvData})")
         #endif
     #enddef
 
@@ -930,17 +1037,13 @@ class Hardware(object):
     #enddef
 
 
-
-
-
+    @safe_call([0], (MotionControllerException, ValueError))
     def getUvStatistics(self):
-        uvData = self.mcc.doGetIntList(args = ("?usta",)) #time counter [s] #TODO add uv average current, uv average temperature
-        if uvData and len(uvData) == 1:
-            return uvData
-        else:
-            self.logger.warning("UV statistics data count not match! (%s)", str(uvData))
-            return list((0,))
+        uvData = self.mcc.doGetIntList("?usta") #time counter [s] #TODO add uv average current, uv average temperature
+        if len(uvData) != 1:
+            raise ValueError(f"UV statistics data count not match! ({uvData})")
         #endif
+        return uvData
     #enddef
 
 
@@ -953,15 +1056,13 @@ class Hardware(object):
         self.mcc.do("!usta", 1)
     #enddef
 
-
+    @safe_call([0, 0, 0, 0], (ValueError, MotionControllerException))
     def getVoltages(self):
-        volts = self.mcc.doGetIntList(multiply = 0.001, args = ("?volt",))
-        if volts and len(volts) == 4:
-            return volts
-        else:
-            self.logger.warning("Volts count not match! (%s)", str(volts))
-            return list((0, 0, 0, 0))
+        volts = self.mcc.doGetIntList("?volt", multiply = 0.001)
+        if len(volts) != 4:
+            raise ValueError(f"Volts count not match! ({volts})")
         #endif
+        return volts
     #enddef
 
 
@@ -998,7 +1099,7 @@ class Hardware(object):
         return self.mcc.doGetBool("?rsst")
     #enddef
 
-
+    @safe_call(False, MotionControllerException)
     def isCoverClosed(self):
         return self.checkState('cover')
     #enddef
@@ -1009,14 +1110,10 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call(False, MotionControllerException)
     def checkState(self, name):
         state = self.mcc.getStateBits((name,))
-        if state:
-            return state[name]
-        else:
-            self.logger.warning("State check of '%s' has failed", name)
-            return False
-        #endif
+        return state[name]
     #enddef
 
 
@@ -1052,25 +1149,22 @@ class Hardware(object):
         return self.getFansBits("?fmsk", request)
     #enddef
 
-
+    @safe_call({ 0: False, 1: False, 2: False }, (MotionControllerException, ValueError))
     def getFansError(self):
         state = self.mcc.getStateBits(('fans',))
-        if not state:
-            self.logger.warning("State check of fans has failed")
-        elif not state['fans']:
-            return { 0: False, 1: False, 2: False }
+        if not 'fans' in state:
+            raise ValueError(f"'fans' not in state: {state}")
         #endif
-
         return self.getFansBits("?fane", (0, 1, 2))
     #enddef
 
 
-    def getFansBits(self, command, request):
-        bits = self.mcc.doGetBoolList(bitCount = 3, args = (command,))
-        if not bits or len(bits) != 3:
-            self.logger.warning("Fans bits count not match! (%s)", str(bits))
-            return dict.fromkeys(request, False)
-        else:
+    def getFansBits(self, cmd, request):
+        try:
+            bits = self.mcc.doGetBoolList(cmd, bitCount = 3)
+            if len(bits) != 3:
+                raise ValueError(f"Fans bits count not match! {bits}")
+            #endif
             retval = {}
             for idx in request:
                 try:
@@ -1081,7 +1175,10 @@ class Hardware(object):
                 #endtry
             #endfor
             return retval
-        #endif
+        except (MotionControllerException, ValueError):
+            self.logger.exception("getFansBits failed")
+            return dict.fromkeys(request, False)
+        #endtry
     #enddef
 
 
@@ -1101,11 +1198,11 @@ class Hardware(object):
 
 
     def getFansRpm(self, request = (0, 1, 2)):
-        rpms = self.mcc.doGetIntList(multiply = 1, args = ("?frpm",))
-        if not rpms or len(rpms) != 3:
-            self.logger.warning("RPMs count not match! (%s)", str(rpms))
-            return dict.fromkeys(request, 0)
-        else:
+        try:
+            rpms = self.mcc.doGetIntList("?frpm", multiply = 1)
+            if not rpms or len(rpms) != 3:
+                raise ValueError(f"RPMs count not match! ({rpms})")
+            #endif
             retval = {}
             for idx in request:
                 try:
@@ -1116,7 +1213,10 @@ class Hardware(object):
                 #endtry
             #endfor
             return retval
-        #endif
+        except (MotionControllerException, ValueError):
+            self.logger.exception(f"getFansRpm failed")
+            return dict.fromkeys(request, 0)
+        #endtry
     #enddef
 
 
@@ -1125,15 +1225,14 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call([-273.2, -273.2, -273.2, -273.2], (MotionControllerException, ValueError))
     def getMcTemperatures(self):
-        temps = self.mcc.doGetIntList(multiply = 0.1, args = ("?temp", "noSyslog"))
-        if temps and len(temps) == 4:
-            self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
-            return temps
-        else:
-            self.logger.warning("TEMPs count not match! (%s)", str(temps))
-            return list((-273.2, -273.2, -273.2, -273.2))
+        temps = self.mcc.doGetIntList("?temp", multiply = 0.1)
+        if len(temps) != 4:
+            raise ValueError(f"TEMPs count not match! ({temps})")
         #endif
+        self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
+        return temps
     #enddef
 
 
@@ -1147,16 +1246,11 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call(-273.2, Exception)
     def getCpuTemperature(self):
-        temp = -273.2
-        try:
-            with open(defines.cpuTempFile, "r") as f:
-                temp = round((int(f.read()) / 1000.0), 1)
-            #endwith
-        except Exception:
-            self.logger.exception("CPU temperatures exception:")
-        #endtry
-        return temp
+        with open(defines.cpuTempFile, "r") as f:
+            return round((int(f.read()) / 1000.0), 1)
+        #endwith
     #enddef
 
 
@@ -1190,13 +1284,13 @@ class Hardware(object):
         self.mcc.do("!twhc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
-            homingStatus = self.mcc.doGetInt("?twho", "noSyslog")
+            homingStatus = self.mcc.doGetInt("?twho")
             sleep(0.1)
         #endwhile
     #enddef
 
 
-    def towerSync(self, retries = 2):
+    def towerSync(self, retries: Optional[int] = 2):
         ''' home is at top position, retries = None is infinity '''
         self._towerSyncRetries = retries
         self.setTowerProfile('homingFast')
@@ -1204,8 +1298,13 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call(False, MotionControllerException)
     def isTowerSynced(self):
-        homingStatus = self.mcc.doGetInt("?twho", "noSyslog")
+        """
+        TODO:   This method looks like state check, but actually it does much more. Such an counter-intuitive method
+                deserves rewrite or at last proper documnetation.
+        """
+        homingStatus = self.mcc.doGetInt("?twho")
         if homingStatus > 0:    # not done and not error
             return False
         elif not homingStatus:
@@ -1253,6 +1352,7 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call(None, MotionControllerException)
     def towerMoveAbsolute(self, position):
         self._towerToPosition = position
         self.mcc.do("!twma", position)
@@ -1271,13 +1371,14 @@ class Hardware(object):
 
 
     def isTowerMoving(self):
-        if self.mcc.doGetInt("?mot", "noSyslog") & 1:
+        if self.mcc.doGetInt("?mot") & 1:
             return True
         #endif
         return False
     #enddef
 
 
+    @safe_call(False, MotionControllerException)
     def isTowerOnPosition(self, retries = None):
         ''' check dest. position, retries = None is infinity '''
         self._towerPositionRetries = retries
@@ -1364,19 +1465,17 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call(None, MotionControllerException)
     def setTowerPosition(self, position):
         self.mcc.do("!twpo", position)
         self.mcc.debug.showItems(towerPositon = position)
     #enddef
 
 
+    @safe_call("ERROR", Exception)
     def getTowerPosition(self):
         steps = self.getTowerPositionMicroSteps()
-        try:
-            return "%.3f mm" % self.hwConfig.calcMM(int(steps))
-        except Exception:
-            return "ERROR"
-        #endtry
+        return "%.3f mm" % self.hwConfig.calcMM(int(steps))
     #enddef
 
 
@@ -1387,23 +1486,24 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call(None, (ValueError, MotionControllerException))
     def setTowerProfile(self, profile):
         self._lastTowerProfile = profile
         profileId = self._towerProfiles.get(profile, None)
-        if profileId is not None:
-            self.mcc.debug.showItems(towerProfile = profile)
-            self.mcc.do("!twcs", profileId)
-        else:
-            self.logger.error("Invalid tower profile '%s'", profile)
+        if profileId is None:
+            raise ValueError(f"Invalid tower profile '{profile}'")
         #endif
+        self.mcc.debug.showItems(towerProfile = profile)
+        self.mcc.do("!twcs", profileId)
     #enddef
 
 
+    @safe_call(None, (MotionControllerException, ValueError))
     def setTowerCurrent(self, current):
         if 0 <= current <= 63:
             self.mcc.do("!twcu", current)
         else:
-            self.logger.error("Invalid tower current %d", current)
+            raise ValueError(f"Invalid tower current {current}")
         #endif
     #enddef
 
@@ -1415,6 +1515,7 @@ class Hardware(object):
     # 35 % -  70 % : 1.0 mm = 13.7 ml
     # 70 % - 100 % : 0.9 mm = 12.5 ml
 
+    @safe_call(0, MotionControllerException)
     def getResinVolume(self):
         self.setTowerProfile('homingFast')
         self.towerMoveAbsoluteWait(self._towerResinStartPos) # move quickly to safe distance
@@ -1427,7 +1528,7 @@ class Hardware(object):
         #endwhile
         position = self.getTowerPositionMicroSteps()
         self.resinSensor(False)
-        if not position or position == self._towerResinEndPos:
+        if position == self._towerResinEndPos:
             return 0
         else:
             posMM = self.hwConfig.calcMM(position)
@@ -1454,7 +1555,7 @@ class Hardware(object):
         self.mcc.do("!tihc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
-            homingStatus = self.mcc.doGetInt("?tiho", "noSyslog")
+            homingStatus = self.mcc.doGetInt("?tiho")
             sleep(0.1)
         #endwhile
     #enddef
@@ -1468,8 +1569,9 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call(False, MotionControllerException)
     def isTiltSynced(self):
-        homingStatus = self.mcc.doGetInt("?tiho", "noSyslog")
+        homingStatus = self.mcc.doGetInt("?tiho")
         if homingStatus > 0: # not done and not error
             return False
         elif not homingStatus:
@@ -1521,7 +1623,7 @@ class Hardware(object):
 
 
     def isTiltMoving(self):
-        if self.mcc.doGetInt("?mot", "noSyslog") & 2:
+        if self.mcc.doGetInt("?mot") & 2:
             return True
         #endif
         return False
@@ -1706,12 +1808,9 @@ class Hardware(object):
     # TODO: Get rid of this
     # TODO: Fix inconsistency getTowerPosition returns formated string with mm
     # TODO: Property could handle this a bit more consistently
+    @safe_call("ERROR", MotionControllerException)
     def getTiltPosition(self):
-        steps = self.getTiltPositionMicroSteps()
-        if steps is None:
-            return "ERROR"
-        #endif
-        return steps
+        return self.getTiltPositionMicroSteps()
     #enddef
 
 
@@ -1734,11 +1833,12 @@ class Hardware(object):
     #enddef
 
 
+    @safe_call(None, (MotionControllerException, ValueError))
     def setTiltCurrent(self, current):
         if 0 <= current <= 63:
             self.mcc.do("!ticu", current)
         else:
-            self.logger.error("Invalid tilt current %d", current)
+           raise ValueError(f"Invalid tilt current {current}")
         #endif
     #enddef
 

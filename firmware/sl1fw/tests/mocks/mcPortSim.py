@@ -60,6 +60,14 @@ class Serial(object):
         return self.read_queue.qsize()
 
     def _reader(self):
+        self.logger.debug(f"Reading start from serial: {self.process.stdout.readline()}")
+        # TODO: This pretends MC communication start has no weak places. In reality the MC "usually" starts before
+        #       the libHardware. In such case the "start" is never actually read from MC. Therefore this also throws
+        #       "start" away. In fact is may happen that the MC is initializing in paralel with the libHardware (resets)
+        #       In such case the "start" can be read and libHardware will throw an exception. This is correct as
+        #       working with uninitialized MC is not safe. Unfortunately we cannot wait for start/(future ready) as
+        #       it may not come if the MC has initialized before we do so. Therefore we need to have a safe command
+        #       that checks whenever the MC is ready.
         while self.process.poll() is None:
             line = self.process.stdout.readline()
             self.read_queue.put(line)

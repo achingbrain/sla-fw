@@ -35,9 +35,6 @@ class TestLibHardware(Sl1fwTestCase):
         if os.path.isfile(self.EEPROM_FILE):
             os.remove(self.EEPROM_FILE)
 
-    def test_connect(self):
-        pass
-
     def test_cpu_read(self):
         self.assertEqual("CZPX0819X009XC00151", self.hw.cpuSerialNo)
 
@@ -47,13 +44,6 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertEqual(6, self.hw.mcFwRevision)
         self.assertEqual((4, 0), self.hw.mcBoardRevisionBin)
         self.assertEqual("4a", self.hw.mcBoardRevision)
-
-    def test_motor_onoff(self):
-        self.hw.motorsHold()
-        self.hw.tiltMoveAbsolute(1000)
-        self.hw.motorsRelease()
-
-        # TODO: This is just test of a test
 
     def test_uv_led(self):
         # Default state
@@ -72,19 +62,17 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertEqual(pwm, self.hw.uvLedPwm)
 
     # TODO: Fix test / functinoality
-    # def test_dummy_switch(self):
-    #     # Set current
-    #     pwm = 640
-    #     self.hw.uvLedPwm = pwm
-    #     self.assertEqual(pwm, self.hw.uvLedPwm)
-    #
-    #     # Switch to dummy and change current
-    #     self.hw.switchToDummy()
-    #     self.hw.uvLedPwm = pwm + 10
-    #
-    #     # Switch back adn see nothing changed
-    #     self.hw.switchToMC(Mock(), Mock())
-    #     self.assertEqual(pwm, self.hw.uvLedPwm)
+    def test_dummy_switch(self):
+        # Get initial current
+        pwm = self.hw.uvLedPwm
+
+        # Switch to dummy and change current
+        self.hw.switchToDummy()
+        self.hw.uvLedPwm = pwm + 10
+
+        # Switch back and see nothing changed
+        self.hw.switchToMC(Mock(), Mock())
+        self.assertEqual(pwm, self.hw.uvLedPwm)
 
     def test_erase(self):
         self.hw.eraseEeprom()
@@ -112,8 +100,8 @@ class TestLibHardware(Sl1fwTestCase):
         # TODO: This just set the profiles, should be nice to set different value and check it is changed
         self.hw.setTiltProfiles(tilt_profiles)
         self.hw.setTowerProfiles(tower_profiles)
-        self.hw.setTiltTempProfile(tilt_profiles)
-        self.hw.setTowerTempProfile(tower_profiles)
+        self.hw.setTiltTempProfile(tilt_profiles[0])
+        self.hw.setTowerTempProfile(tower_profiles[0])
 
     def test_stallguard_buffer(self):
         self.assertEqual([], self.hw.getStallguardBuffer())
@@ -320,7 +308,6 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertEqual(0, self.hw.getTiltPositionMicroSteps())
 
     def test_tower_sync(self):
-        self.assertFalse(self.hw.isTowerSynced())
         self.hw.towerSync()
         self.assertFalse(self.hw.towerSyncFailed())
         while not self.hw.isTowerSynced():
@@ -328,7 +315,6 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertTrue(self.hw.isTowerSynced())
 
     def test_tower_sync_wait(self):
-        self.assertFalse(self.hw.isTowerSynced())
         self.hw.towerSyncWait()
         self.assertTrue(self.hw.isTowerSynced())
         self.assertFalse(self.hw.towerSyncFailed())

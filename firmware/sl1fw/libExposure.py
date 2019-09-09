@@ -483,12 +483,24 @@ If you don't want to refill, please press the Back button on top of the screen."
                 #endwhile
             #endif
 
+            self.expo.display.forcePage("finished")
+
         except Exception as e:
             self.logger.exception("run() exception:")
-            self.expo.exception = e
+
+            self.expo.display.pages['error'].setParams(
+                backFce=lambda: "home",
+                text=_(
+                    "Print failed due to an unexpected error :-(\n"
+                    "\n"
+                    "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
+                    "Please send the log to us and help us improve the printer.\n"
+                    "\n"
+                    "Thank you!"
+                ))
+            self.expo.display.forcePage("error")
         #endtry
 
-        self.expo.display.forcePage("finished")
         #self.logger.debug("thread ended")
     #enddef
 
@@ -505,7 +517,6 @@ class Exposure(object):
         self.hw = hw
         self.screen = screen
         self.pixelSize = self.hwConfig.pixelSize ** 2
-        self.exception = None
         self.resinCount = 0.0
         self.resinVolume = None
         self.canceled = False

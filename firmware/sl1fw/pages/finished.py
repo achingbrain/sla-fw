@@ -32,10 +32,6 @@ class PageFinished(Page):
         if not self.data:
             expo = self.display.expo
 
-            if expo.exception is not None:
-                raise Exception("Exposure thread exception: %s" % str(expo.exception))
-            #endif
-
             printTime = int((time() - self.display.pages['print'].printStartTime) / 60)
             self.logger.info("Job finished - real printing time is %s minutes", printTime)
 
