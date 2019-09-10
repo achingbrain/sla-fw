@@ -23,3 +23,4 @@ class Sl1fwTestCase(TestCase):
     SL1FW_DIR = Path(sl1fw.__file__).parent
     SAMPLES_DIR = Path(sl1fw.tests.samples.__file__).parent
     TEMP_DIR = Path(tempfile.gettempdir())
+    EEPROM_FILE = str(Path.cwd() / "EEPROM.dat")

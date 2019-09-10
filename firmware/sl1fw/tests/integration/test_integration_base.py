@@ -15,7 +15,6 @@ from sl1fw.tests import integration
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
-    EEPROM_FILE = str(Path(integration.__file__).parent / "EEPROM.dat")
     FB_DEV_FILE = str(Sl1fwTestCase.TEMP_DIR / "FBDEV.dat")
     HARDWARE_FILE = str(Sl1fwTestCase.TEMP_DIR / "hardware.cfg")
     SDL_AUDIO_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.sdlaudio.raw")

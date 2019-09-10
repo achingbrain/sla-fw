@@ -1,18 +1,17 @@
 import os
 import unittest
+from pathlib import Path
 from time import sleep
 from mock import Mock
 
+from sl1fw.tests import unittests
 from sl1fw.tests.test_base import Sl1fwTestCase
-
 from sl1fw.libHardware import Hardware
 from sl1fw.libConfig import HwConfig, PrintConfig
 from sl1fw import defines
 
 
 class TestLibHardware(Sl1fwTestCase):
-    EEPROM_FILE = Sl1fwTestCase.TEMP_DIR / "EEPROM.dat"
-
     def __init__(self, *args, **kwargs):
         self.hwConfig = None
         self.config = None
