@@ -28,10 +28,12 @@ class TestLibHardware(Sl1fwTestCase):
         self.hwConfig = HwConfig(str(self.SAMPLES_DIR / "hardware.cfg"))
         self.config = PrintConfig(self.hwConfig)
         self.hw = Hardware(self.hwConfig, self.config)
+        self.hw.start()
 
         self.hw.connectMC(Mock(), Mock())
 
     def tearDown(self):
+        self.hw.exit()
         if os.path.isfile(self.EEPROM_FILE):
             os.remove(self.EEPROM_FILE)
 

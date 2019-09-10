@@ -80,15 +80,20 @@ class WebDisplay(VirtualDisplay):
         super(WebDisplay, self).__init__()
         self.type = "Web Display"
         self.server = WebDisplayServer(defines.webDisplayPort, self.commands, self.events)
+    #enddef
+
+    def start(self):
         self.server.start()
     #enddef
 
     def __del__(self):
-        self.server.join()
+        self.exit()
     #enddef
 
     def exit(self):
-        self.server.join()
+        if self.server.is_alive():
+            self.server.join()
+        #nedif
     #enddef
 
 #endclass

@@ -43,15 +43,20 @@ class QtDisplay(VirtualDisplay):
         super(QtDisplay, self).__init__()
         self.type = "QT Display"
         self.server = QtDisplayServer(defines.qtDisplayPort, self.commands, self.events)
+    #enddef
+
+    def start(self):
         self.server.start()
     #enddef
 
     def __del__(self):
-        self.server.join()
+        self.exit()
     #enddef
 
     def exit(self):
-        self.server.join()
+        if self.server.is_alive():
+            self.server.join()
+        #nedif
     #enddef
 
 #endclass

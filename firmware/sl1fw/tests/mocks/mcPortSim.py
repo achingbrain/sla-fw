@@ -8,14 +8,21 @@ class Serial(object):
     def __init__(self, **kwargs):
         self.logger = logging.getLogger(__name__)
 
-        # Run MC simulator process
-        self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        # MC simulator process
+        self.process = None
 
-        # Start thread for reading lines from process output
+        # Crate a thread for reading lines from process output
         # It is necessary as inWaiting call should be able to tell how many items are pending
         self.read_queue = Queue()
         self.reader_thread = threading.Thread(target=self._reader)
+
+    def open(self):
+        self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         self.reader_thread.start()
+
+    @property
+    def is_open(self):
+        return self.reader_thread.is_alive()
 
     def close(self):
         self.stop()

@@ -72,7 +72,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.waitPage("home")
 
     def printer_thread(self):
-        self.printer.start()
+        self.printer.run()
         # cProfile.runctx('self.printer.start()', globals=globals(), locals=locals())
 
     def tearDown(self):

@@ -26,8 +26,10 @@ class TestScreen(Sl1fwTestCase):
         self.hw_config = libConfig.HwConfig(defines.hwConfigFile)
         from sl1fw.libScreen import Screen
         self.screen = Screen(self.hw_config)
+        self.screen.start()
 
     def tearDown(self):
+        self.screen.exit()
         fbdev_path = Path(TestScreen.FB_DEV)
         if fbdev_path.exists():
             fbdev_path.unlink()

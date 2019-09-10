@@ -23,7 +23,7 @@ class Network(object):
         self.nm = self.bus.get(self.NETWORKMANAGER_SERVICE)
         self.hostname_service = self.bus.get(self.HOSTNAME_SERVICE)
 
-    def start_net_monitor(self) -> None:
+    def register_events(self) -> None:
         """
         Start network monitoring
         Use register_net_change_handler to register for network updates

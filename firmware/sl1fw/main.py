@@ -37,4 +37,4 @@ builtins.N_ = lambda x: x
 from sl1fw import libPrinter
 
 printer = libPrinter.Printer()
-printer.start()
+printer.run()

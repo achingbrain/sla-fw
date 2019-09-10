@@ -352,9 +352,11 @@ class Screen(object):
         self.commands = multiprocessing.Queue()
         self.results = multiprocessing.Queue()
         self.server = ScreenServer(self.commands, self.results, hwConfig.pixelSize)
-        self.server.start()
     #enddef
 
+    def start(self):
+        self.server.start()
+    #enddef
 
     def __del__(self):
         self.exit()
@@ -368,7 +370,7 @@ class Screen(object):
     #enddef
 
     def exit(self):
-        if self.server.exitcode is None:
+        if self.server.is_alive():
             self.server.join()
         #endif
     #enddef

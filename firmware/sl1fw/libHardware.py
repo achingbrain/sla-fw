@@ -61,7 +61,6 @@ class MotionControllerTracingSerial(serial.Serial):
 
     def __init__(self, *args, **kwargs):
         self.__trace = deque(maxlen=self.TRACE_LINES)
-        self.__last_marker = {}
         self.__debug = kwargs['debug']
         del kwargs['debug']
         super().__init__(*args, **kwargs)
@@ -192,21 +191,26 @@ class MotConCom(object):
         self.debug = Debug()
         self.port_trace = deque(maxlen=10)
 
-        self.port = MotionControllerTracingSerial(port=defines.motionControlDevice,
-                                                  baudrate=115200,
-                                                  bytesize=8,
-                                                  parity='N',
-                                                  stopbits=1,
-                                                  timeout=1.0,
-                                                  writeTimeout=1.0,
-                                                  xonxoff=False,
-                                                  rtscts=False,
-                                                  dsrdtr=False,
-                                                  interCharTimeout=None,
-                                                  debug=self.debug)
+        self.port = MotionControllerTracingSerial(debug=self.debug)
+        self.port.port = defines.motionControlDevice
+        self.port.baudrate = 115200
+        self.port.bytesize = 8
+        self.port.parity = 'N'
+        self.port.stopbits = 1
+        self.port.timeout = 1.0
+        self.port.writeTimeout = 1.0
+        self.port.xonxoff = False
+        self.port.rtscts = False
+        self.port.dsrdtr = False
+        self.port.interCharTimeout = None
 
         super(MotConCom, self).__init__()
         self.logger = logging.getLogger(instance_name)
+    #enddef
+
+
+    def start(self):
+        self.port.open()
     #enddef
 
 
@@ -217,7 +221,9 @@ class MotConCom(object):
 
     def exit(self):
         self.debug.exit()
-        self.port.close()
+        if self.port.is_open:
+            self.port.close()
+        #endif
     #enddef
 
 
@@ -451,7 +457,7 @@ class DummyMotConCom(MotConCom):
         self.logger = logging.getLogger(__name__)
         self.debug = self
         self.port = self
-        # Super init intentionally omitted in order to avoid port init
+        super().__init__("MC_Dummy")
     #enddef
 
     def getStateBits(self, request=None):
@@ -469,6 +475,14 @@ class DummyMotConCom(MotConCom):
 
     def do(self, cmd, *args):
         self.logger.debug(f"mcc.do called while using dummy MotConCom: {cmd} {args}")
+    #enddef
+
+    def start(self) -> None:
+        pass
+    #enddef
+
+    def is_open(self) -> bool:
+        return False
     #enddef
 
     def close(self) -> None:
@@ -611,7 +625,11 @@ class Hardware(object):
         self.mcc = MotConCom("MC_Main")
         self.realMcc = self.mcc
         self.boardData = self.readCpuSerial()
+    #enddef
 
+
+    def start(self):
+        self.mcc.start()
     #enddef
 
 

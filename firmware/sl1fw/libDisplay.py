@@ -40,9 +40,16 @@ class Display(object):
         self.backActions = set(("_EXIT_", "_BACK_", "_OK_", "_NOK_"))
         self.waitPageItems = None
         self.forcedPage = None
-        self.running = True
 
         self.inet.register_net_change_handler(self.assignNetActive)
+    #enddef
+
+
+    def start(self):
+        self.running = True
+        for device in self.devices:
+            device.start()
+        #endfor
     #enddef
 
 

@@ -4,7 +4,7 @@
 
 import os
 import logging
-from time import time, sleep
+from time import sleep, monotonic
 from pydbus import SystemBus
 from gi.repository import GLib
 import threading
@@ -20,75 +20,64 @@ from sl1fw.api.printer0 import Printer0
 class Printer(object):
 
     def __init__(self, debugDisplay=None):
-        startTime = time()
+        self.logger = logging.getLogger(__name__)
+        init_time = monotonic()
         self.admin_check = None
         self.running = True
         self.exited = threading.Event()
-        # TODO: Event should be set by default to enable test tear down
+        self.exited.set()
+        self.logger.info("SL1 firmware initializing")
 
-        self.logger = logging.getLogger(__name__)
-        self.logger.info("SL1 firmware started")
-
+        self.logger.debug("Initializing hwconfig")
         factory_defaults = libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).load()
         self.hwConfig = libConfig.HwConfig(defines.hwConfigFile, defaults = factory_defaults)
         self.hwConfig.logAllItems()
         self.config = libConfig.PrintConfig(self.hwConfig)
 
-        # TODO: This executes a new thread in case of tests, and we are in __init__
+        self.logger.debug("Initializing libHardware")
         from sl1fw.libHardware import Hardware
         self.hw = Hardware(self.hwConfig, self.config)
 
         # needed before init of other components (display etc)
-        # TODO: Enable this once kit A64 do not require being turned during manufacturing.
+        # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
         #   Currently calibration needs to be performed in the factory.
         # if self.hwConfig.factoryMode and self.hw.isKit:
         #     self.hwConfig.factoryMode = False
         #     self.logger.warning("Factory mode disabled for kit")
         # #endif
 
+        self.logger.debug("Initializing libNetwork")
         from sl1fw.libNetwork import Network
         self.inet = Network()
 
+        self.logger.debug("Initializing display devices")
         if debugDisplay:
             devices = [debugDisplay]
         else:
-            # TODO: This executes a new thread and we are in __init__
             from sl1fw.libQtDisplay import QtDisplay
-            qtdisplay = QtDisplay()
-
-            # TODO: This executes a new thread and we are in __init__
             from sl1fw.libWebDisplay import WebDisplay
-            webdisplay = WebDisplay()
-
-            devices = [qtdisplay, webdisplay]
+            devices = [QtDisplay(), WebDisplay()]
         #endif
 
-        # TODO: This executes a new thread and we are in __init__
+        self.logger.debug("Initializing libScreen")
         from sl1fw.libScreen import Screen
         self.screen = Screen(self.hwConfig)
 
-        self.logger.debug("Registering printer dbus services")
+        self.logger.debug("Registering printer D-Bus services")
         self.printer0 = Printer0(self)
         SystemBus().publish(self.printer0.INTERFACE, self.printer0)
 
-        from sl1fw.libPages import PageWait
-        from sl1fw.pages.start import PageStart
+        self.logger.debug("Initializing libDisplay")
         from sl1fw.libDisplay import Display
         self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen, self.printer0)
 
-        self.hw.connectMC(PageWait(self.display), PageStart(self.display))
-
-        # Start DBus event loop in separate thread
-        self.logger.debug("Starting dbus event loop")
+        self.logger.debug("Initializing D-Bus event loop")
         DBusGMainLoop(set_as_default=True)
         self.eventLoop = GLib.MainLoop()
         self.eventThread = threading.Thread(target=self.loopThread)
-        # TODO: This executes a new thread and we are in __init__
-        self.eventThread.start()
+        self.inet.register_events()
 
-        self.inet.start_net_monitor()
-
-        self.logger.info("Start time: %f secs", time() - startTime)
+        self.logger.info(f"SL1 firmware initialized in {monotonic() - init_time}")
     #endclass
 
 
@@ -103,19 +92,37 @@ class Printer(object):
             self.admin_check.exit()
         #endif
         self.display.exit()
-        self.exited.wait()
+        self.exited.wait(timeout=60)
         self.screen.exit()
         self.hw.exit()
         self.eventLoop.quit()
-        self.eventThread.join()
+        if self.eventThread.is_alive():
+            self.eventThread.join()
+        #endif
     #enddef
 
 
-    def start(self):
+    def run(self):
+        self.logger.info("SL1 firmware starting")
+        start_time = monotonic()
+        self.logger.debug("Starting libHardware")
+        self.hw.start()
+        self.logger.debug("Starting libDisplay")
+        from sl1fw.libPages import PageWait
+        from sl1fw.pages.start import PageStart
+        self.hw.connectMC(PageWait(self.display), PageStart(self.display))
+        self.display.start()
+        self.logger.debug("Starting libScreen")
+        self.screen.start()
+        self.logger.debug("Starting D-Bus event thread")
+        self.eventThread.start()
+        self.logger.debug("Starting admin checker")
         if not self.hwConfig.factoryMode:
             from sl1fw.libAsync import Admin_check
             self.admin_check = Admin_check(self.display, self.inet)
         #endif
+
+        self.logger.info(f"SL1 firmware started in {monotonic() - start_time} seconds")
 
         from sl1fw.libExposure import Exposure
         firstRun = True

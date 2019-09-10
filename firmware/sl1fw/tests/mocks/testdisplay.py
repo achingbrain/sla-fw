@@ -8,6 +8,9 @@ class TestDisplay(VirtualDisplay):
         self.page = None
         self.page_queue = Queue()
 
+    def start(self):
+        pass
+
     def exit(self):
         pass
 
