@@ -40,10 +40,10 @@ class Serial(object):
     def write(self, data):
         """
         Write data to simualted MC serial port
-        :param data: Data to be written to simualted serial port
+        :param data: Data to be written to simulated serial port
         :return: None
         """
-        self.logger.debug("MCSim: writting: %s", data)
+        self.logger.debug(f"< {data}")
         try:
             self.process.stdin.write(data)
             self.process.stdin.flush()
@@ -56,7 +56,7 @@ class Serial(object):
         :return: Line read from simulated serial port
         """
         line = self.read_queue.get()
-        self.logger.debug("MCSim: reading: %s", line)
+        self.logger.debug(f"> {line}")
         return line
 
     def inWaiting(self):
