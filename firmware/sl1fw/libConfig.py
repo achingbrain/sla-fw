@@ -47,7 +47,9 @@ class MyBool:
 
 class FileConfig(object):
 
-    def __init__(self, name, configFile, defaults = {}):
+    def __init__(self, name: str, configFile: str, defaults=None):
+        if defaults is None:
+            defaults = {}
         self._logger = logging.getLogger(name)
         self._defaults = defaults
         self.parseFile(configFile)
@@ -517,7 +519,7 @@ class PrintConfig(FileConfig):
         raise Exception("Not implemented!")
     #enddef
 
-    def parseFile(self, zipName):
+    def parseFile(self, zipName: str) -> None:
         self._data = dict()
         self._lines = list()
 
@@ -530,7 +532,7 @@ class PrintConfig(FileConfig):
         self._logger.debug("Opening project file '%s'", zipName)
 
         if not os.path.isfile(zipName):
-            self._logger.exception("Project lookup exception: file not exists: " + zipName)
+            self._logger.error("Project lookup exception: file not exists: " + zipName)
             self.zipError = _("Project file not found.")
             return
         #endif

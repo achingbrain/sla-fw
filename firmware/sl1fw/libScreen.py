@@ -12,6 +12,9 @@ from io import BytesIO
 import subprocess
 import zipfile
 import lazy_import
+
+from sl1fw.libConfig import HwConfig
+
 lazy_import.lazy_module("pygame")
 import pygame
 lazy_import.lazy_module("numpy")
@@ -347,7 +350,7 @@ class ScreenServer(multiprocessing.Process):
 
 class Screen(object):
 
-    def __init__(self, hwConfig):
+    def __init__(self, hwConfig: HwConfig):
         self.logger = logging.getLogger(__name__)
         self.commands = multiprocessing.Queue()
         self.results = multiprocessing.Queue()

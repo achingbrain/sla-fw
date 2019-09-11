@@ -4,14 +4,16 @@
 
 import logging
 import threading
-from time import sleep
 import json
 
 from sl1fw import defines
+from sl1fw.libDisplay import Display
+from sl1fw.libNetwork import Network
+
 
 class Admin_check_thread(threading.Thread):
 
-    def __init__(self, display, inet):
+    def __init__(self, display: Display, inet: Network):
         super(Admin_check_thread, self).__init__()
         self.display = display
         self.inet = inet

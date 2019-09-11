@@ -8,16 +8,19 @@ from time import sleep
 from time import monotonic
 from sl1fw import defines
 from sl1fw import libPages
-from sl1fw.libConfig import WizardData
+from sl1fw.api.printer0 import Printer0
+from sl1fw.libConfig import WizardData, HwConfig
+from sl1fw.libNetwork import Network
+from sl1fw.libScreen import Screen
 from sl1fw.pages import pages
+from sl1fw.libHardware import Hardware
 
 
 class Display(object):
 
-    def __init__(self, hwConfig, config, devices, hw, inet, screen, printer0):
+    def __init__(self, hwConfig: HwConfig, devices: list, hw: Hardware, inet: Network, screen: Screen, printer0: Printer0):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
-        self.config = config
         self.devices = devices
         self.show_admin = bool(hwConfig.factoryMode)
         self.hw = hw
@@ -25,6 +28,7 @@ class Display(object):
         self.screen = screen
         self.printer0 = printer0
         self.wizardData = WizardData(defines.wizardDataFile)
+        self.expo = None
 
         # Instantiate pages
         self.pages = {}
@@ -37,7 +41,7 @@ class Display(object):
 
         self.fanErrorOverride = False
         self.checkCoolingExpo = True
-        self.backActions = set(("_EXIT_", "_BACK_", "_OK_", "_NOK_"))
+        self.backActions = {"_EXIT_", "_BACK_", "_OK_", "_NOK_"}
         self.waitPageItems = None
         self.forcedPage = None
 

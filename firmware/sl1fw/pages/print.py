@@ -19,33 +19,19 @@ class PagePrint(Page):
         self.pageTitle = N_("Print")
         self.callbackPeriod = 0.1
         self.callbackSkip = 6
+        self.totalHeight = None
+        self.lastLayer = None
     #enddef
 
 
     def prepare(self):
-
         if self.display.expo.inProgress():
             return
         #endif
-
-        config = self.display.config
-
-        self.display.hw.setTowerProfile('layer')
-        self.display.hw.towerMoveAbsoluteWait(0)    # first layer will move up
-
-        # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
-        self.totalHeight = (config.totalLayers-1) * self.display.hwConfig.calcMM(config.layerMicroSteps) + self.display.hwConfig.calcMM(config.layerMicroStepsFirst)
+        self.display.expo.prepare()
         self.lastLayer = 0
-
-        self.display.screen.getImgBlack()
-        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
-        if not self.display.hwConfig.blinkExposure:
-            self.display.hw.uvLed(True)
-        #endif
-
         self.printStartTime = time()
         self.logger.debug("printStartTime: " + str(self.printStartTime))
-
         self.display.expo.start()
         self.display.pages['finished'].data = None
     #enddef
@@ -69,16 +55,16 @@ class PagePrint(Page):
         #endif
 
         self.lastLayer = expo.actualLayer
-        config = self.display.config
+        config = self.display.expo.config
         calcMM = self.display.hwConfig.calcMM
 
-        time_remain_min = self.countRemainTime(expo.actualLayer, expo.slowLayers)
+        time_remain_min = self.display.expo.countRemainTime()
         time_elapsed_min = int(round((time() - self.printStartTime) / 60))
         positionMM = calcMM(expo.position)
         percent = int(100 * (self.lastLayer-1) / config.totalLayers)
         self.logger.info("Layer: %d/%d  Height: %.3f/%.3f mm  Elapsed[min]: %d  Remain[min]: %d  Percent: %d",
                 self.lastLayer, config.totalLayers, positionMM,
-                self.totalHeight, time_elapsed_min, time_remain_min, percent)
+                self.display.expo.totalHeight, time_elapsed_min, time_remain_min, percent)
 
         remain = None
         low_resin = False
@@ -97,20 +83,20 @@ class PagePrint(Page):
         #endif
 
         items = {
-                'time_remain_min' : time_remain_min,
-                'time_elapsed_min' : time_elapsed_min,
-                'current_layer' : self.lastLayer,
-                'total_layers' : config.totalLayers,
-                'layer_height_first_mm' : calcMM(config.layerMicroStepsFirst),
-                'layer_height_mm' : calcMM(config.layerMicroSteps),
-                'position_mm' : positionMM,
-                'total_mm' : self.totalHeight,
-                'project_name' : config.projectName,
-                'progress' : percent,
-                'resin_used_ml' : expo.resinCount,
-                'resin_remaining_ml' : remain,
-                'resin_low' : low_resin
-                }
+            'time_remain_min': time_remain_min,
+            'time_elapsed_min': time_elapsed_min,
+            'current_layer': self.lastLayer,
+            'total_layers': config.totalLayers,
+            'layer_height_first_mm': calcMM(config.layerMicroStepsFirst),
+            'layer_height_mm': calcMM(config.layerMicroSteps),
+            'position_mm': positionMM,
+            'total_mm': self.display.expo.totalHeight,
+            'project_name': config.projectName,
+            'progress': percent,
+            'resin_used_ml': expo.resinCount,
+            'resin_remaining_ml': remain,
+            'resin_low': low_resin
+        }
 
         self.showItems(**items)
         #endif

@@ -36,11 +36,11 @@ class PageFinished(Page):
             self.logger.info("Job finished - real printing time is %s minutes", printTime)
 
             self.data = {
-                'name' : self.display.config.projectName,
+                'name' : self.display.expo.config.projectName,
                 'print_time' : printTime,
                 'layers' : expo.actualLayer,
                 'consumed_resin' : expo.resinCount,
-                'project_file' : self.display.config.origin,
+                'project_file' : self.display.expo.config.origin,
                 }
 
             self.display.hw.stopFans()

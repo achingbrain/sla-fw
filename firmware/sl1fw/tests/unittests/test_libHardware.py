@@ -23,8 +23,7 @@ class TestLibHardware(Sl1fwTestCase):
         defines.doFBSet = False
 
         self.hwConfig = HwConfig(str(self.SAMPLES_DIR / "hardware.cfg"))
-        self.config = PrintConfig(self.hwConfig)
-        self.hw = Hardware(self.hwConfig, self.config)
+        self.hw = Hardware(self.hwConfig)
         self.hw.start()
 
         self.hw.connectMC(Mock(), Mock())

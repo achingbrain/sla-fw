@@ -2,10 +2,7 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import os
 from time import sleep
-import zipfile
-import shutil
 from time import monotonic
 
 from sl1fw import defines
@@ -21,7 +18,7 @@ class PagePrintPreviewBase(Page):
 
 
     def fillData(self):
-        config = self.display.config
+        config = self.display.expo.config
 
         if config.calibrateRegions:
             calibrateRegions = config.calibrateRegions
@@ -41,7 +38,7 @@ class PagePrintPreviewBase(Page):
             'exposure_time_first_sec' : config.expTimeFirst,
             'exposure_time_sec' : config.expTime,
             'calibrate_time_sec' : calibration,
-            'print_time_min' : self.countRemainTime(0, config.layersSlow),
+            'print_time_min' : self.display.expo.countRemainTime(),
         }
     #enddef
 
@@ -66,60 +63,6 @@ class PagePrintPreview(PagePrintPreviewBase):
     def show(self):
         self.items.update(self.fillData())
         super(PagePrintPreview, self).show()
-    #enddef
-
-
-    def copyAndCheckZip(self, config):
-        confirm = None
-        newZipName = None
-        if config.zipName:
-            # check free space
-            statvfs = os.statvfs(defines.ramdiskPath)
-            ramdiskFree = statvfs.f_frsize * statvfs.f_bavail - 10*1024*1024 # for other files
-            self.logger.debug("Ramdisk free space: %d bytes" % ramdiskFree)
-            try:
-                filesize = os.path.getsize(config.zipName)
-                self.logger.debug("Zip file size: %d bytes" % filesize)
-            except Exception:
-                self.logger.exception("filesize exception:")
-                return (_("Can't read from the USB drive.\n\n"
-                    "Check it and try again."), None, None)
-            #endtry
-
-            try:
-                if ramdiskFree < filesize:
-                    raise Exception("Not enough free space in the ramdisk!")
-                #endif
-                (dummy, filename) = os.path.split(config.zipName)
-                newZipName = os.path.join(defines.ramdiskPath, filename)
-                if os.path.normpath(newZipName) != os.path.normpath(config.zipName):
-                    shutil.copyfile(config.zipName, newZipName)
-                #endif
-            except Exception:
-                self.logger.exception("copyfile exception:")
-                confirm = _("Loading the file into the printer's memory failed.\n\n"
-                        "The project will be printed from USB drive.\n\n"
-                        "DO NOT remove the USB drive!")
-                newZipName = config.zipName
-            #endtry
-        #endif
-
-        try:
-            zf = zipfile.ZipFile(newZipName, 'r')
-            badfile = zf.testzip()
-            zf.close()
-            if badfile is not None:
-                self.logger.error("Corrupted file: %s", badfile)
-                return (_("Corrupted data detected.\n\n"
-                    "Re-export the file and try again."), None, None)
-            #endif
-        except Exception as e:
-            self.logger.exception("zip read exception:")
-            return (_("Can't read project data.\n\n"
-                "Re-export the file and try again."), None, None)
-        #endtry
-
-        return (None, confirm, newZipName)
     #enddef
 
 
@@ -175,7 +118,7 @@ class PagePrintPreview(PagePrintPreviewBase):
 
         # Remove old projects from ramdisk
         self.ramdiskCleanup()
-        (error, confirm, zipName) = self.copyAndCheckZip(self.display.config)
+        (error, confirm, zipName) = self.display.expo.copyAndCheckZip()
 
         while not self.display.hw.isTowerSynced() or not self.display.hw.isTiltSynced():
             sleep(0.25)
@@ -245,7 +188,7 @@ class PagePrintPreview(PagePrintPreviewBase):
     #enddef
 
     def contButtonContinue2(self):
-        self.display.config.logAllItems()
+        self.display.expo.config.logAllItems()
         return "printstart"
     #enddef
 
@@ -282,10 +225,10 @@ class PagePrintStart(PagePrintPreviewBase):
 
 
     def show(self):
-        self.percReq = self.display.hw.calcPercVolume(self.display.config.usedMaterial + defines.resinMinVolume)
+        self.percReq = self.display.hw.calcPercVolume(self.display.expo.config.usedMaterial + defines.resinMinVolume)
         lines = {
-                'name' : self.display.config.projectName,
-                }
+            'name': self.display.expo.config.projectName,
+        }
         if self.percReq <= 100:
             lines.update({
                 'text' : _("Please fill the resin tank to at least %d %% and close the cover.") % self.percReq

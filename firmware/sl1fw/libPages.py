@@ -326,36 +326,6 @@ class Page(object):
     #enddef
 
 
-    def countRemainTime(self, actualLayer, slowLayers):
-        config = self.display.config
-        hwConfig = self.display.hwConfig
-        timeRemain = 0
-        fastLayers = config.totalLayers - actualLayer - slowLayers
-        # first 3 layers with expTimeFirst
-        long1 = 3 - actualLayer
-        if long1 > 0:
-            timeRemain += long1 * (config.expTimeFirst - config.expTime)
-        #endif
-        # fade layers (approx)
-        long2 = config.fadeLayers + 3 - actualLayer
-        if long2 > 0:
-            timeRemain += long2 * ((config.expTimeFirst - config.expTime) / 2 - config.expTime)
-        #endif
-        timeRemain += fastLayers * hwConfig.tiltFastTime
-        timeRemain += slowLayers * hwConfig.tiltSlowTime
-
-        # FIXME slice2 and slice3
-        timeRemain += (fastLayers + slowLayers) * (
-                config.calibrateRegions * config.calibrateTime
-                + self.display.hwConfig.calcMM(config.layerMicroSteps) * 5  # tower move
-                + config.expTime
-                + hwConfig.delayBeforeExposure
-                + hwConfig.delayAfterExposure)
-        self.logger.debug("timeRemain: %f", timeRemain)
-        return int(round(timeRemain / 60))
-    #enddef
-
-
     def callback(self):
 
         state = False
@@ -576,16 +546,15 @@ class Page(object):
     #enddef
 
 
-    def loadProject(self, project_filename):
+    def loadProject(self, project_filename: str):
         pageWait = PageWait(self.display, line1 = _("Reading project data"))
         pageWait.show()
-        config = self.display.config
-        config.parseFile(project_filename)
-        if config.zipError is not None:
+        zip_error = self.display.expo.parseProject(project_filename)
+        if zip_error is not None:
             sleep(0.5)
             self.display.pages['error'].setParams(
-                    text = _("Your project has a problem: %s\n\n"
-                        "Re-export it and try again.") % config.zipError)
+                text=_("Your project has a problem: %s\n\n"
+                       "Re-export it and try again.") % zip_error)
             return False
         #endif
         return True

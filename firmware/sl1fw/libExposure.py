@@ -3,12 +3,21 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import logging
+import os
+import shutil
 import threading, queue
+import zipfile
 from time import sleep
 from gettext import ngettext
+from typing import Optional
 
-from sl1fw import defines
+from sl1fw import defines, libConfig
+from sl1fw.libConfig import HwConfig
+from sl1fw.libDisplay import Display
+from sl1fw.libHardware import Hardware
 from sl1fw.libPages import PageWait
+from sl1fw.libScreen import Screen
+
 
 class ExposureThread(threading.Thread):
 
@@ -511,10 +520,10 @@ If you don't want to refill, please press the Back button on top of the screen."
 
 class Exposure(object):
 
-    def __init__(self, hwConfig, config, display, hw, screen):
+    def __init__(self, hwConfig: HwConfig, display: Display, hw: Hardware, screen: Screen):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
-        self.config = config
+        self.config = None
         self.display = display
         self.hw = hw
         self.screen = screen
@@ -524,11 +533,79 @@ class Exposure(object):
         self.canceled = False
         self.expoThread = None
         self.zipName = None
+        self.perPartes = None
+        self.position = 0
+        self.actualLayer = 0
+        self.expoCommands = None
+        self.expoThread = None
+        self.slowLayers = 0
+        self.totalHeight = None
     #enddef
 
 
     def setProject(self, zipName):
         self.zipName = zipName
+    #enddef
+
+
+    def parseProject(self, project_file: str) -> Optional[str]:
+        self.config = libConfig.PrintConfig(self.hwConfig)
+        self.config.parseFile(project_file)
+        return self.config.zipError
+    #enddef
+
+
+    def copyAndCheckZip(self):
+        confirm = None
+        newZipName = None
+        if self.config.zipName:
+            # check free space
+            statvfs = os.statvfs(defines.ramdiskPath)
+            ramdiskFree = statvfs.f_frsize * statvfs.f_bavail - 10 * 1024 * 1024  # for other files
+            self.logger.debug("Ramdisk free space: %d bytes" % ramdiskFree)
+            try:
+                filesize = os.path.getsize(self.config.zipName)
+                self.logger.debug("Zip file size: %d bytes" % filesize)
+            except Exception:
+                self.logger.exception("filesize exception:")
+                return (_("Can't read from the USB drive.\n\n"
+                          "Check it and try again."), None, None)
+            #endtry
+
+            try:
+                if ramdiskFree < filesize:
+                    raise Exception("Not enough free space in the ramdisk!")
+                # endif
+                (dummy, filename) = os.path.split(self.config.zipName)
+                newZipName = os.path.join(defines.ramdiskPath, filename)
+                if os.path.normpath(newZipName) != os.path.normpath(self.config.zipName):
+                    shutil.copyfile(self.config.zipName, newZipName)
+                #endif
+            except Exception:
+                self.logger.exception("copyfile exception:")
+                confirm = _("Loading the file into the printer's memory failed.\n\n"
+                            "The project will be printed from USB drive.\n\n"
+                            "DO NOT remove the USB drive!")
+                newZipName = self.config.zipName
+            #endtry
+        #endif
+
+        try:
+            zf = zipfile.ZipFile(newZipName, 'r')
+            badfile = zf.testzip()
+            zf.close()
+            if badfile is not None:
+                self.logger.error("Corrupted file: %s", badfile)
+                return (_("Corrupted data detected.\n\n"
+                          "Re-export the file and try again."), None, None)
+            #endif
+        except Exception as e:
+            self.logger.exception("zip read exception:")
+            return (_("Can't read project data.\n\n"
+                      "Re-export the file and try again."), None, None)
+        #endtry
+
+        return None, confirm, newZipName
     #enddef
 
 
@@ -546,8 +623,27 @@ class Exposure(object):
                 filename = self.config.toPrint[0],
                 overlayName = 'calibPad',
                 whitePixelsThd = self.hwConfig.whitePixelsThd)
-        self.slowLayers = self.config.layersSlow
+        self.slowLayers = self.config.layersSlow # TODO: Is this necessary?
         return True
+    #enddef
+
+
+    def prepare(self):
+        # TODO: This must be a prepare method in exposure
+        config = self.config
+
+        self.hw.setTowerProfile('layer')
+        self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
+
+        # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
+        self.totalHeight = (config.totalLayers - 1) * self.hwConfig.calcMM(
+            config.layerMicroSteps) + self.hwConfig.calcMM(config.layerMicroStepsFirst)
+
+        self.screen.getImgBlack()
+        self.hw.uvLedPwm = self.hwConfig.uvPwm
+        if not self.hwConfig.blinkExposure:
+            self.hw.uvLed(True)
+        #endif
     #enddef
 
 
@@ -617,6 +713,35 @@ class Exposure(object):
         else:
             self.resinVolume = volume + int(self.resinCount)
         #endif
+    #enddef
+
+    def countRemainTime(self):
+        config = self.config
+        hwConfig = self.hwConfig
+        timeRemain = 0
+        fastLayers = config.totalLayers - self.actualLayer - self.slowLayers
+        # first 3 layers with expTimeFirst
+        long1 = 3 - self.actualLayer
+        if long1 > 0:
+            timeRemain += long1 * (config.expTimeFirst - config.expTime)
+        #endif
+        # fade layers (approx)
+        long2 = config.fadeLayers + 3 - self.actualLayer
+        if long2 > 0:
+            timeRemain += long2 * ((config.expTimeFirst - config.expTime) / 2 - config.expTime)
+        #endif
+        timeRemain += fastLayers * hwConfig.tiltFastTime
+        timeRemain += self.slowLayers * hwConfig.tiltSlowTime
+
+        # FIXME slice2 and slice3
+        timeRemain += (fastLayers + self.slowLayers) * (
+                config.calibrateRegions * config.calibrateTime
+                + self.hwConfig.calcMM(config.layerMicroSteps) * 5  # tower move
+                + config.expTime
+                + hwConfig.delayBeforeExposure
+                + hwConfig.delayAfterExposure)
+        self.logger.debug("timeRemain: %f", timeRemain)
+        return int(round(timeRemain / 60))
     #enddef
 
 #endclass

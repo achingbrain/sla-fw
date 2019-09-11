@@ -32,11 +32,10 @@ class Printer(object):
         factory_defaults = libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).load()
         self.hwConfig = libConfig.HwConfig(defines.hwConfigFile, defaults = factory_defaults)
         self.hwConfig.logAllItems()
-        self.config = libConfig.PrintConfig(self.hwConfig)
 
         self.logger.debug("Initializing libHardware")
         from sl1fw.libHardware import Hardware
-        self.hw = Hardware(self.hwConfig, self.config)
+        self.hw = Hardware(self.hwConfig)
 
         # needed before init of other components (display etc)
         # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
@@ -69,7 +68,7 @@ class Printer(object):
 
         self.logger.debug("Initializing libDisplay")
         from sl1fw.libDisplay import Display
-        self.display = Display(self.hwConfig, self.config, devices, self.hw, self.inet, self.screen, self.printer0)
+        self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.printer0)
 
         self.logger.debug("Initializing D-Bus event loop")
         DBusGMainLoop(set_as_default=True)
@@ -133,7 +132,7 @@ class Printer(object):
                 self.hw.uvLed(False)
                 self.hw.powerLed("normal")
 
-                self.expo = Exposure(self.hwConfig, self.config, self.display, self.hw, self.screen)
+                self.expo = Exposure(self.hwConfig, self.display, self.hw, self.screen)
                 self.display.initExpo(self.expo)
                 self.screen.cleanup()
 

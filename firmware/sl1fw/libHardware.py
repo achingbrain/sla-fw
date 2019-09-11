@@ -191,7 +191,7 @@ class MotConCom(object):
             }
 
 
-    def __init__(self, instance_name):
+    def __init__(self, instance_name: str):
         self.portLock = Lock()
         self.debug = Debug()
         self.port_trace = deque(maxlen=10)
@@ -232,7 +232,7 @@ class MotConCom(object):
     #enddef
 
 
-    def connect(self, MCversionCheck):
+    def connect(self, MCversionCheck: bool):
         try:
             state = self.getStateBits(('fatal', 'reset'))
         except MotionControllerException as e:
@@ -581,10 +581,9 @@ def safe_call(default_value, exceptions):
 
 class Hardware(object):
 
-    def __init__(self, hwConfig, config):
+    def __init__(self, hwConfig):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
-        self.config = config
 
         self._tiltSynced = False
         self._towerSynced = False
