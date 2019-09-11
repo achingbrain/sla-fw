@@ -1,11 +1,9 @@
 import os
 import unittest
-from pathlib import Path
 from time import sleep
 from mock import Mock
 
-from sl1fw.tests import unittests
-from sl1fw.tests.test_base import Sl1fwTestCase
+from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libHardware import Hardware
 from sl1fw.libConfig import HwConfig, PrintConfig
 from sl1fw import defines

@@ -4,7 +4,7 @@ import unittest
 import logging
 from pathlib import Path
 
-from sl1fw.tests.test_base import Sl1fwTestCase
+from sl1fw.tests.base import Sl1fwTestCase
 
 from sl1fw import defines
 from sl1fw import libConfig

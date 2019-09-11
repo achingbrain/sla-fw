@@ -5,19 +5,18 @@ from shutil import copyfile
 import tempfile
 # import cProfile
 
-from sl1fw.tests.test_base import Sl1fwTestCase
+from sl1fw.tests.base import Sl1fwTestCase
 
-from sl1fw.tests.mocks.testdisplay import TestDisplay
+from sl1fw.tests.mocks.display import TestDisplay
 from sl1fw import libPrinter
 from sl1fw import defines
 from sl1fw.pages.printstart import PagePrintPreview
-from sl1fw.tests import integration
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
-    FB_DEV_FILE = str(Sl1fwTestCase.TEMP_DIR / "FBDEV.dat")
-    HARDWARE_FILE = str(Sl1fwTestCase.TEMP_DIR / "hardware.cfg")
-    SDL_AUDIO_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.sdlaudio.raw")
+    FB_DEV_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.fb_dev.dat")
+    HARDWARE_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.hardware.cfg")
+    SDL_AUDIO_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw")
 
     def __init__(self, *args, **kwargs):
         self.display = None

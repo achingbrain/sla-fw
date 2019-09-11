@@ -1,7 +1,7 @@
 import unittest
 from shutil import copyfile
 
-from sl1fw.tests.test_base import Sl1fwTestCase
+from sl1fw.tests.base import Sl1fwTestCase
 
 from sl1fw.libConfig import *
 from sl1fw import defines

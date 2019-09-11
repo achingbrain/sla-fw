@@ -1,7 +1,7 @@
 import unittest
 from mock import Mock
 
-from sl1fw.tests.test_base import Sl1fwTestCase
+from sl1fw.tests.base import Sl1fwTestCase
 
 from sl1fw import libExposure
 from sl1fw import libConfig

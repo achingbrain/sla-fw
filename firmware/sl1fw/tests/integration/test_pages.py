@@ -1,6 +1,6 @@
 import unittest
 
-from sl1fw.tests.integration.test_integration_base import Sl1FwIntegrationTestCaseBase
+from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 
 
 class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
