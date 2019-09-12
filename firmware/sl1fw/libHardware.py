@@ -608,10 +608,10 @@ class Hardware(object):
                 3 : _("<reserved2>"),
                 }
 
-        self._tiltMin = -12840        # whole turn
-        self._tiltMax = 12840
-        self._tiltEnd = 6000    #top deadlock
-        self._tiltCalibStart = 4300 
+        self._tiltMin = -12800        # whole turn
+        self._tiltMax = 12800
+        self._tiltEnd = 6016    #top deadlock
+        self._tiltCalibStart = 4352 
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
         self._towerMax = self.hwConfig.calcMicroSteps(310)
@@ -1298,7 +1298,6 @@ class Hardware(object):
 
 
     def towerHomeCalibrateWait(self):
-        self.setTowerProfile('homingFast')
         self.mcc.do("!twhc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
@@ -1311,7 +1310,6 @@ class Hardware(object):
     def towerSync(self, retries: Optional[int] = 2):
         ''' home is at top position, retries = None is infinity '''
         self._towerSyncRetries = retries
-        self.setTowerProfile('homingFast')
         self.mcc.do("!twho")
     #enddef
 
@@ -1337,7 +1335,6 @@ class Hardware(object):
                 if self._towerSyncRetries:
                     self._towerSyncRetries -= 1
                 #endif
-                self.setTowerProfile('homingFast')
                 self.mcc.do("!twho")
                 return False
             else:
@@ -1518,10 +1515,11 @@ class Hardware(object):
 
     @safe_call(None, (MotionControllerException, ValueError))
     def setTowerCurrent(self, current):
-        if 0 <= current <= 63:
-            self.mcc.do("!twcu", current)
-        else:
-            raise ValueError(f"Invalid tower current {current}")
+        return
+#        if 0 <= current <= 63:
+#            self.mcc.do("!twcu", current)
+#        else:
+#            self.logger.error("Invalid tower current %d", current)
         #endif
     #enddef
 
@@ -1569,7 +1567,6 @@ class Hardware(object):
 
 
     def tiltHomeCalibrateWait(self):
-        self.setTiltProfile('homingFast')
         self.mcc.do("!tihc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
@@ -1582,7 +1579,6 @@ class Hardware(object):
     def tiltSync(self, retries = None):
         ''' home at bottom position, retries = None is infinity '''
         self._tiltSyncRetries = retries
-        self.setTiltProfile('homingFast')
         self.mcc.do("!tiho")
     #enddef
 
@@ -1604,7 +1600,6 @@ class Hardware(object):
                 if self._tiltSyncRetries:
                     self._tiltSyncRetries -= 1
                 #endif
-                self.setTiltProfile('homingFast')
                 self.mcc.do("!tiho")
                 return False
             else:
@@ -1652,8 +1647,8 @@ class Hardware(object):
         if self.isTiltMoving():
             return False
         #endif
-        while self._tiltToPosition != self.getTiltPositionMicroSteps():
-            self.logger.warning("Tilt is not on required position! Sync forced.")
+        if self.getTiltPositionMicroSteps() != 0:
+            self.logger.warning("Tilt is not on required position! Sync forced. Actual position: %d", self.getTiltPositionMicroSteps())
             self.mcc.debug.showItems(tiltFailed = self._lastTiltProfile)
             profileBackup = self._lastTiltProfile
             self.tiltSyncWait()
@@ -1741,16 +1736,18 @@ class Hardware(object):
 
         # initial release movement with optional sleep at the end
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
-        self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - tiltProfile[1])
-        while self.isTiltMoving():
-            sleep(0.1)
-        #endwhile
-        self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
+        if tiltProfile[1] > 0:
+            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - tiltProfile[1])
+            while self.isTiltMoving():
+                sleep(0.1)
+            #endwhile
+        #endif
         sleep(tiltProfile[2] / 1000.0)
 
         # next movement may be splited
+        self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
         movePerCycle = int(self.getTiltPositionMicroSteps() / tiltProfile[4])
-        for i in range(1, tiltProfile[4]):
+        for i in range(tiltProfile[4]):
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
             while self.isTiltMoving():
                 sleep(0.1)
@@ -1758,8 +1755,13 @@ class Hardware(object):
             sleep(tiltProfile[5] / 1000.0)
         #endfor
 
-        # ensure we end up at defined bottom position
-        self.tiltDownWait()
+        # if not already in endstop ensure we end up at defined bottom position
+        if not self.checkState('endstop'):
+            self.tiltMoveAbsolute(-defines.tiltHomingTolerance)
+            while self.isTiltMoving():
+                sleep(0.1)
+            #endwhile
+        #endif
 
         # check if tilt is on endstop
         if self.checkState('endstop'):
@@ -1779,7 +1781,6 @@ class Hardware(object):
             #endwhile
             count += step
         #endwhile
-        self.setTiltProfile('homingFast')
         return self.tiltSyncWait(1)
     #enddef
 
@@ -1792,25 +1793,16 @@ class Hardware(object):
         #endwhile
         sleep(self.hwConfig.tuneTilt[2][2]/1000.0)
         self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[2][3]])
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight)
-        while self.isTiltMoving():
-            sleep(0.1)
-        #endwhile
 
         #finish move may be also splited in multiple sections
-        movePerCycle = int((self.getTiltPositionMicroSteps() - self.hwConfig.tiltHeight) / self.hwConfig.tuneTilt[2][4])
-        for i in range(1, self.hwConfig.tuneTilt[2][4]):
-            self.logger.debug("tilt up cycle %d", i)
-            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
+        movePerCycle = int((self.hwConfig.tiltHeight - self.getTiltPositionMicroSteps()) / self.hwConfig.tuneTilt[2][4])
+        for i in range(self.hwConfig.tuneTilt[2][4]):
+            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() + movePerCycle)
             while self.isTiltMoving():
                 sleep(0.1)
             #endwhile
             sleep(self.hwConfig.tuneTilt[2][5] / 1000.0)
         #endfor
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight)
-        while self.isTiltMoving():
-            sleep(0.1)
-        #endwhile
 
         #reduce tilt current to prevent overheat
         self.setTiltCurrent(defines.tiltHoldCurrent)
@@ -1853,11 +1845,17 @@ class Hardware(object):
 
     @safe_call(None, (MotionControllerException, ValueError))
     def setTiltCurrent(self, current):
-        if 0 <= current <= 63:
-            self.mcc.do("!ticu", current)
-        else:
-           raise ValueError(f"Invalid tilt current {current}")
+        return
+#        if 0 <= current <= 63:
+#            self.mcc.do("!ticu", current)
+#        else:
+#            self.logger.error("Invalid tilt current %d", current)
         #endif
+    #enddef
+
+
+    def tiltGotoFullstep(self):
+        self.mcc.do("!tigf")
     #enddef
 
 

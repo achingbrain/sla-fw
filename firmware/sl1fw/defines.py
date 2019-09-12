@@ -5,7 +5,7 @@
 import os
 import sl1fw
 
-reqMcVersion = "SLA-control 0.10.1-442"
+reqMcVersion = "0.11.0"
 
 factoryMountPoint = "/usr/share/factory/defaults"
 persistentStorage = "/var/sl1fw"
@@ -62,9 +62,9 @@ resinFeedWait = 50
 resinFilled = 200
 
 defaultTowerHeight = 120    # mm
-defaultTiltHeight = 4900    # usteps
+defaultTiltHeight = 4928    # usteps rounded to fullstep (phase 0)
 defaultTowerOffset = 0.05   # mm
-tiltHomingTolerance = 30    # tilt axis check has this tolerance
+tiltHomingTolerance = 32    # tilt axis check has this tolerance
 towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40

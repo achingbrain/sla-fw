@@ -397,19 +397,19 @@ class HwConfig(FileConfig):
 
         # Tilt & Tower -> Tilt tune
         self.tuneTilt = list()
-        self.tuneTilt.append(self._parseIntList("tiltdownlargefill", [5, 650, 1000, 4, 1, 0, 64, 3]))
-        self.tuneTilt.append(self._parseIntList("tiltdownsmallfill", [5, 0, 0, 6, 1, 0, 0, 0]))
-        self.tuneTilt.append(self._parseIntList("tiltup", [2, 400, 0, 5, 1, 0, 0, 0]))
-        #hotfix. TODO remove
-        if len(self.tuneTilt[0]) != 8 or len(self.tuneTilt[1]) != 8 or len(self.tuneTilt[2]) != 8:
-            self.tuneTilt[0] = [5, 650, 1000, 4, 1, 0, 64, 3]
-            self.tuneTilt[1] = [5, 0, 0, 6, 1, 0, 0, 0]
-            self.tuneTilt[2] = [2, 400, 0, 5, 1, 0, 0, 0]
-        #endif
+        self.tuneTilt.append(self._parseIntList("tiltdownlargefill", 8, [5, 650, 1000, 4, 1, 0, 64, 3]))
+        self.tuneTilt.append(self._parseIntList("tiltdownsmallfill", 8, [5, 0, 0, 6, 1, 0, 0, 0]))
+        self.tuneTilt.append(self._parseIntList("tiltup", 8, [2, 400, 0, 5, 1, 0, 0, 0]))
 
         # not adjustable in admin
         self.pixelSize = self._parseFloat("pixelsize", 0.046875, True)    # 5.5" LCD
         self.calibrated = self._parseBool("calibrated", False)
+
+        # force recalibration if tilt height is not in fullstep phase
+        if self.tiltHeight % 64 != 0:
+            self.calibrated = False
+        #endif
+
         self.towerHeight = self._parseInt("towerheight", self.calcMicroSteps(defines.defaultTowerHeight)) # safe value
         self.tiltFastTime = self._parseFloat("tiltfasttime", 5.5)
         self.tiltSlowTime = self._parseFloat("tiltslowtime", 8.0)

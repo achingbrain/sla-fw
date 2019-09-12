@@ -36,10 +36,10 @@ class PageCalibration1(Page):
         pageWait.show()
 
         self.display.hw.towerSync()
-        self.display.hw.tiltSyncWait(2)
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
         #endwhile
+        self.display.hw.tiltSyncWait(2) # FIXME MC cant properly home tilt while tower is moving
         self.display.hw.powerLed("normal")
     #enddef
 
@@ -229,11 +229,13 @@ class PageCalibration5(MovePage):
 
     def _stop(self):
         self.display.hw.tiltStop()
+        self.showItems(value = self.display.hw.getTiltPosition())
         self.moving = False
     #enddef
 
 
     def okButtonRelease(self):
+        self.display.hw.tiltGotoFullstep()
         position = self.display.hw.getTiltPositionMicroSteps()
         if position is None:
             self.logger.error("Invalid tilt position to save!")
