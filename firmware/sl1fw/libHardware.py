@@ -609,8 +609,8 @@ class Hardware(object):
                 }
 
         self._tiltMin = -12800        # whole turn
-        self._tiltMax = 12800
         self._tiltEnd = 6016    #top deadlock
+        self._tiltMax = self._tiltEnd
         self._tiltCalibStart = 4352 
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
