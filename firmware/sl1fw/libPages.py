@@ -5,6 +5,7 @@
 
 import os
 import logging
+import re
 from time import sleep
 import subprocess
 import glob
@@ -188,8 +189,8 @@ class Page(object):
         pageWait.show()
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        serial = self.display.hw.cpuSerialNo
-        log_file = os.path.join(save_path, "log.%s.%s.txt.xz" % (serial, timestamp))
+        serial = re.sub("[^a-zA-Z0-9]", "_", self.display.hw.cpuSerialNo)
+        log_file = os.path.join(save_path, f"log.{serial}.{timestamp}.txt.xz")
 
         try:
             subprocess.check_call(["/bin/bash", "-c", """
