@@ -121,6 +121,11 @@ class Page(object):
     #enddef
 
 
+    def networkButtonRelease(self):
+        return "network"
+    #enddef
+
+
     def infoButtonRelease(self):
         return "about"
     #enddef
