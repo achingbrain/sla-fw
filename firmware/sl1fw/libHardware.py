@@ -29,6 +29,7 @@ class MotionControllerTracingSerial(serial.Serial):
         INPUT = ">"
         GARBAGE = "|"
         OUTPUT = "<"
+        RESET = "="
     #endclass
 
     class LineTrace:
@@ -105,6 +106,10 @@ class MotionControllerTracingSerial(serial.Serial):
         self.__append_trace(self.LineTrace(self.LineMarker.OUTPUT, data))
         self.__debug.log(f"< {data}")
         return super().write(data)
+    #enddef
+
+    def mark_reset(self):
+        self.__append_trace(self.LineTrace(self.LineMarker.RESET, "Motion controller reset"))
     #enddef
 
     @property
@@ -197,7 +202,7 @@ class MotConCom(object):
         self.port.bytesize = 8
         self.port.parity = 'N'
         self.port.stopbits = 1
-        self.port.timeout = 1.0
+        self.port.timeout = 3.0
         self.port.writeTimeout = 1.0
         self.port.xonxoff = False
         self.port.rtscts = False
@@ -228,8 +233,10 @@ class MotConCom(object):
 
 
     def connect(self, MCversionCheck):
-        state = self.getStateBits(('fatal', 'reset'))
-        if not state:
+        try:
+            state = self.getStateBits(('fatal', 'reset'))
+        except MotionControllerException as e:
+            self.logger.exception("Motion controller connect failed")
             return _("Communication with the motion controller has failed")
         #endif
 
@@ -332,18 +339,26 @@ class MotConCom(object):
     #enddef
 
 
+    def _read_garbage(self) -> None:
+        """
+        Reads initial garbage found in port. Assumes portlock is already taken
+        """
+        # TODO: This is not correct, there should be no random garbage around
+        while self.port.inWaiting():
+            try:
+                line = self.port.readline(garbage=True)
+                self.logger.debug(f"Garbage pending in MC port: {line}")
+            except (serial.SerialException, UnicodeError) as e:
+                raise MotionControllerException(f"Failed garbage read", self.port) from e
+            #endtry
+        #endwhile
+    #enddef
+
+
     def do(self, cmd, *args, return_process=lambda x: x):
         with self.portLock:
             # Read garbage already pending to be read
-            # TODO: This is not correct, there should be no random garbage around
-            while self.port.inWaiting():
-                try:
-                    line = self.port.read_text_line(garbage=True)
-                    self.logger.debug(f"Garbage pending in MC port: {line}")
-                except (serial.SerialException, UnicodeError) as e:
-                    raise MotionControllerException(f"Failed garbage read", self.port) from e
-                #endtry
-            #endwhile
+            self._read_garbage()
 
             # Write command
             cmd_string = ' '.join(str(x) for x in (cmd,) + args)
@@ -355,7 +370,11 @@ class MotConCom(object):
 
             # Read until some response is received
             while True:
-                line = self.port.read_text_line()
+                try:
+                    line = self.port.read_text_line()
+                except Exception as e:
+                    raise MotionControllerException("Failed to read line from MC", self.port) from e
+                #endtry
 
                 ok_match = self.commOKStr.match(line)
 
@@ -385,41 +404,78 @@ class MotConCom(object):
     #enddef
 
 
-    def flash(self, MCBoardVersion):
-        import subprocess
-
-        self.portLock.acquire()
-        self.reset()
-
-        process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, str(MCBoardVersion), defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-        while True:
-            line = process.stdout.readline()
-            retc = process.poll()
-            if line == '' and retc is not None:
-                break
-            #endif
-            if line:
-                line = line.strip()
-                if line == "":
-                    continue
-                #endif
-                self.logger.info("flashMC output: '%s'", line)
-            #endif
-        #endwhile
-
-        if retc:
-            self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
-        #endif
-
-        sleep(2)
-        self.portLock.release()
-
-        return False if retc else True
+    def soft_reset(self) -> None:
+        with self.portLock:
+            try:
+                self._read_garbage()
+                self.port.mark_reset()
+                self.port.write(f"!rst\n".encode('ascii'))
+                self._ensure_ready()
+            except Exception as e:
+                raise MotionControllerException(f"Reset failed", self.port) from e
+            #endtry
     #enddef
 
 
-    def reset(self):
+    def _ensure_ready(self) -> None:
+        """
+        Ensure MC is ready after reset/flash
+        This assumes portLock to be already acquired
+        """
+        try:
+            self.logger.debug(f"\"MCUSR...\" read resulted in: \"{self.port.read_text_line()}\"")
+            ready = self.port.read_text_line()
+            if ready != "ready":
+                self.logger.info(f"\"ready\" read resulted in: \"{ready}\". Sleeping to ensure MC is ready.")
+                sleep(1.5)
+                self._read_garbage()
+            #endif
+        except Exception as e:
+            raise MotionControllerException("Ready read failed", self.port) from e
+        #endtry
+    #enddef
+
+
+    def flash(self, MCBoardVersion):
+        import subprocess
+
+        with self.portLock:
+            self.reset()
+
+            process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, str(MCBoardVersion), defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+            while True:
+                line = process.stdout.readline()
+                retc = process.poll()
+                if line == '' and retc is not None:
+                    break
+                #endif
+                if line:
+                    line = line.strip()
+                    if line == "":
+                        continue
+                    #endif
+                    self.logger.info("flashMC output: '%s'", line)
+                #endif
+            #endwhile
+
+            if retc:
+                self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
+            #endif
+
+            self._ensure_ready()
+
+            return False if retc else True
+    #enddef
+
+
+    def reset(self) -> None:
+        """
+        Does a hard reset of the motion controller.
+        Assumes portLock is already acquired
+        """
+        self.logger.info("Doing hard reset of the motion controller")
         import gpio
+        self.port.mark_reset()
         gpio.setup(131, gpio.OUT)
         gpio.set(131, 1)
         sleep(1/1000000)
@@ -646,6 +702,7 @@ class Hardware(object):
     def connectMC(self, waitPage, returnPage):
 
         errorMessage = self.mcc.connect(self.hwConfig.MCversionCheck)
+        # TODO: Would be nice to raise exceptions instead of passing localized error messages around
         if errorMessage:
             self.logger.warning("motion controller error: %s", errorMessage)
 
@@ -848,8 +905,7 @@ class Hardware(object):
 
     def eraseEeprom(self):
         self.mcc.do("!eecl")
-        self.mcc.do("!rst")  # FIXME MC issue
-        sleep(1.5)  # FIXME another MC issue (avoid using MC before it is initialized)
+        self.mcc.soft_reset()  # FIXME MC issue
     #enddef
 
 
