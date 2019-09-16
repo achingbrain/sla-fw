@@ -122,7 +122,7 @@ class PageAdmin(Page):
 
 
     def mc2net(self, bootloader = False):
-        ip = self.display.ip
+        ip = self.display.inet.ip
         if ip == None:
             self.display.pages['error'].setParams(
                     text = _("Not connected to network"))

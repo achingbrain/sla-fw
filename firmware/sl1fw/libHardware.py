@@ -140,7 +140,7 @@ class MotionControllerException(Exception):
 #endclass
 
 
-class MotConCom(object):
+class MotConComBase:
     MCFWversion = ""
     MCFWrevision = -1
     MCBoardRevision = (-1, -1)
@@ -149,49 +149,52 @@ class MotConCom(object):
     commOKStr = re.compile('^(.*)ok$')
     commErrStr = re.compile('^e(.)$')
     commErrors = {
-            '1' : "unspecified failure",
-            '2' : "busy",
-            '3' : "syntax error",
-            '4' : "parameter out of range",
-            '5' : "operation not permitted",
-            '6' : "null pointer",
-            '7' : "command not found",
-            }
+        '1': "unspecified failure",
+        '2': "busy",
+        '3': "syntax error",
+        '4': "parameter out of range",
+        '5': "operation not permitted",
+        '6': "null pointer",
+        '7': "command not found",
+    }
 
     _statusBits = {
-            'tower'  :  0,
-            'tilt'   :  1,
-            'button' :  6,
-            'cover'  :  7,
-            'endstop':  8,
-            'reset'  : 13,
-            'fans'   : 14,
-            'fatal'  : 15,
-            }
+        'tower': 0,
+        'tilt': 1,
+        'button': 6,
+        'cover': 7,
+        'endstop': 8,
+        'reset': 13,
+        'fans': 14,
+        'fatal': 15,
+    }
 
     selfCheckErrors = {
-            1 : _("Application flash checksum has failed"),
-            2 : _("Bootloader flash checksum has failed"),
-            3 : _("Serial number check has failed"),
-            4 : _("Fuse bit settings have failed"),
-            5 : _("Boot-section lock has failed"),
-            6 : _("GPIO SPI has failed"),
-            7 : _("TMC SPI has failed"),
-            8 : _("TMC wiring/communication has failed"),
-            9 : _("The UV LED has failed"),
-            }
+        1: _("Application flash checksum has failed"),
+        2: _("Bootloader flash checksum has failed"),
+        3: _("Serial number check has failed"),
+        4: _("Fuse bit settings have failed"),
+        5: _("Boot-section lock has failed"),
+        6: _("GPIO SPI has failed"),
+        7: _("TMC SPI has failed"),
+        8: _("TMC wiring/communication has failed"),
+        9: _("The UV LED has failed"),
+    }
 
     resetFlags = {
-            0 : "power-on",
-            1 : "external",
-            2 : "brown-out",
-            3 : "watchdog",
-            4 : "jtag",
-            7 : "stack overflow",
-            }
+        0: "power-on",
+        1: "external",
+        2: "brown-out",
+        3: "watchdog",
+        4: "jtag",
+        7: "stack overflow",
+    }
+#endclass
 
 
+class MotConCom(MotConComBase):
     def __init__(self, instance_name: str):
+        super().__init__()
         self.portLock = Lock()
         self.debug = Debug()
         self.port_trace = deque(maxlen=10)
@@ -208,8 +211,6 @@ class MotConCom(object):
         self.port.rtscts = False
         self.port.dsrdtr = False
         self.port.interCharTimeout = None
-
-        super(MotConCom, self).__init__()
         self.logger = logging.getLogger(instance_name)
     #enddef
 
@@ -508,12 +509,12 @@ class MotConCom(object):
 #endclass
 
 
-class DummyMotConCom(MotConCom):
+class DummyMotConCom(MotConComBase):
     def __init__(self):
+        super().__init__()
         self.logger = logging.getLogger(__name__)
         self.debug = self
         self.port = self
-        super().__init__("MC_Dummy")
     #enddef
 
     def getStateBits(self, request=None):
