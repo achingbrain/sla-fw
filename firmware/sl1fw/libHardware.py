@@ -109,7 +109,7 @@ class MotionControllerTracingSerial(serial.Serial):
     #enddef
 
     def mark_reset(self):
-        self.__append_trace(self.LineTrace(self.LineMarker.RESET, "Motion controller reset"))
+        self.__append_trace(self.LineTrace(self.LineMarker.RESET, b'Motion controller reset'))
     #enddef
 
     @property
@@ -133,9 +133,9 @@ class MotionControllerTracingSerial(serial.Serial):
 
 
 class MotionControllerException(Exception):
-    def __init__(self, message: str, serial: MotionControllerTracingSerial):
-        self.__serial = serial
-        super().__init__(f"{message}, trace: {serial.trace}")
+    def __init__(self, message: str, port: MotionControllerTracingSerial):
+        self.__serial = port
+        super().__init__(f"{message}, trace: {port.trace}")
     #enddef
 #endclass
 
@@ -236,7 +236,7 @@ class MotConCom(MotConComBase):
     def connect(self, MCversionCheck: bool):
         try:
             state = self.getStateBits(('fatal', 'reset'))
-        except MotionControllerException as e:
+        except MotionControllerException:
             self.logger.exception("Motion controller connect failed")
             return _("Communication with the motion controller has failed")
         #endif
@@ -271,7 +271,8 @@ class MotConCom(MotConComBase):
             self.logger.info("motion controller firmware for board revision: %s", self.MCFWrevision)
 
             self.MCBoardRevision = divmod(tmp[1], 32)
-            self.logger.info("motion controller board revision: %d%s", self.MCBoardRevision[1], chr(self.MCBoardRevision[0] + ord('a')))
+            self.logger.info("motion controller board revision: %d%s", self.MCBoardRevision[1],
+                             chr(self.MCBoardRevision[0] + ord('a')))
         else:
             self.logger.warning("invalid motion controller firmware/board revision: %s", str(tmp))
             self.MCFWrevision = -1
@@ -280,8 +281,8 @@ class MotConCom(MotConComBase):
 
         if self.MCFWrevision != self.MCBoardRevision[1]:
             self.logger.warning("motion controller firmware for board revision (%d) not"
-                    " match motion controller board revision (%d)!",
-                    self.MCFWrevision, self.MCBoardRevision[1])
+                                " match motion controller board revision (%d)!",
+                                self.MCFWrevision, self.MCBoardRevision[1])
         #enddef
 
         self.MCserial = self.do("?ser")
@@ -443,7 +444,9 @@ class MotConCom(MotConComBase):
         with self.portLock:
             self.reset()
 
-            process = subprocess.Popen([defines.flashMcCommand, defines.dataPath, str(MCBoardVersion), defines.motionControlDevice], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+            process = subprocess.Popen(
+                [defines.flashMcCommand, defines.dataPath, str(MCBoardVersion), defines.motionControlDevice],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             while True:
                 line = process.stdout.readline()
                 retc = process.poll()
@@ -488,22 +491,14 @@ class MotConCom(MotConComBase):
         if not request:
             request = self._statusBits.keys()
         #endif
+
         bits = self.doGetBoolList("?", bitCount = 16)
+
         if len(bits) != 16:
-            self.logger.warning("State bits count not match! (%s)", str(bits))
-            return None
-        else:
-            retval = {}
-            for name in request:
-                try:
-                    retval[name] = bits[self._statusBits[name]]
-                except Exception:
-                    self.logger.exception("exception:")
-                    return None
-                #endtry
-            #endfor
-            return retval
+            raise ValueError(f"State bits count not match! ({bits})")
         #endif
+
+        return {name: bits[self._statusBits[name]] for name in request}
     #enddef
 
 #endclass
@@ -522,12 +517,7 @@ class DummyMotConCom(MotConComBase):
             request = self._statusBits.keys()
         #endif
 
-        retval = {}
-        for name in request:
-            retval[name] = False
-        #endfor
-
-        return retval
+        return {name: False for name in request}
     #enddef
 
     def do(self, cmd, *args):
@@ -538,7 +528,8 @@ class DummyMotConCom(MotConComBase):
         pass
     #enddef
 
-    def is_open(self) -> bool:
+    @staticmethod
+    def is_open() -> bool:
         return False
     #enddef
 
@@ -547,7 +538,7 @@ class DummyMotConCom(MotConComBase):
     #enddef
 
     def showItems(self, *args, **kwargs):
-        self.logger.debug("mcc.debug.showItems called while using dummy MotConCom")
+        self.logger.debug(f"mcc.debug.showItems called while using dummy MotConCom args: {args}, kwargs: {kwargs}")
     #enddef
 
     def exit(self):
@@ -665,7 +656,7 @@ class Hardware(object):
                 }
 
         self._tiltMin = -12800        # whole turn
-        self._tiltEnd = 6016    #top deadlock
+        self._tiltEnd = 6016    # top deadlock
         self._tiltMax = self._tiltEnd
         self._tiltCalibStart = 4352 
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
@@ -791,7 +782,7 @@ class Hardware(object):
 
     @property
     def mcBoardRevisionBin(self):
-        return (self.mcc.MCBoardRevision[1], (self.mcc.MCBoardRevision[0]))
+        return self.mcc.MCBoardRevision[1], (self.mcc.MCBoardRevision[0])
     #enddef
 
 
@@ -825,7 +816,7 @@ class Hardware(object):
 
     def readCpuSerial(self):
         ot = { 0 : "CZP" }
-        serial = "*INVALID*"
+        sn = "*INVALID*"
         is_kit = True   # kit is more strict
         try:
             with open(defines.cpuSNFile, 'rb') as nvmem:
@@ -846,20 +837,20 @@ class Hardware(object):
                 scs2, scs1, snnew = sn.unpack('uint:8, uint:8, bits:48')
                 scsc = snnew.count(1)
                 if scsc != scs1 or scsc ^ 255 != scs2:
-                    self.logger.warn("SN checksum FAIL (is %02x:%02x, should be %02x:%02x), getting old SN format" % (scs1, scs2, scsc, scsc ^ 255))
+                    self.logger.warning("SN checksum FAIL (is %02x:%02x, should be %02x:%02x), getting old SN format" % (scs1, scs2, scsc, scsc ^ 255))
                     sequence_number, is_kit, ean_pn, year, week, origin = sn.unpack('pad:14, uint:17, bool, uint:10, uint:6, pad:2, uint:6, pad:2, uint:4')
                     prefix = "*"
                 else:
                     sequence_number, is_kit, ean_pn, year, week, origin = snnew.unpack('pad:4, uint:17, bool, uint:10, uint:6, uint:6, uint:4')
                     prefix = ""
                 #endif
-                serial = "%s%3sX%02u%02uX%03uX%c%05u" % (prefix, ot.get(origin, "UNK"), week, year, ean_pn, "K" if is_kit else "C", sequence_number)
-                self.logger.info("SN: %s", serial)
+                sn = "%s%3sX%02u%02uX%03uX%c%05u" % (prefix, ot.get(origin, "UNK"), week, year, ean_pn, "K" if is_kit else "C", sequence_number)
+                self.logger.info(f"SN: {sn}")
             #endif
         except Exception:
             self.logger.exception("CPU serial:")
         #endtry
-        return (serial, is_kit)
+        return sn, is_kit
     #enddef
 
 
@@ -1226,7 +1217,7 @@ class Hardware(object):
     @safe_call({ 0: False, 1: False, 2: False }, (MotionControllerException, ValueError))
     def getFansError(self):
         state = self.mcc.getStateBits(('fans',))
-        if not 'fans' in state:
+        if 'fans' not in state:
             raise ValueError(f"'fans' not in state: {state}")
         #endif
         return self.getFansBits("?fane", (0, 1, 2))
@@ -1239,16 +1230,7 @@ class Hardware(object):
             if len(bits) != 3:
                 raise ValueError(f"Fans bits count not match! {bits}")
             #endif
-            retval = {}
-            for idx in request:
-                try:
-                    retval[idx] = bits[idx]
-                except Exception:
-                    self.logger.exception("exception:")
-                    return dict.fromkeys(request, False)
-                #endtry
-            #endfor
-            return retval
+            return {idx: bits[idx] for idx in request}
         except (MotionControllerException, ValueError):
             self.logger.exception("getFansBits failed")
             return dict.fromkeys(request, False)
@@ -1358,7 +1340,7 @@ class Hardware(object):
     def towerHomeCalibrateWait(self):
         self.mcc.do("!twhc")
         homingStatus = 1
-        while homingStatus > 0: # not done and not error
+        while homingStatus > 0:  # not done and not error
             homingStatus = self.mcc.doGetInt("?twho")
             sleep(0.1)
         #endwhile
@@ -1437,7 +1419,7 @@ class Hardware(object):
     #enddef
 
 
-    #TODO use !brk instead. Motor might stall at !mot 0
+    # TODO use !brk instead. Motor might stall at !mot 0
     def towerStop(self):
         self.mcc.do("!mot", 0)
     #enddef
