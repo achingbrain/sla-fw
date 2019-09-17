@@ -6,43 +6,11 @@ import os
 import logging
 import zipfile
 import json
+from threading import Lock
+
 import toml
 
 from sl1fw import defines
-
-
-class MyBool:
-
-    def __init__(self, value):
-        self.value = value
-    #enddef
-
-    def __bool__(self):
-        return self.value
-    #enddef
-
-    def __str__(self):
-        return "on" if self.value else "off"
-    #endef
-
-    def __int__(self):
-        return int(self.value)
-    #endef
-
-    def __eq__(self, other):
-        if isinstance(other, MyBool):
-            return self.value == other.value
-        else:
-            return False
-        #endif
-    #enddef
-
-    def inverse(self):
-        self.value = not self.value
-    #enddef
-
-    __nonzero__=__bool__
-#endclass
 
 
 class FileConfig(object):
@@ -52,6 +20,7 @@ class FileConfig(object):
             defaults = {}
         self._logger = logging.getLogger(name)
         self._defaults = defaults
+        self._updateLock = Lock()  # TODO: Use lock to avoid reads during writes
         self.parseFile(configFile)
     #enddef
 
@@ -132,41 +101,59 @@ class FileConfig(object):
         :param kwargs: Dictionary with key=value pairs to update. Object members
         cannot be used directly !!! Setting value to None removes key from the configuration.
         '''
-
-        lowerkeys = dict()
-        for key,val in kwargs.items():
-            lowerkey = key.lower()
-            if val is None:
-                self._data[lowerkey] = None
-            elif isinstance(val, list):
-                self._data[lowerkey] = " ".join([str(x) for x in val])
-            else:
-                self._data[lowerkey] = str(val)
-            #endif
-            self._logger.debug("update: %s = %s", lowerkey, self._data[lowerkey])
-            lowerkeys[lowerkey] = key
-        #endfor
-        newLines = list()
-        for key,val in self._lines:
-            if key is None:
-                newLines.append((None, val))
-            else:
+        with self._updateLock:
+            lowerkeys = dict()
+            for key,val in kwargs.items():
+                if isinstance(val, str):
+                     raise ValueError(f"Passed string value to config update: {key}: {val}")
+                #endif
                 lowerkey = key.lower()
-                if lowerkey not in lowerkeys or kwargs[lowerkeys[lowerkey]] is not None:
+                if val is None:
+                    self._data[lowerkey] = None
+                elif isinstance(val, list):
+                    self._data[lowerkey] = " ".join([str(x) for x in val])
+                elif isinstance(val, bool):
+                    self._data[lowerkey] = "yes" if val else "no"
+                else:
+                    self._data[lowerkey] = str(val)
+                #endif
+                self._logger.debug("update: %s = %s", lowerkey, self._data[lowerkey])
+                lowerkeys[lowerkey] = key
+            #endfor
+            newLines = list()
+            for key,val in self._lines:
+                if key is None:
+                    newLines.append((None, val))
+                else:
+                    lowerkey = key.lower()
+                    if lowerkey not in lowerkeys or kwargs[lowerkeys[lowerkey]] is not None:
+                        newLines.append((key, self._data[lowerkey]))
+                    #endif
+                    if lowerkey in lowerkeys:
+                        del kwargs[lowerkeys[lowerkey]]
+                    #endif
+                #endif
+            #endfor
+            for key,val in kwargs.items():
+                if val is not None:
+                    lowerkey = key.lower()
                     newLines.append((key, self._data[lowerkey]))
                 #endif
-                if lowerkey in lowerkeys:
-                    del kwargs[lowerkeys[lowerkey]]
-                #endif
-            #endif
-        #endfor
-        for key,val in kwargs.items():
-            if val is not None:
-                newLines.append((key, val))
-            #endif
-        #endfor
-        self._lines = newLines
+            #endfor
+            self._lines = newLines
+            self._parseData()
+    #enddef
+
+    def reset(self, defaults=None) -> bool:
+        """
+        Reset config to empty state
+        :return: True if successful false otherwise
+        """
+        self._defaults = defaults if defaults else {}
+        self._data = {}
+        self._lines = []
         self._parseData()
+        return self.writeFile()
     #enddef
 
     def getSourceString(self):
@@ -303,7 +290,7 @@ class FileConfig(object):
         #endtry
     #enddef
 
-    def _parseBool(self, key, default = False):
+    def _parseBool(self, key: str, default: bool = False) -> bool:
         if key in self._defaults:
             default = self._defaults[key]
         #endif
@@ -311,11 +298,11 @@ class FileConfig(object):
         try:
             val = self._data.get(key, "").lower()
             if val == "on" or val == "yes":
-                return MyBool(True)
+                return True
             elif val == "off" or val == "no":
-                return MyBool(False)
+                return False
             else:
-                return MyBool(int(val) != 0 if val != "" else default)
+                return int(val) != 0 if val != "" else default
             #endif
         except Exception:
             self._logger.exception("_parseBool() exception:")
@@ -334,7 +321,6 @@ class FileConfig(object):
             return default
         #endtry
     #enddef
-
 #endclass
 
 
@@ -684,10 +670,6 @@ class ConfigHelper(object):
             value = getattr(self._config, item)
         #endif
 
-        if isinstance(value, MyBool):
-            value = bool(value)
-        #endif
-
         return value
     #enddef
 
@@ -696,20 +678,13 @@ class ConfigHelper(object):
         if key.startswith('_'):
             object.__setattr__(self, key, value)
         else:
-            # Determine new value, MyBool in underlying config requires special handling
-            if isinstance(getattr(self._config, key), MyBool):
-                change = MyBool(value)
-            else:
-                change = value
-            #endif
-
             # Update changed or reset it if change is returning to original value
-            if change == getattr(self._config, key):
+            if value == getattr(self._config, key):
                 if key.lower() in self._changed:
                     del self._changed[key.lower()]
                 #endif
             else:
-                self._changed[key.lower()] = change
+                self._changed[key.lower()] = value
             #endif
         #endif
     #enddef
@@ -721,9 +696,7 @@ class ConfigHelper(object):
 
         :return: Config file write operation result. True is successful, false otherwise.
         """
-        for key, value in self._changed.items():
-            self._config.update(**{key: str(value)})
-        #endfor
+        self._config.update(**self._changed)
         self._changed = {}
         return self._config.writeFile()
     #enddef

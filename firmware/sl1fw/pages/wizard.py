@@ -151,10 +151,8 @@ class PageWizardInit(Page):
         self.display.hwConfig.towerSensitivity = towerSensitivity
         self.display.hw.towerHomeCalibrateWait()
         self.display.hw.setTowerPosition(self.display.hw._towerEnd)
-        self.display.wizardData.update(
-            towerSensitivity = self.display.hwConfig.towerSensitivity)
-        self.display.hwConfig.update(
-            towerSensitivity = self.display.hwConfig.towerSensitivity)
+        self.display.wizardData.update(towerSensitivity = self.display.hwConfig.towerSensitivity)
+        self.display.hwConfig.update(towerSensitivity = self.display.hwConfig.towerSensitivity)
         if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
                 text = _("Cannot save wizard configuration"))
@@ -491,7 +489,7 @@ class PageWizardResinSensor(Page):
         self.display.hw.motorsRelease()
         self.display.hw.stopFans()
 
-        self.display.hwConfig.update(showWizard = "no")
+        self.display.hwConfig.update(showWizard = False)
         if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
                 text = _("Cannot save wizard configuration"))
@@ -669,7 +667,7 @@ class PageWizardSkip(Page):
 
     def yesButtonRelease(self):
         self.allOff()
-        self.display.hwConfig.update(showWizard = "no")
+        self.display.hwConfig.update(showWizard = False)
         if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
                 text = _("Cannot save wizard configuration"))

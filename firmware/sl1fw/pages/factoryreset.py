@@ -39,8 +39,7 @@ class PageFactoryReset(Page):
 
         inFactoryMode = self.display.hwConfig.factoryMode
         factory_defaults = libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).load()
-        self.display.hwConfig = libConfig.HwConfig(defaults=factory_defaults)
-        if not self.display.hwConfig.writeFile(filename=defines.hwConfigFile):
+        if not self.display.hwConfig.reset(defaults=factory_defaults):
             self.display.pages['error'].setParams(
                 text=_("Cannot save factory defaults configuration"))
             return "error"

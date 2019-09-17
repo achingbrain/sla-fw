@@ -176,7 +176,7 @@ class PageUnboxing4(Page):
 
 
     def contButtonRelease(self):
-        self.display.hwConfig.update(showUnboxing = "no")
+        self.display.hwConfig.update(showUnboxing = False)
         if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
@@ -260,7 +260,7 @@ class PageUnboxingConfirm(Page):
 
 
     def yesButtonRelease(self):
-        self.display.hwConfig.update(showUnboxing = "no")
+        self.display.hwConfig.update(showUnboxing = False)
         if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))

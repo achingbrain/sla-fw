@@ -15,6 +15,7 @@ import pydbus
 import os
 from collections import deque
 
+from sl1fw.libConfig import HwConfig
 from sl1fw.libDebug import Debug
 from sl1fw import defines
 
@@ -573,7 +574,7 @@ def safe_call(default_value, exceptions):
 
 class Hardware(object):
 
-    def __init__(self, hwConfig):
+    def __init__(self, hwConfig: HwConfig):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
 

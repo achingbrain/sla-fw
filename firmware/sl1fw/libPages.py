@@ -255,12 +255,10 @@ class Page(object):
 
 
     def _onOff(self, temp, changed, index, val):
-        if isinstance(temp[val], libConfig.MyBool):
-            temp[val].inverse()
-        else:
-            temp[val] = not temp[val]
-        #endif
-        changed[val] = str(temp[val])
+        # TODO: Can changed be something else than self.changed ???
+        # TODO: Can temp be something else than self.changed ???
+        temp[val] = not temp[val]
+        changed[val] = temp[val]
         self.showItems(**{ 'state1g%d' % (index + 1) : int(temp[val]) })
     #enddef
 
@@ -268,7 +266,7 @@ class Page(object):
     def _value(self, temp, changed, index, val, valmin, valmax, change, strFce = str, minLimit = None):
         if valmin <= temp[val] + change <= valmax:
             temp[val] += change
-            changed[val] = str(temp[val])
+            changed[val] = temp[val]
             if minLimit is not None and temp[val] < minLimit:
                 show = "OFF"
             else:

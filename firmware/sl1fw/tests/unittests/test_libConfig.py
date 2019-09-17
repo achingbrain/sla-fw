@@ -30,7 +30,7 @@ class TestHardwareConfig(Sl1fwTestCase):
         self.assertEqual(self.hw_config.layerTowerHop, 0, "Test layerTowerHop read")
 
     def test_write(self):
-        self.hw_config.update(towerHeight="mistake")
+        self.hw_config.update(towerHeight=-1)
         tower_height = 1024
         self.hw_config.update(towerHeight=tower_height)
 
@@ -112,7 +112,7 @@ class TestPrintConfig(Sl1fwTestCase):
         self.assertEqual(config.totalLayers, 2, "Check total layers count")
 
         logging.info(config.getSourceString())
-        config.update(expTime="5")
+        config.update(expTime=5)
 
         self.assertEqual(config.expTime, 5, "Check expTime value")
 

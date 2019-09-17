@@ -529,7 +529,7 @@ class PageCalibration10(Page):
             tiltHeight = self.display.hwConfig.tiltHeight,
             tiltFastTime = tiltFastTime,
             tiltSlowTime = tiltSlowTime,
-            calibrated = "yes")
+            calibrated = True)
         if not self.display.hwConfig.writeFile():
             self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
