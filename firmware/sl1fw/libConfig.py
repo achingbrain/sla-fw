@@ -342,7 +342,6 @@ class HwConfig(FileConfig):
 
     def __init__(self, configFile = None, defaults = {}):
         super(HwConfig, self).__init__("HwConfig", configFile, defaults)
-        self.os = OsConfig()
         # Load factory mode configuration
         self.factoryMode = TomlConfig(defines.factoryConfigFile).load().get('factoryMode', False)
     #enddef
@@ -425,22 +424,6 @@ class HwConfig(FileConfig):
 
     def calcMM(self, microSteps):
         return round(float(microSteps) / self.microStepsMM, 3)
-    #enddef
-
-#endclass
-
-
-class OsConfig(FileConfig):
-
-    def __init__(self, configFile = "/etc/os-release"):
-        super(OsConfig, self).__init__("OsConfig", configFile)
-    #enddef
-
-    def _parseData(self):
-        self.id = self._parseString("id")
-        self.name = self._parseString("name", _("unknown"))
-        self.version = self._parseString("version", _("unknown"))
-        self.versionId = self._parseString("version_id", _("unknown"))
     #enddef
 
 #endclass

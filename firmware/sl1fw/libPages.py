@@ -10,6 +10,7 @@ from time import sleep
 import subprocess
 import glob
 import datetime
+import distro
 
 from sl1fw import defines
 from sl1fw import libConfig
@@ -76,7 +77,7 @@ class Page(object):
         # renew save path every time when page is shown, it may change
         self.items.update({
             'save_path' : self.getSavePath(),
-            'image_version' : "%s%s" % (self.display.hwConfig.os.versionId, _(" (factory mode)") if self.display.hwConfig.factoryMode else ""),
+            'image_version' : "%s%s" % (distro.version(), _(" (factory mode)") if self.display.hwConfig.factoryMode else ""),
             'page_title' : _(self.pageTitle),
             })
 

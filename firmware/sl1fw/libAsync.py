@@ -6,6 +6,8 @@ import logging
 import threading
 import json
 
+import distro
+
 from sl1fw import defines
 from sl1fw.libDisplay import Display
 from sl1fw.libNetwork import Network
@@ -44,7 +46,7 @@ class Admin_check_thread(threading.Thread):
                 self.logger.info("the network is avaiable, querying admin enabled")
                 try:
                     query_url = defines.admincheckURL + "/?serial=" + self.display.hw.cpuSerialNo
-                    self.inet.download_url(query_url, defines.admincheckTemp, self.display.hwConfig.os.versionId, self.display.hw.cpuSerialNo)
+                    self.inet.download_url(query_url, defines.admincheckTemp, distro.version(), self.display.hw.cpuSerialNo)
 
                     with open(defines.admincheckTemp, 'r') as file:
                         admin_check = json.load(file)

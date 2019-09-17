@@ -1,10 +1,10 @@
 from enum import Enum, auto
 from time import sleep, monotonic
 from typing import List, Dict
+import distro
 import pydbus
 from pydbus.generic import signal
 
-from sl1fw import defines
 from sl1fw.api.display_test0 import DisplayTest0
 
 
@@ -397,12 +397,12 @@ class Printer0:
     @property
     @cached(validity_s=None)
     def system_name(self) -> str:
-        return self.printer.hwConfig.os.name
+        return distro.name()
 
     @property
     @cached(validity_s=None)
     def system_version(self) -> str:
-        return self.printer.hwConfig.os.version
+        return distro.version()
 
     @property
     @cached(validity_s=5)
