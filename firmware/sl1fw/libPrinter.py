@@ -109,8 +109,9 @@ class Printer(object):
         self.logger.debug("Starting libDisplay")
         from sl1fw.libPages import PageWait
         from sl1fw.pages.start import PageStart
-        self.hw.connectMC(PageWait(self.display), PageStart(self.display))
         self.display.start()
+        self.logger.debug("Connecting motion controller")
+        self.hw.connectMC(PageWait(self.display), PageStart(self.display))
         self.logger.debug("Starting libScreen")
         self.screen.start()
         self.logger.debug("Starting D-Bus event thread")
