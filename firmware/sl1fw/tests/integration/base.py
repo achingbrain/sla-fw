@@ -43,6 +43,9 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.ramdiskPath = tempfile.gettempdir()
         defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
         defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
+        defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")
+        defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
+        defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
 
         os.environ['SDL_AUDIODRIVER'] = "disk"
         os.environ['SDL_DISKAUDIOFILE'] = str(self.SDL_AUDIO_FILE)
