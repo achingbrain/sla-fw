@@ -97,7 +97,8 @@ class PageDisplayUsage(Page):
         if self.palette:
             image.putpalette(self.palette)
         #endif
-        image.save(filename)
+        flipped = image.transpose(Image.FLIP_LEFT_RIGHT)
+        flipped.save(filename)
     #enddef
 
 
