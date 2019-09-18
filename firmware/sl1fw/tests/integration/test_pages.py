@@ -163,6 +163,11 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.waitPage("wait", timeout_sec=30)
         self.waitPage("wait", timeout_sec=30)
         self.waitPage("printstart", timeout_sec=30)
+        self.press("change")
+        self.waitPage("change")
+        self.press("expossubsecond")
+        self.press("back")
+        self.waitPage("printstart")
         self.press("cont")
         self.waitPage("wait", timeout_sec=30)
         self.waitPage("print", timeout_sec=30)  # Actual printing
