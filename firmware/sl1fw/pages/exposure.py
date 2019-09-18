@@ -29,10 +29,11 @@ class PageExposure(Page):
 
 
     def show(self):
-        self.expTime = self.display.config.expTime
-        self.expTimeFirst = self.display.config.expTimeFirst
-        if self.display.config.calibrateRegions:
-            self.expTimeCalibrate = self.display.config.calibrateTime
+        config = self.display.expo.config
+        self.expTime = config.expTime
+        self.expTimeFirst = config.expTimeFirst
+        if config.calibrateRegions:
+            self.expTimeCalibrate = config.calibrateTime
         else:
             self.expTimeCalibrate = None
         #endif
@@ -46,10 +47,11 @@ class PageExposure(Page):
 
 
     def backButtonRelease(self):
-        self.display.config.expTime = self.expTime
-        self.display.config.expTimeFirst = self.expTimeFirst
+        config = self.display.expo.config
+        config.expTime = self.expTime
+        config.expTimeFirst = self.expTimeFirst
         if self.expTimeCalibrate:
-            self.display.config.calibrateTime = self.expTimeCalibrate
+            config.calibrateTime = self.expTimeCalibrate
         #endif
         return super(PageExposure, self).backButtonRelease()
     #endif
