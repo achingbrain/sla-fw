@@ -90,17 +90,18 @@ class PageNetUpdate(Page):
             return "error"
         #endif
 
-        self.display.wizardData.update(
-                osVersion = distro.version(),
-                a64SerialNo = self.display.hw.cpuSerialNo,
-                mcSerialNo = self.display.hw.mcSerialNo,
-                mcFwVersion = self.display.hw.mcFwVersion,
-                mcBoardRev = self.display.hw.mcBoardRevision,
-                towerHeight = self.display.hwConfig.towerHeight,
-                tiltHeight = self.display.hwConfig.tiltHeight,
-                uvPwm = self.display.hwConfig.uvPwm,
-                )
-        if not self.writeToFactory(self.display.wizardData.writeFile):
+        writer = self.display.wizardData.get_writer()
+        writer.osVersion = distro.version()
+        writer.a64SerialNo = self.display.hw.cpuSerialNo
+        writer.mcSerialNo = self.display.hw.mcSerialNo
+        writer.mcFwVersion = self.display.hw.mcFwVersion
+        writer.mcBoardRev = self.display.hw.mcBoardRevision
+        writer.towerHeight = self.display.hwConfig.towerHeight
+        writer.tiltHeight = self.display.hwConfig.tiltHeight
+        writer.uvPwm = self.display.hwConfig.uvPwm
+        writer.commit()
+
+        if not self.writeToFactory(self.display.wizardData.write()):
             self.display.pages['error'].setParams(
                 text = _("!!! Failed to save factory defaults !!!"))
             return "error"

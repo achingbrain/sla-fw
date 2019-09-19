@@ -11,14 +11,12 @@ from time import sleep, time
 from gettext import ngettext
 from typing import Optional
 
-from sl1fw import defines, libConfig
-from sl1fw.libConfig import HwConfig
+from sl1fw import defines
+from sl1fw.libConfig import HwConfig, TomlConfigStats, PrintConfig
 from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libPages import PageWait
 from sl1fw.libScreen import Screen
-
-from sl1fw.libConfig import TomlConfigStats
 
 
 class ExposureThread(threading.Thread):
@@ -564,7 +562,7 @@ class Exposure(object):
 
 
     def parseProject(self, project_file: str) -> Optional[str]:
-        self.config = libConfig.PrintConfig(self.hwConfig)
+        self.config = PrintConfig(self.hwConfig)
         self.config.parseFile(project_file)
         return self.config.zipError
     #enddef

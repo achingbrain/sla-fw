@@ -4,14 +4,15 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import re
-from time import sleep
 from gettext import ngettext
+from time import sleep
+
 import pygame
 
 from sl1fw import defines
-from sl1fw import libConfig
-from sl1fw.pages import page
+from sl1fw.libConfig import ConfigException
 from sl1fw.libPages import Page, PageWait
+from sl1fw.pages import page
 
 
 @page
@@ -165,10 +166,9 @@ class PageWizardInit(Page):
                 return "error"
             #endif
         #endfor
-        self.display.wizardData.update(
-                wizardTempA64 = A64temperature,
-                wizardTempUvInit = temperatures[0],
-                wizardTempAmbient = temperatures[1])
+        self.display.wizardData.wizardTempA64 = A64temperature
+        self.display.wizardData.wizardTempUvInit = temperatures[0]
+        self.display.wizardData.wizardTempAmbient = temperatures[1]
         self.display.hw.powerLed("normal")
 
         return "fantest"
@@ -270,10 +270,9 @@ class PageWizardUvLed(Page):
             row2.append(int(volts[1] * 1000))
             row3.append(int(volts[2] * 1000))
         #endfor
-        self.display.wizardData.update(
-                wizardUvVoltageRow1 = row1,
-                wizardUvVoltageRow2 = row2,
-                wizardUvVoltageRow3 = row3)
+        self.display.wizardData.wizardUvVoltageRow1 = row1
+        self.display.wizardData.wizardUvVoltageRow2 = row2
+        self.display.wizardData.wizardUvVoltageRow3 = row3
 
         # UV LED temperature check
         pageWait.showItems(line1 = _("UV LED warmup check"))
@@ -292,7 +291,7 @@ class PageWizardUvLed(Page):
                 return "error"
             #endif
         #endfor
-        self.display.wizardData.update(wizardTempUvWarm = temp)
+        self.display.wizardData.wizardTempUvWarm = temp
         self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
         self.display.hw.powerLed("normal")
 
@@ -448,7 +447,7 @@ class PageWizardResinSensor(Page):
                     "Measured %d ml.") % volume)
             return "error"
         #endif
-        self.display.wizardData.update(wizardResinVolume = volume)
+        self.display.wizardData.wizardResinVolume = volume
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait()
         while self.display.hw.isTowerMoving():
@@ -457,8 +456,11 @@ class PageWizardResinSensor(Page):
         self.display.hw.motorsRelease()
         self.display.hw.stopFans()
 
-        self.display.hwConfig.update(showWizard = False)
-        if not self.display.hwConfig.writeFile():
+        self.display.hwConfig.showWizard = False
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Failed to save wizard configuration")
             self.display.pages['error'].setParams(
                 text = _("Cannot save wizard configuration"))
             return "error"
@@ -466,8 +468,8 @@ class PageWizardResinSensor(Page):
 
         # store data only in factory mode or after first successful run on kit
         if self.display.hwConfig.factoryMode or (self.display.hw.isKit and not self.display.wizardData.wizardDone):
-            self.display.wizardData.update(wizardDone = 1)
-            if not self.writeToFactory(self.display.wizardData.writeFile):
+            self.display.wizardData.wizardDone = 1
+            if not self.writeToFactory(self.display.wizardData.write):
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save factory defaults !!!"))
                 return "error"
@@ -635,8 +637,11 @@ class PageWizardSkip(Page):
 
     def yesButtonRelease(self):
         self.allOff()
-        self.display.hwConfig.update(showWizard = False)
-        if not self.display.hwConfig.writeFile():
+        self.display.hwConfig.showWizard = False
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Failed to save wizard configuration")
             self.display.pages['error'].setParams(
                 text = _("Cannot save wizard configuration"))
             return "error"

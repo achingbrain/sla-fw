@@ -14,6 +14,7 @@ import distro
 
 from sl1fw import defines
 from sl1fw import libConfig
+from sl1fw.libConfig import ConfigException
 
 
 class Page(object):
@@ -238,19 +239,11 @@ class Page(object):
 
 
     def saveDefaultsFile(self):
-        defaults = {
-            'fan1rpm': self.display.hwConfig.fan1Rpm,
-            'fan2rpm': self.display.hwConfig.fan2Rpm,
-            'fan3rpm': self.display.hwConfig.fan3Rpm,
-            'uvpwm': self.display.hwConfig.uvPwm,
-            'towersensitivity': self.display.hwConfig.towerSensitivity,
-        }
-
-        if not libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).save(defaults):
-            self.logger.error("Defaults was not saved!")
-        #endif
-
-        self.display.hwConfig._defaults = defaults
+        try:
+            self.display.hwConfig.write_factory()
+        except ConfigException:
+            self.logger.exception("Defaults was not saved!")
+        #endtry
     #enddef
 
 

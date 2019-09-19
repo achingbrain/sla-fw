@@ -5,6 +5,7 @@
 import os
 
 from sl1fw import defines
+from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.libPages import Page, PageWait
 from sl1fw import libConfig
@@ -65,13 +66,15 @@ class PageTowerSensitivity(Page):
         if tries == 0:
             self.display.hwConfig.towerSensitivity = towerSensitivity
             self.display.hw.setTowerPosition(self.display.hw._towerEnd)
-            self.display.wizardData.update(
-                towerSensitivity = self.display.hwConfig.towerSensitivity)
-            self.display.hwConfig.update(
-                towerSensitivity = self.display.hwConfig.towerSensitivity)
-            if not self.display.hwConfig.writeFile():
+            self.display.wizardData.towerSensitivity = self.display.hwConfig.towerSensitivity
+            self.display.hwConfig.towerSensitivity = self.display.hwConfig.towerSensitivity
+
+            try:
+                self.display.hwConfig.write()
+            except ConfigException:
+                self.logger.exception("Cannot save wizard configuration")
                 self.display.pages['error'].setParams(
-                    text = _("Cannot save wizard configuration"))
+                    text=_("Cannot save wizard configuration"))
                 return "error"
             #endif
         #endif

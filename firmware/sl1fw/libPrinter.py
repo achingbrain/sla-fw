@@ -16,6 +16,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.printer0 import Printer0
+from sl1fw.libConfig import HwConfig, ConfigException
 
 
 class Printer(object):
@@ -30,8 +31,14 @@ class Printer(object):
         self.logger.info("SL1 firmware initializing")
 
         self.logger.debug("Initializing hwconfig")
-        factory_defaults = libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).load()
-        self.hwConfig = libConfig.HwConfig(defines.hwConfigFile, defaults = factory_defaults)
+        self.hwConfig = HwConfig(Path(defines.hwConfigFile),
+                                 factory_file_path=Path(defines.hwConfigFactoryDefaultsFile),
+                                 is_master=True)
+        try:
+            self.hwConfig.read_file()
+        except ConfigException:
+            self.logger.exception("Failed to read configuration files")
+        #endtry
         self.hwConfig.logAllItems()
 
         self.logger.debug("Initializing libHardware")

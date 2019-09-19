@@ -4,6 +4,7 @@
 
 import os, sys
 import logging
+from pathlib import Path
 from time import sleep
 from time import monotonic
 from sl1fw import defines
@@ -27,7 +28,7 @@ class Display(object):
         self.inet = inet
         self.screen = screen
         self.printer0 = printer0
-        self.wizardData = WizardData(defines.wizardDataFile)
+        self.wizardData = WizardData(Path(defines.wizardDataFile), is_master=True)
         self.expo = None
 
         # Instantiate pages

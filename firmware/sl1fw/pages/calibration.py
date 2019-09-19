@@ -6,8 +6,9 @@
 from time import time, sleep
 
 from sl1fw import defines
-from sl1fw.pages import page
+from sl1fw.libConfig import ConfigException
 from sl1fw.libPages import Page, PageWait
+from sl1fw.pages import page
 from sl1fw.pages.move import MovePage
 
 
@@ -526,17 +527,20 @@ class PageCalibration10(Page):
         self.display.hw.setTiltProfile('homingFast')
         self.display.hw.tiltUpWait()
         self.display.hw.motorsHold()
-        self.display.hwConfig.update(
-            towerHeight = self.display.hwConfig.towerHeight,
-            tiltHeight = self.display.hwConfig.tiltHeight,
-            tiltFastTime = tiltFastTime,
-            tiltSlowTime = tiltSlowTime,
-            calibrated = True)
-        if not self.display.hwConfig.writeFile():
+        writer = self.display.hwConfig.get_writer()
+        writer.towerHeight = self.display.hwConfig.towerHeight
+        writer.tiltHeight = self.display.hwConfig.tiltHeight
+        writer.tiltFastTime = tiltFastTime
+        writer.tiltSlowTime = tiltSlowTime
+        writer.calibrated = True
+        try:
+            writer.commit()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text=_("Cannot save configuration"))
             return "error"
-        #endif
+        #endtry
         self.display.hw.powerLed("normal")
         return "calibration11"
     #endif

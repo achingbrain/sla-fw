@@ -4,6 +4,7 @@
 
 from time import sleep
 
+from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.libPages import Page, PageWait
 
@@ -176,12 +177,15 @@ class PageUnboxing4(Page):
 
 
     def contButtonRelease(self):
-        self.display.hwConfig.update(showUnboxing = False)
-        if not self.display.hwConfig.writeFile():
+        self.display.hwConfig.showUnboxing = False
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text=_("Cannot save configuration"))
             return "error"
-        #endif
+        #endtry
         return "unboxing5"
     #enddef
 
@@ -260,12 +264,15 @@ class PageUnboxingConfirm(Page):
 
 
     def yesButtonRelease(self):
-        self.display.hwConfig.update(showUnboxing = False)
-        if not self.display.hwConfig.writeFile():
+        self.display.hwConfig.showUnboxing = False
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text=_("Cannot save configuration"))
             return "error"
-        #endif
+        # endtry
         return "_BACK_"
     #enddef
 

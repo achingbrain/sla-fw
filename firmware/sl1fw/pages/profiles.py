@@ -7,6 +7,7 @@ import json
 from copy import deepcopy
 
 from sl1fw import defines
+from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.libPages import Page
 
@@ -434,16 +435,18 @@ class PageTuneTilt(ProfilesPage):
 
     def button4ButtonRelease(self):
         ''' save '''
-        self.display.hwConfig.update(
-            tiltDownLargeFill = self.profiles[0],
-            tiltDownSmallFill = self.profiles[1],
-            tiltUp = self.profiles[2],
-        )
-        if not self.display.hwConfig.writeFile():
+        writer = self.display.hwConfig.get_writer()
+        writer.tiltDownLargeFill = self.profiles[0]
+        writer.tiltDownSmallFill = self.profiles[1]
+        writer.tiltUp = self.profiles[2]
+        try:
+            writer.commit()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text=_("Cannot save configuration"))
             return "error"
-        #endif
+        # endtry
         return super(PageTuneTilt, self).backButtonRelease()
     #enddef
 

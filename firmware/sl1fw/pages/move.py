@@ -1,7 +1,7 @@
 # part of SL1 firmware
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
-
+from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.libPages import Page
 
@@ -249,12 +249,15 @@ class PageTowerOffset(MovePage):
 
 
     def okButtonRelease(self):
-        self.display.hwConfig.update(calibTowerOffset = self.tmpTowerOffset)
-        if not self.display.hwConfig.writeFile():
+        self.display.hwConfig.calibTowerOffset = self.tmpTowerOffset
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text=_("Cannot save configuration"))
             return "error"
-        #endif
+        #endtry
         return "_BACK_"
     #enddef
 

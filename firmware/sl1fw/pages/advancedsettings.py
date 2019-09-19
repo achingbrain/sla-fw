@@ -3,7 +3,7 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 from sl1fw import defines
-from sl1fw import libConfig
+from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.libPages import Page
 
@@ -30,10 +30,10 @@ def item_updater(str_func = None, minLimit = None):
 #enddef
 
 
-def value_saturate(min, max):
+def value_saturate(minimum, maximum):
     def new_decorator(func):
         def new_func(self, value):
-            if not min <= value <= max:
+            if not minimum <= value <= maximum:
                 self.display.hw.beepAlarm(1)
                 return
             else:
@@ -191,14 +191,14 @@ class PageAdvancedSettings(Page):
 
     def show(self):
         if self.configwrapper is None or not self.confirmReturnPending:
-            self.configwrapper = libConfig.ConfigHelper(self.display.hwConfig)
+            self.configwrapper = self.display.hwConfig.get_writer()
         else:
             self.confirmReturnPending = False
         #endif
         self._calibTowerOffset_mm = None
 
         self.items.update({
-            'showAdmin': self.display.show_admin, # TODO: Remove once client uses show_admin
+            'showAdmin': self.display.show_admin,  # TODO: Remove once client uses show_admin
             'show_admin': self.display.show_admin,
             'tilt_sensitivity': self.tilt_sensitivity,
             'tower_sensitivity': self.tower_sensitivity,
@@ -435,7 +435,10 @@ class PageAdvancedSettings(Page):
             if self.display.doMenu("yesno"):
                 # save changes
                 sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
-                if not self.configwrapper.commit():
+                try:
+                    self.configwrapper.commit()
+                except ConfigException:
+                    self.logger.exception("Failed to save configuration")
                     self.display.pages['error'].setParams(
                         text = _("Cannot save configuration"))
                     return "error"

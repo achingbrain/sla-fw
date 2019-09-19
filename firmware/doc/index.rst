@@ -10,6 +10,14 @@ Welcome to a64-fw's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+Configuration
+=============
+.. toctree::
+   :maxdepth: 2
+
+   printconfig
+   hwconfig
+
 API
 ===
 .. toctree::

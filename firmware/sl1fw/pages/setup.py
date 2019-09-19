@@ -5,6 +5,7 @@
 import os
 
 from sl1fw import defines
+from sl1fw.libConfig import ConfigException
 from sl1fw.libPages import Page
 from sl1fw.pages import page
 
@@ -49,11 +50,14 @@ class PageSetup(Page):
 
         config_file = os.path.join(savepath, defines.hwConfigFileName)
 
-        if not self.display.hwConfig.writeFile(config_file):
+        try:
+            self.display.hwConfig.write(file_path=config_file)
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
-        #endif
+        #endtry
     #enddef
 
 
@@ -86,11 +90,14 @@ class PageSetup(Page):
         #endtry
 
         # TODO: Does import also means also save? There is special button for it.
-        if not self.display.hwConfig.writeFile(defines.hwConfigFile):
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text=_("Cannot save imported configuration"))
+                text = _("Cannot save configuration"))
             return "error"
-        #endif
+        #endtry
 
         self.show()
     #enddef
@@ -98,12 +105,15 @@ class PageSetup(Page):
 
     def button4ButtonRelease(self):
         ''' save '''
-        self.display.hwConfig.update(**self.changed)
-        if not self.display.hwConfig.writeFile():
+        try:
+            print(self.changed)
+            self.display.hwConfig.get_writer().commit_dict(self.changed)
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text=_("Cannot save configuration"))
             return "error"
-        #endif
+        # endtry
         return super(PageSetup, self).backButtonRelease()
     #endif
 #enddef

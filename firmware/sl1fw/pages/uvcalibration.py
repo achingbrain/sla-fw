@@ -8,6 +8,7 @@ from time import sleep
 from time import monotonic
 
 from sl1fw import defines
+from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.libPages import Page, PageWait
 
@@ -275,8 +276,11 @@ class PageUvMeter(PageUvMeterShow):
                 return "error"
             #endif
 
-            self.display.wizardData.update(**data)
-            self.display.wizardData.update(uvFoundPwm = realPwm)
+            writer = self.display.wizardData.get_writer()
+            writer.update(data)
+            writer.uvFoundPwm = realPwm
+            writer.commit()
+
             self.display.screen.getImgBlack()
             self.finalTest = True
             self.lastCallback = monotonic()
@@ -336,12 +340,15 @@ class PageUvCalibrationConfirm(Page):
 
 
     def yesButtonRelease(self):
-        self.display.hwConfig.update(uvPwm = self.display.wizardData.uvFoundPwm)
-        if not self.display.hwConfig.writeFile():
+        self.display.hwConfig.uvPwm = self.display.wizardData.uvFoundPwm
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text=_("Cannot save configuration"))
             return "error"
-        #endif
+        #endtry
         if not self.writeToFactory(self.writeAllDefaults):
             self.display.pages['error'].setParams(
                 text = _("!!! Failed to save factory defaults !!!"))
@@ -353,7 +360,7 @@ class PageUvCalibrationConfirm(Page):
 
     def writeAllDefaults(self):
         self.saveDefaultsFile()
-        self.display.wizardData.writeFile()
+        self.display.wizardData.write()
     #enddef
 
 

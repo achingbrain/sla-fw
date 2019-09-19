@@ -8,6 +8,7 @@ import pydbus
 
 from sl1fw import defines
 from sl1fw import libConfig
+from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.libPages import Page, PageWait
 
@@ -38,8 +39,11 @@ class PageFactoryReset(Page):
         pageWait.show()
 
         inFactoryMode = self.display.hwConfig.factoryMode
-        factory_defaults = libConfig.TomlConfig(defines.hwConfigFactoryDefaultsFile).load()
-        if not self.display.hwConfig.reset(defaults=factory_defaults):
+        try:
+            self.display.hwConfig.factory_reset()
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Failed to do factory reset on config")
             self.display.pages['error'].setParams(
                 text=_("Cannot save factory defaults configuration"))
             return "error"

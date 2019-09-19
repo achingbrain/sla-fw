@@ -3,8 +3,9 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 from sl1fw import defines
-from sl1fw.pages import page
+from sl1fw.libConfig import ConfigException
 from sl1fw.libPages import Page
+from sl1fw.pages import page
 
 
 @page
@@ -121,19 +122,20 @@ class PageFansLeds(Page):
 
 
     def reset_to_defaults(self):
-        self.display.hwConfig.update(
-            uvCurrent = None,   # remove old value too
-            uvPwm = None,
-            fan1Rpm = None,
-            fan2Rpm = None,
-            fan3Rpm = None,
-        )
+        del self.display.hwConfig.uvCurrent   # remove old value too
+        del self.display.hwConfig.uvPwm
+        del self.display.hwConfig.fan1Rpm
+        del self.display.hwConfig.fan2Rpm
+        del self.display.hwConfig.fan3Rpm
         self._reset_hw_values()
-        if not self.display.hwConfig.writeFile():
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
                 text = _("Cannot save configuration"))
             return "error"
-        #endif
+        #endtry
         return "_BACK_"
     #enddef
 
@@ -141,7 +143,7 @@ class PageFansLeds(Page):
     def _update_config(self):
         # filter only wanted items
         filtered = { k : v for k, v in [t for t in self.changed.items() if t[0] in self.valuesToSave] }
-        self.display.hwConfig.update(**filtered)
+        self.display.hwConfig.get_writer().commit_dict(filtered)
     #enddef
 
 
@@ -149,11 +151,14 @@ class PageFansLeds(Page):
         ''' save '''
         self.display.hw.saveUvStatistics()
         self._update_config()
-        if not self.display.hwConfig.writeFile():
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text=_("Cannot save configuration"))
             return "error"
-        #endif
+        # endtry
         return super(PageFansLeds, self).backButtonRelease()
     #endif
 
