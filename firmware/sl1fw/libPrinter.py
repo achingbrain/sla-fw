@@ -4,6 +4,7 @@
 
 import os
 import logging
+from pathlib import Path
 from time import sleep, monotonic
 from pydbus import SystemBus
 from gi.repository import GLib
@@ -149,6 +150,12 @@ class Printer(object):
                     if not self.hwConfig.defaultsSet() and not self.hw.isKit:
                         self.display.pages['error'].setParams(
                             text=_("Failed to load fans and LEDs factory calibration."))
+                        self.display.doMenu("error")
+                    #endif
+
+                    if self.hwConfig.factoryMode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
+                        self.display.pages['error'].setParams(
+                            text=_("Examples (any projects) are missing in the user storage."))
                         self.display.doMenu("error")
                     #endif
 
