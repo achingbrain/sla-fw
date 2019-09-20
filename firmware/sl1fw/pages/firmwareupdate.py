@@ -2,6 +2,7 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
+import distro
 import pydbus
 import json
 from time import sleep
@@ -31,10 +32,10 @@ class PageFirmwareUpdate(Page):
         try:
             pageWait = PageWait(self.display, line1=_("Downloading firmware list"))
             pageWait.show()
-            query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
+            query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + distro.version()
             self.display.inet.download_url(query_url,
                     defines.firmwareListTemp,
-                    self.display.hwConfig.os.versionId,
+                    distro.version(),
                     self.display.hw.cpuSerialNo,
                     page=pageWait,
                     timeout_sec=3)
@@ -58,7 +59,7 @@ class PageFirmwareUpdate(Page):
                 if fw['branch'] != "stable":
                     continue
 
-                if fw['version'] == self.display.hwConfig.os.versionId:
+                if fw['version'] == distro.version():
                     continue
 
                 fw_files.append(fw['url'])
@@ -122,7 +123,7 @@ class PageFirmwareUpdate(Page):
             pageWait.show()
             self.display.inet.download_url(fw_url,
                     defines.firmwareTempFile,
-                    self.display.hwConfig.os.versionId,
+                    distro.version(),
                     self.display.hw.cpuSerialNo,
                     page=pageWait)
         #endtry

@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import tarfile
 import json
+import distro
 import paho.mqtt.publish as mqtt
 
 from sl1fw import defines
@@ -36,10 +37,10 @@ class PageNetUpdate(Page):
         try:
             pageWait = PageWait(self.display, line1=_("Downloading firmware list"))
             pageWait.show()
-            query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + self.display.hwConfig.os.versionId
+            query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + distro.version()
             self.display.inet.download_url(query_url,
                     defines.firmwareListTemp,
-                    self.display.hwConfig.os.versionId,
+                    distro.version(),
                     self.display.hw.cpuSerialNo,
                     page=pageWait,
                     timeout_sec=5)
@@ -90,7 +91,7 @@ class PageNetUpdate(Page):
         #endif
 
         self.display.wizardData.update(
-                osVersion = self.display.hwConfig.os.versionId,
+                osVersion = distro.version(),
                 a64SerialNo = self.display.hw.cpuSerialNo,
                 mcSerialNo = self.display.hw.mcSerialNo,
                 mcFwVersion = self.display.hw.mcFwVersion,
@@ -154,7 +155,7 @@ class PageNetUpdate(Page):
                 pageWait.show()
                 self.display.inet.download_url(defines.examplesURL,
                         archive.name,
-                        self.display.hwConfig.os.versionId,
+                        distro.version(),
                         self.display.hw.cpuSerialNo,
                         page=pageWait)
 
