@@ -17,6 +17,7 @@ mediaRootPath = "/run/media/root"
 configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
+loggingConfig = os.path.join(configDir, "loggerConfig.json")
 hwConfigFactoryDefaultsFile = os.path.join(factoryMountPoint, "hardware.toml")
 wizardDataFile = os.path.join(factoryMountPoint, "wizardData.cfg")  # TODO cfg->toml
 livePreviewImage = os.path.join(ramdiskPath, "live.png")

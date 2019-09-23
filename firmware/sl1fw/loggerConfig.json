@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "formatters": {
+        "sl1fw": {
+            "format": "%(levelname)s - %(name)s - %(message)s"
+        }
+    },
+
+    "handlers": {
+        "journald": {
+            "class": "systemd.journal.JournalHandler",
+            "formatter": "sl1fw",
+            "SYSLOG_IDENTIFIER": "SL1FW"
+        }
+    },
+
+    "root": {
+        "level": "INFO",
+        "handlers": ["journald"]
+    }
+}

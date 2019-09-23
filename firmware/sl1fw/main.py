@@ -5,18 +5,47 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
+import json
 import logging
-from systemd.journal import JournalHandler
+from logging.config import dictConfig
 import gettext
 import builtins as builtins
 
 from sl1fw import defines
 
-handler = JournalHandler(SYSLOG_IDENTIFIER = 'SL1FW')
-handler.setFormatter(logging.Formatter("%(levelname)s - %(name)s - %(message)s"))
-logger = logging.getLogger('')
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+try:
+    with open(defines.loggingConfig, 'r') as f:
+        logDict = json.load(f)
+    #endwith
+except:
+    logDict = {
+            "hardcoded": True,
+            "version": 1,
+            "formatters": {
+                "sl1fw": {
+                    "format": "%(levelname)s - %(name)s - %(message)s"
+                    }
+                },
+            "handlers": {
+                "journald": {
+                    "class": "systemd.journal.JournalHandler",
+                    "formatter": "sl1fw",
+                    "SYSLOG_IDENTIFIER": "SL1FW"
+                    }
+                },
+            "root": {
+                "level": "INFO",
+                "handlers": ["journald"]
+                }
+            }
+#endtry
+
+dictConfig(logDict)
+logger = logging.getLogger()
+
+if logDict.get("hardcoded", False):
+    logger.warning("Failed to load logger settings, using hardcoded variant")
+#endif
 
 langs = dict()
 

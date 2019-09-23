@@ -15,6 +15,7 @@ data_files = [
     ('/usr/share/sl1fw/scripts', glob('sl1fw/scripts/*')),
     ('/usr/share/sl1fw/multimedia', glob('sl1fw/multimedia/*')),
     ('/etc/sl1fw', ['sl1fw/hardware.cfg']),
+    ('/etc/sl1fw', ['sl1fw/loggerConfig.json']),
     ('/usr/lib/systemd/system', ['systemd/sl1fw.service']),
     ('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']),
     ('/etc/nginx/sites-available', ['nginx/sl1fw']),
@@ -30,7 +31,7 @@ for root, dirs, files in walk('sl1fw/intranet'):
 
 setup(
     name="sl1fw",
-    version="0.1",
+    version="2019.23.09",
     packages=find_packages(exclude=["sl1fw.tests"]),
     scripts=['sl1fw/main.py'],
     package_data={'sl1fw': ['data/*', 'locales/*/LC_MESSAGES/*.mo']},
