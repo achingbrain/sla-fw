@@ -105,7 +105,7 @@ class FileConfig(object):
             lowerkeys = dict()
             for key,val in kwargs.items():
                 if isinstance(val, str):
-                     raise ValueError(f"Passed string value to config update: {key}: {val}")
+                     self._logger.warning(f"Passed string value to config update: {key}: {val}")
                 #endif
                 lowerkey = key.lower()
                 if val is None:
