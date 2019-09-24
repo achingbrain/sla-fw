@@ -608,7 +608,7 @@ class TomlConfig(object):
         except FileNotFoundError:
             self.logger.warning("File '%s' not found", self.filename)
             data = {}
-        except:
+        except Exception:
             self.logger.exception("Failed to load toml file")
             data = {}
         #endtry
@@ -621,7 +621,7 @@ class TomlConfig(object):
             with open(self.filename, "w") as f:
                 toml.dump(data, f)
             #endwith
-        except:
+        except Exception:
             self.logger.exception("Failed to save toml file")
             return False
         #endtry

@@ -72,7 +72,7 @@ class SocketServer(multiprocessing.Process):
 
 
     def formatMessage(self, data):
-        self.logger.debug("data: '%s'", str(data))
+        #self.logger.debug("data: '%s'", str(data))
         self.newClientData = data
         return data
     #enddef
@@ -111,8 +111,8 @@ class SocketServer(multiprocessing.Process):
     def _onMessageReceived(self, client, server, message):
         try:
             if client:
-                self.logger.debug("Message from client [%d]:%s:%d - '%s'",
-                        client['id'], client['address'][0], client['address'][1], str(message))
+                #self.logger.debug("Message from client [%d]:%s:%d - '%s'",
+                #        client['id'], client['address'][0], client['address'][1], str(message))
                 if self.events:
                     self.events.put(json.loads(self.receiveMessage(message)))
                 else:

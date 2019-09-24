@@ -61,7 +61,7 @@ class PagePrint(Page):
         time_elapsed_min = int(round((time() - self.display.expo.printStartTime) / 60))
         positionMM = calcMM(expo.position)
         percent = int(100 * (self.lastLayer-1) / config.totalLayers)
-        self.logger.info("Layer: %d/%d  Height: %.3f/%.3f mm  Elapsed[min]: %d  Remain[min]: %d  Percent: %d",
+        self.logger.info("Layer: %04d/%04d  Height [mm]: %.3f/%.3f  Elapsed [min]: %d  Remain [min]: %d  Percent: %d",
                 self.lastLayer, config.totalLayers, positionMM,
                 self.display.expo.totalHeight, time_elapsed_min, time_remain_min, percent)
 

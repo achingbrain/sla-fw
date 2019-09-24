@@ -1289,7 +1289,7 @@ class Hardware(object):
             raise ValueError(f"TEMPs count not match! ({temps})")
         #endif
         if logTemps:
-            self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
+            self.logger.debug("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
         #endif
         return temps
     #enddef

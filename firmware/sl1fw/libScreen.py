@@ -343,8 +343,10 @@ class ScreenServer(multiprocessing.Process):
                 savedData = npzfile['display_usage']
                 self.usage += savedData
             #endwith
-        except Exception as e:
-            self.logger.exception("load display usage failed")
+        except FileNotFoundError:
+            self.logger.warning("File '%s' not found", defines.displayUsageData)
+        except Exception:
+            self.logger.exception("Load display usage failed")
         #endtry
         numpy.savez_compressed(defines.displayUsageData, display_usage = self.usage)
     #enddef

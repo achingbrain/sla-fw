@@ -76,7 +76,6 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.assertEqual(self.printer.printer0.serial_number, "CZPX0819X009XC00151")
         self.assertGreater(len(self.printer.printer0.system_name), 3)
         self.assertEqual(type(self.printer.printer0.system_name), str)
-        self.assertGreater(len(self.printer.printer0.system_version), 3)
         self.assertEqual(type(self.printer.printer0.system_version), str)
         self.assertEqual(self.printer.printer0.fans, {'fan0_rpm': 0, 'fan1_rpm': 0, 'fan2_rpm': 0})
         self.assertEqual(self.printer.printer0.temps,

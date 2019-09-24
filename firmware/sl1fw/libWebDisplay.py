@@ -23,7 +23,7 @@ class WebDisplayServer(SocketServer):
 
 
     def formatMessage(self, data):
-        self.logger.debug("data: '%s'", str(data))
+        #self.logger.debug("data: '%s'", str(data))
         output = dict()
 
         try:

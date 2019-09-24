@@ -77,7 +77,7 @@ class Printer(object):
         self.eventThread = threading.Thread(target=self.loopThread)
         self.inet.register_events()
 
-        self.logger.info(f"SL1 firmware initialized in {monotonic() - init_time}")
+        self.logger.debug(f"SL1 firmware initialized in {monotonic() - init_time}")
     #endclass
 
 
@@ -123,7 +123,7 @@ class Printer(object):
             self.admin_check = Admin_check(self.display, self.inet)
         #endif
 
-        self.logger.info(f"SL1 firmware started in {monotonic() - start_time} seconds")
+        self.logger.debug(f"SL1 firmware started in {monotonic() - start_time} seconds")
 
         from sl1fw.libExposure import Exposure
         firstRun = True

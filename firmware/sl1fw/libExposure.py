@@ -164,7 +164,7 @@ class ExposureThread(threading.Thread):
 
         self.expo.screen.getImgBlack()
         self.logger.debug("exposure done")
-        self.expo.hw.getMcTemperatures()
+        temperatures = self.expo.hw.getMcTemperatures()
 
         if picture is not None:
             self.expo.screen.preloadImg(
@@ -183,11 +183,11 @@ class ExposureThread(threading.Thread):
                 self.expo.slowLayers -= 1
             #endif
             if not self.expo.hw.tiltLayerDownWait(slowMove):
-                return (False, whitePixels)
+                return False, whitePixels, temperatures[0], temperatures[1]
             #endif
         #endif
 
-        return (True, whitePixels)
+        return True, whitePixels, temperatures[0], temperatures[1]
     #enddef
 
 
@@ -423,8 +423,8 @@ class ExposureThread(threading.Thread):
 
                 self.expo.actualLayer = i + 1
                 self.expo.position += step
-                self.logger.debug("LAYER %04d/%04d (%s)  steps: %d  position: %d time: %.3f  slowLayers: %d",
-                        self.expo.actualLayer, totalLayers, config.toPrint[i], step, self.expo.position, etime, self.expo.slowLayers)
+                self.logger.debug("LAYER %04d (%s)  steps: %d  position: %d  time: %.3f  slowLayers: %d",
+                        self.expo.actualLayer, config.toPrint[i], step, self.expo.position, etime, self.expo.slowLayers)
 
                 if i < 2:
                     overlayName = 'calibPad'
@@ -434,7 +434,7 @@ class ExposureThread(threading.Thread):
                     overlayName = None
                 #endif
 
-                (success, whitePixels) = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
+                success, whitePixels, uvTemp, AmbTemp = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                         self.expo.position + self.expo.hwConfig.calibTowerOffset,
                         etime,
                         overlayName,
@@ -451,7 +451,7 @@ class ExposureThread(threading.Thread):
 
                 # exposure second part too
                 if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
-                    (success, dummy) = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
+                    success, dummy, uvTemp, AmbTemp = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
                             self.expo.position + self.expo.hwConfig.calibTowerOffset,
                             etime,
                             overlayName,
@@ -464,6 +464,8 @@ class ExposureThread(threading.Thread):
                         break
                     #endif
                 #endif
+
+                self.logger.info("UV temperature [C]: %.1f  Ambient temperature [C]: %.1f", uvTemp, AmbTemp)
 
                 prevWhitePixels = whitePixels
                 wasStirring = False
