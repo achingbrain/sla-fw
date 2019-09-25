@@ -375,7 +375,7 @@ class HwConfig(FileConfig):
 
         # Fans & LEDs
         self.fan1Rpm = self._parseIntMinMax("fan1rpm", 1800, 500, 3000)
-        self.fan2Rpm = self._parseIntMinMax("fan2rpm", 4200, 500, 4200)
+        self.fan2Rpm = self._parseIntMinMax("fan2rpm", 3700, 500, 3700)
         self.fan3Rpm = self._parseIntMinMax("fan3rpm", 1000, 400, 5000)
         uvCurrent = self._parseFloatMinMax("uvcurrent", 700.8, 0.0, 800.0)
         self.uvPwm = self._parseIntMinMax("uvpwm", int(round(uvCurrent / 3.2)), 0, 250)

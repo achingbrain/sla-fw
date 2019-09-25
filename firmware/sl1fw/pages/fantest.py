@@ -36,8 +36,9 @@ class PageFanTest(Page):
         pageWait.show()
                 # TODO rafactoring needed -> fans object(s)
                         #fan1        fan2        fan3
-        fanLimits = [[1600, 2000], [3800, 4600], [800, 1200]]
+        fanDiff = 200
         hwConfig = libConfig.HwConfig()
+        fanLimits = [[hwConfig.fan1Rpm - fanDiff, hwConfig.fan1Rpm + fanDiff], [hwConfig.fan2Rpm - fanDiff, hwConfig.fan2Rpm + fanDiff], [hwConfig.fan3Rpm - fanDiff, hwConfig.fan3Rpm + fanDiff]]
         # TODO measure fans in range of values
         self.display.hw.setFansRpm({ 0 : hwConfig.fan1Rpm, 1 : hwConfig.fan2Rpm, 2 : hwConfig.fan3Rpm })
         self.display.hw.startFans()

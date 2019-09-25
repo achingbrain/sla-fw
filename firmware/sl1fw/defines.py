@@ -5,7 +5,7 @@
 import os
 import sl1fw
 
-reqMcVersion = "0.11.0"
+reqMcVersion = "0.11.3"
 
 factoryMountPoint = "/usr/share/factory/defaults"
 persistentStorage = "/var/sl1fw"
