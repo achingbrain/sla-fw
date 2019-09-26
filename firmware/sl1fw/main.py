@@ -4,48 +4,24 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import os
-import json
 import logging
-from logging.config import dictConfig
 import gettext
 import builtins as builtins
 
 from sl1fw import defines
+from sl1fw.logger_config import configure_log
 
-try:
-    with open(defines.loggingConfig, 'r') as f:
-        logDict = json.load(f)
-    #endwith
-except:
-    logDict = {
-            "hardcoded": True,
-            "version": 1,
-            "formatters": {
-                "sl1fw": {
-                    "format": "%(levelname)s - %(name)s - %(message)s"
-                    }
-                },
-            "handlers": {
-                "journald": {
-                    "class": "systemd.journal.JournalHandler",
-                    "formatter": "sl1fw",
-                    "SYSLOG_IDENTIFIER": "SL1FW"
-                    }
-                },
-            "root": {
-                "level": "INFO",
-                "handlers": ["journald"]
-                }
-            }
-#endtry
-
-dictConfig(logDict)
+log_from_config = configure_log()
 logger = logging.getLogger()
 
-if logDict.get("hardcoded", False):
-    logger.warning("Failed to load logger settings, using hardcoded variant")
+if log_from_config:
+    logger.info("Logging configuration read from configuration file")
+else:
+    logger.info("Embedded logger configuration was used")
 #endif
+
+logger.info("Logging set to level %s", logging.getLevelName(logger.level))
+
 
 langs = dict()
 

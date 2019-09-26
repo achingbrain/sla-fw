@@ -3,11 +3,12 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import json
+import logging
 
 from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.libPages import Page
-
+from sl1fw.logger_config import get_log_level, set_log_level
 
 @page
 class PageLogging(Page):
@@ -18,20 +19,11 @@ class PageLogging(Page):
         self.pageUI = "setup"
         self.pageTitle = N_("Logging")
         self.debugEnabled = False
-        self.loggingData = None
     #enddef
 
 
     def show(self):
-        try:
-            with open(defines.loggingConfig, "r") as f:
-                self.loggingData = json.load(f)
-            #endwith
-            self.debugEnabled = self.loggingData['root']['level'] == "DEBUG"
-        except:
-            self.logger.exception("Failed to load json file")
-            self.loggingData = None
-        #endtry
+        self.debugEnabled = get_log_level() == logging.DEBUG
 
         self.items.update({
             'label1g1' : _("Debug"),
@@ -54,18 +46,12 @@ class PageLogging(Page):
 
 
     def button4ButtonRelease(self):
-        if not self.loggingData:
-            self.display.pages['error'].setParams(text = _("Definitions are not loaded"))
-            return "error"
-        #endif
-        self.loggingData['root']['level'] = "DEBUG" if self.debugEnabled else "INFO"
         try:
-            with open(defines.loggingConfig, "w") as f:
-                json.dump(self.loggingData, f, indent=4)
-            #endwith
+            level = logging.DEBUG if self.debugEnabled else logging.INFO
+            set_log_level(level)
         except:
-            self.logger.exception("Failed to save json file")
-            self.display.pages['error'].setParams(text = _("Failed to save definitions file"))
+            self.logger.exception("Failed to set log level")
+            self.display.pages['error'].setParams(text = _("Failed to set log level"))
             return "error"
         #endtry
 

@@ -3,6 +3,8 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import os
+from pathlib import Path
+
 import sl1fw
 
 reqMcVersion = "0.11.3"
@@ -17,7 +19,7 @@ mediaRootPath = "/run/media/root"
 configDir = "/etc/sl1fw"
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = os.path.join(configDir, hwConfigFileName)
-loggingConfig = os.path.join(configDir, "loggerConfig.json")
+loggingConfig = Path(configDir) / "loggerConfig.json"
 hwConfigFactoryDefaultsFile = os.path.join(factoryMountPoint, "hardware.toml")
 wizardDataFile = os.path.join(factoryMountPoint, "wizardData.cfg")  # TODO cfg->toml
 livePreviewImage = os.path.join(ramdiskPath, "live.png")
