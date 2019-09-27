@@ -21,59 +21,11 @@ from sl1fw.libScreen import Screen
 
 class ExposureThread(threading.Thread):
 
-    def __init__(self, commands, expo, filename):
+    def __init__(self, commands, expo):
         super(ExposureThread, self).__init__()
         self.logger = logging.getLogger(__name__)
         self.commands = commands
         self.expo = expo
-
-        config = expo.config
-        self.calibAreas = None
-        areaMap = {
-                2 : (2,1),
-                4 : (2,2),
-                6 : (3,2),
-                8 : (4,2),
-                9 : (3,3),
-                }
-        if config.calibrateRegions:
-            if config.calibrateRegions not in areaMap:
-                self.logger.warning("bad value calibrateRegions (%d), calibrate mode disabled", config.calibrateRegions)
-            else:
-                divide = areaMap[config.calibrateRegions]
-
-                width, height = self.expo.screen.getResolution()
-
-                if width > height:
-                    x = 0
-                    y = 1
-                else:
-                    x = 1
-                    y = 0
-                #endif
-
-                stepW = width // divide[x]
-                stepH = height // divide[y]
-
-                self.calibAreas = list()
-                lw = 0
-                etime = config.expTime
-                for i in range(divide[x]):
-                    lh = 0
-                    for j in range(divide[y]):
-                        w = (i+1) * stepW
-                        h = (j+1) * stepH
-                        #self.logger.debug("%d,%d (%d,%d)", lw, lh, stepW, stepH)
-                        self.calibAreas.append(((lw, lh), (stepW, stepH), etime))
-                        etime += config.calibrateTime
-                        lh = h
-                    #endfor
-                    lw = w
-                #endfor
-
-                self.expo.screen.createCalibrationOverlay(areas = self.calibAreas, filename = filename, penetration = config.calibratePenetration)
-            #endif
-        #endif
     #enddef
 
 
@@ -108,23 +60,25 @@ class ExposureThread(threading.Thread):
             sleep(self.expo.hwConfig.stirringDelay / 10.0)
         #endif
 
-        if self.calibAreas is not None:
-            etime = exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2]
+        if self.expo.calibAreas:
+            etime = exposureTime + self.expo.calibAreas[-1]['time'] - self.expo.calibAreas[0]['time']
         else:
             etime = exposureTime
         #endif
-        self.expo.hw.getMcTemperatures()
+        if self.expo.hwConfig.tilt:
+            self.expo.hw.getMcTemperatures()
+        #endif
         self.logger.debug("exposure started")
         self.expo.display.actualPage.showItems(exposure = etime)
         whitePixels = self.expo.screen.blitImg(second = second)
 
         if self.expo.hwConfig.blinkExposure:
-            if self.calibAreas is not None:
-                etime = 1000 * (exposureTime + self.calibAreas[-1][2] - self.calibAreas[0][2])
+            if self.expo.calibAreas:
+                etime = 1000 * (exposureTime + self.expo.calibAreas[-1]['time'] - self.expo.calibAreas[0]['time'])
                 self.expo.hw.uvLed(True, etime)
 
-                for area in self.calibAreas:
-                    while etime > 1000 * (self.calibAreas[-1][2] - area[2]):
+                for area in self.expo.calibAreas:
+                    while etime > 1000 * (self.expo.calibAreas[-1]['time'] - area['time']):
                         sleep(0.005)
                         UVIsOn, etime = self.expo.hw.getUvLedState()
                         if not UVIsOn:
@@ -136,7 +90,7 @@ class ExposureThread(threading.Thread):
                         break
                     #endif
 
-                    self.expo.screen.fillArea(area = (area[0], area[1]))
+                    self.expo.screen.fillArea(area = area['rect'])
                     #self.logger.debug("blank area")
                 #endfor
             else:
@@ -149,12 +103,12 @@ class ExposureThread(threading.Thread):
             #endif
         else:
             sleep(exposureTime)
-            if self.calibAreas is not None:
-                lastArea = self.calibAreas[0]
-                for area in self.calibAreas[1:]:
-                    self.expo.screen.fillArea(area = (lastArea[0], lastArea[1]))
+            if self.expo.calibAreas:
+                lastArea = self.expo.calibAreas[0]
+                for area in self.expo.calibAreas[1:]:
+                    self.expo.screen.fillArea(area = lastArea['rect'])
                     #self.logger.debug("blank area")
-                    sleep(area[2] - lastArea[2])
+                    sleep(area['time'] - lastArea['time'])
                     lastArea = area
                 #endfor
             #endif
@@ -469,7 +423,7 @@ class ExposureThread(threading.Thread):
                 wasStirring = False
 
                 # /1000 - we want cm3 (=ml) not mm3
-                self.expo.resinCount += float(whitePixels * self.expo.pixelSize * self.expo.hwConfig.calcMM(step) / 1000)
+                self.expo.resinCount += float(whitePixels * defines.screenPixelSize ** 2 * self.expo.hwConfig.calcMM(step) / 1000)
                 self.logger.debug("resinCount: %f" % self.expo.resinCount)
 
                 seconds = time() - self.expo.printStartTime
@@ -538,7 +492,6 @@ class Exposure(object):
         self.display = display
         self.hw = hw
         self.screen = screen
-        self.pixelSize = self.hwConfig.pixelSize ** 2
         self.resinCount = 0.0
         self.resinVolume = None
         self.canceled = False
@@ -622,22 +575,31 @@ class Exposure(object):
     #enddef
 
 
-    def loadProject(self):
-        if not self.screen.openZip(filename = self.zipName):
-            return False
-        #endif
-        self.perPartes = self.screen.createMasks(perPartes = self.hwConfig.perPartes)
+    def startProjectLoading(self):
+        params = {
+                'filename' : self.zipName,
+                'toPrint' : self.config.toPrint,
+                'expTime' : self.config.expTime,
+                'calibrateRegions' : self.config.calibrateRegions,
+                'calibrateTime' : self.config.calibrateTime,
+                'calibratePenetration' : self.config.calibratePenetration,
+                'perPartes' : self.hwConfig.perPartes,
+                'whitePixelsThd' : self.hwConfig.whitePixelsThd,
+                'overlayName' : 'calibPad',
+                }
+        self.screen.startProject(params = params)
+        self.expoCommands = queue.Queue()
+        self.expoThread = ExposureThread(self.expoCommands, self)
+    #enddef
+
+
+    def collectProjectData(self):
         self.position = 0
         self.actualLayer = 0
-        self.expoCommands = queue.Queue()
-        self.screen.initOverlays()
-        self.expoThread = ExposureThread(self.expoCommands, self, self.config.toPrint[0])
-        self.screen.preloadImg(
-                filename = self.config.toPrint[0],
-                overlayName = 'calibPad',
-                whitePixelsThd = self.hwConfig.whitePixelsThd)
+        self.resinCount = 0.0
         self.slowLayers = self.config.layersSlow # TODO: Is this necessary?
-        return True
+        retcode, self.perPartes, self.calibAreas = self.screen.projectStatus()
+        return retcode
     #enddef
 
 

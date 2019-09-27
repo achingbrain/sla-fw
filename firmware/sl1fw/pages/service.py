@@ -83,6 +83,12 @@ class PageDisplayUsage(Page):
             return "error"
         #endif
 
+        if savedData.shape != ((defines.displayUsageSize[0], defines.displayUsageSize[2])):
+            self.logger.warning("Wrong saved data shape: %s", savedData.shape)
+            self.display.pages['error'].setParams(text = _("Wrong data format!"))
+            return "error"
+        #endif
+
         imagePath = os.path.join(defines.ramdiskPath, "displayhm.png")
         self.generateDisplayUsageHeatmap(imagePath, savedData)
         self.setItems(image_path = "file://%s" % imagePath)
@@ -97,8 +103,8 @@ class PageDisplayUsage(Page):
         if self.palette:
             image.putpalette(self.palette)
         #endif
-        flipped = image.transpose(Image.FLIP_LEFT_RIGHT)
-        flipped.save(filename)
+        trans = image.transpose(Image.ROTATE_270)
+        trans.save(filename)
     #enddef
 
 

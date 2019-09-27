@@ -39,7 +39,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigFile = self.HARDWARE_FILE
         defines.fbFile = str(self.FB_DEV_FILE)
-        defines.doFBSet = False
         defines.truePoweroff = False
         defines.internalProjectPath = str(self.SAMPLES_DIR)
         defines.ramdiskPath = tempfile.gettempdir()

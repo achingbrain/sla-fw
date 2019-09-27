@@ -147,7 +147,7 @@ class TestHardwareConfig(Sl1fwTestCase):
         super().__init__(*args, **kwargs)
 
     def setUp(self):
-        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory/factory.toml")
+        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.hwConfigFile = str(self.SAMPLES_DIR / "hardware.cfg")
         copyfile(defines.hwConfigFile, "hwconfig.test")
 
@@ -235,8 +235,8 @@ class TestHardwareConfig(Sl1fwTestCase):
 
 class TestPrintConfig(Sl1fwTestCase):
     def setUp(self):
-        self.hwConfig = HwConfig(self.SAMPLES_DIR / "samples/hardware.cfg",
-                                 factory_file_path=self.SL1FW_DIR / ".." / "factory/factory.toml")
+        self.hwConfig = HwConfig(self.SAMPLES_DIR / "samples" / "hardware.cfg",
+                                 factory_file_path=defines.factoryConfigFile)
 
     def test_read(self):
         config = PrintConfig(self.hwConfig)
@@ -324,16 +324,16 @@ class TestConfigHelper(Sl1fwTestCase):
         self.assertIsInstance(self.helper.towerHeight, int)
 
     def test_floatValueStore(self):
-        self.helper.pixelSize = 4.2
+        self.helper.tiltFastTime = 4.2
 
-        self.assertAlmostEqual(self.helper.pixelSize, 4.2)
-        self.assertIsInstance(self.helper.pixelSize, float)
+        self.assertAlmostEqual(self.helper.tiltFastTime, 4.2)
+        self.assertIsInstance(self.helper.tiltFastTime, float)
 
     def test_commit(self):
         # Fresh helper is not changed
         self.assertFalse(self.helper.changed())
         self.assertFalse(self.helper.changed('autoOff'))
-        self.assertFalse(self.helper.changed('pixelSize'))
+        self.assertFalse(self.helper.changed('tiltFastTime'))
 
         self.helper.autoOff = False
 
@@ -343,7 +343,7 @@ class TestConfigHelper(Sl1fwTestCase):
         # Changed behaviour before commit
         self.assertTrue(self.helper.changed())
         self.assertTrue(self.helper.changed('autoOff'))
-        self.assertFalse(self.helper.changed('pixelSize'))
+        self.assertFalse(self.helper.changed('tiltFastTime'))
 
         self.helper.commit()
 
@@ -353,7 +353,7 @@ class TestConfigHelper(Sl1fwTestCase):
         # Changed behaviour after commit
         self.assertFalse(self.helper.changed())
         self.assertFalse(self.helper.changed('autoOff'))
-        self.assertFalse(self.helper.changed('pixelSize'))
+        self.assertFalse(self.helper.changed('tiltFastTime'))
 
     def test_changed(self):
         self.assertFalse(self.helper.changed(), "Fresh config is not changed")

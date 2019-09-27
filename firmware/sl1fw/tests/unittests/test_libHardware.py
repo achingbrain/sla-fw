@@ -48,7 +48,6 @@ class TestLibHardware(Sl1fwTestCase):
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory/factory.toml")
-        defines.doFBSet = False
 
         self.hwConfig = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
         self.hw = Hardware(self.hwConfig)

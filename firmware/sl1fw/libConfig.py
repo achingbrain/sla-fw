@@ -874,8 +874,6 @@ class HwConfig(Config):
     def tuneTilt(self, value: List[List[int]]):
         [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltup] = value
 
-    # Print display pixel-size used to compute material consumption [mm]
-    pixelSize = FloatValue(0.046875)  # 5.5" LCD
     raw_calibrated = BoolValue(False, key="calibrated")
 
     @property
@@ -1040,13 +1038,13 @@ class PrintConfig(Config):
         lambda self: self.expTime, doc="Time added to exposure per calibration region. [seconds]"
     )
     calibrateRegions = IntValue(0, doc="Number of calibration regions (2, 4, 6, 8, 9), 0 = off")
-    calibrateInfoLayers = IntValue(10, doc="Number of calibration layers that will include exposure time.")
+    calibrateInfoLayers = IntValue(10, doc="Number of calibration layers that will include the label with exposure time.")
 
     raw_calibrate_penetration = FloatValue(0.5, doc="How much to sing calibration text to object. [millimeters]")
 
     @property
     def calibratePenetration(self) -> int:
-        return int(self.raw_calibrate_penetration / self._hw_config.pixelSize)
+        return int(self.raw_calibrate_penetration / defines.screenPixelSize)
 
     usedMaterial = FloatValue(
         defines.resinMaxVolume - defines.resinMinVolume,

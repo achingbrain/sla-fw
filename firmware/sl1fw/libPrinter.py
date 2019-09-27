@@ -77,7 +77,7 @@ class Printer(object):
 
         self.logger.debug("Initializing libScreen")
         from sl1fw.libScreen import Screen
-        self.screen = Screen(self.hwConfig)
+        self.screen = Screen()
 
         self.logger.debug("Registering printer D-Bus services")
         self.printer0 = Printer0(self)

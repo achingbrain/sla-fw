@@ -22,8 +22,6 @@ hwConfigFile = os.path.join(configDir, hwConfigFileName)
 loggingConfig = Path(configDir) / "loggerConfig.json"
 hwConfigFactoryDefaultsFile = os.path.join(factoryMountPoint, "hardware.toml")
 wizardDataFile = os.path.join(factoryMountPoint, "wizardData.cfg")  # TODO cfg->toml
-livePreviewImage = os.path.join(ramdiskPath, "live.png")
-livePreviewSize = (288, 512)
 
 perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 
@@ -34,7 +32,19 @@ lastProjectData = os.path.join(persistentStorage, "last_project.toml")
 statsData = os.path.join(persistentStorage, "stats.toml")
 serviceData = os.path.join(persistentStorage, "service.toml")
 
-displayUsageSize = (288, 5, 512, 5) # 288 * 5 = 1440; 512 * 5 = 2560
+screenWidth = 1440
+screenHeight = 2560
+screenPixelSize = 0.046875
+thumbnailFactor = 5
+thumbnailWidth = screenWidth // thumbnailFactor
+thumbnailHeight = screenHeight // thumbnailFactor
+fontFile = os.path.join(dataPath, "FreeSansBold.otf")   # TODO use in libUvmeter too
+
+livePreviewSize = (thumbnailWidth, thumbnailHeight)
+livePreviewImage = os.path.join(ramdiskPath, "live.png")
+
+# numpy uses reversed axis indexing
+displayUsageSize = (thumbnailHeight, thumbnailFactor, thumbnailWidth, thumbnailFactor)
 displayUsageData = os.path.join(persistentStorage, "display_usage.npz")
 displayUsagePalette = os.path.join(dataPath, "heatmap_palette.txt")
 
@@ -59,7 +69,6 @@ octoprintURI = ":8000"
 octoprintAuthFile = os.path.join(configDir, "slicer-upload-api.key")
 
 fbFile = "/dev/fb0"
-doFBSet = True
 
 resinMinVolume = 68.5
 resinMaxVolume = 200.0

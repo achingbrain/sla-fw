@@ -250,12 +250,8 @@ class PagePrintStart(PagePrintPreviewBase):
 
     def contButtonRelease(self):
 
-        if not self.display.expo.loadProject():
-            self.display.pages['error'].setParams(
-                    text = _("Can't read data of your project.\n\n"
-                        "Regenerate it and try again."))
-            return "error"
-        #endif
+        # start data preparation by libScreen
+        self.display.expo.startProjectLoading()
 
         self.ensureCoverIsClosed()
         self.pageWait = PageWait(self.display, line1 = _("Do not open the orange cover!"))
@@ -352,6 +348,15 @@ class PagePrintStart(PagePrintPreviewBase):
         if self.display.hwConfig.tilt:
             self.pageWait.showItems(line3 = _("Resin stirring"))
             self.display.hw.stirResin()
+        #endif
+
+
+        # collect results from libScreen
+        if not self.display.expo.collectProjectData():
+            self.display.pages['error'].setParams(
+                    text = _("Can't read data of your project.\n\n"
+                        "Regenerate it and try again."))
+            return "error"
         #endif
 
         return "print"
