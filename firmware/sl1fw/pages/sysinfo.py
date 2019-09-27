@@ -24,7 +24,7 @@ class PageSysInfo(Page):
             'serial_number': self.display.printer0.serial_number,
             'system_name': self.display.printer0.system_name,
             'system_version': self.display.printer0.system_version,
-            'controller_version': self.display.printer0.controller_version,
+            'controller_version': self.display.printer0.controller_sw_version,
             'controller_serial': self.display.printer0.controller_serial,
             'api_key': self.display.printer0.api_key,
             'tilt_fast_time': self.display.printer0.tilt_fast_time_sec,

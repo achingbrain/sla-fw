@@ -86,7 +86,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
                           'led3_voltage_volt': 17.776})
         self.assertEqual(self.printer.printer0.devlist, {})
         self.assertTrue('uv_stat0' in self.printer.printer0.uv_statistics)
-        self.assertRegex(self.printer.printer0.controller_version, ".*\\..*\\..*")
+        self.assertRegex(self.printer.printer0.controller_sw_version, ".*\\..*\\..*")
         self.assertEqual(self.printer.printer0.controller_serial, "CZPX0619X678XC12345")
         self.assertEqual(self.printer.printer0.api_key, "32LF9aXN")
         self.assertEqual(self.printer.printer0.tilt_fast_time_sec, 5.5)

@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from time import sleep, monotonic
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import distro
 import pydbus
 from pydbus.generic import signal
@@ -55,7 +55,7 @@ def state_checked(allowed_state: Printer0State):
     return decor
 
 
-def cached(validity_s: float):
+def cached(validity_s: float = None):
     """
     Decorator limiting calls to property by using a cache with defined validity.
     This does not support passing arguments other than self to decorated method!
@@ -116,8 +116,10 @@ class Printer0:
                     <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
                 </property>
                 <property name="uv_statistics" type="a{si}" access="read"/>
-                <property name="controller_version" type="s" access="read"/>
+                <property name="controller_sw_version" type="s" access="read"/>
                 <property name="controller_serial" type="s" access="read"/>
+                <property name="controller_revision" type="s" access="read"/>
+                <property name="controller_revision_bin" type="ai" access="read"/>
                 <property name="api_key" type="s" access="read">
                     <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
                 </property>
@@ -387,17 +389,17 @@ class Printer0:
         raise NotImplementedError
 
     @property
-    @cached(validity_s=None)
+    @cached()
     def serial_number(self) -> str:
         return self.printer.hw.cpuSerialNo
 
     @property
-    @cached(validity_s=None)
+    @cached()
     def system_name(self) -> str:
         return distro.name()
 
     @property
-    @cached(validity_s=None)
+    @cached()
     def system_version(self) -> str:
         return distro.version()
 
@@ -434,13 +436,23 @@ class Printer0:
 
     @property
     @cached(validity_s=5)
-    def controller_version(self) -> str:
+    def controller_sw_version(self) -> str:
         return self.printer.hw.mcFwVersion
 
     @property
     @cached(validity_s=5)
     def controller_serial(self) -> str:
         return self.printer.hw.mcSerialNo
+
+    @property
+    @cached(validity_s=5)
+    def controller_revision(self) -> str:
+        return self.printer.hw.mcBoardRevision
+
+    @property
+    @cached()
+    def controller_revision_bin(self) -> Tuple[int, int]:
+        return self.printer.hw.mcBoardRevisionBin
 
     @property
     @cached(validity_s=5)
