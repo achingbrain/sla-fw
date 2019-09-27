@@ -667,8 +667,6 @@ class Hardware(object):
         self._towerCalibPos = self.hwConfig.calcMicroSteps(1)
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
-        self._tiltSyncRetries = None
-        self._towerSyncRetries = None
 
         self.mcc = MotConCom("MC_Main")
         self.realMcc = self.mcc
@@ -1342,61 +1340,63 @@ class Hardware(object):
         self.mcc.do("!twhc")
         homingStatus = 1
         while homingStatus > 0:  # not done and not error
-            homingStatus = self.mcc.doGetInt("?twho")
+            homingStatus = self.towerHomingStatus
             sleep(0.1)
         #endwhile
     #enddef
 
 
-    def towerSync(self, retries: Optional[int] = 2):
-        ''' home is at top position, retries = None is infinity '''
-        self._towerSyncRetries = retries
+    @property
+    def towerHomingStatus(self):
+        return self.mcc.doGetInt("?twho")
+    #enddef
+
+
+    def towerSync(self):
+        ''' home is at top position '''
+        self._towerSynced = False
         self.mcc.do("!twho")
     #enddef
 
 
-    @safe_call(False, MotionControllerException)
     def isTowerSynced(self):
-        """
-        TODO:   This method looks like state check, but actually it does much more. Such an counter-intuitive method
-                deserves rewrite or at last proper documnetation.
-        """
-        homingStatus = self.mcc.doGetInt("?twho")
-        if homingStatus > 0:    # not done and not error
-            return False
-        elif not homingStatus:
-            self.setTowerPosition(self.hwConfig.towerHeight)
-            self._towerSynced = True
-            return True
-        else:
-            self.logger.warning("Tower homing failed!")
-            self.mcc.debug.showItems(towerFailed = "homing Fast/Slow")
-            # repeat count, None is infinity
-            if self._towerSyncRetries is None or self._towerSyncRetries:
-                if self._towerSyncRetries:
-                    self._towerSyncRetries -= 1
-                #endif
-                self.mcc.do("!twho")
-                return False
+        ''' return tower status. False if tower is still homing or error occured '''
+        if not self._towerSynced:
+            if self.towerHomingStatus == 0:
+                self.setTowerPosition(self.hwConfig.towerHeight)
+                self._towerSynced = True
             else:
-                self.logger.error("Tower homing max tries reached!")
-                return True
-            #endif
+                self._towerSynced = False
         #endif
+        return self._towerSynced
     #enddef
 
 
-    def towerSyncWait(self):
-        self.towerSync(None)
-        while not self.isTowerSynced():
-            sleep(0.1)
+    @safe_call(False, MotionControllerException)
+    def towerSyncWait(self, retries: int = 0):
+        ''' blocking method for tower homing. retries = number of additional tries when homing failes ''' 
+        if not self.isTowerMoving():
+            self.towerSync()
+        #endif
+
+        while True:
+            homingStatus = self.towerHomingStatus
+            if homingStatus == 0:
+                self.setTowerPosition(self.hwConfig.towerHeight)
+                self._towerSynced = True
+                return True
+            elif homingStatus < 0:
+                self.logger.warning("Tower homing failed! Status: %d", homingStatus)
+                self.mcc.debug.showItems(towerFailed = "homing Fast/Slow")
+                if retries < 1:
+                    self.logger.error("Tower homing max tries reached!")
+                    return False
+                else:
+                    retries -= 1
+                    self.towerSync()
+                #endif
+            sleep(0.25)
         #endwhile
-        return not self.towerSyncFailed()
-    #enddef
-
-
-    def towerSyncFailed(self):
-        return self._towerSyncRetries == 0
     #enddef
 
 
@@ -1611,57 +1611,65 @@ class Hardware(object):
         self.mcc.do("!tihc")
         homingStatus = 1
         while homingStatus > 0: # not done and not error
-            homingStatus = self.mcc.doGetInt("?tiho")
+            homingStatus = self.tiltHomingStatus
             sleep(0.1)
         #endwhile
     #enddef
 
 
-    def tiltSync(self, retries = None):
-        ''' home at bottom position, retries = None is infinity '''
-        self._tiltSyncRetries = retries
+    @property
+    def tiltHomingStatus(self):
+        return self.mcc.doGetInt("?tiho")
+    #enddef
+
+
+    def tiltSync(self):
+        ''' home at bottom position '''
+        self._tiltSynced = False
         self.mcc.do("!tiho")
     #enddef
 
 
     @safe_call(False, MotionControllerException)
     def isTiltSynced(self):
-        homingStatus = self.mcc.doGetInt("?tiho")
-        if homingStatus > 0: # not done and not error
-            return False
-        elif not homingStatus:
-            self.setTiltPosition(0)
-            self._tiltSynced = True
-            return True
-        else:
-            self.logger.warning("Tilt homing failed!")
-            self.mcc.debug.showItems(tiltFailed = "homing Fast/Slow")
-            # repeat count, None is infinity
-            if self._tiltSyncRetries is None or self._tiltSyncRetries:
-                if self._tiltSyncRetries:
-                    self._tiltSyncRetries -= 1
-                #endif
-                self.mcc.do("!tiho")
-                return False
+        ''' return tilt status. False if tilt is still homing or error occured '''
+        if not self._tiltSynced:
+            if self.tiltHomingStatus == 0:
+                self.setTiltPosition(0)
+                self._tiltSynced = True
             else:
-                self.logger.error("Tilt homing max tries reached!")
-                return True
+                self._tiltSynced = False
             #endif
         #endif
+        return self._tiltSynced
     #enddef
 
 
-    def tiltSyncWait(self, retries = None):
-        self.tiltSync(retries)
-        while not self.isTiltSynced():
-            sleep(0.1)
+    @safe_call(False, MotionControllerException)
+    def tiltSyncWait(self, retries: int = 0):
+        ''' blocking method for tilt homing. retries = number of additional tries when homing failes '''
+        if not self.isTiltMoving():
+            self.tiltSync()
+        #endif
+        
+        while True:
+            homingStatus = self.tiltHomingStatus
+            if homingStatus == 0:
+                self.setTiltPosition(0)
+                self._tiltSynced = True
+                return True
+            elif homingStatus < 0:
+                self.logger.warning("Ttilt homing failed! Status: %d", homingStatus)
+                self.mcc.debug.showItems(tiltFailed = "homing Fast/Slow")
+                if retries < 1:
+                    self.logger.error("Tilt homing max tries reached!")
+                    return False
+                else:
+                    retries -= 1
+                    self.tiltSync()
+                #endif
+            sleep(0.25)
         #endwhile
-        return not self.tiltSyncFailed()
-    #enddef
-
-
-    def tiltSyncFailed(self):
-        return self._tiltSyncRetries == 0
     #enddef
 
 
@@ -1822,7 +1830,7 @@ class Hardware(object):
             #endwhile
             count += step
         #endwhile
-        return self.tiltSyncWait(1)
+        return self.tiltSyncWait(retries = 1)
     #enddef
 
 

@@ -104,7 +104,7 @@ class PageTiltTower(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
         pageWait.show()
-        retc = self._syncTower(pageWait)
+        retc = self._syncTower()
         self.display.hw.powerLed("normal")
         return retc
     #enddef
@@ -119,7 +119,7 @@ class PageTiltTower(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
         pageWait.show()
-        retc = self._syncTower(pageWait)
+        retc = self._syncTower()
         if retc == "error":
             return retc
         #endif

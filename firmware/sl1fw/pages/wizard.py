@@ -60,11 +60,8 @@ class PageWizardInit(Page):
         pageWait = PageWait(self.display, line1 = _("Tilt home check"))
         pageWait.show()
         for i in range(3):
-            self.display.hw.mcc.do("!tiho")
-            while self.display.hw.mcc.doGetInt("?tiho") > 0:
-                sleep(0.25)
-            #endwhile
-            homeStatus = self.display.hw.mcc.doGetInt("?tiho")
+            self.display.hw.tiltSyncWait()
+            homeStatus = self.display.hw.tiltHomingStatus
             if homeStatus == -2:
                 self.display.pages['error'].setParams(
                     text = _("Tilt endstop not reached!\n\n"
@@ -85,7 +82,7 @@ class PageWizardInit(Page):
         #endif
 
         #tilt length measure
-        pageWait.showItems(line1 = _("Tilt axis check"))
+        pageWait.showItems(line1 = _("Tank axis check"))
         self.display.hw.setTiltProfile("homingFast")
         self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd)
         while self.display.hw.isTiltMoving():
@@ -116,51 +113,21 @@ class PageWizardInit(Page):
 
         #tower home check
         pageWait.showItems(line1 = _("Tower home check"))
-        towerSensitivity = -1    # use default sesnsitivity first, then try from 0
-        i = 0
-        while True:
-            self.display.hw.mcc.do("!twho")
-            while self.display.hw.mcc.doGetInt("?twho") > 0:
-                sleep(0.25)
-            #endwhile
-            homeStatus = self.display.hw.mcc.doGetInt("?twho")
-            if homeStatus == 0:
-                i += 1
-                if i > 3:
-                    break
-                #endif
-            elif homeStatus == -2:
-                self.display.pages['error'].setParams(
-                    text = _("Tower endstop not reached!\n\n"
-                        "Please check if the tower motor is connected properly."))
-                return "error"
-            elif homeStatus == -3:  #if homing failed try different tower homing profiles (only positive values of motor sensitivity)
-                towerSensitivity += 1   #try next motor sensitivity
-                self.logger.debug("tower sensitivity: %d", towerSensitivity)
-                if towerSensitivity >= len(self.display.hw.towerAdjust['homingFast']) - 2:
-                    self.display.pages['error'].setParams(
-                        text = _("Tower home check failed!\n\n"
-                            "Please contact tech support!\n\n"
-                            "Tower profiles need to be changed."))
-                    return "error"
-                self.display.hw.updateMotorSensitivity(self.display.hwConfig.tiltSensitivity, towerSensitivity)
-                i = 0   #start over tower home check
-                continue
-            #endif
-        #endwhile
-        self.display.hwConfig.towerSensitivity = towerSensitivity
-        self.display.hw.towerHomeCalibrateWait()
-        self.display.hw.setTowerPosition(self.display.hw._towerEnd)
-        self.display.wizardData.update(towerSensitivity = self.display.hwConfig.towerSensitivity)
-        self.display.hwConfig.update(towerSensitivity = self.display.hwConfig.towerSensitivity)
-        if not self.display.hwConfig.writeFile():
-            self.display.pages['error'].setParams(
-                text = _("Cannot save wizard configuration"))
-            return "error"
-        #endif
+        for i in range(3):
+            if not self.display.hw.towerSyncWait():
+                return "towersensitivity"
+        #endfor
+        
+        return "fantest"
+    #enddef
 
-        # temperature check
-        pageWait.showItems(line1 = _("A64 temperature check"))
+
+    # FIXME: this value is returned at the end of towersensitivity. We can proceed fantest 
+    def _OK_(self):
+        #temperature check
+        pageWait = PageWait(self.display, line1 = _("A64 temperature check"))
+        pageWait.show()
+
         A64temperature = self.display.hw.getCpuTemperature()
         if A64temperature > defines.maxA64Temp:
             self.display.pages['error'].setParams(
@@ -175,7 +142,7 @@ class PageWizardInit(Page):
             return "error"
         #endif
 
-        pageWait.showItems(line1 = _("Thermistors temperature check"))
+        self.showItems(line1 = _("Thermistors temperature check"))
         temperatures = self.display.hw.getMcTemperatures()
         for i in range(2):
             if temperatures[i] < 0:
@@ -208,13 +175,13 @@ class PageWizardInit(Page):
     #enddef
 
 
-    def backButtonRelease(self):
-        return "wizardskip"
+    # FIXME: this value is returned at the end of fantest. We can proceed wizarduvled
+    def _NOK_(self):
+        return "wizarduvled"
     #enddef
 
-
-    def _BACK_(self):
-        return "wizarduvled"
+    def backButtonRelease(self):
+        return "wizardskip"
     #enddef
 
 
@@ -222,7 +189,6 @@ class PageWizardInit(Page):
         self.allOff()
         return "_EXIT_"
     #enddef
-
 #endclass
 
 
@@ -388,6 +354,8 @@ class PageWizardTowerAxis(Page):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Tower axis check"))
         pageWait.show()
+        self.display.hw.towerSyncWait()
+        self.display.hw.setTowerPosition(self.display.hw._towerEnd)
         self.display.hw.setTowerProfile("homingFast")
         self.display.hw.towerMoveAbsolute(0)
         while self.display.hw.isTowerMoving():
@@ -483,7 +451,7 @@ class PageWizardResinSensor(Page):
         self.display.wizardData.update(wizardResinVolume = volume)
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait()
-        while not self.display.hw.isTowerSynced():
+        while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
         self.display.hw.motorsRelease()

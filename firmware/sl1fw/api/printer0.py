@@ -253,10 +253,7 @@ class Printer0:
     @state_checked(Printer0State.IDLE)
     def tower_home(self) -> None:
         self.printer.hw.powerLed("warn")
-        self.printer.hw.towerSync()
-        while not self.printer.hw.isTowerSynced():
-            sleep(0.25)
-        if self.printer.hw.towerSyncFailed():
+        if not self.printer.hw.towerSyncWait():
             raise MoveException
         self.printer.hw.motorsHold()
         self.printer.hw.powerLed("normal")

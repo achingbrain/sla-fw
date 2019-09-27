@@ -293,13 +293,8 @@ class Page(object):
     #enddef
 
 
-    def _syncTower(self, pageWait):
-        self.display.hw.towerSync()
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-            pageWait.showItems(line2 = self.display.hw.getTowerPosition())
-        #endwhile
-        if self.display.hw.towerSyncFailed():
+    def _syncTower(self):
+        if not self.display.hw.towerSyncWait(retries = 2):
             self.display.pages['error'].setParams(
                     text = _("Tower homing failed!\n\n"
                         "Check the printer's hardware."))

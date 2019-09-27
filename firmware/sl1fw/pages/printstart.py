@@ -120,7 +120,7 @@ class PagePrintPreview(PagePrintPreviewBase):
         self.ramdiskCleanup()
         (error, confirm, zipName) = self.display.expo.copyAndCheckZip()
 
-        while not self.display.hw.isTowerSynced() or not self.display.hw.isTiltSynced():
+        while self.display.hw.isTowerMoving() or self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
 
@@ -131,14 +131,14 @@ class PagePrintPreview(PagePrintPreviewBase):
 
         pageWait.showItems(line1 = _("Project data OK"))
 
-        if self.display.hw.towerSyncFailed():
+        if not self.display.hw.isTowerSynced():
             self.display.pages['error'].setParams(
                     text = _("Tower homing failed!\n\n"
                         "Check the printer's hardware."))
             return "error"
         #endif
 
-        if self.display.hw.tiltSyncFailed():
+        if not self.display.hw.isTiltSynced():
             self.display.pages['error'].setParams(
                     text = _("Tilt homing failed!\n\n"
                         "Check the printer's hardware."))

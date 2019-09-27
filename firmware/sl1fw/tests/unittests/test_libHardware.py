@@ -294,9 +294,6 @@ class TestLibHardware(Sl1fwTestCase):
         self.hw.setTiltCurrent(32)
         # TODO: test result
 
-    def test_tilt_sync_failed(self):
-        self.assertFalse(self.hw.tiltSyncFailed())
-
     def test_tower_hold_tilt_release(self):
         self.hw.towerHoldTiltRelease()
         # TODO: test result
@@ -307,15 +304,14 @@ class TestLibHardware(Sl1fwTestCase):
 
     def test_tower_sync(self):
         self.hw.towerSync()
-        self.assertFalse(self.hw.towerSyncFailed())
-        while not self.hw.isTowerSynced():
+        self.assertFalse(self.hw.isTowerSynced())
+        while self.hw.isTowerMoving():
             sleep(0.1)
         self.assertTrue(self.hw.isTowerSynced())
 
     def test_tower_sync_wait(self):
         self.hw.towerSyncWait()
         self.assertTrue(self.hw.isTowerSynced())
-        self.assertFalse(self.hw.towerSyncFailed())
 
     def test_tower_printstart(self):
         self.hw.setTowerProfile('homingFast')

@@ -26,7 +26,8 @@ class PageFanTest(Page):
 
     def show(self):
         self.items.update({
-            'text' : _("Make sure all fan air vens are clean and not covered up.")})
+            'text' : _("Make sure all fan air vens are clean and not covered up."),
+            'no_back' : True})
         super(PageFanTest, self).show()
     #enddef
 
@@ -87,19 +88,15 @@ class PageFanTest(Page):
             #endif
             avgRpms.append(avgRpm)
         #endfor
-
         self.display.wizardData.update(wizardFanRpm = avgRpms)
-        return "_BACK_"
+
+        # FIXME: hack to be properly handled in wizard
+        return "_NOK_" 
     #enddef
 
     def leave(self):
         self.display.fanErrorOverride = False
         self.display.hw.stopFans()
-    #enddef
-
-
-    def _EXIT_(self):
-        return "_EXIT_"
     #enddef
 
 #endclass

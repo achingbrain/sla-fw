@@ -30,29 +30,31 @@ class PageCalibration1(Page):
     #enddef
 
 
-    def prepare(self):
+    def contButtonRelease(self):
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Printer homing"))
+        pageWait = PageWait(self.display, line1 = _("Tank axis homing"))
         pageWait.show()
 
-        self.display.hw.towerSync()
-        while not self.display.hw.isTowerSynced():
-            sleep(0.25)
-        #endwhile
-        self.display.hw.tiltSyncWait(2) # FIXME MC cant properly home tilt while tower is moving
+        self.display.hw.tiltSyncWait(retries = 2) # FIXME MC cant properly home tilt while tower is moving
+        #tower home check
+        pageWait.showItems(line1 = _("Tower axis homing check"))
+        for i in range(3):
+            if not self.display.hw.towerSyncWait():
+                return "towersensitivity"
+        #endfor
         self.display.hw.powerLed("normal")
-    #enddef
-
-
-    def contButtonRelease(self):
         return "calibration2"
-    #endif
+    #enddef
 
 
     def backButtonRelease(self):
         return "calibrationconfirm"
     #enddef
 
+
+    def _OK_(self):
+        return "calibration2"
+    #enddef
 
     def _EXIT_(self):
         self.display.hw.motorsRelease()
@@ -515,7 +517,7 @@ class PageCalibration10(Page):
         pageWait.show()
         self.display.hw.towerSync()
         self.display.hw.tiltSyncWait()
-        while not self.display.hw.isTowerSynced():
+        while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
         tiltSlowTime = self.getTiltTime(pageWait, True)
