@@ -65,7 +65,7 @@ class Printer(object):
 
         self.logger.debug("Registering printer D-Bus services")
         self.printer0 = Printer0(self)
-        SystemBus().publish(self.printer0.INTERFACE, self.printer0)
+        SystemBus().publish(self.printer0.__INTERFACE__, self.printer0)
 
         self.logger.debug("Initializing libDisplay")
         from sl1fw.libDisplay import Display

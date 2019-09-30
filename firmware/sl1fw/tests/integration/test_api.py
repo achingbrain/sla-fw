@@ -88,6 +88,8 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.assertTrue('uv_stat0' in self.printer.printer0.uv_statistics)
         self.assertRegex(self.printer.printer0.controller_sw_version, ".*\\..*\\..*")
         self.assertEqual(self.printer.printer0.controller_serial, "CZPX0619X678XC12345")
+        self.assertEqual(self.printer.printer0.controller_revision, "4a")
+        self.assertEqual(self.printer.printer0.controller_revision_bin, (4, 0))
         self.assertEqual(self.printer.printer0.api_key, "32LF9aXN")
         self.assertEqual(self.printer.printer0.tilt_fast_time_sec, 5.5)
         self.assertEqual(self.printer.printer0.tilt_slow_time_sec, 8.0)

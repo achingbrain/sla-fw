@@ -3,6 +3,7 @@ image: prusa/sl1fw
 stages:
   - build
   - test
+  - doc
 
 before_script:
   - eval $(ssh-agent -s)
@@ -55,4 +56,18 @@ pylint:
     - python3 -m pylint --version
     - python3 -m pylint sl1fw --jobs 0 --errors-only --additional-builtins=_,N_ --extension-pkg-whitelist=pygame
   allow_failure: true
+
+sphinx:
+  stage: doc
+  needs: []
+  only:
+    refs:
+      - master
+  when: manual
+  artifacts:
+    paths:
+      - documentation/*
+  script:
+    - sphinx-build -b html firmware/doc/ firmware/doc/build
+    - mv firmware/doc/build documentation
 
