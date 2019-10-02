@@ -106,7 +106,6 @@ class PageSetup(Page):
     def button4ButtonRelease(self):
         ''' save '''
         try:
-            print(self.changed)
             self.display.hwConfig.get_writer().commit_dict(self.changed)
         except ConfigException:
             self.logger.exception("Cannot save configuration")

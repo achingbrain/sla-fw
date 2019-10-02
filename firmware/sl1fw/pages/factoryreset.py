@@ -38,7 +38,6 @@ class PageFactoryReset(Page):
         pageWait = PageWait(self.display, line1 = _("Relax... You've been erased."))
         pageWait.show()
 
-        inFactoryMode = self.display.hwConfig.factoryMode
         try:
             self.display.hwConfig.factory_reset()
             self.display.hwConfig.write()
@@ -89,7 +88,7 @@ class PageFactoryReset(Page):
         #endtry
 
         # continue only in factory mode
-        if not inFactoryMode:
+        if not self.display.printer0.factory_mode:
             self.display.shutDown(doShutDown=True, reboot=True)
             return
         #endif

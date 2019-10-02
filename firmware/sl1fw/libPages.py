@@ -78,7 +78,7 @@ class Page(object):
         # renew save path every time when page is shown, it may change
         self.items.update({
             'save_path' : self.getSavePath(),
-            'image_version' : "%s%s" % (distro.version(), _(" (factory mode)") if self.display.hwConfig.factoryMode else ""),
+            'image_version' : "%s%s" % (distro.version(), _(" (factory mode)") if self.display.printer0.factory_mode else ""),
             'page_title' : _(self.pageTitle),
             })
 
@@ -242,7 +242,7 @@ class Page(object):
         try:
             self.display.hwConfig.write_factory()
         except ConfigException:
-            self.logger.exception("Defaults was not saved!")
+            self.logger.exception("Defaults were not saved!")
         #endtry
     #enddef
 

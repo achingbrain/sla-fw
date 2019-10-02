@@ -23,7 +23,7 @@ class Display(object):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.devices = devices
-        self.show_admin = bool(hwConfig.factoryMode)
+        self.show_admin = printer0.factory_mode
         self.hw = hw
         self.inet = inet
         self.screen = screen

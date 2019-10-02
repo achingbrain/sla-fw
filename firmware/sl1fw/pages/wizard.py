@@ -467,7 +467,7 @@ class PageWizardResinSensor(Page):
         #endif
 
         # store data only in factory mode or after first successful run on kit
-        if self.display.hwConfig.factoryMode or (self.display.hw.isKit and not self.display.wizardData.wizardDone):
+        if self.display.printer0.factory_mode or (self.display.hw.isKit and not self.display.wizardData.wizardDone):
             self.display.wizardData.wizardDone = 1
             if not self.writeToFactory(self.display.wizardData.write):
                 self.display.pages['error'].setParams(

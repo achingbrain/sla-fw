@@ -16,7 +16,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.printer0 import Printer0
-from sl1fw.libConfig import HwConfig, ConfigException
+from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
 
 
 class Printer(object):
@@ -31,9 +31,10 @@ class Printer(object):
         self.logger.info("SL1 firmware initializing")
 
         self.logger.debug("Initializing hwconfig")
-        self.hwConfig = HwConfig(Path(defines.hwConfigFile),
+        self.hwConfig = HwConfig(file_path=Path(defines.hwConfigFile),
                                  factory_file_path=Path(defines.hwConfigFactoryDefaultsFile),
                                  is_master=True)
+        self.factoryMode = TomlConfig(defines.factoryConfigFile).load().get('factoryMode', False)
         try:
             self.hwConfig.read_file()
         except ConfigException:
@@ -48,8 +49,8 @@ class Printer(object):
         # needed before init of other components (display etc)
         # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
         #   Currently calibration needs to be performed in the factory.
-        # if self.hwConfig.factoryMode and self.hw.isKit:
-        #     self.hwConfig.factoryMode = False
+        # if self.factoryMode and self.hw.isKit:
+        #     self.factoryMode = False
         #     self.logger.warning("Factory mode disabled for kit")
         # #endif
 
@@ -125,7 +126,7 @@ class Printer(object):
         self.logger.debug("Starting D-Bus event thread")
         self.eventThread.start()
         self.logger.debug("Starting admin checker")
-        if not self.hwConfig.factoryMode:
+        if not self.factoryMode:
             from sl1fw.libAsync import Admin_check
             self.admin_check = Admin_check(self.display, self.inet)
         #endif
@@ -160,7 +161,7 @@ class Printer(object):
                         self.display.doMenu("error")
                     #endif
 
-                    if self.hwConfig.factoryMode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
+                    if self.factoryMode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
                         self.display.pages['error'].setParams(
                             text=_("Examples (any projects) are missing in the user storage."))
                         self.display.doMenu("error")

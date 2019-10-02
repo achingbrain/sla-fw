@@ -508,7 +508,7 @@ class Printer0:
 
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="controller_version" type="s" access="read"/>')
+    @dbus_record('<property name="controller_sw_version" type="s" access="read"/>')
     def controller_sw_version(self) -> str:
         """
         Get motion controller version
@@ -530,13 +530,13 @@ class Printer0:
 
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="controller_serial" type="s" access="read"/>')
+    @dbus_record('<property name="controller_revision" type="s" access="read"/>')
     def controller_revision(self) -> str:
         return self.printer.hw.mcBoardRevision
 
     @property
     @cached()
-    @dbus_record('<property name="controller_serial" type="ai" access="read"/>')
+    @dbus_record('<property name="controller_revision_bin" type="ai" access="read"/>')
     def controller_revision_bin(self) -> Tuple[int, int]:
         return self.printer.hw.mcBoardRevisionBin
 
@@ -630,6 +630,15 @@ class Printer0:
         """
         return self.printer.hw.getPowerswitchState()
 
+    @property
+    @dbus_record('<property name="factory_mode" type="b" access="read"/>')
+    def factory_mode(self) -> bool:
+        """
+        Check for factory mode
+
+        :return: True if in factory mode, False otherwise
+        """
+        return self.printer.factoryMode
 
     @dbus_record("""
     <method name="display_test">

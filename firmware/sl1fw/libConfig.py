@@ -56,15 +56,7 @@ class Value(property, ABC):
     """
 
     @abstractmethod
-    def __init__(
-        self,
-        _type: List[Type],
-        default,
-        key=None,
-        factory=False,
-        factory_only_read=False,
-        doc="",
-    ):
+    def __init__(self, _type: List[Type], default, key=None, factory=False, doc=""):
         """
         Config value constructor
 
@@ -72,7 +64,6 @@ class Value(property, ABC):
         :param default: Default value. Can be function that receives configuration instance as the only parameter and returns default value.
         :param key: Key name in the configuration file. If set to None (default) it will be set to property name.
         :param factory: Whenever the value should be stored in factory configuration file.
-        :param factory_only_read: Whenever the value is read only from factory configuration file. (such values cannot be overridden by user)
         :param doc: Documentation string fro the configuration item
         """
         super().__init__(self.value_getter, self._property_setter, self.value_deleter)
@@ -81,7 +72,6 @@ class Value(property, ABC):
         self.type = _type
         self.default_value = default
         self.factory = factory
-        self.factory_only_read = factory_only_read
         self.config: Optional[BaseConfig] = None
         self.default_doc = doc
 
@@ -182,9 +172,7 @@ class Value(property, ABC):
         """
         self.value_setter(val)
 
-    def value_setter(
-        self, val, write_override: bool = False, factory: bool = False, dry_run=False
-    ) -> None:
+    def value_setter(self, val, write_override: bool = False, factory: bool = False, dry_run=False) -> None:
         """
         Config item value setter
 
@@ -199,14 +187,10 @@ class Value(property, ABC):
             if val is None:
                 raise ValueError(f"Using default for key {self.name} as {val} is None")
             if type(val) not in self.type:
-                raise ValueError(
-                    f"Using default for key {self.name} as {val} is {type(val)} but should be {self.type}"
-                )
+                raise ValueError(f"Using default for key {self.name} as {val} is {type(val)} but should be {self.type}")
             adapted = self.adapt(val)
             if adapted != val:
-                self.config.logger.warning(
-                    f"Adapting config value {self.name} from {val} to {adapted}"
-                )
+                self.config.logger.warning(f"Adapting config value {self.name} from {val} to {adapted}")
             self.check(adapted)
 
             if dry_run:
@@ -214,17 +198,10 @@ class Value(property, ABC):
 
             if factory:
                 self.factory_value = adapted
-            elif not self.factory_only_read:
-                self.value = adapted
             else:
-                self.config.logger.warning(
-                    "Skiping read of %s as this one has factory_only_read set",
-                    self.name,
-                )
+                self.value = adapted
         except (ValueError, ConfigException) as exception:
-            raise ConfigException(
-                f"Setting config value {self.name} to {val} failed"
-            ) from exception
+            raise ConfigException(f"Setting config value {self.name} to {val} failed") from exception
 
     def value_getter(self, _: BaseConfig) -> None:
         """
@@ -239,9 +216,7 @@ class Value(property, ABC):
             if self.factory_value is not None:
                 return self.factory_value
 
-            if type(self.default_value) not in self.type and isinstance(
-                self.default_value, Callable
-            ):
+            if type(self.default_value) not in self.type and isinstance(self.default_value, Callable):
                 return self.default_value(self.config)
             else:
                 return self.default_value
@@ -299,14 +274,12 @@ class NumericValue(Value):
     Accepts minimum and maximum, implements value adaptation.
     """
 
-    def __init__(
-        self, *args, minimum: Optional = None, maximum: Optional = None, **kwargs
-    ):
+    def __init__(self, *args, minimum: Optional = None, maximum: Optional = None, **kwargs):
         """
         Numeric config value constructor
 
         :param minimum: Minimal allowed value, None means no restriction
-        :param maximum: maximal allowed value, None means no restriction
+        :param maximum: Maximal allowed value, None means no restriction
         """
         super().__init__(*args, **kwargs)
         self.min = minimum
@@ -356,9 +329,7 @@ class ListValue(Value):
     Add length to value properties.
     """
 
-    def __init__(
-        self, _type: List[Type], *args, length: Optional[int] = None, **kwargs
-    ):
+    def __init__(self, _type: List[Type], *args, length: Optional[int] = None, **kwargs):
         """
         List configuration value constructor
 
@@ -380,13 +351,9 @@ class ListValue(Value):
         :param val: Value to check
         """
         if any([type(x) not in self.inner_type for x in val]):
-            raise ValueError(
-                f"Using default for key {self.name} as {val} is has incorrect inner type"
-            )
+            raise ValueError(f"Using default for key {self.name} as {val} is has incorrect inner type")
         if self.length is not None and len(val) != self.length:
-            raise ValueError(
-                f"Using default for key {self.name} as {val} does not match required length"
-            )
+            raise ValueError(f"Using default for key {self.name} as {val} does not match required length")
 
 
 class IntListValue(ListValue):
@@ -431,9 +398,7 @@ class TextValue(Value):
         :param val: Value to check
         """
         if not self.regex.fullmatch(val):
-            raise ValueError(
-                f'Value {self.name} cannot be set. Value "{val}" does not match "{self.regex}"'
-            )
+            raise ValueError(f'Value {self.name} cannot be set. Value "{val}" does not match "{self.regex}"')
 
 
 class ValueConfig(BaseConfig):
@@ -555,10 +520,7 @@ class Config(ValueConfig):
     )
 
     def __init__(
-        self,
-        file_path: Optional[Path] = None,
-        factory_file_path: Optional[Path] = None,
-        is_master: bool = False,
+        self, file_path: Optional[Path] = None, factory_file_path: Optional[Path] = None, is_master: bool = False
     ):
         """
         Configuration constructor
@@ -582,9 +544,7 @@ class Config(ValueConfig):
                     self._lower_to_normal[var.lower()] = var
 
     def __str__(self) -> str:
-        res = [
-            f"{self.__class__.__name__}: {self._file_path} ({self._factory_file_path}):"
-        ]
+        res = [f"{self.__class__.__name__}: {self._file_path} ({self._factory_file_path}):"]
         for val in dir(self.__class__):
             o = getattr(self.__class__, val)
             if isinstance(o, property):
@@ -638,9 +598,7 @@ class Config(ValueConfig):
                 elif self._file_path:
                     self._read_file(self._file_path)
                 else:
-                    raise ValueError(
-                        "file_path is None and no file_path was passed to constructor"
-                    )
+                    raise ValueError("file_path is None and no file_path was passed to constructor")
             except FileNotFoundError as exception:
                 raise ConfigException("Failed to read config") from exception
 
@@ -650,9 +608,7 @@ class Config(ValueConfig):
         try:
             self.read_text(text, factory=factory)
         except Exception as exception:
-            raise ConfigException(
-                'Failed to parse config file: "%s"', file_path
-            ) from exception
+            raise ConfigException('Failed to parse config file: "%s"', file_path) from exception
 
     def read_text(self, text: str, factory: bool = False) -> None:
         """
@@ -661,7 +617,7 @@ class Config(ValueConfig):
         :param text: Config text
         :param factory: Whenever to read factory foncguration
         """
-        # Drop incositent newlines, use \n
+        # Drop inconsistent newlines, use \n
         text = text.replace("\r\n", "\n").replace("\r", "\n")
 
         # Split config to lines, process each line separately
@@ -675,9 +631,7 @@ class Config(ValueConfig):
             # Split line to variable name and value
             match = self.VAR_ASSIGN_PATTERN.match(line)
             if not match:
-                self.logger.warning(
-                    "Line ignored as it does not match name=value pattern:\n%s", line
-                )
+                self.logger.warning("Line ignored as it does not match name=value pattern:\n%s", line)
                 continue
             name = match.groupdict()["name"].strip()
             value = match.groupdict()["value"].strip()
@@ -700,9 +654,7 @@ class Config(ValueConfig):
         try:
             data = toml.loads(text)
         except toml.TomlDecodeError as exception:
-            raise ConfigException(
-                "Failed to decode config content:\n %s", text
-            ) from exception
+            raise ConfigException("Failed to decode config content:\n %s", text) from exception
 
         for val in self.values.values():
             try:
@@ -715,9 +667,7 @@ class Config(ValueConfig):
                     val.value_setter(data[key], write_override=True, factory=factory)
                     del data[key]
             except (KeyError, ConfigException):
-                self.logger.exception(
-                    "Setting config value %s to %s failed" % (val.name, val)
-                )
+                self.logger.exception("Setting config value %s to %s failed" % (val.name, val))
         if data:
             self.logger.warning("Extra data in configuration source: \n %s" % data)
 
@@ -734,9 +684,7 @@ class Config(ValueConfig):
             try:
                 self._write_file(file_path, factory=False)
             except Exception as exception:
-                raise ConfigException(
-                    f'Cannot save config to: "{file_path}"'
-                ) from exception
+                raise ConfigException(f'Cannot save config to: "{file_path}"') from exception
 
     def write_factory(self, file_path: Optional[Path] = None) -> None:
         """
@@ -834,23 +782,10 @@ class HwConfig(Config):
         """
         return round(float(microSteps) / self.microStepsMM, 3)
 
-    factoryMode = BoolValue(
-        False,
-        factory_only_read=True,
-        doc="Factory mode. The value is only read from factory partition config (not user writable).",
-    )
     fanCheck = BoolValue(True, doc="Check fan function if set to True.")
-    coverCheck = BoolValue(
-        True,
-        doc="Check for closed cover during printer movements and exposure if set to True.",
-    )
-    MCversionCheck = BoolValue(
-        True, doc="Check motion controller firmware version if set to True."
-    )
-    resinSensor = BoolValue(
-        True,
-        doc="If True the the resin sensor will be used to measure resin level before print.",
-    )
+    coverCheck = BoolValue(True, doc="Check for closed cover during printer movements and exposure if set to True.")
+    MCversionCheck = BoolValue(True, doc="Check motion controller firmware version if set to True.")
+    resinSensor = BoolValue(True, doc="If True the the resin sensor will be used to measure resin level before print.")
     autoOff = BoolValue(True, doc="If True the printer will be shut down after print.")
     mute = BoolValue(False, doc="Mute motion controller speaker if set to True.")
     screwMm = IntValue(4, doc="Pitch of the tower/platform screw. [mm]")
@@ -864,34 +799,18 @@ class HwConfig(Config):
         """
         return 200 * 16 / int(self.screwMm)
 
-    tiltHeight = IntValue(
-        defines.defaultTiltHeight, doc="Position of the leveled tilt. [microsteps]"
-    )
+    tiltHeight = IntValue(defines.defaultTiltHeight, doc="Position of the leveled tilt. [microsteps]")
     stirringMoves = IntValue(3, minimum=1, maximum=10, doc="Number of stirring moves")
     stirringDelay = IntValue(5, minimum=0, maximum=300)
     measuringMoves = IntValue(3, minimum=1, maximum=10)
     pwrLedPwm = IntValue(100, minimum=0, maximum=100, doc="Power LED brightness. [%]")
 
-    MCBoardVersion = IntValue(
-        6,
-        minimum=5,
-        maximum=6,
-        doc="Motion controller board revision. Used to flash firmware.",
-    )
+    MCBoardVersion = IntValue(6, minimum=5, maximum=6, doc="Motion controller board revision. Used to flash firmware.")
 
     # Advanced settings
-    tiltSensitivity = IntValue(
-        0, minimum=-2, maximum=2, doc="Tilt sensitivity adjustment"
-    )
-    towerSensitivity = IntValue(
-        0, minimum=-2, maximum=2, factory=True, doc="Tower sensitivity adjustment"
-    )
-    limit4fast = IntValue(
-        45,
-        minimum=0,
-        maximum=100,
-        doc="Fast tearing is used if layer area is under this value. [%]",
-    )
+    tiltSensitivity = IntValue(0, minimum=-2, maximum=2, doc="Tilt sensitivity adjustment")
+    towerSensitivity = IntValue(0, minimum=-2, maximum=2, factory=True, doc="Tower sensitivity adjustment")
+    limit4fast = IntValue(45, minimum=0, maximum=100, doc="Fast tearing is used if layer area is under this value. [%]")
 
     @property
     def whitePixelsThd(self) -> float:
@@ -903,75 +822,46 @@ class HwConfig(Config):
     )
 
     # Exposure setup
-    blinkExposure = BoolValue(
-        True, doc="If True the UV LED will be powered off when not used during print."
-    )
+    blinkExposure = BoolValue(True, doc="If True the UV LED will be powered off when not used during print.")
     perPartes = BoolValue(False, doc="Expose areas larger than layerFill in two steps.")
     tilt = BoolValue(True, doc="Use tilt to tear off the layers.")
     upAndDownUvOn = BoolValue(False)
 
     trigger = IntValue(
-        0,
-        minimum=0,
-        maximum=20,
-        doc="Duration of electronic trigger durint the layer change. [tenths of a second]",
+        0, minimum=0, maximum=20, doc="Duration of electronic trigger durint the layer change. [tenths of a second]"
     )
     layerTowerHop = IntValue(
-        0,
-        minimum=0,
-        maximum=8000,
-        doc="How much to rise the tower during layer change. [microsteps]",
+        0, minimum=0, maximum=8000, doc="How much to rise the tower during layer change. [microsteps]"
     )
     delayBeforeExposure = IntValue(
-        0,
-        minimum=0,
-        maximum=300,
-        doc="Delay between tear off and exposure. [tenths of a second]",
+        0, minimum=0, maximum=300, doc="Delay between tear off and exposure. [tenths of a second]"
     )
     delayAfterExposure = IntValue(
-        0,
-        minimum=0,
-        maximum=300,
-        doc="Delay between exposure and tear off. [tenths of a second]",
+        0, minimum=0, maximum=300, doc="Delay between exposure and tear off. [tenths of a second]"
     )
-    upAndDownWait = IntValue(
-        10, minimum=0, maximum=600, doc="Up&Down wait time. [seconds]"
-    )
-    upAndDownEveryLayer = IntValue(
-        0, minimum=0, maximum=500, doc="Do Up&Down every N layers, 0 means never."
-    )
+    upAndDownWait = IntValue(10, minimum=0, maximum=600, doc="Up&Down wait time. [seconds]")
+    upAndDownEveryLayer = IntValue(0, minimum=0, maximum=500, doc="Do Up&Down every N layers, 0 means never.")
     upAndDownZoffset = IntValue(0, minimum=-800, maximum=800)
     upAndDownExpoComp = IntValue(0, minimum=-10, maximum=300)
 
     # Fans & LEDs
-    fan1Rpm = IntValue(
-        1800, minimum=500, maximum=3000, factory=True, doc="UV LED fan RPMs."
-    )
-    fan2Rpm = IntValue(
-        3700, minimum=500, maximum=3700, factory=True, doc="Blower fan RPMs."
-    )
-    fan3Rpm = IntValue(
-        1000, minimum=400, maximum=5000, factory=True, doc="Rear fan RPMs."
-    )
-    uvCurrent = FloatValue(
-        700.8, minimum=0.0, maximum=800.0, doc="UV LED current, DEPRECATED."
-    )
+    fan1Rpm = IntValue(1800, minimum=500, maximum=3000, factory=True, doc="UV LED fan RPMs.")
+    fan2Rpm = IntValue(3700, minimum=500, maximum=3700, factory=True, doc="Blower fan RPMs.")
+    fan3Rpm = IntValue(1000, minimum=400, maximum=5000, factory=True, doc="Rear fan RPMs.")
+    uvCurrent = FloatValue(700.8, minimum=0.0, maximum=800.0, doc="UV LED current, DEPRECATED.")
     uvPwm = IntValue(
         lambda self: int(round(self.uvCurrent / 3.2)),
         minimum=0,
         maximum=250,
+        factory=True,
         doc="Calibrated UV LED PWM.",
     )
     uvCalibTemp = IntValue(40, minimum=30, maximum=50)
     uvCalibIntensity = IntValue(140, minimum=80, maximum=200)
 
     # Tilt & Tower -> Tilt tune
-    raw_tiltdownlargefill = IntListValue(
-        [5, 650, 1000, 4, 1, 0, 64, 3], length=8, key="tiltdownlargefill"
-    )
-    raw_tiltdownsmallfill = IntListValue(
-        [5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill"
-    )
+    raw_tiltdownlargefill = IntListValue([5, 650, 1000, 4, 1, 0, 64, 3], length=8, key="tiltdownlargefill")
+    raw_tiltdownsmallfill = IntListValue([5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill")
     raw_tiltup = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltup")
 
     @property
@@ -980,11 +870,7 @@ class HwConfig(Config):
 
     @tuneTilt.setter
     def tuneTilt(self, value: List[List[int]]):
-        [
-            self.raw_tiltdownlargefill,
-            self.raw_tiltdownsmallfill,
-            self.raw_tiltup,
-        ] = value
+        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltup] = value
 
     # Print display pixel-size used to compute material consumption [mm]
     pixelSize = FloatValue(0.046875)  # 5.5" LCD
@@ -1007,8 +893,7 @@ class HwConfig(Config):
         self.raw_calibrated = value
 
     towerHeight = IntValue(
-        lambda self: self.calcMicroSteps(defines.defaultTowerHeight),
-        doc="Maximum tower height. [microsteps]",
+        lambda self: self.calcMicroSteps(defines.defaultTowerHeight), doc="Maximum tower height. [microsteps]"
     )
     tiltFastTime = FloatValue(5.5, doc="Time necessary to perform fast tear off.")
     tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off.")
@@ -1026,9 +911,7 @@ class WizardData(Config):
     towerHeight = TextValue()
     tiltHeight = TextValue()
     uvCurrent = FloatValue(700.8, minimum=0.0, maximum=800.0)
-    uvPwm = IntValue(
-        lambda self: int(round(self.uvCurrent / 3.2)), minimum=0, maximum=250
-    )
+    uvPwm = IntValue(lambda self: int(round(self.uvCurrent / 3.2)), minimum=0, maximum=250)
 
     # following values are measured and saved in initial wizard
     # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
@@ -1065,12 +948,7 @@ class WizardData(Config):
     uvPercDiff = FloatListValue(list())
 
     uvFoundCurrent = FloatValue(700.8, minimum=0.0, maximum=800.0, key="uvFoundCurrent")
-    uvFoundPwm = IntValue(
-        lambda self: int(round(self.uvFoundCurrent / 3.2)),
-        minimum=0,
-        maximum=250,
-        factory=True,
-    )
+    uvFoundPwm = IntValue(lambda self: int(round(self.uvFoundCurrent / 3.2)), minimum=0, maximum=250, factory=True)
 
 
 class PrintConfig(Config):
@@ -1104,25 +982,17 @@ class PrintConfig(Config):
     expTime3 = FloatValue(lambda self: self.expTime, doc="Exposure time 3. [s]")
     expTimeFirst = FloatValue(35.0, doc="First layer exposure time. [s]")
 
-    layerHeight = FloatValue(
-        -1, doc="Layer height, if not equal to -1 supersedes stepNum. [mm]"
-    )
+    layerHeight = FloatValue(-1, doc="Layer height, if not equal to -1 supersedes stepNum. [mm]")
     layerHeight2 = FloatValue(
-        lambda self: self.layerHeight,
-        doc="Layer height 2, if not equal to -1 supersedes stepNum2. [mm]",
+        lambda self: self.layerHeight, doc="Layer height 2, if not equal to -1 supersedes stepNum2. [mm]"
     )
     layerHeight3 = FloatValue(
-        lambda self: self.layerHeight,
-        doc="Layer height 3, if not equal to -1 supersedes stepNum3. [mm]",
+        lambda self: self.layerHeight, doc="Layer height 3, if not equal to -1 supersedes stepNum3. [mm]"
     )
 
     stepnum = IntValue(40, doc="Layer height [microsteps]")
-    stepnum2 = IntValue(
-        lambda self: self.layerMicroSteps, doc="Layer height 2 [microsteps]"
-    )
-    stepnum3 = IntValue(
-        lambda self: self.layerMicroSteps, doc="Layer height 3 [microsteps]"
-    )
+    stepnum2 = IntValue(lambda self: self.layerMicroSteps, doc="Layer height 2 [microsteps]")
+    stepnum3 = IntValue(lambda self: self.layerMicroSteps, doc="Layer height 3 [microsteps]")
 
     @property
     def layerMicroSteps(self) -> int:
@@ -1165,19 +1035,12 @@ class PrintConfig(Config):
     )
 
     calibrateTime = FloatValue(
-        lambda self: self.expTime,
-        doc="Time added to exposure per calibration region. [seconds]",
+        lambda self: self.expTime, doc="Time added to exposure per calibration region. [seconds]"
     )
-    calibrateRegions = IntValue(
-        0, doc="Number of calibration regions (2, 4, 6, 8, 9), 0 = off"
-    )
-    calibrateInfoLayers = IntValue(
-        10, doc="Number of calibration layers that will include exposure time."
-    )
+    calibrateRegions = IntValue(0, doc="Number of calibration regions (2, 4, 6, 8, 9), 0 = off")
+    calibrateInfoLayers = IntValue(10, doc="Number of calibration layers that will include exposure time.")
 
-    raw_calibrate_penetration = FloatValue(
-        0.5, doc="How much to sing calibration text to object. [millimeters]"
-    )
+    raw_calibrate_penetration = FloatValue(0.5, doc="How much to sing calibration text to object. [millimeters]")
 
     @property
     def calibratePenetration(self) -> int:
@@ -1187,21 +1050,15 @@ class PrintConfig(Config):
         defines.resinMaxVolume - defines.resinMinVolume,
         doc="Resin necessary to print the object. Default is full tank. [milliliters]",
     )
-    layersSlow = IntValue(
-        0, key="numSlow", doc="Number of layers that require slow tear off."
-    )
-    layersFast = IntValue(
-        0, key="numFast", doc="Number of layers that do not require slow tear off."
-    )
+    layersSlow = IntValue(0, key="numSlow", doc="Number of layers that require slow tear off.")
+    layersFast = IntValue(0, key="numFast", doc="Number of layers that do not require slow tear off.")
 
     # TODO: We can define totallayers as this, but we do not use it and later set it to number of images in the project.
     # @property
     # def totalLayers(self) -> int:
     #     return self.layersSlow + self.layersFast
 
-    action = TextValue(
-        doc="What to do with the project. Legacy value, currently discarded."
-    )
+    action = TextValue(doc="What to do with the project. Legacy value, currently discarded.")
 
     def parseFile(self, zipName: str) -> None:
         # zipError = TextValue("No data was read.")
