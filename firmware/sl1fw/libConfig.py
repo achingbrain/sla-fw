@@ -499,8 +499,8 @@ class Config(ValueConfig):
     """
 
     VAR_ASSIGN_PATTERN = re.compile(r"(?P<name>\w+) *= *(?P<value>.+)")
-    ON_YES_PATTERN = re.compile(r"(on|yes)$")
-    OFF_NO_PATTERN = re.compile(r"(off|no)$")
+    ON_YES_PATTERN = re.compile(r"^(on|yes)$")
+    OFF_NO_PATTERN = re.compile(r"^(off|no)$")
     NUM_LIST_ONLY = re.compile(r"\A([0-9.-]+ +)+[0-9.-]+\Z")
     NUM_SEP = re.compile(r"\s+")
 
