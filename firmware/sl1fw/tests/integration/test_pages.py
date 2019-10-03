@@ -148,6 +148,8 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.test_turnoff()
 
     def test_print(self):
+        PROJECT_NAME = "numbers"
+
         # Fake calibration
         self.printer.hwConfig.calibrated = True
         self.printer.hwConfig.fanCheck = False
@@ -156,7 +158,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         self.press("print")
         self.waitPage("sourceselect")
-        self.press("source", data={'choice': 'choice0'})
+        choice = None
+        for source in self.readItems()['sources']:
+            if source['name'] == PROJECT_NAME:
+                choice = source['choice']
+        self.assertIsNotNone(choice, f"Test project name ({PROJECT_NAME} in sources")
+        self.press("source", data={'choice': choice})
         self.waitPage("wait")
         self.waitPage("printpreview")
         self.press("cont")

@@ -19,7 +19,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     SDL_AUDIO_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw")
 
     def __init__(self, *args, **kwargs):
-        self.display = None
+        self.display = TestDisplay()
         self.printer = None
         self.thread = None
 
@@ -52,7 +52,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         PagePrintPreview.FanCheckOverride = True
 
-        self.display = TestDisplay()
         self.printer = libPrinter.Printer(debugDisplay=self.display)
 
         self.thread = threading.Thread(target=self.printer_thread)
@@ -98,6 +97,9 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     def waitPage(self, page, timeout_sec=3):
         self.assertEqual(page, self.display.read_page(timeout_sec=timeout_sec))
         print("Wait done for: %s" % page)
+
+    def readItems(self):
+        return self.display.read_items(timeout_sec=3)
 
     def switchPage(self, page):
         self.press(page)
