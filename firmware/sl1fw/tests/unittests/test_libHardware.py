@@ -4,29 +4,61 @@ from time import sleep
 from mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.libHardware import Hardware
+from sl1fw.libHardware import Hardware, MotConComState
 from sl1fw.libConfig import HwConfig, PrintConfig
 from sl1fw import defines
 
 
+class TestLibHardwareConnect(Sl1fwTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
+        defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
+        defines.reqMcVersion = "INVALID"
+        self.hwConfig = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
+        self.hw = Hardware(self.hwConfig)
+        self.hw.start()
+
+    def tearDown(self) -> None:
+        self.hw.exit()
+        if os.path.isfile(self.EEPROM_FILE):
+            os.remove(self.EEPROM_FILE)
+
+    def test_mcc_connect_ok(self) -> None:
+        self.assertEqual(MotConComState.OK, self.hw.mcc.connect(MCversionCheck=False))
+
+    def test_mcc_connect_wrong_version(self) -> None:
+        self.assertEqual(MotConComState.WRONG_FIRMWARE, self.hw.mcc.connect(MCversionCheck=True))
+
+    def test_mcc_connect_fail(self) -> None:
+        self.hw.mcc.getStateBits = lambda x: {'fatal': 1}
+        self.hw.mcc.doGetInt = lambda x: 42
+        self.assertEqual(MotConComState.UNKNOWN_ERROR, self.hw.mcc.connect(MCversionCheck=False))
+
+
 class TestLibHardware(Sl1fwTestCase):
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.hwConfig = None
         self.config = None
         self.hw = None
-        super().__init__(*args, **kwargs)
 
     def setUp(self):
+        super().setUp()
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory/factory.toml")
         defines.doFBSet = False
 
-        self.hwConfig = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
+        self.hwConfig = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
         self.hw = Hardware(self.hwConfig)
-        self.hw.start()
 
-        self.hw.connectMC(Mock(), Mock())
+        try:
+            self.hw.start()
+            self.hw.connectMC()
+        except Exception as exception:
+            self.tearDown()
+            raise exception
 
     def tearDown(self):
         self.hw.exit()
@@ -69,7 +101,7 @@ class TestLibHardware(Sl1fwTestCase):
         self.hw.uvLedPwm = pwm + 10
 
         # Switch back and see nothing changed
-        self.hw.switchToMC(Mock(), Mock())
+        self.hw.switchToMC()
         self.assertEqual(pwm, self.hw.uvLedPwm)
 
     def test_erase(self):

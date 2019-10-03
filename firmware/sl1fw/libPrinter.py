@@ -16,7 +16,12 @@ from dbus.mainloop.glib import DBusGMainLoop
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.printer0 import Printer0
+from sl1fw.libAsync import Admin_check
 from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
+from sl1fw.libExposure import Exposure
+from sl1fw.libHardware import MotConComState
+from sl1fw.libPages import PageWait
+from sl1fw.pages.start import PageStart
 
 
 class Printer(object):
@@ -24,8 +29,11 @@ class Printer(object):
     def __init__(self, debugDisplay=None):
         self.logger = logging.getLogger(__name__)
         init_time = monotonic()
+        self.start_time = None
         self.admin_check = None
         self.running = True
+        self.firstRun = True
+        self.expo = None
         self.exited = threading.Event()
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
@@ -109,128 +117,138 @@ class Printer(object):
         #endif
     #enddef
 
+    def printer_run(self):
+        self.hw.uvLed(False)
+        self.hw.powerLed("normal")
+
+        self.expo = Exposure(self.hwConfig, self.display, self.hw, self.screen)
+        self.display.initExpo(self.expo)
+        self.screen.cleanup()
+
+        if self.hw.checkFailedBoot():
+            self.display.pages['error'].setParams(
+                text=_("The printer has booted from an alternative slot due to failed boot attempts using the primary slot.\n\n"
+                       "Update the printer with up-to-date firmware ASAP to recover the primary slot.\n\n"
+                       "This usually happens after a failed update, or due to a hardware failure. Printer settings may have been reset."))
+            self.display.doMenu("error")
+        #endif
+
+        if self.firstRun:
+            if not self.hwConfig.defaultsSet() and not self.hw.isKit:
+                self.display.pages['error'].setParams(
+                    text=_("Failed to load fans and LEDs factory calibration."))
+                self.display.doMenu("error")
+            #endif
+
+            if self.factoryMode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
+                self.display.pages['error'].setParams(
+                    text=_("Examples (any projects) are missing in the user storage."))
+                self.display.doMenu("error")
+            #endif
+
+            if self.hwConfig.showUnboxing:
+                self.hw.beepRepeat(1)
+                if self.hw.isKit:
+                    # force page title
+                    self.display.pages['unboxing4'].pageTitle = N_("Unboxing step 1/1")
+                    self.display.doMenu("unboxing4")
+                else:
+                    self.display.doMenu("unboxing1")
+                #endif
+                sleep(0.5)
+            elif self.hwConfig.showWizard:
+                self.hw.beepRepeat(1)
+                self.display.doMenu("wizardinit")
+                sleep(0.5)
+            elif not self.display.hwConfig.calibrated:
+                self.display.pages['yesno'].setParams(
+                        pageTitle = N_("Calibrate now?"),
+                        text = _("Printer is not calibrated!\n\n"
+                                 "Calibrate now?"))
+                self.hw.beepRepeat(1)
+                if self.display.doMenu("yesno"):
+                    self.display.doMenu("calibration1")
+                #endif
+            #endif
+        #endif
+
+        lastProject = libConfig.TomlConfig(defines.lastProjectData).load()
+        if lastProject:
+            self.display.pages['finished'].data = lastProject
+            try:
+                os.remove(defines.lastProjectData)
+            except FileNotFoundError:
+                self.logger.exception("LastProject cleanup exception:")
+            #endtry
+            self.display.doMenu("finished")
+        else:
+            self.display.doMenu("home")
+        #endif
+        self.firstRun = False
+    #enddef
 
     def run(self):
         self.logger.info("SL1 firmware starting")
-        start_time = monotonic()
+        self.start_time = monotonic()
         self.logger.debug("Starting libHardware")
         self.hw.start()
         self.logger.debug("Starting libDisplay")
-        from sl1fw.libPages import PageWait
-        from sl1fw.pages.start import PageStart
         self.display.start()
-        self.logger.debug("Connecting motion controller")
-        self.hw.connectMC(PageWait(self.display), PageStart(self.display))
-        self.logger.debug("Starting libScreen")
-        self.screen.start()
         self.logger.debug("Starting D-Bus event thread")
         self.eventThread.start()
-        self.logger.debug("Starting admin checker")
-        if not self.factoryMode:
-            from sl1fw.libAsync import Admin_check
-            self.admin_check = Admin_check(self.display, self.inet)
-        #endif
-
-        self.logger.debug(f"SL1 firmware started in {monotonic() - start_time} seconds")
-
-        from sl1fw.libExposure import Exposure
-        firstRun = True
-        self.exited.clear()
+        try:
+            self.logger.debug("Connecting motion controller")
+            state = self.hw.connectMC()
+            if state != MotConComState.OK:
+                self.logger.info("Failed first motion controller connect attempt, state: %s", state)
+                waitPage = PageWait(self.display)
+                waitPage.fill(line1=_("Updating motion controller firmware"))
+                waitPage.show()
+                state = self.hw.connectMC(force_flash=True)
+            #endif
+            if state != MotConComState.OK:
+                raise Exception(f"Failed motion controller update attempt, state: {state}")
+            #endif
+            PageStart(self.display).show()
+            self.logger.debug("Starting libScreen")
+            self.screen.start()
+            self.logger.debug("Starting admin checker")
+            if not self.factoryMode:
+                self.admin_check = Admin_check(self.display, self.inet)
+            #endif
+            self.logger.debug(f"SL1 firmware started in {monotonic() - self.start_time} seconds")
+        except Exception as exception:
+            if defines.testing:
+                raise exception
+            self.logger.exception("Printer run() init failed")
+            self.display.pages['exception'].setParams(
+                text="An unexpected error has occured :-(.\n\n"
+                     "You can turn the printer off by pressing the front power button.\n\n"
+                     "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
+                     "Please send the log to us and help us improve the printer.\n\n"
+                     "Thank you!")
+            self.display.doMenu("exception")
 
         try:
+            self.exited.clear()
             while self.running:
-                self.hw.uvLed(False)
-                self.hw.powerLed("normal")
-
-                self.expo = Exposure(self.hwConfig, self.display, self.hw, self.screen)
-                self.display.initExpo(self.expo)
-                self.screen.cleanup()
-
-                if self.hw.checkFailedBoot():
-                    self.display.pages['error'].setParams(
-                        text=_("The printer has booted from an alternative slot due to failed boot attempts using the primary slot.\n\n"
-                            "Update the printer with up-to-date firmware ASAP to recover the primary slot.\n\n"
-                            "This usually happens after a failed update, or due to a hardware failure. Printer settings may have been reset."))
-                    self.display.doMenu("error")
-                #endif
-
-                if firstRun:
-                    if not self.hwConfig.defaultsSet() and not self.hw.isKit:
-                        self.display.pages['error'].setParams(
-                            text=_("Failed to load fans and LEDs factory calibration."))
-                        self.display.doMenu("error")
-                    #endif
-
-                    if self.factoryMode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
-                        self.display.pages['error'].setParams(
-                            text=_("Examples (any projects) are missing in the user storage."))
-                        self.display.doMenu("error")
-                    #endif
-
-                    if self.hwConfig.showUnboxing:
-                        self.hw.beepRepeat(1)
-                        if self.hw.isKit:
-                            # force page title
-                            self.display.pages['unboxing4'].pageTitle = N_("Unboxing step 1/1")
-                            self.display.doMenu("unboxing4")
-                        else:
-                            self.display.doMenu("unboxing1")
-                        #endif
-                        sleep(0.5)
-                    elif self.hwConfig.showWizard:
-                        self.hw.beepRepeat(1)
-                        self.display.doMenu("wizardinit")
-                        sleep(0.5)
-                    elif not self.display.hwConfig.calibrated:
-                        self.display.pages['yesno'].setParams(
-                                pageTitle = N_("Calibrate now?"),
-                                text = _("Printer is not calibrated!\n\n"
-                                    "Calibrate now?"))
-                        self.hw.beepRepeat(1)
-                        if self.display.doMenu("yesno"):
-                            self.display.doMenu("calibration1")
-                        #endif
-                    #endif
-                #endif
-
-                lastProject = libConfig.TomlConfig(defines.lastProjectData).load()
-                if lastProject:
-                    self.display.pages['finished'].data = lastProject
-                    try:
-                        os.remove(defines.lastProjectData)
-                    except Exception as e:
-                        self.logger.exception("LastProject cleanup exception:")
-                    #endtry
-                    self.display.doMenu("finished")
-                else:
-                    self.display.doMenu("home")
-                #endif
-                firstRun = False
+                self.printer_run()
             #endwhile
-
-        except Exception:
+        except Exception as exception:
+            if defines.testing:
+                raise exception
             self.logger.exception("run() exception:")
-            self.hw.powerLed("error")
-            self.display.pages['exception'].setParams(text =
-                    "An unexpected error has occured :-(.\n\n"
-                    "The SL1 will finish the print if you are currently printing.\n\n"
-                    "You can turn the printer off by pressing the front power button.\n\n"
-                    "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. Please send the log to us and help us improve the printer.\n\n"
-                    "Thank you!")
-            self.display.forcePage("exception")
-            if hasattr(self, 'expo') and self.expo.inProgress():
-                self.expo.waitDone()
-            #endif
-            self.hw.uvLed(False)
-            self.hw.stopFans()
-            self.hw.motorsRelease()
-            while not self.display.hw.getPowerswitchState():
-                sleep(0.5)
-            #endwhile
-            self.display.shutDown(True)
+            self.display.pages['exception'].setParams(
+                text ="An unexpected error has occured :-(.\n\n"
+                      "The SL1 will finish the print if you are currently printing.\n\n"
+                      "You can turn the printer off by pressing the front power button.\n\n"
+                      "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
+                      "Please send the log to us and help us improve the printer.\n\n"
+                      "Thank you!")
+            self.display.doMenu("exception")
         #endtry
 
-        if hasattr(self, 'expo') and self.expo.inProgress():
+        if self.expo and self.expo.inProgress():
             self.expo.waitDone()
         #endif
 
@@ -249,30 +267,26 @@ class Printer(object):
         self.logger.debug("Printer event loop exited")
     #enddef
 
-    def localeChanged(self, service, changed, data):
-        if not 'Locale' in changed:
+    def localeChanged(self, __, changed, ___):
+        if 'Locale' not in changed:
             return
         #endif
 
-        try:
-            lang = re.sub(r"LANG=(.*)\..*", r"\g<1>", changed['Locale'][0])
-        except:
-            self.logger.exception("Failed to determine new locale language")
-            return
-        #endtry
+        lang = re.sub(r"LANG=(.*)\..*", r"\g<1>", changed['Locale'][0])
+        self.logger.exception("Failed to determine new locale language")
 
         try:
             self.logger.debug("Obtaining translation: %s" % lang)
             translation = gettext.translation('sl1fw', localedir=defines.localedir, languages=[lang], fallback=True)
             self.logger.debug("Installing translation: %s" % lang)
             translation.install()
-        except:
+        except (IOError, OSError):
             self.logger.exception("Translation for %s cannot be installed.", lang)
         #endtry
     #enddef
 
-    def wificonfigChanged(self, service, changed, data):
-        if not 'APs' in changed:
+    def wificonfigChanged(self, __, changed, ___):
+        if 'APs' not in changed:
             return
         #endif
 

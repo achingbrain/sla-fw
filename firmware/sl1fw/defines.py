@@ -60,7 +60,6 @@ octoprintAuthFile = os.path.join(configDir, "slicer-upload-api.key")
 
 fbFile = "/dev/fb0"
 doFBSet = True
-truePoweroff = True
 
 resinMinVolume = 68.5
 resinMaxVolume = 200.0
@@ -107,3 +106,4 @@ uvLedMeasMinPwm500k = 157
 uvLedMeasMaxPwm500k = 243
 factoryConfigFile = os.path.join(factoryMountPoint, "factory.toml")
 logsBase = "/var/log/journal"
+testing = False

@@ -269,8 +269,8 @@ class Display(object):
 
     # TODO presunout pryc
     def shutDown(self, doShutDown, reboot=False):
-        if not defines.truePoweroff:
-            self.logger.debug("Skipping poweroff")
+        if defines.testing:
+            print("Skipping poweroff")
             return
         #endif
 
@@ -280,16 +280,13 @@ class Display(object):
 
         if doShutDown:
             if reboot:
-                self.logger.debug("reboot")
                 os.system("reboot")
             else:
                 self.hw.shutdown()
-                self.logger.debug("poweroff")
                 os.system("poweroff")
         #endif
 
         self.screen.exit()
-        self.inet.exit()
         self.hw.exit()
         self.exit()
         sys.exit()

@@ -2,13 +2,12 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import json
 import logging
 
-from sl1fw import defines
-from sl1fw.pages import page
 from sl1fw.libPages import Page
 from sl1fw.logger_config import get_log_level, set_log_level
+from sl1fw.pages import page
+
 
 @page
 class PageLogging(Page):

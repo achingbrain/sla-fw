@@ -1,10 +1,11 @@
 from enum import Enum, auto
 from time import monotonic
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 import distro
 import pydbus
 from pydbus.generic import signal
 
+from sl1fw import actions
 from sl1fw.api.display_test0 import DisplayTest0
 
 
@@ -36,16 +37,20 @@ class PositionNotAvailable(Exception):
     pass
 
 
-def state_checked(allowed_state: Printer0State):
+def state_checked(allowed_state: Union[Printer0State, List[Printer0State]]):
     """
     Decorator restricting method call based on allowed state
-    :param allowed_state: State in which the method is available
+    :param allowed_state: State in which the method is available, or list of such states
     :return: Method decorator
     """
 
     def decor(function):
         def func(self, *args, **kwargs):
-            if self.state == allowed_state.name:
+            if isinstance(allowed_state, list):
+                allowed_names = [state.name for state in allowed_state]
+            else:
+                allowed_names = [allowed_state.name]
+            if self.state in allowed_names:
                 return function(self, *args, **kwargs)
             else:
                 raise NotAvailableInState
@@ -212,6 +217,31 @@ class Printer0:
         :return: None
         """
         self.printer.hw.beep(frequency_hz, length_ms / 1000)
+
+    @dbus_record('<method name="save_logs_to_usb"/>')
+    def save_logs_to_usb(self) -> None:
+        """
+        Save logs to first usb device
+        :return: None
+        """
+        actions.save_logs_to_usb(self.printer.hw.cpuSerialNo)
+
+    @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])
+    @dbus_record("""
+    <method name="poweroff">
+       <arg type='b' name="do_shutdown" direction='in'/>
+       <arg type='b' name="reboot" direction='in'/>
+    </method>
+    """)
+    def poweroff(self, do_shutdown: bool, reboot: bool) -> None:
+        """
+        Shut down the printer
+
+        :param do_shutdown: True for real action, False just restarts the printer logic
+        :param reboot: True does reboot, False means real shutdown
+        :return: None
+        """
+        self.printer.display.shutDown(do_shutdown, reboot=reboot)
 
     @state_checked(Printer0State.IDLE)
     @dbus_record('<method name="tower_home"/>')
@@ -682,17 +712,6 @@ class Printer0:
         NOT IMPLEMENTED
         """
         # TODO: Do we need to have this here? If we can do update while printing we do not need to care.
-        raise NotImplementedError
-
-
-    @dbus_record('<method name="save_logs"/>')
-    def save_logs(self, path=None) -> None:
-        """
-        Save logs to compressed text file
-
-        :param path: File path, None means auto export to USB
-        :return: None
-        """
         raise NotImplementedError
 
 

@@ -3,18 +3,18 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import os
-import logging
-import re
-from time import sleep
-import subprocess
 import glob
-import datetime
+import logging
+import os
+import subprocess
+from time import sleep
+
 import distro
 
 from sl1fw import defines
-from sl1fw import libConfig
+from sl1fw.actions import get_save_path
 from sl1fw.libConfig import ConfigException
+from sl1fw import actions
 
 
 class Page(object):
@@ -151,20 +151,14 @@ class Page(object):
     #enddef
 
 
-    # List paths to successfully mounted partitions found on currently attached removable storage devices.
-    def getSavePaths(self):
-        return [p for p in glob.glob(os.path.join(defines.mediaRootPath, '*')) if os.path.ismount(p)]
-    #enddef
-
     # Dynamic USB path, first usb device or None
-    def getSavePath(self):
-        usbs = self.getSavePaths()
-        if len(usbs) == 0:
+    def getSavePath(self) -> str:
+        path = get_save_path()
+        if path is None:
             self.logger.debug("getSavePath returning None, no media seems present")
-            return None
         #endif
-        return usbs[0]
-    #enddsef
+        return str(path)
+    #enddef
 
 
     def ensureCoverIsClosed(self):
@@ -186,33 +180,18 @@ class Page(object):
 
 
     def saveLogsToUSB(self):
-        save_path = self.getSavePath()
-        if save_path is None:
-            self.display.pages['error'].setParams(text=_("No USB storage present"))
-            return "error"
-        #endif
-
         pageWait = PageWait(self.display, line1=_("Saving logs"))
         pageWait.show()
-
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        serial = re.sub("[^a-zA-Z0-9]", "_", self.display.hw.cpuSerialNo)
-        log_file = os.path.join(save_path, f"log.{serial}.{timestamp}.txt.xz")
-
         try:
-            subprocess.check_call(["/bin/bash", "-c", """
-                (
-                    for i in $(journalctl --list-boots | awk '{print $1}'); do
-                        echo "########## REBOOT: ${i} ##########";
-                        journalctl --no-pager --boot ${i};
-                    done;
-                ) | xz -T0 -0 > %s""" % log_file])
-            os.sync()
-        except:
-            self.logger.error("Saving logs failed")
-            self.display.pages['error'].setParams(text=_("Log save failed"))
+            actions.save_logs_to_usb(self.display.hw.cpuSerialNo)
+        except FileNotFoundError:
+            self.logger.exception("File not found saving logs to usb")
+            self.display.pages['error'].setParams(text=_("No USB storage present"))
             return "error"
-        #endexcept
+        except Exception as exception:
+            self.logger.exception("Failed to save logs to usb")
+            self.display.pages['error'].setParams(text=_(str(exception)))
+            return "error"
 
         return "_BACK_"
     #enddef
@@ -329,7 +308,11 @@ class Page(object):
             #endif
         #endif
 
-        expoInProgress = self.display.expo.inProgress()
+        if self.display.expo:
+            expoInProgress = self.display.expo.inProgress()
+        else:
+            expoInProgress = False
+        #endif
 
         if not self.checkCoverOveride and (self.checkCover or expoInProgress):
             state = True

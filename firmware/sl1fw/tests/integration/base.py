@@ -1,3 +1,4 @@
+from queue import Empty
 from pathlib import Path
 import os
 import threading
@@ -20,13 +21,13 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     LAST_PROJECT_FILE = Sl1fwTestCase.TEMP_DIR / "last_project.toml"
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.display = TestDisplay()
         self.printer = None
         self.thread = None
 
-        super().__init__(*args, **kwargs)
-
     def setUp(self):
+        super().setUp()
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
 
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
@@ -56,21 +57,26 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.printer = libPrinter.Printer(debugDisplay=self.display)
 
         self.thread = threading.Thread(target=self.printer_thread)
-        self.thread.start()
 
-        # Skip failed to load factory defaults
-        self.waitPage("error")
-        self.press("ok")
+        try:
+            self.thread.start()
+            self.waitPage("splash")
+            # Skip failed to load factory defaults
+            self.waitPage("error")
+            self.press("ok")
 
-        # Skip wizard
-        self.waitPage("confirm")
-        self.press("back")
-        self.waitPage("yesno")
-        self.press("yes")
-        if os.path.isfile(defines.lastProjectData):
-            self.waitPage("finished")
-            self.press("home")
-        self.waitPage("home")
+            # Skip wizard
+            self.waitPage("confirm")
+            self.press("back")
+            self.waitPage("yesno")
+            self.press("yes")
+            if os.path.isfile(defines.lastProjectData):
+                self.waitPage("finished")
+                self.press("home")
+            self.waitPage("home")
+        except Exception as exception:
+            self.tearDown()
+            raise exception
 
     def printer_thread(self):
         self.printer.run()
@@ -97,8 +103,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.display.add_event(self.display.page, identifier, pressed=True, data=data)
         self.display.add_event(self.display.page, identifier, pressed=False, data=data)
 
-    def waitPage(self, page, timeout_sec=3):
-        self.assertEqual(page, self.display.read_page(timeout_sec=timeout_sec))
+    def waitPage(self, page: str, timeout_sec: int = 3):
+        try:
+            self.assertEqual(page, self.display.read_page(timeout_sec=timeout_sec))
+        except Empty as exception:
+            raise Exception(f"Wait timeout for page \"{page}\" ({timeout_sec} seconds)") from exception
         print("Wait done for: %s" % page)
 
     def readItems(self):

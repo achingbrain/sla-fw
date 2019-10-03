@@ -43,7 +43,10 @@ class PageMotionController(Page):
 
     def button1Continue(self):
         pageWait = PageWait(self.display)
-        self.display.hw.flashMC(pageWait, self.display.actualPage)
+        pageWait.fill(line1=_("Forced update of the motion controller firmware"))
+        pageWait.show()
+        self.display.hw.flashMC()
+        self.display.actualPage.show()
         return "_BACK_"
     #enddef
 
@@ -119,7 +122,10 @@ class PageMotionController(Page):
     def mc2netStop(self, pid):
         os.killpg(os.getpgid(pid), signal.SIGTERM)
         pageWait = PageWait(self.display)
-        self.display.hw.switchToMC(pageWait, self.display.actualPage)
+        pageWait.fill(line1=_("Switching back to real MC"))
+        pageWait.show()
+        self.display.hw.switchToMC()
+        self.display.actualPage.show()
         return "_BACK_"
     #enddef
 

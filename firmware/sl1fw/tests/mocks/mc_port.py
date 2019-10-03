@@ -16,6 +16,8 @@ class Serial(object):
         self.read_queue = Queue()
         self.reader_thread = threading.Thread(target=self._reader)
 
+        self.timeout = None
+
     def open(self):
         self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         self.reader_thread.start()
@@ -55,7 +57,7 @@ class Serial(object):
         Read line from simulated serial port
         :return: Line read from simulated serial port
         """
-        line = self.read_queue.get()
+        line = self.read_queue.get(timeout=self.timeout)
         self.logger.debug(f"> {line}")
         return line
 

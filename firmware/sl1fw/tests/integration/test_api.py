@@ -1,8 +1,8 @@
 import unittest
 from time import sleep
 
-from sl1fw.api.printer0 import Printer0State
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
+from sl1fw.api.printer0 import Printer0State
 
 
 class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
@@ -101,11 +101,13 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         # self.printer.printer0.display_test()
         # self.printer.printer0.wizard()
         # self.printer.printer0.update_firmware()
-        # self.printer.printer0.save_logs()
         # self.printer.printer0.factory_reset()
         # self.printer.printer0.enter_admin()
         # self.printer.printer0.print()
         # self.printer.printer0.advanced_settings()
+
+    def test_save_logs(self):
+        self.assertRaises(FileNotFoundError, self.printer.printer0.save_logs_to_usb)
 
 
 if __name__ == '__main__':

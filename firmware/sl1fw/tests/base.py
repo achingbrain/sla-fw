@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest import TestCase
 from mock import Mock
 
+from sl1fw import defines
 from sl1fw.tests import samples
 import sl1fw.tests.mocks.mc_port
 import sl1fw.tests.mocks.pydbus
@@ -24,3 +25,6 @@ class Sl1fwTestCase(TestCase):
     SAMPLES_DIR = Path(sl1fw.tests.samples.__file__).parent
     TEMP_DIR = Path(tempfile.gettempdir())
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
+
+    def setUp(self) -> None:
+        defines.testing = True

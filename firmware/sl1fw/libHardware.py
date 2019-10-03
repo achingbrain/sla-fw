@@ -3,8 +3,8 @@
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
 import logging
-from enum import Enum
-from typing import Optional
+from enum import Enum, unique
+
 import serial
 import re
 from time import sleep
@@ -18,125 +18,37 @@ from collections import deque
 from sl1fw.libConfig import HwConfig
 from sl1fw.libDebug import Debug
 from sl1fw import defines
-
-
-class MotionControllerTracingSerial(serial.Serial):
-    """
-    This is an extension of Serial that supports logging of traces and reading of decode text lines.
-    """
-    TRACE_LINES = 30
-
-    class LineMarker(Enum):
-        INPUT = ">"
-        GARBAGE = "|"
-        OUTPUT = "<"
-        RESET = "="
-    #endclass
-
-    class LineTrace:
-        def __init__(self, marker, line: bytes):
-            self._line = line
-            self._marker = marker
-            self._repeats = 1
-        #enddef
-
-        def __eq__(self, other):
-            if not isinstance(other, self.__class__):
-                return False
-            else:
-                return self._line == other._line and self._marker == other._marker
-            #endif
-        #enddef
-
-        def repeat(self):
-            self._repeats += 1
-        #enddef
-
-        def __str__(self):
-            if self._repeats > 1:
-                return f"{self._repeats}x {self._marker.value} {self._line}"
-            else:
-                return f"{self._marker.value} {self._line}"
-            #endif
-        #enddef
-    #endclass
-
-    def __init__(self, *args, **kwargs):
-        self.__trace = deque(maxlen=self.TRACE_LINES)
-        self.__debug = kwargs['debug']
-        del kwargs['debug']
-        super().__init__(*args, **kwargs)
-
-    def __append_trace(self, current_trace):
-        # < b'?mot\n' -3
-        # > b'1 ok\n' -2
-        # < b'?mot\n' -1
-        # > b'1 ok\n' current_trace
-
-        if len(self.__trace) > 3 and \
-                self.__trace[-3] == self.__trace[-1] and \
-                self.__trace[-2] == current_trace:
-            self.__trace[-3].repeat()
-            self.__trace[-2].repeat()
-            del self.__trace[-1]
-        else:
-            self.__trace.append(current_trace)
-        #endif
-    #enddef
-
-    def readline(self, garbage=False) -> bytes:
-        """
-        Read raw line from motion controller
-        :param garbage: Whenever to mark line read as garbage in command trace
-        :return: Line read as raw bytes
-        """
-        marker = self.LineMarker.GARBAGE if garbage else self.LineMarker.INPUT
-        ret = super().readline()
-        trace = self.LineTrace(marker, ret)
-        self.__append_trace(trace)
-        self.__debug.log(str(trace))
-        return ret
-    #enddef
-
-    def write(self, data: bytes) -> int:
-        """
-        Write data to a motion controller
-        :param data: Data to be written
-        :return: Number of bytes written
-        """
-        self.__append_trace(self.LineTrace(self.LineMarker.OUTPUT, data))
-        self.__debug.log(f"< {data}")
-        return super().write(data)
-    #enddef
-
-    def mark_reset(self):
-        self.__append_trace(self.LineTrace(self.LineMarker.RESET, b'Motion controller reset'))
-    #enddef
-
-    @property
-    def trace(self) -> str:
-        """
-        Get formated motion controller command trace
-        :return: Trace string
-        """
-        return f"last {self.TRACE_LINES} lines:\n" + "\n".join([str(x) for x in self.__trace])
-    #enddef
-
-    def read_text_line(self, garbage=False) -> str:
-        """
-        Read line from serial as stripped decoded text
-        :param garbage: Mark this data as garbage. LIne will be amrked as such in trace
-        :return: Line read from motion controller
-        """
-        return self.readline(garbage=garbage).decode("ascii").strip()
-    #enddef
-#endclass
+from sl1fw.tracing_serial import MotionControllerTracingSerial
 
 
 class MotionControllerException(Exception):
     def __init__(self, message: str, port: MotionControllerTracingSerial):
         self.__serial = port
         super().__init__(f"{message}, trace: {port.trace}")
+    #enddef
+#endclass
+
+
+@unique
+class MotConComState(Enum):
+    UPDATE_FAILED = -3
+    COMMUNICATION_FAILED = -2
+    WRONG_FIRMWARE = -1
+    OK = 0
+    APPLICATION_FLASH_CHECKSUM_FAILED = 1
+    BOOTLOADER_FLASH_CHECKSUM_FAILED = 2
+    SERIAL_NUMBER_CHECK_FAILED = 3
+    FUSE_BIT_SETTINGS_FAILED = 4
+    BOOT_SECTOR_LOCK_FAILED = 5
+    GPIO_SPI_FAILED = 6
+    TMC_SPI_FAILED = 7
+    TMC_WIRRING_COMMUNICATION_FAILED = 8
+    UVLED_FAILED = 9
+    UNKNOWN_ERROR = 999
+
+    @classmethod
+    def _missing_(cls, value):
+        return MotConComState.UNKNOWN_ERROR
     #enddef
 #endclass
 
@@ -168,18 +80,6 @@ class MotConComBase:
         'reset': 13,
         'fans': 14,
         'fatal': 15,
-    }
-
-    selfCheckErrors = {
-        1: _("Application flash checksum has failed"),
-        2: _("Bootloader flash checksum has failed"),
-        3: _("Serial number check has failed"),
-        4: _("Fuse bit settings have failed"),
-        5: _("Boot-section lock has failed"),
-        6: _("GPIO SPI has failed"),
-        7: _("TMC SPI has failed"),
-        8: _("TMC wiring/communication has failed"),
-        9: _("The UV LED has failed"),
     }
 
     resetFlags = {
@@ -234,18 +134,16 @@ class MotConCom(MotConComBase):
     #enddef
 
 
-    def connect(self, MCversionCheck: bool):
+    def connect(self, MCversionCheck: bool) -> MotConComState:
         try:
             state = self.getStateBits(('fatal', 'reset'))
         except MotionControllerException:
             self.logger.exception("Motion controller connect failed")
-            return _("Communication with the motion controller has failed")
+            return MotConComState.COMMUNICATION_FAILED
         #endif
 
         if state['fatal']:
-            errorCode = self.doGetInt("?err")
-            error = self.selfCheckErrors.get(errorCode, _("An unknown issue has occured"))
-            return error
+            return MotConComState(self.doGetInt("?err"))
         #endif
 
         if state['reset']:
@@ -261,7 +159,7 @@ class MotConCom(MotConComBase):
 
         self.MCFWversion = self.do("?ver")
         if MCversionCheck and self.MCFWversion != defines.reqMcVersion:
-            return _("Wrong motion controller firmware version")
+            return MotConComState.WRONG_FIRMWARE
         else:
             self.logger.info("motion controller firmware version: %s", self.MCFWversion)
         #endif
@@ -294,7 +192,7 @@ class MotConCom(MotConComBase):
             self.MCserial = "*INVALID*"
         #endif
 
-        return None
+        return MotConComState.OK
     #enddef
 
 
@@ -469,7 +367,7 @@ class MotConCom(MotConComBase):
 
             self._ensure_ready()
 
-            return False if retc else True
+            return MotConComState.UPDATE_FAILED if retc else MotConComState.OK
     #enddef
 
 
@@ -689,33 +587,28 @@ class Hardware(object):
     #enddef
 
 
-    def connectMC(self, waitPage, returnPage):
-
-        errorMessage = self.mcc.connect(self.hwConfig.MCversionCheck)
-        # TODO: Would be nice to raise exceptions instead of passing localized error messages around
-        if errorMessage:
-            self.logger.warning("motion controller error: %s", errorMessage)
-
-            waitPage.fill(line1 = _("Updating motion controller firmware"))
-            waitPage.show()
-
-            if not self.mcc.flash(self.hwConfig.MCBoardVersion):
-                self.ahojBabi(waitPage, _("Motion controller update has failed!"))
+    def connectMC(self, force_flash = False):
+        if force_flash:
+            state = self.mcc.flash(self.hwConfig.MCBoardVersion)
+            if state != MotConComState.OK:
+                self.logger.error("Motion controller flash error: %s", state)
+                return state
             #endif
+        #endif
 
-            errorMessage = self.mcc.connect(self.hwConfig.MCversionCheck)
-            if errorMessage:
-                self.logger.error("motion controller error: %s", errorMessage)
-                self.ahojBabi(waitPage, errorMessage)
-            #endif
+        state = self.mcc.connect(self.hwConfig.MCversionCheck)
+        if state != MotConComState.OK:
+            self.logger.error("Motion controller connect error: %s", state)
+            return state
+        #endif
 
-            waitPage.showItems(line1 = _("Erasing EEPROM"))
+        if force_flash:
             self.eraseEeprom()
-
-            returnPage.show()
         #endif
 
         self.initDefaults()
+
+        return state
     #enddef
 
 
@@ -733,23 +626,8 @@ class Hardware(object):
     #enddef
 
 
-    def ahojBabi(self, waitPage, message):
-        waitPage.show()
-        waitPage.showItems(line1 = _("Fatal error"), line2 = message)
-        while True:
-            waitPage.showItems(line3 = _("Please contact tech support!"))
-            sleep(1)
-            waitPage.showItems(line3 = "")
-            sleep(1)
-        #endwhile
-    #enddef
-
-
-    def flashMC(self, waitPage, returnPage):
-        waitPage.fill(line1 = _("Forced update of the motion controller firmware"))
-        waitPage.show()
-        self.mcc.flash(self.hwConfig.MCBoardVersion)
-        self.connectMC(waitPage, returnPage)
+    def flashMC(self):
+        self.connectMC(force_flash=True)
     #enddef
 
 
@@ -758,9 +636,9 @@ class Hardware(object):
     #enddef
 
 
-    def switchToMC(self, waitPage, actualPage):
+    def switchToMC(self):
         self.mcc = self.realMcc
-        self.connectMC(waitPage, actualPage)
+        self.connectMC()
     #enddef
 
     @property
@@ -994,8 +872,12 @@ class Hardware(object):
     #enddef
 
 
-    def beepEcho(self):
-        self.beep(1800, 0.05)
+    def beepEcho(self) -> None:
+        try:
+            self.beep(1800, 0.05)
+        except MotionControllerException:
+            self.logger.exception("Failed to beep")
+        #endtry
     #enddef
 
 
