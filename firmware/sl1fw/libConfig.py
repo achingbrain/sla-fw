@@ -1030,7 +1030,7 @@ class PrintConfig(Config):
         10,
         minimum=3,
         maximum=200,
-        key="numfade",
+        key="numFade",
         doc="Number of layers used for transition from first layer exposure time to standard exposure time.",
     )
 
