@@ -14,9 +14,10 @@ from sl1fw.pages.printstart import PagePrintPreview
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
-    FB_DEV_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.fb_dev.dat")
-    HARDWARE_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.hardware.cfg")
-    SDL_AUDIO_FILE = str(Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw")
+    FB_DEV_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.fb_dev.dat"
+    HARDWARE_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.hardware.cfg"
+    SDL_AUDIO_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw"
+    LAST_PROJECT_FILE = Sl1fwTestCase.TEMP_DIR / "last_project.toml"
 
     def __init__(self, *args, **kwargs):
         self.display = TestDisplay()
@@ -32,11 +33,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.hwConfigFactoryDefaultsFile = str(self.SAMPLES_DIR / "hardware.toml")
-        defines.lastProjectData = str(self.SAMPLES_DIR / "last_project.toml")
+        defines.lastProjectData = str(self.LAST_PROJECT_FILE)
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigFile = self.HARDWARE_FILE
-        defines.fbFile = self.FB_DEV_FILE
+        defines.fbFile = str(self.FB_DEV_FILE)
         defines.doFBSet = False
         defines.truePoweroff = False
         defines.internalProjectPath = str(self.SAMPLES_DIR)
@@ -83,11 +84,13 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             self.EEPROM_FILE,
             self.FB_DEV_FILE,
             self.HARDWARE_FILE,
-            self.SDL_AUDIO_FILE]
+            self.SDL_AUDIO_FILE,
+            self.LAST_PROJECT_FILE
+        ]
 
         for file in files:
-            if os.path.isfile(file):
-                os.remove(file)
+            if file.exists():
+                file.unlink()
 
     def press(self, identifier, data=None):
         print("Pressing button: %s on page %s" % (identifier, self.display.page))

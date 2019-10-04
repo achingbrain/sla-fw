@@ -22,7 +22,7 @@ class TestLibHardware(Sl1fwTestCase):
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory/factory.toml")
         defines.doFBSet = False
 
-        self.hwConfig = HwConfig(str(self.SAMPLES_DIR / "hardware.cfg"))
+        self.hwConfig = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
         self.hw = Hardware(self.hwConfig)
         self.hw.start()
 
@@ -30,8 +30,8 @@ class TestLibHardware(Sl1fwTestCase):
 
     def tearDown(self):
         self.hw.exit()
-        if os.path.isfile(self.EEPROM_FILE):
-            os.remove(self.EEPROM_FILE)
+        if self.EEPROM_FILE.exists():
+            self.EEPROM_FILE.unlink()
 
     def test_cpu_read(self):
         self.assertEqual("CZPX0819X009XC00151", self.hw.cpuSerialNo)
