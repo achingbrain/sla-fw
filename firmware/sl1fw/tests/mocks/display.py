@@ -1,4 +1,5 @@
 from queue import Queue
+from threading import Lock
 from time import monotonic
 
 from sl1fw.libVirtualDisplay import VirtualDisplay
@@ -6,9 +7,10 @@ from sl1fw.libVirtualDisplay import VirtualDisplay
 
 class TestDisplay(VirtualDisplay):
     def __init__(self):
-        super(TestDisplay, self).__init__()
+        super().__init__()
         self.page = None
         self.items = {}
+        self.items_lock = Lock()
         self.page_queue = Queue()
 
     def start(self):
@@ -18,20 +20,23 @@ class TestDisplay(VirtualDisplay):
         pass
 
     def setPage(self, page):
-        super(TestDisplay, self).setPage(page)
+        super().setPage(page)
         self.page = page
+        with self.items_lock:
+            self.items = {}
         self.page_queue.put(page)
-        self.items = {}
         print("Page: %s" % page)
 
     def setItems(self, items):
-        super(TestDisplay, self).setItems(items)
-        self.items.update(items)
+        super().setItems(items)
+        with self.items_lock:
+            self.items.update(items)
         print("SetItems: %s" % items)
 
     def showItems(self, items):
-        super(TestDisplay, self).showItems(items)
-        self.items.update(items)
+        super().showItems(items)
+        with self.items_lock:
+            self.items.update(items)
         print("ShowItems: %s" % items)
 
     def add_event(self, page, id, pressed, data):
@@ -48,7 +53,8 @@ class TestDisplay(VirtualDisplay):
     def read_items(self, timeout_sec = None):
         start = monotonic()
         while True:
-            if self.items:
-                return self.items
+            with self.items_lock:
+                if self.items:
+                    return self.items
             if timeout_sec and monotonic() - start > timeout_sec:
                 raise TimeoutError()
