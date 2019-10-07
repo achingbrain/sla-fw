@@ -1,4 +1,3 @@
-import os
 import re
 import subprocess
 from datetime import datetime
@@ -6,7 +5,6 @@ from pathlib import Path
 from typing import Optional
 
 from sl1fw import defines
-from sl1fw.libHardware import Hardware
 
 
 def get_save_path() -> Optional[Path]:
@@ -36,13 +34,6 @@ def save_logs_to_usb(a64_serial: str) -> None:
     log_file = save_path / f"log.{serial}.{timestamp}.txt.xz"
 
     try:
-        subprocess.check_call(["/bin/bash", "-c", """
-            (
-                for i in $(journalctl --list-boots | awk '{print $1}'); do
-                    echo "########## REBOOT: ${i} ##########";
-                    journalctl --no-pager --boot ${i};
-                done;
-            ) | xz -T0 -0 > %s""" % log_file])
-        os.sync()
+        subprocess.check_call(["export_logs.bash", log_file])
     except Exception as exception:
         raise Exception(N_("Saving logs failed")) from exception
