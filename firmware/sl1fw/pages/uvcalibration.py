@@ -279,7 +279,7 @@ class PageUvMeter(PageUvMeterShow):
             writer = self.display.wizardData.get_writer()
             writer.update(data)
             writer.uvFoundPwm = realPwm
-            writer.commit()
+            writer.commit(write=False)
 
             self.display.screen.getImgBlack()
             self.finalTest = True

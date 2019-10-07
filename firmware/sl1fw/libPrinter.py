@@ -38,7 +38,7 @@ class Printer(object):
         try:
             self.hwConfig.read_file()
         except ConfigException:
-            self.logger.exception("Failed to read configuration files")
+            self.logger.warning("Failed to read configuration file", exc_info=True)
         #endtry
         self.hwConfig.logAllItems()
 

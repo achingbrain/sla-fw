@@ -99,16 +99,15 @@ class PageNetUpdate(Page):
         writer.towerHeight = self.display.hwConfig.towerHeight
         writer.tiltHeight = self.display.hwConfig.tiltHeight
         writer.uvPwm = self.display.hwConfig.uvPwm
-        writer.commit()
 
-        if not self.writeToFactory(self.display.wizardData.write()):
+        if not self.writeToFactory(writer.commit):
             self.display.pages['error'].setParams(
                 text = _("!!! Failed to save factory defaults !!!"))
             return "error"
         #endif
 
         topic = "prusa/sl1/factoryConfig"
-        data = self.display.wizardData.getJson()
+        data = json.dumps(self.display.wizardData.as_dictionary(nondefault=True))
         self.logger.debug("mqtt data: %s", data)
         try:
             mqtt.single(topic, data, qos=2, retain=True, hostname="mqttstage.prusa")

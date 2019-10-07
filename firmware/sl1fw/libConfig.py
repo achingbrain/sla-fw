@@ -467,16 +467,19 @@ class ConfigWriter:
         self.update(values)
         self.commit()
 
-    def commit(self):
+    def commit(self, write: bool = True):
         """
         Save changes to underlying config and write it to file
+
+        :param: write Whenever to write configuration file
         """
         with self._config.lock.gen_wlock():
             for key, val in self._changed.items():
                 setattr(self._config, key, val)
 
         self._changed = {}
-        self._config.write()
+        if write:
+            self._config.write()
 
     def changed(self, key=None):
         """
@@ -650,7 +653,6 @@ class Config(ValueConfig):
 
             lines.append(f"{name} = {value}")
         text = "\n".join(lines)
-
         try:
             data = toml.loads(text)
         except toml.TomlDecodeError as exception:
@@ -908,8 +910,8 @@ class WizardData(Config):
     mcSerialNo = TextValue()
     mcFwVersion = TextValue()
     mcBoardRev = TextValue()
-    towerHeight = TextValue()
-    tiltHeight = TextValue()
+    towerHeight = IntValue(-1)
+    tiltHeight = IntValue(-1)
     uvCurrent = FloatValue(700.8, minimum=0.0, maximum=800.0)
     uvPwm = IntValue(lambda self: int(round(self.uvCurrent / 3.2)), minimum=0, maximum=250)
 

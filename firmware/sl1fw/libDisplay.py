@@ -10,7 +10,7 @@ from time import monotonic
 from sl1fw import defines
 from sl1fw import libPages
 from sl1fw.api.printer0 import Printer0
-from sl1fw.libConfig import WizardData, HwConfig
+from sl1fw.libConfig import WizardData, HwConfig, ConfigException
 from sl1fw.libNetwork import Network
 from sl1fw.libScreen import Screen
 from sl1fw.pages import pages
@@ -30,6 +30,12 @@ class Display(object):
         self.printer0 = printer0
         self.wizardData = WizardData(Path(defines.wizardDataFile), is_master=True)
         self.expo = None
+
+        try:
+            self.wizardData.read_file()
+        except ConfigException:
+            self.logger.warning("Failed to read wizarddata", exc_info=True)
+        #endtry
 
         # Instantiate pages
         self.pages = {}
