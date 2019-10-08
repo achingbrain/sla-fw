@@ -483,7 +483,7 @@ class ExposureThread(threading.Thread):
 #endclass
 
 
-class Exposure(object):
+class Exposure:
 
     def __init__(self, hwConfig: HwConfig, display: Display, hw: Hardware, screen: Screen):
         self.logger = logging.getLogger(__name__)
@@ -721,4 +721,3 @@ class Exposure(object):
     #enddef
 
 #endclass
-

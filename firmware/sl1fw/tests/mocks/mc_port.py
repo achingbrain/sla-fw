@@ -4,7 +4,7 @@ from queue import Queue
 import logging
 
 
-class Serial(object):
+class Serial:
     def __init__(self, **kwargs):
         self.logger = logging.getLogger(__name__)
 

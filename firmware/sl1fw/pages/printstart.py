@@ -12,11 +12,6 @@ from sl1fw.libPages import Page, PageWait
 
 class PagePrintPreviewBase(Page):
 
-    def __init__(self, display):
-        super(PagePrintPreviewBase, self).__init__(display)
-    #enddef
-
-
     def fillData(self):
         config = self.display.expo.config
 

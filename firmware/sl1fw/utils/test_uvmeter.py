@@ -1,13 +1,12 @@
 #!/usr/bin/env python2
 
-import os, sys
-from time import sleep
-
 import logging
+import sys
+
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
 sys.path.append("..")
-from libUvLedMeter import UvLedMeter
+from sl1fw.libUvLedMeter import UvLedMeter
 
 uvmeter = UvLedMeter()
 

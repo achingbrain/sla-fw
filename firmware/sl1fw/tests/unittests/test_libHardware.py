@@ -1,12 +1,11 @@
 import os
 import unittest
 from time import sleep
-from mock import Mock
 
-from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.libHardware import Hardware, MotConComState
-from sl1fw.libConfig import HwConfig, PrintConfig
 from sl1fw import defines
+from sl1fw.libConfig import HwConfig
+from sl1fw.libHardware import Hardware, MotConComState
+from sl1fw.tests.base import Sl1fwTestCase
 
 
 class TestLibHardwareConnect(Sl1fwTestCase):
@@ -68,7 +67,7 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertEqual("CZPX0819X009XC00151", self.hw.cpuSerialNo)
 
     def test_info_read(self):
-        self.assertRegex(self.hw.mcFwVersion, "^\d+\.\d+\.\d+[a-zA-Z0-9-+.]*$")
+        self.assertRegex(self.hw.mcFwVersion, r"^\d+\.\d+\.\d+[a-zA-Z0-9-+.]*$")
         self.assertEqual("CZPX0619X678XC12345", self.hw.mcSerialNo)
         self.assertEqual(6, self.hw.mcFwRevision)
         self.assertEqual((4, 0), self.hw.mcBoardRevisionBin)

@@ -34,12 +34,12 @@ for sgt in range(10, 30):
         avg = sum(sgbd) / float(len(sgbd))
         if 200 < avg < 250:
             result[avg] = ' '.join(str(num) for num in profile)
-            
+
     hw.mcc.do("!tics", 0)
     hw.tiltMoveAbsolute(5300)
     while hw.isTiltMoving():
         sleep(0.1)
     #endwhile
-    
+
 print(result)
 hw.mcc.do("!motr")

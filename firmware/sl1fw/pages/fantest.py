@@ -2,14 +2,13 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import os
-
-from sl1fw import defines
-from sl1fw.pages import page
-from sl1fw.libPages import Page, PageWait
-from sl1fw import libConfig
 from gettext import ngettext
 from time import sleep
+
+from sl1fw import defines
+from sl1fw import libConfig
+from sl1fw.libPages import Page, PageWait
+from sl1fw.pages import page
 
 
 @page
@@ -91,7 +90,7 @@ class PageFanTest(Page):
         self.display.wizardData.wizardFanRpm = avgRpms
 
         # FIXME: hack to be properly handled in wizard
-        return "_NOK_" 
+        return "_NOK_"
     #enddef
 
     def leave(self):

@@ -118,12 +118,12 @@ class PageWizardInit(Page):
             if not self.display.hw.towerSyncWait():
                 return "towersensitivity"
         #endfor
-        
+
         return "fantest"
     #enddef
 
 
-    # FIXME: this value is returned at the end of towersensitivity. We can proceed fantest 
+    # FIXME: this value is returned at the end of towersensitivity. We can proceed fantest
     def _OK_(self):
         #temperature check
         pageWait = PageWait(self.display, line1 = _("A64 temperature check"))

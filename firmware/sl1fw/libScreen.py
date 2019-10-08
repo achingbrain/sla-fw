@@ -493,7 +493,7 @@ class ScreenServer(multiprocessing.Process):
 #endclass
 
 
-class Screen(object):
+class Screen:
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)

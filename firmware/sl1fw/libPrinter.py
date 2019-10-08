@@ -24,7 +24,7 @@ from sl1fw.libPages import PageWait
 from sl1fw.pages.start import PageStart
 
 
-class Printer(object):
+class Printer:
 
     def __init__(self, debugDisplay=None):
         self.logger = logging.getLogger(__name__)

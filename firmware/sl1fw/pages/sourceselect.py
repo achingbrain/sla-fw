@@ -36,7 +36,7 @@ class SourceDir:
                 yield self.processItem(item, path)
             except SourceDir.NotProject:
                 continue
-            except Exception as e:
+            except Exception:
                 self.logger.exception("Ignoring source project for exception")
                 continue
             #endtry

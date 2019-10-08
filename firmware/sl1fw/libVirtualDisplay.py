@@ -7,7 +7,7 @@ from multiprocessing import Queue
 from queue import Empty
 
 
-class VirtualDisplay(object):
+class VirtualDisplay:
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -82,4 +82,3 @@ class VirtualDisplay(object):
 
 
 #endclass
-

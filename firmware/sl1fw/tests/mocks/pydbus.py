@@ -48,7 +48,7 @@ class Hostname():
         pass
 
 
-class Rauc(object):
+class Rauc:
     def __init__(self):
         self.Operation = 'idle'
         self.Progress = (0, '', 0)

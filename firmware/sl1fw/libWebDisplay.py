@@ -46,7 +46,7 @@ class WebDisplayServer(SocketServer):
                     except jinja2.exceptions.TemplateNotFound:
                         continue
                 header = header_template.render(items = data, page = page)
-                
+
                 html = self.jinja.get_template('layout.html').render(content = content, header = header, page = page)
                 #self.logger.debug("HTML: '%s'", html.replace("\n", " | "))
                 output['type'] = "page"

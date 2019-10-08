@@ -17,7 +17,7 @@ from sl1fw.libConfig import ConfigException
 from sl1fw import actions
 
 
-class Page(object):
+class Page:
 
     def __init__(self, display):
         self.pageUI = "splash"

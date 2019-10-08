@@ -48,7 +48,7 @@ class DebugServer(SocketServer):
 #endclass
 
 
-class Debug(object):
+class Debug:
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)

@@ -2,15 +2,9 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import os
-
-from sl1fw import defines
 from sl1fw.libConfig import ConfigException
-from sl1fw.pages import page
 from sl1fw.libPages import Page, PageWait
-from sl1fw import libConfig
-from gettext import ngettext
-from time import sleep
+from sl1fw.pages import page
 
 
 @page
@@ -80,7 +74,7 @@ class PageTowerSensitivity(Page):
         #endif
 
         # FIXME: hack to be properly handled in wizard
-        return "_OK_"   
+        return "_OK_"
     #enddef
 
     def _EXIT_(self):

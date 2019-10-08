@@ -85,11 +85,6 @@ class PageTimeSettings(PageTimeDateBase):
 
 class PageSetTimeBase(PageTimeDateBase):
 
-    def __init__(self, display):
-        super(PageSetTimeBase, self).__init__(display)
-    #enddef
-
-
     def fillData(self):
         return {
             'unix_timestamp_sec' : time(),

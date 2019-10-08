@@ -94,7 +94,7 @@ class PageNetwork(Page):
     #enddef
 
 
-    def wifionButtonSubmit(self, data):
+    def wifionButtonSubmit(self, _):
         try:
             self.wificonfig.EnableWifi()
         except:

@@ -2,24 +2,25 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
+
+import logging
 import os
 import sys
-import logging
 from pathlib import Path
-from time import sleep
 from time import monotonic
+from time import sleep
 
 from sl1fw import defines
 from sl1fw import libPages
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libConfig import WizardData, HwConfig, ConfigException
+from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
 from sl1fw.libScreen import Screen
 from sl1fw.pages import pages
-from sl1fw.libHardware import Hardware
 
 
-class Display(object):
+class Display:
 
     def __init__(self, hwConfig: HwConfig, devices: list, hw: Hardware, inet: Network, screen: Screen, printer0: Printer0):
         self.logger = logging.getLogger(__name__)

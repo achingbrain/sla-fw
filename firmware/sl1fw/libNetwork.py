@@ -10,7 +10,7 @@ from urllib.request import urlopen, Request
 import pydbus
 
 
-class Network(object):
+class Network:
     NETWORKMANAGER_SERVICE = "org.freedesktop.NetworkManager"
     HOSTNAME_SERVICE = "org.freedesktop.hostname1"
     NM_STATE_CONNECTED_GLOBAL = 70
@@ -40,7 +40,7 @@ class Network(object):
         :param handler: Handler to call, global connectivity is passed as the only boolean argument
         :return: None
         """
-        assert (handler is not None)
+        assert handler is not None
         self.net_change_handlers.append(handler)
 
         # Trigger property change on start to set initial connected state
@@ -95,7 +95,7 @@ class Network(object):
 
         ipv4 = self._get_nm_obj(ipv4_config_path)
 
-        if len(ipv4.AddressData) == 0:
+        if not ipv4.AddressData:
             return None
 
         return ipv4.AddressData[0]['address']

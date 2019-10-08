@@ -470,7 +470,7 @@ def safe_call(default_value, exceptions):
 #enddef
 
 
-class Hardware(object):
+class Hardware:
 
     def __init__(self, hwConfig: HwConfig):
         self.logger = logging.getLogger(__name__)
@@ -557,7 +557,7 @@ class Hardware(object):
         self._tiltMin = -12800        # whole turn
         self._tiltEnd = 6016    # top deadlock
         self._tiltMax = self._tiltEnd
-        self._tiltCalibStart = 4352 
+        self._tiltCalibStart = 4352
         self._towerMin = -self.hwConfig.calcMicroSteps(155)
         self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
         self._towerMax = self.hwConfig.calcMicroSteps(310)
@@ -957,7 +957,7 @@ class Hardware(object):
 
 
     def uvLed(self, state, time = 0):
-        self.mcc.do("!uled", 1 if state else 0, int(time))        
+        self.mcc.do("!uled", 1 if state else 0, int(time))
     #enddef
 
 
@@ -1256,7 +1256,7 @@ class Hardware(object):
 
     @safe_call(False, MotionControllerException)
     def towerSyncWait(self, retries: int = 0):
-        ''' blocking method for tower homing. retries = number of additional tries when homing failes ''' 
+        ''' blocking method for tower homing. retries = number of additional tries when homing failes '''
         if not self.isTowerMoving():
             self.towerSync()
         #endif
@@ -1533,7 +1533,7 @@ class Hardware(object):
         if not self.isTiltMoving():
             self.tiltSync()
         #endif
-        
+
         while True:
             homingStatus = self.tiltHomingStatus
             if homingStatus == 0:

@@ -20,8 +20,6 @@ class ConfigException(Exception):
     Exception used to signal problems with configuration
     """
 
-    pass
-
 
 class BaseConfig(ABC):
     """
@@ -102,7 +100,6 @@ class Value(property, ABC):
 
         :param val: Value to check
         """
-        pass
 
     def adapt(self, val):
         """
@@ -1117,7 +1114,7 @@ class PrintConfig(Config):
             self.zipError = None
 
 
-class TomlConfig(object):
+class TomlConfig:
     def __init__(self, filename):
         self.logger = logging.getLogger(__name__)
         self.filename = filename

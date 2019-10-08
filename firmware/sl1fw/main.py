@@ -6,7 +6,7 @@
 
 import logging
 import gettext
-import builtins as builtins
+import builtins
 
 from sl1fw import defines
 from sl1fw.logger_config import configure_log

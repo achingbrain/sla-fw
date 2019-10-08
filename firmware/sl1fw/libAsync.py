@@ -67,7 +67,7 @@ class Admin_check_thread(threading.Thread):
 #endclass
 
 
-class Admin_check(object):
+class Admin_check:
 
     def __init__(self, display, inet):
         self.logger = logging.getLogger(__name__)
@@ -82,4 +82,3 @@ class Admin_check(object):
     #enddef
 
 #endclass
-

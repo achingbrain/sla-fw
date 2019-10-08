@@ -1,4 +1,4 @@
-class Network(object):
+class Network:
     def __init__(self):
         self.ip = "1.2.3.4"
         self.devices = {
