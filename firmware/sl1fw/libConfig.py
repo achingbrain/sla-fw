@@ -177,7 +177,7 @@ class Value(property, ABC):
         Config item value setter
 
         :param val: New value to set (must have already correct type)
-        :param write_override: Set value even when config is read-only (!is_master) Used internaly while reading config data from file.
+        :param write_override: Set value even when config is read-only (!is_master) Used internally while reading config data from file.
         :param factory: Whenever to set factory value instead of normal value. Defaults to normal value
         :param dry_run: If set to true the value is not actually set. Used to check value consistency.
         """
@@ -420,7 +420,7 @@ class ConfigWriter:
     Class used as helper for transactional config writing
 
     The class mimics underlying config class attributes for value reading ang writting. The changes are propagated
-    to underlingin config on commit.
+    to underlying config on commit.
     """
 
     def __init__(self, config: ValueConfig):
@@ -509,7 +509,7 @@ class Config(ValueConfig):
 
     # match string whit is not true, false, number or valid string in ""
     # the structure is: EQUALS ANYTHING(but not "true",..) END
-    # ANYTHING is (.+) preceeded by negative lookahead
+    # ANYTHING is (.+) preceded by negative lookahead
     # END is (?=\n|$) - positive lookahead, we want \n or $ to follow
     STRING_PATTERN = re.compile(
         r"\A(?!"  # NL(negative lookahead) in form (...|...|...)
@@ -517,7 +517,7 @@ class Config(ValueConfig):
         r"\Afalse\Z|"  # NL part2 - false and end of the line or input
         r"\A[0-9.-]+\Z|"  # NL part3 - number at end of the line or input
         r'\A".*"\Z|'  # NL part4 - string already contained in ""
-        r"\A\[ *(?:[0-9.-]+ *, *)+[0-9.-]+ *]\Z"  # NL part4 - number list already in []
+        r"\A\[ *(?:[0-9.-]+ *, *)+[0-9.-]+ *,? *]\Z"  # NL part4 - number list already in []
         r")"  # end of NL
         r"(.+)\Z"  # the matched string + positive lookahead for end
     )
@@ -528,7 +528,7 @@ class Config(ValueConfig):
         """
         Configuration constructor
 
-        :param file_path: Confiuration file path
+        :param file_path: Configuration file path
         :param factory_file_path: Factory configuration file path
         :param is_master: If True this instance in master, can write to the configuration file
         """
@@ -582,7 +582,7 @@ class Config(ValueConfig):
         """
         Helper to get config writer wrapping this config
 
-        :return: Config writer instance wraping this config
+        :return: Config writer instance wrapping this config
         """
         return ConfigWriter(self)
 
@@ -618,7 +618,7 @@ class Config(ValueConfig):
         Read config data from string
 
         :param text: Config text
-        :param factory: Whenever to read factory foncguration
+        :param factory: Whenever to read factory configuration
         """
         # Drop inconsistent newlines, use \n
         text = text.replace("\r\n", "\n").replace("\r", "\n")
@@ -643,7 +643,7 @@ class Config(ValueConfig):
             value = self.ON_YES_PATTERN.sub("true", value)
             value = self.OFF_NO_PATTERN.sub("false", value)
 
-            # Wrap number lists in [] and separet numbers by comma
+            # Wrap number lists in [] and separate numbers by comma
             if self.NUM_LIST_ONLY.match(value):
                 value = self.NUM_SEP.sub(r", ", value)
                 value = f"[{value}]"
@@ -726,7 +726,7 @@ class Config(ValueConfig):
         """
         Do factory rest
 
-        This does not save the config. Expocit call to save is necessary
+        This does not save the config. Explict call to save is necessary
         """
         with self.lock.gen_wlock():
             for val in self.values.values():
@@ -768,7 +768,7 @@ class HwConfig(Config):
 
     def calcMicroSteps(self, mm: float) -> int:
         """
-        Convert from milimeters to microsteps using current tower pitch.
+        Convert from millimeters to microsteps using current tower pitch.
 
         :param mm: Tower position in millimeters
         :return: Tower position in microsteps
@@ -795,7 +795,7 @@ class HwConfig(Config):
     @property
     def microStepsMM(self) -> float:
         """
-        Get mumber of microsteps per millimeter suing current tower scre picth.
+        Get number of microsteps per millimeter suing current tower scre picth.
 
         :return: Number of microsteps per one millimeter
         """

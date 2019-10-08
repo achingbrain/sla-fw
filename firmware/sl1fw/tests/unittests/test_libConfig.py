@@ -121,6 +121,7 @@ class TestConfigValues(Sl1fwTestCase):
             i1 = IntListValue([1, 2, 3], length=3)
             f0 = FloatListValue([0.1, 0.2, 0.3], length=3)
             f1 = FloatListValue([0.1, 0.2, 0.3], length=3)
+            i2 = IntListValue([0, 0, 0], length=3)
 
         c = ListConfig()
         self.assertEqual([1, 2, 3], c.i0)
@@ -133,11 +134,13 @@ class TestConfigValues(Sl1fwTestCase):
         i1 = 1 1 1
         f0 = [0.1, 0.1,0.1]
         f1 = 0.1    0.1 0.1
+        i2 = [ 12840, 14115, 15640,]
         """)
         self.assertEqual([1, 1, 1], c.i0)
         self.assertEqual([1, 1, 1], c.i1)
         self.assertEqual([0.1, 0.1, 0.1], c.f0)
         self.assertEqual([0.1, 0.1, 0.1], c.f1)
+        self.assertEqual([ 12840, 14115, 15640], c.i2)
 
 
 class TestHardwareConfig(Sl1fwTestCase):
