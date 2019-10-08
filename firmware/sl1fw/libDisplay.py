@@ -2,11 +2,13 @@
 # 2014-2018 Futur3d - www.futur3d.net
 # 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 
-import os, sys
+import os
+import sys
 import logging
 from pathlib import Path
 from time import sleep
 from time import monotonic
+
 from sl1fw import defines
 from sl1fw import libPages
 from sl1fw.api.printer0 import Printer0
@@ -30,6 +32,7 @@ class Display(object):
         self.printer0 = printer0
         self.wizardData = WizardData(Path(defines.wizardDataFile), is_master=True)
         self.expo = None
+        self.running = False
 
         try:
             self.wizardData.read_file()
@@ -124,14 +127,14 @@ class Display(object):
             if event.get('page', None) is not None:
                 if event['page'] == actualPage.pageUI:
                     # FIXME nejdrive se vycte drivejsi zarizeni, je to OK?
-                    return (event.get('id', None), event.get('pressed', None), event.get('data', None))
+                    return event.get('id', None), event.get('pressed', None), event.get('data', None)
                 #endif
                 self.logger.warning("event page (%s) and actual page (%s) differ", event['page'], actualPage.pageUI)
             elif event.get('client_type', None) == "prusa_sla_client_qt":
                 self.pages['sysinfo'].setItems(qt_gui_version = event.get('client_version', _("unknown")))
             #endif
         #endfor
-        return (None, None, None)
+        return None, None, None
     #enddef
 
 
@@ -141,6 +144,7 @@ class Display(object):
         actualPage = self._setPage(startPage)
         autorepeatFce = None
         autorepeatDelay = 1
+        autorepeatDelayNext = 1
         callbackTime = 0.0  # call the callback immediately
         updateDataTime = callbackTime
         while self.running:
@@ -198,7 +202,7 @@ class Display(object):
                     releaseFce = getattr(actualPage, button + "ButtonRelease", actualPage.emptyButtonRelease)
                     if submitFce:
                         newPage = submitFce(data)
-                    elif releaseFce:
+                    else:
                         newPage = releaseFce()
                     #endif
 
