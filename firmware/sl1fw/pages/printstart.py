@@ -183,7 +183,7 @@ class PagePrintPreview(PagePrintPreviewBase):
     #enddef
 
     def contButtonContinue2(self):
-        self.display.expo.config.logAllItems()
+        self.logger.info(str(self.display.expo.config))
         return "printstart"
     #enddef
 

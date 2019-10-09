@@ -48,7 +48,7 @@ class Printer:
         except ConfigException:
             self.logger.warning("Failed to read configuration file", exc_info=True)
         #endtry
-        self.hwConfig.logAllItems()
+        self.logger.info(str(self.hwConfig))
 
         self.logger.debug("Initializing libHardware")
         from sl1fw.libHardware import Hardware
@@ -134,7 +134,7 @@ class Printer:
         #endif
 
         if self.firstRun:
-            if not self.hwConfig.defaultsSet() and not self.hw.isKit:
+            if not self.hwConfig.is_factory_read() and not self.hw.isKit:
                 self.display.pages['error'].setParams(
                     text=_("Failed to load fans and LEDs factory calibration."))
                 self.display.doMenu("error")

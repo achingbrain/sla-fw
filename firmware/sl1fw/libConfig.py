@@ -68,7 +68,7 @@ class Value(property, ABC):
         self.name = None
         self.key = key
         self.type = _type
-        self.default_value = default
+        self._default_value = default
         self.factory = factory
         self.config: Optional[BaseConfig] = None
         self.default_doc = doc
@@ -143,6 +143,16 @@ class Value(property, ABC):
     def factory_value(self, value):
         self.config.data_factory_values[self.name] = value
 
+    @property
+    def default_value(self):
+        if type(self._default_value) not in self.type and isinstance(self._default_value, Callable):
+            if self.config:
+                return self._default_value(self.config)
+            else:
+                return self._default_value
+        else:
+            return self._default_value
+
     def set_runtime(self, name: str, config: BaseConfig) -> None:
         """
         Set instance of the config, this value is part of and its name
@@ -213,10 +223,7 @@ class Value(property, ABC):
             if self.factory_value is not None:
                 return self.factory_value
 
-            if type(self.default_value) not in self.type and isinstance(self.default_value, Callable):
-                return self.default_value(self.config)
-            else:
-                return self.default_value
+            return self.default_value
 
     def value_deleter(self, _: BaseConfig):
         """
@@ -547,13 +554,19 @@ class Config(ValueConfig):
         res = [f"{self.__class__.__name__}: {self._file_path} ({self._factory_file_path}):"]
         for val in dir(self.__class__):
             o = getattr(self.__class__, val)
-            if isinstance(o, property):
+            if isinstance(o, Value):
+                value = self.values[val].value
+                factory = self.values[val].factory_value
+                default = self.values[val].default_value
+                res.append(f"\t{val}: {getattr(self, val)} ({value},{factory},{default})")
+            elif isinstance(o, property):
                 res.append(f"\t{val}: {getattr(self, val)}")
+
         return "\n".join(res)
 
     def __getattr__(self, key: str):
         if key in self._lower_to_normal:
-            self.logger.warning("Config getattr using fallback lowcase name")
+            self.logger.warning("Config getattr using fallback lowcase name: %s", key)
             return object.__getattribute__(self, self._lower_to_normal[key])
         raise AttributeError(f'Key: "{key}" not in config')
 
@@ -562,18 +575,10 @@ class Config(ValueConfig):
             return object.__setattr__(self, key, value)
 
         if key in self._lower_to_normal:
-            self.logger.warning("Config setattr using fallback lowcase name")
+            self.logger.warning("Config setattr using fallback lowcase name: %s", key)
             object.__setattr__(self, self._lower_to_normal[key], value)
         else:
             object.__setattr__(self, key, value)
-
-    def logAllItems(self) -> None:
-        """
-        Log all items to the logger
-
-        DEPRECATED, use str(config) and write result to any destination
-        """
-        self.logger.info(str(self))
 
     def get_writer(self) -> ConfigWriter:
         """
@@ -585,22 +590,27 @@ class Config(ValueConfig):
 
     def read_file(self, file_path: Optional[Path] = None) -> None:
         """
-        Read config data from file
+        Read config data from config file
 
         :param file_path: Pathlib path to file
         """
         with self.lock.gen_wlock():
             try:
                 if self._factory_file_path:
-                    self._read_file(self._factory_file_path, factory=True)
-                if file_path:
-                    self._read_file(file_path)
-                elif self._file_path:
-                    self._read_file(self._file_path)
-                else:
+                    if self._factory_file_path.exists():
+                        self._read_file(self._factory_file_path, factory=True)
+                    else:
+                        self.logger.info("Factory config file does not exists: %s", self._factory_file_path)
+                if file_path is None:
+                    file_path = self._file_path
+                if file_path is None:
                     raise ValueError("file_path is None and no file_path was passed to constructor")
-            except FileNotFoundError as exception:
-                raise ConfigException("Failed to read config") from exception
+                if file_path.exists():
+                    self._read_file(file_path)
+                else:
+                    self.logger.info("Config file does not exists: %s", file_path)
+            except Exception as exception:
+                raise ConfigException("Failed to read configuration files") from exception
 
     def _read_file(self, file_path: Path, factory: bool = False) -> None:
         with file_path.open("r") as f:
@@ -729,20 +739,10 @@ class Config(ValueConfig):
             for val in self.values.values():
                 val.value = None
 
-    # def defaultsSet(self) -> bool:
-    #     """
-    #     Require all factory values to be read
-    #     """
-    #     # TODO: Rename to is_default_set
-    #     for val in self.values.values():
-    #         if val.factory and val.factory_value is None:
-    #             self.logger.warning("Value %s has no factory defaults despite being factory", val.name)
-    #             return False
-    #     return True
-
-    def defaultsSet(self) -> bool:
+    def is_factory_read(self) -> bool:
         """
         Require at last one value to have factory default set
+
         :return: True of factory default were set, False otherwise
         """
         for val in self.values.values():
