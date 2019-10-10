@@ -3,22 +3,25 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
-import subprocess
-import signal
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
 
+if TYPE_CHECKING:
+    from sl1fw.libDisplay import Display
+
 
 @page
 class PageMotionController(Page):
     Name = "motioncontroller"
 
-    def __init__(self, display):
-        super(PageMotionController, self).__init__(display)
+    def __init__(self, display: Display):
+        super().__init__(display)
         self.pageUI = "admin"
         self.pageTitle = "Motion Controller"
     #enddef
@@ -74,7 +77,7 @@ class PageMotionController(Page):
         self.display.pages['yesno'].setParams(
                 yesFce = self.mc2net,
                 yesParams = { 'bootloader' : True },
-                text = _("This will disable the GUI and connect the MC bootloader to a TCP port."))
+                text = "This will freeze the printer and connect the MC bootloader to TCP port.")
         return "yesno"
     #enddef
 
@@ -83,52 +86,27 @@ class PageMotionController(Page):
         self.display.pages['yesno'].setParams(
                 yesFce = self.mc2net,
                 yesParams = { 'bootloader' : False },
-                text = _("This will disable the GUI and connect the motion controller to a TCP port."))
+                text = "This will connect the motion controller to TCP port.")
         return "yesno"
     #enddef
 
 
-    def mc2net(self, bootloader = False):
+    def mc2net(self, bootloader=False):
         ip = self.display.inet.ip
-        if ip == None:
-            self.display.pages['error'].setParams(
-                    text = "Not connected to network")
+        if ip is None:
+            self.display.pages['error'].setParams(text="Not connected to network")
             return "error"
-        #endif
 
-        baudrate = 19200 if bootloader else 115200
-        if bootloader:
-            self.display.hw.mcc.reset()
-        #endif
-
-        self.display.hw.switchToDummy()
-
-        pid = subprocess.Popen([
-            defines.Mc2NetCommand,
-            defines.motionControlDevice,
-            str(defines.socatPort),
-            str(baudrate)], preexec_fn=os.setsid).pid
+        self.display.hw.mcc.start_debugging(bootloader=bootloader)
 
         self.display.pages['confirm'].setParams(
-                continueFce = self.mc2netStop,
-                continueParams = { 'pid' : pid },
-                backFce = self.mc2netStop,
-                backParams = { 'pid' : pid },
-                text = "Baudrate is %(br)d.\n\n"
-                    "Serial line is redirected to %(ip)s:%(port)d.\n\n"
-                    "Press 'Continue' when done." % { 'br' : baudrate, 'ip' : ip, 'port' : defines.socatPort })
+            text="Listening for motion controller debugging connection.\n\n"
+                 "Serial line is redirected to %(ip)s:%(port)d.\n\n"
+                 "Press continue to use the printer. The debugging will begin with new connection"
+                 "and will end as soon as the connection terminates." % {'ip': ip,
+                                                                         'port': defines.mc_debug_port}
+        )
         return "confirm"
-    #enddef
-
-
-    def mc2netStop(self, pid):
-        os.killpg(os.getpgid(pid), signal.SIGTERM)
-        pageWait = PageWait(self.display)
-        pageWait.fill(line1="Switching back to real MC")
-        pageWait.show()
-        self.display.hw.switchToMC()
-        self.display.actualPage.show()
-        return "_BACK_"
     #enddef
 
 #endclass

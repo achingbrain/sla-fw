@@ -98,18 +98,9 @@ class TestLibHardware(Sl1fwTestCase):
         self.hw.uvLedPwm = pwm
         self.assertEqual(pwm, self.hw.uvLedPwm)
 
-    # TODO: Fix test / functinoality
-    def test_dummy_switch(self):
-        # Get initial current
-        pwm = self.hw.uvLedPwm
-
-        # Switch to dummy and change current
-        self.hw.switchToDummy()
-        self.hw.uvLedPwm = pwm + 10
-
-        # Switch back and see nothing changed
-        self.hw.switchToMC()
-        self.assertEqual(pwm, self.hw.uvLedPwm)
+    # TODO: Fix test / functionality
+    def test_mcc_debug(self):
+        pass
 
     def test_erase(self):
         self.hw.eraseEeprom()

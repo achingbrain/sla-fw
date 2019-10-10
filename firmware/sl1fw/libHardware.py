@@ -4,446 +4,22 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
-from enum import Enum, unique
-
-import serial
-import re
-from time import sleep
-from multiprocessing import Lock
-import bitstring
-from math import ceil
-import pydbus
 import os
-from collections import deque
+import re
+from math import ceil
+from time import sleep
 
-from sl1fw.libConfig import HwConfig
-from sl1fw.libDebug import Debug
+import bitstring
+import pydbus
+
 from sl1fw import defines
-from sl1fw.tracing_serial import MotionControllerTracingSerial
-
-
-class MotionControllerException(Exception):
-    def __init__(self, message: str, port: MotionControllerTracingSerial):
-        self.__serial = port
-        super().__init__(f"{message}, trace: {port.trace}")
-    #enddef
-#endclass
+from sl1fw.libConfig import HwConfig
+from sl1fw.motion_controller.controller import MotionController
+from sl1fw.motion_controller.states import MotConComState, MotionControllerException
 
 
 class MoveException(Exception):
     pass
-#endclass
-
-
-@unique
-class MotConComState(Enum):
-    UPDATE_FAILED = -3
-    COMMUNICATION_FAILED = -2
-    WRONG_FIRMWARE = -1
-    OK = 0
-    APPLICATION_FLASH_CHECKSUM_FAILED = 1
-    BOOTLOADER_FLASH_CHECKSUM_FAILED = 2
-    SERIAL_NUMBER_CHECK_FAILED = 3
-    FUSE_BIT_SETTINGS_FAILED = 4
-    BOOT_SECTOR_LOCK_FAILED = 5
-    GPIO_SPI_FAILED = 6
-    TMC_SPI_FAILED = 7
-    TMC_WIRRING_COMMUNICATION_FAILED = 8
-    UVLED_FAILED = 9
-    UNKNOWN_ERROR = 999
-
-    @classmethod
-    def _missing_(cls, value):
-        return MotConComState.UNKNOWN_ERROR
-    #enddef
-#endclass
-
-
-class MotConComBase:
-    MCFWversion = ""
-    MCFWrevision = -1
-    MCBoardRevision = (-1, -1)
-    MCserial = ""
-
-    commOKStr = re.compile('^(.*)ok$')
-    commErrStr = re.compile('^e(.)$')
-    commErrors = {
-        '1': "unspecified failure",
-        '2': "busy",
-        '3': "syntax error",
-        '4': "parameter out of range",
-        '5': "operation not permitted",
-        '6': "null pointer",
-        '7': "command not found",
-    }
-
-    _statusBits = {
-        'tower': 0,
-        'tilt': 1,
-        'button': 6,
-        'cover': 7,
-        'endstop': 8,
-        'reset': 13,
-        'fans': 14,
-        'fatal': 15,
-    }
-
-    resetFlags = {
-        0: "power-on",
-        1: "external",
-        2: "brown-out",
-        3: "watchdog",
-        4: "jtag",
-        7: "stack overflow",
-    }
-#endclass
-
-
-class MotConCom(MotConComBase):
-    def __init__(self, instance_name: str):
-        super().__init__()
-        self.portLock = Lock()
-        self.debug = Debug()
-        self.port_trace = deque(maxlen=10)
-
-        self.port = MotionControllerTracingSerial(debug=self.debug)
-        self.port.port = defines.motionControlDevice
-        self.port.baudrate = 115200
-        self.port.bytesize = 8
-        self.port.parity = 'N'
-        self.port.stopbits = 1
-        self.port.timeout = 3.0
-        self.port.writeTimeout = 1.0
-        self.port.xonxoff = False
-        self.port.rtscts = False
-        self.port.dsrdtr = False
-        self.port.interCharTimeout = None
-        self.logger = logging.getLogger(instance_name)
-    #enddef
-
-
-    def start(self):
-        self.port.open()
-    #enddef
-
-
-    def exit(self):
-        self.debug.exit()
-        if self.port.is_open:
-            self.port.close()
-        #endif
-    #enddef
-
-
-    def connect(self, MCversionCheck: bool) -> MotConComState:
-        try:
-            state = self.getStateBits(('fatal', 'reset'))
-        except MotionControllerException:
-            self.logger.exception("Motion controller connect failed")
-            return MotConComState.COMMUNICATION_FAILED
-        #endif
-
-        if state['fatal']:
-            return MotConComState(self.doGetInt("?err"))
-        #endif
-
-        if state['reset']:
-            resetBits = self.doGetBoolList("?rst", bitCount = 8)
-            bit = 0
-            for val in resetBits:
-                if val:
-                    self.logger.info("motion controller reset flag: %s", self.resetFlags.get(bit, "unknown"))
-                #endif
-                bit += 1
-            #endfor
-        #endif
-
-        self.MCFWversion = self.do("?ver")
-        if MCversionCheck and self.MCFWversion != defines.reqMcVersion:
-            return MotConComState.WRONG_FIRMWARE
-        else:
-            self.logger.info("motion controller firmware version: %s", self.MCFWversion)
-        #endif
-
-        tmp = self.doGetIntList("?rev")
-        if len(tmp) == 2 and 0 <= divmod(tmp[1], 32)[0] <= 7:
-            self.MCFWrevision = tmp[0]
-            self.logger.info("motion controller firmware for board revision: %s", self.MCFWrevision)
-
-            self.MCBoardRevision = divmod(tmp[1], 32)
-            self.logger.info("motion controller board revision: %d%s", self.MCBoardRevision[1],
-                             chr(self.MCBoardRevision[0] + ord('a')))
-        else:
-            self.logger.warning("invalid motion controller firmware/board revision: %s", str(tmp))
-            self.MCFWrevision = -1
-            self.MCBoardRevision = (-1, -1)
-        #endif
-
-        if self.MCFWrevision != self.MCBoardRevision[1]:
-            self.logger.warning("motion controller firmware for board revision (%d) not"
-                                " match motion controller board revision (%d)!",
-                                self.MCFWrevision, self.MCBoardRevision[1])
-        #enddef
-
-        self.MCserial = self.do("?ser")
-        if self.MCserial:
-            self.logger.info("motion controller serial number: %s", self.MCserial)
-        else:
-            self.logger.warning("motion controller serial number is invalid")
-            self.MCserial = "*INVALID*"
-        #endif
-
-        return MotConComState.OK
-    #enddef
-
-
-    def doGetInt(self, *args):
-        return self.do(*args, return_process=int)
-    #enddef
-
-
-    def doGetIntList(self, cmd, args = (), base = 10, multiply: float = 1):
-        return self.do(cmd, *args, return_process=lambda ret: list([int(x, base) * multiply for x in ret.split(" ")]))
-    #enddef
-
-
-    def doGetBool(self, cmd, *args):
-        return self.do(cmd, *args, return_process=lambda x: x == "1")
-    #enddef
-
-
-    def doGetBoolList(self, cmd, bitCount, args = ()):
-        def process(data):
-            bits = list()
-            num = int(data)
-            for i in range(bitCount):
-                bits.append(True if num & (1 << i) else False)
-            #endfor
-            return bits
-        #enddef
-        return self.do(cmd, *args, return_process=process)
-    #enddef
-
-
-    def doGetHexedString(self, *args):
-        return self.do(*args, return_process=lambda x: bytes.fromhex(x).decode('ascii'))
-    #enddef
-
-
-    def doSetBoolList(self, command, bits):
-        bit = 0
-        out = 0
-        for val in bits:
-            out |= 1 << bit if val else 0
-            bit += 1
-        #endfor
-        self.do(command, out)
-    #enddef
-
-
-    def _read_garbage(self) -> None:
-        """
-        Reads initial garbage found in port. Assumes portlock is already taken
-        """
-        # TODO: This is not correct, there should be no random garbage around
-        while self.port.inWaiting():
-            try:
-                line = self.port.readline(garbage=True)
-                self.logger.debug(f"Garbage pending in MC port: {line}")
-            except (serial.SerialException, UnicodeError) as e:
-                raise MotionControllerException(f"Failed garbage read", self.port) from e
-            #endtry
-        #endwhile
-    #enddef
-
-
-    def do(self, cmd, *args, return_process=lambda x: x):
-        with self.portLock:
-            # Read garbage already pending to be read
-            self._read_garbage()
-
-            # Write command
-            cmd_string = ' '.join(str(x) for x in (cmd,) + args)
-            try:
-                self.port.write(f"{cmd_string}\n".encode('ascii'))
-            except serial.SerialTimeoutException as e:
-                raise MotionControllerException(f"Timeout writing serial port", self.port) from e
-            #endtry
-
-            # Read until some response is received
-            while True:
-                try:
-                    line = self.port.read_text_line()
-                except Exception as e:
-                    raise MotionControllerException("Failed to read line from MC", self.port) from e
-                #endtry
-
-                ok_match = self.commOKStr.match(line)
-
-                if ok_match is not None:
-                    response = ok_match.group(1).strip() if ok_match.group(1) else ""
-                    try:
-                        return return_process(response)
-                    except Exception as e:
-                        raise MotionControllerException("Failed to process MC response", self.port) from e
-                    #endtry
-                #endif
-
-                err_match = self.commErrStr.match(line)
-                if err_match is not None:
-                    err = self.commErrors.get(err_match.group(1), "unknown error")
-                    self.logger.error("error: '%s'", err)
-                    raise MotionControllerException(f"MC command failed with error: {err}", self.port)
-                else:
-                    if line.startswith("#"):
-                        self.logger.debug(f"Garbage response received: {line}")
-                    else:
-                        raise MotionControllerException(f"MC command resulted in non-response line", self.port)
-                    #endif
-                #endif
-            #endwhile
-        #endwith
-    #enddef
-
-
-    def soft_reset(self) -> None:
-        with self.portLock:
-            try:
-                self._read_garbage()
-                self.port.mark_reset()
-                self.port.write(f"!rst\n".encode('ascii'))
-                self._ensure_ready()
-            except Exception as e:
-                raise MotionControllerException(f"Reset failed", self.port) from e
-            #endtry
-    #enddef
-
-
-    def _ensure_ready(self) -> None:
-        """
-        Ensure MC is ready after reset/flash
-        This assumes portLock to be already acquired
-        """
-        try:
-            self.logger.debug(f"\"MCUSR...\" read resulted in: \"{self.port.read_text_line()}\"")
-            ready = self.port.read_text_line()
-            if ready != "ready":
-                self.logger.info(f"\"ready\" read resulted in: \"{ready}\". Sleeping to ensure MC is ready.")
-                sleep(1.5)
-                self._read_garbage()
-            #endif
-        except Exception as e:
-            raise MotionControllerException("Ready read failed", self.port) from e
-        #endtry
-    #enddef
-
-
-    def flash(self, MCBoardVersion):
-        import subprocess
-
-        with self.portLock:
-            self.reset()
-
-            process = subprocess.Popen(
-                [defines.flashMcCommand, defines.dataPath, str(MCBoardVersion), defines.motionControlDevice],
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-            while True:
-                line = process.stdout.readline()
-                retc = process.poll()
-                if line == '' and retc is not None:
-                    break
-                #endif
-                if line:
-                    line = line.strip()
-                    if line == "":
-                        continue
-                    #endif
-                    self.logger.info("flashMC output: '%s'", line)
-                #endif
-            #endwhile
-
-            if retc:
-                self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
-            #endif
-
-            self._ensure_ready()
-
-            return MotConComState.UPDATE_FAILED if retc else MotConComState.OK
-    #enddef
-
-
-    def reset(self) -> None:
-        """
-        Does a hard reset of the motion controller.
-        Assumes portLock is already acquired
-        """
-        self.logger.info("Doing hard reset of the motion controller")
-        import gpio
-        self.port.mark_reset()
-        gpio.setup(131, gpio.OUT)
-        gpio.set(131, 1)
-        sleep(1/1000000)
-        gpio.set(131, 0)
-    #enddef
-
-
-    def getStateBits(self, request = None):
-        if not request:
-            request = self._statusBits.keys()
-        #endif
-
-        bits = self.doGetBoolList("?", bitCount = 16)
-
-        if len(bits) != 16:
-            raise ValueError(f"State bits count not match! ({bits})")
-        #endif
-
-        return {name: bits[self._statusBits[name]] for name in request}
-    #enddef
-
-#endclass
-
-
-class DummyMotConCom(MotConComBase):
-    def __init__(self):
-        super().__init__()
-        self.logger = logging.getLogger(__name__)
-        self.debug = self
-        self.port = self
-    #enddef
-
-    def getStateBits(self, request=None):
-        if not request:
-            request = self._statusBits.keys()
-        #endif
-
-        return {name: False for name in request}
-    #enddef
-
-    def do(self, cmd, *args):
-        self.logger.debug(f"mcc.do called while using dummy MotConCom: {cmd} {args}")
-    #enddef
-
-    def start(self) -> None:
-        pass
-    #enddef
-
-    @staticmethod
-    def is_open() -> bool:
-        return False
-    #enddef
-
-    def close(self) -> None:
-        pass
-    #enddef
-
-    def showItems(self, *args, **kwargs):
-        self.logger.debug(f"mcc.debug.showItems called while using dummy MotConCom args: {args}, kwargs: {kwargs}")
-    #enddef
-
-    def exit(self):
-        pass
-    #enddef
 #endclass
 
 
@@ -567,8 +143,7 @@ class Hardware:
         self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
         self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
 
-        self.mcc = MotConCom("MC_Main")
-        self.realMcc = self.mcc
+        self.mcc = MotionController(defines.motionControlDevice)
         self.boardData = self.readCpuSerial()
 
         self._tower_moving = False
@@ -629,16 +204,6 @@ class Hardware:
         self.connectMC(force_flash=True)
     #enddef
 
-
-    def switchToDummy(self):
-        self.mcc = DummyMotConCom()
-    #enddef
-
-
-    def switchToMC(self):
-        self.mcc = self.realMcc
-        self.connectMC()
-    #enddef
 
     @property
     def tilt_end(self) -> int:
@@ -1283,7 +848,6 @@ class Hardware:
                 return True
             elif homingStatus < 0:
                 self.logger.warning("Tower homing failed! Status: %d", homingStatus)
-                self.mcc.debug.showItems(towerFailed = "homing Fast/Slow")
                 if retries < 1:
                     self.logger.error("Tower homing max tries reached!")
                     return False
@@ -1342,8 +906,9 @@ class Hardware:
                 if self._towerPositionRetries:
                     self._towerPositionRetries -= 1
                 #endif
-                self.logger.warning("Tower is not on required position! Sync forced. Actual position: %d, Target position: %d ", self.getTowerPositionMicroSteps(), self._towerToPosition)
-                self.mcc.debug.showItems(towerFailed = self._lastTowerProfile)
+                self.logger.warning(
+                    "Tower is not on required position! Sync forced. Actual position: %d, Target position: %d ",
+                    self.getTowerPositionMicroSteps(), self._towerToPosition)
                 profileBackup = self._lastTowerProfile
                 self.towerSyncWait()
                 self.setTowerProfile(profileBackup)
@@ -1420,7 +985,6 @@ class Hardware:
     @safe_call(None, MotionControllerException)
     def setTowerPosition(self, position):
         self.mcc.do("!twpo", position)
-        self.mcc.debug.showItems(towerPositon = position)
     #enddef
 
 
@@ -1433,7 +997,6 @@ class Hardware:
 
     def getTowerPositionMicroSteps(self):
         steps = self.mcc.doGetInt("?twpo")
-        self.mcc.debug.showItems(towerPositon = steps)
         return steps
     #enddef
 
@@ -1445,7 +1008,6 @@ class Hardware:
         if profileId is None:
             raise ValueError(f"Invalid tower profile '{profile}'")
         #endif
-        self.mcc.debug.showItems(towerProfile = profile)
         self.mcc.do("!twcs", profileId)
     #enddef
 
@@ -1556,7 +1118,6 @@ class Hardware:
                 return True
             elif homingStatus < 0:
                 self.logger.warning("Ttilt homing failed! Status: %d", homingStatus)
-                self.mcc.debug.showItems(tiltFailed = "homing Fast/Slow")
                 if retries < 1:
                     self.logger.error("Tilt homing max tries reached!")
                     return False
@@ -1593,8 +1154,9 @@ class Hardware:
             return False
         #endif
         if self.getTiltPositionMicroSteps() != self._tiltToPosition:
-            self.logger.warning("Tilt is not on required position! Sync forced. Actual position: %d, Target position: %d ", self.getTiltPositionMicroSteps(), self._tiltToPosition)
-            self.mcc.debug.showItems(tiltFailed = self._lastTiltProfile)
+            self.logger.warning(
+                "Tilt is not on required position! Sync forced. Actual position: %d, Target position: %d ",
+                self.getTiltPositionMicroSteps(), self._tiltToPosition)
             profileBackup = self._lastTiltProfile
             self.tiltSyncWait()
             self.setTiltProfile(profileBackup)
@@ -1752,7 +1314,6 @@ class Hardware:
 
     def setTiltPosition(self, position):
         self.mcc.do("!tipo", position)
-        self.mcc.debug.showItems(tiltPosition = position)
     #enddef
 
 
@@ -1767,7 +1328,6 @@ class Hardware:
 
     def getTiltPositionMicroSteps(self):
         steps = self.mcc.doGetInt("?tipo")
-        self.mcc.debug.showItems(tiltPosition = steps)
         return steps
     #enddef
 
@@ -1776,7 +1336,6 @@ class Hardware:
         self._lastTiltProfile = profile
         profileId = self._tiltProfiles.get(profile, None)
         if profileId is not None:
-            self.mcc.debug.showItems(tiltProfile = profile)
             self.mcc.do("!tics", profileId)
         else:
             self.logger.error("Invalid tilt profile '%s'", profile)
