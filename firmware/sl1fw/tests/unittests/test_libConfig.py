@@ -142,6 +142,16 @@ class TestConfigValues(Sl1fwTestCase):
         self.assertEqual([0.1, 0.1, 0.1], c.f1)
         self.assertEqual([ 12840, 14115, 15640], c.i2)
 
+    def test_dictionary(self):
+        class SimpleConfig(Config):
+            a = IntValue(5)
+        s = SimpleConfig()
+        self.assertIn('a', s.as_dictionary())
+        self.assertEqual(5, s.as_dictionary()['a'])
+        self.assertNotIn('a', s.as_dictionary(nondefault=False))
+        s.read_text("a = 5")  # Setting value to default should not make it non-default
+        self.assertNotIn('a', s.as_dictionary(nondefault=False))
+
 
 class TestHardwareConfig(Sl1fwTestCase):
     def __init__(self, *args, **kwargs):

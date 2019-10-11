@@ -30,7 +30,7 @@ class BaseConfig(ABC):
 
     @abstractmethod
     def __init__(self, is_master: bool = False):
-        self._lower_to_normal: Dict[str, str] = {}
+        self.lower_to_normal_map: Dict[str, str] = {}
         self.logger = logging.getLogger(__name__)
         self.is_master = is_master
         self.lock = rwlock.RWLockRead()
@@ -64,7 +64,7 @@ class Value(property, ABC):
         :param factory: Whenever the value should be stored in factory configuration file.
         :param doc: Documentation string fro the configuration item
         """
-        super().__init__(self.value_getter, self._property_setter, self.value_deleter)
+        super().__init__(self._property_getter, self._property_setter, self._property_deleter)
         self.name = None
         self.key = key
         self.type = _type
@@ -172,11 +172,13 @@ class Value(property, ABC):
         """
         Implementation of property setter passed to parent constructor
 
-        This is used to throw away _ parameter in order to simplify API.
+        This is used to lock write lock
 
         :param _: Class instance the property is set on
         :param val: New value
         """
+        # TODO: Take a write lock once we get rid of writable properties
+        # with self.config.lock.gen_wlock():
         self.value_setter(val)
 
     def value_setter(self, val, write_override: bool = False, factory: bool = False, dry_run=False) -> None:
@@ -210,22 +212,34 @@ class Value(property, ABC):
         except (ValueError, ConfigException) as exception:
             raise ConfigException(f"Setting config value {self.name} to {val} failed") from exception
 
-    def value_getter(self, _: BaseConfig) -> None:
+    def _property_getter(self, _: BaseConfig) -> Any:
         """
         Configuration value getter
 
+        This is called when user code reads config value
+        This method locks the property read lock.
+
         :param _: Configuration class instance, ignored
+        :return: Config value or factory value or default value
         """
         with self.config.lock.gen_rlock():
-            if self.value is not None:
-                return self.value
+            return self.value_getter()
 
-            if self.factory_value is not None:
-                return self.factory_value
+    def value_getter(self) -> Any:
+        """
+        Configuration value getter
 
-            return self.default_value
+        :return: Config value or factory value or default value
+        """
+        if self.value is not None:
+            return self.value
 
-    def value_deleter(self, _: BaseConfig):
+        if self.factory_value is not None:
+            return self.factory_value
+
+        return self.default_value
+
+    def _property_deleter(self, _: BaseConfig):
         """
         Deleter for configuration class instance
 
@@ -250,7 +264,8 @@ class Value(property, ABC):
 
         :return: True if default, False otherwise
         """
-        return self.value is None and self.factory_value is None
+        return (self.value is None or self.value == self.default_value) and (
+                self.factory_value is None or self.factory_value == self.default_value)
 
     def __str__(self):
         return str(self.value)
@@ -437,7 +452,22 @@ class ConfigWriter:
         self._changed: Dict[str:Any] = {}
         self._deleted = set()
 
+    def _get_attribute_name(self, key: str) -> str:
+        """
+        Adjust attribute name in case of legacy lowcase name
+
+        :param key: Low-case or new key
+        :return: Valid key
+        """
+        if key in vars(self._config) or key in vars(self._config.__class__):
+            return key
+        if key in self._config.lower_to_normal_map:
+            self._config.logger.warning("Config setattr using fallback low-case name: %s", key)
+            return self._config.lower_to_normal_map[key]
+        raise AttributeError(f'Key: "{key}" not in config')
+
     def __getattr__(self, item: str):
+        item = self._get_attribute_name(item)
         if item in self._changed:
             return self._changed[item]
         elif item in self._deleted:
@@ -450,8 +480,11 @@ class ConfigWriter:
             object.__setattr__(self, key, value)
             return
 
+        key = self._get_attribute_name(key)
         if key in self._config.values:
             self._config.values[key].value_setter(value, dry_run=True)
+        else:
+            self._config.logger.debug("Writer: Skipping dry run write on non-value: %s", key)
 
         # Update changed or reset it if change is returning to original value
         if value == getattr(self._config, key):
@@ -461,6 +494,7 @@ class ConfigWriter:
             self._changed[key] = value
 
     def __delattr__(self, item):
+        item = self._get_attribute_name(item)
         self._deleted.add(item)
 
     def update(self, values: Dict[str, Any]):
@@ -479,7 +513,10 @@ class ConfigWriter:
         """
         with self._config.lock.gen_wlock():
             for key, val in self._changed.items():
-                setattr(self._config, key, val)
+                if key in self._config.values:
+                    self._config.values[key].value_setter(val)
+                else:
+                    setattr(self._config, key, val)
 
         self._changed = {}
         if write:
@@ -548,7 +585,7 @@ class Config(ValueConfig):
                 obj.set_runtime(var, self)
                 self.values[var] = obj
                 if not var.islower():
-                    self._lower_to_normal[var.lower()] = var
+                    self.lower_to_normal_map[var.lower()] = var
 
     def __str__(self) -> str:
         res = [f"{self.__class__.__name__}: {self._file_path} ({self._factory_file_path}):"]
@@ -558,27 +595,11 @@ class Config(ValueConfig):
                 value = self.values[val].value
                 factory = self.values[val].factory_value
                 default = self.values[val].default_value
-                res.append(f"\t{val}: {getattr(self, val)} ({value},{factory},{default})")
+                res.append(f"\t{val}: {getattr(self, val)} ({value}, {factory}, {default})")
             elif isinstance(o, property):
                 res.append(f"\t{val}: {getattr(self, val)}")
 
         return "\n".join(res)
-
-    def __getattr__(self, key: str):
-        if key in self._lower_to_normal:
-            self.logger.warning("Config getattr using fallback lowcase name: %s", key)
-            return object.__getattribute__(self, self._lower_to_normal[key])
-        raise AttributeError(f'Key: "{key}" not in config')
-
-    def __setattr__(self, key: str, value: Any):
-        if key.startswith("_"):
-            return object.__setattr__(self, key, value)
-
-        if key in self._lower_to_normal:
-            self.logger.warning("Config setattr using fallback lowcase name: %s", key)
-            object.__setattr__(self, self._lower_to_normal[key], value)
-        else:
-            object.__setattr__(self, key, value)
 
     def get_writer(self) -> ConfigWriter:
         """
@@ -686,7 +707,7 @@ class Config(ValueConfig):
 
         :param file_path: Optional file pathlib Path, default is to save to path set during construction
         """
-        with self.lock.gen_wlock():
+        with self.lock.gen_rlock():
             if file_path is None:
                 file_path = self._file_path
 
@@ -717,7 +738,7 @@ class Config(ValueConfig):
         obj = {}
         for val in self.values.values():
             if (not factory or val.factory) and (not val.is_default() or nondefault):
-                obj[val.key] = val.value
+                obj[val.key] = val.value_getter()
         return obj
 
     def _write_file(self, file_path: Path, factory: bool = False):
