@@ -59,7 +59,7 @@ class ScreenServer(multiprocessing.Process):
 
 
     def run(self):
-        self.logger.debug("process started")
+        self.logger.debug("Screen server process started with PID: %d", os.getpid())
         signal.signal(signal.SIGTERM, self.signalHandler)
 
         while not self.stoprequest.is_set():
@@ -522,11 +522,6 @@ class Screen:
 
     def start(self):
         self.server.start()
-    #enddef
-
-
-    def __del__(self):
-        self.exit()
     #enddef
 
 

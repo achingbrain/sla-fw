@@ -122,11 +122,6 @@ class MotConCom(MotConComBase):
     #enddef
 
 
-    def __del__(self):
-        self.exit()
-    #enddef
-
-
     def exit(self):
         self.debug.exit()
         if self.port.is_open:
@@ -575,11 +570,6 @@ class Hardware:
 
     def start(self):
         self.mcc.start()
-    #enddef
-
-
-    def __del__(self):
-        self.exit()
     #enddef
 
 

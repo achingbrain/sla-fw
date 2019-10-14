@@ -3,6 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import signal
 import logging
 import multiprocessing
@@ -42,7 +43,7 @@ class SocketServer(multiprocessing.Process):
 
 
     def run(self):
-        self.logger.debug("process started")
+        self.logger.debug("Socket server process started with PID: %d", os.getpid())
         self.thread.start()
         signal.signal(signal.SIGTERM, self.signalHandler)
 

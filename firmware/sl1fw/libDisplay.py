@@ -63,11 +63,6 @@ class Display:
     #enddef
 
 
-    def __del__(self):
-        self.exit()
-    #enddef
-
-
     def exit(self):
         self.running = False
         for device in self.devices:

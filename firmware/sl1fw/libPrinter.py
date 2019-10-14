@@ -97,12 +97,6 @@ class Printer:
         self.logger.debug(f"SL1 firmware initialized in {monotonic() - init_time}")
     #endclass
 
-
-    def __del__(self):
-        self.exit()
-    #enddef
-
-
     def exit(self):
         self.running = False
         if self.admin_check:
@@ -189,7 +183,7 @@ class Printer:
     #enddef
 
     def run(self):
-        self.logger.info("SL1 firmware starting")
+        self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
         self.start_time = monotonic()
         self.logger.debug("Starting libHardware")
         self.hw.start()

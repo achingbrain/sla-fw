@@ -69,11 +69,6 @@ class Debug:
     #enddef
 
 
-    def __del__(self):
-        self.exit()
-    #enddef
-
-
     def exit(self):
         self.server.join()
     #enddef

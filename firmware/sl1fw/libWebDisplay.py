@@ -87,10 +87,6 @@ class WebDisplay(VirtualDisplay):
         self.server.start()
     #enddef
 
-    def __del__(self):
-        self.exit()
-    #enddef
-
     def exit(self):
         if self.server.is_alive():
             self.server.join()
