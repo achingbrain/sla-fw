@@ -722,7 +722,7 @@ class Config(ValueConfig):
 
         :param file_path: Optional file pathlib Path, default is to save to path set during construction
         """
-        with self.lock.gen_wlock():
+        with self.lock.gen_rlock():
             if file_path is None:
                 file_path = self._factory_file_path
 
