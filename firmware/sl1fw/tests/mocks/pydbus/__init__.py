@@ -3,8 +3,6 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pydbus
-
 
 class SystemBus:
     def __call__(self):
