@@ -266,7 +266,8 @@ class Value(property, ABC):
         :return: True if default, False otherwise
         """
         return (self.value is None or self.value == self.default_value) and (
-                self.factory_value is None or self.factory_value == self.default_value)
+            self.factory_value is None or self.factory_value == self.default_value
+        )
 
     def __str__(self):
         return str(self.value)
@@ -1008,9 +1009,13 @@ class PrintConfig(Config):
         lambda self: self.expTime, doc="Time added to exposure per calibration region. [seconds]"
     )
     calibrateRegions = IntValue(0, doc="Number of calibration regions (2, 4, 6, 8, 9), 0 = off")
-    calibrateInfoLayers = IntValue(10, doc="Number of calibration layers that will include the label with exposure time.")
+    calibrateInfoLayers = IntValue(
+        10, doc="Number of calibration layers that will include the label with exposure time."
+    )
 
-    raw_calibrate_penetration = FloatValue(0.5, doc="How much to sing calibration text to object. [millimeters]")
+    raw_calibrate_penetration = FloatValue(
+        0.5, key="calibratePenetration", doc="How much to sing calibration text to object. [millimeters]"
+    )
 
     @property
     def calibratePenetration(self) -> int:
