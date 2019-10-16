@@ -91,7 +91,6 @@ class PageTowerMove(MovePage):
 
 
     def _up(self, slowMoving: bool):
-        print("_up")
         if not self.display.hw.tower_move(1 if slowMoving else 2, set_profiles=self.setProfiles):
             self.display.hw.beepAlarm(1)
         self.showItems(value=self.display.hw.getTowerPosition())
@@ -99,7 +98,6 @@ class PageTowerMove(MovePage):
 
 
     def _down(self, slowMoving: bool):
-        print("_down")
         if not self.display.hw.tower_move(-1 if slowMoving else -2, set_profiles=self.setProfiles):
             self.display.hw.beepAlarm(1)
         self.showItems(value=self.display.hw.getTowerPosition())
@@ -107,7 +105,6 @@ class PageTowerMove(MovePage):
 
 
     def _stop(self):
-        print("_stop")
         self.display.hw.tower_move(0, set_profiles=self.setProfiles)
     #enddef
 

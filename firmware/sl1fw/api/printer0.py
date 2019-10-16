@@ -5,115 +5,20 @@
 
 from __future__ import annotations
 
-from enum import Enum, auto
-from time import monotonic
-from typing import List, Dict, Tuple, Union, TYPE_CHECKING
+from typing import List, Dict, Tuple, TYPE_CHECKING
+
 import distro
 import pydbus
 from deprecated import deprecated
 from pydbus.generic import signal
 
 from sl1fw import actions
+from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath
 from sl1fw.api.display_test0 import DisplayTest0
+from sl1fw.api.states import Printer0State
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
-
-
-class Printer0State(Enum):
-    def _generate_next_value_(self, start, count, last_values):
-        return self
-
-    INITIALIZING = auto()
-    IDLE = auto()
-    UNBOXING = auto()
-    WIZARD = auto()
-    CALIBRATION = auto()
-    DISPLAY_TEST = auto()
-    PRINTING = auto()
-    UPDATE = auto()
-    ADMIN = auto()
-    EXCEPTION = auto()
-
-
-class NotAvailableInState(Exception):
-    pass
-
-
-class PositionNotAvailable(Exception):
-    pass
-
-
-def state_checked(allowed_state: Union[Printer0State, List[Printer0State]]):
-    """
-    Decorator restricting method call based on allowed state
-    :param allowed_state: State in which the method is available, or list of such states
-    :return: Method decorator
-    """
-
-    def decor(function):
-        def func(self, *args, **kwargs):
-            if isinstance(allowed_state, list):
-                allowed_names = [state.name for state in allowed_state]
-            else:
-                allowed_names = [allowed_state.name]
-            if self.state in allowed_names:
-                return function(self, *args, **kwargs)
-            else:
-                raise NotAvailableInState
-        if hasattr(function, "__dbus__"):
-            func.__dbus__ = function.__dbus__
-        func.__doc__ = function.__doc__
-        return func
-    return decor
-
-
-def cached(validity_s: float = None):
-    """
-    Decorator limiting calls to property by using a cache with defined validity.
-    This does not support passing arguments other than self to decorated method!
-    :param validity_s: Cache validity in seconds, None means valid forever
-    :return: Method decorator
-    """
-
-    def decor(function):
-        cache = {}
-
-        def func(self):
-            if 'value' not in cache or 'last' not in cache or (
-                    validity_s is not None and monotonic() - cache['last'] > validity_s):
-                cache['value'] = function(self)
-                cache['last'] = monotonic()
-            return cache['value']
-        if hasattr(function, "__dbus__"):
-            func.__dbus__ = function.__dbus__
-        func.__doc__ = function.__doc__
-        return func
-    return decor
-
-
-def dbus_api(cls):
-    records: List[str] = []
-    for var in vars(cls):
-        obj = getattr(cls, var)
-        if isinstance(obj, property):
-            obj = obj.fget
-        if hasattr(obj, "__dbus__"):
-            record = obj.__dbus__
-            assert isinstance(record, str)
-            records.append(record)
-    cls.dbus = f"<node><interface name='{cls.__INTERFACE__}'>{''.join(records)}</interface></node>"
-    return cls
-
-
-def dbus_record(dbus: str):
-    def decor(func):
-        if func.__doc__ is None:
-            func.__doc__ = ""
-        func.__doc__ += f"\nD-Bus interface:: \n\n\t" + "\n\t".join(dbus.splitlines())
-        func.__dbus__ = dbus
-        return func
-    return decor
 
 
 @dbus_api
@@ -170,10 +75,7 @@ class Printer0:
         self._prints = []
 
     @property
-    @dbus_record("""
-        <property name="state" type="s" access="read">
-            <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-        </property>""")
+    @auto_dbus
     def state(self) -> str:
         """
         Get global printer state
@@ -191,11 +93,8 @@ class Printer0:
                     return self.PAGE_TO_STATE[p].name
         return Printer0State.IDLE.name
 
+    @auto_dbus
     @property
-    @dbus_record("""
-    <property name="current_page" type="s" access="read">
-        <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-    </property>""")
     @deprecated(reason="Do not rely on current page, use state", action="once")
     def current_page(self) -> str:
         """
@@ -205,12 +104,7 @@ class Printer0:
         """
         return self.printer.get_actual_page().Name
 
-    @dbus_record("""
-    <method name="beep">
-        <arg type='i' name="frequency_hz" direction='in'/>
-        <arg type='i' name="length_ms" direction='in'/>
-    </method>
-    """)
+    @auto_dbus
     def beep(self, frequency_hz: int, length_ms:int) -> None:
         """
         Motion controller beeper beep
@@ -221,7 +115,7 @@ class Printer0:
         """
         self.printer.hw.beep(frequency_hz, length_ms / 1000)
 
-    @dbus_record('<method name="save_logs_to_usb"/>')
+    @auto_dbus
     def save_logs_to_usb(self) -> None:
         """
         Save logs to first usb device
@@ -229,13 +123,8 @@ class Printer0:
         """
         actions.save_logs_to_usb(self.printer.hw.cpuSerialNo)
 
+    @auto_dbus
     @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])
-    @dbus_record("""
-    <method name="poweroff">
-       <arg type='b' name="do_shutdown" direction='in'/>
-       <arg type='b' name="reboot" direction='in'/>
-    </method>
-    """)
     def poweroff(self, do_shutdown: bool, reboot: bool) -> None:
         """
         Shut down the printer
@@ -246,16 +135,16 @@ class Printer0:
         """
         self.printer.display.shutDown(do_shutdown, reboot=reboot)
 
+    @auto_dbus
     @state_checked(Printer0State.IDLE)
-    @dbus_record('<method name="tower_home"/>')
     def tower_home(self) -> None:
         """
         Home tower axis
         """
         self.printer.hw.tower_home()
 
+    @auto_dbus
     @state_checked(Printer0State.IDLE)
-    @dbus_record('<method name="tilt_home"/>')
     def tilt_home(self) -> None:
         """
         Home tilt axis
@@ -265,7 +154,7 @@ class Printer0:
         self.printer.hw.tilt_home()
 
     @state_checked(Printer0State.IDLE)
-    @dbus_record('<method name="disable_motors"/>')
+    @auto_dbus
     def disable_motors(self) -> None:
         """
         Disable motors
@@ -277,11 +166,7 @@ class Printer0:
         self.printer.hw.motorsRelease()
 
     @state_checked(Printer0State.IDLE)
-    @dbus_record("""
-    <method name="tower_move">
-        <arg type='i' name="speed" direction='in'/>
-        <arg type='b' name="success" direction='out'/>
-    </method>""")
+    @auto_dbus
     def tower_move(self, speed: int) -> bool:
         """
         Start / stop tower movement
@@ -300,11 +185,7 @@ class Printer0:
         return self.printer.hw.tower_move(speed)
 
     @state_checked(Printer0State.IDLE)
-    @dbus_record("""
-    <method name="tilt_move">
-        <arg type='i' name="speed" direction='in'/>
-        <arg type='b' name="success" direction='out'/>
-    </method>""")
+    @auto_dbus
     def tilt_move(self, speed: int) -> bool:
         """
         Start / stop tilt movement
@@ -323,38 +204,32 @@ class Printer0:
         return self.printer.hw.tilt_move(speed)
 
     @property
-    @dbus_record("""
-    <property name="tower_position_nm" type="i" access="readwrite">
-        <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-    </property>""")
     def tower_position_nm(self) -> int:
         """
         Read or set tower position in nm
         """
         return self.printer.hw.tower_position_nm
 
+    @auto_dbus
     @tower_position_nm.setter
     @state_checked(Printer0State.IDLE)
     def tower_position_nm(self, position_nm: int) -> None:
         self.printer.hw.tower_position_nm = position_nm
 
     @property
-    @dbus_record("""
-    <property name="tilt_position" type="i" access="readwrite">
-        <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-    </property>""")
     def tilt_position(self) -> int:
         """
         Read or set tilt position in micro-steps
         """
         return self.printer.hw.tilt_position
 
+    @auto_dbus
     @tilt_position.setter
     @state_checked(Printer0State.IDLE)
     def tilt_position(self, micro_steps: int):
         self.printer.hw.tilt_position = micro_steps
 
-    @dbus_record('<method name="get_projects"/>')
+    @auto_dbus
     def get_projects(self) -> List[str]:
         """
         Get available project files
@@ -365,8 +240,8 @@ class Printer0:
         """
         raise NotImplementedError
 
-    @dbus_record('<method name="get_firmwares"/>')
-    def get_firmwares(self):
+    @auto_dbus
+    def get_firmwares(self) -> List[str]:
         """
         Get available firmware files
 
@@ -376,9 +251,9 @@ class Printer0:
         """
         raise NotImplementedError
 
+    @auto_dbus
     @property
     @cached()
-    @dbus_record('<property name="serial_number" type="s" access="read"/>')
     def serial_number(self) -> str:
         """
         Get A64 serial
@@ -387,9 +262,9 @@ class Printer0:
         """
         return self.printer.hw.cpuSerialNo
 
+    @auto_dbus
     @property
     @cached()
-    @dbus_record('<property name="system_name" type="s" access="read"/>')
     def system_name(self) -> str:
         """
         Get system name
@@ -398,9 +273,9 @@ class Printer0:
         """
         return distro.name()
 
+    @auto_dbus
     @property
     @cached()
-    @dbus_record('<property name="system_version" type="s" access="read"/>')
     def system_version(self) -> str:
         """
         Get system version
@@ -409,9 +284,9 @@ class Printer0:
         """
         return distro.version()
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="fans" type="a{sa{si}}" access="read"/>')
     def fans(self) -> Dict[str, Dict[str, int]]:
         """
         Get fan RPMs and errors
@@ -425,9 +300,9 @@ class Printer0:
             result['fan%d' % i] = {'rpm': rpms[i], 'error': errors[i]}
         return result
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="temps" type="a{sd}" access="read"/>')
     def temps(self) -> Dict[str, float]:
         """
         Get temperatures
@@ -436,9 +311,9 @@ class Printer0:
         """
         return {'temp%d_celsius' % i: v for i, v in enumerate(self.printer.hw.getMcTemperatures())}
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="cpu_temp" type="d" access="read"/>')
     def cpu_temp(self) -> float:
         """
         Get A64 temperature
@@ -447,9 +322,9 @@ class Printer0:
         """
         return self.printer.hw.getCpuTemperature()
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="leds" type="a{sd}" access="read"/>')
     def leds(self) -> Dict[str, float]:
         """
         Get UV LED voltages
@@ -458,12 +333,9 @@ class Printer0:
         """
         return {'led%d_voltage_volt' % i: v for i, v in enumerate(self.printer.hw.getVoltages())}
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record("""
-    <property name="devlist" type="a{ss}" access="read">
-        <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-    </property>""")
     @deprecated(reason = "Use NetworkManager", action="once")
     def devlist(self) -> Dict[str, str]:
         """
@@ -473,9 +345,9 @@ class Printer0:
         """
         return self.printer.inet.devices
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="uv_statistics" type="a{si}" access="read"/>')
     def uv_statistics(self) -> Dict[str, int]:
         """
         Get UV statistics
@@ -485,9 +357,9 @@ class Printer0:
         return {'uv_stat%d' % i: v for i, v in enumerate(self.printer.hw.getUvStatistics())}
         # uv_stats0 - time counter [s] # TODO: add uv average current,
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="controller_sw_version" type="s" access="read"/>')
     def controller_sw_version(self) -> str:
         """
         Get motion controller version
@@ -496,9 +368,9 @@ class Printer0:
         """
         return self.printer.hw.mcFwVersion
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="controller_serial" type="s" access="read"/>')
     def controller_serial(self) -> str:
         """
         Get motion controller serial
@@ -507,24 +379,21 @@ class Printer0:
         """
         return self.printer.hw.mcSerialNo
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="controller_revision" type="s" access="read"/>')
     def controller_revision(self) -> str:
         return self.printer.hw.mcBoardRevision
 
+    @auto_dbus
     @property
     @cached()
-    @dbus_record('<property name="controller_revision_bin" type="ai" access="read"/>')
     def controller_revision_bin(self) -> Tuple[int, int]:
         return self.printer.hw.mcBoardRevisionBin
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record("""
-    <property name="api_key" type="s" access="read">
-        <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-    </property>""")
     def api_key(self) -> str:
         """
         Get current API key
@@ -533,9 +402,10 @@ class Printer0:
         """
         return self.printer.get_actual_page().octoprintAuth
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="tilt_fast_time_sec" type="d" access="read"/>')
+    @deprecated(reason="Use config api")
     def tilt_fast_time_sec(self) -> float:
         """
         Get fast tilt time
@@ -543,9 +413,10 @@ class Printer0:
         """
         return self.printer.hwConfig.tiltFastTime
 
+    @auto_dbus
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="tilt_slow_time_sec" type="d" access="read"/>')
+    @deprecated(reason="Use config api")
     def tilt_slow_time_sec(self) -> float:
         """
         Get slow tilt time
@@ -554,10 +425,7 @@ class Printer0:
         """
         return self.printer.hwConfig.tiltSlowTime
 
-    @dbus_record("""
-    <method name="enable_resin_sensor">
-        <arg type="b" name="value" direction='in'/>
-    </method>""")
+    @auto_dbus
     def enable_resin_sensor(self, value: bool) -> None:
         """
         Set resin sensor enabled flag
@@ -567,12 +435,9 @@ class Printer0:
         """
         self.printer.hw.resinSensor(value)
 
+    @auto_dbus
     @property
     @cached(validity_s=0.5)
-    @dbus_record("""
-    <property name="resin_sensor_state" type="b" access="read">
-        <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-    </property>""")
     def resin_sensor_state(self) -> bool:
         """
         Get resin sensor state
@@ -581,12 +446,9 @@ class Printer0:
         """
         return self.printer.hw.getResinSensorState()
 
+    @auto_dbus
     @property
     @cached(validity_s=0.5)
-    @dbus_record("""
-    <property name="cover_state" type="b" access="read">
-        <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-    </property>""")
     def cover_state(self) -> bool:
         """
         Get cover state
@@ -595,12 +457,9 @@ class Printer0:
         """
         return self.printer.hw.isCoverClosed()
 
+    @auto_dbus
     @property
     @cached(validity_s=0.5)
-    @dbus_record("""
-       <property name="power_switch_state" type="b" access="read">
-           <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
-       </property>""")
     def power_switch_state(self) -> bool:
         """
         Get power switch state
@@ -609,8 +468,8 @@ class Printer0:
         """
         return self.printer.hw.getPowerswitchState()
 
+    @auto_dbus
     @property
-    @dbus_record('<property name="factory_mode" type="b" access="read"/>')
     def factory_mode(self) -> bool:
         """
         Check for factory mode
@@ -619,11 +478,8 @@ class Printer0:
         """
         return self.printer.factoryMode
 
-    @dbus_record("""
-    <method name="display_test">
-          <arg type="o" name="test_path" direction='out'/>
-    </method>""")
-    def display_test(self):
+    @auto_dbus
+    def display_test(self) -> DBusObjectPath:
         """
         Initiate display test object
 
@@ -633,15 +489,14 @@ class Printer0:
 
         # If test is already pending just return test object
         if self._display_test:
-            return path
+            return DBusObjectPath(path)
 
         self._display_test = DisplayTest0(self)
         self._display_test_registration = pydbus.SystemBus().register_object(path, self._display_test, None)
 
-        return path
+        return DBusObjectPath(path)
 
-
-    @dbus_record('<method name="wizard"/>')
+    @auto_dbus
     def wizard(self):
         """
         Initiate wizard test object
@@ -652,8 +507,7 @@ class Printer0:
         """
         raise NotImplementedError
 
-
-    @dbus_record('<method name="update_firmware"/>')
+    @auto_dbus
     def update_firmware(self):
         """
         Initiate firmware update
@@ -663,8 +517,7 @@ class Printer0:
         # TODO: Do we need to have this here? If we can do update while printing we do not need to care.
         raise NotImplementedError
 
-
-    @dbus_record('<method name="factory_reset"/>')
+    @auto_dbus
     def factory_reset(self) -> None:
         """
         Do factory reset
@@ -673,8 +526,7 @@ class Printer0:
         """
         raise NotImplementedError
 
-
-    @dbus_record('<method name="enter_admin"/>')
+    @auto_dbus
     def enter_admin(self) -> None:
         """
         Initiate admin mode
@@ -683,7 +535,7 @@ class Printer0:
         """
         raise NotImplementedError
 
-    @dbus_record('<method name="print"/>')
+    @auto_dbus
     def print(self, project_path: str, auto_advance: bool) -> None:
         """Start printing project NOT IMPLEMENTED
 
@@ -694,7 +546,7 @@ class Printer0:
         """
         raise NotImplementedError
 
-    @dbus_record('<method name="advanced_settings"/>')
+    @auto_dbus
     def advanced_settings(self) -> None:
         """
         Initiate advanced settings

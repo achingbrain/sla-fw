@@ -25,7 +25,7 @@ data_files = [
     ('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']),
     ('/etc/nginx/sites-available', ['nginx/sl1fw']),
     ('/usr/share/factory/defaults', ['factory/factory.toml']),
-    ('/usr/share/dbus-1/system.d', ['dbus/cz.prusa3d.sl1.printer0.conf'])
+    ('/usr/share/dbus-1/system.d', glob('dbus/*'))
 ]
 
 

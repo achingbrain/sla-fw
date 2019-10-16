@@ -4,9 +4,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 
-def __fake_signal_handler(*args, **kwargs):
-    print(f"Signal fired: {args}, {kwargs}")
+class MoveException(Exception):
+    pass
 
 
-def signal():
-    return __fake_signal_handler
+class NotAvailableInState(Exception):
+    pass
+
+
+class PositionNotAvailable(Exception):
+    pass
+
+
+class DBusMappingException(Exception):
+    pass

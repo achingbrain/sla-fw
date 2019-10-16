@@ -3,11 +3,13 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import functools
 import logging
 import re
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import Optional, List, Dict, Type, Union, Any, Callable
+from typing import Optional, List, Dict, Type, Union, Any, Callable, Set
+from queue import Queue
 
 import toml
 from readerwriterlock import rwlock
@@ -30,12 +32,33 @@ class BaseConfig(ABC):
 
     @abstractmethod
     def __init__(self, is_master: bool = False):
-        self.lower_to_normal_map: Dict[str, str] = {}
-        self.logger = logging.getLogger(__name__)
-        self.is_master = is_master
-        self.lock = rwlock.RWLockRead()
-        self.data_values = {}
-        self.data_factory_values = {}
+        self._lower_to_normal_map: Dict[str, str] = {}
+        self._logger = logging.getLogger(__name__)
+        self._is_master = is_master
+        self._lock = rwlock.RWLockRead()
+        self._data_values: Dict[str, Any] = {}
+        self._data_factory_values: Dict[str, Any] = {}
+
+    def get_lock(self) -> rwlock.RWLockRead:
+        return self._lock
+
+    def get_data_values(self) -> Dict[str, Any]:
+        return self._data_values
+
+    def get_data_factory_values(self) -> Dict[str, Any]:
+        return self._data_factory_values
+
+    def lower_to_normal_map(self, key: str) -> Optional[str]:
+        """
+        Map key from low-case to the standard (as defined) case
+
+        :param key: Input lowcase name
+        :return: Standard key name or None if not found
+        """
+        return self._lower_to_normal_map.get(key)
+
+    def is_master(self):
+        return self._is_master
 
 
 class Value(property, ABC):
@@ -66,7 +89,7 @@ class Value(property, ABC):
         """
 
         def getter(config: BaseConfig) -> value_type[0]:
-            with config.lock.gen_rlock():
+            with config.get_lock().gen_rlock():
                 return self.value_getter(config)
 
         def setter(config: BaseConfig, val: value_type[0]):
@@ -78,7 +101,7 @@ class Value(property, ABC):
             self.set_value(config, None)
 
         super().__init__(getter, setter, deleter)
-
+        self.logger = logging.getLogger(__name__)
         self.name = None
         self.key = key
         self.type = value_type
@@ -135,10 +158,10 @@ class Value(property, ABC):
         :param config: Config to read from
         :return: Value
         """
-        return config.data_values[self.name]
+        return config.get_data_values()[self.name]
 
     def set_value(self, config: BaseConfig, value: Any) -> None:
-        config.data_values[self.name] = value
+        config.get_data_values()[self.name] = value
 
     def get_factory_value(self, config: BaseConfig) -> Any:
         """
@@ -149,10 +172,10 @@ class Value(property, ABC):
         :param config: Config to read from
         :return: Value
         """
-        return config.data_factory_values[self.name]
+        return config.get_data_factory_values()[self.name]
 
     def set_factory_value(self, config: BaseConfig, value: Any) -> None:
-        config.data_factory_values[self.name] = value
+        config.get_data_factory_values()[self.name] = value
 
     def get_default_value(self, config: BaseConfig) -> Any:
         if type(self.default) not in self.type and isinstance(self.default, Callable):
@@ -189,7 +212,7 @@ class Value(property, ABC):
         :param dry_run: If set to true the value is not actually set. Used to check value consistency.
         """
         try:
-            if not config.is_master and not write_override:
+            if not config.is_master() and not write_override:
                 raise Exception("Cannot write to read-only config !!!")
             if val is None:
                 raise ValueError(f"Using default for key {self.name} as {val} is None")
@@ -197,7 +220,7 @@ class Value(property, ABC):
                 raise ValueError(f"Using default for key {self.name} as {val} is {type(val)} but should be {self.type}")
             adapted = self.adapt(val)
             if adapted != val:
-                config.logger.warning(f"Adapting config value {self.name} from {val} to {adapted}")
+                self.logger.warning(f"Adapting config value {self.name} from {val} to {adapted}")
             self.check(adapted)
 
             if dry_run:
@@ -399,11 +422,40 @@ class ValueConfig(BaseConfig):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.values: Dict[str, Value] = {}
+        self._on_change: Set[Callable[[str, Any], None]] = set()
+        self._stored_callbacks: Queue[Callable[[], None]] = Queue()
+        self._values: Dict[str, Value] = {}
 
     @abstractmethod
     def write(self, file_path: Optional[Path] = None):
         ...
+
+    def schedule_on_change(self, key: str, value: Any) -> None:
+        for handler in self._on_change:
+            self._logger.debug("Postponing property changed callback, key: %s", key)
+            self._stored_callbacks.put(functools.partial(handler, key, value))
+
+    def run_stored_callbacks(self) -> None:
+        while not self._stored_callbacks.empty():
+            self._stored_callbacks.get()()
+
+    def __setattr__(self, key: str, value: Any):
+        object.__setattr__(self, key, value)
+
+        if key.startswith("_"):
+            return
+
+        self.schedule_on_change(key, value)
+        lock = self._lock.gen_rlock()
+        if lock.acquire(blocking=False):
+            self.run_stored_callbacks()
+            lock.release()
+
+    def add_onchange_handler(self, handler: Callable[[str, Any], None]):
+        self._on_change.add(handler)
+
+    def get_values(self):
+        return self._values
 
 
 class ConfigWriter:
@@ -420,6 +472,7 @@ class ConfigWriter:
 
         :param config: Underling configuration object
         """
+        self._logger = logging.getLogger(__name__)
         self._config = config
         self._changed: Dict[str:Any] = {}
         self._deleted = set()
@@ -433,9 +486,10 @@ class ConfigWriter:
         """
         if key in vars(self._config) or key in vars(self._config.__class__):
             return key
-        if key in self._config.lower_to_normal_map:
-            self._config.logger.warning("Config setattr using fallback low-case name: %s", key)
-            return self._config.lower_to_normal_map[key]
+        normalized_key = self._config.lower_to_normal_map(key)
+        if normalized_key:
+            self._logger.warning("Config setattr using fallback low-case name: %s", key)
+            return normalized_key
         raise AttributeError(f'Key: "{key}" not in config')
 
     def __getattr__(self, item: str):
@@ -453,10 +507,10 @@ class ConfigWriter:
             return
 
         key = self._get_attribute_name(key)
-        if key in self._config.values:
-            self._config.values[key].value_setter(self._config, value, dry_run=True)
+        if key in self._config.get_values():
+            self._config.get_values()[key].value_setter(self._config, value, dry_run=True)
         else:
-            self._config.logger.debug("Writer: Skipping dry run write on non-value: %s", key)
+            self._logger.debug("Writer: Skipping dry run write on non-value: %s", key)
 
         # Update changed or reset it if change is returning to original value
         if value == getattr(self._config, key):
@@ -483,16 +537,23 @@ class ConfigWriter:
 
         :param: write Whenever to write configuration file
         """
-        with self._config.lock.gen_wlock():
+        # Update values with write lock
+        with self._config.get_lock().gen_wlock():
             for key, val in self._changed.items():
-                if key in self._config.values:
-                    self._config.values[key].value_setter(self._config, val)
+                if key in self._config.get_values():
+                    self._config.get_values()[key].value_setter(self._config, val)
                 else:
                     setattr(self._config, key, val)
 
-        self._changed = {}
         if write:
             self._config.write()
+
+        # Run notify callbacks with write lock unlocked
+        for key, val in self._changed.items():
+            self._config.schedule_on_change(key, val)
+        self._config.run_stored_callbacks()
+
+        self._changed = {}
 
     def changed(self, key=None):
         """
@@ -555,18 +616,18 @@ class Config(ValueConfig):
             obj = getattr(self.__class__, var)
             if isinstance(obj, Value):
                 obj.setup(self, var)
-                self.values[var] = obj
+                self._values[var] = obj
                 if not var.islower():
-                    self.lower_to_normal_map[var.lower()] = var
+                    self._lower_to_normal_map[var.lower()] = var
 
     def __str__(self) -> str:
         res = [f"{self.__class__.__name__}: {self._file_path} ({self._factory_file_path}):"]
         for val in dir(self.__class__):
             o = getattr(self.__class__, val)
             if isinstance(o, Value):
-                value = self.values[val].get_value(self)
-                factory = self.values[val].get_factory_value(self)
-                default = self.values[val].get_default_value(self)
+                value = self._values[val].get_value(self)
+                factory = self._values[val].get_factory_value(self)
+                default = self._values[val].get_default_value(self)
                 res.append(f"\t{val}: {getattr(self, val)} ({value}, {factory}, {default})")
             elif isinstance(o, property):
                 res.append(f"\t{val}: {getattr(self, val)}")
@@ -587,13 +648,13 @@ class Config(ValueConfig):
 
         :param file_path: Pathlib path to file
         """
-        with self.lock.gen_wlock():
+        with self._lock.gen_wlock():
             try:
                 if self._factory_file_path:
                     if self._factory_file_path.exists():
                         self._read_file(self._factory_file_path, factory=True)
                     else:
-                        self.logger.info("Factory config file does not exists: %s", self._factory_file_path)
+                        self._logger.info("Factory config file does not exists: %s", self._factory_file_path)
                 if file_path is None:
                     file_path = self._file_path
                 if file_path is None:
@@ -601,7 +662,7 @@ class Config(ValueConfig):
                 if file_path.exists():
                     self._read_file(file_path)
                 else:
-                    self.logger.info("Config file does not exists: %s", file_path)
+                    self._logger.info("Config file does not exists: %s", file_path)
             except Exception as exception:
                 raise ConfigException("Failed to read configuration files") from exception
 
@@ -634,7 +695,7 @@ class Config(ValueConfig):
             # Split line to variable name and value
             match = self.VAR_ASSIGN_PATTERN.match(line)
             if not match:
-                self.logger.warning("Line ignored as it does not match name=value pattern:\n%s", line)
+                self._logger.warning("Line ignored as it does not match name=value pattern:\n%s", line)
                 continue
             name = match.groupdict()["name"].strip()
             value = match.groupdict()["value"].strip()
@@ -658,7 +719,7 @@ class Config(ValueConfig):
         except toml.TomlDecodeError as exception:
             raise ConfigException("Failed to decode config content:\n %s", text) from exception
 
-        for val in self.values.values():
+        for val in self._values.values():
             try:
                 key = None
                 if val.file_key in data:
@@ -669,9 +730,9 @@ class Config(ValueConfig):
                     val.value_setter(self, data[key], write_override=True, factory=factory)
                     del data[key]
             except (KeyError, ConfigException):
-                self.logger.exception("Setting config value %s to %s failed" % (val.name, val))
+                self._logger.exception("Setting config value %s to %s failed" % (val.name, val))
         if data:
-            self.logger.warning("Extra data in configuration source: \n %s" % data)
+            self._logger.warning("Extra data in configuration source: \n %s" % data)
 
     def write(self, file_path: Optional[Path] = None) -> None:
         """
@@ -679,7 +740,7 @@ class Config(ValueConfig):
 
         :param file_path: Optional file pathlib Path, default is to save to path set during construction
         """
-        with self.lock.gen_rlock():
+        with self._lock.gen_rlock():
             if file_path is None:
                 file_path = self._file_path
 
@@ -694,7 +755,7 @@ class Config(ValueConfig):
 
         :param file_path: Optional file pathlib Path, default is to save to path set during construction
         """
-        with self.lock.gen_rlock():
+        with self._lock.gen_rlock():
             if file_path is None:
                 file_path = self._factory_file_path
 
@@ -708,13 +769,14 @@ class Config(ValueConfig):
         :param factory: Return set of config values that are supposed to be stored in factory config
         """
         obj = {}
-        for val in self.values.values():
+        for val in self._values.values():
             if (not factory or val.factory) and (not val.is_default(self) or nondefault):
                 obj[val.key] = val.value_getter(self)
         return obj
 
     def _write_file(self, file_path: Path, factory: bool = False):
-        if not self.is_master:
+        self._logger.debug("Writting config to %s", file_path)
+        if not self._is_master:
             raise ConfigException("Cannot safe config that is not master")
         try:
             with file_path.open("w") as f:
@@ -728,9 +790,9 @@ class Config(ValueConfig):
 
         This does not save the config. Explict call to save is necessary
         """
-        self.logger.info("Running factory reset on config")
-        with self.lock.gen_wlock():
-            for val in self.values.values():
+        self._logger.info("Running factory reset on config")
+        with self._lock.gen_wlock():
+            for val in self._values.values():
                 val.set_value(self, None)
 
     def is_factory_read(self) -> bool:
@@ -739,7 +801,7 @@ class Config(ValueConfig):
 
         :return: True of factory default were set, False otherwise
         """
-        for val in self.values.values():
+        for val in self._values.values():
             if val.get_factory_value(self) is not None:
                 return True
         return False
@@ -786,7 +848,7 @@ class HwConfig(Config):
     @property
     def microStepsMM(self) -> float:
         """
-        Get number of microsteps per millimeter suing current tower scre picth.
+        Get number of microsteps per millimeter using current tower screw pitch.
 
         :return: Number of microsteps per one millimeter
         """

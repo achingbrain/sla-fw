@@ -271,7 +271,7 @@ class Display:
     # TODO presunout pryc
     def shutDown(self, doShutDown, reboot=False):
         if defines.testing:
-            print("Skipping poweroff")
+            self.logger.info("Skipping poweroff due to testing")
             return
         #endif
 

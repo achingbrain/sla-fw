@@ -18,6 +18,7 @@ from pydbus import SystemBus
 
 from sl1fw import defines
 from sl1fw import libConfig
+from sl1fw.api.config0 import Config0
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libAsync import AdminCheck, SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
@@ -87,7 +88,9 @@ class Printer:
 
         self.logger.debug("Registering printer D-Bus services")
         self.printer0 = Printer0(self)
+        self.config0 = Config0(self.hwConfig)
         SystemBus().publish(self.printer0.__INTERFACE__, self.printer0)
+        SystemBus().publish(self.config0.__INTERFACE__, self.config0)
 
         self.logger.debug("Initializing libDisplay")
         from sl1fw.libDisplay import Display

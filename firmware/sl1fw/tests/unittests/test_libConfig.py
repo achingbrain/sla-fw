@@ -6,11 +6,12 @@
 import unittest
 from pathlib import Path
 from shutil import copyfile
+from unittest import mock
 
-from sl1fw.tests.base import Sl1fwTestCase
+from sl1fw import defines
 from sl1fw.libConfig import HwConfig, Config, FloatValue, IntListValue, IntValue, BoolValue, \
     FloatListValue, TextValue, ConfigWriter
-from sl1fw import defines
+from sl1fw.tests.base import Sl1fwTestCase
 
 
 class TestConfigValues(Sl1fwTestCase):
@@ -323,7 +324,7 @@ class TestConfigHelper(Sl1fwTestCase):
 
         self.helper.commit()
 
-        # Underling valus is changed after commit
+        # Underling value is changed after commit
         self.assertFalse(self.hwConfig.autoOff)
 
         # Changed behaviour after commit
@@ -333,14 +334,17 @@ class TestConfigHelper(Sl1fwTestCase):
 
     def test_changed(self):
         self.assertFalse(self.helper.changed(), "Fresh config is not changed")
-
         self.helper.autoOff = not self.helper.autoOff
-
         self.assertTrue(self.helper.changed(), "Modified config is changed")
-
         self.helper.autoOff = not self.helper.autoOff
-
         self.assertFalse(self.helper.changed(), "After modify revert the config is not changed")
+
+    def test_on_change(self):
+        on_change = mock.MagicMock()
+        self.hwConfig.add_onchange_handler(on_change)
+        self.helper.calibrated = True
+        self.helper.commit()
+        on_change.assert_called_with("calibrated", True)
 
 
 if __name__ == '__main__':
