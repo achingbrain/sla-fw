@@ -5,7 +5,7 @@
 
 import logging
 
-from sl1fw.libPages import Page
+from sl1fw.pages.base import Page
 from sl1fw.logger_config import get_log_level, set_log_level
 from sl1fw.pages import page
 

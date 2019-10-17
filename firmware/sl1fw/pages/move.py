@@ -3,28 +3,29 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sl1fw.libConfig import ConfigException
+from abc import ABC, abstractmethod
+
 from sl1fw.pages import page
-from sl1fw.libPages import Page
+from sl1fw.pages.base import Page
 
 
-class MovePage(Page):
+class MovePage(Page, ABC):
 
-    # for pylint only :)
-    def _up(self, dummy):
-        self.logger.error("THIS SHOULD BE OVERRIDDEN!")
+    @abstractmethod
+    def _up(self, slowMoving: bool):
+        ...
     #enddef
 
 
-    # for pylint only :)
-    def _down(self, dummy):
-        self.logger.error("THIS SHOULD BE OVERRIDDEN!")
+    @abstractmethod
+    def _down(self, slowMoving: bool):
+        ...
     #enddef
 
 
-    # for pylint only :)
+    @abstractmethod
     def _stop(self):
-        self.logger.error("THIS SHOULD BE OVERRIDDEN!")
+        ...
     #enddef
 
 
@@ -90,41 +91,25 @@ class PageTowerMove(MovePage):
     #enddef
 
 
-    def _up(self, slowMoving):
-        if not self.moving:
-            if self.setProfiles:
-                self.display.hw.setTowerProfile('moveSlow' if slowMoving else 'homingFast')
-            #endif
-            self.display.hw.towerToMax()
-            self.moving = True
-        else:
-            if self.display.hw.isTowerOnMax():
-                self.display.hw.beepAlarm(1)
-            #endif
-            self.showItems(value = self.display.hw.getTowerPosition())
-        #endif
+    def _up(self, slowMoving: bool):
+        print("_up")
+        if not self.display.hw.tower_move(1 if slowMoving else 2, set_profiles=self.setProfiles):
+            self.display.hw.beepAlarm(1)
+        self.showItems(value=self.display.hw.getTowerPosition())
     #enddef
 
 
-    def _down(self, slowMoving):
-        if not self.moving:
-            if self.setProfiles:
-                self.display.hw.setTowerProfile('moveSlow' if slowMoving else 'homingFast')
-            #endif
-            self.display.hw.towerToMin()
-            self.moving = True
-        else:
-            if self.display.hw.isTowerOnMin():
-                self.display.hw.beepAlarm(1)
-            #endif
-            self.showItems(value = self.display.hw.getTowerPosition())
-        #endif
+    def _down(self, slowMoving: bool):
+        print("_down")
+        if not self.display.hw.tower_move(-1 if slowMoving else -2, set_profiles=self.setProfiles):
+            self.display.hw.beepAlarm(1)
+        self.showItems(value=self.display.hw.getTowerPosition())
     #enddef
 
 
     def _stop(self):
-        self.display.hw.towerStop()
-        self.moving = False
+        print("_stop")
+        self.display.hw.tower_move(0, set_profiles=self.setProfiles)
     #enddef
 
 
@@ -150,117 +135,31 @@ class PageTiltMove(MovePage):
 
     def show(self):
         self.items["value"] = self.display.hw.getTiltPosition()
-        self.moving = False
-        super(PageTiltMove, self).show()
+        super().show()
     #enddef
 
 
-    def _up(self, slowMoving):
-        if not self.moving:
-            if self.setProfiles:
-                self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'homingFast')
-            #endif
-            self.display.hw.tiltToMax()
-            self.moving = True
-        else:
-            if self.display.hw.isTiltOnMax():
-                self.display.hw.beepAlarm(1)
-            #endif
-            self.showItems(value = self.display.hw.getTiltPosition())
-        #endif
+    def _up(self, slowMoving: bool):
+        if not self.display.hw.tilt_move(1 if slowMoving else 2, set_profiles=self.setProfiles):
+            self.display.hw.beepAlarm(1)
+        self.showItems(value=self.display.hw.getTiltPosition())
     #enddef
 
 
-    def _down(self, slowMoving):
-        if not self.moving:
-            if self.setProfiles:
-                self.display.hw.setTiltProfile('moveSlow' if slowMoving else 'homingFast')
-            #endif
-            self.display.hw.tiltToMin()
-            self.moving = True
-        else:
-            if self.display.hw.isTiltOnMin():
-                self.display.hw.beepAlarm(1)
-            #endif
-            self.showItems(value = self.display.hw.getTiltPosition())
-        #endif
+    def _down(self, slowMoving: bool):
+        if not self.display.hw.tilt_move(-1 if slowMoving else -2, set_profiles=self.setProfiles):
+            self.display.hw.beepAlarm(1)
+        self.showItems(value=self.display.hw.getTiltPosition())
     #enddef
 
 
     def _stop(self):
-        self.display.hw.tiltStop()
-        self.moving = False
+        self.display.hw.tilt_move(0, set_profiles=self.setProfiles)
     #enddef
 
 
     def changeProfiles(self, setProfiles):
         self.setProfiles = setProfiles
-    #enddef
-
-#endclass
-
-
-@page
-class PageTowerOffset(MovePage):
-    Name = "toweroffset"
-
-    def __init__(self, display):
-        super(PageTowerOffset, self).__init__(display)
-        self.pageUI = "towermovecalibration"
-        self.pageTitle = N_("Tower Offset")
-        self.stack = False
-        self.autorepeat = { "upslow" : (3, 1), "downslow" : (3, 1) }
-    #enddef
-
-
-    def show(self):
-        self.tmpTowerOffset = self.display.hwConfig.calibTowerOffset
-        self.items["value"] = self._strOffset(self.tmpTowerOffset)
-        super(PageTowerOffset, self).show()
-    #enddef
-
-
-    def _value(self, change):
-        if -400 <= self.tmpTowerOffset + change <= 400:
-            self.tmpTowerOffset += change
-            self.showItems(**{ 'value' : self._strOffset(self.tmpTowerOffset) })
-        else:
-            self.display.hw.beepAlarm(1)
-        #endif
-    #enddef
-
-
-    def upslowButton(self):
-        self._value(1)
-    #enddef
-
-
-    def upslowButtonRelease(self):
-        pass
-    #enddef
-
-
-    def downslowButton(self):
-        self._value(-1)
-    #enddef
-
-
-    def downslowButtonRelease(self):
-        pass
-    #enddef
-
-
-    def okButtonRelease(self):
-        self.display.hwConfig.calibTowerOffset = self.tmpTowerOffset
-        try:
-            self.display.hwConfig.write()
-        except ConfigException:
-            self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
-            return "error"
-        #endtry
-        return "_BACK_"
     #enddef
 
 #endclass

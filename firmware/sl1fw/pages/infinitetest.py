@@ -8,7 +8,8 @@ from time import sleep
 
 from sl1fw import defines
 from sl1fw.pages import page
-from sl1fw.libPages import Page, PageWait
+from sl1fw.pages.base import Page
+from sl1fw.pages.wait import PageWait
 
 
 @page

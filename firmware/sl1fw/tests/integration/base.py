@@ -6,15 +6,16 @@
 from queue import Empty
 from pathlib import Path
 import os
-import threading
+from threading import Thread
 from shutil import copyfile
 import tempfile
 # import cProfile
+from typing import Optional
 
 from sl1fw.tests.base import Sl1fwTestCase
 
 from sl1fw.tests.mocks.display import TestDisplay
-from sl1fw import libPrinter
+from sl1fw.libPrinter import Printer
 from sl1fw import defines
 from sl1fw.pages.printstart import PagePrintPreview
 
@@ -28,8 +29,8 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.display = TestDisplay()
-        self.printer = None
-        self.thread = None
+        self.printer: Optional[Printer] = None
+        self.thread: Optional[Thread] = None
 
     def setUp(self):
         super().setUp()
@@ -58,9 +59,9 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         PagePrintPreview.FanCheckOverride = True
 
-        self.printer = libPrinter.Printer(debugDisplay=self.display)
+        self.printer = Printer(debugDisplay=self.display)
 
-        self.thread = threading.Thread(target=self.printer_thread)
+        self.thread = Thread(target=self.printer_thread)
 
         try:
             self.thread.start()

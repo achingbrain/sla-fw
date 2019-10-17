@@ -3,16 +3,17 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
+import gettext
 import logging
+import os
+import re
+import threading
 from pathlib import Path
 from time import sleep, monotonic
-from pydbus import SystemBus
-from gi.repository import GLib
-import threading
-import gettext
-import re
+
 from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import GLib
+from pydbus import SystemBus
 
 from sl1fw import defines
 from sl1fw import libConfig
@@ -21,8 +22,8 @@ from sl1fw.libAsync import Admin_check
 from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import MotConComState
-from sl1fw.libPages import PageWait
 from sl1fw.pages.start import PageStart
+from sl1fw.pages.wait import PageWait
 
 
 class Printer:

@@ -10,7 +10,7 @@ from copy import deepcopy
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
-from sl1fw.libPages import Page
+from sl1fw.pages.base import Page
 
 
 class ProfilesPage(Page):

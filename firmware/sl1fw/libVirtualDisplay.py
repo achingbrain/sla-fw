@@ -16,6 +16,24 @@ class VirtualDisplay:
         self.events = Queue()
         self.netActive = False
         self.items = dict()
+        self.server = None
+    #enddef
+
+
+    def start(self):
+        self.server.start()
+    #enddef
+
+
+    def __del__(self):
+        self.exit()
+    #enddef
+
+
+    def exit(self):
+        if self.server.is_alive():
+            self.server.join()
+        #endif
     #enddef
 
 

@@ -3,8 +3,10 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from sl1fw.libHardware import MoveException
 from sl1fw.pages import page
-from sl1fw.libPages import Page, PageWait
+from sl1fw.pages.base import Page
+from sl1fw.pages.wait import PageWait
 
 
 @page
@@ -18,33 +20,28 @@ class PageControl(Page):
     #enddef
 
 
-    def show(self):
-        self.moving = False
-        super(PageControl, self).show()
-    #enddef
-
-
     def topButtonRelease(self):
-        self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
         pageWait.show()
-        retc = self._syncTower()
-        self.display.hw.powerLed("normal")
-        return retc
+        try:
+            self.display.hw.tower_home()
+        except MoveException:
+            self.logger.exception("Tower homing failed")
+            self.display.pages['error'].setParams(text=_("Tower homing failed!\n\nCheck the printer's hardware."))
+            return "error"
+        return "_SELF_"
     #enddef
 
 
     def tankresButtonRelease(self):
-        self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Tank reset"))
         pageWait.show()
-        # assume tilt is up (there may be error from print)
-        self.display.hw.setTiltPosition(self.display.hw._tiltEnd)
-        self.display.hw.tiltLayerDownWait(True)
-        self.display.hw.tiltSyncWait()
-        self.display.hw.setTiltProfile("moveFast")
-        self.display.hw.tiltUpWait()
-        self.display.hw.powerLed("normal")
+        try:
+            self.display.hw.tilt_home()
+        except MoveException:
+            self.logger.exception("Tank homing failed")
+            self.display.pages['error'].setParams(text=_("Tank homing failed!\n\nCheck the printer's hardware."))
+            return "error"
         return "_SELF_"
     #enddef
 

@@ -4,13 +4,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-import json
+
 import paho.mqtt.publish as mqtt
 
 from sl1fw import defines
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages import page
-from sl1fw.libPages import Page
+from sl1fw.pages.base import Page
 from sl1fw.pages.calibration import PageCalibrationStart
 from sl1fw.pages.uvcalibration import PageUvDataShow, PageUvCalibration
 

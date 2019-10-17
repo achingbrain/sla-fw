@@ -4,17 +4,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
+from dataclasses import dataclass, asdict
 from gettext import ngettext
 from time import sleep
-from dataclasses import dataclass, asdict
-import distro
 
+import distro
 import pygame
 
 from sl1fw import defines
-from sl1fw.libConfig import ConfigException, TomlConfig
-from sl1fw.libPages import Page, PageWait
-from sl1fw.pages import page
+from sl1fw.libConfig import TomlConfig
 from sl1fw.pages.calibration import PageCalibrationStart
 
 
@@ -52,6 +50,11 @@ class WizardData:
     # tower axis sensitivity for homing
     towerSensitivity: int
 #endclass
+
+from sl1fw.libConfig import ConfigException
+from sl1fw.pages.base import Page
+from sl1fw.pages import page
+from sl1fw.pages.wait import PageWait
 
 
 @page

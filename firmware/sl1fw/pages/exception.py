@@ -3,11 +3,9 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
-
 from sl1fw.libHardware import MotionControllerException
 from sl1fw.pages import page
-from sl1fw.libPages import Page
+from sl1fw.pages.base import Page
 
 
 @page

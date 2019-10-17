@@ -3,19 +3,20 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
-from time import sleep
-from threading import Thread
-from gettext import ngettext
 import logging
+import os
 from dataclasses import dataclass, asdict
+from gettext import ngettext
+from threading import Thread
+from time import sleep
 
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException, TomlConfig
-from sl1fw.pages import page
-from sl1fw.libPages import Page, PageWait
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti
 from sl1fw.libUvLedMeterSingle import UvLedMeterSingle
+from sl1fw.pages import page
+from sl1fw.pages.base import Page
+from sl1fw.pages.wait import PageWait
 
 
 @dataclass(init=False)

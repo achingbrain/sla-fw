@@ -9,7 +9,7 @@ class SystemBus:
         return self
 
     @staticmethod
-    def get(service, *args, **kwargs):
+    def get(service, *_, **__):
         if service == "de.pengutronix.rauc":
             return {
                 'de.pengutronix.rauc.Installer': Rauc()
@@ -31,16 +31,16 @@ class SystemBus:
         pass
 
 
-class TimeDate():
+class TimeDate:
     def __init__(self):
         self.NTP = True
         self.Timezone = 'America/Vancouver'
 
-    def SetNTP(self, state, *args):
+    def SetNTP(self, state, *_):
         self.NTP = state
 
 
-class Hostname():
+class Hostname:
     def __init__(self):
         self.StaticHostname = "prusa-sl1"
 
@@ -59,7 +59,8 @@ class Rauc:
         self.Compatible = 'prusa64-sl1--prusa'
         self.LastError = ''
 
-    def GetSlotStatus(self):
+    @staticmethod
+    def GetSlotStatus():
         return [('rootfs.0',
                  {'status': 'ok', 'bootname': 'A', 'bundle.build': '20190613111424',
                   'bundle.version': '1.0', 'bundle.compatible': 'prusa64-sl1--prusa',
@@ -140,7 +141,7 @@ class WifiConfig:
         pass
 
     @staticmethod
-    def Scan(self):
+    def Scan():
         pass
 
     @staticmethod

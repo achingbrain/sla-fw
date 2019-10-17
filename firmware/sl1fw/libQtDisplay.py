@@ -46,14 +46,4 @@ class QtDisplay(VirtualDisplay):
         self.server = QtDisplayServer(defines.qtDisplayPort, self.commands, self.events)
     #enddef
 
-    def start(self):
-        self.server.start()
-    #enddef
-
-    def exit(self):
-        if self.server.is_alive():
-            self.server.join()
-        #nedif
-    #enddef
-
 #endclass

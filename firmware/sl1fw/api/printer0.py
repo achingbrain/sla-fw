@@ -3,15 +3,20 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from enum import Enum, auto
 from time import monotonic
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, TYPE_CHECKING
 import distro
 import pydbus
 from pydbus.generic import signal
 
 from sl1fw import actions
 from sl1fw.api.display_test0 import DisplayTest0
+
+if TYPE_CHECKING:
+    from sl1fw.libPrinter import Printer
 
 
 class Printer0State(Enum):
@@ -28,10 +33,6 @@ class Printer0State(Enum):
     UPDATE = auto()
     ADMIN = auto()
     EXCEPTION = auto()
-
-
-class MoveException(Exception):
-    pass
 
 
 class NotAvailableInState(Exception):
@@ -117,8 +118,8 @@ def dbus_record(dbus: str):
 @dbus_api
 class Printer0:
     """
-    This is prototype of the public printer API, implementation is naive, incomplete and possibly broken. Methods here
-    should once become one-liners.
+    This is prototype of the public printer API, implementation is naive, incomplete and possibly broken.
+    Keep implementation out of this file. Methods here should only adapt interfaces and reformat data.
     """
     __INTERFACE__ = "cz.prusa3d.sl1.printer0"
 
@@ -158,10 +159,8 @@ class Printer0:
         f"unboxing{i}": Printer0State.UNBOXING for i in range(1, 6)
     })
 
-    def __init__(self, printer):
+    def __init__(self, printer: Printer):
         self.printer = printer
-        self._tower_moving = False  # This is wrong, hardware should know whenever it is moving or not
-        self._titl_moving = False  # This is wrong, hardware should know whenever it is moving or not
         self._display_test = None
         self._display_test_registration = None
         self._unpacking = None
@@ -253,13 +252,8 @@ class Printer0:
     def tower_home(self) -> None:
         """
         Home tower axis
-
-        :return: None
         """
-        self.printer.hw.powerLed("warn")
-        if not self.printer.hw.towerSyncWait():
-            raise MoveException
-        self.printer.hw.powerLed("normal")
+        self.printer.hw.tower_home()
 
     @state_checked(Printer0State.IDLE)
     @dbus_record('<method name="tilt_home"/>')
@@ -269,13 +263,7 @@ class Printer0:
 
         :return: None
         """
-        self.printer.hw.powerLed("warn")
-        # assume tilt is up (there may be error from print)
-        self.printer.hw.setTiltPosition(self.printer.hw.tilt_end)
-        self.printer.hw.tiltLayerDownWait(True)
-        self.printer.hw.tiltSyncWait()
-        self.printer.hw.tiltLayerUpWait()
-        self.printer.hw.powerLed("normal")
+        self.printer.hw.tilt_home()
 
     @state_checked(Printer0State.IDLE)
     @dbus_record('<method name="disable_motors"/>')
@@ -308,30 +296,9 @@ class Printer0:
             :0: Stop
             :1: Slow up
             :2: Fast up
-        :return: None
+        :return: True on success, False otherwise
         """
-        if not self._tower_moving:
-            # TODO: Why not setting profiles while moving?
-            self.printer.hw.setTowerProfile('moveSlow' if abs(speed) < 2 else 'homingFast')
-
-        if speed > 0:
-            if self._tower_moving and self.printer.hw.isTowerOnMax():
-                return False
-            else:
-                self._tower_moving = True
-                self.printer.hw.towerToMax()
-                return True
-        elif speed < 0:
-            if self._tower_moving and self.printer.hw.isTowerOnMin():
-                return False
-            else:
-                self._tower_moving = True
-                self.printer.hw.towerToMin()
-                return True
-        else:
-            self.printer.hw.towerStop()
-            self._tower_moving = False
-            return True
+        return self.printer.hw.tower_move(speed)
 
     @state_checked(Printer0State.IDLE)
     @dbus_record("""
@@ -352,30 +319,9 @@ class Printer0:
            :0: Stop
            :1: Slow up
            :2: Fast up
-        :return: None
+        :return: True on success, False otherwise
         """
-        if not self._titl_moving:
-            # TODO: Why not setting profiles while moving?
-            self.printer.hw.setTiltProfile('moveSlow' if abs(speed) < 2 else 'homingFast')
-
-        if speed > 0:
-            if self._titl_moving and self.printer.hw.isTiltOnMax():
-                return False
-            else:
-                self._titl_moving = True
-                self.printer.hw.tiltToMax()
-                return True
-        elif speed < 0:
-            if self._titl_moving and self.printer.hw.isTiltOnMin():
-                return False
-            else:
-                self._titl_moving = True
-                self.printer.hw.tiltToMin()
-                return True
-        else:
-            self.printer.hw.tiltStop()
-            self._titl_moving = False
-            return True
+        return self.printer.hw.tilt_move(speed)
 
     @property
     @dbus_record("""
@@ -386,15 +332,12 @@ class Printer0:
         """
         Read or set tower position in nm
         """
-        # TODO: Raise exception if tower not synced
-        micro_steps = self.printer.hw.getTowerPositionMicroSteps()
-        return micro_steps * 1000 * 1000 / self.printer.hwConfig.microStepsMM
+        return self.printer.hw.tower_position_nm
 
     @tower_position_nm.setter
     @state_checked(Printer0State.IDLE)
     def tower_position_nm(self, position_nm: int) -> None:
-        # TODO: This needs some safety check
-        self.printer.hw.towerToPosition(position_nm / 1000 / 1000)
+        self.printer.hw.tower_position_nm = position_nm
 
     @property
     @dbus_record("""
@@ -405,14 +348,12 @@ class Printer0:
         """
         Read or set tilt position in micro-steps
         """
-        # TODO: Raise exception if tilt not synced
-        return self.printer.hw.getTiltPositionMicroSteps()
+        return self.printer.hw.tilt_position
 
     @tilt_position.setter
     @state_checked(Printer0State.IDLE)
     def tilt_position(self, micro_steps: int):
-        # TODO: This needs some safety check
-        self.printer.hw.tiltMoveAbsolute(micro_steps)
+        self.printer.hw.tilt_position = micro_steps
 
     @dbus_record('<method name="get_projects"/>')
     def get_projects(self) -> List[str]:

@@ -3,23 +3,29 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import glob
 import logging
 import os
 import subprocess
 from time import sleep
+from typing import TYPE_CHECKING
 
 import distro
 
+from sl1fw import actions
 from sl1fw import defines
 from sl1fw.actions import get_save_path
 from sl1fw.libConfig import ConfigException
-from sl1fw import actions
+
+if TYPE_CHECKING:
+    from sl1fw.libDisplay import Display
 
 
 class Page:
 
-    def __init__(self, display):
+    def __init__(self, display: Display):
         self.pageUI = "splash"
         self.pageTitle = ""
         self.logger = logging.getLogger(__name__)
@@ -69,7 +75,9 @@ class Page:
 
 
     def leave(self):
-        '''Override this to modify page this page is left for.'''
+        """
+        Override this to modify page this page is left for.
+        """
         pass
     #enddef
 
@@ -166,7 +174,7 @@ class Page:
             return
         #endif
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display,
+        pageWait = self.display.makeWait(self.display,
                 line1 = _("Close the orange cover."),
                 line2 = _("If the cover is closed, please check the connection of the cover switch."))
         pageWait.show()
@@ -180,7 +188,7 @@ class Page:
 
 
     def saveLogsToUSB(self):
-        pageWait = PageWait(self.display, line1=_("Saving logs"))
+        pageWait = self.display.makeWait(self.display, line1=_("Saving logs"))
         pageWait.show()
         try:
             actions.save_logs_to_usb(self.display.hw.cpuSerialNo)
@@ -377,7 +385,7 @@ class Page:
         else:
             self.display.hw.uvLed(False)
             self.display.hw.powerLed("warn")
-            pageWait = PageWait(self.display, line1 = _("Close the orange cover."))
+            pageWait = self.display.makeWait(self.display, line1 = _("Close the orange cover."))
             pageWait.show()
             self.display.hw.beepAlarm(3)
             while not self.display.hw.isCoverClosed():
@@ -429,7 +437,7 @@ class Page:
                 self.display.hw.uvLed(False)
             #enddef
             self.display.hw.powerLed("error")
-            pageWait = PageWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down"))
+            pageWait = self.display.makeWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down"))
             pageWait.show()
             self.display.hw.beepAlarm(3)
             while(temp > defines.maxUVTemp - 10): # hystereze
@@ -522,7 +530,7 @@ class Page:
 
 
     def loadProject(self, project_filename: str):
-        pageWait = PageWait(self.display, line1 = _("Reading project data"))
+        pageWait = self.display.makeWait(self.display, line1 = _("Reading project data"))
         pageWait.show()
         zip_error = self.display.expo.parseProject(project_filename)
         if zip_error is not None:
@@ -576,24 +584,6 @@ class Page:
     def getMaxPwm(self):
         min, max = self.getMeasPwms()
         return max
-    #enddef
-
-#endclass
-
-
-class PageWait(Page):
-    Name = "wait"
-
-    def __init__(self, display, **kwargs):
-        super(PageWait, self).__init__(display)
-        self.pageUI = "wait"
-        self.pageTitle = N_("Please wait")
-        self.items.update(kwargs)
-    #enddef
-
-
-    def fill(self, **kwargs):
-        self.items = kwargs
     #enddef
 
 #endclass

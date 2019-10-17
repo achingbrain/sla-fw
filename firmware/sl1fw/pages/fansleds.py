@@ -5,7 +5,7 @@
 
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException
-from sl1fw.libPages import Page
+from sl1fw.pages.base import Page
 from sl1fw.pages import page
 
 
@@ -50,6 +50,9 @@ class PageFansLeds(Page):
         self.updateDataPeriod = 0.5
         self.valuesToSave = list(('fan1rpm', 'fan2rpm', 'fan3rpm', 'uvpwm', 'uvwarmuptime', 'uvcalibintensity', 'uvcalibminintedge'))
         self.checkCooling = True
+        self.oldValues = None
+        self.changed = None
+        self.temp = None
     #enddef
 
 
@@ -90,7 +93,7 @@ class PageFansLeds(Page):
         self.temp['uvpwm'] = self.display.hw.uvLedPwm
         self._setItem(items, self.oldValues, 'value2g5', self.temp['uvpwm'])
 
-        if len(items):
+        if items:
             self.showItems(**items)
         #endif
     #enddef
@@ -155,7 +158,7 @@ class PageFansLeds(Page):
 
 
     def button4ButtonRelease(self):
-        ''' save '''
+        """ save """
         self.display.hw.saveUvStatistics()
         self._update_config()
         try:

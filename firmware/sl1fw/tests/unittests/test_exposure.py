@@ -4,11 +4,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+from typing import Optional
+
 from mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
 
-from sl1fw import libExposure
+from sl1fw.libExposure import Exposure
 from sl1fw.libConfig import HwConfig
 from sl1fw import defines
 
@@ -17,9 +19,8 @@ class TestExposure(Sl1fwTestCase):
     PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1")
 
     def __init__(self, *args, **kwargs):
-        self.exposure = None
-
         super().__init__(*args, **kwargs)
+        self.exposure: Optional[Exposure] = None
 
     def setUp(self):
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
@@ -34,7 +35,7 @@ class TestExposure(Sl1fwTestCase):
         screen = Mock()
         screen.blitImg.return_value = 100
         screen.projectStatus.return_value = True, False, list()
-        self.exposure = libExposure.Exposure(hw_config, display, hw, screen)
+        self.exposure = Exposure(hw_config, display, hw, screen)
 
     def test_exposure_init(self):
         pass

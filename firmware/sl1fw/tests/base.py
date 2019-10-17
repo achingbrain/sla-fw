@@ -40,4 +40,4 @@ class Sl1fwTestCase(TestCase):
         one = Image.open(path1)
         two = Image.open(path2)
         diff = ImageChops.difference(one, two)
-        return diff.getbbox() != None
+        return diff.getbbox() is not None

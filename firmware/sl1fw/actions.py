@@ -19,7 +19,7 @@ def get_save_path() -> Optional[Path]:
     :return: First usb device path or None
     """
     usbs = [p for p in Path(defines.mediaRootPath).glob("*") if p.is_mount()]
-    if len(usbs) == 0:
+    if not usbs:
         return None
     return usbs[0]
 

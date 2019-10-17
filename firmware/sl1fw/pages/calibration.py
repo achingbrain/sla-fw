@@ -7,10 +7,12 @@ from time import time, sleep
 
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException
-from sl1fw.libPages import Page, PageWait
+from sl1fw.pages.base import Page
 from sl1fw.pages import page
 from sl1fw.pages.move import MovePage
 from sl1fw.pages.uvcalibration import PageUvCalibration
+from sl1fw.pages.wait import PageWait
+
 
 @page
 class PageCalibrationStart(Page):

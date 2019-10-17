@@ -5,8 +5,8 @@
 
 import json
 import logging
-from typing import Dict
 from logging.config import dictConfig
+from typing import Dict
 
 from sl1fw import defines
 
@@ -42,7 +42,7 @@ def configure_log() -> bool:
 def get_log_level() -> int:
     """
     Get current loglevel from configuration file
-    
+
     :return: Current loglevel as LogLevel
     """
     try:

@@ -3,7 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import builtins as builtins
+import builtins
 
 
 def _identity(message):
@@ -13,8 +13,3 @@ def _identity(message):
 def fake_gettext():
     builtins._ = _identity
     builtins.N_ = _identity
-
-
-
-
-

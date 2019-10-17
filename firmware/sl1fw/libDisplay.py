@@ -6,23 +6,25 @@
 import logging
 import os
 import sys
-from pathlib import Path
 from time import monotonic
 from time import sleep
+from typing import Optional, List
 
 from sl1fw import defines
-from sl1fw import libPages
 from sl1fw.api.printer0 import Printer0
-from sl1fw.libConfig import HwConfig, ConfigException
+from sl1fw.libConfig import HwConfig
+from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
 from sl1fw.libScreen import Screen
+from sl1fw.libVirtualDisplay import VirtualDisplay
 from sl1fw.pages import pages
+from sl1fw.pages.wait import PageWait
 
 
 class Display:
 
-    def __init__(self, hwConfig: HwConfig, devices: list, hw: Hardware, inet: Network, screen: Screen, printer0: Printer0):
+    def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network, screen: Screen, printer0: Printer0):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.devices = devices
@@ -33,7 +35,7 @@ class Display:
         self.printer0 = printer0
         self.wizardData = None
         self.uvcalibData = None
-        self.expo = None
+        self.expo: Optional[Exposure] = None
         self.running = False
 
         # Instantiate pages
@@ -206,7 +208,7 @@ class Display:
                         autorepeatDelay = 1
                         sleep(0.1)
                         while newPage in self.backActions:
-                            if len(pageStack):
+                            if pageStack:
                                 actualPage = pageStack.pop()
                                 self.actualPage = actualPage
                             elif newPage == "_OK_":
@@ -225,7 +227,7 @@ class Display:
                     #endif
                     if newPage == "_SELF_":
                         if self.waitPageItems:
-                            libPages.PageWait(self, **self.waitPageItems).show()
+                            PageWait(self, **self.waitPageItems).show()
                             self.waitPageItems = None
                         else:
                             actualPage.show()
@@ -259,6 +261,12 @@ class Display:
                 #endif
             #endif
         #endwhile
+    #enddef
+
+
+    @staticmethod
+    def makeWait(*args, **kwargs) -> PageWait:
+        return PageWait(*args, **kwargs)
     #enddef
 
 

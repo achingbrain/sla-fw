@@ -3,27 +3,31 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import logging
 import os
+import queue
 import shutil
 import threading
-import queue
 import zipfile
-from time import sleep, time
 from gettext import ngettext
-from typing import Optional
+from time import sleep, time
+from typing import Optional, TYPE_CHECKING
 
 from sl1fw import defines
 from sl1fw.libConfig import HwConfig, TomlConfigStats, PrintConfig
-from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
-from sl1fw.libPages import PageWait
 from sl1fw.libScreen import Screen
+from sl1fw.pages.wait import PageWait
+
+if TYPE_CHECKING:
+    from sl1fw.libDisplay import Display
 
 
 class ExposureThread(threading.Thread):
 
-    def __init__(self, commands, expo):
+    def __init__(self, commands: queue.Queue, expo: Exposure):
         super(ExposureThread, self).__init__()
         self.logger = logging.getLogger(__name__)
         self.commands = commands

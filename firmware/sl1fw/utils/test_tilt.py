@@ -5,13 +5,14 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from time import sleep
 import logging
-
-logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
+from time import sleep
 
 from sl1fw.libConfig import HwConfig
 from sl1fw.libHardware import Hardware
+
+logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
+
 
 hwConfig = HwConfig()
 hw = Hardware(hwConfig)

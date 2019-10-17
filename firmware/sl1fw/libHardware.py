@@ -30,6 +30,11 @@ class MotionControllerException(Exception):
 #endclass
 
 
+class MoveException(Exception):
+    pass
+#endclass
+
+
 @unique
 class MotConComState(Enum):
     UPDATE_FAILED = -3
@@ -565,6 +570,9 @@ class Hardware:
         self.mcc = MotConCom("MC_Main")
         self.realMcc = self.mcc
         self.boardData = self.readCpuSerial()
+
+        self._tower_moving = False
+        self._tilt_moving = False
     #enddef
 
 
@@ -703,8 +711,8 @@ class Hardware:
             if mcsc != mcs1 or mcsc ^ 255 != mcs2:
                 self.logger.error("MAC checksum FAIL (is %02x:%02x, should be %02x:%02x)" % (mcs1, mcs2, mcsc, mcsc ^ 255))
             else:
-                hex = ":".join(re.findall("..", mac.hex))
-                self.logger.info("MAC: %s (checksum %02x:%02x)", hex, mcs1, mcs2)
+                mac_hex = ":".join(re.findall("..", mac.hex))
+                self.logger.info("MAC: %s (checksum %02x:%02x)", mac_hex, mcs1, mcs2)
 
                 # byte order change
                 sn = bitstring.BitArray(length = 64, uintle = snbe)
@@ -730,10 +738,11 @@ class Hardware:
 
 
     def checkFailedBoot(self):
-        '''
+        """
         Check for failed boot by comparing current and last boot slot
+
         :return: True is last boot failed, false otherwise
-        '''
+        """
         try:
             # Get slot statuses
             rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
@@ -854,7 +863,7 @@ class Hardware:
                 samples = self.mcc.doGetIntList("?sgbd", base = 16)
                 samplesCount -= len(samples)
                 samplesList.extend(samples)
-            except MotionControllerException as e:
+            except MotionControllerException:
                 self.logger.exception("Problem reading stall guard buffer")
                 break
             #endtry
@@ -983,7 +992,7 @@ class Hardware:
 
     @safe_call([0], (MotionControllerException, ValueError))
     def getUvStatistics(self):
-        uvData = self.mcc.doGetIntList("?usta") #time counter [s] #TODO add uv average current, uv average temperature
+        uvData = self.mcc.doGetIntList("?usta")  # time counter [s] #TODO add uv average current, uv average temperature
         if len(uvData) != 1:
             raise ValueError(f"UV statistics data count not match! ({uvData})")
         #endif
@@ -1227,14 +1236,14 @@ class Hardware:
 
 
     def towerSync(self):
-        ''' home is at top position '''
+        """ home is at top position """
         self._towerSynced = False
         self.mcc.do("!twho")
     #enddef
 
 
     def isTowerSynced(self):
-        ''' return tower status. False if tower is still homing or error occured '''
+        """ return tower status. False if tower is still homing or error occured """
         if not self._towerSynced:
             if self.towerHomingStatus == 0:
                 self.setTowerPosition(self.hwConfig.towerHeight)
@@ -1248,7 +1257,7 @@ class Hardware:
 
     @safe_call(False, MotionControllerException)
     def towerSyncWait(self, retries: int = 0):
-        ''' blocking method for tower homing. retries = number of additional tries when homing failes '''
+        """ blocking method for tower homing. retries = number of additional tries when homing failes """
         if not self.isTowerMoving():
             self.towerSync()
         #endif
@@ -1310,7 +1319,7 @@ class Hardware:
 
     @safe_call(False, MotionControllerException)
     def isTowerOnPosition(self, retries = None):
-        ''' check dest. position, retries = None is infinity '''
+        """ check dest. position, retries = None is infinity """
         self._towerPositionRetries = retries
         if self.isTowerMoving():
             return False
@@ -1449,11 +1458,11 @@ class Hardware:
     @safe_call(0, MotionControllerException)
     def getResinVolume(self):
         self.setTowerProfile('homingFast')
-        self.towerMoveAbsoluteWait(self._towerResinStartPos) # move quickly to safe distance
+        self.towerMoveAbsoluteWait(self._towerResinStartPos)  # move quickly to safe distance
         self.resinSensor(True)
         sleep(1)
         self.setTowerProfile('resinSensor')
-        self.mcc.do("!rsme", self._towerResinStartPos - self._towerResinEndPos) # relative movement!
+        self.mcc.do("!rsme", self._towerResinStartPos - self._towerResinEndPos)  # relative movement!
         while self.isTowerMoving():
             sleep(0.1)
         #endwhile
@@ -1484,7 +1493,7 @@ class Hardware:
     def tiltHomeCalibrateWait(self):
         self.mcc.do("!tihc")
         homingStatus = 1
-        while homingStatus > 0: # not done and not error
+        while homingStatus > 0:  # not done and not error
             homingStatus = self.tiltHomingStatus
             sleep(0.1)
         #endwhile
@@ -1498,7 +1507,7 @@ class Hardware:
 
 
     def tiltSync(self):
-        ''' home at bottom position '''
+        """home at bottom position"""
         self._tiltSynced = False
         self.mcc.do("!tiho")
     #enddef
@@ -1506,7 +1515,7 @@ class Hardware:
 
     @safe_call(False, MotionControllerException)
     def isTiltSynced(self):
-        ''' return tilt status. False if tilt is still homing or error occured '''
+        """return tilt status. False if tilt is still homing or error occured"""
         if not self._tiltSynced:
             if self.tiltHomingStatus == 0:
                 self.setTiltPosition(0)
@@ -1521,7 +1530,7 @@ class Hardware:
 
     @safe_call(False, MotionControllerException)
     def tiltSyncWait(self, retries: int = 0):
-        ''' blocking method for tilt homing. retries = number of additional tries when homing failes '''
+        """blocking method for tilt homing. retries = number of additional tries when homing fails"""
         if not self.isTiltMoving():
             self.tiltSync()
         #endif
@@ -1811,6 +1820,148 @@ class Hardware:
         profiles[1][5] = self.towerAdjust['homingSlow'][towerSensitivity + 2][1]
         self.setTowerProfiles(profiles)
         self.logger.info("tower profiles changed to: %s", profiles)
+    #enddef
+
+
+    def tower_home(self) -> None:
+        """
+        Home tower axis
+        """
+        self.powerLed("warn")
+        if not self.towerSyncWait():
+            raise MoveException("Tower home failed")
+        self.powerLed("normal")
+    #enddef
+
+
+    def tilt_home(self) -> None:
+        """
+        Home tilt axis
+        """
+        self.powerLed("warn")
+        # assume tilt is up (there may be error from print)
+        self.setTiltPosition(self.tilt_end)
+        self.tiltLayerDownWait(True)
+        if not self.tiltSyncWait():
+            raise MoveException("Tilt home failed")
+        self.setTiltProfile("moveFast")
+        self.tiltLayerUpWait()
+        self.powerLed("normal")
+    #enddef
+
+
+    def tower_move(self, speed: int, set_profiles: bool = True) -> bool:
+        """
+        Start / stop tower movement
+
+        TODO: This should be checked by heartbeat or the command should have limited ttl
+
+        :param: Movement speed
+
+            :-2: Fast down
+            :-1: Slow down
+            :0: Stop
+            :1: Slow up
+            :2: Fast up
+        :return: True on success, False otherwise
+        """
+        if not self._tower_moving and set_profiles:
+            self.setTowerProfile('moveSlow' if abs(speed) < 2 else 'homingFast')
+
+        if speed > 0:
+            if self._tower_moving:
+                if self.isTowerOnMax():
+                    return False
+            else:
+                self._tower_moving = True
+                self.towerToMax()
+            return True
+        elif speed < 0:
+            if self._tower_moving:
+                if self.isTowerOnMin():
+                    return False
+            else:
+                self._tower_moving = True
+                self.towerToMin()
+            return True
+        self.towerStop()
+        self._tower_moving = False
+        return True
+    #enddef
+
+
+    def tilt_move(self, speed: int, set_profiles: bool = True) -> bool:
+        """
+        Start / stop tilt movement
+
+        TODO: This should be checked by heartbeat or the command should have limited ttl
+
+        :param: Movement speed
+
+           :-2: Fast down
+           :-1: Slow down
+           :0: Stop
+           :1: Slow up
+           :2: Fast up
+        :return: True on success, False otherwise
+        """
+        if not self._tilt_moving and set_profiles:
+            self.setTiltProfile('moveSlow' if abs(speed) < 2 else 'homingFast')
+
+        if speed > 0:
+            if self._tilt_moving:
+                if self.isTiltOnMax():
+                    return False
+            else:
+                self._tilt_moving = True
+                self.tiltToMax()
+            return True
+        elif speed < 0:
+            if self._tilt_moving:
+                if self.isTiltOnMin():
+                    return False
+            else:
+                self._tilt_moving = True
+                self.tiltToMin()
+            return True
+        self.tiltStop()
+        self._tilt_moving = False
+        return True
+    #enddef
+
+
+    @property
+    def tower_position_nm(self) -> int:
+        """
+        Read or set tower position in nm
+        """
+        # TODO: Raise exception if tower not synced
+        micro_steps = self.getTowerPositionMicroSteps()
+        return micro_steps * 1000 * 1000 / self.hwConfig.microStepsMM
+    #enddef
+
+
+    @tower_position_nm.setter
+    def tower_position_nm(self, position_nm: int) -> None:
+        # TODO: This needs some safety check
+        self.towerToPosition(position_nm / 1000 / 1000)
+    #enddef
+
+
+    @property
+    def tilt_position(self) -> int:
+        """
+        Read or set tilt position in micro-steps
+        """
+        # TODO: Raise exception if tilt not synced
+        return self.getTiltPositionMicroSteps()
+    #enddef
+
+
+    @tilt_position.setter
+    def tilt_position(self, micro_steps: int):
+        # TODO: This needs some safety check
+        self.tiltMoveAbsolute(micro_steps)
     #enddef
 
 #endclass

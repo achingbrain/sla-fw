@@ -83,14 +83,4 @@ class WebDisplay(VirtualDisplay):
         self.server = WebDisplayServer(defines.webDisplayPort, self.commands, self.events)
     #enddef
 
-    def start(self):
-        self.server.start()
-    #enddef
-
-    def exit(self):
-        if self.server.is_alive():
-            self.server.join()
-        #nedif
-    #enddef
-
 #endclass
