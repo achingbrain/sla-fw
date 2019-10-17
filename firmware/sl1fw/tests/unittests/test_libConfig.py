@@ -189,15 +189,15 @@ class TestHardwareConfig(Sl1fwTestCase):
         with open(str(path), "r") as f:
             return f.read()
 
-    def test_update(self):
-        hw_config = HwConfig(self.test_config_path, factory_file_path=Path(defines.hwConfigFactoryDefaultsFile), is_master=True)
-        hw_config.read_file()
-        print(hw_config)
-        hw_config.factoryMode = True
-        print(hw_config.calcMicroSteps(defines.defaultTowerHeight))
-        hw_config.showWizard = False
-        hw_config.write()
-        print(self.get_config_content(self.test_config_path))
+
+    def test_instances(self):
+        """
+        Ensure different instances do not share the data
+        """
+        a = HwConfig()
+        a.showUnboxing = False
+        HwConfig()
+        self.assertFalse(a.showUnboxing)
 
 
     def test_write(self):

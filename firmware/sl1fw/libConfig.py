@@ -3,15 +3,16 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
 import os
 import re
 import zipfile
 from abc import abstractmethod, ABC
 from pathlib import Path
-from readerwriterlock import rwlock
 from typing import Optional, List, Dict, Type, Union, Any, Callable
-import logging
+
 import toml
+from readerwriterlock import rwlock
 
 from sl1fw import defines
 
@@ -55,23 +56,36 @@ class Value(property, ABC):
     """
 
     @abstractmethod
-    def __init__(self, _type: List[Type], default, key=None, factory=False, doc=""):
+    def __init__(self, value_type: List[Type], default, key=None, factory=False, doc=""):
         """
         Config value constructor
 
-        :param _type: List of types this value can be instance of. (used to specify [int, float], think twice before passing multiple values)
+        :param value_type: List of types this value can be instance of. (used to specify [int, float], think twice before passing multiple values)
         :param default: Default value. Can be function that receives configuration instance as the only parameter and returns default value.
         :param key: Key name in the configuration file. If set to None (default) it will be set to property name.
         :param factory: Whenever the value should be stored in factory configuration file.
         :param doc: Documentation string fro the configuration item
         """
-        super().__init__(self._property_getter, self._property_setter, self._property_deleter)
+
+        def getter(config: BaseConfig) -> value_type[0]:
+            with config.lock.gen_rlock():
+                return self.value_getter(config)
+
+        def setter(config: BaseConfig, val: value_type[0]):
+            # TODO: Take a write lock once we get rid of writable properties
+            # with self.config.lock.gen_wlock():
+            self.value_setter(config, val)
+
+        def deleter(config: BaseConfig):
+            self.set_value(config, None)
+
+        super().__init__(getter, setter, deleter)
+
         self.name = None
         self.key = key
-        self.type = _type
-        self._default_value = default
+        self.type = value_type
+        self.default = default
         self.factory = factory
-        self.config: Optional[BaseConfig] = None
         self.default_doc = doc
 
     def base_doc(self) -> str:
@@ -80,8 +94,8 @@ class Value(property, ABC):
 
         :return: Docstring text
         """
-        if type(self.default_value) in self.type:
-            doc_default = str(self.default_value).lower()
+        if type(self.default) in self.type:
+            doc_default = str(self.default).lower()
         else:
             doc_default = "<Computed>"
         return f"""{self.default_doc}
@@ -114,85 +128,70 @@ class Value(property, ABC):
         """
         return val
 
-    @property
-    def value(self):
+    def get_value(self, config: BaseConfig) -> Any:
         """
         Get current value stored in configuration file
 
         Data are read from Config instance as value instances are per config type.
 
+        :param config: Config to read from
         :return: Value
         """
-        return self.config.data_values[self.name]
+        return config.data_values[self.name]
 
-    @value.setter
-    def value(self, value):
-        self.config.data_values[self.name] = value
+    def set_value(self, config: BaseConfig, value: Any) -> None:
+        config.data_values[self.name] = value
 
-    @property
-    def factory_value(self):
+    def get_factory_value(self, config: BaseConfig) -> Any:
         """
         Get current factory value stored in configuration file
 
         Data are read from Config instance as value instances are per config type.
 
+        :param config: Config to read from
         :return: Value
         """
-        return self.config.data_factory_values[self.name]
+        return config.data_factory_values[self.name]
 
-    @factory_value.setter
-    def factory_value(self, value):
-        self.config.data_factory_values[self.name] = value
+    def set_factory_value(self, config: BaseConfig, value: Any) -> None:
+        config.data_factory_values[self.name] = value
 
-    @property
-    def default_value(self):
-        if type(self._default_value) not in self.type and isinstance(self._default_value, Callable):
-            if self.config:
-                return self._default_value(self.config)
+    def get_default_value(self, config: BaseConfig) -> Any:
+        if type(self.default) not in self.type and isinstance(self.default, Callable):
+            if config:
+                return self.default(config)
             else:
-                return self._default_value
+                return self.default
         else:
-            return self._default_value
+            return self.default
 
-    def set_runtime(self, name: str, config: BaseConfig) -> None:
+    def setup(self, config: BaseConfig, name: str) -> None:
         """
         Set instance of the config, this value is part of and its name
 
+        :param config: Config this value is part of
         :param name: Name of this value in the config
-        :param config: Instance of config object this value is part of
         """
-        assert isinstance(config, BaseConfig)
         self.name = name
         if self.key is None:
             self.key = name
-        self.config = config
-        self.value = None
-        self.factory_value = None
+        self.set_value(config, None)
+        self.set_factory_value(config, None)
 
-    def _property_setter(self, _: BaseConfig, val) -> None:
-        """
-        Implementation of property setter passed to parent constructor
-
-        This is used to lock write lock
-
-        :param _: Class instance the property is set on
-        :param val: New value
-        """
-        # TODO: Take a write lock once we get rid of writable properties
-        # with self.config.lock.gen_wlock():
-        self.value_setter(val)
-
-    def value_setter(self, val, write_override: bool = False, factory: bool = False, dry_run=False) -> None:
+    def value_setter(
+        self, config: BaseConfig, val, write_override: bool = False, factory: bool = False, dry_run=False
+    ) -> None:
         """
         Config item value setter
 
+        :param config: Config to read from
         :param val: New value to set (must have already correct type)
         :param write_override: Set value even when config is read-only (!is_master) Used internally while reading config data from file.
         :param factory: Whenever to set factory value instead of normal value. Defaults to normal value
         :param dry_run: If set to true the value is not actually set. Used to check value consistency.
         """
         try:
-            if not self.config.is_master and not write_override:
+            if not config.is_master and not write_override:
                 raise Exception("Cannot write to read-only config !!!")
             if val is None:
                 raise ValueError(f"Using default for key {self.name} as {val} is None")
@@ -200,55 +199,33 @@ class Value(property, ABC):
                 raise ValueError(f"Using default for key {self.name} as {val} is {type(val)} but should be {self.type}")
             adapted = self.adapt(val)
             if adapted != val:
-                self.config.logger.warning(f"Adapting config value {self.name} from {val} to {adapted}")
+                config.logger.warning(f"Adapting config value {self.name} from {val} to {adapted}")
             self.check(adapted)
 
             if dry_run:
                 return
 
             if factory:
-                self.factory_value = adapted
+                self.set_factory_value(config, adapted)
             else:
-                self.value = adapted
+                self.set_value(config, adapted)
         except (ValueError, ConfigException) as exception:
             raise ConfigException(f"Setting config value {self.name} to {val} failed") from exception
 
-    def _property_getter(self, _: BaseConfig) -> Any:
+    def value_getter(self, config: BaseConfig) -> Any:
         """
         Configuration value getter
 
-        This is called when user code reads config value
-        This method locks the property read lock.
-
-        :param _: Configuration class instance, ignored
+        :param config: Config to read from
         :return: Config value or factory value or default value
         """
-        with self.config.lock.gen_rlock():
-            return self.value_getter()
+        if self.get_value(config) is not None:
+            return self.get_value(config)
 
-    def value_getter(self) -> Any:
-        """
-        Configuration value getter
+        if self.get_factory_value(config) is not None:
+            return self.get_factory_value(config)
 
-        :return: Config value or factory value or default value
-        """
-        if self.value is not None:
-            return self.value
-
-        if self.factory_value is not None:
-            return self.factory_value
-
-        return self.default_value
-
-    def _property_deleter(self, _: BaseConfig):
-        """
-        Deleter for configuration class instance
-
-        If value is deleted, it is reset to default or factory default.
-
-        :param _: Configuration class instance, ignored
-        """
-        self.value = None
+        return self.get_default_value(config)
 
     @property
     def file_key(self) -> str:
@@ -259,21 +236,16 @@ class Value(property, ABC):
         """
         return self.key if self.key else self.name
 
-    def is_default(self) -> bool:
+    def is_default(self, config: BaseConfig) -> bool:
         """
         Test for value being set to default
 
+        :param config: Config to read from
         :return: True if default, False otherwise
         """
-        return (self.value is None or self.value == self.default_value) and (
-            self.factory_value is None or self.factory_value == self.default_value
+        return (self.get_value(config) is None or self.get_value(config) == self.get_default_value(config)) and (
+            self.get_factory_value(config) is None or self.get_factory_value(config) == self.get_default_value(config)
         )
-
-    def __str__(self):
-        return str(self.value)
-
-    def __repr__(self):
-        return f"Value({repr(self.value)})"
 
 
 class BoolValue(Value):
@@ -350,16 +322,16 @@ class ListValue(Value):
     Add length to value properties.
     """
 
-    def __init__(self, _type: List[Type], *args, length: Optional[int] = None, **kwargs):
+    def __init__(self, value_type: List[Type], *args, length: Optional[int] = None, **kwargs):
         """
         List configuration value constructor
 
-        :param _type: List of acceptable inner value types
+        :param value_type: List of acceptable inner value types
         :param length: Required list length, None means no check
         """
         super().__init__([list], *args, **kwargs)
         self.length = length
-        self.inner_type = _type
+        self.inner_type = value_type
         self.__doc__ = self.base_doc()
         self.__doc__ = f"""{self.base_doc()}
             :length: {self.length}
@@ -484,7 +456,7 @@ class ConfigWriter:
 
         key = self._get_attribute_name(key)
         if key in self._config.values:
-            self._config.values[key].value_setter(value, dry_run=True)
+            self._config.values[key].value_setter(self._config, value, dry_run=True)
         else:
             self._config.logger.debug("Writer: Skipping dry run write on non-value: %s", key)
 
@@ -516,7 +488,7 @@ class ConfigWriter:
         with self._config.lock.gen_wlock():
             for key, val in self._changed.items():
                 if key in self._config.values:
-                    self._config.values[key].value_setter(val)
+                    self._config.values[key].value_setter(self._config, val)
                 else:
                     setattr(self._config, key, val)
 
@@ -584,7 +556,7 @@ class Config(ValueConfig):
         for var in vars(self.__class__):
             obj = getattr(self.__class__, var)
             if isinstance(obj, Value):
-                obj.set_runtime(var, self)
+                obj.setup(self, var)
                 self.values[var] = obj
                 if not var.islower():
                     self.lower_to_normal_map[var.lower()] = var
@@ -594,9 +566,9 @@ class Config(ValueConfig):
         for val in dir(self.__class__):
             o = getattr(self.__class__, val)
             if isinstance(o, Value):
-                value = self.values[val].value
-                factory = self.values[val].factory_value
-                default = self.values[val].default_value
+                value = self.values[val].get_value(self)
+                factory = self.values[val].get_factory_value(self)
+                default = self.values[val].get_default_value(self)
                 res.append(f"\t{val}: {getattr(self, val)} ({value}, {factory}, {default})")
             elif isinstance(o, property):
                 res.append(f"\t{val}: {getattr(self, val)}")
@@ -696,7 +668,7 @@ class Config(ValueConfig):
                 elif val.file_key.lower() in data:
                     key = val.file_key.lower()
                 if key is not None:
-                    val.value_setter(data[key], write_override=True, factory=factory)
+                    val.value_setter(self, data[key], write_override=True, factory=factory)
                     del data[key]
             except (KeyError, ConfigException):
                 self.logger.exception("Setting config value %s to %s failed" % (val.name, val))
@@ -739,8 +711,8 @@ class Config(ValueConfig):
         """
         obj = {}
         for val in self.values.values():
-            if (not factory or val.factory) and (not val.is_default() or nondefault):
-                obj[val.key] = val.value_getter()
+            if (not factory or val.factory) and (not val.is_default(self) or nondefault):
+                obj[val.key] = val.value_getter(self)
         return obj
 
     def _write_file(self, file_path: Path, factory: bool = False):
@@ -769,7 +741,7 @@ class Config(ValueConfig):
         :return: True of factory default were set, False otherwise
         """
         for val in self.values.values():
-            if val.factory_value is not None:
+            if val.get_factory_value(self) is not None:
                 return True
         return False
 
