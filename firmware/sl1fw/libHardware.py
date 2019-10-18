@@ -1201,12 +1201,6 @@ class Hardware:
     #enddef
 
 
-    def motorsHold(self):
-        self.setTiltCurrent(defines.tiltHoldCurrent)
-        self.setTowerCurrent(defines.towerHoldCurrent)
-    #enddef
-
-
     def towerHoldTiltRelease(self):
         self.mcc.do("!ena 1")
         self._tiltSynced = False
@@ -1326,7 +1320,7 @@ class Hardware:
                 if self._towerPositionRetries:
                     self._towerPositionRetries -= 1
                 #endif
-                self.logger.warning("Tower is not on required position! Sync forced.")
+                self.logger.warning("Tower is not on required position! Sync forced. Actual position: %d, Target position: %d ", self.getTowerPositionMicroSteps(), self._towerToPosition)
                 self.mcc.debug.showItems(towerFailed = self._lastTowerProfile)
                 profileBackup = self._lastTowerProfile
                 self.towerSyncWait()
@@ -1576,8 +1570,8 @@ class Hardware:
         if self.isTiltMoving():
             return False
         #endif
-        if self.getTiltPositionMicroSteps() != 0:
-            self.logger.warning("Tilt is not on required position! Sync forced. Actual position: %d", self.getTiltPositionMicroSteps())
+        if self.getTiltPositionMicroSteps() != self._tiltToPosition:
+            self.logger.warning("Tilt is not on required position! Sync forced. Actual position: %d, Target position: %d ", self.getTiltPositionMicroSteps(), self._tiltToPosition)
             self.mcc.debug.showItems(tiltFailed = self._lastTiltProfile)
             profileBackup = self._lastTiltProfile
             self.tiltSyncWait()
@@ -1683,7 +1677,6 @@ class Hardware:
             #endwhile
             sleep(tiltProfile[5] / 1000.0)
         #endfor
-
         # if not already in endstop ensure we end up at defined bottom position
         if not self.checkState('endstop'):
             self.tiltMoveAbsolute(-defines.tiltHomingTolerance)
@@ -1691,12 +1684,12 @@ class Hardware:
                 sleep(0.1)
             #endwhile
         #endif
-
         # check if tilt is on endstop
         if self.checkState('endstop'):
-            return True
+            if -defines.tiltHomingTolerance <= self.getTiltPositionMicroSteps() <= defines.tiltHomingTolerance:
+                return True
+            #endif
         #endif
-
         # unstuck
         self.logger.warning("Tilt unstucking")
         self.setTiltProfile("layerRelease")
@@ -1732,9 +1725,6 @@ class Hardware:
             #endwhile
             sleep(self.hwConfig.tuneTilt[2][5] / 1000.0)
         #endfor
-
-        #reduce tilt current to prevent overheat
-        self.setTiltCurrent(defines.tiltHoldCurrent)
     #enddef
 
 
@@ -1774,17 +1764,16 @@ class Hardware:
 
     @safe_call(None, (MotionControllerException, ValueError))
     def setTiltCurrent(self, current):
-        return
-#        if 0 <= current <= 63:
-#            self.mcc.do("!ticu", current)
-#        else:
-#            self.logger.error("Invalid tilt current %d", current)
+        if 0 <= current <= 63:
+            self.mcc.do("!ticu", current)
+        else:
+            self.logger.error("Invalid tilt current %d", current)
         #endif
     #enddef
 
 
-    def tiltGotoFullstep(self):
-        self.mcc.do("!tigf")
+    def tiltGotoFullstep(self, goUp: int = 0):
+        self.mcc.do("!tigf", goUp)
     #enddef
 
 

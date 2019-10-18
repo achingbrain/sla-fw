@@ -29,7 +29,6 @@ class PageControl(Page):
         pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
         pageWait.show()
         retc = self._syncTower()
-        self.display.hw.motorsHold()
         self.display.hw.powerLed("normal")
         return retc
     #enddef
@@ -43,8 +42,8 @@ class PageControl(Page):
         self.display.hw.setTiltPosition(self.display.hw._tiltEnd)
         self.display.hw.tiltLayerDownWait(True)
         self.display.hw.tiltSyncWait()
-        self.display.hw.tiltLayerUpWait()
-        self.display.hw.motorsHold()
+        self.display.hw.setTiltProfile("moveFast")
+        self.display.hw.tiltUpWait()
         self.display.hw.powerLed("normal")
         return "_SELF_"
     #enddef

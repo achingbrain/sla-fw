@@ -8,7 +8,7 @@ from pathlib import Path
 
 import sl1fw
 
-reqMcVersion = "0.11.3"
+reqMcVersion = "0.11.4"
 
 factoryMountPoint = "/usr/share/factory/defaults"
 persistentStorage = "/var/sl1fw"
@@ -83,7 +83,7 @@ resinFilled = 200
 defaultTowerHeight = 120    # mm
 defaultTiltHeight = 4928    # usteps rounded to fullstep (phase 0)
 defaultTowerOffset = 0.05   # mm
-tiltHomingTolerance = 32    # tilt axis check has this tolerance
+tiltHomingTolerance = 96    # tilt axis check has this tolerance
 towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40

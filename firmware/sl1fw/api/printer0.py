@@ -259,7 +259,6 @@ class Printer0:
         self.printer.hw.powerLed("warn")
         if not self.printer.hw.towerSyncWait():
             raise MoveException
-        self.printer.hw.motorsHold()
         self.printer.hw.powerLed("normal")
 
     @state_checked(Printer0State.IDLE)
@@ -276,7 +275,6 @@ class Printer0:
         self.printer.hw.tiltLayerDownWait(True)
         self.printer.hw.tiltSyncWait()
         self.printer.hw.tiltLayerUpWait()
-        self.printer.hw.motorsHold()
         self.printer.hw.powerLed("normal")
 
     @state_checked(Printer0State.IDLE)

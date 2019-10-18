@@ -35,11 +35,9 @@ class ExposureThread(threading.Thread):
 
         self.expo.screen.screenshot(second = second)
 
-        self.expo.hw.setTowerProfile('layer')
         if self.expo.hwConfig.tilt:
             if self.expo.hwConfig.layerTowerHop and prevWhitePixels > self.expo.hwConfig.whitePixelsThd:
                 self.expo.hw.towerMoveAbsoluteWait(position + self.expo.hwConfig.layerTowerHop)
-                self.expo.hw.setTowerProfile('layerMove')
                 self.expo.hw.tiltLayerUpWait()
                 self.expo.hw.towerMoveAbsoluteWait(position)
             else:
@@ -188,6 +186,7 @@ class ExposureThread(threading.Thread):
             sleep(0.25)
             pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
         #endwhile
+        self.expo.hw.setTowerProfile('layer')
         self.expo.hw.powerLed("normal")
         self.expo.display.forcePage("print")
     #endif
