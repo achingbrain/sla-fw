@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-
+import json
 import paho.mqtt.publish as mqtt
 
 from sl1fw import defines
@@ -176,7 +176,7 @@ class PageDisplay(Page):
         wizardDict.update(calibDict)
         self.logger.debug("mqtt data: %s", wizardDict)
         try:
-            mqtt.single(topic, wizardDict, qos=2, retain=True, hostname="mqttstage.prusa")
+            mqtt.single(topic, json.dumps(wizardDict), qos=2, retain=True, hostname="mqttstage.prusa")
         except Exception as err:
             self.logger.error("mqtt message not delivered. %s", err)
             self.display.pages['error'].setParams(text = _("Cannot send factory config!"))
