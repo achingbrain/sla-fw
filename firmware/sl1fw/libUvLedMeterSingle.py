@@ -16,6 +16,7 @@ class UvLedMeterSingle:
 
     uvLedMeterDevice = "/dev/uvmeter-single"
     uvSensorType = 1
+    INTENSITY_ERROR_THRESHOLD = 1.0
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)

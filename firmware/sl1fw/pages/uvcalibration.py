@@ -476,7 +476,6 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
 
     PARAM_P = 0.75
     PARAM_I = 0.0025
-    INTENSITY_ERROR_THRESHOLD = 0.5
     TUNNING_ITERATIONS = 100
     SUCCESS_ITERATIONS = 5
 
@@ -519,7 +518,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
                               self.pwm, self.intensity, error, integrated_error, iteration, success_count)
 
             # Break cycle when error is tolerable
-            if abs(error) < self.INTENSITY_ERROR_THRESHOLD:
+            if abs(error) < self.uvmeter.detected.INTENSITY_ERROR_THRESHOLD:
                 if success_count >= self.SUCCESS_ITERATIONS:
                     break
                 #endif
@@ -534,10 +533,10 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
         #endfor
 
         # Report ranges and deviation errors
-        if error > self.INTENSITY_ERROR_THRESHOLD:
+        if error > self.uvmeter.detected.INTENSITY_ERROR_THRESHOLD:
             self.logger.error("UV intensity error: %f", error)
             return self.ERROR_TOO_DIMM, None
-        elif error < -self.INTENSITY_ERROR_THRESHOLD:
+        elif error < -self.uvmeter.detected.INTENSITY_ERROR_THRESHOLD:
             self.logger.error("UV intensity error: %f", error)
             return self.ERROR_TOO_BRIGHT, None
         elif self.deviation > self.INTENSITY_DEVIATION_THRESHOLD:

@@ -17,6 +17,7 @@ class UvLedMeterMulti:
 
     uvLedMeterDevice = "/dev/uvmeter"
     uvSensorType = 0
+    INTENSITY_ERROR_THRESHOLD = 0.5
 
     WEIGHTS = numpy.array([ \
             0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, \
