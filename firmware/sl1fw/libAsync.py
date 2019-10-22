@@ -6,11 +6,15 @@
 import json
 import logging
 import threading
+import shutil
 from abc import ABC, abstractmethod
 
 from sl1fw import defines
 from sl1fw.libDisplay import Display
 from sl1fw.libNetwork import Network
+from sl1fw.slicer.slicer_profile import SlicerProfile
+from sl1fw.slicer.profile_parser import ProfileParser
+from sl1fw.slicer.profile_downloader import ProfileDownloader
 
 
 class BackgroundNetworkCheck(ABC):
@@ -23,7 +27,7 @@ class BackgroundNetworkCheck(ABC):
     def connection_changed(self, value):
         if value and self.first:
             self.first = False
-            self.logger.info("Starting background network check thread")
+            self.logger.debug("Starting background network check thread")
             threading.Thread(target=self.check, daemon=True).start()
 
     @abstractmethod
@@ -39,7 +43,7 @@ class AdminCheck(BackgroundNetworkCheck):
     def check(self):
         self.logger.info("The network is available, querying admin enabled")
         query_url = defines.admincheckURL + "/?serial=" + self.display.hw.cpuSerialNo
-        self.inet.download_url(query_url, defines.admincheckTemp, self.display.hw.cpuSerialNo)
+        self.inet.download_url(query_url, defines.admincheckTemp)
 
         with open(defines.admincheckTemp, "r") as file:
             admin_check = json.load(file)
@@ -48,3 +52,27 @@ class AdminCheck(BackgroundNetworkCheck):
                 self.logger.info("Admin enabled")
             else:
                 self.logger.info("Admin not enabled")
+
+
+class SlicerProfileUpdater(BackgroundNetworkCheck):
+    def __init__(self, inet: Network, profile: SlicerProfile):
+        self.profile = profile
+        super().__init__(inet)
+
+    def check(self):
+        self.logger.info("The network is available, checking slicer profiles update")
+        downloader = ProfileDownloader(self.inet, self.profile.vendor)
+        newVersion = downloader.checkUpdates()
+        if newVersion:
+            f = downloader.download(newVersion)
+            newProfile = ProfileParser().parse(f)
+            if newProfile:
+                try:
+                    shutil.copyfile(f, defines.slicerProfilesFile)
+                except Exception:
+                    self.logger.exception("copyfile exception:")
+                self.profile.update(newProfile)
+            else:
+                self.logger.info("Problem with new profile file, giving up")
+        else:
+            self.logger.info("No new version of slicer profiles available")

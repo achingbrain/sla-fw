@@ -8,7 +8,6 @@ from pathlib import Path
 import os
 from threading import Thread
 from shutil import copyfile
-import tempfile
 # import cProfile
 from typing import Optional
 
@@ -51,7 +50,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.fbFile = str(self.FB_DEV_FILE)
         defines.truePoweroff = False
         defines.internalProjectPath = str(self.SAMPLES_DIR)
-        defines.ramdiskPath = tempfile.gettempdir()
         defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
         defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
         defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")

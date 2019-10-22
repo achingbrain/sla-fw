@@ -191,6 +191,14 @@ class Project:
             date_time = datetime.now(timezone.utc)
         return date_time.timestamp()
 
+    @property
+    def printerModel(self) -> str:
+        return self.config.printerModel
+
+    @property
+    def printerVariant(self) -> str:
+        return self.config.printerVariant
+
 
     def copyAndCheck(self):
         state = ProjectState.OK

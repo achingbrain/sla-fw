@@ -398,7 +398,7 @@ class PageAdvancedSettings(Page):
         pageWait = PageWait(self.display)
         pageWait.show()
         try:
-            self.display.inet.download_examples(page=pageWait, cpu_serial_no=self.display.hw.cpuSerialNo)
+            self.display.inet.download_examples(pageWait)
             return "_BACK_"
         except Exception as e:
             self.display.pages['error'].setParams(

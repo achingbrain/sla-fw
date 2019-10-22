@@ -29,11 +29,11 @@ class TestScreen(Sl1fwTestCase):
         super().__init__(*args, **kwargs)
 
     def setUp(self):
+        super().setUp()
         defines.fbFile = str(self.FB_DEV)
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.livePreviewImage = str(self.PREVIEW_FILE)
         defines.displayUsageData = str(self.DISPLAY_USAGE)
-        defines.testing = True
 
         from sl1fw.libScreen import Screen
         self.screen = Screen()

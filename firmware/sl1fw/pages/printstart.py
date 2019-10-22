@@ -71,6 +71,29 @@ class PagePrintPreviewSwipe(Page):
 
 
     def contButtonRelease(self):
+        project = self.display.expo.project
+        if project.printerModel != defines.slicerPrinterModel or project.printerVariant != defines.slicerPrinterVariant:
+            self.display.pages['yesno'].setParams(
+                    beep = True,
+                    pageTitle = _("Wrong project printer"),
+                    yesFce = self.contButtonContinue0,
+                    text = _("Project is for different printer model.\n\n"
+                            "Actual printer: %(amodel)s/%(avariant)s\n"
+                            "Project printer: %(pmodel)s/%(pvariant)s\n\n"
+                            "Do you want to continue?"
+                            % { 'amodel' : defines.slicerPrinterModel,
+                                'avariant' : project.printerVariant,
+                                'pmodel' : project.printerModel,
+                                'pvariant' : project.printerVariant,
+                                }))
+            return "yesno"
+        #endif
+
+        return self.contButtonContinue0()
+    #enddef
+
+
+    def contButtonContinue0(self):
         pageWait = PageWait(self.display, line1 = _("Checking temperatures"))
         pageWait.show()
 

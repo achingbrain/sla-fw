@@ -15,14 +15,17 @@ import tarfile
 import shutil
 import distro
 from sl1fw import defines
+from sl1fw.project.functions import ramdiskCleanup
 
 class Network:
     NETWORKMANAGER_SERVICE = "org.freedesktop.NetworkManager"
     HOSTNAME_SERVICE = "org.freedesktop.hostname1"
     NM_STATE_CONNECTED_GLOBAL = 70
 
-    def __init__(self):
+    def __init__(self, cpu_serial_no):
         self.logger = logging.getLogger(__name__)
+        self.version_id = distro.version()
+        self.cpu_serial_no = cpu_serial_no
         self.assign_active = None
         self.net_change_handlers = []
         self.bus = pydbus.SystemBus()
@@ -114,7 +117,7 @@ class Network:
         """
         return self.bus.get(self.NETWORKMANAGER_SERVICE, path)
 
-    def download_url(self, url, dest, cpu_serial_no, page=None, timeout_sec=10) -> None:
+    def download_url(self, url, dest, page=None, timeout_sec=10) -> None:
         """Fetches file specified by url info destination while displaying progress. This is implemented as chunked
         copy from source file descriptor to the destination file descriptor. The progress is updated once the chunk is
         copied. The source file descriptor is either standard file when the source is mounted USB drive or urlopen
@@ -129,8 +132,8 @@ class Network:
             # URL is HTTP, source is url
             req = Request(url)
             req.add_header('User-Agent', 'Prusa-SL1')
-            req.add_header('Prusa-SL1-version', distro.version())
-            req.add_header('Prusa-SL1-serial', cpu_serial_no)
+            req.add_header('Prusa-SL1-version', self.version_id)
+            req.add_header('Prusa-SL1-serial', self.cpu_serial_no)
             source = urlopen(req, timeout=timeout_sec)
 
             # Default files size (sometimes HTTP server does not know size)
@@ -170,9 +173,10 @@ class Network:
 
         source.close()
 
-    def download_examples(self, page, cpu_serial_no) -> None:
+    def download_examples(self, page) -> None:
+        # remove old projects from ramdisk, downloader uses another ramdisk but this *may* help in some cases
+        ramdiskCleanup(self.logger)
         failed = "."
-        # TODO call ramdiskCleanup()
         try:
             if not self.ip:
                 failed = _(": Not connected to network!")
@@ -191,10 +195,7 @@ class Network:
 
             with tempfile.NamedTemporaryFile() as archive:
                 page.showItems(line1 = _("Fetching examples"))
-                self.download_url(defines.examplesURL,
-                        archive.name,
-                        cpu_serial_no,
-                        page)
+                self.download_url(defines.examplesURL, archive.name, page)
                 page.showItems(line1 = _("Extracting examples"), line2="")
 
                 with tempfile.TemporaryDirectory() as temp:

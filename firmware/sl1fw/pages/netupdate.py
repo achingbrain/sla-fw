@@ -35,11 +35,7 @@ class PageNetUpdate(Page):
             pageWait = PageWait(self.display, line1="Downloading firmware list")
             pageWait.show()
             query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + distro.version()
-            self.display.inet.download_url(query_url,
-                    defines.firmwareListTemp,
-                    self.display.hw.cpuSerialNo,
-                    page=pageWait,
-                    timeout_sec=5)
+            self.display.inet.download_url(query_url, defines.firmwareListTemp, page=pageWait, timeout_sec=5)
 
             with open(defines.firmwareListTemp) as list_file:
                 self.firmwares = list(enumerate(json.load(list_file)))
@@ -66,7 +62,7 @@ class PageNetUpdate(Page):
         pageWait = PageWait(self.display)
         pageWait.show()
         try:
-            self.display.inet.download_examples(page=pageWait, cpu_serial_no=self.display.hw.cpuSerialNo)
+            self.display.inet.download_examples(pageWait)
             return "_BACK_"
         except Exception as e:
             self.display.pages['error'].setParams(

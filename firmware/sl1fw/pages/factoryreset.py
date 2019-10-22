@@ -119,6 +119,12 @@ class PageFactoryReset(Page):
             self.logger.exception("Failed to remove user UV calibration data")
         #endtry
 
+        # remove downloaded slicer profiles
+        try:
+            os.remove(defines.slicerProfilesFile)
+        except:
+            self.logger.exception("Failed to remove remove downloaded slicer profiles")
+        #endtry
 
         # continue only in factory mode
         if not self.display.printer0.factory_mode:

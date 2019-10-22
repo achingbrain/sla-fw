@@ -19,12 +19,13 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.printer0 import Printer0
-from sl1fw.libAsync import AdminCheck
+from sl1fw.libAsync import AdminCheck, SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import MotConComState
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
+from sl1fw.slicer.profile_parser import ProfileParser
 
 
 class Printer:
@@ -34,6 +35,8 @@ class Printer:
         init_time = monotonic()
         self.start_time = None
         self.admin_check = None
+        self.slicer_profile = None
+        self.slicer_profile_updater = None
         self.running = True
         self.firstRun = True
         self.expo = None
@@ -67,7 +70,7 @@ class Printer:
 
         self.logger.debug("Initializing libNetwork")
         from sl1fw.libNetwork import Network
-        self.inet = Network()
+        self.inet = Network(self.hw.cpuSerialNo)
 
         self.logger.debug("Initializing display devices")
         if debugDisplay:
@@ -217,6 +220,19 @@ class Printer:
             self.logger.debug("Starting admin checker")
             if not self.factoryMode:
                 self.admin_check = AdminCheck(self.display, self.inet)
+            #endif
+            self.logger.debug("Loading slicer profiles")
+            self.slicer_profile = ProfileParser().parse(defines.slicerProfilesFile)
+            if not self.slicer_profile:
+                self.logger.debug("Trying bundled slicer profiles")
+                self.slicer_profile = ProfileParser().parse(defines.slicerProfilesFallback)
+                if not self.slicer_profile:
+                    self.logger.error("No suitable slicer profiles found")
+                #endif
+            #endif
+            if self.slicer_profile:
+                self.logger.debug("Starting slicer profiles updater")
+                self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile)
             #endif
             self.logger.debug(f"SL1 firmware started in {monotonic() - self.start_time} seconds")
         except Exception as exception:

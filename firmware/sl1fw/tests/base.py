@@ -35,6 +35,7 @@ class Sl1fwTestCase(TestCase):
 
     def setUp(self) -> None:
         defines.testing = True
+        defines.ramdiskPath = str(self.TEMP_DIR)
 
     def compareImages(self, path1: str, path2: str) -> bool:
         one = Image.open(path1)

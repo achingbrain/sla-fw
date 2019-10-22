@@ -52,8 +52,12 @@ displayUsageSize = (thumbnailHeight, thumbnailFactor, thumbnailWidth, thumbnailF
 displayUsageData = os.path.join(persistentStorage, "display_usage.npz")
 displayUsagePalette = os.path.join(dataPath, "heatmap_palette.txt")
 
+profilesFile = "slicer_profiles.ini"
+slicerProfilesFallback = Path(dataPath) / profilesFile
+slicerProfilesFile = Path(persistentStorage) / profilesFile
 slicerPrinterModel = "SL1"
 slicerPrinterVariant = "default"
+slicerMinVersion = "2.1.0-alpha0"
 
 cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
 cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"
