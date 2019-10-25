@@ -18,7 +18,7 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.printer0 import Printer0
-from sl1fw.libAsync import Admin_check
+from sl1fw.libAsync import AdminCheck
 from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import MotConComState
@@ -100,9 +100,6 @@ class Printer:
 
     def exit(self):
         self.running = False
-        if self.admin_check:
-            self.admin_check.exit()
-        #endif
         self.display.exit()
         self.exited.wait(timeout=60)
         self.screen.exit()
@@ -210,7 +207,7 @@ class Printer:
             self.screen.start()
             self.logger.debug("Starting admin checker")
             if not self.factoryMode:
-                self.admin_check = Admin_check(self.display, self.inet)
+                self.admin_check = AdminCheck(self.display, self.inet)
             #endif
             self.logger.debug(f"SL1 firmware started in {monotonic() - self.start_time} seconds")
         except Exception as exception:
