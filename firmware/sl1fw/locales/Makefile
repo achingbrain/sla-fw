@@ -16,7 +16,7 @@ clean:
 
 $(TEMPLATE): $(SOURCES)
 	touch $@
-	xgettext -j -kN_ -o $@ $?
+	xgettext --from-code utf-8 -j -kN_ -o $@ $?
 
 %.mo: %.po
 	msgfmt -o $@ $<

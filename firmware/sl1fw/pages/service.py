@@ -31,7 +31,7 @@ class PageService(Page):
 
                 'button6' : _("Projects: %d") % stats['projects'],
                 'button7' : _("Layers: %d") % stats['layers'],
-                'button8' : _("Total time: %dh%02dm") % (minutes // 60, minutes % 60),
+                'button8' : _("Total time: %(hour)dh%(minute)02dm") % {'hour' : minutes // 60, 'minute' : minutes % 60},
                 'button9' : _("Display usage heatmap"),
 
                 })
