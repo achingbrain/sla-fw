@@ -131,7 +131,7 @@ class ExposureThread(threading.Thread):
         #endif
 
         if self.expo.hwConfig.tilt:
-            slowMove = whitePixels > self.expo.hwConfig.whitePixelsThd
+            slowMove = bool(whitePixels > self.expo.hwConfig.whitePixelsThd)  # avoid passing numpy bool
             if slowMove and self.expo.slowLayers:
                 self.expo.slowLayers -= 1
             #endif

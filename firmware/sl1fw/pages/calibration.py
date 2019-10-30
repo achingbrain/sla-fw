@@ -7,8 +7,8 @@ from time import time, sleep
 
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException
-from sl1fw.pages.base import Page
 from sl1fw.pages import page
+from sl1fw.pages.base import Page
 from sl1fw.pages.move import MovePage
 from sl1fw.pages.wait import PageWait
 
@@ -129,7 +129,7 @@ class PageCalibration3(Page):
 
         self.display.hw.powerLed("warn")
         self.display.hw.setTiltProfile('homingFast')
-        self.display.hw.tiltMoveAbsolute(self.display.hw._tiltCalibStart)
+        self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_calib_start)
         while self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
@@ -210,11 +210,11 @@ class PageCalibration5(MovePage):
     def _up(self, slowMoving):
         self.prevTiltHeight = self.display.hw.getTiltPosition()
         if not self.moving:
-            self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd)
+            self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_end)
             self.moving = True
         else:
             self.showItems(value = self.display.hw.getTiltPosition())
-            if self.display.hw.getTiltPosition() == self.display.hw._tiltEnd:
+            if self.display.hw.getTiltPosition() == self.display.hw.tilt_end:
                 self.display.hw.beepAlarm(1)
             #endif
         #endif
@@ -224,11 +224,11 @@ class PageCalibration5(MovePage):
     def _down(self, slowMoving):
         self.prevTiltHeight = self.display.hw.getTiltPosition()
         if not self.moving:
-            self.display.hw.tiltMoveAbsolute(self.display.hw._tiltCalibStart)
+            self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_calib_start)
             self.moving = True
         else:
             self.showItems(value = self.display.hw.getTiltPosition())
-            if self.display.hw.getTiltPosition() == self.display.hw._tiltCalibStart:
+            if self.display.hw.getTiltPosition() == self.display.hw.tilt_calib_start:
                 self.display.hw.beepAlarm(1)
             #endif
         #endif
@@ -392,12 +392,12 @@ class PageCalibration8(Page):
         self.display.hw.setTiltCurrent(defines.tiltCalibCurrent)
         self.display.hw.setTowerPosition(0)
         self.display.hw.setTowerProfile('homingFast')
-        self.display.hw.towerMoveAbsolute(self.display.hw._towerAboveSurface)
+        self.display.hw.towerMoveAbsolute(self.display.hw.tower_above_surface)
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
         self.logger.debug("tower position above: %d", self.display.hw.getTowerPositionMicroSteps())
-        if self.display.hw.getTowerPositionMicroSteps() != self.display.hw._towerAboveSurface:
+        if self.display.hw.getTowerPositionMicroSteps() != self.display.hw.tower_above_surface:
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
             self.display.pages['confirm'].setParams(
@@ -413,7 +413,7 @@ class PageCalibration8(Page):
             sleep(0.25)
         #endwhile
         self.logger.debug("tower position min: %d", self.display.hw.getTowerPositionMicroSteps())
-        if self.display.hw.getTowerPositionMicroSteps() <= self.display.hw._towerMin:
+        if self.display.hw.getTowerPositionMicroSteps() <= self.display.hw.tower_min:
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
             self.display.pages['confirm'].setParams(
@@ -423,7 +423,7 @@ class PageCalibration8(Page):
                     "Press 'Continue' and read the instructions carefully."))
             return "confirm"
         #endif
-        self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw._towerCalibPos * 3)
+        self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw.tower_calib_pos * 3)
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
@@ -431,7 +431,7 @@ class PageCalibration8(Page):
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
-        self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw._towerCalibPos)
+        self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw.tower_calib_pos)
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile

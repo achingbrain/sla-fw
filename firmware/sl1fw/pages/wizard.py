@@ -127,7 +127,7 @@ class PageWizardInit(Page):
         #tilt length measure
         pageWait.showItems(line1 = _("Tank axis check"))
         self.display.hw.setTiltProfile("homingFast")
-        self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd)
+        self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_end)
         while self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
@@ -136,7 +136,7 @@ class PageWizardInit(Page):
             sleep(0.25)
         #endwhile
         self.display.hw.setTiltProfile("homingSlow")    #finish measurement with slow profile (more accurate)
-        self.display.hw.tiltMoveAbsolute(self.display.hw._tiltMin)
+        self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_min)
         while self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
@@ -384,7 +384,7 @@ class PageWizardTowerAxis(Page):
         pageWait = PageWait(self.display, line1 = _("Tower axis check"))
         pageWait.show()
         self.display.hw.towerSyncWait()
-        self.display.hw.setTowerPosition(self.display.hw._towerEnd)
+        self.display.hw.setTowerPosition(self.display.hw.tower_end)
         self.display.hw.setTowerProfile("homingFast")
         self.display.hw.towerMoveAbsolute(0)
         while self.display.hw.isTowerMoving():
@@ -392,19 +392,19 @@ class PageWizardTowerAxis(Page):
         #endwhile
         if self.display.hw.getTowerPositionMicroSteps() == 0:
             #stop 10 mm before endstop to change sensitive profile
-            self.display.hw.towerMoveAbsolute(self.display.hw._towerEnd - 8000)
+            self.display.hw.towerMoveAbsolute(self.display.hw.tower_end - 8000)
             while self.display.hw.isTowerMoving():
                 sleep(0.25)
             #endwhile
             self.display.hw.setTowerProfile("homingSlow")
-            self.display.hw.towerMoveAbsolute(self.display.hw._towerMax)
+            self.display.hw.towerMoveAbsolute(self.display.hw.tower_max)
             while self.display.hw.isTowerMoving():
                 sleep(0.25)
             #endwhile
         #endif
         position = self.display.hw.getTowerPositionMicroSteps()
         #MC moves tower by 1024 steps forward in last step of !twho
-        if position < self.display.hw._towerEnd or position > self.display.hw._towerEnd + 1024 + 127: #add tolerance half fullstep
+        if position < self.display.hw.tower_end or position > self.display.hw.tower_end + 1024 + 127: #add tolerance half fullstep
             self.display.pages['error'].setParams(
                 text = _("Tower axis check failed!\n\n"
                     "Current position: %d\n\n"

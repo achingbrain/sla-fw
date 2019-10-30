@@ -210,6 +210,34 @@ class Hardware:
         return self._tiltEnd
 
     @property
+    def tilt_min(self) -> int:
+        return self._tiltMin
+
+    @property
+    def tilt_calib_start(self) -> int:
+        return self._tiltCalibStart
+
+    @property
+    def tower_min(self) -> int:
+        return self._towerMin
+
+    @property
+    def tower_max(self) -> int:
+        return self._towerMax
+
+    @property
+    def tower_end(self) -> int:
+        return self._towerEnd
+
+    @property
+    def tower_above_surface(self) -> int:
+        return self._towerAboveSurface
+
+    @property
+    def tower_calib_pos(self) -> int:
+        return self._towerCalibPos
+
+    @property
     def mcFwVersion(self):
         return self.mcc.MCFWversion
     #enddef
