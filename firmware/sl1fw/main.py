@@ -21,22 +21,9 @@ else:
     logger.info("Embedded logger configuration was used")
 #endif
 
-logger.info("Logging set to level %s", logging.getLevelName(logger.level))
+logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
 
-
-langs = dict()
-
-for lang in ('cs', 'de', 'fr', 'it', 'es', 'pl'):
-    try:
-        langs[lang] = gettext.translation('sl1fw', localedir=defines.localedir, languages=[lang])
-    except:
-        logger.warning("Translation file for language %s not found.", lang)
-    #endtry
-#enddef
-
-logger.info("Avaiable translations: %s", ", ".join(langs.keys()))
-
-# use system locale settings
+# use system locale settings for translation
 gettext.install('sl1fw', defines.localedir)
 builtins.N_ = lambda x: x
 

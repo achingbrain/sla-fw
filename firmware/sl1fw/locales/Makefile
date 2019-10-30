@@ -19,4 +19,4 @@ $(TEMPLATE): $(SOURCES)
 	xgettext --from-code utf-8 -j -kN_ -o $@ $?
 
 %.mo: %.po
-	msgfmt -o $@ $<
+	msgfmt --check-format -o $@ $<

@@ -269,7 +269,6 @@ class Printer:
         #endif
 
         lang = re.sub(r"LANG=(.*)\..*", r"\g<1>", changed['Locale'][0])
-        self.logger.exception("Failed to determine new locale language")
 
         try:
             self.logger.debug("Obtaining translation: %s" % lang)

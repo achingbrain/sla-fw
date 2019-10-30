@@ -6,38 +6,40 @@ msgstr ""
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
-"Language: cs\n"
+"Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"Plural-Forms: nplurals=4; plural=(n == 1) ? 0 : ((n%10 >= 2 && n%10 <=4 && (n"
+"%100 < 12 || n%100 > 14)) ? 1 : ((n%10 == 0 || n%10 == 1 || (n%10 >= 5 && n"
+"%10 <=9)) || (n%100 >= 12 && n%100 <= 14)) ? 2 : 3);\n"
 "X-Generator: Poedit 2.2.4\n"
 
 #: ../pages/base.py:89
 msgid " (factory mode)"
-msgstr " (tovární režim)"
+msgstr " (tryb fabryczny)"
 
 #: ../pages/uvcalibration.py:754 ../pages/fansleds.py:115
 msgid "!!! Failed to save factory defaults !!!"
-msgstr "!!! Nepodařilo se uložit tovární nastavení !!!"
+msgstr "!!! Niepowodzenie zapisywania domyślnych ustawień fabrycznych !!"
 
 #: ../pages/wizard.py:522
 #, fuzzy
 #| msgid "!!! Failed to save factory defaults !!!"
 msgid "!!! Failed to save wizard data !!!"
-msgstr "!!! Nepodařilo se uložit tovární nastavení !!!"
+msgstr "!!! Niepowodzenie zapisywania domyślnych ustawień fabrycznych !!"
 
 #: ../pages/uvcalibration.py:749
 #, fuzzy
 #| msgid "!!! Failed to save factory defaults !!!"
 msgid "!!! Failed to serialize calibration data !!!"
-msgstr "!!! Nepodařilo se uložit tovární nastavení !!!"
+msgstr "!!! Niepowodzenie zapisywania domyślnych ustawień fabrycznych !!"
 
 #: ../pages/wizard.py:517
 #, fuzzy
 #| msgid "!!! Failed to save factory defaults !!!"
 msgid "!!! Failed to serialize wizard data !!!"
-msgstr "!!! Nepodařilo se uložit tovární nastavení !!!"
+msgstr "!!! Niepowodzenie zapisywania domyślnych ustawień fabrycznych !!"
 
 #: ../pages/wizard.py:200
 #, python-format
@@ -48,12 +50,12 @@ msgid ""
 "\n"
 "Keep the printer out of direct sunlight at room temperature (18 - 32 °C)."
 msgstr ""
-"%(sensor)s není v rozsahu!\n"
+"%(sensor)s poza skalą!\n"
 "\n"
-"Naměřená teplota: %(temp).1f °C.\n"
+"Zmierzona temperatura: %(temp).1f°C.\n"
 "\n"
-"Tiskárna musí být provozována mimo přímé sluneční světlo při pokojové "
-"teplotě 18-32°C."
+"Trzymaj drukarkę poza miejscem bezpośrednio nasłonecznionym, w temperaturze "
+"(18 - 32 °C)."
 
 #: ../libExposure.py:325
 #, python-format
@@ -67,13 +69,13 @@ msgid ""
 msgstr ""
 "%s\n"
 "\n"
-"Doplňte resin ve vaničce na úroveň 100 %% a stiskněte Hotovo.\n"
+"Uzupełnij zbiornik do znacznika 100%% i wciśnij Gotowe.\n"
 "\n"
-"Pokud nechcete resin doplnit, stiskněte Zpět na horním okraji obrazovky."
+"Jeśli nie chcesz dolewać żywicy, to wciśnij przycisk Wstecz na górze ekranu."
 
 #: ../pages/fantest.py:37
 msgid "(fans are running)"
-msgstr "(větráky běží)"
+msgstr "(wentylatory obracają się)"
 
 #: ../pages/uvcalibration.py:428
 #, python-format
@@ -92,11 +94,11 @@ msgstr ""
 
 #: ../libHardware.py:554
 msgid "<reserved1>"
-msgstr "<rezervováno1>"
+msgstr "<reserved1>"
 
 #: ../libHardware.py:555
 msgid "<reserved2>"
-msgstr "<rezervováno2>"
+msgstr "<reserved2>"
 
 #: ../pages/wizard.py:174
 #, python-format
@@ -105,16 +107,17 @@ msgid ""
 "\n"
 "Shutting down in 10 seconds..."
 msgstr ""
-"Teplota na A64 je příliš vysoká. Naměřeno: %.1f °C! K vypnutí dojde za 10 "
-"sekund..."
+"Temperatura A64 zbyt wysoka. Zmierzono: %.1f °C!\n"
+"\n"
+"Wyłączenie w ciągu 10 sekund…"
 
 #: ../pages/about.py:18
 msgid "About"
-msgstr "O produktu"
+msgstr "O"
 
 #: ../pages/base.py:417
 msgid "Actual job will be canceled."
-msgstr "Probíhající tisk bude zrušen."
+msgstr "Bieżące zadanie zostanie anulowane."
 
 #: ../pages/calibration.py:483
 msgid ""
@@ -122,17 +125,17 @@ msgid ""
 "\n"
 "Front edges of the platform and exposition display need to be parallel."
 msgstr ""
-"Pootočte tiskovou platformu tak, aby byla zarovnaná s expozičním displejem.\n"
+"Wyrównaj platformę z wyświetlaczem naświetlającym.\n"
 "\n"
-"Hrany platformy a okraje displeje musí být rovnoběžné."
+"Krawędzie platformy powinny być równoległe do krawędzi wyświetlacza."
 
 #: ../pages/admin.py:17
 msgid "Admin Home"
-msgstr "Admin Menu"
+msgstr "Admin Strona Główna"
 
 #: ../pages/advancedsettings.py:70
 msgid "Advanced Settings"
-msgstr "Pokročilá nastavení"
+msgstr "Ustawienia Zaawansowane"
 
 #: ../pages/calibration.py:656
 #, python-format
@@ -145,17 +148,17 @@ msgid ""
 "Tilt time slow: %(slow).1f s\n"
 "Area fill: %(area)d %%"
 msgstr ""
-"To je vše! Tisku zdar!\n"
+"Wszystko ustawione, udanego drukowania!\n"
 "\n"
-"Hodnoty pro PrusaSlicer:\n"
+"Ustawienia przechylania dla PrusaSlicer:\n"
 "\n"
-"Rychlý náklon: %(fast).1f s\n"
-"Pomalý náklon: %(slow).1f s\n"
-"Zaplněná plocha: %(area)d %%"
+"Czas szybkiego przechylania: %(fast).1f s\n"
+"Czas wolnego przechylania: %(slow).1f s\n"
+"Wypełnienie powierzchni: %(area)d %%"
 
 #: ../libHardware.py:553
 msgid "Ambient temperature"
-msgstr "Ambientní teplota"
+msgstr "Temperatura otoczenia"
 
 #: ../pages/printstart.py:94
 msgid ""
@@ -165,11 +168,11 @@ msgid ""
 "\n"
 "Do you want to continue?"
 msgstr ""
-"Teplota okolí je vyšší než doporučená hodnota.\n"
+"Temperatura otoczenia jest wyższa od zalecanej.\n"
 "\n"
-"Zvažte přesunutí tiskárny na chladnější místo.\n"
+"Drukarka powinna być ustawiona w chłodniejszym miejscu.\n"
 "\n"
-"Přejete si pokračovat?"
+"Kontynuować?"
 
 #: ../pages/printstart.py:84
 msgid ""
@@ -179,27 +182,27 @@ msgid ""
 "\n"
 "Do you want to continue?"
 msgstr ""
-"Okolní teplota je nižší než doporučené hodnoty.\n"
+"Temperatura otoczenia jest wyższa od zalecanej.\n"
 "\n"
-"Zvažte, zda nepředehřát resin nebo nezvýšit dobu expozice.\n"
+"Żywica powinna być podgrzana i/lub czasy naświetlania wydłużone.\n"
 "\n"
-"Chcete pokračovat?"
+"Kontynuować?"
 
 #: ../pages/uvcalibration.py:696
 msgid "Apply calibration?"
-msgstr "Aplikovat kalibraci?"
+msgstr "Zastosować ustawienia kalibracji?"
 
 #: ../pages/yesno.py:17 ../pages/yesno.py:29 ../pages/factoryreset.py:25
 msgid "Are you sure?"
-msgstr "Jste si jistí?"
+msgstr "Na pewno?"
 
 #: ../pages/setup.py:138
 msgid "Auto power off"
-msgstr "Automatické vypnutí"
+msgstr "Automatyczne wyłączenie"
 
 #: ../pages/fansleds.py:48
 msgid "Back"
-msgstr "Zpět"
+msgstr "Wstecz"
 
 #: ../pages/motioncontroller.py:117
 #, python-format
@@ -210,99 +213,99 @@ msgid ""
 "\n"
 "Press 'Continue' when done."
 msgstr ""
-"Baud rate je %(br)d.\n"
+"Szybkość transmisji %(br)d.\n"
 "\n"
-"Sériové spojení je přesměrováno na %(ip)s:%(port)d.\n"
+"Linia szeregowa przekierowana na %(ip)s:%(port)d.\n"
 "\n"
-"Po dokončení stiskněte \"Pokračovat\"."
+"Naciśnij 'Kontynuuj' po zakończeniu."
 
 #: ../pages/display.py:41
 msgid "Black"
-msgstr "Černá"
+msgstr "Czarny"
 
 #: ../pages/setup.py:309
 msgid "Blink exposure"
-msgstr "Blink exposure"
+msgstr "Mrugnięcie"
 
 #: ../pages/fansleds.py:32
 msgid "Blower fan"
-msgstr "Boční ventilátor"
+msgstr "Wentylator boczny"
 
 #: ../pages/fansleds.py:38
 msgid "Blower fan RPM"
-msgstr "Otáčky bočního ventilátoru"
+msgstr "Prędkość obrotowa bocznego wentylatora"
 
 #: ../pages/calibration.py:592
 #, fuzzy
 #| msgid "Calibrate now?"
 msgid "Calibrate UV?"
-msgstr "Kalibrovat nyní?"
+msgstr "Uruchomić kalibrację?"
 
 #: ../libPrinter.py:161 ../pages/home.py:55
 msgid "Calibrate now?"
-msgstr "Kalibrovat nyní?"
+msgstr "Uruchomić kalibrację?"
 
 #: ../pages/settings.py:31
 msgid "Calibrate printer now?"
-msgstr "Zkalibrovat tiskárnu nyní?"
+msgstr "Uruchomić kalibrację drukarki?"
 
 #: ../pages/uvcalibration.py:397
 #, fuzzy
 #| msgid "Calibration done"
 msgid "Calibrating UV LED power"
-msgstr "Kalibrace je hotová"
+msgstr "Kalibracja ukończona"
 
 #: ../pages/calibration.py:637
 msgid "Calibration done"
-msgstr "Kalibrace je hotová"
+msgstr "Kalibracja ukończona"
 
 #: ../pages/calibration.py:24
 msgid "Calibration step 1/11"
-msgstr "Kalibrace - krok 1/11"
+msgstr "Kalibracja krok 1/11"
 
 #: ../pages/calibration.py:476
 msgid "Calibration step 10/11"
-msgstr "Kalibrace - krok 10/11"
+msgstr "Kalibracja krok 10/11"
 
 #: ../pages/calibration.py:513
 msgid "Calibration step 11/11"
-msgstr "Kalibrace - krok 11/11"
+msgstr "Kalibracja krok 11/11"
 
 #: ../pages/calibration.py:78
 msgid "Calibration step 2/11"
-msgstr "Kalibrace - krok 2/11"
+msgstr "Kalibracja krok 2/11"
 
 #: ../pages/calibration.py:115
 msgid "Calibration step 3/11"
-msgstr "Kalibrace - krok 3/11"
+msgstr "Kalibracja krok 3/11"
 
 #: ../pages/calibration.py:161
 msgid "Calibration step 4/11"
-msgstr "Kalibrace - krok 4/11"
+msgstr "Kalibracja krok 4/11"
 
 #: ../pages/calibration.py:197
 msgid "Calibration step 5/11"
-msgstr "Kalibrace - krok 5/11"
+msgstr "Kalibracja krok 5/11"
 
 #: ../pages/calibration.py:283
 msgid "Calibration step 6/11"
-msgstr "Kalibrace - krok 6/11"
+msgstr "Kalibracja krok 6/11"
 
 #: ../pages/calibration.py:320
 msgid "Calibration step 7/11"
-msgstr "Kalibrace - krok 7/11"
+msgstr "Kalibracja krok 7/11"
 
 #: ../pages/calibration.py:361
 msgid "Calibration step 8/11"
-msgstr "Kalibrace - krok 8/11"
+msgstr "Kalibracja krok 8/11"
 
 #: ../pages/calibration.py:378
 msgid "Calibration step 9/11"
-msgstr "Kalibrace - krok 9/11"
+msgstr "Kalibracja krok 9/11"
 
 #: ../pages/wizard.py:599
 msgid "Can you hear the music?"
-msgstr "Slyšíte hudbu?"
+msgstr "Czy słyszysz muzykę?"
 
 #: ../pages/displaytest.py:34
 msgid ""
@@ -312,11 +315,12 @@ msgid ""
 "\n"
 "DO NOT open the cover!"
 msgstr ""
-"Vidíte logo Prusa Research na expozičním displeji?\n"
+"Czy przez pomarańczową pokrywę dostrzegasz na wyświetlaczu naświetlającym "
+"logo firmy?\n"
 "\n"
-"Tip: Logo je nejlépe vidět při pohledu shora skrz víko.\n"
+"Wskazówka: Logo jest najlepiej widoczne, gdy patrzysz z góry.\n"
 "\n"
-"VÍKO NEOTVÍREJTE!"
+"NIE OTWIERAJ pokrywy!"
 
 #: ../pages/wizard.py:189 ../pages/printstart.py:74
 #, python-format
@@ -325,9 +329,9 @@ msgid ""
 "\n"
 "Please check if temperature sensors are connected correctly."
 msgstr ""
-"Nelze načíst %s\n"
+"Nie można odczytać %s\n"
 "\n"
-"Zkontrolujte, zda jsou teplotní čidla správně zapojená."
+"Sprawdź czy czujniki temperatury są prawidłowo podłączone."
 
 #: ../pages/printstart.py:354
 msgid ""
@@ -335,9 +339,9 @@ msgid ""
 "\n"
 "Regenerate it and try again."
 msgstr ""
-"Nelze načíst data vašeho projektu.\n"
+"Nie można odczytać danych Twojego projektu.\n"
 "\n"
-"Vygenerujte jej znovu a opakujte akci."
+"Wygeneruj go raz jeszcze i spróbuj ponownie."
 
 #: ../libExposure.py:542
 msgid ""
@@ -345,13 +349,13 @@ msgid ""
 "\n"
 "Check it and try again."
 msgstr ""
-"Nelze číst z USB disku. \n"
+"Nie można odczytać pamięci USB.\n"
 "\n"
-"Zkontrolujte jej a opakujte akci."
+"Sprawdź ją i spróbuj ponownie."
 
 #: ../libConfig.py:1029
 msgid "Can't read project data."
-msgstr "Nelze načíst data projektu."
+msgstr "Nie można odczytać danych projektu."
 
 #: ../libExposure.py:575
 msgid ""
@@ -359,13 +363,13 @@ msgid ""
 "\n"
 "Re-export the file and try again."
 msgstr ""
-"Nelze načíst data projektu.\n"
+"Nie można odczytać danych projektu.\n"
 "\n"
-"Znovu jej vyexportujte a opakujte akci."
+"Wyeksportuj plik raz jeszcze i spróbuj ponownie."
 
 #: ../pages/calibration.py:687
 msgid "Cancel calibration?"
-msgstr "Zrušit kalibraci?"
+msgstr "Anulować kalibrację?"
 
 #: ../pages/uvcalibration.py:278 ../pages/uvcalibration.py:673
 #, fuzzy
@@ -378,41 +382,41 @@ msgid ""
 "\n"
 "Check the connection and try again."
 msgstr ""
-"Nelze načíst data z UV LED měřáku.\n"
+"Nie można odczytać danych z miernika UV LED.\n"
 "\n"
-"Zkontrolujte zapojení a opakujte akci."
+"Sprawdź połączenie i spróbuj ponownie."
 
 #: ../pages/display.py:102
 msgid "Cannot display the test image"
-msgstr "Nelze zobrazit testovací obrázek"
+msgstr "Nie można wyświetlić obrazu testowego"
 
 #: ../pages/profiles.py:100
 msgid "Cannot export profile"
-msgstr "Nelze exportovat profil"
+msgstr "Nie można wyeksportować pliku"
 
 #: ../pages/setup.py:78
 msgid "Cannot find configuration to import"
-msgstr "Žádná konfigurace k importování"
+msgstr "Nie można znaleźć konfiguracji do zaimportowania"
 
 #: ../pages/profiles.py:119
 msgid "Cannot find profile to import"
-msgstr "Žádné profily k importu"
+msgstr "Nie można znaleźć pliku do zaimportowania"
 
 #: ../pages/display.py:92
 msgid "Cannot find the test image"
-msgstr "Nelze nalézt testovací obrázek"
+msgstr "Nie można znaleźć obrazu testowego"
 
 #: ../pages/setup.py:89
 msgid "Cannot import configuration"
-msgstr "Nelze importovat konfiguraci"
+msgstr "Nie można zaimportować konfiguracji"
 
 #: ../pages/profiles.py:132
 msgid "Cannot import profile"
-msgstr "Nelze importovat profil"
+msgstr "Nie można zaimportować profilu"
 
 #: ../pages/profiles.py:148
 msgid "Cannot load default profile"
-msgstr "Nelze načíst výchozí profil"
+msgstr "Nie można załadować domyślnego profilu"
 
 #: ../pages/uvcalibration.py:451
 msgid ""
@@ -420,9 +424,9 @@ msgid ""
 "\n"
 "Check the connection and try again."
 msgstr ""
-"Nelze načíst data z UV LED měřáku.\n"
+"Nie można odczytać danych z miernika UV LED.\n"
 "\n"
-"Zkontrolujte zapojení a opakujte akci."
+"Sprawdź połączenie i spróbuj ponownie."
 
 #: ../pages/uvcalibration.py:738 ../pages/profiles.py:448 ../pages/setup.py:59
 #: ../pages/setup.py:99 ../pages/setup.py:114 ../pages/tower_offset.py:69
@@ -430,29 +434,30 @@ msgstr ""
 #: ../pages/unboxing.py:275 ../pages/fansleds.py:143 ../pages/fansleds.py:169
 #: ../pages/calibration.py:551 ../pages/calibration.py:648
 msgid "Cannot save configuration"
-msgstr "Nelze uložit konfiguraci"
+msgstr "Nie można zapisać konfiguracji"
 
 #: ../pages/factoryreset.py:49
 msgid "Cannot save factory defaults configuration"
-msgstr "Nelze uložit tovární nastavení"
+msgstr "Nie można zapisać konfiguracji domyślnych fabrycznych"
 
 #: ../pages/wizard.py:495 ../pages/wizard.py:688
 #: ../pages/towersensitivity.py:75
 msgid "Cannot save wizard configuration"
-msgstr "Nelze uložit konfiguraci průvodce"
+msgstr "Nie można zapisać konfiguracji Asystenta"
 
 #: ../pages/display.py:182
 msgid "Cannot send factory config!"
-msgstr "Nelze odeslat tovární konfiguraci!"
+msgstr "Nie można wysłać konfiguracji fabrycznej!"
 
 #: ../pages/unboxing.py:176
 msgid ""
 "Carefully peel off the orange protective foil from the exposition display."
-msgstr "Opatrně odstraňte ochrannou nálepku z expozičního displeje."
+msgstr ""
+"Ostrożnie zdejmij pomarańczową folię ochronną z ekranu naświetlającego."
 
 #: ../pages/exposure.py:17
 msgid "Change Exposure Times"
-msgstr "Změnit expoziční časy"
+msgstr "Zmień czasy naświetlania"
 
 #: ../pages/calibration.py:368
 msgid ""
@@ -461,10 +466,10 @@ msgid ""
 "\n"
 "Do not rotate the platform. It should be positioned according to the picture."
 msgstr ""
-"Zkontrolujte, zda je tisková platforma zajištěna černým šroubem. Pokud ne, "
-"jednou rukou podržte platformu a druhou dotáhněte šroub.\n"
+"Sprawdź czy platforma jest prawidłowo przykręcona czarnym pokrętłem "
+"(przytrzymaj ją i dokręć pokrętło, jeśli to konieczne).\n"
 "\n"
-"Platformou neotáčejte, musí zůstat v pozici, která je zobrazená na ilustraci."
+"Nie obracaj platformy. Powinna być umieszczona zgodnie z ilustracją."
 
 #: ../pages/uvcalibration.py:164
 msgid "Checking UV meter placement on the screen"
@@ -472,35 +477,35 @@ msgstr ""
 
 #: ../pages/printstart.py:108
 msgid "Checking fans..."
-msgstr "Kontrola ventilátorů..."
+msgstr "Sprawdzam wentylatory..."
 
 #: ../pages/printstart.py:106
 msgid "Checking project data..."
-msgstr "Kontrola projektu..."
+msgstr "Sprawdzam dane projektu..."
 
 #: ../pages/printstart.py:67
 msgid "Checking temperatures"
-msgstr "Kontrola teplot"
+msgstr "Sprawdzam temperatury"
 
 #: ../pages/display.py:34
 msgid "Chess 16"
-msgstr "Šachovnice 16"
+msgstr "Szachownica 16"
 
 #: ../pages/display.py:33
 msgid "Chess 8"
-msgstr "Šachovnice 8"
+msgstr "Szachownica 8"
 
 #: ../pages/netupdate.py:103
 msgid "Cleaning up"
-msgstr "Probíhá úklid"
+msgstr "Czyszczenie"
 
 #: ../libExposure.py:172
 msgid "Close the cover to continue"
-msgstr "Před pokračováním zavřete víko"
+msgstr "Zamknij pokrywę, aby kontynuować"
 
 #: ../pages/base.py:178 ../pages/base.py:388
 msgid "Close the orange cover."
-msgstr "Zavřete oranžový kryt."
+msgstr "Zamknij pomarańczową pokrywę."
 
 #: ../pages/uvcalibration.py:170
 #, fuzzy
@@ -513,13 +518,13 @@ msgid ""
 "\n"
 "Check the connection and try again."
 msgstr ""
-"Nebyl detekován UV LED měřák.\n"
+"Nie wykryto miernika UV LED.\n"
 "\n"
-"Zkontrolujte připojení a opakujte akci."
+"Sprawdź połączenie i spróbuj ponownie."
 
 #: ../pages/confirm.py:17 ../pages/confirm.py:28 ../pages/printstart.py:220
 msgid "Confirm"
-msgstr "Potvrdit"
+msgstr "Potwierdź"
 
 #: ../pages/uvcalibration.py:226
 #, python-format
@@ -534,29 +539,29 @@ msgstr ""
 
 #: ../pages/network.py:119
 msgid "Connecting"
-msgstr "Připojování"
+msgstr "Łączenie"
 
 #: ../pages/uvcalibration.py:275
 #, fuzzy
 #| msgid "Connecting to the UV LED meter"
 msgid "Connecting to UV meter"
-msgstr "Připojování k UV LED měřáku"
+msgstr "Łączenie z miernikiem UV LED"
 
 #: ../pages/network.py:134
 msgid "Connection failed!"
-msgstr "Připojení selhalo!"
+msgstr "Połączenie nie powiodło się!"
 
 #: ../pages/printstart.py:82 ../pages/printstart.py:92
 msgid "Continue?"
-msgstr "Pokračovat?"
+msgstr "Kontynuować?"
 
 #: ../pages/control.py:19
 msgid "Control"
-msgstr "Ovládání"
+msgstr "Sterowanie"
 
 #: ../pages/base.py:440
 msgid "Cooling down"
-msgstr "Probíhá ochlazování"
+msgstr "Chłodzenie"
 
 #: ../libExposure.py:570
 msgid ""
@@ -564,15 +569,17 @@ msgid ""
 "\n"
 "Re-export the file and try again."
 msgstr ""
-"Soubor obsahuje poškozená data. Zkuste jej exportovat znovu a opakujte akci."
+"Wykryto uszkodzone dane.\n"
+"\n"
+"Wyeksportuj plik raz jeszcze i spróbuj ponownie."
 
 #: ../pages/setup.py:135
 msgid "Cover check"
-msgstr "Senzor víka"
+msgstr "Czujnik pokrywy"
 
 #: ../pages/wizard.py:467
 msgid "DO NOT touch the printer"
-msgstr "Nedotýkejte se tiskárny"
+msgstr "NIE DOTYKAJ drukarki"
 
 #: ../pages/logs.py:29
 msgid "Debug"
@@ -580,19 +587,19 @@ msgstr ""
 
 #: ../pages/profiles.py:298 ../pages/profiles.py:366 ../pages/fansleds.py:46
 msgid "Defaults"
-msgstr "Výchozí hodnoty"
+msgstr "Domyślne"
 
 #: ../pages/setup.py:317
 msgid "Delay after expos. [s]"
-msgstr "Prodleva po expozici [s]"
+msgstr "Opóźn. po ekspozycji [s]"
 
 #: ../pages/setup.py:145
 msgid "Delay after stirring [s]"
-msgstr "Prodleva po míchání [s]"
+msgstr "Opóźnienie po mieszaniu [s]"
 
 #: ../pages/setup.py:316
 msgid "Delay before expos. [s]"
-msgstr "Prodleva před expozicí [s]"
+msgstr "Opóźn. przed ekspozycją [s]"
 
 #: ../pages/advancedsettings.py:344
 msgid ""
@@ -601,8 +608,10 @@ msgid ""
 "CAUTION: This may lead to unwanted exposure to UV light. This action is not "
 "recommended!"
 msgstr ""
-"Vypnout senzor zavření krytu? VAROVÁNÍ: Může dojít k nežádoucímu osvitu "
-"resinu ve vaničce (např. slunečním světlem). Tato akce není doporučena!"
+"Wyłączyć czujnik pokrywy?\n"
+"\n"
+"UWAGA: Może to powodować niepożądane narażenie na światło ultrafioletowe. "
+"Nie jest to zalecane!"
 
 #: ../pages/advancedsettings.py:372
 msgid ""
@@ -611,37 +620,37 @@ msgid ""
 "CAUTION: This may lead to failed prints or resin tank overflow! This action "
 "is not recommended!"
 msgstr ""
-"Vypnout senzor resinu?\n"
+"Wyłączyć czujnik poziomu żywicy?\n"
 "\n"
-"VAROVÁNÍ: Tisk se nemusí dokončit, případně může dojít k přelití vaničky! "
-"Tato akce není doporučena!"
+"UWAGA: Może to prowadzić do nieudanych wydruków lub przelania żywicy. Nie "
+"jest to zalecane!"
 
 #: ../pages/admin.py:24 ../pages/display.py:25
 msgid "Display"
-msgstr "Displej"
+msgstr "Wyświetlacz"
 
 #: ../pages/displaytest.py:20 ../pages/advancedsettings.py:302
 #: ../pages/advancedsettings.py:312
 msgid "Display test"
-msgstr "Test displeje"
+msgstr "Test wyświetlacza"
 
 #: ../pages/service.py:35 ../pages/service.py:56
 #, fuzzy
 #| msgid "Display test"
 msgid "Display usage heatmap"
-msgstr "Test displeje"
+msgstr "Test wyświetlacza"
 
 #: ../pages/printstart.py:258 ../pages/tests.py:60
 msgid "Do NOT TOUCH the printer"
-msgstr "Nedotýkejte se tiskárny"
+msgstr "NIE DOTYKAJ drukarki"
 
 #: ../pages/printstart.py:254
 msgid "Do not open the orange cover!"
-msgstr "Neotvírejte oranžový kryt!"
+msgstr "Nie otwieraj pomarańczowej pokrywy!"
 
 #: ../pages/print.py:120
 msgid "Do you really want add the resin to the tank?"
-msgstr "Skutečně chcete přidat resin do vaničky?"
+msgstr "Czy na pewno chcesz dolać żywicy do zbiornika?"
 
 #: ../pages/print.py:136
 msgid ""
@@ -649,11 +658,9 @@ msgid ""
 "\n"
 "It may affect the printed object!"
 msgstr ""
-"Skutečně chcete provést akci Nahoru a dolů?\n"
+"Czy na pewno chcesz podnieść i opuścić platformę?\n"
 "\n"
-"Platforma s tiskem vyjede na krátkou dobu nad hladinu.\n"
-"\n"
-"Na tištěném objektu to může zanechat miniaturní stopu!"
+"Może to wpłynąć ja jakoś drukowanego modelu!"
 
 #: ../pages/calibration.py:694
 msgid ""
@@ -661,16 +668,18 @@ msgid ""
 "\n"
 "Machine will not work without going through it."
 msgstr ""
-"Chcete skutečně zrušit kalibraci?\n"
+"Czy na pewno chcesz przerwać kalibrację?\n"
 "\n"
-"Bez kalibrace nebude přístroj správně tisknout."
+"Urządzenie nie będzie działać bez jej ukończenia."
 
 #: ../pages/factoryreset.py:32
 msgid ""
 "Do you really want to perform the factory reset?\n"
 "\n"
 "All settings will be erased!"
-msgstr "Skutečně chcete provést tovární reset? Všechna data budou ztracena!"
+msgstr ""
+"Czy na pewno chcesz zresetować ustawienia do fabrycznych? Wszystkie Twoje "
+"ustawienia zostaną wymazane!"
 
 #: ../pages/unboxing.py:261
 msgid ""
@@ -679,9 +688,9 @@ msgid ""
 "Press 'Yes' only in case you went through this wizard previously and the "
 "printer is unpacked."
 msgstr ""
-"Chcete skutečně přeskočit průvodce rozbalením? Vyberte \"Ano\" pouze v "
-"případě, že jste tiskárnu sestavovali jako stavebnici nebo jste tohoto "
-"průvodce již jednou dokončili."
+"Czy na pewno chcesz pominąć Asystenta Rozpakowywania? Wybierz 'Tak' jedynie "
+"wtedy, gdy procedura została wcześniej zakończona, a drukarka jest "
+"rozpakowana."
 
 #: ../pages/wizard.py:675
 msgid ""
@@ -689,53 +698,53 @@ msgid ""
 "\n"
 "The machine may not work correctly without finishing this check."
 msgstr ""
-"Chcete skutečně přeskočit průvodce?\n"
+"Czy na pewno chcesz pominąć Asystenta?\n"
 "\n"
-"Přístroj pak nemusí správně fungovat."
+"Urządzenie może nie działać prawidłowo bez jego ukończenia."
 
 #: ../pages/base.py:147
 msgid "Do you really want to turn off the printer?"
-msgstr "Skutečně chcete tiskárnu vypnout?"
+msgstr "Czy na pewno chcesz wyłączyć drukarkę?"
 
 #: ../pages/firmwareupdate.py:117
 msgid "Do you really want to update the firmware?"
-msgstr "Chcete skutečě aktualizovat firmware?"
+msgstr "Czy na pewno chcesz aktualizować firmware?"
 
 #: ../pages/wizard.py:556
 msgid "Do you want to setup a timezone?"
-msgstr "Chcete nastavit časovou zónu?"
+msgstr "Czy chcesz ustawić strefę czasową?"
 
 #: ../pages/profiles.py:419
 msgid "Down fast"
-msgstr "Dolů (rychle)"
+msgstr "W dół szybko"
 
 #: ../pages/profiles.py:418
 msgid "Down slow"
-msgstr "Pomalu dolů"
+msgstr "W dół powoli"
 
 #: ../pages/netupdate.py:35
 msgid "Download examples"
-msgstr "Stáhnout vzorové modely"
+msgstr "Pobierz przykładowe modele"
 
 #: ../pages/firmwareupdate.py:35 ../pages/netupdate.py:39
 msgid "Downloading firmware list"
-msgstr "Stáhnout seznam firmwarů"
+msgstr "Pobieranie listy firmware"
 
 #: ../pages/motioncontroller.py:30
 msgid "Erase MC EEPROM"
-msgstr "Vymazat MC EEPROM"
+msgstr "Wyczyść EEPROM KR"
 
 #: ../pages/motioncontroller.py:65
 msgid "Erasing EEPROM"
-msgstr "Probíhá mazání EEPROM"
+msgstr "Czyszczenie EEPROM"
 
 #: ../pages/error.py:17
 msgid "Error"
-msgstr "Chyba"
+msgstr "Błąd"
 
 #: ../pages/netinfo.py:41
 msgid "Error reading Wi-fi setup!"
-msgstr "Chyba při čtení Wi-fi nastavení!"
+msgstr "Błąd odczytywania ustawień Wi-Fi!"
 
 #: ../libPrinter.py:141
 msgid "Examples (any projects) are missing in the user storage."
@@ -743,7 +752,7 @@ msgstr ""
 
 #: ../pages/netupdate.py:113
 msgid "Examples fetch failed"
-msgstr "Nebylo možné stáhnout vzorové objekty"
+msgstr "Niepowodzenie odczytu modeli przykładowych"
 
 #: ../pages/base.py:473
 msgid ""
@@ -752,52 +761,52 @@ msgid ""
 "If you don't want to continue, please press the Back button on top of the "
 "screen and the actual job will be canceled."
 msgstr ""
-"Během tisku může dojít k přehřívání, ale tisk může pokračovat.\n"
+"Oczekuj przegrzewania, ale możesz kontynuować druk.\n"
 "\n"
-"Pokud si nepřejete pokračovat, stiskněte tlačítko Zpět na horním okraji "
-"obrazovky a tisková úloha bude zrušena."
+"Jeśli nie chcesz kontynuować, to naciśnij przycisk 'Wstecz' na górze ekranu, "
+"aby anulować bieżące zadanie."
 
 #: ../pages/profiles.py:41 ../pages/setup.py:35
 msgid "Export"
-msgstr "Export"
+msgstr "Eksport"
 
 #: ../pages/logs.py:31
 #, fuzzy
 #| msgid "Export"
 msgid "Export to USB"
-msgstr "Export"
+msgstr "Eksport"
 
 #: ../pages/setup.py:303
 msgid "Exposure Setup"
-msgstr "Nastavení expozice"
+msgstr "Ustawienia Naświetlania"
 
 #: ../pages/admin.py:27
 msgid "Exposure setup"
-msgstr "Nastavení expozice"
+msgstr "Ustawienia naświetlania"
 
 #: ../pages/netupdate.py:85
 msgid "Extracting examples"
-msgstr "Extrahování modelů"
+msgstr "Rozpakowywanie przykładowych wydruków"
 
 #: ../pages/display.py:188
 msgid "Factory config was successfully sent."
-msgstr "Tovární konfigurace úspěšně odeslána."
+msgstr "Pomyślnie wysłano konfigurację fabryczną."
 
 #: ../libPrinter.py:135
 #, fuzzy
 #| msgid "Failed to load fans and LEDS factory calibration."
 msgid "Failed to load fans and LEDs factory calibration."
-msgstr "Chyba nahrávání tovární kalibrace ventilátorů a LED."
+msgstr "Niepowodzenie ładowania ustawień fabrycznych dla wentylatorów i LEDów."
 
 #: ../pages/hostname.py:40
 msgid "Failed to set hostname"
-msgstr "Chyba při nastavování hostname"
+msgstr "Niepowodzenie ustawienia nazwy hosta"
 
 #: ../pages/logs.py:54
 #, fuzzy
 #| msgid "Failed to set hostname"
 msgid "Failed to set log level"
-msgstr "Chyba při nastavování hostname"
+msgstr "Niepowodzenie ustawienia nazwy hosta"
 
 #: ../pages/base.py:484
 #, python-format
@@ -808,9 +817,9 @@ msgid ""
 "\n"
 "%(addText)s"
 msgstr ""
-"Chyba: %(what)s\n"
+"Niepowodzenie: %(what)s\n"
 "\n"
-"Prosím kontaktujte technickou podporu!\n"
+"Skontaktuj się ze wsparciem technicznym!\n"
 "\n"
 "%(addText)s"
 
@@ -821,111 +830,112 @@ msgid ""
 "\n"
 "Check if fans are connected properly and can rotate without resistance."
 msgstr ""
-"Chyba: %s\n"
+"Niepowodzenie: %s\n"
 "\n"
-"Zkontrolujte, zda jsou ventilátory správně zapojeny a mohou se volně otáčet."
+"Sprawdź czy wentylatory są prawidłowo podłączone i czy mogą obracać się bez "
+"przeszkód."
 
 #: ../pages/setup.py:134
 msgid "Fan check"
-msgstr "Kontrola ventilátorů"
+msgstr "Test wentylatorów"
 
 #: ../pages/fantest.py:23 ../pages/tests.py:25
 msgid "Fan test"
-msgstr "Test větráků"
+msgstr "Test wentylatorów"
 
 #: ../pages/admin.py:25 ../pages/fansleds.py:19
 msgid "Fans & UV LED"
-msgstr "Ventilátory a UV LED"
+msgstr "Wentylatory & UV LED"
 
 #: ../pages/printstart.py:170
 msgid "Fans OK"
-msgstr "Ventilátory OK"
+msgstr "Wentylatory OK"
 
 #: ../pages/fantest.py:37
 msgid "Fans check"
-msgstr "Kontrola větráků"
+msgstr "Test wentylatorów"
 
 #: ../pages/calibration.py:573
 #, python-format
 msgid "Fast move %(count)d/%(total)d"
-msgstr "Rychlý pohyb %(count)d/%(total)d"
+msgstr "Szybki ruch %(count)d/%(total)d"
 
 #: ../pages/feedme.py:18
 msgid "Feed me"
-msgstr "Došla šťáva"
+msgstr "Napełnij mnie"
 
 #: ../pages/netupdate.py:77
 msgid "Fetching examples"
-msgstr "Stahuji modely"
+msgstr "Pobieranie przykładowych modeli"
 
 #: ../pages/firmwareupdate.py:124
 msgid "Fetching firmware"
-msgstr "Stahování firmware"
+msgstr "Pobieranie firmware"
 
 #: ../pages/finished.py:23
 msgid "Finished"
-msgstr "Dokončeno"
+msgstr "Zakończono"
 
 #: ../pages/firmwareupdate.py:26
 msgid "Firmware Update"
-msgstr "Aktualizace firmware"
+msgstr "Aktualizacja Firmware"
 
 #: ../pages/firmwareupdate.py:135
 msgid "Firmware fetch failed!"
-msgstr "Stahování firmwaru bylo přerušeno!"
+msgstr "Niepowodzenie pobierania firmware!"
 
 #: ../pages/motioncontroller.py:29
 msgid "Flash MC"
-msgstr "Flash MC"
+msgstr "Flash KR"
 
 #: ../pages/motioncontroller.py:48
 msgid "Forced update of the motion controller firmware"
-msgstr "Vynucená aktualizace firmwaru MC"
+msgstr "Wymuszona aktualizacja firmware kontrolera ruchu"
 
 #: ../libExposure.py:183
 msgid "Going back"
-msgstr "Návrat zpět"
+msgstr "Powrót"
 
 #: ../libExposure.py:155
 msgid "Going to the top position"
-msgstr "Posun do horní pozice"
+msgstr "Powrót na górę"
 
 #: ../pages/display.py:36
 msgid "Grid 16"
-msgstr "Mřížka 16"
+msgstr "Kratka 16"
 
 #: ../pages/display.py:35
 msgid "Grid 8"
-msgstr "Mřížka 8"
+msgstr "Kratka 8"
 
 #: ../pages/setup.py:128
 msgid "Hardware Setup"
-msgstr "Konfigurace hardwaru"
+msgstr "Ustawienia Sprzętowe"
 
 #: ../pages/admin.py:26
 msgid "Hardware setup"
-msgstr "Konfigurace hardwaru"
+msgstr "Ustawienia sprzętowe"
 
 #: ../pages/home.py:18
 msgid "Home"
-msgstr "Domů"
+msgstr "Strona główna"
 
 #: ../pages/base.py:179
 msgid ""
 "If the cover is closed, please check the connection of the cover switch."
-msgstr "Pokud je kryt zavřený, zkontrolujte zapojení senzoru krytu."
+msgstr "Jeśli pokrywa jest zamknięta, to sprawdź połączenie czujnika pokrywy."
 
 #: ../pages/calibration.py:31
 msgid ""
 "If the platform is not yet inserted, insert it according to the picture at "
 "0° angle and secure it with the black knob."
 msgstr ""
-"Pokud ještě není platforma vložena, vložte ji nyní dle obrázku a zajistěte "
-"ji černým utahovacím šroubem."
+"Jeśli platforma nie jest jeszcze zamontowana, to umieść ją na miejscu "
+"zgodnie z ilustracją (pod kątem 0°) i przymocuj używając czarnego pokrętła."
 
 #: ../pages/media.py:51
 msgid "Image"
-msgstr "Obrázek"
+msgstr "Obraz"
 
 #: ../pages/profiles.py:42 ../pages/setup.py:36
 msgid "Import"
@@ -937,30 +947,30 @@ msgid ""
 "contact with the resin tank. The tilt frame and tank have to be aligned in a "
 "perfect line."
 msgstr ""
-"V dalším kroku je potřeba pomocí tlačítek na displeji pohybovat osvitovým "
-"displejem nahoru a dolů, dokud nebude perfektně zarovnaný se dnem vaničky - "
-"vanička se nesmí nadzvednout."
+"W następnym etapie poruszaj mechanizmem przechylania w górę i w dół, aby "
+"jego ramka była w bezpośrednim kontakcie ze zbiornikiem. Ramka mechanizmu "
+"przechylania i zbiornik powinny być ze sobą idealnie wyrównane."
 
 #: ../pages/infinitetest.py:22 ../pages/infinitetest.py:48
 #: ../pages/display.py:45
 msgid "Infinite test"
-msgstr "Nekonečný test"
+msgstr "Test nieskończony"
 
 #: ../pages/factoryreset.py:124
 msgid "Insert protective foam"
-msgstr "Vložte ochrannou pěnovou destičku"
+msgstr "Włóż piankę zabezpieczającą"
 
 #: ../pages/wizard.py:445
 msgid ""
 "Insert the platform at a 60-degree angle, exactly like in the picture. The "
 "platform must hit the edges of the tank on its way down."
 msgstr ""
-"Vložte platformu pod úhlem 60° přesně jako na ilustraci. Při posuvu dolů se "
-"musí platforma dotknout krajů nádržky."
+"Umieść platformę pod kątem 60 stopni, dokładnie tak, jak jest to pokazane na "
+"ilustracji. Platforma poruszając się w dół musi dotknąć krawędzi zbiornika."
 
 #: ../pages/display.py:42
 msgid "Inverse"
-msgstr "Invertovat"
+msgstr "Odwrotność"
 
 #: ../pages/tests.py:36
 msgid ""
@@ -968,29 +978,29 @@ msgid ""
 "\n"
 "Is the tank secured with both screws?"
 msgstr ""
-"Je ve vaničce správné množství resinu?\n"
+"Czy w zbiorniku znajduje się odpowiednia ilość żywicy?\n"
 "\n"
-"Je vanička upevněna oběma šrouby?"
+"Czy zbiornik jest przykręcony obydwiema śrubami?"
 
 #: ../pages/infinitetest.py:29
 msgid ""
 "It is strongly recommended to NOT run this test.This is infinite routine "
 "which tests durability of expostition display and printers mechanical parts."
 msgstr ""
-"Důrazně doporučujeme tento test NESPOUŠTĚT! Jedná se o nekonečný test výdrže "
-"expozičního displeje a mechanických částí tiskárny."
+"Zdecydowanie zalecamy NIE URUCHAMIANIE tego testu. Jest to niekończąca się "
+"procedura sprawdzająca trwałość wyświetlacza i części mechanicznych drukarki."
 
 #: ../pages/base.py:527
 msgid "Job will be canceled after layer finish"
-msgstr "Tisková úloha bude zrušena po dokončení vrstvy"
+msgstr "Zadanie zostanie przerwane po zakończeniu warstwy"
 
 #: ../pages/setup.py:315
 msgid "Layer tower hop [mm]"
-msgstr "Posun věže po vrstvě [mm]"
+msgstr "Podniesienie kolumny na warstwie [mm]"
 
 #: ../pages/setup.py:314
 msgid "Layer trigger [s]"
-msgstr "Spoušť vrstvy [s]"
+msgstr "Wyzwalacz warstwy [s]"
 
 #: ../pages/service.py:33
 #, python-format
@@ -1005,23 +1015,23 @@ msgid ""
 "\n"
 "DO NOT remove the USB drive!"
 msgstr ""
-"Nahrávání projektu do interní paměti selhalo.\n"
+"Niepowodzenie wczytywania pliku do pamięci drukarki.\n"
 "\n"
-"Projekt se bude tisknout z USB disku.\n"
+"Projekt zostanie wydrukowany z pamięci USB.\n"
 "\n"
-"Neodstraňujte USB disk!"
+"NIE WYCIĄGAJ nośnika USB!"
 
 #: ../pages/admin.py:34 ../pages/logs.py:20
 msgid "Logging"
-msgstr "Logování"
+msgstr "Logi"
 
 #: ../pages/setlogincredentials.py:18
 msgid "Login Credentials"
-msgstr "Přihlašovací údaje"
+msgstr "Dane Logowania"
 
 #: ../pages/wizard.py:254
 msgid "Loosen the black knob and remove the platform."
-msgstr "Povolte černý šroub a odstraňte tiskovou platformu."
+msgstr "Poluzuj czarne pokrętło i wyciągnij platformę."
 
 #: ../pages/calibration.py:85
 msgid ""
@@ -1031,19 +1041,19 @@ msgid ""
 "Some SL1 printers may have two screws - see the handbook for more "
 "information."
 msgstr ""
-"Povolte šroubek na konzoli šestihranným klíčem - nesmí ale ze závitu "
-"vypadnout.\n"
+"Poluzuj małą śrubę na wsporniku przy użyciu klucza inbusowego. Uważaj, aby "
+"nie wykręcić jej całkowicie.\n"
 "\n"
-"Některé SL1 3D tiskárny mají šroubky dva - povolte oba. V návodu naleznete "
-"dodatečné informace."
+"Niektóre z wersji drukarki SL1 mają dwie śruby - zajrzyj do Podręcznika po "
+"więcej informacji."
 
 #: ../pages/setup.py:148
 msgid "MC board version"
-msgstr "Verze MC desky"
+msgstr "Wersja płyty KR"
 
 #: ../pages/setup.py:136
 msgid "MC version check"
-msgstr "Kontrola verze MC"
+msgstr "Sprawdzenie wersji KR"
 
 #: ../pages/motioncontroller.py:31
 msgid "MC2Net (bootloader)"
@@ -1055,7 +1065,8 @@ msgstr "MC2Net (firmware)"
 
 #: ../pages/fantest.py:30
 msgid "Make sure all fan air vens are clean and not covered up."
-msgstr "Ujistěte se, že výdechy větráků jsou čisté a nezakryté."
+msgstr ""
+"Upewnij się, że wloty i wyloty wentylatorów są czyste i wolne od przeszkód."
 
 #: ../pages/calibration.py:290
 msgid ""
@@ -1063,100 +1074,100 @@ msgid ""
 "\n"
 "The image is for illustation only."
 msgstr ""
-"Ujistěte se, že jsou tisková platforma, vanička i osvitový displej perfektně "
-"čisté.\n"
+"Upewnij się, że platforma, zbiornik i mechanizm przechylania są IDEALNIE "
+"czyste.\n"
 "\n"
-"Obrázek slouží pouze pro ilustraci."
+"Ilustracja służy tylko jako przykład."
 
 #: ../pages/manual.py:18
 msgid "Manual"
-msgstr "Manuál"
+msgstr "Instrukcja"
 
 #: ../libExposure.py:322
 msgid "Manual resin refill"
-msgstr "Ruční doplnění resinu"
+msgstr "Ręczne uzupełnienie żywicy"
 
 #: ../pages/display.py:37
 msgid "Maze"
-msgstr "Bludiště"
+msgstr "Labirynt"
 
 #: ../pages/printstart.py:292
 #, python-format
 msgid "Measured resin volume is approx. %d %%"
-msgstr "Naměřené množství resinu je cca %d %%"
+msgstr "Zmierzona ilość żywicy to ok. %d %%"
 
 #: ../pages/tests.py:73
 #, python-format
 msgid "Measured resin volume: %d ml"
-msgstr "Naměřené množství resinu: %d ml"
+msgstr "Zmierzona objętość żywicy: %d ml"
 
 #: ../pages/tests.py:60
 msgid "Measuring"
-msgstr "Měření"
+msgstr "Pomiar"
 
 #: ../pages/setup.py:143
 msgid "Measuring moves count"
-msgstr "Počet měřících pohybů"
+msgstr "Pomiar licznika ruchów"
 
 #: ../pages/printstart.py:258
 msgid "Measuring resin volume"
-msgstr "Měření množství resinu"
+msgstr "Pomiar objętości żywicy"
 
 #: ../pages/calibration.py:528
 msgid "Measuring tilt times"
-msgstr "Měřím časy náklonu"
+msgstr "Pomiar czasów przechylania"
 
 #: ../pages/admin.py:29 ../pages/motioncontroller.py:23
 #, fuzzy
 #| msgid "Motion controller update has failed!"
 msgid "Motion Controller"
-msgstr "Aktualizace motion controlleru se nezdařila!"
+msgstr "Niepowodzenie aktualizacji Kontrolera Ruchu!"
 
 #: ../pages/printstart.py:325
 msgid "Moving platform down"
-msgstr "Platforma jede dolů"
+msgstr "Opuszczanie platformy"
 
 #: ../libExposure.py:449 ../pages/control.py:24 ../pages/tests.py:45
 #: ../pages/tilttower.py:107 ../pages/tilttower.py:122
 msgid "Moving platform to the top"
-msgstr "Přesun platformy do nejvyšší pozice"
+msgstr "Podnoszenie platformy do szczytu"
 
 #: ../pages/tilttower.py:128
 msgid "Moving platform to zero"
-msgstr "Přesouvání platformy na výchozí pozici"
+msgstr "Ustawianie platformy w punkcie zero"
 
 #: ../pages/printstart.py:277 ../pages/printstart.py:332
 msgid "Moving platform up"
-msgstr "Přesun platformy do horní pozice"
+msgstr "Podnoszenie platformy"
 
 #: ../pages/printstart.py:321
 msgid "Moving tank down"
-msgstr "Vanička jede dolů"
+msgstr "Opuszczanie zbiornika"
 
 #: ../pages/setup.py:139
 msgid "Mute (no beeps)"
-msgstr "Tichý (bez výstrah)"
+msgstr "Wyciszony (brak pikania)"
 
 #: ../pages/netupdate.py:27
 msgid "Net Update"
-msgstr "Síťová aktualizace"
+msgstr "Aktualizacja po Sieci"
 
 #: ../pages/admin.py:33
 msgid "Net update"
-msgstr "Aktualizace přes internet"
+msgstr "Aktualizacja po sieci"
 
 #: ../pages/network.py:21
 msgid "Network"
-msgstr "Síť"
+msgstr "Sieć"
 
 #: ../pages/netinfo.py:19
 msgid "Network Information"
-msgstr "Informace o síti"
+msgstr "Informacje o Sieci"
 
 #: ../pages/base.py:197 ../pages/profiles.py:87 ../pages/profiles.py:111
 #: ../pages/setup.py:48 ../pages/setup.py:70 ../pages/display.py:84
 msgid "No USB storage present"
-msgstr "USB disk nenalezen"
+msgstr "Brak nośnika USB"
 
 #: ../pages/uvcalibration.py:53
 msgid "No calibration data to show!"
@@ -1169,15 +1180,15 @@ msgstr ""
 #: ../pages/sourceselect.py:268 ../pages/netinfo.py:54
 #: ../pages/motioncontroller.py:95
 msgid "Not connected to network"
-msgstr "Síť odpojena"
+msgstr "Nie połączono z siecią"
 
 #: ../libConfig.py:1062
 msgid "Not enough layers."
-msgstr "Nedostatečné množství vrstev."
+msgstr "Niewystarczająca ilość warstw."
 
 #: ../pages/setlogincredentials.py:42
 msgid "Octoprint API key change failed"
-msgstr "Selhala změna Octoprint API klíče"
+msgstr "Niepowodzenie zmiany klucza API OctoPrint"
 
 #: ../pages/uvcalibration.py:236
 #, python-format
@@ -1191,25 +1202,25 @@ msgstr ""
 
 #: ../libExposure.py:171
 msgid "Paused"
-msgstr "Pozastaveno"
+msgstr "Pauza"
 
 #: ../pages/setup.py:310
 msgid "Per-Partes expos."
-msgstr "Per-Partes expos."
+msgstr ""
 
 #: ../pages/calibration.py:390
 msgid "Platform calibration"
-msgstr "Kalibrace platformy"
+msgstr "Kalibracja platformy"
 
 #: ../pages/wizard.py:265 ../pages/wizard.py:377 ../pages/wizard.py:456
 #: ../pages/advancedsettings.py:314 ../pages/calibration.py:380
 msgid "Please close the orange lid."
-msgstr "Zavřete oranžové víko."
+msgstr "Zamknij pomarańczową pokrywę."
 
 #: ../pages/printstart.py:231
 #, python-format
 msgid "Please fill the resin tank to at least %d %% and close the cover."
-msgstr "Doplňte resin do vaničky na hodnotu alespoň %d %% a zavřete kryt."
+msgstr "Uzupełnij żywicę do poziomu co najmniej %d %% i zamknij pokrywę."
 
 #: ../pages/printstart.py:235
 msgid ""
@@ -1217,34 +1228,36 @@ msgid ""
 "\n"
 "Resin will have to be added during this print job."
 msgstr ""
-"Nalijte resin do vaničky až k rysce 100 % a zavřete kryt.\n"
+"Uzupełnij żywicę do znacznika 100% i zamknij pokrywę.\n"
 "\n"
-"Během tisku bude třeba doplnit resin."
+"Podczas tego wydruku będzie koniecznie dolanie żywicy."
 
 #: ../pages/unboxing.py:40
 msgid "Please remove the safety sticker and open the orange cover."
-msgstr "Sundejte ochranou nálepku z krytu a kryt otevřete."
+msgstr "Odklej naklejkę zabezpieczającą i otwórz pomarańczową pokrywę."
 
 #: ../pages/unboxing.py:28
 msgid ""
 "Please remove the safety sticker on the right and open the orange cover."
-msgstr "Odstraňte oranžovou nálepku na pravé straně a otevřete oranžové víko."
+msgstr ""
+"Odklej naklejkę zabezpieczającą z prawej strony i otwórz pomarańczową "
+"pokrywę."
 
 #: ../pages/wizard.py:244 ../pages/advancedsettings.py:304
 msgid "Please unscrew and remove the resin tank."
-msgstr "Odšroubujte a odstraňte nádržku."
+msgstr "Odkręć i wyciągnij zbiornik na żywicę."
 
 #: ../pages/uvcalibration.py:376 ../pages/wait.py:15
 msgid "Please wait"
-msgstr "Chvilku strpení"
+msgstr "Proszę czekać"
 
 #: ../pages/setup.py:146
 msgid "Power LED intensity"
-msgstr "Intenzita stavové LED"
+msgstr "Intensywność LED włącznika"
 
 #: ../pages/print.py:21
 msgid "Print"
-msgstr "Tisk"
+msgstr "Druk"
 
 #: ../libExposure.py:475
 msgid ""
@@ -1259,22 +1272,26 @@ msgstr ""
 
 #: ../pages/factoryreset.py:101 ../pages/factoryreset.py:130
 msgid "Printer is being set to packing positions"
-msgstr "Tiskárna se nastavuje do režimu balení"
+msgstr "Ustawianie drukarki do pakowania"
 
 #: ../libPrinter.py:162 ../pages/home.py:57
 msgid ""
 "Printer is not calibrated!\n"
 "\n"
 "Calibrate now?"
-msgstr "Tiskárna není zkalibrovaná. Zahájit kalibraci?"
+msgstr ""
+"Drukarka nie jest skalibrowana!\n"
+"\n"
+"Uruchomić kalibrację?"
 
 #: ../libExposure.py:167
 #, python-format
 msgid "Printing will continue in %d second"
 msgid_plural "Printing will continue in %d seconds"
-msgstr[0] "Tisk bude pokračovat za %d sekundu"
-msgstr[1] "Tisk bude pokračovat za %d sekundy"
-msgstr[2] "Tisk bude pokračovat za %d sekund"
+msgstr[0] "Druk zostanie wznowiony za %d s"
+msgstr[1] "Druk zostanie wznowiony za %d s"
+msgstr[2] "Druk zostanie wznowiony za %d s"
+msgstr[3] "Druk zostanie wznowiony za %d s"
 
 #: ../pages/printstart.py:56
 msgid "Project"
@@ -1282,11 +1299,11 @@ msgstr "Projekt"
 
 #: ../pages/printstart.py:129
 msgid "Project data OK"
-msgstr "Projekt OK"
+msgstr "Dane projektu OK"
 
 #: ../libConfig.py:1025
 msgid "Project file not found."
-msgstr "Soubor s projektem nenalezen."
+msgstr "Nie znaleziono pliku projektu."
 
 #: ../pages/sourceselect.py:118
 msgid "Projects"
@@ -1300,11 +1317,11 @@ msgstr "Projekty"
 
 #: ../pages/display.py:40
 msgid "Prusa logo"
-msgstr "Prusa Logo"
+msgstr "Logo Prusa"
 
 #: ../pages/qrcode.py:17
 msgid "QR Code"
-msgstr "QR kód"
+msgstr "Kod QR"
 
 #: ../pages/fantest.py:84
 #, python-format
@@ -1315,15 +1332,15 @@ msgid ""
 "\n"
 "RPM data: %(rpm)s avg: %(avg)d"
 msgstr ""
-"Otáčky %(fan)s neodpovídají rozsahu!\n"
+"Prędkość obrotowa %(fan)s poza zakresem!\n"
 "\n"
-"Zkontrolujte zapojení tohoto větráku.\n"
+"Sprawdź, czy wentylator jest prawidłowo podłączony.\n"
 "\n"
-"Naměřené otáčky: %(rpm)s, prům: %(avg)d"
+"Dane prędkości obrotowej: %(rpm)s średnio: %(avg)d"
 
 #: ../pages/tests.py:27
 msgid "Raise exception"
-msgstr "Vyvolání výjimky"
+msgstr "Rzuć wyjątek"
 
 #: ../pages/base.py:426
 #, python-format
@@ -1336,41 +1353,43 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Chyba při načítání teploty UV LED!\n"
+"Niepowodzenie odczytu temperatury UV LED!\n"
 "\n"
-"Tato hodnota je nezbytná pro bezpečnost tiskárny a životnost LED.\n"
+"Jest on konieczny do zapewnienia długiego działania panelu UV LED i "
+"bezpieczeństwa drukarki.\n"
 "\n"
-"Kontaktujte technickou podporu!\n"
+"Skontaktuj się ze wsparciem technicznym!\n"
 "\n"
 "%s"
 
 #: ../pages/base.py:533
 msgid "Reading project data"
-msgstr "Načítám data projektu"
+msgstr "Odczyt danych projektu"
 
 #: ../pages/fansleds.py:33
 msgid "Rear fan"
-msgstr "Zadní ventilátor"
+msgstr "Tylny wentylator"
 
 #: ../pages/fansleds.py:39
 msgid "Rear fan RPM"
-msgstr "Otáčky zadního větráku"
+msgstr "Prędkość obrotowa tylnego wentylatora"
 
 #: ../pages/factoryreset.py:40
 msgid "Relax... You've been erased."
-msgstr "Klídek... smazali jsme vás :)"
+msgstr "Spokojnie... Zostaliście skasowani."
 
 #: ../pages/uvcalibration.py:324 ../pages/fantest.py:58 ../pages/wizard.py:315
 #, python-format
 msgid "Remaining %d second"
 msgid_plural "Remaining %d seconds"
-msgstr[0] "Zbývá %d sekunda"
-msgstr[1] "Zbývají %d sekundy"
-msgstr[2] "Zbývá %d sekund"
+msgstr[0] "Pozostała: %d s"
+msgstr[1] "Pozostało: %d s"
+msgstr[2] "Pozostało: %d s"
+msgstr[3] "Pozostało: %d s"
 
 #: ../pages/unboxing.py:89
 msgid "Remove the black foam from both sides of the platform."
-msgstr "Sundejte ochranný materiál z obou stran tiskové platformy."
+msgstr "Wyciągnij czarną piankę z obydwóch stron platformy."
 
 #: ../pages/uvcalibration.py:300
 msgid ""
@@ -1397,9 +1416,10 @@ msgstr ""
 #| "Change the values and try again."
 msgid "Requested intensity cannot be reached by max. allowed PWM"
 msgstr ""
-"Požadované intenzity nelze dosáhnout max. povoleným PWM (slabá UV LED?)\n"
+"Zadana intensywność nie może być osiągnięta przez max. dozwoloną wartość PWM "
+"(słaby UV LED?)\n"
 "\n"
-"Změňte hodnoty a opakujte akci."
+"Zmień wartości i spróbuj ponownie."
 
 #: ../pages/uvcalibration.py:453
 #, fuzzy
@@ -1410,18 +1430,18 @@ msgstr ""
 #| "Change the values and try again."
 msgid "Requested intensity cannot be reached by min. allowed PWM"
 msgstr ""
-"Požadovanou intenzitu nelze změřit při min. povolené hodnotě PWM (zaseklý UV "
-"měřák?)\n"
+"Zadana intensywność nie może być osiągnięta przez min. dozwoloną wartość PWM "
+"(zacięty miernik UV LED?)\n"
 "\n"
-"Změňte hodnoty a opakujte akci."
+"Zmień wartości i spróbuj ponownie."
 
 #: ../pages/fansleds.py:126
 msgid "Reset to factory defaults?"
-msgstr "Resetovat do továrního nastavení?"
+msgstr "Przywrócić ustawienia fabryczne?"
 
 #: ../libExposure.py:319
 msgid "Resin level low!"
-msgstr "Málo resinu ve vaničce!"
+msgstr "Niski poziom żywicy!"
 
 #: ../pages/printstart.py:263 ../pages/tests.py:65
 msgid ""
@@ -1431,15 +1451,15 @@ msgid ""
 "\n"
 "Is the tank secured with both screws?"
 msgstr ""
-"Chyba při měření množství resinu!\n"
+"Niepowodzenie pomiaru poziomu żywicy!\n"
 "\n"
-"Je ve vaničce dostatečné množství?\n"
+"Czy w zbiorniku jest odpowiednia ilość żywicy?\n"
 "\n"
-"Je vanička upevněná oběma šrouby?"
+"Czy zbiornik jest przykręcony obydwiema śrubami?"
 
 #: ../pages/wizard.py:466
 msgid "Resin sensor check"
-msgstr "Kontrola senzoru resinu"
+msgstr "Test czujnika poziomu żywicy"
 
 #: ../pages/wizard.py:475
 #, python-format
@@ -1451,19 +1471,20 @@ msgid ""
 "\n"
 "Measured %d ml."
 msgstr ""
-"Senzor hladiny resinu nefunguje!\n"
+"Czujnik poziomu żywicy nie działa!\n"
 "\n"
-"Zkontrolujte, zda je nádržka dobře přišroubovaná a senzor správně zapojen.\n"
+"Sprawdź czy czujnik jest prawidłowo podłączony i czy zbiornik jest "
+"przykręcony obydwiema śrubami. \n"
 "\n"
-"Naměřeno %d ml."
+"Zmierzono %d ml."
 
 #: ../pages/tests.py:24
 msgid "Resin sensor test"
-msgstr "Test senzoru hladiny resinu"
+msgstr "Test czujnika poziomu żywicy"
 
 #: ../pages/printstart.py:346
 msgid "Resin stirring"
-msgstr "Míchání resinu"
+msgstr "Mieszanie żywicy"
 
 #: ../pages/printstart.py:270
 msgid ""
@@ -1471,9 +1492,9 @@ msgid ""
 "\n"
 "Remove some resin from the tank and try again."
 msgstr ""
-"Příliš mnoho resinu.\n"
+"Zbyt wysoki poziom żywicy!\n"
 "\n"
-"Odstraňte přebytečný resin z vaničky a opakujte akci."
+"Zmniejsz jej ilość i spróbuj ponownie."
 
 #: ../pages/printstart.py:267
 #, python-format
@@ -1482,61 +1503,62 @@ msgid ""
 "\n"
 "Add enough resin so it reaches at least the %d %% mark and try again."
 msgstr ""
-"Příliš málo resinu!\n"
+"Zbyt niski poziom żywicy!\n"
 "\n"
-"Přidejte resin, aby dosahoval alespoň na %d %% a opakujte akci."
+"Dodaj żywicy, aby osiągnęła znacznik %d %% i spróbuj ponownie."
 
 #: ../pages/printstart.py:306
 msgid "Resin volume measurement is turned off"
-msgstr "Senzor hladiny resinu je vypnutý"
+msgstr "Pomiar poziomu żywicy jest wyłączony"
 
 #: ../pages/calibration.py:327
 msgid ""
 "Return the tank to the original position and secure it with tank screws. "
 "Make sure you tighten both screws evenly and with the same amount of force."
 msgstr ""
-"Vraťte vaničku do původní pozice a zajistěte ji dvěma šrouby. Utahujte je "
-"rovnoměrně a stejnou silou."
+"Ustaw zbiornik z powrotem w wyjściowej pozycji i przykręć przy pomocy śrub "
+"zbiornika. Upewnij się, że obydwie śruby są dokręcane równomiernie i z tą "
+"samą siłą."
 
 #: ../libDebug.py:43 ../libWebDisplay.py:70
 msgid "SERVER ERROR!"
-msgstr "CHYBA SERVERU!"
+msgstr "BŁĄD SERWERA!"
 
 #: ../pages/profiles.py:43 ../pages/setup.py:37 ../pages/fansleds.py:47
 msgid "Save"
-msgstr "Uložit"
+msgstr "Zapis"
 
 #: ../pages/advancedsettings.py:434 ../pages/advancedsettings.py:435
 msgid "Save changes?"
-msgstr "Uložit změny?"
+msgstr "Zapisać zmiany?"
 
 #: ../pages/fansleds.py:105
 msgid "Save current values as factory defaults?"
-msgstr "Uložit současné hodnoty jako tovární nastavení?"
+msgstr "Zapisać aktualne wartości jako ustawienia fabryczne?"
 
 #: ../pages/fansleds.py:45
 msgid "Save defaults"
-msgstr "Uložit výchozí hodnoty"
+msgstr "Zapis domyślnych"
 
 #: ../pages/logs.py:32
 #, fuzzy
 #| msgid "Settings"
 msgid "Save settings"
-msgstr "Nastavení"
+msgstr "Ustawienia"
 
 #: ../pages/base.py:191
 msgid "Saving logs"
-msgstr "Ukládání logů"
+msgstr "Zapisywanie logów"
 
 #: ../actions.py:44
 #, fuzzy
 #| msgid "Saving logs"
 msgid "Saving logs failed"
-msgstr "Ukládání logů"
+msgstr "Zapisywanie logów"
 
 #: ../pages/setup.py:141
 msgid "Screw (mm/rot)"
-msgstr "Šroub (mm/rot)"
+msgstr "Śruba (mm/obr)"
 
 #: ../pages/wizard.py:365
 msgid ""
@@ -1544,9 +1566,9 @@ msgid ""
 "\n"
 "Make sure the tank is empty and clean."
 msgstr ""
-"Upevněte vaničku na resin pomocí dvou šroubů.\n"
+"Przymocuj zbiornik przy pomocy śrub.\n"
 "\n"
-"Ujistěte se, že je vanička čistá a prázdná."
+"Upewnij się, że zbiornik jest pusty i czysty."
 
 #: ../pages/wizard.py:638
 msgid ""
@@ -1554,13 +1576,13 @@ msgid ""
 "\n"
 "Continue to calibration?"
 msgstr ""
-"Selftest OK. \n"
+"Selftest OK.\n"
 "\n"
-"Pokračovat s kalibrací?"
+"Przejść do kalibracji?"
 
 #: ../pages/display.py:47
 msgid "Send factory config"
-msgstr "Zaslat tovární konfiguraci"
+msgstr "Wyślij konfigurację fabryczną"
 
 #: ../pages/wizard.py:86
 #, python-format
@@ -1571,12 +1593,11 @@ msgid ""
 "MC: %(mc)s\n"
 "Please contact tech support!"
 msgstr ""
-"Sériová čísla ve špatném formátu!\n"
+"Nieprawidłowy format numerów seryjnych!\n"
 "\n"
 "A64: %(a64)s\n"
-"MC: %(mc)s\n"
-"\n"
-"Kontaktujte technickou podporu!"
+"KR: %(mc)s\n"
+"Skontaktuj się ze wsparciem technicznym!"
 
 #: ../pages/admin.py:31 ../pages/service.py:22
 msgid "Service"
@@ -1584,118 +1605,118 @@ msgstr ""
 
 #: ../pages/timedate.py:133
 msgid "Set Date"
-msgstr "Nastavit datum"
+msgstr "Ustaw Datę"
 
 #: ../pages/hostname.py:17
 msgid "Set Hostname"
-msgstr "Nastavit síťové jméno"
+msgstr "Ustaw Nazwę Hosta"
 
 #: ../pages/language.py:19
 msgid "Set Language"
-msgstr "Nastavit jazyk"
+msgstr "Ustaw Język"
 
 #: ../pages/timedate.py:120
 msgid "Set Time"
-msgstr "Nastavit čas"
+msgstr "Ustaw Czas"
 
 #: ../pages/timedate.py:147
 msgid "Set Timezone"
-msgstr "Nastavit časovou zónu"
+msgstr "Ustaw strefę czasową"
 
 #: ../pages/network.py:109 ../pages/network.py:140
 msgid "Setting interface parameters"
-msgstr "Nastavování parametrů rozhraní"
+msgstr "Ustawienie parametrów interfejsu"
 
 #: ../pages/calibration.py:128
 msgid "Setting start position"
-msgstr "Nastavuji startovní pozici"
+msgstr "Ustawienie pozycji startowej"
 
 #: ../libExposure.py:242
 msgid "Setting start positions"
-msgstr "Nastavování startovacích pozic"
+msgstr "Ustawienie pozycji startowych"
 
 #: ../pages/uvcalibration.py:196 ../pages/printstart.py:107
 msgid "Setting start positions..."
-msgstr "Nastavuji startovní pozice..."
+msgstr "Ustawianie pozycji startowych..."
 
 #: ../pages/settings.py:19
 msgid "Settings"
-msgstr "Nastavení"
+msgstr "Ustawienia"
 
 #: ../pages/wizard.py:632
 msgid "Setup wizard done"
-msgstr "Konfigurace dokončena"
+msgstr "Asystent Konfiguracji zakończony"
 
 #: ../pages/wizard.py:67
 msgid "Setup wizard step 1/10"
-msgstr "Průvodce - krok 1/10"
+msgstr "Asystent konfiguracji krok 1/10"
 
 #: ../pages/wizard.py:590
 msgid "Setup wizard step 10/10"
-msgstr "Průvodce - krok 10/10"
+msgstr "Asystent konfiguracji krok 10/10"
 
 #: ../pages/wizard.py:237
 msgid "Setup wizard step 2/10"
-msgstr "Průvodce - krok 2/10"
+msgstr "Asystent konfiguracji krok /210"
 
 #: ../pages/wizard.py:252
 msgid "Setup wizard step 3/10"
-msgstr "Průvodce - krok 3/10"
+msgstr "Asystent konfiguracji krok 3/10"
 
 #: ../pages/wizard.py:263
 msgid "Setup wizard step 4/10"
-msgstr "Průvodce - krok 4/10"
+msgstr "Asystent konfiguracji krok 4/10"
 
 #: ../pages/wizard.py:358
 msgid "Setup wizard step 5/10"
-msgstr "Průvodce - krok 5/10"
+msgstr "Asystent konfiguracji krok 5/10"
 
 #: ../pages/wizard.py:375
 msgid "Setup wizard step 6/10"
-msgstr "Průvodce - krok 6/10"
+msgstr "Asystent konfiguracji krok 6/10"
 
 #: ../pages/wizard.py:438
 msgid "Setup wizard step 7/10"
-msgstr "Průvodce - krok 7/10"
+msgstr "Asystent konfiguracji krok 7/10"
 
 #: ../pages/wizard.py:454
 msgid "Setup wizard step 8/10"
-msgstr "Průvodce - krok 8/10"
+msgstr "Asystent konfiguracji krok 8/10"
 
 #: ../pages/wizard.py:550
 msgid "Setup wizard step 9/10"
-msgstr "Průvodce - krok 9/10"
+msgstr "Asystent konfiguracji krok 9/10"
 
 #: ../pages/display.py:48
 #, fuzzy
 #| msgid "UV calibration"
 msgid "Show UV calib. data"
-msgstr "Kalibrace UV"
+msgstr "Kalibracja UV"
 
 #: ../pages/firmwareupdate.py:169
 msgid "Shutting down"
-msgstr "Vypínání"
+msgstr "Wyłączanie"
 
 #: ../pages/unboxing.py:254
 msgid "Skip unboxing?"
-msgstr "Přeskočit rozbalování?"
+msgstr "Pominąć rozpakowywanie?"
 
 #: ../pages/wizard.py:668
 msgid "Skip wizard?"
-msgstr "Přeskočit průvodce?"
+msgstr "Pominąć Asystenta?"
 
 #: ../pages/calibration.py:573
 #, python-format
 msgid "Slow move %(count)d/%(total)d"
-msgstr "Pomalé pohyby %(count)d/(%(total)d"
+msgstr "Powolny ruch %(count)d/%(total)d"
 
 #: ../pages/wizard.py:613
 msgid ""
 "Speaker not working.\n"
 "Please check propper connection and wiring of the speaker."
 msgstr ""
-"Reproduktor nefunguje.\n"
-"Zkontrolujte jeho zapojení."
+"Głośnik nie działa.\n"
+"Sprawdź połączenie i jego okablowanie."
 
 #: ../pages/uvcalibration.py:709
 #, python-format
@@ -1704,31 +1725,31 @@ msgstr ""
 
 #: ../pages/printstart.py:147
 msgid "Start positions OK"
-msgstr "Výchozí pozice OK"
+msgstr "Pozycje startowe OK"
 
 #: ../pages/network.py:161
 msgid "Starting AP failed!"
-msgstr "Chyba při startu AP!"
+msgstr "Niepowodzenie uruchamiania Punktu Dostępu!"
 
 #: ../pages/network.py:150
 msgid "Starting Access Point"
-msgstr "Zapínání přístupového bodu"
+msgstr "Uruchomienie Punktu Dostępu"
 
 #: ../pages/setup.py:144
 msgid "Stirring moves count"
-msgstr "Počet míchacích pohybů"
+msgstr "Liczba ruchów mieszających"
 
 #: ../libExposure.py:180 ../libExposure.py:256 ../libExposure.py:332
 msgid "Stirring the resin"
-msgstr "Míchání resinu"
+msgstr "Mieszanie żywicy"
 
 #: ../pages/netupdate.py:94
 msgid "Storing examples"
-msgstr "Ukládání vzorových modelů"
+msgstr "Przechowywanie przykładów"
 
 #: ../pages/support.py:17
 msgid "Support"
-msgstr "Podpora"
+msgstr "Wsparcie"
 
 #: ../pages/motioncontroller.py:127
 msgid "Switching back to real MC"
@@ -1736,11 +1757,11 @@ msgstr ""
 
 #: ../pages/exception.py:18
 msgid "System Error"
-msgstr "Systémová chyba"
+msgstr "Błąd Systemowy"
 
 #: ../pages/sysinfo.py:17 ../pages/admin.py:35
 msgid "System Information"
-msgstr "Systémové informace"
+msgstr "Informacje o Systemie"
 
 #: ../pages/service.py:30
 msgid "TODO"
@@ -1758,7 +1779,7 @@ msgstr ""
 #, fuzzy
 #| msgid "Tilt axis check"
 msgid "Tank axis check"
-msgstr "Kontrola osy náklonu"
+msgstr "Test osi przechylania"
 
 #: ../pages/calibration.py:38
 msgid "Tank axis homing"
@@ -1774,16 +1795,19 @@ msgid ""
 "Tank homing failed!\n"
 "\n"
 "Check the printer's hardware."
-msgstr "Selhal homing náklonu! Zkontrolujte hardware tiskárny."
+msgstr ""
+"Bazowanie przechylania nie powiodło się!\n"
+"\n"
+"Sprawdź mechanizmy drukarki."
 
 #: ../pages/control.py:37
 msgid "Tank reset"
-msgstr "Resetování vaničky"
+msgstr "Reset zbiornika"
 
 #: ../pages/base.py:444
 #, python-format
 msgid "Temperature is %.1f C"
-msgstr "Teplota je %.1f C"
+msgstr "Temperatura wynosi %.1f C"
 
 #: ../pages/profiles.py:297 ../pages/profiles.py:365
 msgid "Test"
@@ -1800,7 +1824,10 @@ msgid ""
 "The UV LED is already calibrated.\n"
 "\n"
 "Would you like to recalibrate?"
-msgstr "UV LED je už zkalibrovaná. Chcete ji zkalibrovat znovu?"
+msgstr ""
+"UV LED jest już skalibrowany.\n"
+"\n"
+"Czy chcesz skalibrować?"
 
 #: ../pages/uvcalibration.py:172
 msgid ""
@@ -1825,17 +1852,17 @@ msgid ""
 "\n"
 "Check the connection and try again."
 msgstr ""
-"Nebyl detekován UV LED měřák.\n"
+"Nie wykryto miernika UV LED.\n"
 "\n"
-"Zkontrolujte připojení a opakujte akci."
+"Sprawdź połączenie i spróbuj ponownie."
 
 #: ../pages/display.py:171
 msgid "The automatic UV LED calibration was not finished successfully!"
-msgstr "Automatická kalibrace UV LED neproběhla správně!"
+msgstr "Automatyczna kalibracja UV LED nie została zakończona powodzeniem!"
 
 #: ../pages/display.py:163
 msgid "The calibration was not finished successfully!"
-msgstr "Kalibrace nebyla správně dokončena!"
+msgstr "Kalibracja nie została zakończona powodzeniem!"
 
 #: ../pages/uvcalibration.py:457
 #, fuzzy, python-format
@@ -1850,14 +1877,14 @@ msgid ""
 "\n"
 "Verify the UV LED meter position and calibration, then try again."
 msgstr ""
-"Byla nalezena správná nastavení, ale standardní odchylka (%.1f) je větší než "
-"povolená hodnota (20.0).\n"
+"Odnaleziono prawidłowe wartości, ale standardowa odchyłka (%.1f) jest "
+"większa od dopuszczalnej (20.0).\n"
 "\n"
-"Zkontrolujte pozici a kalibraci UV LED měřáku, pak akci opakujte."
+"Sprawdź pozycję miernika UV LED i kalibrację, a następnie spróbuj ponownie."
 
 #: ../pages/unboxing.py:39
 msgid "The cover is closed!"
-msgstr "Kryt je zavřený!"
+msgstr "Pokrywa jest zamknięta!"
 
 #: ../pages/printstart.py:339
 msgid ""
@@ -1869,11 +1896,13 @@ msgid ""
 "If everything is clean, the printer needs service. Please contact tech "
 "support."
 msgstr ""
-"Platforma se nedostala do požadované pozice!\n"
+"Niepowodzenie przesunięcia platformy do zadanej pozycji!\n"
 "\n"
-"Ujistěte se, že pohyb není ničím blokován.\n"
+"Usuń wszystkie pozostałości żywicy i inne zanieczyszczenia, które mogłyby "
+"blokować ruch.\n"
 "\n"
-"Pokud je vše čisté a tiskárna se nehýbe, kontaktujte podporu."
+"Jeśli wszystko jest czyste, to drukarka wymaga naprawy. Skontaktuj się ze "
+"wsparciem technicznym."
 
 #: ../libExposure.py:233
 msgid ""
@@ -1884,12 +1913,12 @@ msgid ""
 "If you don't want to continue, press the Back button on top of the screen "
 "and the actual job will be canceled."
 msgstr ""
-"Tiskárna narazila na problém a vyžaduje uživatelský zásah.\n"
+"Drukarka utknęła i wymaga uwagi użytkownika.\n"
 "\n"
-"Uvolněte mechanismus sklápění vaničky a stiskněte Pokračovat.\n"
+"Poluzuj mechanizm zbiornika i wciśnij 'Kontynuuj'.\n"
 "\n"
-"Pokud nechcete pokračovat, stiskněte tlačítko Zpět a aktuální tisková úloha "
-"bude zrušena."
+"Jeśli nie chcesz kontynuować, to wciśnij przycisk 'Wstecz' na górze ekranu, "
+"aby anulować bieżące zadanie."
 
 #: ../libPrinter.py:126
 msgid ""
@@ -1902,22 +1931,22 @@ msgid ""
 "This usually happens after a failed update, or due to a hardware failure. "
 "Printer settings may have been reset."
 msgstr ""
-"Tiskárna nastartovala ze záložního slotu - z primárního se nepodařilo "
-"nastartovat.\n"
+"Drukarka uruchomiła się z zapasowego slotu, ponieważ próba uruchomienia ze "
+"slotu głównego nie powiodła się.\n"
 "\n"
-"Co nejdříve aktualizujte tiskárnu na nejnovější oficiální firmware.\n"
+"Zaktualizuj drukarkę natychmiast najnowszym firmware, aby odzyskać główny "
+"slot.\n"
 "\n"
-"K tomuto problému dochází při selhání aktualizace nebo kvůli HW chybě. Mohlo "
-"dojít k resetu nastavení."
+"Dzieje się to zazwyczaj z powodu niepowodzenia aktualizacji lub błędu "
+"sprzętowego. Ustawienia drukarki mogły zostać zresetowane."
 
 #: ../pages/unboxing.py:225
 msgid "The printer is fully unboxed and ready for the selftest."
-msgstr "Tiskárna je plně vybalená a připravená pro selftest."
+msgstr "Drukarka została w pełni rozpakowana i jest gotowa do selftestu."
 
 #: ../pages/unboxing.py:46 ../pages/unboxing.py:96
 msgid "The printer is moving to allow for easier manipulation"
-msgstr ""
-"Tiskárna posune s platformou, aby bylo možno lépe odebrat ochranný materiál"
+msgstr "Ustawianie drukarki dla łatwiejszej obsługi"
 
 #: ../pages/uvcalibration.py:714
 #, fuzzy, python-format
@@ -1936,12 +1965,12 @@ msgid ""
 "%(dev)s\n"
 "Would you like to apply the calibration?"
 msgstr ""
-"Výsledek kalibrace\n"
+"Wyniki kalibracji:\n"
 "PWM: %(pwm)d\n"
-"Intenzita: %(int).1f\n"
-"Standardní odchylka: %(dev).1f\n"
+"Intensywność: %(int).1f\n"
+"Standardowa odchyłka: %(dev).1f\n"
 "\n"
-"Přejete si uložit kalibraci?"
+"Czy chcesz zastosować kalibrację?"
 
 #: ../pages/logs.py:60
 msgid "The setting become active after the printer's restart."
@@ -1949,34 +1978,33 @@ msgstr ""
 
 #: ../pages/display.py:156
 msgid "The wizard was not finished successfully!"
-msgstr "Průvodce nebyl dokončen!"
+msgstr "Asystent nie został zakończony powodzeniem!"
 
 #: ../pages/printstart.py:332
 msgid "There is a problem with platform position"
-msgstr "Vyskytl se problém s pozicí platformy"
+msgstr "Wystąpił problem z pozycją platformy"
 
 #: ../pages/printstart.py:277
 msgid "There is a problem with resin volume"
-msgstr "Vyskytl se problém s množstvím resinu"
+msgstr "Wystąpił problem z objętością żywicy"
 
 #: ../pages/motioncontroller.py:41
 msgid "This overwrites the motion controller with the selected firmware."
-msgstr "Dojde k zapsání vybraného firmwaru do Motion Controlleru."
+msgstr "Nadpisze to Kontroler Ruchu wybranym firmware."
 
 #: ../pages/motioncontroller.py:77
 msgid "This will disable the GUI and connect the MC bootloader to TCP port."
-msgstr ""
-"Dojde k vypnutí uživatelského rozhraní a připojení MC bootloaderu na TCP "
-"port."
+msgstr "To zatrzyma GUI i połączy bootloader Kontrolera Ruchu z portem TCP."
 
 #: ../pages/motioncontroller.py:86
 msgid ""
 "This will disable the GUI and connect the motion controller to TCP port."
-msgstr "Nyní se vypne uživatelské rozhraní a připojí se TCP port."
+msgstr "To zatrzyma GUI i połączy Kontroler Ruchu z portem TCP."
 
 #: ../pages/motioncontroller.py:59
 msgid "This will erase all profiles and other motion controller settings."
-msgstr "Všechna nastavení profilů a Motion Controlleru budou smazána."
+msgstr ""
+"Spowoduje to wyczyszczenie wszystkich profili i ustawień Kontrolera Ruchu."
 
 #: ../pages/calibration.py:520
 msgid ""
@@ -1985,26 +2013,27 @@ msgid ""
 "Some SL1 printers may have two screws - tighten them evenly, little by "
 "little. See the handbook for more information."
 msgstr ""
-"Nyní utáhněte šroubek na konzoli šestihranným klíčem.\n"
+"Dokręć małą śrubę na wsporniku przy pomocy klucza inbusowego.\n"
 "\n"
-"Některé modely mohou mít šroubky dva - dotahujete je střídavě po malých "
-"krocích. V návodu naleznete dodatečné informace."
+" Niektóre z wersji drukarki SL1 mają dwie śruby - dokręcaj je po trochu, "
+"przechodząc od jednej do drugiej i z powrotem. Zajrzyj do Podręcznika po "
+"więcej informacji."
 
 #: ../pages/admin.py:23 ../pages/tilttower.py:20
 msgid "Tilt & Tower"
-msgstr "Náklon a věž"
+msgstr "Przechylanie & Kolumna"
 
 #: ../pages/move.py:130
 msgid "Tilt Move"
-msgstr "Pohyb náklonu"
+msgstr "Ruch Przechylania"
 
 #: ../pages/profiles.py:274
 msgid "Tilt Profiles"
-msgstr "Profily náklonu"
+msgstr "Profile Przechylania"
 
 #: ../pages/profiles.py:410
 msgid "Tilt Tune"
-msgstr "Ladění náklonu"
+msgstr "Ustawienia Przechylania"
 
 #: ../pages/wizard.py:147
 #, python-format
@@ -2015,21 +2044,21 @@ msgid ""
 "\n"
 "Please check if the tilting mechanism can move smoothly in its entire range."
 msgstr ""
-"Chyba kontroly osy náklonu!\n"
+"Niepowodzenie testu osi przechylania!\n"
 "\n"
-"Momentální pozice: %d\n"
+"Obecna pozycja: %d\n"
 "\n"
-"Prosím, zkontrolujte, zda se naklápěcí mechanismus může volně pohybovat v "
-"celém rozsahu."
+"Sprawdź, czy mechanizm przechylania może poruszać się bez przeszkód w całym "
+"zakresie."
 
 #: ../pages/infinitetest.py:50 ../pages/infinitetest.py:99
 #, python-format
 msgid "Tilt cycles: %d"
-msgstr "Počet cyklů náklonu: %d"
+msgstr "Cykle przechylania: %d"
 
 #: ../pages/tilttower.py:77
 msgid "Tilt down"
-msgstr "Sklopení náklonu"
+msgstr "Przechylenie w dół"
 
 #: ../pages/wizard.py:111
 msgid ""
@@ -2037,25 +2066,25 @@ msgid ""
 "\n"
 "Please check if the tilt motor and optical endstop are connected properly."
 msgstr ""
-"Koncový bod náklonu nenalezen!\n"
+"Nie osiągnięto wyłącznika krańcowego przechylania!\n"
 "\n"
-"Zkontrolujte, zda jsou motor náklonu a optické čidlo správně zapojené."
+"Sprawdź, czy silnik i optyczny wyłącznik krańcowy są prawidłowo podłączone."
 
 #: ../pages/tests.py:51 ../pages/tilttower.py:26 ../pages/tilttower.py:50
 msgid "Tilt home"
-msgstr "Výchozí pozice náklonu"
+msgstr "Bazowanie przechylania"
 
 #: ../pages/tilttower.py:30
 msgid "Tilt home calib."
-msgstr "Kalibrace výchozí pozice náklonu"
+msgstr "Kalibr. bazowania przechylania"
 
 #: ../pages/tilttower.py:96
 msgid "Tilt home calibration"
-msgstr "Kalibrace výchozí pozice náklonu"
+msgstr "Kalibracja bazowania przechylania"
 
 #: ../pages/wizard.py:104
 msgid "Tilt home check"
-msgstr "Kontrola výchozí pozice náklonu"
+msgstr "Test bazowania przechylania"
 
 #: ../pages/wizard.py:122
 msgid ""
@@ -2065,11 +2094,11 @@ msgid ""
 "\n"
 "Tilt profiles need to be changed."
 msgstr ""
-"Selhala kontrola výchozí pozice náklonu.\n"
+"Niepowodzenie testu bazy przechylania! \n"
 "\n"
-"Kontaktujte technickou podporu.\n"
+"Skontaktuj się ze wsparciem technicznym. \n"
 "\n"
-"Je nutná úprava profilů pro náklon."
+"Profile przechylania wymagają zmiany."
 
 #: ../pages/uvcalibration.py:215 ../pages/base.py:290
 #: ../pages/printstart.py:140
@@ -2077,7 +2106,10 @@ msgid ""
 "Tilt homing failed!\n"
 "\n"
 "Check the printer's hardware."
-msgstr "Selhal homing náklonu! Zkontrolujte hardware tiskárny."
+msgstr ""
+"Bazowanie przechylania nie powiodło się!\n"
+"\n"
+"Sprawdź mechanizmy drukarki."
 
 #: ../libExposure.py:248
 msgid ""
@@ -2087,39 +2119,39 @@ msgid ""
 "\n"
 "The print job was canceled."
 msgstr ""
-"Selhal homing náklonu!\n"
+"Bazowanie przechylania nie powiodło się! \n"
 "\n"
-"Zkontrolujte hardware tiskárny.\n"
+"Sprawdź mechanizmy drukarki. \n"
 "\n"
-"Tisk byl zrušen."
+"Drukowanie anulowane."
 
 #: ../pages/tilttower.py:27
 msgid "Tilt move"
-msgstr "Pohyb náklonu"
+msgstr "Ruch przechylania"
 
 #: ../pages/setup.py:142
 msgid "Tilt msteps"
-msgstr "Mstepy náklonu"
+msgstr "Kroki M przechylania"
 
 #: ../pages/tilttower.py:29
 msgid "Tilt profiles"
-msgstr "Profily náklonu"
+msgstr "Profile przechylania"
 
 #: ../pages/tilttower.py:65
 msgid "Tilt sync"
-msgstr "Synchronizace naklápění"
+msgstr "Synchronizacja przechylania"
 
 #: ../pages/tilttower.py:28
 msgid "Tilt test"
-msgstr "Test náklonu"
+msgstr "Test przechylania"
 
 #: ../pages/tilttower.py:73 ../pages/tilttower.py:81
 msgid "Tilt up"
-msgstr "Pohnout náklonem vzhůru"
+msgstr "Przechylenie w górę"
 
 #: ../pages/timedate.py:41
 msgid "Time Settings"
-msgstr "Nastavení času"
+msgstr "Ustawienia Czasu"
 
 #: ../pages/service.py:34
 #, python-format
@@ -2128,19 +2160,19 @@ msgstr ""
 
 #: ../pages/move.py:81
 msgid "Tower Move"
-msgstr "Pohyb věže"
+msgstr "Ruch Kolumny"
 
 #: ../pages/tower_offset.py:18
 msgid "Tower Offset"
-msgstr "Offset věže"
+msgstr "Kompensacja Kolumny"
 
 #: ../pages/profiles.py:342
 msgid "Tower Profiles"
-msgstr "Profily věže"
+msgstr "Profile Kolumny"
 
 #: ../pages/wizard.py:385
 msgid "Tower axis check"
-msgstr "Kontrola osy Z (věž)"
+msgstr "Test osi Kolumny"
 
 #: ../pages/wizard.py:410
 #, python-format
@@ -2151,18 +2183,17 @@ msgid ""
 "\n"
 "Please check if the ballscrew can move smoothly in its entire range."
 msgstr ""
-"Chyba při kontrole osy věže!\n"
+"Niepowodzenie testu osi Kolumny!\n"
 "\n"
-"Momentálně pozice: %d\n"
+"Obecna pozycja: %d\n"
 "\n"
-"Zkontrolujte, zda se kuličkový šroub může hladce pohybovat v celém jejím "
-"rozsahu."
+"Sprawdź czy mechanizm śruby kulowej może poruszać się w całym zakresie."
 
 #: ../pages/calibration.py:44
 #, fuzzy
 #| msgid "Tower axis check"
 msgid "Tower axis homing check"
-msgstr "Kontrola osy Z (věž)"
+msgstr "Test osi Kolumny"
 
 #: ../pages/towersensitivity.py:32
 msgid "Tower axis sensitivity adjust"
@@ -2177,7 +2208,7 @@ msgstr ""
 #: ../pages/infinitetest.py:49 ../pages/infinitetest.py:61
 #, python-format
 msgid "Tower cycles: %d"
-msgstr "Počet cyklů věže: %d"
+msgstr "Cykle kolumny: %d"
 
 #: ../pages/towersensitivity.py:42
 msgid ""
@@ -2185,25 +2216,25 @@ msgid ""
 "\n"
 "Please check if the tower motor is connected properly."
 msgstr ""
-"Koncový bod věže nenalezen!\n"
+"Nie osiągnięto wyłącznika krańcowego kolumny!\n"
 "\n"
-"Zkontrolujte, zda je motor věže správně zapojen."
+"Sprawdź, czy silnik kolumny jest prawidłowo podłączony."
 
 #: ../pages/tilttower.py:32
 msgid "Tower home"
-msgstr "Výchozí pozice věže"
+msgstr "Bazowanie kolumny"
 
 #: ../pages/tilttower.py:36
 msgid "Tower home calib."
-msgstr "Kalibrace výchozí pozice věže"
+msgstr "Kalibr. bazowania kolumny"
 
 #: ../pages/tilttower.py:146
 msgid "Tower home calibration"
-msgstr "Kalibrace výchozí pozice věže"
+msgstr "Kalibracja bazowania kolumny"
 
 #: ../pages/wizard.py:159
 msgid "Tower home check"
-msgstr "Kontrola výchozí pozice věže"
+msgstr "Test bazowania kolumny"
 
 #: ../pages/towersensitivity.py:50
 msgid ""
@@ -2213,11 +2244,11 @@ msgid ""
 "\n"
 "Tower profiles need to be changed."
 msgstr ""
-"Chyba při kontrole výchozí pozice věže! \n"
+"Niepowodzenie testu bazowania kolumny!\n"
 "\n"
-"Kontaktujte technickou podporu.\n"
+"Skontaktuj się ze wsparciem technicznym!\n"
 "\n"
-"Je potřeba změnit profily věže."
+"Profile kolumny wymagają zmiany."
 
 #: ../pages/uvcalibration.py:208 ../pages/control.py:30 ../pages/base.py:279
 #: ../pages/printstart.py:133
@@ -2225,11 +2256,14 @@ msgid ""
 "Tower homing failed!\n"
 "\n"
 "Check the printer's hardware."
-msgstr "Selhal homing věže. Zkontrolujte hardware tiskárny."
+msgstr ""
+"Bazowanie kolumny nie powiodło się!\n"
+"\n"
+"Sprawdź mechanizmy drukarki."
 
 #: ../pages/tilttower.py:33
 msgid "Tower move"
-msgstr "Pohyb věže"
+msgstr "Ruch kolumny"
 
 #: ../pages/calibration.py:406 ../pages/calibration.py:422
 msgid ""
@@ -2239,47 +2273,47 @@ msgid ""
 "\n"
 "Press 'Continue' and read the instructions carefully."
 msgstr ""
-"Věž není v očekávané pozici.\n"
+"Kolumna w nieoczekiwanej pozycji.\n"
 "\n"
-"Je platforma a nádrž ve správné pozici?\n"
+"Czy platforma i zbiornik są zamocowane w odpowiednich miejscach?\n"
 "\n"
-"Stiskněte \"Pokračovat\" a pečlivě si přečtěte instrukce."
+"Wciśnij 'Kontynuuj' i dokładnie przeczytaj instrukcje."
 
 #: ../pages/tilttower.py:41
 msgid "Tower offset"
-msgstr "Offset věže"
+msgstr "Kompensacja kolumny"
 
 #: ../pages/tilttower.py:35
 msgid "Tower profiles"
-msgstr "Profily věže"
+msgstr "Profile kolumny"
 
 #: ../pages/towersensitivity.py:19
 #, fuzzy
 #| msgid "Tower test"
 msgid "Tower sensitivity"
-msgstr "Test věže"
+msgstr "Test kolumny"
 
 #: ../pages/tilttower.py:34
 msgid "Tower test"
-msgstr "Test věže"
+msgstr "Test kolumny"
 
 #: ../pages/fansleds.py:35
 msgid "Trigger"
-msgstr "Spoušť"
+msgstr "Wyzwalacz"
 
 #: ../pages/tilttower.py:39
 msgid "Tune tilt"
-msgstr "Ladit naklápění"
+msgstr "Ustaw przechylanie"
 
 #: ../pages/tilttower.py:38
 msgid "Turn motors off"
-msgstr "Vypnout motory"
+msgstr "Wyłączenie silników"
 
 #: ../pages/display.py:49
 #, fuzzy
 #| msgid "UV calibration"
 msgid "UV (re)calibration"
-msgstr "Kalibrace UV"
+msgstr "Kalibracja UV"
 
 #: ../pages/fansleds.py:34
 msgid "UV LED"
@@ -2287,31 +2321,31 @@ msgstr "UV LED"
 
 #: ../pages/base.py:440
 msgid "UV LED OVERHEAT!"
-msgstr "PŘEHŘÍVÁNÍ UV LED!"
+msgstr "PRZEGRZANIE UV LED!"
 
 #: ../pages/fansleds.py:40
 msgid "UV LED PWM"
-msgstr "UV LED PWM"
+msgstr "PWM UV LED"
 
 #: ../pages/uvcalibration.py:141
 msgid "UV LED calibration"
-msgstr "Kalibrace UV LED panelu"
+msgstr "Kalibracja UV LED"
 
 #: ../pages/wizard.py:274
 msgid "UV LED check"
-msgstr "Kontrola UV LED"
+msgstr "Test UV LED"
 
 #: ../libHardware.py:534 ../pages/fansleds.py:31
 msgid "UV LED fan"
-msgstr "Ventilátor UV LED"
+msgstr "Wentylator UV LED"
 
 #: ../pages/fansleds.py:37
 msgid "UV LED fan RPM"
-msgstr "Otáčky větráku UV LED"
+msgstr "Prędkość obrotowa wentylatora UV LED"
 
 #: ../libHardware.py:552
 msgid "UV LED temperature"
-msgstr "Teplota UV LED"
+msgstr "Temperatura UV LED"
 
 #: ../pages/wizard.py:322
 #, python-format
@@ -2322,11 +2356,11 @@ msgid ""
 "\n"
 "Temperature data: %s"
 msgstr ""
-"UV LED se přehřívá!\n"
+"Zbyt wysoka temperatura UV LED!\n"
 "\n"
-"Zkontrolujte, zda je UV LED panel správně připojený k chladiči.\n"
+"Sprawdź, czy do panelu UV LED jest przymocowany radiator.\n"
 "\n"
-"Teplotní data: %s"
+"Odczyt temperatury: %s"
 
 #: ../pages/wizard.py:298
 #, python-format
@@ -2337,25 +2371,25 @@ msgid ""
 "\n"
 "Data: %(pwm)d, %(value)s V"
 msgstr ""
-"UV LED napětí se liší!\n"
+"Zbyt duże rozbieżności napięcia UV LED!\n"
 "\n"
-"Zkontrolujte, zda je UV LED panel správně připojen.\n"
+"Sprawdź czy panel UV LED jest podłączony prawidłowo.\n"
 "\n"
-"Data: %(pwm)d %(value)s"
+"Odczyt: %(pwm)d, %(value)s V"
 
 #: ../pages/wizard.py:312
 msgid "UV LED warmup check"
-msgstr "Kontrola předehřívání UV LED"
+msgstr "Test rozgrzewania UV LED"
 
 #: ../pages/fansleds.py:43
 #, fuzzy
 #| msgid "UV calib. intensity"
 msgid "UV cal. min. int. edge"
-msgstr "Kalibrace intenzity UV"
+msgstr "Kalib. intens. UV LED"
 
 #: ../pages/fansleds.py:42
 msgid "UV calib. intensity"
-msgstr "Kalibrace intenzity UV"
+msgstr "Kalib. intens. UV LED"
 
 #: ../pages/fansleds.py:41
 msgid "UV calib. warm-up [s]"
@@ -2364,45 +2398,45 @@ msgstr ""
 #: ../pages/uvcalibration.py:164 ../pages/uvcalibration.py:196
 #: ../pages/uvcalibration.py:315 ../pages/uvcalibration.py:397
 msgid "UV calibration"
-msgstr "Kalibrace UV"
+msgstr "Kalibracja UV"
 
 #: ../pages/uvcalibration.py:45
 #, fuzzy
 #| msgid "UV calibration"
 msgid "UV calibration data"
-msgstr "Kalibrace UV"
+msgstr "Kalibracja UV"
 
 #: ../pages/display.py:43 ../pages/display.py:126
 msgid "UV off"
-msgstr "Vypnout UV"
+msgstr "UV wył."
 
 #: ../pages/display.py:43 ../pages/display.py:126
 msgid "UV on"
-msgstr "Zapnout UV"
+msgstr "UV wł."
 
 #: ../pages/unboxing.py:219
 msgid "Unboxing done"
-msgstr "Tiskárna je nyní kompletně rozbalena"
+msgstr "Rozpakowywanie zakończone"
 
 #: ../libPrinter.py:149
 msgid "Unboxing step 1/1"
-msgstr "Rozbalování - krok 1/1"
+msgstr "Rozpakowywanie krok 1/1"
 
 #: ../pages/unboxing.py:21
 msgid "Unboxing step 1/4"
-msgstr "Rozbalení - krok 1/4"
+msgstr "Rozpakowywanie krok 1/4"
 
 #: ../pages/unboxing.py:82
 msgid "Unboxing step 2/4"
-msgstr "Rozbalování - krok 2/4"
+msgstr "Rozpakowywanie krok 2/4"
 
 #: ../pages/unboxing.py:128
 msgid "Unboxing step 3/4"
-msgstr "Rozbalení - krok 2/4"
+msgstr "Rozpakowywanie krok 3/4"
 
 #: ../pages/unboxing.py:169
 msgid "Unboxing step 4/4"
-msgstr "Rozbalování - krok 4/4"
+msgstr "Rozpakowywanie krok 4/4"
 
 #: ../pages/uvcalibration.py:180
 #, python-format
@@ -2413,71 +2447,71 @@ msgstr ""
 #, fuzzy, python-format
 #| msgid "UV calibration"
 msgid "Unknown UV calibration error: %s"
-msgstr "Kalibrace UV"
+msgstr "Kalibracja UV"
 
 #: ../pages/unboxing.py:135
 msgid ""
 "Unscrew and remove the resin tank and remove the black foam underneath it."
-msgstr "Odšroubujte a odejměte vaničku, pak odstraňte ochrannou destičku."
+msgstr ""
+"Odkręć i wyciągnij zbiornik na żywicę i wyjmij czarną piankę leżącą pod nim."
 
 #: ../pages/calibration.py:122
 msgid ""
 "Unscrew the tank, rotate it by 90 degrees and place it flat across the tilt "
 "bed. Remove the tank screws completely!"
 msgstr ""
-"Odšroubujte vaničku, odstraňte oba velké šrouby a položte ji napříč přes "
-"základnu tiskárny. Vanička nesmí ležet přímo na sklápěcí platformě s "
-"displejem!"
+"Odkręć zbiornik, przekręć go o 90 stopni i połóż płasko nad przechylaną "
+"platformą. Wykręć śruby zbiornika całkowicie!"
 
 #: ../pages/profiles.py:420
 msgid "Up"
-msgstr "Nahoru"
+msgstr "W górę"
 
 #: ../pages/print.py:144
 msgid "Up and down will be executed after layer finish"
-msgstr "Po skončení vrstvy bude provedena akce Nahoru/Dolů"
+msgstr "Podniesienie i opuszczenie zostanie wykonane po zakończeniu warstwy"
 
 #: ../pages/setup.py:312
 #, fuzzy
 #| msgid "Up&down wait [s]"
 msgid "Up&down UV on"
-msgstr "Vyčkat při Nahoru a dolů [s]"
+msgstr "Przerwa przy opuszczaniu i podnoszeniu [s]"
 
 #: ../pages/setup.py:320
 #, fuzzy
 #| msgid "Up&down wait [s]"
 msgid "Up&down Z offset [mm]"
-msgstr "Vyčkat při Nahoru a dolů [s]"
+msgstr "Przerwa przy opuszczaniu i podnoszeniu [s]"
 
 #: ../pages/setup.py:319
 msgid "Up&down every n-th l."
-msgstr "Provést Nahoru&Dolů každou n-tou vrstvu."
+msgstr "Podniesienie i opuszczenie co X warstw."
 
 #: ../pages/setup.py:321
 #, fuzzy
 #| msgid "Up&down wait [s]"
 msgid "Up&down expo comp [s]"
-msgstr "Vyčkat při Nahoru a dolů [s]"
+msgstr "Przerwa przy opuszczaniu i podnoszeniu [s]"
 
 #: ../pages/setup.py:318
 msgid "Up&down wait [s]"
-msgstr "Vyčkat při Nahoru a dolů [s]"
+msgstr "Przerwa przy opuszczaniu i podnoszeniu [s]"
 
 #: ../pages/firmwareupdate.py:168
 msgid "Update done"
-msgstr "Aktualizace proběhla"
+msgstr "Aktualizacja zakończona"
 
 #: ../pages/firmwareupdate.py:187
 msgid "Update failed!"
-msgstr "Chyba aktualizace!"
+msgstr "Niepowodzenie aktualizacji!"
 
 #: ../libPrinter.py:201
 msgid "Updating motion controller firmware"
-msgstr "Aktualizace firmwaru Motion Controlleru"
+msgstr "Aktualizowanie firmware Kontrolera Ruchu"
 
 #: ../pages/firmwareupdate.py:152
 msgid "Updating the firmware"
-msgstr "Probíhá aktualizace firmwaru"
+msgstr "Aktualizowanie firmware"
 
 #: ../pages/netupdate.py:128
 #, python-format
@@ -2485,39 +2519,42 @@ msgid ""
 "Updating to %s.\n"
 "\n"
 "Proceed update?"
-msgstr "Proběhne aktualizace na %s. Pokračovat?"
+msgstr ""
+"Aktualizowanie do %s.\n"
+"\n"
+"Kontynuować?"
 
 #: ../pages/setup.py:137
 msgid "Use resin sensor"
-msgstr "Použít senzor resinu"
+msgstr "Użyj czujnika poziomu żywicy"
 
 #: ../pages/setup.py:311
 msgid "Use tilt"
-msgstr "Použít náklon"
+msgstr "Użyj przechylania"
 
 #: ../pages/media.py:65
 msgid "Video"
-msgstr "Video"
+msgstr "Wideo"
 
 #: ../pages/videos.py:18
 msgid "Videos"
-msgstr "Videa"
+msgstr "Wideo"
 
 #: ../pages/print.py:77 ../pages/print.py:128
 msgid "Wait until layer finish"
-msgstr "Vyčkejte na dokončení vrstvy"
+msgstr "Czekaj na ukończenie warstwy"
 
 #: ../pages/uvcalibration.py:259
 #, fuzzy
 #| msgid "Connecting to the UV LED meter"
 msgid "Waiting for UV meter"
-msgstr "Připojování k UV LED měřáku"
+msgstr "Łączenie z miernikiem UV LED"
 
 #: ../pages/uvcalibration.py:315
 #, fuzzy
 #| msgid "Warming up to %d °C"
 msgid "Warming up"
-msgstr "Zahřívám na %d °C"
+msgstr "Nagrzewanie do %d °C"
 
 #: ../pages/wizard.py:73
 msgid ""
@@ -2525,9 +2562,9 @@ msgid ""
 "\n"
 "This procedure is mandatory and it will help you to set up the printer."
 msgstr ""
-"Vítejte v průvodci nastavením.\n"
+"Witaj w Asystencie Konfiguracji.\n"
 "\n"
-"Tato procedura je nezbytná a pomůže vám nastavit vaši tiskárnu."
+"Ta procedura jest konieczna i pomoże Ci ustawić Twoją drukarkę."
 
 #: ../pages/service.py:89
 msgid "Wrong data format!"
@@ -2539,9 +2576,9 @@ msgid ""
 "\n"
 "Please contact tech support!"
 msgstr ""
-"Displej je pravděpodobně poškozený.\n"
+"Twój wyświetlacz jest prawdopodobnie uszkodzony.\n"
 "\n"
-"Prosím, kontaktujte technickou podporu!"
+"Skontaktuj się ze wsparciem technicznym!"
 
 #: ../pages/base.py:539
 #, python-format
@@ -2550,9 +2587,9 @@ msgid ""
 "\n"
 "Re-export it and try again."
 msgstr ""
-"Ve vašem projektu se vyskytla chyba: %s\n"
+"Problem z Twoim projektem: %s\n"
 "\n"
-"Exportujte jej znovu a opakujte akci."
+"Wyeksportuj plik raz jeszcze i spróbuj ponownie."
 
 #: ../pages/printstart.py:300
 #, python-format
@@ -2562,115 +2599,115 @@ msgid ""
 "For your project, %(requested)d %% is needed. A refill may be required "
 "during printing."
 msgstr ""
-"Ve vaničce je %(measured)d %%\n"
+"Ilość żywicy w zbiorniku to ok. %(measured)d %%\n"
 "\n"
-"Pro váš projekt je potřeba %(requested)d %%. Během tisku bude potřeba dolít "
-"resin."
+"Dla Twojego projektu wymagane jest %(requested)d %%. Dolanie żywicy może być "
+"konieczne podczas drukowania."
 
 #: ../pages/profiles.py:291 ../pages/profiles.py:359
 msgid "acceleration"
-msgstr "akcelerace"
+msgstr "przyspieszenie"
 
 #: ../libHardware.py:535
 msgid "blower fan"
-msgstr "boční ventilátor"
+msgstr "wentylator boczny"
 
 #: ../pages/profiles.py:295 ../pages/profiles.py:363
 msgid "coolstep threshold"
-msgstr "práh pro coolstep"
+msgstr "próg kroku chłodzenia"
 
 #: ../pages/profiles.py:293 ../pages/profiles.py:361
 msgid "current"
-msgstr "proud"
+msgstr "prąd"
 
 #: ../pages/profiles.py:292 ../pages/profiles.py:360
 msgid "deceleration"
-msgstr "zpomalení"
+msgstr "zwalnianie"
 
 #: ../pages/profiles.py:425
 msgid "finish profile"
-msgstr "dokončit profil"
+msgstr "zakończ profil"
 
 #: ../pages/profiles.py:429
 msgid "homing cycles"
-msgstr "homingové cykly"
+msgstr "cykle bazowania"
 
 #: ../pages/profiles.py:428
 msgid "homing tolerance"
-msgstr "tolerance pro homing"
+msgstr "tolerancja bazowania"
 
 #: ../pages/profiles.py:422
 msgid "init profile"
-msgstr "inicializovat profil"
+msgstr "inicjalny profil"
 
 #: ../pages/profiles.py:290 ../pages/profiles.py:358
 msgid "maximum steprate"
-msgstr "maximální rychlost kroku"
+msgstr "maksymalna ilość kroków"
 
 #: ../pages/profiles.py:424
 msgid "offset delay [ms]"
-msgstr "prodleva offsetu [ms]"
+msgstr "opóźnienie kompensacji [ms]"
 
 #: ../pages/profiles.py:423
 msgid "offset steps"
-msgstr "kroky offsetu"
+msgstr "kroki komensacji"
 
 #: ../libHardware.py:536
 msgid "rear fan"
-msgstr "zadní ventilátor"
+msgstr "tylny wentylator"
 
 #: ../pages/profiles.py:294 ../pages/profiles.py:362
 msgid "stallguard threshold"
-msgstr "práh pro stallguard"
+msgstr "pród wykrywania przeciążenia"
 
 #: ../pages/profiles.py:289 ../pages/profiles.py:357
 msgid "starting steprate"
-msgstr "startování rychlosti kroku"
+msgstr "początkowa ilość kroków"
 
 #: ../pages/profiles.py:426
 msgid "tilt cycles"
-msgstr "počet sklopení"
+msgstr "cykle przechylania"
 
 #: ../pages/profiles.py:427
 msgid "tilt delay [ms]"
-msgstr "prodleva náklonu [ms]"
+msgstr "opóźnienie przechylania [ms]"
 
 #: ../libDisplay.py:127
 msgid "unknown"
-msgstr "neznámý"
+msgstr "nieznane"
 
 #: ../libHardware.py:1168
 msgid "unknown fan"
-msgstr "neznámý ventilátor"
+msgstr "nieznany wentylator"
 
 #: ../libHardware.py:1191
 msgid "unknown sensor"
-msgstr "neznámý senzor"
+msgstr "nieznany czujnik"
 
 #~ msgid "A64 temperature check"
-#~ msgstr "Kontrola teploty na A64"
+#~ msgstr "Sprawdzenie temperatury A64"
 
 #, python-format
 #~ msgid "Actual temperature: %.1f °C"
-#~ msgstr "Momentální teplota: %.1f °C"
+#~ msgstr "Bieżąca temperatura: %.1f °C"
 
 #~ msgid "Admin not accessible"
-#~ msgstr "Administrační rozhraní není dostupné"
+#~ msgstr "Admin niedostępny"
 
 #~ msgid "An unknown issue has occured"
-#~ msgstr "Došlo k neznámé chybě"
+#~ msgstr "Wystąpił nieznany błąd"
 
 #~ msgid "Application flash checksum has failed"
-#~ msgstr "Chyba kontrolního součtu"
+#~ msgstr "Niezgodna suma kontrolna aplikacji do flashowania"
 
 #~ msgid "Boot-section lock has failed"
-#~ msgstr "Zámek bootovací sekce selhal"
+#~ msgstr "Niepowodzenie blokowania sekcji boot"
 
 #~ msgid "Bootloader flash checksum has failed"
-#~ msgstr "Chyba kontrolního součtu pro flash bootloaderu"
+#~ msgstr "Niezgodna suma kontrolna flashowania bootloadera"
 
 #~ msgid "Can't get tower position"
-#~ msgstr "Nelze získat pozici věže"
+#~ msgstr "Nie można odczytać pozycji kolumny"
 
 #~ msgid ""
 #~ "Cannot find the correct settings for the specified intensity.\n"
@@ -2678,61 +2715,64 @@ msgstr "neznámý senzor"
 #~ "Verify the UV LED meter position and calibration or change the values, "
 #~ "then try again."
 #~ msgstr ""
-#~ "Pro specifikovanou intenzitu nelze najít odpovídající nastavení.\n"
+#~ "Nie można znaleźć właściwych ustawień dla zadanej intensywności.\n"
 #~ "\n"
-#~ "Zkontrolujte pozici a kalibraci UV LED měřáku, případně upravte hodnoty, "
-#~ "a akci opakujte."
+#~ "Sprawdź pozycję miernika UV LED i jego kalibrację lub zmień wartości, a "
+#~ "następnie spróbuj ponownie."
 
 #~ msgid "Cannot save imported configuration"
-#~ msgstr "Nelze uložit importovanou konfiguraci"
+#~ msgstr "Nie można zapisać zaimportowanej konfiguracji"
 
 #~ msgid "Checking admin access"
-#~ msgstr "Kontrola administrátorského přístupu"
+#~ msgstr "Sprawdzam dostęp administracyjny"
 
 #~ msgid "Communication with the motion controller has failed"
-#~ msgstr "Chyba komunikace s motion controllerem"
+#~ msgstr "Niepowodzenie komunikacji z kontrolerem mechanizmu"
 
 #~ msgid "Connect the UV LED meter and wait few seconds."
-#~ msgstr "Připojte UV LED měřák a pár sekund vyčkejte."
+#~ msgstr "Podłącz miernik UV LED i poczekaj kilka sekund."
 
 #~ msgid "Decompressing examples"
-#~ msgstr "Rozbalování modelů"
+#~ msgstr "Dekompresowanie przykładów"
 
 #~ msgid "Do you really want to cancel the actual job?"
-#~ msgstr "Opravdu chcete zrušit momentální tiskovou úlohu?"
+#~ msgstr "Czy na pewno chcesz przerwać bieżące zadanie?"
 
 #~ msgid ""
 #~ "Do you really want to enable the admin menu?\n"
 #~ "\n"
 #~ "Wrong settings will damage your printer!"
 #~ msgstr ""
-#~ "Skutečně chcete zpřístupnit administrátorské rozhraní? Špatné nastavení "
-#~ "může poškodit vaši tiskárnu!"
+#~ "Czy na pewno chcesz włączyć menu administracyjne?\n"
+#~ "\n"
+#~ "Nieprawidłowe ustawienia spowodują uszkodzenie Twojej drukarki!"
 
 #~ msgid ""
 #~ "Do you really want to perform the factory reset?\n"
 #~ "\n"
 #~ "All settings will be deleted!"
 #~ msgstr ""
-#~ "Skutečně chcete provést reset do továrního nastavení?\n"
+#~ "Czy na pewno chcesz przywrócić ustawienia fabryczne?\n"
 #~ "\n"
-#~ "Všechna nastavení budou smazána!"
+#~ "Wszystkie ustawienia zostają zresetowane!"
 
 #~ msgid ""
 #~ "Do you really want to set the Wi-fi to AP mode?\n"
 #~ "\n"
 #~ "It may disconnect the web client."
 #~ msgstr ""
-#~ "Skutečně chcete nastavit Wi-fi do režimu AP? Může dojít k odpojení "
-#~ "webového klienta."
+#~ "Czy na pewno chcesz ustawić Wi-Fi w trybie AP?\n"
+#~ "\n"
+#~ "Może to spowodować rozłączenie z klientem sieci web."
 
 #~ msgid ""
 #~ "Do you really want to set the Wi-fi to client mode?\n"
 #~ "\n"
 #~ "It may disconnect the web client."
 #~ msgstr ""
-#~ "Skutečně chcete nastavit Wi-fi do režimu klient? Může dojít k odpojení "
-#~ "webového klienta."
+#~ "Czy na pewno chcesz ustawić Wi-Fi w trybie klienta?\n"
+#~ "\n"
+#~ "Może to spowodować rozłączenie z klientem sieci web."
 
 #~ msgid ""
 #~ "Do you really want to skip the unboxing wizard?\n"
@@ -2740,40 +2780,37 @@ msgstr "neznámý senzor"
 #~ "Press 'Yes' only in case you've assembled the printer as a kit, or you "
 #~ "went through this wizard previously and the printer is unpacked."
 #~ msgstr ""
-#~ "Zrušit průvodce rozbalením?\n"
+#~ "Czy na pewno chcesz pominąć Asystenta Rozpakowywania?\n"
 #~ "\n"
-#~ "Stiskněte \"Ano\" pouze v případě, že jste tiskárnu stavěli jako "
-#~ "stavebnici nebo jste tohoto průvodce již v minulosti dokončili."
+#~ "Naciśnij 'Tak' tylko, jeśli drukarka została kupiona w formie zestawu do "
+#~ "własnego montażu, lub jeśli drukarka jest już rozpakowana."
 
 #~ msgid ""
 #~ "Do you really want to turn off the Wi-fi?\n"
 #~ "\n"
 #~ "It may disconnect the web client."
 #~ msgstr ""
-#~ "Skutečně chcete vypnout Wi-fi?\n"
+#~ "Czy na pewno chcesz wyłączyć Wi-Fi?\n"
 #~ "\n"
-#~ "Může dojít k odpojení webového klienta."
+#~ "Może to spowodować rozłączenie z klientem sieci web."
 
 #~ msgid "Fatal error"
-#~ msgstr "Fatální chyba"
+#~ msgstr "Błąd krytyczny"
 
 #~ msgid "Fetching"
-#~ msgstr "Stahování"
-
-#~ msgid "Fuse bit settings have failed"
-#~ msgstr "Chyba nastavení fuse bit"
+#~ msgstr "Pobieranie"
 
 #~ msgid "GPIO SPI has failed"
-#~ msgstr "Selhalo GPIO SPI"
+#~ msgstr "Błąd GPIO SPI"
 
 #~ msgid "Log save failed"
-#~ msgstr "Chyba při ukládání logu"
+#~ msgstr "Niepowodzenie zapisywania pliku log"
 
 #~ msgid "No data was read."
-#~ msgstr "Nebyla přečtena žádná data."
+#~ msgstr "Nie odczytano żadnych danych."
 
 #~ msgid "Please contact tech support!"
-#~ msgstr "Prosím, kontaktujte technickou podporu!"
+#~ msgstr "Skontaktuj się ze wsparciem technicznym!"
 
 #~ msgid ""
 #~ "Please remove the safety sticker on the right and open the orange cover.\n"
@@ -2781,42 +2818,44 @@ msgstr "neznámý senzor"
 #~ "In case you assembled your printer, you can skip this wizard by hitting "
 #~ "the Back button."
 #~ msgstr ""
-#~ "Sundejte z krytu bezpečnostní nálepku a otevřete kryt. \n"
+#~ "Odklej naklejkę zabezpieczającą z prawej strony i otwórz pomarańczową "
+#~ "pokrywę.\n"
 #~ "\n"
-#~ "Pokud jste si tiskárnu sestavovali, můžete tohoto průvodce přeskočit "
-#~ "stisknutím tlačítka Zpět."
+#~ "Jeśli drukarka była montowana przez Ciebie, to możesz pominąć ten etap "
+#~ "Asystenta, przez wciśnięcie przycisku 'Wstecz'."
 
 #~ msgid "Printer homing"
-#~ msgstr "Homing tiskárny"
+#~ msgstr "Zerowanie osi drukarki"
 
 #~ msgid "Reading data"
-#~ msgstr "Načítání dat"
+#~ msgstr "Odczyt danych"
 
 #~ msgid "Recalibrate?"
-#~ msgstr "Rekalibrovat?"
+#~ msgstr "Kalibrować ponownie?"
 
 #~ msgid "Save logs to USB"
-#~ msgstr "Uložit logy na USB"
+#~ msgstr "Zapis logów na USB"
 
 #~ msgid "Serial number check has failed"
-#~ msgstr "Selhala kontrola sériového čísla"
+#~ msgstr "Niepowodzenie sprawdzenia numeru seryjnego"
 
 #~ msgid "TMC SPI has failed"
-#~ msgstr "Chyba TMC SPI"
+#~ msgstr "Błąd TMC SPI"
 
 #~ msgid "TMC wiring/communication has failed"
-#~ msgstr "Chyba komunikace/propojení TMC"
+#~ msgstr "Błąd połączenia/komunikacji TMC"
 
 #~ msgid "The UV LED has failed"
-#~ msgstr "Selhal UV LED panel"
+#~ msgstr "Błąd UV LED"
 
 #~ msgid ""
 #~ "The exposure display do not block the UV light enough. Replace it please."
 #~ msgstr ""
-#~ "Nedostatečné blokování světla na osvitovém displeji. Je nutná výměna."
+#~ "Wyświetlacz naświetlający nie blokuje wystarczającej ilości światła UV. "
+#~ "Wymień go."
 
 #~ msgid "Thermistors temperature check"
-#~ msgstr "Kontrola teploty termistorů"
+#~ msgstr "Test temperatury termistorów"
 
 #, python-format
 #~ msgid ""
@@ -2826,11 +2865,14 @@ msgstr "neznámý senzor"
 #~ "Calibrated UV LED meter connected to the USB port will be required after "
 #~ "warm up."
 #~ msgstr ""
-#~ "UV LED bude zkalibrována (intezita %(int)d, teplota %(temp)d °C, rozsah <"
-#~ "%(minp)d,%(maxp)d>)."
+#~ "Zostanie przeprowadzona kalibracja UV LED (intensywność %(int)d, "
+#~ "temperatura %(temp)d °C, w zakresie <%(minp)d, %(maxp)d>).\n"
+#~ "\n"
+#~ "Po nagrzaniu będzie wymagany skalibrowany miernik UV LED podłączony do "
+#~ "portu USB."
 
 #~ msgid "UV calib. temperature"
-#~ msgstr "Kalibrace UV teploty"
+#~ msgstr "Kalib. temp. UV LED"
 
 #~ msgid "Wrong motion controller firmware version"
-#~ msgstr "Nesprávná verze firmwaru pro motion controller"
+#~ msgstr "Nieprawidłowa wersja firmware Kontrolera Ruchu"
