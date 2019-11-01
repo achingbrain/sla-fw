@@ -121,7 +121,7 @@ class Printer:
         self.hw.uvLed(False)
         self.hw.powerLed("normal")
 
-        self.expo = Exposure(self.hwConfig, self.display, self.hw, self.screen)
+        self.expo = Exposure(self.hwConfig, self.hw, self.screen)
         self.display.initExpo(self.expo)
         self.screen.cleanup()
 

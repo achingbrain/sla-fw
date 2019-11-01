@@ -8,18 +8,17 @@ from __future__ import annotations
 import logging
 import queue
 import threading
+from datetime import datetime, timedelta, timezone
 from time import sleep, time
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
+
+from sl1fw.project.project import Project
 
 from sl1fw import defines
+from sl1fw.exposure_state import ExposureState
 from sl1fw.libConfig import HwConfig, TomlConfigStats
-from sl1fw.project.project import Project
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
-from sl1fw.pages.wait import PageWait
-
-if TYPE_CHECKING:
-    from sl1fw.libDisplay import Display
 
 
 class ExposureThread(threading.Thread):
@@ -69,19 +68,22 @@ class ExposureThread(threading.Thread):
         if self.expo.hwConfig.tilt:
             self.expo.hw.getMcTemperatures()
         #endif
-        self.logger.debug("exposure started")
-        self.expo.display.actualPage.showItems(exposure = etime)
+
         whitePixels = self.expo.screen.blitImg(second = second)
+
+        self.expo.exposure_end = datetime.now(tz=timezone.utc) + timedelta(seconds=etime)
+        self.logger.debug("Exposure started: %d seconds, end: %s", etime, self.expo.exposure_end)
 
         if self.expo.hwConfig.blinkExposure:
             if self.expo.calibAreas:
-                etime = 1000 * (exposureTime + self.expo.calibAreas[-1]['time'] - self.expo.calibAreas[0]['time'])
+                exptime = 1000 * (exposureTime + self.expo.calibAreas[-1]['time'] - self.expo.calibAreas[0]['time'])
                 self.expo.hw.uvLed(True, etime)
 
+
                 for area in self.expo.calibAreas:
-                    while etime > 1000 * (self.expo.calibAreas[-1]['time'] - area['time']):
+                    while exptime > 1000 * (self.expo.calibAreas[-1]['time'] - area['time']):
                         sleep(0.005)
-                        UVIsOn, etime = self.expo.hw.getUvLedState()
+                        UVIsOn, exptime = self.expo.hw.getUvLedState()
                         if not UVIsOn:
                             break
                         #endif
@@ -149,35 +151,34 @@ class ExposureThread(threading.Thread):
         if self.expo.hwConfig.blinkExposure and self.expo.hwConfig.upAndDownUvOn:
             self.expo.hw.uvLed(True)
         #endif
-        pageWait = PageWait(self.expo.display, line1 = _("Going to the top position"))
-        pageWait.show()
+
+        self.expo.state = ExposureState.GOING_UP
         self.expo.hw.setTowerProfile('homingFast')
         self.expo.hw.towerToTop()
         while not self.expo.hw.isTowerOnTop():
             sleep(0.25)
-            pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
         #endwhile
-        pageWait.showItems(line2 = "")
 
         for sec in range(self.expo.hwConfig.upAndDownWait):
             cnt = self.expo.hwConfig.upAndDownWait - sec
-            pageWait.showItems(line1 = ngettext("Printing will continue in %d second",
-                "Printing will continue in %d seconds", cnt) % cnt, line2 = "")
+            self.expo.state = ExposureState.WAITING
+            self.expo.remaining_wait_sec = cnt
             sleep(1)
             if self.expo.hwConfig.coverCheck and not self.expo.hw.isCoverClosed():
-                pageWait.showItems(line1 = _("Paused"),
-                    line2 = _("Close the cover to continue"))
+                self.expo.state = ExposureState.COVER_OPEN
                 while not self.expo.hw.isCoverClosed():
                     sleep(1)
                 #endwhile
+                self.expo.state = ExposureState.WAITING
             #endif
         #endfor
 
         if self.expo.hwConfig.tilt:
-            pageWait.showItems(line1 = _("Stirring the resin"), line2 = "")
+            self.expo.state = ExposureState.STIRRING
             self.expo.hw.stirResin()
         #endif
-        pageWait.showItems(line1 = _("Going back"), line2 = "")
+
+        self.expo.state = ExposureState.GOING_DOWN
         self.expo.position += self.expo.hwConfig.upAndDownZoffset
         if self.expo.position < 0:
             self.expo.position = 0
@@ -185,17 +186,17 @@ class ExposureThread(threading.Thread):
         self.expo.hw.towerMoveAbsolute(self.expo.position)
         while not self.expo.hw.isTowerOnPosition():
             sleep(0.25)
-            pageWait.showItems(line2 = self.expo.hw.getTowerPosition())
         #endwhile
         self.expo.hw.setTowerProfile('layer')
         self.expo.hw.powerLed("normal")
-        self.expo.display.forcePage("print")
+
+        self.expo.state = ExposureState.PRINTING
     #endif
 
 
     def doWait(self, beep = False):
         command = None
-        breakFree = set(("exit", "back", "continue"))
+        breakFree = {"exit", "back", "continue"}
         while not command:
             if beep:
                 self.expo.hw.beepAlarm(3)
@@ -221,46 +222,33 @@ class ExposureThread(threading.Thread):
 
 
     def doStuckRelease(self):
+        self.expo.state = ExposureState.STUCK
         self.expo.hw.powerLed("error")
         self.expo.hw.towerHoldTiltRelease()
-        self.expo.display.pages['confirm'].setParams(
-            continueFce = self.expo.doContinue,
-            backFce = self.expo.doBack,
-            beep = True,
-            text = _("The printer got stuck and needs user assistance.\n\n"
-                "Release the tank mechanism and press Continue.\n\n"
-                "If you don't want to continue, press the Back button on top of the screen and the current job will be canceled."))
-        self.expo.display.forcePage("confirm")
         if self.doWait(True) == "back":
             return False
         #endif
 
         self.expo.hw.powerLed("warn")
-        pageWait = PageWait(self.expo.display, line1 = _("Setting start positions"))
-        pageWait.show()
+        self.expo.state = ExposureState.STUCK_RECOVERY
 
         if not self.expo.hw.tiltSyncWait(retries = 1):
             self.logger.error("Stuck release failed")
-            self.expo.display.pages['error'].setParams(
-                    backFce = self.expo.doBack,
-                    text = _("Tilt homing failed!\n\n"
-                        "Check the printer's hardware.\n\n"
-                        "The print job was canceled."))
-            self.expo.display.forcePage("error")
+            self.expo.state = ExposureState.TILT_FAILURE
             self.doWait(True)
             return False
         #endif
 
-        pageWait.showItems(line1 = _("Stirring the resin"))
+        self.expo.state = ExposureState.STIRRING
         self.expo.hw.stirResin()
         self.expo.hw.powerLed("normal")
-        self.expo.display.forcePage("print")
+        self.expo.state = ExposureState.PRINTING
         return True
     #enddef
 
 
     def run(self):
-        #self.logger.debug("thread started")
+        self.logger.debug("Started exposure thread")
         self.expo.printStartTime = time()
         statsFile = TomlConfigStats(defines.statsData, self.expo.hw)
         stats = statsFile.load()
@@ -274,7 +262,6 @@ class ExposureThread(threading.Thread):
             exposureCompensation = 0.0
 
             for i in range(totalLayers):
-
                 try:
                     command = self.commands.get_nowait()
                 except queue.Empty:
@@ -308,34 +295,29 @@ class ExposureThread(threading.Thread):
                     #endif
                 #endif
 
-                if command in ("feedme", "feedmeByButton"):
+                if self.expo.resinVolume:
+                    self.expo.remain_resin_ml = self.expo.resinVolume - int(self.expo.resinCount)
+                    self.expo.warn_resin = self.expo.remain_resin_ml < defines.resinLowWarn
+                    self.expo.low_resin = self.expo.remain_resin_ml < defines.resinFeedWait
+                #endif
+
+                if command == "feedme" or self.expo.low_resin:
                     self.expo.hw.powerLed("warn")
                     if self.expo.hwConfig.tilt:
                         self.expo.hw.tiltLayerUpWait()
                     #endif
-                    if command == "feedme":
-                        reason = _("Resin level low!")
-                        beep = True
-                    else:
-                        reason = _("Manual resin refill")
-                        beep = False
-                    #endif
-                    self.expo.display.pages['feedme'].showItems(text = _("%s\n\n"
-                        "Please refill the tank up to the 100 %% mark and press Done.\n\n"
-                        "If you don't want to refill, please press the Back button on top of the screen.""") % reason)
-                    self.expo.display.forcePage("feedme")
-                    self.doWait(beep)
+                    self.expo.state = ExposureState.FEED_ME
+                    self.doWait(self.expo.low_resin)
 
                     if self.expo.hwConfig.tilt:
-                        pageWait = PageWait(self.expo.display, line1 = _("Stirring the resin"))
-                        pageWait.show()
+                        self.expo.state = ExposureState.STIRRING
                         self.expo.hw.setTiltProfile('homingFast')
                         self.expo.hw.tiltDownWait()
                         self.expo.hw.stirResin()
                     #endif
                     wasStirring = True
                     self.expo.hw.powerLed("normal")
-                    self.expo.display.forcePage("print")
+                    self.expo.state = ExposureState.PRINTING
                 #endif
 
                 if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
@@ -444,9 +426,7 @@ class ExposureThread(threading.Thread):
             self.expo.hw.uvLed(False)
 
             if not stuck:
-                pageWait = PageWait(self.expo.display, line1 = _("Moving platform to the top"))
-                pageWait.show()
-
+                self.expo.state = ExposureState.GOING_UP
                 self.expo.hw.setTowerProfile('homingFast')
                 self.expo.hw.towerToTop()
                 while not self.expo.hw.isTowerOnTop():
@@ -462,25 +442,14 @@ class ExposureThread(threading.Thread):
             statsFile.save(stats)
             self.expo.screen.saveDisplayUsage()
 
-            self.expo.display.forcePage("finished")
+            self.expo.state = ExposureState.FINISHED
 
         except Exception as e:
-            self.logger.exception("run() exception:")
-
-            self.expo.display.pages['error'].setParams(
-                backFce=lambda: "home",
-                text=_(
-                    "Print failed due to an unexpected error\n"
-                    "\n"
-                    "Please follow the instructions in Chapter 3.1 in the handbook to learn how "
-                    "to save a log file. Please send the log to us and help us improve the  printer.\n"
-                    "\n"
-                    "Thank you!"
-                ))
-            self.expo.display.forcePage("error")
+            self.logger.exception("Exposure thread exception")
+            self.expo.state = ExposureState.FAILURE
         #endtry
 
-        #self.logger.debug("thread ended")
+        self.logger.debug("Exposure thread ended")
     #enddef
 
 #endclass
@@ -488,11 +457,10 @@ class ExposureThread(threading.Thread):
 
 class Exposure:
 
-    def __init__(self, hwConfig: HwConfig, display: Display, hw: Hardware, screen: Screen):
+    def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.project: Optional[Project] = None
-        self.display = display
         self.hw = hw
         self.screen = screen
         self.resinCount = 0.0
@@ -504,11 +472,16 @@ class Exposure:
         self.position = 0
         self.actualLayer = 0
         self.expoCommands = None
-        self.expoThread = None
         self.slowLayers = 0
         self.totalHeight = None
         self.printStartTime = 0
         self.printTime = 0
+        self.state = ExposureState.INIT
+        self.remaining_wait_sec = 0
+        self.low_resin = False
+        self.warn_resin = False
+        self.remain_resin_ml = None
+        self.exposure_end: Optional[datetime] = None
     #enddef
 
 
@@ -568,6 +541,7 @@ class Exposure:
     def start(self):
         if self.expoThread:
             self.expoThread.start()
+            self.state = ExposureState.PRINTING
         else:
             self.logger.error("Can't start exposure thread")
         #endif
@@ -591,6 +565,7 @@ class Exposure:
 
 
     def doUpAndDown(self):
+        self.state = ExposureState.PENDING_ACTION
         self.expoCommands.put("updown")
     #enddef
 
@@ -601,12 +576,8 @@ class Exposure:
 
 
     def doFeedMe(self):
+        self.state = ExposureState.PENDING_ACTION
         self.expoCommands.put("feedme")
-    #enddef
-
-
-    def doFeedMeByButton(self):
-        self.expoCommands.put("feedmeByButton")
     #enddef
 
 

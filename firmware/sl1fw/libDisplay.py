@@ -19,6 +19,7 @@ from sl1fw.libNetwork import Network
 from sl1fw.libScreen import Screen
 from sl1fw.libVirtualDisplay import VirtualDisplay
 from sl1fw.pages import pages
+from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
 
 
@@ -45,7 +46,7 @@ class Display:
         #endfor
 
         self.actualPageStack = None
-        self.actualPage = self.pages['start']
+        self.actualPage: Page = self.pages['start']
 
         self.fanErrorOverride = False
         self.checkCoolingExpo = True

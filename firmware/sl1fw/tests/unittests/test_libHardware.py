@@ -6,6 +6,7 @@
 import os
 import unittest
 from time import sleep
+from typing import Optional
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
@@ -45,7 +46,7 @@ class TestLibHardware(Sl1fwTestCase):
         super().__init__(*args, **kwargs)
         self.hwConfig = None
         self.config = None
-        self.hw = None
+        self.hw: Optional[Hardware] = None
         self.hw_state = None
 
     def setUp(self):

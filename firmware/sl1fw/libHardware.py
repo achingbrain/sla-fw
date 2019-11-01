@@ -1145,7 +1145,7 @@ class Hardware:
                 self._tiltSynced = True
                 return True
             elif homingStatus < 0:
-                self.logger.warning("Ttilt homing failed! Status: %d", homingStatus)
+                self.logger.warning("Tilt homing failed! Status: %d", homingStatus)
                 if retries < 1:
                     self.logger.error("Tilt homing max tries reached!")
                     return False

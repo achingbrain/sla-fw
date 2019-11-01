@@ -27,15 +27,13 @@ class TestExposure(Sl1fwTestCase):
         defines.statsData = str(Sl1fwTestCase.TEMP_DIR / "stats.toml")
 
         hw_config = HwConfig()
-        display = Mock()
-        display.devices = []
         hw = Mock()
         hw.getUvLedState.return_value = (False, 0)
         hw.getUvStatistics.return_value = (6912,)
         screen = Mock()
         screen.blitImg.return_value = 100
         screen.projectStatus.return_value = True, False, list()
-        self.exposure = Exposure(hw_config, display, hw, screen)
+        self.exposure = Exposure(hw_config, hw, screen)
 
     def test_exposure_init(self):
         pass

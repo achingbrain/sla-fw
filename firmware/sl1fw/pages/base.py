@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 
 class Page:
+    Name = None
 
     def __init__(self, display: Display):
         self.pageUI = "splash"
