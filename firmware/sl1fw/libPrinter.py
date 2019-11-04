@@ -11,6 +11,7 @@ import threading
 from pathlib import Path
 from time import sleep, monotonic
 
+import distro
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 from pydbus import SystemBus
@@ -182,6 +183,7 @@ class Printer:
 
     def run(self):
         self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
+        self.logger.info("System version: %s", distro.version())
         self.start_time = monotonic()
         self.logger.debug("Starting libHardware")
         self.hw.start()
