@@ -169,7 +169,6 @@ class Display:
             if button is not None:
                 if button in actualPage.autorepeat:
                     if pressed:
-                        self.hw.beepEcho()
                         autorepeatDelay, autorepeatDelayNext = actualPage.autorepeat[button]
                         autorepeatFce = getattr(actualPage, button + "Button", actualPage.emptyButton)
                         autorepeatFce()
@@ -190,7 +189,6 @@ class Display:
                         pressFce()
                     #endif
                 else:
-                    self.hw.beepEcho()
                     submitFce = getattr(actualPage, button + "ButtonSubmit", None)
                     releaseFce = getattr(actualPage, button + "ButtonRelease", actualPage.emptyButtonRelease)
                     if submitFce:
