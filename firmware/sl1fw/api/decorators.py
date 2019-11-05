@@ -8,15 +8,14 @@ from time import monotonic
 from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints
 
 from sl1fw.api.exceptions import NotAvailableInState, DBusMappingException
-from sl1fw.api.states import Printer0State
-from sl1fw.libConfig import Value
+from sl1fw.api.states import Printer0State, Exposure0State
 
 
 class DBusObjectPath(str):
     pass
 
 
-def state_checked(allowed_state: Union[Printer0State, List[Printer0State]]):
+def state_checked(allowed_state: Union[Printer0State, Exposure0State, List[Printer0State], List[Exposure0State]]):
     """
     Decorator restricting method call based on allowed state
 
@@ -38,6 +37,24 @@ def state_checked(allowed_state: Union[Printer0State, List[Printer0State]]):
 
         return func
 
+    return decor
+
+
+def range_checked(min, max):
+    """
+    Raises value error if the only method param is not in [min, max] range
+
+    :param min: Minimal allowed value
+    :param max: Maximal allowed value
+    :return: Decorathed method
+    """
+    def decor(func):
+        @functools.wraps(func)
+        def wrap(self, value):
+            if value < min or value > max:
+                raise ValueError(f"Value: {value} out of range: [{min}, {max}]")
+            return func(self, value)
+        return wrap
     return decor
 
 
@@ -63,9 +80,7 @@ def cached(validity_s: float = None):
                 cache["value"] = function(self)
                 cache["last"] = monotonic()
             return cache["value"]
-
         return func
-
     return decor
 
 
@@ -133,12 +148,9 @@ def python_to_dbus_type(python_type: Any) -> str:
         raise ValueError(f"Type: {python_type} has no defined mapping to dbus")
 
 
-def gen_method_dbus_spec(obj: Any, name: str) -> str:
+def  gen_method_dbus_spec(obj: Any, name: str) -> str:
     try:
-        if isinstance(obj, Value):
-            get_type = python_to_dbus_type(get_type_hints(obj.fget)["return"])
-            return f'<property name="{name}" type="{get_type}" access="readwrite"><annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/></property>'
-        elif isinstance(obj, property):
+        if isinstance(obj, property):
             access = "read"
             get_type = python_to_dbus_type(get_type_hints(obj.fget)["return"])
             if obj.fset:

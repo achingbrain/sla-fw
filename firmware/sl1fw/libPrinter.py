@@ -10,6 +10,7 @@ import re
 import threading
 from pathlib import Path
 from time import sleep, monotonic
+from typing import Optional
 
 import distro
 from dbus.mainloop.glib import DBusGMainLoop
@@ -19,6 +20,7 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.config0 import Config0
+from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libAsync import AdminCheck, SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
@@ -40,7 +42,8 @@ class Printer:
         self.slicer_profile_updater = None
         self.running = True
         self.firstRun = True
-        self.expo = None
+        self.expo: Optional[Exposure] = None
+        self.exposure_dbus_objects = set()
         self.exited = threading.Event()
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
@@ -112,6 +115,11 @@ class Printer:
         self.screen.exit()
         self.hw.exit()
         self.eventLoop.quit()
+        for obj in self.exposure_dbus_objects:
+            obj.unpublish()
+        #endfor
+        self.config0_dbus.unpublish()
+        self.printer0_dbus.unpublish()
         if self.eventThread.is_alive():
             self.eventThread.join()
         #endif
@@ -122,6 +130,11 @@ class Printer:
         self.hw.powerLed("normal")
 
         self.expo = Exposure(self.hwConfig, self.hw, self.screen)
+        self.logger.debug("Created new exposure object id: %s", self.expo.instance_id)
+        self.exposure_dbus_objects.add(SystemBus().publish(
+            Exposure0.__INTERFACE__,
+            (Exposure0.dbus_path(self.expo.instance_id),
+             Exposure0(self.expo))))
         self.display.initExpo(self.expo)
         self.screen.cleanup()
 

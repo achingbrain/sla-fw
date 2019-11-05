@@ -15,6 +15,7 @@ from pydbus.generic import signal
 from sl1fw import actions
 from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath
 from sl1fw.api.display_test0 import DisplayTest0
+from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.states import Printer0State
 
 if TYPE_CHECKING:
@@ -492,7 +493,7 @@ class Printer0:
             return DBusObjectPath(path)
 
         self._display_test = DisplayTest0(self)
-        self._display_test_registration = pydbus.SystemBus().register_object(path, self._display_test, None)
+        self._display_test_registration = pydbus.SystemBus().publish(DisplayTest0.__INTERFACE__, (path, self._display_test))
 
         return DBusObjectPath(path)
 
@@ -547,12 +548,8 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
-    def advanced_settings(self) -> None:
-        """
-        Initiate advanced settings
-
-        NOT IMPLEMENTED
-
-        :return: Advanced settings control object
-        """
-        raise NotImplementedError
+    def get_current_exposure(self) -> DBusObjectPath:
+        if self.printer.expo:
+            return Exposure0.dbus_path(self.printer.expo.instance_id)
+        else:
+            return DBusObjectPath("/")

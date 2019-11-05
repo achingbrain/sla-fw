@@ -1536,8 +1536,8 @@ class Hardware:
         Read or set tower position in nm
         """
         # TODO: Raise exception if tower not synced
-        micro_steps = self.getTowerPositionMicroSteps()
-        return micro_steps * 1000 * 1000 / self.hwConfig.microStepsMM
+        microsteps = self.getTowerPositionMicroSteps()
+        return self.hwConfig.tower_microsteps_to_nm(microsteps)
     #enddef
 
 

@@ -3,6 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -58,7 +59,7 @@ class PageExposure(Page):
 
 
     def exposaddsecondButton(self):
-        if self.expTime < 60:
+        if self.expTime < defines.exposure_time_max_ms / 1000:
             self.expTime = round(self.expTime + 0.5, 1)
         else:
             self.display.hw.beepAlarm(1)
@@ -68,7 +69,7 @@ class PageExposure(Page):
 
 
     def expossubsecondButton(self):
-        if self.expTime > 1:
+        if self.expTime > defines.exposure_time_min_ms / 1000:
             self.expTime = round(self.expTime - 0.5, 1)
         else:
             self.display.hw.beepAlarm(1)
@@ -78,7 +79,7 @@ class PageExposure(Page):
 
 
     def exposfirstaddsecondButton(self):
-        if self.expTimeFirst < 120:
+        if self.expTimeFirst < defines.exposure_time_first_max_ms / 1000:
             self.expTimeFirst = round(self.expTimeFirst + 1, 1)
         else:
             self.display.hw.beepAlarm(1)
@@ -88,7 +89,7 @@ class PageExposure(Page):
 
 
     def exposfirstsubsecondButton(self):
-        if self.expTimeFirst > 10:
+        if self.expTimeFirst > defines.exposure_time_first_min_ms / 1000:
             self.expTimeFirst = round(self.expTimeFirst - 1, 1)
         else:
             self.display.hw.beepAlarm(1)
@@ -98,7 +99,7 @@ class PageExposure(Page):
 
 
     def exposcalibrateaddsecondButton(self):
-        if self.expTimeCalibrate < 5:
+        if self.expTimeCalibrate < defines.exposure_time_calibrate_max_ms / 1000:
             self.expTimeCalibrate = round(self.expTimeCalibrate + 0.5, 1)
         else:
             self.display.hw.beepAlarm(1)
@@ -108,7 +109,7 @@ class PageExposure(Page):
 
 
     def exposcalibratesubsecondButton(self):
-        if self.expTimeCalibrate > 0.5:
+        if self.expTimeCalibrate > defines.exposure_time_calibrate_min_ms / 1000:
             self.expTimeCalibrate = round(self.expTimeCalibrate - 0.5, 1)
         else:
             self.display.hw.beepAlarm(1)

@@ -10,7 +10,7 @@ import queue
 import threading
 from datetime import datetime, timedelta, timezone
 from time import sleep, time
-from typing import Optional
+from typing import Optional, Callable, Any, Set
 
 from sl1fw.project.project import Project
 
@@ -159,9 +159,9 @@ class ExposureThread(threading.Thread):
             sleep(0.25)
         #endwhile
 
+        self.expo.state = ExposureState.WAITING
         for sec in range(self.expo.hwConfig.upAndDownWait):
             cnt = self.expo.hwConfig.upAndDownWait - sec
-            self.expo.state = ExposureState.WAITING
             self.expo.remaining_wait_sec = cnt
             sleep(1)
             if self.expo.hwConfig.coverCheck and not self.expo.hw.isCoverClosed():
@@ -456,8 +456,10 @@ class ExposureThread(threading.Thread):
 
 
 class Exposure:
+    instance_counter = 0
 
     def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen):
+        self._change_handlers: Set[Callable[[str, Any], None]] = set()
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.project: Optional[Project] = None
@@ -482,12 +484,28 @@ class Exposure:
         self.warn_resin = False
         self.remain_resin_ml = None
         self.exposure_end: Optional[datetime] = None
+        self.instance_id = self.instance_counter
+        self.instance_counter += 1
     #enddef
 
 
     def setProject(self, project_filename):
         self.project = Project(self.hwConfig)
         return self.project.read(project_filename)
+
+
+    def __setattr__(self, key: str, value: Any):
+        object.__setattr__(self, key, value)
+        if not key.startswith("_"):
+            for handler in self._change_handlers:
+                handler(key, value)
+            #endfor
+        #endif
+    #enddef
+
+
+    def add_onchange_handler(self, handler: Callable[[str, Any], None]):
+        self._change_handlers.add(handler)
     #enddef
 
 

@@ -23,7 +23,10 @@ API
 .. toctree::
    :maxdepth: 2
 
-   api
+   printer0
+   config0
+   exposure0
+
 
 
 Indices and tables

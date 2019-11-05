@@ -130,3 +130,10 @@ factoryConfigFile = factoryMountPoint / "factory.toml"
 logsBase = "/var/log/journal"
 testing = False
 traces = 30
+
+exposure_time_min_ms = 1000
+exposure_time_max_ms = 60000
+exposure_time_first_min_ms = 10000
+exposure_time_first_max_ms = 120000
+exposure_time_calibrate_min_ms = 500
+exposure_time_calibrate_max_ms = 5000

@@ -837,6 +837,15 @@ class HwConfig(Config):
         """
         return round(float(microSteps) / self.microStepsMM, 3)
 
+    def tower_microsteps_to_nm(self, microsteps: int):
+        """
+        Covert microsteps to nanometers using the current tower pitch
+
+        :param microsteps:
+        :return: Tower position in nanometers
+        """
+        return self.tower_microstep_size_nm * microsteps
+
     fanCheck = BoolValue(True, doc="Check fan function if set to True.")
     coverCheck = BoolValue(True, doc="Check for closed cover during printer movements and exposure if set to True.")
     MCversionCheck = BoolValue(True, doc="Check motion controller firmware version if set to True.")
@@ -853,6 +862,15 @@ class HwConfig(Config):
         :return: Number of microsteps per one millimeter
         """
         return 200 * 16 / int(self.screwMm)
+
+    @property
+    def tower_microstep_size_nm(self) -> int:
+        """
+        Get microstep width in nanometers
+
+        :return: Width in nanometers
+        """
+        return (self.screwMm * 1000 * 1000) / (200 * 16)
 
     tiltHeight = IntValue(defines.defaultTiltHeight, doc="Position of the leveled tilt. [microsteps]")
     stirringMoves = IntValue(3, minimum=1, maximum=10, doc="Number of stirring moves")

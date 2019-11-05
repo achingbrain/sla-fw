@@ -13,7 +13,7 @@ from sl1fw import defines
 
 
 class DisplayTest0:
-    INTERFACE = "cz.prusa3d.sl1.printer0"
+    __INTERFACE__ = "cz.prusa3d.sl1.displaytest0"
 
     dbus = """
         <node>
@@ -25,7 +25,7 @@ class DisplayTest0:
                 <method name="finish"/>
             </interface>
         </node>
-    """ % INTERFACE
+    """ % __INTERFACE__
 
     class State(Enum):
         def _generate_next_value_(self, start, count, last_values):
@@ -57,7 +57,7 @@ class DisplayTest0:
             self.printer0.printer.hw.uvLed(False)
             self._state = self.State.COVER_OPEN
         if old != self._state:
-            self.PropertiesChanged(self.INTERFACE, {"state": self.state}, [])
+            self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
 
         return True
 
@@ -74,6 +74,6 @@ class DisplayTest0:
         self.printer0.printer.hw.stopFans()
 
         self._state = self.State.FINISHED
-        self.printer0._display_test_registration.unregister()
+        self.printer0._display_test_registration.unpublish()
         self.printer0._display_test_registration = None
         self.printer0._display_test = None
