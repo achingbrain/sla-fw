@@ -7,10 +7,10 @@ import os
 import unittest
 from time import sleep
 
+from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
 from sl1fw.libConfig import HwConfig
 from sl1fw.libHardware import Hardware, MotConComState
-from sl1fw.tests.base import Sl1fwTestCase
 
 
 class TestLibHardwareConnect(Sl1fwTestCase):
@@ -46,6 +46,7 @@ class TestLibHardware(Sl1fwTestCase):
         self.hwConfig = None
         self.config = None
         self.hw = None
+        self.hw_state = None
 
     def setUp(self):
         super().setUp()
@@ -58,7 +59,7 @@ class TestLibHardware(Sl1fwTestCase):
 
         try:
             self.hw.start()
-            self.hw.connectMC()
+            self.hw_state = self.hw.connectMC()
         except Exception as exception:
             self.tearDown()
             raise exception
@@ -67,6 +68,9 @@ class TestLibHardware(Sl1fwTestCase):
         self.hw.exit()
         if self.EEPROM_FILE.exists():
             self.EEPROM_FILE.unlink()
+
+    def test_connect(self):
+        self.assertEqual(MotConComState.OK, self.hw_state)
 
     def test_cpu_read(self):
         self.assertEqual("CZPX0819X009XC00151", self.hw.cpuSerialNo)
