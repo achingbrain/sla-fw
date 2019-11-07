@@ -3,13 +3,18 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sl1fw import defines
+
+if TYPE_CHECKING:
+    from sl1fw.libDisplay import Display
 
 
 def get_save_path() -> Optional[Path]:
@@ -42,3 +47,27 @@ def save_logs_to_usb(a64_serial: str) -> None:
         subprocess.check_call(["export_logs.bash", log_file])
     except Exception as exception:
         raise Exception(N_("Saving logs failed")) from exception
+
+
+def start_display_test(display: Display):
+    display.hw.startFans()
+    display.fanErrorOverride = True
+    display.screen.getImg(filename=str(Path(defines.dataPath) / "logo_1440x2560.png"))
+
+
+def end_display_test(display: Display):
+    display.fanErrorOverride = False
+    display.hw.saveUvStatistics()  # TODO: Why ???
+    # can't call allOff(), motorsRelease() is harmful for the wizard
+    display.screen.getImgBlack()
+    display.hw.uvLed(False)
+    display.hw.stopFans()
+
+
+def display_test_cover_check(display: Display) -> bool:
+    if not display.hwConfig.coverCheck or display.hw.isCoverClosed():
+        display.hw.uvLed(True)
+        return True
+    else:
+        display.hw.uvLed(False)
+        return False

@@ -3,9 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
-
-from sl1fw import defines
+from sl1fw.actions import end_display_test, start_display_test, display_test_cover_check
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -28,22 +26,20 @@ class PageDisplayTest(Page):
 
 
     def show(self):
-        self.display.fanErrorOverride = True    #do not check fane. overheat check is sufficient
+        start_display_test(self.display)
         self.items.update({
             'imageName' : "selftest-prusa_logo.jpg",
             'text' : _("Can you see the company logo on the exposure display through the orange cover?\n\n"
-                "Tip: The logo is best seen when you look from above.\n\n"
-                "DO NOT open the cover!")})
-        if not self.display.hwConfig.coverCheck or self.display.hw.isCoverClosed():
-            self.display.hw.uvLed(True)
+                       "Tip: The logo is best seen when you look from above.\n\n"
+                       "DO NOT open the cover!")})
+        if display_test_cover_check(self.display):
             super(PageDisplayTest, self).show()
         #endif
-        self.display.screen.getImg(filename=os.path.join(defines.dataPath, "logo_1440x2560.png"))
-        self.display.hw.startFans()
     #enddef
 
 
-    def yesButtonRelease(self):
+    @staticmethod
+    def yesButtonRelease():
         return "_OK_"
     #enddef
 
@@ -51,18 +47,13 @@ class PageDisplayTest(Page):
     def noButtonRelease(self):
         self.display.pages['error'].setParams(
             text = _("Your display is probably broken.\n\n"
-                "Please contact tech support!"))
+                     "Please contact tech support!"))
         return "error"
     #enddef
 
 
     def leave(self):
-        self.display.fanErrorOverride = False
-        self.display.hw.saveUvStatistics()
-        # can't call allOff(), motorsRelease() is harmful for the wizard
-        self.display.screen.getImgBlack()
-        self.display.hw.uvLed(False)
-        self.display.hw.stopFans()
+        end_display_test(self.display)
     #enddef
 
 #endclass

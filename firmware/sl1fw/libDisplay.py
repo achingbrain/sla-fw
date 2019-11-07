@@ -25,15 +25,15 @@ from sl1fw.pages.wait import PageWait
 
 class Display:
 
-    def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network, screen: Screen, printer0: Printer0):
+    def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network, screen: Screen, factory_mode: bool):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.devices = devices
-        self.show_admin = printer0.factory_mode
+        self.show_admin = factory_mode
         self.hw = hw
         self.inet = inet
         self.screen = screen
-        self.printer0 = printer0
+        self.factory_mode = factory_mode
         self.wizardData = None
         self.uvcalibData = None
         self.expo: Optional[Exposure] = None

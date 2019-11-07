@@ -89,7 +89,7 @@ class Page:
         # renew save path every time when page is shown, it may change
         self.items.update({
             'save_path' : self.getSavePath(),
-            'image_version' : "%s%s" % (distro.version(), _(" (factory mode)") if self.display.printer0.factory_mode else ""),
+            'image_version' : "%s%s" % (distro.version(), _(" (factory mode)") if self.display.factory_mode else ""),
             'page_title' : _(self.pageTitle),
             })
 

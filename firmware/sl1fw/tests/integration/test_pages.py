@@ -148,6 +148,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_factory_reset_factory_complete(self):
         self.printer.hw.boardData = ("TEST complete", False)
         self.printer.factoryMode = True
+        self.printer.display.factory_mode = True
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
@@ -163,6 +164,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_factory_reset_factory_kit(self):
         self.printer.hw.boardData = ("TEST kit", True)
         self.printer.factoryMode = True
+        self.printer.display.factory_mode = True
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
@@ -176,6 +178,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_factory_reset_user_complete(self):
         self.printer.hw.boardData = ("TEST complete", False)
         self.printer.factoryMode = False
+        self.printer.display.factory_mode = False
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
@@ -189,6 +192,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_factory_reset_user_kit(self):
         self.printer.hw.boardData = ("TEST kit", True)
         self.printer.factoryMode = False
+        self.printer.display.factory_mode = False
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")

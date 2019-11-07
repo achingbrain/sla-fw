@@ -97,7 +97,7 @@ class Printer:
 
         self.logger.debug("Initializing libDisplay")
         from sl1fw.libDisplay import Display
-        self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.printer0)
+        self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.factoryMode)
 
         self.logger.debug("Initializing D-Bus event loop")
         DBusGMainLoop(set_as_default=True)

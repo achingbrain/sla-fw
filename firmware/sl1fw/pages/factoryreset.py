@@ -45,7 +45,7 @@ class PageFactoryReset(Page):
         try:
             self.display.hwConfig.factory_reset()
             # do not display unpacking after user factory reset
-            if not self.display.printer0.factory_mode:
+            if not self.display.factory_mode:
                 self.display.hwConfig.showUnboxing = False
             #endif
             self.display.hwConfig.write()
@@ -127,7 +127,7 @@ class PageFactoryReset(Page):
         #endtry
 
         # continue only in factory mode
-        if not self.display.printer0.factory_mode:
+        if not self.display.factory_mode:
             self.display.shutDown(doShutDown=True, reboot=True)
             return
         #endif

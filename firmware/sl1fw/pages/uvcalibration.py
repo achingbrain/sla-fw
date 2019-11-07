@@ -554,7 +554,7 @@ class PageUvCalibrationConfirm(Page):
             return "error"
         #endtry
         self.uvcalibConfig.save_raw()
-        if self.display.printer0.factory_mode:
+        if self.display.factory_mode:
             self.uvcalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
             self.uvcalibConfigFactory.data = self.uvcalibConfig.data
             if not self.writeToFactory(self.writeAllDefaults):

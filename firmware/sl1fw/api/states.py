@@ -59,3 +59,10 @@ class Exposure0State(Enum):
             ExposureState.STUCK: Exposure0State.STUCK,
             ExposureState.STUCK_RECOVERY: Exposure0State.STUCK_RECOVERY,
         }[state]
+
+@unique
+class DisplayTest0State(Enum):
+    INIT = 0
+    COVER_OPEN = 1
+    DISPLAY = 2
+    FINISHED = 3

@@ -9,10 +9,10 @@ from typing import List, Dict, Tuple, TYPE_CHECKING
 
 import distro
 import pydbus
-from deprecated import deprecated
 from pydbus.generic import signal
+from deprecated import deprecated
 
-from sl1fw import actions
+from sl1fw import actions, defines
 from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.exposure0 import Exposure0
@@ -68,7 +68,6 @@ class Printer0:
 
     def __init__(self, printer: Printer):
         self.printer = printer
-        self._display_test = None
         self._display_test_registration = None
         self._unpacking = None
         self._wizard = None
@@ -83,7 +82,7 @@ class Printer0:
 
         :return: Global printer state
         """
-        if self._display_test:
+        if self._display_test_registration:
             return Printer0State.DISPLAY_TEST.name
 
         # This is extremely ugly implementation, but currently it is hard to tell what is the printer doing. This
@@ -480,22 +479,26 @@ class Printer0:
         return self.printer.factoryMode
 
     @auto_dbus
+    @state_checked([Printer0State.IDLE, Printer0State.DISPLAY_TEST])
     def display_test(self) -> DBusObjectPath:
         """
         Initiate display test object
 
         :return: Display test object path
         """
-        path = "/cz/prusa3d/sl1/printer0/test"
+        path = "/cz/prusa3d/sl1/displaytest0"
 
         # If test is already pending just return test object
-        if self._display_test:
+        if self._display_test_registration:
             return DBusObjectPath(path)
 
-        self._display_test = DisplayTest0(self)
-        self._display_test_registration = pydbus.SystemBus().publish(DisplayTest0.__INTERFACE__, (path, self._display_test))
-
+        display_test = DisplayTest0(self.printer.display, self._clear_display_test)
+        self._display_test_registration = pydbus.SystemBus().publish(DisplayTest0.__INTERFACE__, (path, display_test))
         return DBusObjectPath(path)
+
+    def _clear_display_test(self):
+        self._display_test_registration.unpublish()
+        self._display_test_registration = None
 
     @auto_dbus
     def wizard(self):
@@ -549,7 +552,63 @@ class Printer0:
 
     @auto_dbus
     def get_current_exposure(self) -> DBusObjectPath:
+        """
+        Get current exposure object DBus path
+
+        :return: DBus path of the object
+        """
         if self.printer.expo:
             return Exposure0.dbus_path(self.printer.expo.instance_id)
         else:
             return DBusObjectPath("/")
+
+    @auto_dbus
+    @property
+    def project_config_file_name(self) -> str:
+        """
+        Name of the config file embedded in project files
+
+        :return: Name as string
+        """
+        return defines.configFile
+
+    @auto_dbus
+    @property
+    def project_extensions(self) -> List[str]:
+        """
+        Set of supported project extensions
+
+        :return: Set of extension strings
+        """
+        return list(defines.projectExtensions)
+
+    @auto_dbus
+    @property
+    def persistent_storage_path(self) -> str:
+        """
+        Filesystem path of the persistent internal storage
+
+        :return: Path as string
+        """
+        return defines.persistentStorage
+
+    @auto_dbus
+    @property
+    def internal_project_path(self) -> str:
+        """
+        Filesystem path to the projects root on the internal storage
+        :return: Path as string
+        """
+        return defines.internalProjectPath
+
+    @auto_dbus
+    @property
+    def media_root_path(self) -> str:
+        """
+        Filesystem path to the root of the mounted media
+
+        New media are mounted into directories residing inside this path.
+
+        :return: Path as string
+        """
+        return defines.mediaRootPath

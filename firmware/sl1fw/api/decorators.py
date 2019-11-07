@@ -40,19 +40,19 @@ def state_checked(allowed_state: Union[Printer0State, Exposure0State, List[Print
     return decor
 
 
-def range_checked(min, max):
+def range_checked(minimum, maximum):
     """
     Raises value error if the only method param is not in [min, max] range
 
-    :param min: Minimal allowed value
-    :param max: Maximal allowed value
+    :param minimum: Minimal allowed value
+    :param maximum: Maximal allowed value
     :return: Decorathed method
     """
     def decor(func):
         @functools.wraps(func)
         def wrap(self, value):
-            if value < min or value > max:
-                raise ValueError(f"Value: {value} out of range: [{min}, {max}]")
+            if value < minimum or value > maximum:
+                raise ValueError(f"Value: {value} out of range: [{minimum}, {maximum}]")
             return func(self, value)
         return wrap
     return decor

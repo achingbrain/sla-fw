@@ -3,77 +3,66 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from enum import Enum, auto
-from pathlib import Path
+from __future__ import annotations
+
+import logging
+from typing import Callable, TYPE_CHECKING
 
 from gi.repository.GLib import timeout_add_seconds
 from pydbus.generic import signal
 
-from sl1fw import defines
+from sl1fw.actions import start_display_test, end_display_test, display_test_cover_check
+from sl1fw.api.decorators import dbus_api, auto_dbus
+from sl1fw.api.states import DisplayTest0State
+
+if TYPE_CHECKING:
+    from sl1fw.libConfig import HwConfig
+    from sl1fw.libDisplay import Display
+    from sl1fw.libHardware import Hardware
+    from sl1fw.libScreen import Screen
 
 
+@dbus_api
 class DisplayTest0:
     __INTERFACE__ = "cz.prusa3d.sl1.displaytest0"
 
-    dbus = """
-        <node>
-            <interface name='%s'>
-                <!-- State -->
-                <property name="state" type="s" access="read">
-                    <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/>
-                </property>
-                <method name="finish"/>
-            </interface>
-        </node>
-    """ % __INTERFACE__
-
-    class State(Enum):
-        def _generate_next_value_(self, start, count, last_values):
-            return self
-
-        COVER_OPEN = auto()
-        DISPLAY = auto()
-        FINISHED = auto()
-
     PropertiesChanged = signal()
 
-    def __init__(self, printer0):
-        self.printer0 = printer0
-        self._state = self.State.COVER_OPEN
-        self.printer0.printer.hw.startFans()
-        self.printer0.printer.display.fanErrorOverride = True
-        self.printer0.printer.display.screen.getImg(filename=str(Path(defines.dataPath) / "logo_1440x2560.png"))
-        timeout_add_seconds(1, self.update_cover)
+    def __init__(self, display: Display, on_exit: Callable[[], None]):
+        self.logger = logging.getLogger(__name__)
+        self.display = display
+        self.exit = on_exit
+        self._state = DisplayTest0State.INIT
 
-    def update_cover(self):
-        if self._state == self.State.FINISHED:
-            return False
-
-        old = self._state
-        if not self.printer0.printer.hwConfig.coverCheck or self.printer0.printer.hw.isCoverClosed():
-            self.printer0.printer.hw.uvLed(True)
-            self._state = self.State.DISPLAY
-        else:
-            self.printer0.printer.hw.uvLed(False)
-            self._state = self.State.COVER_OPEN
-        if old != self._state:
-            self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
-
-        return True
-
+    @auto_dbus
     @property
     def state(self) -> str:
         return self._state.name
 
-    def finish(self) -> None:
-        self.printer0.printer.display.fanErrorOverride = False
-        self.printer0.printer.hw.saveUvStatistics()  # TODO: Why ???
-        # can't call allOff(), motorsRelease() is harmful for the wizard
-        self.printer0.printer.screen.getImgBlack()
-        self.printer0.printer.hw.uvLed(False)
-        self.printer0.printer.hw.stopFans()
+    @auto_dbus
+    def start(self) -> None:
+        self.logger.debug("Starting display test")
+        self._state = DisplayTest0State.COVER_OPEN
+        start_display_test(self.display)
+        timeout_add_seconds(1, self._update_cover)
 
-        self._state = self.State.FINISHED
-        self.printer0._display_test_registration.unpublish()
-        self.printer0._display_test_registration = None
-        self.printer0._display_test = None
+    @auto_dbus
+    def finish(self, logo_seen: bool) -> None:
+        self.logger.info("Display test finished with logo seen: %s", logo_seen)
+        end_display_test(self.display)
+        self._state = DisplayTest0State.FINISHED
+        self.exit()
+
+    def _update_cover(self):
+        if self._state == DisplayTest0State.FINISHED:
+            return False
+
+        old = self._state
+        if display_test_cover_check(self.display):
+            self._state = DisplayTest0State.DISPLAY
+        else:
+            self._state = DisplayTest0State.COVER_OPEN
+        if old != self._state:
+            self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
+
+        return True
