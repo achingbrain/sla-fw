@@ -552,7 +552,7 @@ class PageCalibration10(Page):
             return "error"
         #endtry
         self.display.hw.powerLed("normal")
-        return PageCalibrationRecalibrateUV.Name
+        return PageCalibrationEnd.Name
     #endif
 
 
@@ -577,51 +577,6 @@ class PageCalibration10(Page):
             tiltTime += time() - tiltStartTime
         #endfor
         return round(tiltTime / total, 1)
-    #enddef
-
-#endclass
-
-
-@page
-class PageCalibrationRecalibrateUV(Page):
-    Name = "calibratiorecalibratenuv"
-
-    def __init__(self, display):
-        super(PageCalibrationRecalibrateUV, self).__init__(display)
-        self.pageUI = "yesno"
-        self.pageTitle = N_("Calibrate UV?")
-    #enddef
-
-    def prepare(self):
-        if self.display.hwConfig.uvPwm < 1:
-            while self.display.hwConfig.uvPwm < 1:
-                self.display.doMenu(PageUvCalibration.Name)
-            #endwhile
-
-            return PageCalibrationEnd.Name
-        #endif
-    #enddef
-
-
-    def show(self):
-        self.items.update({ 'text' : _("The UV LED is already calibrated.\n\n"
-                    "Would you like to recalibrate?")})
-        super(PageCalibrationRecalibrateUV, self).show()
-    #enddef
-
-
-    def yesButtonRelease(self):
-        self.display.doMenu(PageUvCalibration.Name)
-        return PageCalibrationEnd.Name
-    #enddef
-
-
-    def noButtonRelease(self):
-        return PageCalibrationEnd.Name
-    #enddef
-
-    def _EXIT_(self):
-        return "_EXIT_"
     #enddef
 
 #endclass
