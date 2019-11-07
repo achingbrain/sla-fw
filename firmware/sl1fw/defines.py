@@ -8,7 +8,7 @@ from pathlib import Path
 
 import sl1fw
 
-reqMcVersion = "0.11.4"
+reqMcVersion = "0.11.5"
 
 factoryMountPoint = "/usr/share/factory/defaults"
 persistentStorage = "/var/sl1fw"
@@ -88,7 +88,7 @@ towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40
 fanStartStopTime = 6       # in secs
-fanMeasCycles = 10
+fanMeasCycles = 14
 fanMinRPM = 500
 
 minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance

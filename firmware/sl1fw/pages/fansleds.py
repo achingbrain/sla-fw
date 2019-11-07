@@ -232,25 +232,25 @@ class PageFansLeds(Page):
 
 
     def minus2g1Button(self):
-        self._value(self.temp, self.changed, 0, 'fan1rpm', 500, 3000, -100)
+        self._value(self.temp, self.changed, 0, 'fan1rpm', 500, 2800, -100)
         self.display.hw.setFansRpm({ 0 : self.temp['fan1rpm'] })
     #enddef
 
 
     def plus2g1Button(self):
-        self._value(self.temp, self.changed, 0, 'fan1rpm', 500, 3000, 100)
+        self._value(self.temp, self.changed, 0, 'fan1rpm', 500, 2800, 100)
         self.display.hw.setFansRpm({ 0 : self.temp['fan1rpm'] })
     #enddef
 
 
     def minus2g2Button(self):
-        self._value(self.temp, self.changed, 1, 'fan2rpm', 500, 3700, -100)
+        self._value(self.temp, self.changed, 1, 'fan2rpm', 500, 3300, -100)
         self.display.hw.setFansRpm({ 1: self.temp['fan2rpm'] })
     #enddef
 
 
     def plus2g2Button(self):
-        self._value(self.temp, self.changed, 1, 'fan2rpm', 500, 3700, 100)
+        self._value(self.temp, self.changed, 1, 'fan2rpm', 500, 3300, 100)
         self.display.hw.setFansRpm({ 1: self.temp['fan2rpm'] })
     #enddef
 
