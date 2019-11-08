@@ -82,7 +82,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.assertGreater(len(self.printer.printer0.system_name), 3)
         self.assertEqual(type(self.printer.printer0.system_name), str)
         self.assertEqual(type(self.printer.printer0.system_version), str)
-        self.assertEqual(self.printer.printer0.fans, {'fan0_rpm': 0, 'fan1_rpm': 0, 'fan2_rpm': 0})
+        self.assertEqual(self.printer.printer0.fans, {'fan0': {'rpm': 0, 'error': False}, 'fan1': {'rpm': 0, 'error': False}, 'fan2': {'rpm': 0, 'error': False}})
         self.assertEqual(self.printer.printer0.temps,
                          {'temp0_celsius': 46.7, 'temp1_celsius': 26.1, 'temp2_celsius': 26.1, 'temp3_celsius': 26.1})
         self.assertEqual(type(self.printer.printer0.cpu_temp), float)

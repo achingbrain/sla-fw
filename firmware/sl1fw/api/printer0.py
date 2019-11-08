@@ -412,14 +412,19 @@ class Printer0:
 
     @property
     @cached(validity_s=5)
-    @dbus_record('<property name="fans" type="a{si}" access="read"/>')
-    def fans(self) -> Dict[str, int]:
+    @dbus_record('<property name="fans" type="a{sa{si}}" access="read"/>')
+    def fans(self) -> Dict[str, Dict[str, int]]:
         """
-        Get fan RPMs
+        Get fan RPMs and errors
 
-        :return: Dictionary mapping from fan names to RPMs
+        :return: Dictionary mapping from fan names to RPMs and errors
         """
-        return {'fan%d_rpm' % i: v for i, v in self.printer.hw.getFansRpm().items()}
+        result ={}
+        rpms = self.printer.hw.getFansRpm()
+        errors = self.printer.hw.getFansError()
+        for i in range(len(self.printer.hw.getFansRpm())):
+            result['fan%d' % i] = {'rpm': rpms[i], 'error': errors[i]}
+        return result
 
     @property
     @cached(validity_s=5)

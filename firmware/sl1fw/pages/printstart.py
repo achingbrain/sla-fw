@@ -11,8 +11,19 @@ from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
 
+@page
+class PagePrintPreviewSwipe(Page):
+    Name = "printpreviewswipe"
 
-class PagePrintPreviewBase(Page):
+    # For integration test only
+    # TODO: Make MC sim simulate fans spinning
+    FanCheckOverride = False
+
+    def __init__(self, display):
+        super(PagePrintPreviewSwipe, self).__init__(display)
+        self.pageUI = "printpreviewswipe"
+        self.pageTitle = N_("Project")
+    #enddef
 
     def fillData(self):
         config = self.display.expo.config
@@ -25,6 +36,13 @@ class PagePrintPreviewBase(Page):
             calibration = None
         #endif
 
+        self.percReq = self.display.hw.calcPercVolume(self.display.expo.config.usedMaterial + defines.resinMinVolume)
+        if self.percReq <= 100:
+            resinVolumeText =  _("Please fill the resin tank to at least %d %% and close the cover.") % self.percReq
+        else:
+            resinVolumeText =  _("Please fill the resin tank to the 100 % mark and close the cover.\n\n"
+                    "Resin will have to be added during this print job.")
+
         return {
             'name' : config.projectName,
             'calibrationRegions' : calibrateRegions,
@@ -36,30 +54,18 @@ class PagePrintPreviewBase(Page):
             'exposure_time_sec' : config.expTime,
             'calibrate_time_sec' : calibration,
             'print_time_min' : self.display.expo.countRemainTime(),
+            'text' : resinVolumeText
         }
     #enddef
 
-#endclass
-
-
-@page
-class PagePrintPreview(PagePrintPreviewBase):
-    Name = "printpreview"
-
-    # For integration test only
-    # TODO: Make MC sim simulate fans spinning
-    FanCheckOverride = False
-
-    def __init__(self, display):
-        super(PagePrintPreview, self).__init__(display)
-        self.pageUI = "printpreview"
-        self.pageTitle = N_("Project")
+    def show(self):
+        self.items.update(self.fillData())
+        super(PagePrintPreviewSwipe, self).show()
     #enddef
 
 
-    def show(self):
-        self.items.update(self.fillData())
-        super(PagePrintPreview, self).show()
+    def changeButtonRelease(self):
+        return "exposure"
     #enddef
 
 
@@ -80,7 +86,7 @@ class PagePrintPreview(PagePrintPreviewBase):
         if temperatures[1] < defines.minAmbientTemp:
             self.display.pages['yesno'].setParams(
                     pageTitle = N_("Continue?"),
-                    yesFce = self.contButtonContinue1,
+                    yesFce = self.checkProjectAndPrinter,
                     text = _("Ambient temperature is under recommended value.\n\n"
                         "You should heat up the resin and/or increase the exposure times.\n\n"
                         "Do you want to continue?"))
@@ -90,18 +96,18 @@ class PagePrintPreview(PagePrintPreviewBase):
         if temperatures[1] > defines.maxAmbientTemp:
             self.display.pages['yesno'].setParams(
                     pageTitle = N_("Continue?"),
-                    yesFce = self.contButtonContinue1,
+                    yesFce = self.checkProjectAndPrinter,
                     text = _("Ambient temperature is over recommended value.\n\n"
                         "You should move the printer to cooler place.\n\n"
                         "Do you want to continue?"))
             return "yesno"
         #endif
 
-        return self.contButtonContinue1()
+        return self.checkProjectAndPrinter()
     #enddef
 
 
-    def contButtonContinue1(self):
+    def checkProjectAndPrinter(self):
         pageWait = PageWait(self.display,
                 line1 = _("Checking project data..."),
                 line2 = _("Setting start positions..."),
@@ -175,77 +181,18 @@ class PagePrintPreview(PagePrintPreviewBase):
         if confirm:
             self.display.pages['confirm'].setParams(
                     backFce = self.backButtonRelease,
-                    continueFce = self.contButtonContinue2,
+                    continueFce = self.measureResin,
                     beep = True,
                     text = confirm)
             return "confirm"
         #endif
 
-        return self.contButtonContinue2()
+        return self.measureResin()
     #enddef
 
-    def contButtonContinue2(self):
+
+    def measureResin(self):
         self.logger.info(str(self.display.expo.config))
-        return "printstart"
-    #enddef
-
-
-    def backButtonRelease(self):
-        self._BACK_()
-        return "_BACK_"
-    #enddef
-
-
-    def _BACK_(self):
-        self.allOff()
-        self.ramdiskCleanup()
-    #enddef
-
-
-    def _EXIT_(self):
-        self._BACK_()
-        return "_BACK_"
-    #enddef
-
-#endclass
-
-
-@page
-class PagePrintStart(PagePrintPreviewBase):
-    Name = "printstart"
-
-    def __init__(self, display):
-        super(PagePrintStart, self).__init__(display)
-        self.pageUI = "printstart"
-        self.pageTitle = N_("Confirm")
-    #enddef
-
-
-    def show(self):
-        self.percReq = self.display.hw.calcPercVolume(self.display.expo.config.usedMaterial + defines.resinMinVolume)
-        lines = {
-            'name': self.display.expo.config.projectName,
-        }
-        if self.percReq <= 100:
-            lines.update({
-                'text' : _("Please fill the resin tank to at least %d %% and close the cover.") % self.percReq
-                })
-        else:
-            lines.update({
-                'text' : _("Please fill the resin tank to the 100 % mark and close the cover.\n\n"
-                    "Resin will have to be added during this print job."),
-                })
-        self.items.update(lines)
-        super(PagePrintStart, self).show()
-    #enddef
-
-
-    def changeButtonRelease(self):
-        return "exposure"
-    #enddef
-
-
-    def contButtonRelease(self):
 
         # start data preparation by libScreen
         self.display.expo.startProjectLoading()
@@ -295,7 +242,7 @@ class PagePrintStart(PagePrintPreviewBase):
             if percMeas < self.percReq:
                 self.display.pages['confirm'].setParams(
                         backFce = self.backButtonRelease,
-                        continueFce = self.contButtonContinue1,
+                        continueFce = self.refillInfoContinue,
                         beep = True,
                         text = _("Your tank fill is approx %(measured)d %%\n\n"
                             "For your project, %(requested)d %% is needed. A refill may be required during printing.") \
@@ -306,17 +253,17 @@ class PagePrintStart(PagePrintPreviewBase):
             self.pageWait.showItems(line2 = _("Resin volume measurement is turned off"))
         #endif
 
-        return self.contButtonContinue2()
+        return self.prepareTankAndResin()
     #enddef
 
 
-    def contButtonContinue1(self):
+    def refillInfoContinue(self):
         self.pageWait.show()
-        return self.contButtonContinue2()
+        return self.prepareTankAndResin()
     #enddef
 
 
-    def contButtonContinue2(self):
+    def prepareTankAndResin(self):
         if self.display.hwConfig.tilt:
             self.pageWait.showItems(line3 = _("Moving tank down"))
             self.display.hw.tiltDownWait()
@@ -360,8 +307,21 @@ class PagePrintStart(PagePrintPreviewBase):
     #enddef
 
 
+    def backButtonRelease(self):
+        self._BACK_()
+        return "_BACK_"
+    #enddef
+
+
+    def _BACK_(self):
+        self.allOff()
+        self.ramdiskCleanup()
+    #enddef
+
+
     def _EXIT_(self):
-        return "_EXIT_"
+        self._BACK_()
+        return "_BACK_"
     #enddef
 
 #endclass

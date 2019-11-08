@@ -169,19 +169,17 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
                 choice = source['choice']
         self.assertIsNotNone(choice, f"Test project name ({PROJECT_NAME} in sources")
         self.press("source", data={'choice': choice})
-        self.waitPage("wait")
-        self.waitPage("printpreview")
-        self.press("cont")
-        self.waitPage("wait", timeout_sec=30)
-        self.waitPage("wait", timeout_sec=30)
-        self.waitPage("printstart", timeout_sec=30)
+        self.waitPage("wait") # reading project data
+        self.waitPage("printpreviewswipe")
         self.press("change")
         self.waitPage("change")
         self.press("expossubsecond")
         self.press("back")
-        self.waitPage("printstart")
+        self.waitPage("printpreviewswipe")
         self.press("cont")
         self.waitPage("wait", timeout_sec=30)
+        self.waitPage("wait", timeout_sec=30)   # checking project and HW
+        self.waitPage("wait", timeout_sec=30)   # resin measure
         self.waitPage("print", timeout_sec=30)  # Actual printing
         self.waitPage("wait", timeout_sec=240)  # Moving platform to the top
         self.waitPage("finished", timeout_sec=30)

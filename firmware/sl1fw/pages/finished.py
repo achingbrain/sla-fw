@@ -9,7 +9,7 @@ from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.home import PageHome
 from sl1fw.pages.sourceselect import PageSrcSelect
-from sl1fw.pages.printstart import PagePrintPreview
+from sl1fw.pages.printstart import PagePrintPreviewSwipe
 from sl1fw.pages.error import PageError
 
 
@@ -73,7 +73,7 @@ class PageFinished(Page):
         if not self.loadProject(self.data['project_file']):
             return PageError.Name
         else:
-            return PagePrintPreview.Name
+            return PagePrintPreviewSwipe.Name
         #endif
     #enddef
 

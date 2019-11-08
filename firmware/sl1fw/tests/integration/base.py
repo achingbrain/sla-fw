@@ -17,7 +17,7 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.tests.mocks.display import TestDisplay
 from sl1fw.libPrinter import Printer
 from sl1fw import defines
-from sl1fw.pages.printstart import PagePrintPreview
+from sl1fw.pages.printstart import PagePrintPreviewSwipe
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
@@ -57,7 +57,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         os.environ['SDL_AUDIODRIVER'] = "disk"
         os.environ['SDL_DISKAUDIOFILE'] = str(self.SDL_AUDIO_FILE)
 
-        PagePrintPreview.FanCheckOverride = True
+        PagePrintPreviewSwipe.FanCheckOverride = True
 
         self.printer = Printer(debugDisplay=self.display)
 
