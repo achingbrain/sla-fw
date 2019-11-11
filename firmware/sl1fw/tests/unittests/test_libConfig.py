@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+from unittest import mock
 from pathlib import Path
 from shutil import copyfile
-from unittest import mock
 
 from sl1fw import defines
 from sl1fw.libConfig import HwConfig, Config, FloatValue, IntListValue, IntValue, BoolValue, \

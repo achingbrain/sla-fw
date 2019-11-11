@@ -5,7 +5,7 @@
 
 import os
 import logging
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Dict
 from urllib.request import urlopen, Request
 
 import pydbus
@@ -16,6 +16,7 @@ import shutil
 import distro
 from sl1fw import defines
 from sl1fw.project.functions import ramdiskCleanup
+
 
 class Network:
     NETWORKMANAGER_SERVICE = "org.freedesktop.NetworkManager"
@@ -36,6 +37,7 @@ class Network:
         """
         Start network monitoring
         Use register_net_change_handler to register for network updates
+
         :return: None
         """
         self.nm.PropertiesChanged.connect(self.state_changed)
@@ -46,14 +48,12 @@ class Network:
     def register_net_change_handler(self, handler: Callable[[bool], None]) -> None:
         """
         Register handler fo network change
+
         :param handler: Handler to call, global connectivity is passed as the only boolean argument
         :return: None
         """
         assert handler is not None
         self.net_change_handlers.append(handler)
-
-        # Trigger property change on start to set initial connected state
-        self.state_changed({'Connectivity': None})
 
     def state_changed(self, changed: map) -> None:
         events = {'Connectivity', 'Metered', 'ActiveConnections', 'WirelessEnabled'}
@@ -75,9 +75,10 @@ class Network:
         return self._get_ipv4(self._get_nm_obj(connection_path).Ip4Config)
 
     @property
-    def devices(self) -> map:
+    def devices(self) -> Dict[str, str]:
         """
         Get network device dictionary
+
         :return: {interface_name: ip_address}
         """
         return {dev.Interface: self._get_ipv4(dev.Ip4Config) for dev in
@@ -96,6 +97,7 @@ class Network:
     def _get_ipv4(self, ipv4_config_path: str) -> Optional[str]:
         """
         Resolves IPv4 address string from NetworkManager ipv4 configuration object path
+
         :param ipv4_config_path: D-Bus path to NetworkManager ipv4 configuration
         :return: IP address as string or None
         """
@@ -117,11 +119,20 @@ class Network:
         """
         return self.bus.get(self.NETWORKMANAGER_SERVICE, path)
 
-    def download_url(self, url, dest, page=None, timeout_sec=10) -> None:
-        """Fetches file specified by url info destination while displaying progress. This is implemented as chunked
-        copy from source file descriptor to the destination file descriptor. The progress is updated once the chunk is
-        copied. The source file descriptor is either standard file when the source is mounted USB drive or urlopen
-        result."""
+    def download_url(self, url: str, dest: str, page=None, timeout_sec=10) -> None:
+        """
+        Fetches file specified by url info destination while displaying progress
+
+        This is implemented as chunked copy from source file descriptor to the destination file descriptor. The progress
+        is updated once the chunk is copied. The source file descriptor is either standard file when the source is
+        mounted USB drive or urlopen result.
+
+        :param url: Source url
+        :param dest: Destination file
+        :param page: Wait page to update
+        :param timeout_sec: Timeout in seconds
+        :return: None
+        """
 
         if page:
             page.showItems(line2="0%")

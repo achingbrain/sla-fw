@@ -3,6 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+
 class Network:
     def __init__(self):
         self.ip = "1.2.3.4"

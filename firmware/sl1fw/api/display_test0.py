@@ -36,8 +36,8 @@ class DisplayTest0:
 
     @auto_dbus
     @property
-    def state(self) -> str:
-        return self._state.name
+    def state(self) -> int:
+        return self._state.value
 
     @auto_dbus
     def start(self) -> None:

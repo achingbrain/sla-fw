@@ -35,7 +35,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.thread: Optional[Thread] = None
 
     def setUp(self):
-        super().setUp()
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
         copyfile(self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.FACTORY_CONFIG_FILE)
 
@@ -68,6 +67,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         PagePrintPreviewSwipe.FanCheckOverride = True
 
         self.printer = Printer(debugDisplay=self.display)
+
         # overide writeToFactory function
         self.printer.display.pages['factoryreset'].writeToFactory = self.call
 
@@ -88,7 +88,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             self.waitPage("home")
         except Exception as exception:
             self.tearDown()
-            raise exception
+            raise Exception("Test setup failed") from exception
 
     def printer_thread(self):
         self.printer.run()

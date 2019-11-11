@@ -74,24 +74,24 @@ class Printer0:
         self._calibration = None
         self._prints = []
 
-    @property
     @auto_dbus
-    def state(self) -> str:
+    @property
+    def state(self) -> int:
         """
         Get global printer state
 
         :return: Global printer state
         """
         if self._display_test_registration:
-            return Printer0State.DISPLAY_TEST.name
+            return Printer0State.DISPLAY_TEST.value
 
         # This is extremely ugly implementation, but currently it is hard to tell what is the printer doing. This
-        # identifies current state based on matching current page stack agains a state to page mapping.
+        # identifies current state based on matching current page stack against a state to page mapping.
         if self.printer.get_actual_page_stack():
             for p in [p.Name for p in self.printer.get_actual_page_stack()] + [self.printer.get_actual_page().Name]:
                 if p in self.PAGE_TO_STATE:
-                    return self.PAGE_TO_STATE[p].name
-        return Printer0State.IDLE.name
+                    return self.PAGE_TO_STATE[p].value
+        return Printer0State.IDLE.value
 
     @auto_dbus
     @property
@@ -247,7 +247,7 @@ class Printer0:
 
         NOT IMPLEMENTED
 
-        :return: Array of firware sources (file, network)
+        :return: Array of firmware sources (file, network)
         """
         raise NotImplementedError
 
@@ -329,7 +329,7 @@ class Printer0:
         """
         Get UV LED voltages
 
-        :return: Dictionary mapping from LED channel anme to volatage value
+        :return: Dictionary mapping from LED channel name to voltage value
         """
         return {'led%d_voltage_volt' % i: v for i, v in enumerate(self.printer.hw.getVoltages())}
 
@@ -341,7 +341,7 @@ class Printer0:
         """
         Get network devices
 
-        :return: Dictinary mapping from interface names to IP address strings
+        :return: Dictionary mapping from interface names to IP address strings
         """
         return self.printer.inet.devices
 
@@ -352,7 +352,7 @@ class Printer0:
         """
         Get UV statistics
 
-        :return: Dictinary mapping from statistics name to integer value
+        :return: Dictionary mapping from statistics name to integer value
         """
         return {'uv_stat%d' % i: v for i, v in enumerate(self.printer.hw.getUvStatistics())}
         # uv_stats0 - time counter [s] # TODO: add uv average current,

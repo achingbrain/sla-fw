@@ -6,37 +6,72 @@
 import logging
 import sys
 import tempfile
+import threading
 from pathlib import Path
-from unittest import TestCase
+
+import pydbus
+from PIL import Image, ImageChops
+from dbusmock import DBusTestCase
+from gi.repository import GLib
 from mock import Mock
 
-from PIL import Image, ImageChops
-
+from sl1fw.tests.mocks.gettext import fake_gettext
+import sl1fw.tests.mocks.mc_port
 from sl1fw import defines
 from sl1fw.tests import samples
-import sl1fw.tests.mocks.mc_port
-import sl1fw.tests.mocks.pydbus
-from sl1fw.tests.mocks.gettext import fake_gettext
+from sl1fw.tests.mocks.dbus.hostname import Hostname
+from sl1fw.tests.mocks.dbus.locale import Locale
+from sl1fw.tests.mocks.dbus.networkmanager import NetworkManager
+from sl1fw.tests.mocks.dbus.rauc import Rauc
+from sl1fw.tests.mocks.dbus.timedate import TimeDate
 
 fake_gettext()
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
 
-sys.modules['pydbus'] = sl1fw.tests.mocks.pydbus
 sys.modules['gpio'] = Mock()
 sys.modules['serial'] = sl1fw.tests.mocks.mc_port
 
 
-class Sl1fwTestCase(TestCase):
+class Sl1fwTestCase(DBusTestCase):
     SL1FW_DIR = Path(sl1fw.__file__).parent
     SAMPLES_DIR = Path(sl1fw.tests.samples.__file__).parent
     TEMP_DIR = Path(tempfile.gettempdir())
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
 
-    def setUp(self) -> None:
-        defines.testing = True
-        defines.ramdiskPath = str(self.TEMP_DIR)
+    dbus_mocks = []
+    event_loop = GLib.MainLoop()
+    event_thread: threading.Thread = None
 
-    def compareImages(self, path1: str, path2: str) -> bool:
+    @classmethod
+    def setUpClass(cls):
+        defines.testing = True
+        defines.ramdiskPath = str(cls.TEMP_DIR)
+        cls.start_system_bus()
+        cls.dbus_con = cls.get_dbus(system_bus=True)
+
+        bus = pydbus.SystemBus()
+        nm = NetworkManager()
+        cls.dbus_mocks = [
+            bus.publish(NetworkManager.__INTERFACE__, nm, ("Settings", nm), ("test1", nm), ("test2", nm), ("test3", nm)),
+            bus.publish(Hostname.__INTERFACE__, Hostname()),
+            bus.publish(Rauc.__OBJECT__, ("/", Rauc())),
+            bus.publish(Locale.__INTERFACE__, Locale()),
+            bus.publish(TimeDate.__INTERFACE__, TimeDate()),
+        ]
+
+        cls.event_thread = threading.Thread(target=cls.event_loop.run)
+        cls.event_thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        for dbus_mock in cls.dbus_mocks:
+            dbus_mock.unpublish()
+
+        cls.event_loop.quit()
+        cls.event_thread.join()
+
+    @staticmethod
+    def compareImages(path1: str, path2: str) -> bool:
         one = Image.open(path1)
         two = Image.open(path2)
         diff = ImageChops.difference(one, two)

@@ -5,13 +5,13 @@
 
 from __future__ import annotations
 
-from enum import Enum, unique
+from enum import IntEnum, unique
 
 from sl1fw.exposure_state import ExposureState
 
 
 @unique
-class Printer0State(Enum):
+class Printer0State(IntEnum):
     INITIALIZING = 0
     IDLE = 1
     UNBOXING = 2
@@ -25,7 +25,7 @@ class Printer0State(Enum):
 
 
 @unique
-class Exposure0State(Enum):
+class Exposure0State(IntEnum):
     INIT = 0
     PRINTING = 1
     GOING_UP = 2
@@ -61,7 +61,7 @@ class Exposure0State(Enum):
         }[state]
 
 @unique
-class DisplayTest0State(Enum):
+class DisplayTest0State(IntEnum):
     INIT = 0
     COVER_OPEN = 1
     DISPLAY = 2

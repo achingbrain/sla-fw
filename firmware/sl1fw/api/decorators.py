@@ -27,10 +27,10 @@ def state_checked(allowed_state: Union[Printer0State, Exposure0State, List[Print
         @functools.wraps(function)
         def func(self, *args, **kwargs):
             if isinstance(allowed_state, list):
-                allowed_names = [state.name for state in allowed_state]
+                allowed = [state.value for state in allowed_state]
             else:
-                allowed_names = [allowed_state.name]
-            if self.state in allowed_names:
+                allowed = [allowed_state.value]
+            if self.state in allowed:
                 return function(self, *args, **kwargs)
             else:
                 raise NotAvailableInState
@@ -132,14 +132,17 @@ def python_to_dbus_type(python_type: Any) -> str:
         bool: "b",
         str: "s",
         List[str]: "as",
-        List[int]: "si",
+        List[int]: "ai",
+        List[DBusObjectPath]: "ao",
         List[List[int]]: "aai",
         Dict[str, int]: "a{si}",
         Dict[str, str]: "a{ss}",
         Dict[str, float]: "a{sd}",
         Dict[str, Dict[str, int]]: "a{sa{si}}",
-        Tuple[int, int]: "ai",
+        Tuple[int, int]: "(ii)",
+        Tuple[int, str, int]: "(isi)",
         DBusObjectPath: "o",
+        List[Tuple[str, Dict[str, Any]]]: "a(sa{sv})",
     }
 
     if python_type in type_map:
@@ -148,7 +151,7 @@ def python_to_dbus_type(python_type: Any) -> str:
         raise ValueError(f"Type: {python_type} has no defined mapping to dbus")
 
 
-def  gen_method_dbus_spec(obj: Any, name: str) -> str:
+def gen_method_dbus_spec(obj: Any, name: str) -> str:
     try:
         if isinstance(obj, property):
             access = "read"

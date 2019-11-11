@@ -44,10 +44,10 @@ class TestDisplay(VirtualDisplay):
             self.items.update(items)
         print("ShowItems: %s" % items)
 
-    def add_event(self, page, id, pressed, data):
+    def add_event(self, page, event_id, pressed, data):
         self.events.put({
             'page': page,
-            'id': id,
+            'id': event_id,
             'pressed': pressed,
             'data': data
         })

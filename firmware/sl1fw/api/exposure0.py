@@ -57,7 +57,7 @@ class Exposure0:
 
         :return:
         """
-        return self.exposure.config.totalLayers
+        return self.exposure.project.totalLayers
 
     @auto_dbus
     @property
@@ -111,7 +111,7 @@ class Exposure0:
 
         :return: Height in millimeters
         """
-        return self.exposure.hwConfig.calcMM(self.exposure.config.layerMicroStepsFirst)
+        return self.exposure.hwConfig.calcMM(self.exposure.project.layerMicroStepsFirst)
 
     @auto_dbus
     @property
@@ -121,7 +121,7 @@ class Exposure0:
 
         :return: Height in nanometers
         """
-        return self.exposure.hwConfig.tower_microsteps_to_nm(self.exposure.config.layerMicroStepsFirst)
+        return self.exposure.hwConfig.tower_microsteps_to_nm(self.exposure.project.layerMicroStepsFirst)
 
     @auto_dbus
     @property
@@ -132,7 +132,7 @@ class Exposure0:
 
         :return: Height in millimeters
         """
-        return self.exposure.hwConfig.calcMM(self.exposure.config.layerMicroSteps)
+        return self.exposure.hwConfig.calcMM(self.exposure.project.layerMicroSteps)
 
     @auto_dbus
     @property
@@ -142,7 +142,7 @@ class Exposure0:
 
         :return: Height in nanometers
         """
-        return self.exposure.hwConfig.tower_microsteps_to_nm(self.exposure.config.layerMicroSteps)
+        return self.exposure.hwConfig.tower_microsteps_to_nm(self.exposure.project.layerMicroSteps)
 
     @auto_dbus
     @property
@@ -194,7 +194,7 @@ class Exposure0:
 
         :return: Name as string
         """
-        return self.exposure.config.projectName
+        return self.exposure.project.projectName
 
     @auto_dbus
     @property
@@ -214,7 +214,7 @@ class Exposure0:
 
         :return: Percentage 0 - 100
         """
-        return 100 * (self.exposure.actualLayer - 1) / self.exposure.config.totalLayers
+        return 100 * (self.exposure.actualLayer - 1) / self.exposure.project.totalLayers
 
     @auto_dbus
     @property
@@ -350,33 +350,33 @@ class Exposure0:
 
     @property
     def exposure_time_ms(self) -> int:
-        return int(self.exposure.config.expTime * 1000)
+        return int(self.exposure.project.expTime * 1000)
 
     @auto_dbus
     @exposure_time_ms.setter
     @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
     def exposure_time_ms(self, value: int) -> None:
-        self.exposure.config.expTime = value / 1000
+        self.exposure.project.expTime = value / 1000
 
     @property
     def exposure_time_first_ms(self) -> int:
-        return int(self.exposure.config.expTimeFirst * 1000)
+        return int(self.exposure.project.expTimeFirst * 1000)
 
     @auto_dbus
     @exposure_time_first_ms.setter
     @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
     def exposure_time_first_ms(self, value: int) -> None:
-        self.exposure.config.expTimeFirst = value / 1000
+        self.exposure.project.expTimeFirst = value / 1000
 
     @property
     def exposure_time_calibrate_ms(self) -> int:
-        return int(self.exposure.config.calibrateTime * 1000)
+        return int(self.exposure.project.calibrateTime * 1000)
 
     @auto_dbus
     @exposure_time_calibrate_ms.setter
     # @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     def exposure_time_calibrate_ms(self, value: int) -> None:
-        self.exposure.config.calibrateTime = value / 1000
+        self.exposure.project.calibrateTime = value / 1000
 
     _CHANGE_MAP = {
         "state": {"state"},

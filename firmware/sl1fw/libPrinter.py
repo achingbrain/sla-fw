@@ -92,8 +92,8 @@ class Printer:
         self.logger.debug("Registering printer D-Bus services")
         self.printer0 = Printer0(self)
         self.config0 = Config0(self.hwConfig)
-        SystemBus().publish(self.printer0.__INTERFACE__, self.printer0)
-        SystemBus().publish(self.config0.__INTERFACE__, self.config0)
+        self.printer0_dbus = SystemBus().publish(self.printer0.__INTERFACE__, self.printer0)
+        self.config0_dbus = SystemBus().publish(self.config0.__INTERFACE__, self.config0)
 
         self.logger.debug("Initializing libDisplay")
         from sl1fw.libDisplay import Display
@@ -217,6 +217,9 @@ class Printer:
         self.display.start()
         self.logger.debug("Starting D-Bus event thread")
         self.eventThread.start()
+
+        # Trigger property changed on start to set initial connected state
+        self.inet.state_changed({'Connectivity': None})
         try:
             self.logger.debug("Connecting motion controller")
             state = self.hw.connectMC()
