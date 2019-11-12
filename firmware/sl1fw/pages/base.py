@@ -208,7 +208,7 @@ class Page:
     def writeToFactory(self, saveFce):
         try:
             self.logger.info("Remounting factory partition rw")
-            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", defines.factoryMountPoint])
+            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", str(defines.factoryMountPoint)])
             saveFce()
         except:
             self.logger.exception("Failed to save to factory partition")
@@ -216,7 +216,7 @@ class Page:
         finally:
             try:
                 self.logger.info("Remounting factory partition ro")
-                subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", defines.factoryMountPoint])
+                subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])
             except:
                 self.logger.exception("Failed to remount factory partion ro")
             #endtry

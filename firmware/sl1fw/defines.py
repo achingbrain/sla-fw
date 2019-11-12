@@ -10,20 +10,22 @@ import sl1fw
 
 reqMcVersion = "0.11.5"
 
-factoryMountPoint = "/usr/share/factory/defaults"
+factoryMountPoint = Path("/usr/share/factory/defaults")
 persistentStorage = "/var/sl1fw"
 
 swPath = os.path.dirname(sl1fw.__file__)
 dataPath = os.path.join(swPath, "data")
 ramdiskPath = "/run/sl1fw"
 mediaRootPath = "/run/media/root"
-configDir = "/etc/sl1fw"
+configDir = Path("/etc/sl1fw")
 hwConfigFileName = "hardware.cfg"
-hwConfigFile = os.path.join(configDir, hwConfigFileName)
-loggingConfig = Path(configDir) / "loggerConfig.json"
-hwConfigFactoryDefaultsFile = os.path.join(factoryMountPoint, "hardware.toml")
-wizardDataFile = os.path.join(factoryMountPoint, "wizard_data.toml")
-uvCalibDataFile = os.path.join(factoryMountPoint, "uvcalib_data.toml")
+hwConfigFile = configDir / hwConfigFileName
+loggingConfig = configDir / "loggerConfig.json"
+hwConfigFactoryDefaultsFile = factoryMountPoint / "hardware.toml"
+wizardDataFile = factoryMountPoint / "wizard_data.toml"
+uvCalibDataFilename = "uvcalib_data.toml"
+uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename
+uvCalibDataPath = configDir / uvCalibDataFilename
 
 perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 
@@ -68,7 +70,7 @@ socatPort = 8192
 wifiSetupFile = "/etc/hostapd.secrets.json"
 
 octoprintURI = ":8000"
-octoprintAuthFile = os.path.join(configDir, "slicer-upload-api.key")
+octoprintAuthFile = configDir / "slicer-upload-api.key"
 
 fbFile = "/dev/fb0"
 
@@ -109,7 +111,7 @@ examplesURL = "https://www.prusa3d.com/SL1/examples.tar.gz"
 admincheckURL = "https://sl1.prusa3d.com/check-admin"
 admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
 bootFailedStamp = os.path.join(persistentStorage, "failedboot")
-apikeyFile = os.path.join(configDir, "api.key")
+apikeyFile = configDir / "api.key"
 uvLedMeterMaxWait_s = 10
 uvLedMeasMinPwm = 125
 uvLedMeasMaxPwm = 218
@@ -118,6 +120,6 @@ uvLedMeasMaxPwm500k = 250
 uvMeterErrorComm = 1
 uvMeterErrorTrans = 2
 uvMeterErrorInt = 3
-factoryConfigFile = os.path.join(factoryMountPoint, "factory.toml")
+factoryConfigFile = factoryMountPoint / "factory.toml"
 logsBase = "/var/log/journal"
 testing = False

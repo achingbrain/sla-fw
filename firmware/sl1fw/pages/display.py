@@ -12,7 +12,7 @@ from sl1fw.libConfig import TomlConfig
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.calibration import PageCalibrationStart
-from sl1fw.pages.uvcalibration import PageUvDataShow, PageUvCalibration
+from sl1fw.pages.uvcalibration import PageUvDataShowFactory, PageUvDataShow, PageUvCalibration
 
 
 @page
@@ -43,8 +43,8 @@ class PageDisplay(Page):
                 'button10' : _("UV off") if state else _("UV on"),
 
                 'button11' : _("Infinite test"),
-                'button12' : "",
-                "button13" : _("Send factory config"),
+                "button12" : _("Send factory config"),
+                'button13' : _("Show factory UV c.d."),
                 'button14' : _("Show UV calib. data"),
                 'button15' : _("UV (re)calibration"),
                 })
@@ -141,7 +141,7 @@ class PageDisplay(Page):
     #enddef
 
 
-    def button13ButtonRelease(self):
+    def button12ButtonRelease(self):
 # FIXME for testing only
 #        if self.display.hw.isKit:
 #            self.display.pages['error'].setParams(
@@ -164,7 +164,7 @@ class PageDisplay(Page):
             return "error"
         #endif
 
-        calibDict = TomlConfig(defines.uvCalibDataFile).load()
+        calibDict = TomlConfig(defines.uvCalibDataPathFactory).load()
         if not calibDict:
             self.display.pages['error'].setParams(
                     backFce = self.gotoUVcalib,
@@ -207,6 +207,12 @@ class PageDisplay(Page):
 
     def success(self):
         return "_BACK_"
+    #enddef
+
+
+    def button13ButtonRelease(self):
+        self.display.hw.saveUvStatistics()
+        return PageUvDataShowFactory.Name
     #enddef
 
 

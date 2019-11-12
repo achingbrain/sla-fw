@@ -47,7 +47,15 @@ class PageUvDataShow(Page):
 
 
     def prepare(self):
-        data = TomlConfig(defines.uvCalibDataFile).load()
+        data = TomlConfig(defines.uvCalibDataPath).load()
+        if not data:
+            data = TomlConfig(defines.uvCalibDataPathFactory).load()
+        #endif
+        self.showData(data)
+    #enddef
+
+
+    def showData(self, data):
         if not data:
             self.display.pages['error'].setParams(
                 text = _("No calibration data to show!"))
@@ -62,6 +70,18 @@ class PageUvDataShow(Page):
         #endif
         uvmeter.savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)
         self.setItems(image_path = "file://%s" % imagePath)
+    #enddef
+
+#endclass
+
+
+@page
+class PageUvDataShowFactory(PageUvDataShow):
+    Name = "uvdatashowfactory"
+
+    def prepare(self):
+        data = TomlConfig(defines.uvCalibDataPathFactory).load()
+        self.showData(data)
     #enddef
 
 #endclass
@@ -737,17 +757,19 @@ class PageUvCalibrationConfirm(Page):
                 text=_("Cannot save configuration"))
             return "error"
         #endtry
-        self.uvcalibConfig = TomlConfig(defines.uvCalibDataFile)
-        savedData = self.uvcalibConfig.load()
-        if self.display.printer0.factory_mode or not savedData:
-            try:
-                self.uvcalibConfig.data = asdict(self.display.uvcalibData)
-            except AttributeError:
-                self.logger.exception("uvcalibData is not completely filled")
-                self.display.pages['error'].setParams(
-                    text = _("!!! Failed to serialize calibration data !!!"))
-                return "error"
-            #endtry
+        self.uvcalibConfig = TomlConfig(defines.uvCalibDataPath)
+        try:
+            self.uvcalibConfig.data = asdict(self.display.uvcalibData)
+        except AttributeError:
+            self.logger.exception("uvcalibData is not completely filled")
+            self.display.pages['error'].setParams(
+                text = _("!!! Failed to serialize calibration data !!!"))
+            return "error"
+        #endtry
+        self.uvcalibConfig.save_raw()
+        if self.display.printer0.factory_mode:
+            self.uvcalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
+            self.uvcalibConfigFactory.data = self.uvcalibConfig.data
             if not self.writeToFactory(self.writeAllDefaults):
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save factory defaults !!!"))
@@ -760,7 +782,7 @@ class PageUvCalibrationConfirm(Page):
 
     def writeAllDefaults(self):
         self.saveDefaultsFile()
-        self.uvcalibConfig.save_raw()
+        self.uvcalibConfigFactory.save_raw()
     #enddef
 
 

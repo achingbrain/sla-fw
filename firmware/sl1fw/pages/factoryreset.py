@@ -89,6 +89,14 @@ class PageFactoryReset(Page):
             self.logger.exception("Failed to reset timezone")
         #endtry
 
+        # Reset user UV calibration data
+        try:
+            os.remove(defines.uvCalibDataPath)
+        except:
+            self.logger.exception("Failed to remove user UV calibration data")
+        #endtry
+
+
         # continue only in factory mode
         if not self.display.printer0.factory_mode:
             self.display.shutDown(doShutDown=True, reboot=True)
