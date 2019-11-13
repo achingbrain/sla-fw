@@ -747,8 +747,20 @@ class Hardware:
             # Get slot statuses
             rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
             status = rauc.GetSlotStatus()
-            a = status[0][1]['boot-status']
-            b = status[2][1]['boot-status']
+
+            a = "no-data"
+            b = "no-data"
+
+            for slot, data in status:
+                if slot == "rootfs.0":
+                    a = data['boot-status']
+                elif slot == "rootfs.1":
+                    b = data['boot-status']
+                #endif
+            #endfor
+
+            self.logger.debug("Slot A boot status: %s", a)
+            self.logger.debug("Slot B boot status: %s", b)
 
             if a == 'good' and b == 'good':
                 # Device is booting fine, remove stamp
@@ -757,6 +769,7 @@ class Hardware:
                 #endif
                 return False
             else:
+                self.logger.error("Detected broken boot slot !!!")
                 # Device has boot problems
                 if os.path.isfile(defines.bootFailedStamp):
                     # The problem is already reported
