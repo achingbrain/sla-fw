@@ -13,16 +13,14 @@ from time import sleep, monotonic
 from typing import Optional
 
 import distro
-from dbus.mainloop.glib import DBusGMainLoop
-from gi.repository import GLib
 from pydbus import SystemBus
 
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.config0 import Config0
 from sl1fw.api.exposure0 import Exposure0
-from sl1fw.api.printer0 import Printer0
-from sl1fw.libAsync import AdminCheck, SlicerProfileUpdater
+from sl1fw.libAsync import AdminCheck
+from sl1fw.libAsync import SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import MotConComState
@@ -89,21 +87,12 @@ class Printer:
         from sl1fw.libScreen import Screen
         self.screen = Screen()
 
-        self.logger.debug("Registering printer D-Bus services")
-        self.printer0 = Printer0(self)
-        self.config0 = Config0(self.hwConfig)
-        self.printer0_dbus = SystemBus().publish(self.printer0.__INTERFACE__, self.printer0)
-        self.config0_dbus = SystemBus().publish(self.config0.__INTERFACE__, self.config0)
+        self.logger.debug("Registering config D-Bus services")
+        self.config0_dbus = SystemBus().publish(Config0.__INTERFACE__, Config0(self.hwConfig))
 
         self.logger.debug("Initializing libDisplay")
         from sl1fw.libDisplay import Display
         self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.factoryMode)
-
-        self.logger.debug("Initializing D-Bus event loop")
-        DBusGMainLoop(set_as_default=True)
-        self.eventLoop = GLib.MainLoop()
-        self.eventThread = threading.Thread(target=self.loopThread)
-        self.inet.register_events()
 
         self.logger.debug(f"SL1 firmware initialized in {monotonic() - init_time}")
     #endclass
@@ -114,15 +103,10 @@ class Printer:
         self.exited.wait(timeout=60)
         self.screen.exit()
         self.hw.exit()
-        self.eventLoop.quit()
         for obj in self.exposure_dbus_objects:
             obj.unpublish()
         #endfor
         self.config0_dbus.unpublish()
-        self.printer0_dbus.unpublish()
-        if self.eventThread.is_alive():
-            self.eventThread.join()
-        #endif
     #enddef
 
     def printer_run(self):
@@ -215,11 +199,14 @@ class Printer:
         self.hw.start()
         self.logger.debug("Starting libDisplay")
         self.display.start()
-        self.logger.debug("Starting D-Bus event thread")
-        self.eventThread.start()
+        self.logger.debug("Registering event handlers")
+        self.inet.register_events()
+        locale = SystemBus().get("org.freedesktop.locale1")
+        locale.PropertiesChanged.connect(self.localeChanged)
 
         # Trigger property changed on start to set initial connected state
         self.inet.state_changed({'Connectivity': None})
+
         try:
             self.logger.debug("Connecting motion controller")
             state = self.hw.connectMC()
@@ -290,16 +277,6 @@ class Printer:
         #endif
 
         self.exited.set()
-    #enddef
-
-    def loopThread(self) -> None:
-        self.logger.debug("Registering dbus event handlers")
-        locale = SystemBus().get("org.freedesktop.locale1")
-        locale.PropertiesChanged.connect(self.localeChanged)
-
-        self.logger.debug("Starting printer event loop")
-        self.eventLoop.run()
-        self.logger.debug("Printer event loop exited")
     #enddef
 
     def localeChanged(self, __, changed, ___):

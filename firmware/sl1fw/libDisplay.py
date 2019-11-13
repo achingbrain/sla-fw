@@ -11,7 +11,6 @@ from time import sleep
 from typing import Optional, List
 
 from sl1fw import defines
-from sl1fw.api.printer0 import Printer0
 from sl1fw.libConfig import HwConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware

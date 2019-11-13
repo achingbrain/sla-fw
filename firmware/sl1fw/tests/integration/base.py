@@ -3,20 +3,23 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from queue import Empty
-from pathlib import Path
 import os
-from threading import Thread
+
+from pathlib import Path
+from queue import Empty
 from shutil import copyfile
+from threading import Thread
 # import cProfile
 from typing import Optional
 
-from sl1fw.tests.base import Sl1fwTestCase
+from pydbus import SystemBus
 
-from sl1fw.tests.mocks.display import TestDisplay
-from sl1fw.libPrinter import Printer
+from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
+from sl1fw.api.printer0 import Printer0
+from sl1fw.libPrinter import Printer
 from sl1fw.pages.printstart import PagePrintPreviewSwipe
+from sl1fw.tests.mocks.display import TestDisplay
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
@@ -71,6 +74,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         # overide writeToFactory function
         self.printer.display.pages['factoryreset'].writeToFactory = self.call
 
+        self.printer0_dbus = SystemBus().publish(Printer0.__INTERFACE__, Printer0(self.printer))
         self.thread = Thread(target=self.printer_thread)
 
         try:
@@ -95,6 +99,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         # cProfile.runctx('self.printer.start()', globals=globals(), locals=locals())
 
     def tearDown(self):
+        self.printer0_dbus.unpublish()
         self.printer.exit()
         self.thread.join()
 
@@ -132,5 +137,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.press(page)
         self.waitPage(page)
 
-    def call(self, fce):
+    @staticmethod
+    def call(fce):
         fce()

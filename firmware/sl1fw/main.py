@@ -5,11 +5,16 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import logging
-import gettext
 import builtins
+import gettext
+import logging
+from threading import Thread
+
+from gi.repository import GLib
+from pydbus import SystemBus
 
 from sl1fw import defines
+from sl1fw.api.printer0 import Printer0
 from sl1fw.logger_config import configure_log
 
 log_from_config = configure_log()
@@ -19,7 +24,6 @@ if log_from_config:
     logger.info("Logging configuration read from configuration file")
 else:
     logger.info("Embedded logger configuration was used")
-#endif
 
 logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
 
@@ -29,5 +33,14 @@ builtins.N_ = lambda x: x
 
 from sl1fw import libPrinter
 
+
+def event_thread():
+    logger.debug("Starting printer event loop")
+    GLib.MainLoop().run()
+    logger.debug("Printer event loop exited")
+
+
 printer = libPrinter.Printer()
+Thread(target=event_thread, daemon=True).start()
+SystemBus().publish(Printer0.__INTERFACE__, Printer0(printer))
 printer.run()

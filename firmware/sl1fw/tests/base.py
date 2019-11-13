@@ -15,7 +15,6 @@ from dbusmock import DBusTestCase
 from gi.repository import GLib
 from mock import Mock
 
-from sl1fw.tests.mocks.gettext import fake_gettext
 import sl1fw.tests.mocks.mc_port
 from sl1fw import defines
 from sl1fw.tests import samples
@@ -24,6 +23,7 @@ from sl1fw.tests.mocks.dbus.locale import Locale
 from sl1fw.tests.mocks.dbus.networkmanager import NetworkManager
 from sl1fw.tests.mocks.dbus.rauc import Rauc
 from sl1fw.tests.mocks.dbus.timedate import TimeDate
+from sl1fw.tests.mocks.gettext import fake_gettext
 
 fake_gettext()
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
