@@ -7,9 +7,7 @@ from dataclasses import asdict
 import toml
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.pages.uvcalibration import UvCalibrationData
-from sl1fw.libUvLedMeterMulti import UvLedMeterMulti
-from sl1fw.libUvLedMeterSingle import UvLedMeterSingle
+from sl1fw.libUvLedMeterMulti import UvCalibrationData, UvLedMeterMulti
 
 
 class TestUvCalibData(Sl1fwTestCase):
@@ -18,7 +16,7 @@ class TestUvCalibData(Sl1fwTestCase):
         ucd = UvCalibrationData()
 
         # TODO fill
-        ucd.uvSensorType = 1
+        ucd.uvSensorType = 0
         ucd.uvSensorData = [150, 118,]
         ucd.uvTemperature = 40.0
         ucd.uvDateTime = "14.10.2019 12:58:32"
@@ -31,30 +29,9 @@ class TestUvCalibData(Sl1fwTestCase):
 
         self.assertEqual(len(asdict(ucd)), 10, "UvCalibrationData completeness")
 
-class TestUvMeterSingle(Sl1fwTestCase):
-    DATA = Sl1fwTestCase.SAMPLES_DIR / "uvcalib_data-single.toml"
-    PNG = Sl1fwTestCase.SAMPLES_DIR / "uvcalib-single.png"
-    OUT = Sl1fwTestCase.TEMP_DIR / "test.png"
-
-    def setUp(self):
-        self.uvmeter = UvLedMeterSingle()
-
-    def tearDown(self):
-        files = [
-            self.OUT,
-        ]
-        for file in files:
-            if file.exists():
-                file.unlink()
-
-    def test_generatePNG(self):
-        data = toml.load(self.DATA)
-        self.uvmeter.savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], self.OUT, data)
-        self.assertTrue(self.compareImages(self.OUT, self.PNG), "Generated PNG")
-
-class TestUvMeterMulti(Sl1fwTestCase):
-    DATA = Sl1fwTestCase.SAMPLES_DIR / "uvcalib_data-multi.toml"
-    PNG = Sl1fwTestCase.SAMPLES_DIR / "uvcalib-multi.png"
+class TestUvMeterMulti60(Sl1fwTestCase):
+    DATA = Sl1fwTestCase.SAMPLES_DIR / "uvcalib_data-60.toml"
+    PNG = Sl1fwTestCase.SAMPLES_DIR / "uvcalib-60.png"
     OUT = Sl1fwTestCase.TEMP_DIR / "test.png"
 
     def setUp(self):
@@ -72,3 +49,6 @@ class TestUvMeterMulti(Sl1fwTestCase):
         data = toml.load(self.DATA)
         self.uvmeter.savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], self.OUT, data)
         self.assertTrue(self.compareImages(self.OUT, self.PNG), "Generated PNG")
+
+
+# TODO TestUvMeterMulti15

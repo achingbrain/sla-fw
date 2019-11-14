@@ -157,6 +157,7 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
+    # FIXME not used, delete?
     def fillAreaPerc(self, area, color):
         self.logger.debug("area: %s", str(area))
         areaPixels = {}
@@ -563,6 +564,7 @@ class Screen:
     #enddef
 
 
+    # FIXME not used, delete?
     def fillAreaPerc(self, **kwargs):
         kwargs['fce'] = 'fillAreaPerc'
         self.commands.put(kwargs)

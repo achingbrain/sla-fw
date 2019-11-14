@@ -10,8 +10,36 @@ import numpy
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 from time import sleep
+from dataclasses import dataclass
+from enum import IntEnum, unique
 
 from sl1fw import defines
+
+
+@dataclass(init=False)
+class UvCalibrationData:
+    # following values are measured and saved in automatic UV LED calibration
+    uvSensorType: int   # 0=multi
+    uvSensorData: list
+    uvTemperature: float
+    uvDateTime: str
+    uvMean: float
+    uvStdDev: float
+    uvMinValue: int
+    uvMaxValue: int
+    uvPercDiff: list
+    uvFoundPwm: int
+#endclass
+
+
+@unique
+class UvMeterState(IntEnum):
+    OK = 0
+    ERROR_COMMUNICATION = 1
+    ERROR_TRANSLUCENT = 2
+    ERROR_INTENSITY = 3
+#endclass
+
 
 class UvLedMeterMulti:
 
@@ -19,13 +47,18 @@ class UvLedMeterMulti:
     uvSensorType = 0
     INTENSITY_ERROR_THRESHOLD = 0.5
 
-    WEIGHTS = numpy.array([ \
+    WEIGHTS60 = numpy.array([ \
             0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, \
             0.30, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.30, \
             0.30, 0.75, 1.30, 1.30, 1.30, 1.30, 1.30, 1.30, 0.75, 0.30, \
             0.30, 0.75, 1.30, 1.30, 1.30, 1.30, 1.30, 1.30, 0.75, 0.30, \
             0.30, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.30, \
             0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, \
+            ])
+    WEIGHTS15 = numpy.array([ \
+            0.50, 0.50, 0.50, 0.50, 0.50, \
+            0.50, 1.30, 1.00, 1.30, 0.50, \
+            0.50, 0.50, 0.50, 0.50, 0.50, \
             ])
 
     def __init__(self):
@@ -39,30 +72,6 @@ class UvLedMeterMulti:
     @property
     def present(self):
         return os.path.exists(self.uvLedMeterDevice)
-    #enddef
-
-
-    @property
-    def placementCenter(self):
-        return {'x': 0, 'y': 0, 'w': 100, 'h': 100}
-    #enddef
-
-
-    @property
-    def placementCenterConfirm(self):
-        return None
-    #enddef
-
-
-    @property
-    def placementEdge(self):
-        return {'x': 0, 'y': 0, 'w': 100, 'h': 100}
-    #enddef
-
-
-    @property
-    def placementEdgeConfirm(self):
-        return None
     #enddef
 
 
@@ -145,7 +154,7 @@ class UvLedMeterMulti:
             return False
         #endtry
 
-        if len(data) != 61:
+        if len(data) not in (16, 61):
             self.logger.error("Invalid response - wrong line items")
             return False
         #endtry
@@ -157,7 +166,8 @@ class UvLedMeterMulti:
     #enddef
 
 
-    def getData(self, onCenter, data):
+    def getData(self):
+        data = UvCalibrationData()
         data.uvSensorType = self.uvSensorType
         if self.np is None:
             data.uvSensorData = None
@@ -170,7 +180,7 @@ class UvLedMeterMulti:
             data.uvPercDiff = None
         else:
             # float and int type conversions from numpy data types are required for toml save algorithm
-            mean = numpy.average(self.np, weights = self.WEIGHTS)
+            mean = numpy.average(self.np, weights = self.WEIGHTS60 if len(self.np) == 60 else self.WEIGHTS15)
             data.uvSensorData = self.np.tolist()
             data.uvTemperature = round(self.temp, self.ndigits)
             data.uvDateTime = self.datetime
@@ -184,34 +194,40 @@ class UvLedMeterMulti:
     #enddef
 
 
-    def checkPlace(self, fillFce, onCenter, data):
+    def readData(self):
+        if self.read():
+            return self.getData()
+        else:
+            return None
+        #endif
+    #enddef
+
+
+    def checkPlace(self, screenOn):
         self.read()
         if self.np is None:
-            return defines.uvMeterErrorComm
+            return UvMeterState.ERROR_COMMUNICATION
         #enddef
-        data = self.getData(onCenter, data)
+        data = self.getData()
         if data.uvMean > 1.0 or data.uvMaxValue > 2:
-            return defines.uvMeterErrorTrans
+            return UvMeterState.ERROR_TRANSLUCENT
         #enddef
-        fillFce(area = self.placementCenter if onCenter else self.placementEdge, color = 255)
+        screenOn()
         self.read()
         if self.np is None:
-            return defines.uvMeterErrorComm
+            return UvMeterState.ERROR_COMMUNICATION
         #endif
         if self.np.min() < 3:
-            return defines.uvMeterErrorInt
+            return UvMeterState.ERROR_INTENSITY
         #endif
     #enddef
 
 
     def savePic(self, width, height, text, filename, data):
-        cols = 10
-        rows = 6
         bgColor = (0, 0, 0)
         textColor = (255, 255, 255)
         percPlusColor = (0, 255, 0)
         percMinusColor = (255, 0, 0)
-        fontFile = os.path.join(defines.dataPath, "FreeSansBold.otf")
         fontSize = height // 15
         fontSmallSize = height // 30
 
@@ -220,16 +236,23 @@ class UvLedMeterMulti:
             self.logger.warning("No data to show")
             return False
         #endif
+        if len(values) == 60:
+            cols = 10
+            rows = 6
+        else:
+            cols = 5
+            rows = 3
+        #endif
         perc = data['uvPercDiff']
         if not perc:
-            perc = 60 * list((0,))
+            perc = len(values) * list((0,))
         #endif
 
         image = Image.new('RGB', (width, height))
-        font = ImageFont.truetype(fontFile, fontSize)
+        font = ImageFont.truetype(defines.fontFile, fontSize)
         metrics = font.getmetrics()
         textSize = metrics[0] + metrics[1]
-        fontSmall = ImageFont.truetype(fontFile, fontSmallSize)
+        fontSmall = ImageFont.truetype(defines.fontFile, fontSmallSize)
         stepX = int(width / cols)
         stepY = int((height - textSize) / rows)
         valDiff = data['uvMaxValue'] - data['uvMinValue']
@@ -252,7 +275,7 @@ class UvLedMeterMulti:
 
         for col in range(cols):
             for row in range(rows):
-                i = col + 10 * row
+                i = col + cols * row
                 color = int(round(63 + stepColor * (values[i] - data['uvMinValue'])))
                 posX = col * stepX
                 posY = textSize + (row * stepY)

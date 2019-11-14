@@ -3,35 +3,18 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import logging
 import os
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 from threading import Thread
 from time import sleep
+from abc import abstractmethod
 
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException, TomlConfig
-from sl1fw.libUvLedMeterMulti import UvLedMeterMulti
-from sl1fw.libUvLedMeterSingle import UvLedMeterSingle
+from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
-
-
-@dataclass(init=False)
-class UvCalibrationData:
-    # following values are measured and saved in automatic UV LED calibration
-    uvSensorType: int   # 0=multi, 1=single
-    uvSensorData: list
-    uvTemperature: float
-    uvDateTime: str
-    uvMean: float
-    uvStdDev: float
-    uvMinValue: int
-    uvMaxValue: int
-    uvPercDiff: list
-    uvFoundPwm: int
-#endclass
 
 
 @page
@@ -63,12 +46,13 @@ class PageUvDataShow(Page):
         self.logger.debug("Generating picture from: %s", str(data))
         imagePath = os.path.join(defines.ramdiskPath, "uvcalib.png")
         if data['uvSensorType'] == 0:
-            uvmeter = UvLedMeterMulti()
+            UvLedMeterMulti().savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)
+            self.setItems(image_path = "file://%s" % imagePath)
         else:
-            uvmeter = UvLedMeterSingle()
+            self.display.pages['error'].setParams(
+                text = _("Data is from unknown UV LED sensor!"))
+            return "error"
         #endif
-        uvmeter.savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)
-        self.setItems(image_path = "file://%s" % imagePath)
     #enddef
 
 #endclass
@@ -86,80 +70,16 @@ class PageUvDataShowFactory(PageUvDataShow):
 #endclass
 
 
-class UVMeter:
-    multi = UvLedMeterMulti()
-    single = UvLedMeterSingle()
-    detected = None
-
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-    #enddef
-
-
-    @property
-    def uvSensorType(self):
-        if self.detected:
-            return self.detected.uvSensorType
-        else:
-            return -1
-        #endif
-    #enddef
-
-
-    def detect(self):
-        if self.multi.present:
-            self.detected = self.multi
-            return True
-        elif self.single.present:
-            self.detected = self.single
-            return True
-        #endif
-        return False
-    #enddef
-
-
-    def connect(self):
-        if self.detected:
-            return self.detected.connect()
-        else:
-            self.logger.warning("Can't connect - UV meter not detected!")
-            return False
-        #endif
-    #enddef
-
-
-    def readData(self, onCenter):
-        if self.detected and self.detected.read():
-            return self.detected.getData(onCenter, UvCalibrationData())
-        else:
-            self.logger.warning("Can't read data - UV meter not detected!")
-            return None
-        #endif
-    #enddef
-
-
-    def close(self):
-        if self.detected:
-            self.detected.close()
-        else:
-            self.logger.warning("Can't close - UV meter not detected!")
-        #endif
-    #emddef
-
-#endclass
-
-
 class PageUvCalibrationBase(Page):
 
     # one object to rule them all
-    uvmeter = UVMeter()
+    uvmeter = UvLedMeterMulti()
 
     def __init__(self, display):
         super(PageUvCalibrationBase, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("UV LED calibration")
         self.checkCooling = True
-        self.onCenter = None
     #enddef
 
     def off(self):
@@ -183,17 +103,17 @@ class PageUvCalibrationBase(Page):
         pageWait = PageWait(self.display, line1 = _("UV calibration"), line2 = _("Checking UV meter placement on the screen"))
         pageWait.show()
 
-        retc = self.uvmeter.detected.checkPlace(self.display.screen.fillAreaPerc, self.onCenter, UvCalibrationData())
+        retc = self.uvmeter.checkPlace(self.display.screen.inverse)
         if retc:
             errors = {
-                    defines.uvMeterErrorComm : _("Communication with the UV LED meter has failed.\n\n"
+                    UvMeterState.ERROR_COMMUNICATION : _("Communication with the UV LED meter has failed.\n\n"
                         "Check the connection and try again."),
-                    defines.uvMeterErrorTrans : _("The UV LED meter detected some light on a dark display."
+                    UvMeterState.ERROR_TRANSLUCENT : _("The UV LED meter detected some light on a dark display. "
                         "This means there is a light 'leak' under the UV meter, or "
                         "your display does not block the UV light enough.\n\n"
                         "Please check the UV meter placement on the screen or "
                         "replace the exposure display."),
-                    defines.uvMeterErrorInt : _("The UV LED meter failed to read expected UV light intensity.\n\n"
+                    UvMeterState.ERROR_INTENSITY : _("The UV LED meter failed to read expected UV light intensity.\n\n"
                         "Please check the UV meter placement on the screen."),
                     }
             self.display.pages['error'].setParams(text = errors.get(retc, _("Unknown UV LED meter error code: %d" % retc)))
@@ -224,15 +144,13 @@ class PageUvCalibration(PageUvCalibrationBase):
 
         if not self.display.hw.isTowerSynced():
             self.display.pages['error'].setParams(
-                    text = _("Tower homing failed!\n\n"
-                        "Check the printer's hardware."))
+                    text = _("Tower homing failed!\n\nCheck the printer's hardware."))
             return "error"
         #endif
 
         if not self.display.hw.isTiltSynced():
             self.display.pages['error'].setParams(
-                    text = _("Tilt homing failed!\n\n"
-                        "Check the printer's hardware."))
+                    text = _("Tilt homing failed!\n\nCheck the printer's hardware."))
             return "error"
         #endif
 
@@ -242,17 +160,21 @@ class PageUvCalibration(PageUvCalibrationBase):
 
     def show(self):
         minpwm, maxpwm = self.getMeasPwms()
-        text = _("Connect the UV meter to the USB port.\n\n"
-                "Calibration parameters:\n"
-                "Center intensity: %(cint)d\n"
+        text = _("Replace the tank with the UV meter.\n\n"
+                "Do NOT remove the UV meter during measurement. "
+                "Doing so may expose your eyes to harmful UV radiation.\n\n"
+                "Connect the UV meter to the USB port.")
+        if self.display.printer0.factory_mode:
+            text += _("\n\nCenter intensity: %(cint)d\n"
                 "Minimal edge intensity: %(eint)d\n"
-                "Warm-up time: %(time)d seconds\n") \
+                "Warm-up time: %(time)d seconds\n"
+                "PWM range: <%(minp)d, %(maxp)d>") \
             % { 'cint' : self.display.hwConfig.uvCalibIntensity,
                 'eint' : self.display.hwConfig.uvCalibMinIntEdge,
                 'time' : self.display.hwConfig.uvWarmUpTime,
+                'minp' : minpwm,
+                'maxp' : maxpwm,
                 }
-        if self.display.printer0.factory_mode:
-            text += _("PWM range: <%(minp)d, %(maxp)d>") % { 'minp' : minpwm, 'maxp' : maxpwm }
         #endif
         self.items.update({ 'text' : text })
         super(PageUvCalibration, self).show()
@@ -265,7 +187,8 @@ class PageUvCalibration(PageUvCalibrationBase):
             self.allOff()
             return "error"
         #endif
-        return PageUvWarmup.Name
+        self.warmUp()
+        return PageUVCalibrateCenter.Name
     #enddef
 
 
@@ -279,14 +202,14 @@ class PageUvCalibration(PageUvCalibrationBase):
         self.pageWait.show()
         for i in range(0, defines.uvLedMeterMaxWait_s):
             self.pageWait.showItems(line3 = "%d/%d s" % (i, defines.uvLedMeterMaxWait_s))
-            if self.uvmeter.detect():
+            if self.uvmeter.present:
                 break
             #endif
             sleep(1)
         #endfor
         self.pageWait.showItems(line3 = "")
 
-        if self.uvmeter.uvSensorType < 0:
+        if not self.uvmeter.present:
             self.display.pages['error'].setParams(text =
                     _("The UV LED meter is not detected.\n\nCheck the connection and try again."))
             return False
@@ -302,37 +225,8 @@ class PageUvCalibration(PageUvCalibrationBase):
     #enddef
 
 
-    def _BACK_(self):
-        self.off()
-        return "_BACK_"
-    #enddef
-
-#endclass
-
-
-@page
-class PageUvWarmup(PageUvCalibrationBase):
-    Name = "uvwarmup"
-
-    def show(self):
-        if self.uvmeter.uvSensorType == 0:
-            text = _("Replace the tank with the UV meter.\n\n"
-                    "Do NOT remove the UV meter during measurement. "
-                    "Doing so may expose your eyes to harmful UV radiation.")
-        else:
-            text = _("Replace the tank with the plate with cut out slots for UV meter.\n\n"
-                    "During measurement, place the UV meter on the required slots, "
-                    "if you do not, your eyes may be exposed to harmful UV radiation.")
-        #endif
-        self.items.update({ 'text' : text })
-        super(PageUvWarmup, self).show()
-        self.display.hw.beepRepeat(1)
-    #enddef
-
-
-    def contButtonRelease(self):
-        pageWait = PageWait(self.display, line1 = _("UV calibration"), line2 = _("Warming up"))
-        pageWait.show()
+    def warmUp(self):
+        self.pageWait.showItems(line2 = _("Warming up"))
 
         self.display.hw.startFans()
         self.display.hw.uvLedPwm = self.getMaxPwm()
@@ -340,40 +234,18 @@ class PageUvWarmup(PageUvCalibrationBase):
         self.display.hw.uvLed(True)
 
         for countdown in range(self.display.hwConfig.uvWarmUpTime, 0, -1):
-            pageWait.showItems(line3 = ngettext("Remaining %d second",
+            self.pageWait.showItems(line3 = ngettext("Remaining %d second",
                 "Remaining %d seconds", countdown) % countdown)
             sleep(1)
         #endfor
 
         self.display.hw.uvLedPwm = self.getMinPwm()
-
-        return PageUVCalibrateCenterConfirm.Name
-    #enddef
-
-#endclass
-
-
-@page
-class PageUVCalibrateCenterConfirm(PageUvCalibrationBase):
-    Name = "uvcalibratecenterconfirm"
-
-    def prepare(self):
-        items = self.uvmeter.detected.placementCenterConfirm
-        if not items:
-            return PageUVCalibrateCenter.Name
-        #endif
-        self.items.update(items)
     #enddef
 
 
-    def show(self):
-        super(PageUVCalibrateCenterConfirm, self).show()
-        self.display.hw.beepRepeat(1)
-    #enddef
-
-
-    def contButtonRelease(self):
-        return PageUVCalibrateCenter.Name
+    def _BACK_(self):
+        self.off()
+        return "_BACK_"
     #enddef
 
 #endclass
@@ -397,7 +269,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         self.pwm = None
         self.intensity = None
         self.minValue = None
-        self.deviation = None
+        self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
         self.updated = False
     #enddef
 
@@ -409,7 +281,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
 
         self.intensity = None
         self.minValue = None
-        self.deviation = None
+        self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
         self.updated = False
         self.display.uvcalibData = None
 
@@ -427,10 +299,9 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
     #enddef
 
 
-    # for pylint only :)
+    @abstractmethod
     def calibrate(self):
-        self.logger.error("THIS SHOULD BE OVERRIDDEN!")
-        return 0, None
+        ...
     #enddef
 
 
@@ -501,8 +372,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
 
     def __init__(self, display):
         super(PageUVCalibrateCenter, self).__init__(display)
-        self.onCenter = True
-        self.continuePage = PageUVCalibrateEdgeConfirm.Name
+        self.continuePage = PageUVCalibrateEdge.Name
     #enddef
 
 
@@ -518,7 +388,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
         for iteration in range(0, self.TUNNING_ITERATIONS):
             self.display.hw.uvLedPwm = self.pwm
             # Read new intensity value
-            data = self.uvmeter.readData(self.onCenter)
+            data = self.uvmeter.readData()
             if data is None:
                 return self.ERROR_READ_FAILED, None
             else:
@@ -526,18 +396,18 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
                 self.deviation = data.uvStdDev
                 self.updated = True
                 data.uvFoundPwm = -1    # for debug log
-                self.logger.debug("New UV sensor data %s", str(data))
+                self.logger.info("New UV sensor data %s", str(data))
             #endif
 
             # Calculate new error
             error = self.display.hwConfig.uvCalibIntensity - self.intensity
             integrated_error += error
 
-            self.logger.debug("UV pwm tuning: pwm: %d, intensity: %f, error: %f, integrated: %f, iteration: %d, success count: %d",
+            self.logger.info("UV pwm tuning: pwm: %d, intensity: %f, error: %f, integrated: %f, iteration: %d, success count: %d",
                               self.pwm, self.intensity, error, integrated_error, iteration, success_count)
 
             # Break cycle when error is tolerable
-            if abs(error) < self.uvmeter.detected.INTENSITY_ERROR_THRESHOLD:
+            if abs(error) < self.uvmeter.INTENSITY_ERROR_THRESHOLD:
                 if success_count >= self.SUCCESS_ITERATIONS:
                     break
                 #endif
@@ -552,10 +422,10 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
         #endfor
 
         # Report ranges and deviation errors
-        if error > self.uvmeter.detected.INTENSITY_ERROR_THRESHOLD:
+        if error > self.uvmeter.INTENSITY_ERROR_THRESHOLD:
             self.logger.error("UV intensity error: %f", error)
             return self.ERROR_TOO_DIMM, None
-        elif error < -self.uvmeter.detected.INTENSITY_ERROR_THRESHOLD:
+        elif error < -self.uvmeter.INTENSITY_ERROR_THRESHOLD:
             self.logger.error("UV intensity error: %f", error)
             return self.ERROR_TOO_BRIGHT, None
         elif self.deviation > self.INTENSITY_DEVIATION_THRESHOLD:
@@ -571,39 +441,12 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
 
 
 @page
-class PageUVCalibrateEdgeConfirm(PageUvCalibrationBase):
-    Name = "uvcalibrateedgeconfirm"
-
-    def prepare(self):
-        items = self.uvmeter.detected.placementEdgeConfirm
-        if not items:
-            return PageUVCalibrateEdge.Name
-        #endif
-        self.items.update(items)
-    #enddef
-
-
-    def show(self):
-        super(PageUVCalibrateEdgeConfirm, self).show()
-        self.display.hw.beepRepeat(1)
-    #enddef
-
-
-    def contButtonRelease(self):
-        return PageUVCalibrateEdge.Name
-    #enddef
-
-#endclass
-
-
-@page
 class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
     Name = "uvcalibrateedge"
 
     def __init__(self, display):
         super(PageUVCalibrateEdge, self).__init__(display)
-        self.onCenter = False
-        self.continuePage = PageUVCalibrateVerify.Name
+        self.continuePage = PageUvCalibrationConfirm.Name
     #enddef
 
 
@@ -614,7 +457,7 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
         while self.pwm <= maxpwm:
             self.display.hw.uvLedPwm = self.pwm
             # Read new intensity value
-            data = self.uvmeter.readData(self.onCenter)
+            data = self.uvmeter.readData()
             if data is None:
                 return self.ERROR_READ_FAILED, None
             else:
@@ -622,9 +465,9 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
                 self.deviation = data.uvStdDev
                 self.updated = True
                 data.uvFoundPwm = -1    # for debug log
-                self.logger.debug("New UV sensor data %s", str(data))
+                self.logger.info("New UV sensor data %s", str(data))
             #endif
-            self.logger.debug("UV pwm tuning: pwm: %d, minValue: %f", self.pwm, self.minValue)
+            self.logger.info("UV pwm tuning: pwm: %d, minValue: %f", self.pwm, self.minValue)
 
             # Break cycle when minimal intensity (on the edge) is ok
             if self.minValue >= self.display.hwConfig.uvCalibMinIntEdge:
@@ -644,61 +487,6 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
 
         data.uvFoundPwm = self.display.hw.uvLedPwm
         return self.ERROR_DONE, data
-    #enddef
-
-#endclass
-
-
-@page
-class PageUVCalibrateVerify(PageUvCalibrationBase):
-    Name = "pageuvcalibrateverify"
-
-    def __init__(self, display):
-        super(PageUVCalibrateVerify, self).__init__(display)
-        self.onCenter = True
-    #enddef
-
-
-    def prepare(self):
-        if self.display.hw.uvLedPwm == self.display.uvcalibData.uvFoundPwm:
-            self.uvmeter.close()
-            return PageUvCalibrationConfirm.Name
-        #endif
-
-        items = self.uvmeter.detected.placementCenterConfirm
-        if not items:
-            return self.contButtonRelease()
-        #endif
-
-        self.items.update(items)
-    #enddef
-
-
-    def show(self):
-        super(PageUVCalibrateVerify, self).show()
-        self.display.hw.beepRepeat(1)
-    #enddef
-
-
-    def contButtonRelease(self):
-        if not self.checkPlacemet():
-            return "error"
-        #endif
-
-        data = self.uvmeter.readData(self.onCenter)
-        if data is None:
-            self.display.pages['error'].setParams(text =
-                    _("Cannot connect to the UV LED meter.\n\nCheck the connection and try again."))
-            self.off()
-            return "error"
-        #endif
-
-        data.uvFoundPwm = self.display.hw.uvLedPwm
-        self.logger.debug("New UV sensor data %s", str(data))
-        self.display.uvcalibData = data
-
-        self.uvmeter.close()
-        return PageUvCalibrationConfirm.Name
     #enddef
 
 #endclass
