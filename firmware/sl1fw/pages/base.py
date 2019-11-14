@@ -414,7 +414,7 @@ class Page:
                 self.display.expo.doPause()
                 self.display.checkCoolingExpo = False
                 backFce = self.exitPrint
-                addText = _("Actual job will be canceled.")
+                addText = _("Current job will be canceled.")
             else:
                 self.display.hw.uvLed(False)
                 backFce = self.backButtonRelease
@@ -471,7 +471,7 @@ class Page:
             if expoInProgress:
                 backFce = self.exitPrint
                 addText = _("Expect overheating, but the print may continue.\n\n"
-                        "If you don't want to continue, please press the Back button on top of the screen and the actual job will be canceled.")
+                        "If you don't want to continue, please press the Back button on top of the screen and the current job will be canceled.")
             else:
                 backFce = self.backButtonRelease
                 addText = ""

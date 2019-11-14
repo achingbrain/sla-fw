@@ -232,7 +232,7 @@ class ExposureThread(threading.Thread):
             beep = True,
             text = _("The printer got stuck and needs user assistance.\n\n"
                 "Release the tank mechanism and press Continue.\n\n"
-                "If you don't want to continue, press the Back button on top of the screen and the actual job will be canceled."))
+                "If you don't want to continue, press the Back button on top of the screen and the current job will be canceled."))
         self.expo.display.forcePage("confirm")
         if self.doWait(True) == "back":
             return False
