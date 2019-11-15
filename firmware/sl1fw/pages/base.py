@@ -421,6 +421,7 @@ class Page:
                 addText = ""
             #endif
 
+            self.logger.error("UV temperature reading failed")
             self.display.pages['error'].setParams(
                     backFce = backFce,
                     text = _("Reading of UV LED temperature has failed!\n\n"
@@ -437,6 +438,7 @@ class Page:
                 self.display.hw.uvLed(False)
             #enddef
             self.display.hw.powerLed("error")
+            self.logger.error("UV LED overheating: %s", temp)
             pageWait = self.display.makeWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down"))
             pageWait.show()
             self.display.hw.beepAlarm(3)
@@ -465,6 +467,7 @@ class Page:
                     failedFans.append(self.display.hw.getFanName(num))
                 #endif
             #endfor
+            self.logger.error("Detected fan failure: %s", failedFans)
 
             self.display.fanErrorOverride = True
 

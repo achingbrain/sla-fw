@@ -243,6 +243,7 @@ class ExposureThread(threading.Thread):
         pageWait.show()
 
         if not self.expo.hw.tiltSyncWait(retries = 1):
+            self.logger.error("Stuck release failed")
             self.expo.display.pages['error'].setParams(
                     backFce = self.expo.doBack,
                     text = _("Tilt homing failed!\n\n"
