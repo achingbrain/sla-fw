@@ -13,6 +13,7 @@ from time import sleep
 from typing import TYPE_CHECKING
 
 import distro
+from deprecated import deprecated
 
 from sl1fw import actions
 from sl1fw import defines
@@ -126,8 +127,9 @@ class Page:
     #enddef
 
 
+    @deprecated(reason = "There should be no wifi button, only network icon")
     def wifiButtonRelease(self):
-        return "netinfo"
+        return "network"
     #enddef
 
 

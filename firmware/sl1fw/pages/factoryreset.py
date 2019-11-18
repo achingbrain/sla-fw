@@ -19,6 +19,8 @@ from sl1fw.pages.wait import PageWait
 class PageFactoryReset(Page):
     Name = "factoryreset"
 
+    NETWORK_MANAGER = "org.freedesktop.NetworkManager"
+
     def __init__(self, display):
         super(PageFactoryReset, self).__init__(display)
         self.pageUI = "yesno"
@@ -56,9 +58,11 @@ class PageFactoryReset(Page):
         # set homing profiles to factory defaults
         self.display.hw.updateMotorSensitivity(self.display.hwConfig.tiltSensitivity, self.display.hwConfig.towerSensitivity)
 
+        system_bus = pydbus.SystemBus()
+
         # Reset hostname
         try:
-            hostnamectl = pydbus.SystemBus().get("org.freedesktop.hostname1")
+            hostnamectl = system_bus.get("org.freedesktop.hostname1")
             hostname = "prusa64-sl1"
             hostnamectl.SetStaticHostname(hostname, False)
             hostnamectl.SetHostname(hostname, False)
@@ -75,15 +79,22 @@ class PageFactoryReset(Page):
 
         # Reset wifi
         try:
-            wificonfig = pydbus.SystemBus().get('cz.prusa3d.sl1.wificonfig')
-            wificonfig.Reset()
+            self.logger.info("Factory reset: resetting networking settings")
+            nm_settings = system_bus.get(self.NETWORK_MANAGER, "Settings")
+            for item in nm_settings.ListConnections():
+                try:
+                    self.logger.info("Removing connection %s", item)
+                    con = system_bus.get(self.NETWORK_MANAGER, item)
+                    con.Delete()
+                except:
+                    self.logger.exception(f"Failed to delete connection {item}")
         except:
             self.logger.exception("Failed to reset wifi config")
         #endtry
 
         # Reset timezone
         try:
-            timedate = pydbus.SystemBus().get("org.freedesktop.timedate1")
+            timedate = system_bus.get("org.freedesktop.timedate1")
             timedate.SetTimezone("Universal", False)
         except:
             self.logger.exception("Failed to reset timezone")

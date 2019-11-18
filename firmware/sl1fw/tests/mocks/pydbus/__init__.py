@@ -22,8 +22,6 @@ class SystemBus:
             return Locale()
         elif service == "org.freedesktop.NetworkManager":
             return NetworkManager()
-        elif service == "cz.prusa3d.sl1.wificonfig":
-            return WifiConfig()
         else:
             raise Exception("Cannot provide fake service for unknown service name %s" % service)
 
@@ -101,60 +99,6 @@ class Locale:
 
     def connect(self, callback):
         pass
-
-
-class WifiConfig:
-    def __init__(self):
-        self.APs = []
-        self.Client = {
-            'ssid': "test",
-            'psk': "testtest"
-        }
-        self.Hotspot = {
-            'ssid': "test",
-            'psk': "testtest"
-        }
-        self.PropertiesChanged = self
-
-    @staticmethod
-    def connect(*args, **kwargs):
-        pass
-
-    @staticmethod
-    def Connect(ssid, psk):
-        pass
-
-    @staticmethod
-    def StartHotspot(ssid, psk):
-        pass
-
-    @staticmethod
-    def EnableWifi():
-        pass
-
-    @staticmethod
-    def DisableWifi():
-        pass
-
-    @staticmethod
-    def Reset():
-        pass
-
-    @staticmethod
-    def Scan():
-        pass
-
-    @staticmethod
-    def WifiMode():
-        return "off"
-
-    @staticmethod
-    def WifiConnectedSSID():
-        return ""
-
-    @staticmethod
-    def WifiConnectedSignal():
-        return 0
 
 
 class NetworkManager:

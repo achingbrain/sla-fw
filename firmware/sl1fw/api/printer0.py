@@ -10,6 +10,7 @@ from time import monotonic
 from typing import List, Dict, Tuple, Union, TYPE_CHECKING
 import distro
 import pydbus
+from deprecated import deprecated
 from pydbus.generic import signal
 
 from sl1fw import actions
@@ -193,14 +194,12 @@ class Printer0:
     @property
     @dbus_record("""
     <property name="current_page" type="s" access="read">
-        <!-- DEPRECATED, we would like to switch to explicit state machine on global state -->
         <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
     </property>""")
+    @deprecated(reason="Do not rely on current page, use state", action="once")
     def current_page(self) -> str:
         """
         Get current page name
-
-        DEPRECATED, use state if possible
 
         :return: Current page name
         """
@@ -465,6 +464,7 @@ class Printer0:
     <property name="devlist" type="a{ss}" access="read">
         <!-- TODO: <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true"/> -->
     </property>""")
+    @deprecated(reason = "Use NetworkManager", action="once")
     def devlist(self) -> Dict[str, str]:
         """
         Get network devices

@@ -254,8 +254,6 @@ class Printer:
         self.logger.debug("Registering dbus event handlers")
         locale = SystemBus().get("org.freedesktop.locale1")
         locale.PropertiesChanged.connect(self.localeChanged)
-        wificonfig = SystemBus().get("cz.prusa3d.sl1.wificonfig")
-        wificonfig.PropertiesChanged.connect(self.wificonfigChanged)
 
         self.logger.debug("Starting printer event loop")
         self.eventLoop.run()
@@ -277,16 +275,6 @@ class Printer:
         except (IOError, OSError):
             self.logger.exception("Translation for %s cannot be installed.", lang)
         #endtry
-    #enddef
-
-    def wificonfigChanged(self, __, changed, ___):
-        if 'APs' not in changed:
-            return
-        #endif
-
-        if self.display.actualPage == self.display.pages['network']:
-            self.display.pages['network'].apsChanged()
-        #endif
     #enddef
 
     def get_actual_page(self):
