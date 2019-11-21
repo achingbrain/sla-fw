@@ -8,7 +8,7 @@
 rm -f *job* *.pdf
 
 for i in *.xz; do xz -d $i; done
-for i in log.*.txt; do echo "Splitting $i"; csplit --quiet --prefix="${${i#*.}%%.*}-job-" $i "/AllItems: toPrint/" "{*}"; done
+for i in log.*.txt; do echo "Splitting $i"; csplit --quiet --prefix="${${i#*.}%%.*}-job-" $i "/to_print:/" "{*}"; done
 for i in *-job-??; do echo "Splitting $i"; csplit --quiet --prefix=$i- $i "/Job finished/" "{*}"; done
 for i in `grep -l 'Temperatures.*-' *-job-??-??`; do echo "Removing $i" ; rm -f $i; done
 for i in *-job-??-??; do echo -n "${i%%-*} - " > $i.time; grep 'Temperatures' $i |head -n1|cut -d " " -f -3 >> $i.time; done

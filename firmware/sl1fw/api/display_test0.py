@@ -11,7 +11,7 @@ from typing import Callable, TYPE_CHECKING
 from gi.repository.GLib import timeout_add_seconds
 from pydbus.generic import signal
 
-from sl1fw.actions import start_display_test, end_display_test, display_test_cover_check
+from sl1fw.functions import display_test
 from sl1fw.api.decorators import dbus_api, auto_dbus
 from sl1fw.api.states import DisplayTest0State
 
@@ -43,13 +43,13 @@ class DisplayTest0:
     def start(self) -> None:
         self.logger.debug("Starting display test")
         self._state = DisplayTest0State.COVER_OPEN
-        start_display_test(self.display)
+        display_test.start(self.display)
         timeout_add_seconds(1, self._update_cover)
 
     @auto_dbus
     def finish(self, logo_seen: bool) -> None:
         self.logger.info("Display test finished with logo seen: %s", logo_seen)
-        end_display_test(self.display)
+        display_test.end(self.display)
         self._state = DisplayTest0State.FINISHED
         self.exit()
 
@@ -58,7 +58,7 @@ class DisplayTest0:
             return False
 
         old = self._state
-        if display_test_cover_check(self.display):
+        if display_test.cover_check(self.display):
             self._state = DisplayTest0State.DISPLAY
         else:
             self._state = DisplayTest0State.COVER_OPEN

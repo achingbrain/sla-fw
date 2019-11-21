@@ -60,8 +60,10 @@ class ExposureThread(threading.Thread):
             sleep(self.expo.hwConfig.stirringDelay / 10.0)
         #endif
 
-        if self.expo.calibAreas:
-            etime = exposureTime + self.expo.calibAreas[-1]['time'] - self.expo.calibAreas[0]['time']
+        calibAreas = self.expo.project.calibrateAreas
+
+        if calibAreas:
+            etime = exposureTime + calibAreas[-1]['time'] - calibAreas[0]['time']
         else:
             etime = exposureTime
         #endif
@@ -75,13 +77,12 @@ class ExposureThread(threading.Thread):
         self.logger.debug("Exposure started: %d seconds, end: %s", etime, self.expo.exposure_end)
 
         if self.expo.hwConfig.blinkExposure:
-            if self.expo.calibAreas:
-                exptime = 1000 * (exposureTime + self.expo.calibAreas[-1]['time'] - self.expo.calibAreas[0]['time'])
-                self.expo.hw.uvLed(True, etime)
+            if calibAreas:
+                exptime = 1000 * (exposureTime + calibAreas[-1]['time'] - calibAreas[0]['time'])
+                self.expo.hw.uvLed(True, exptime)
 
-
-                for area in self.expo.calibAreas:
-                    while exptime > 1000 * (self.expo.calibAreas[-1]['time'] - area['time']):
+                for area in calibAreas:
+                    while exptime > 1000 * (calibAreas[-1]['time'] - area['time']):
                         sleep(0.005)
                         UVIsOn, exptime = self.expo.hw.getUvLedState()
                         if not UVIsOn:
@@ -101,14 +102,14 @@ class ExposureThread(threading.Thread):
                 UVIsOn = True
                 while UVIsOn:
                     sleep(0.1)
-                    UVIsOn, etime = self.expo.hw.getUvLedState()
+                    UVIsOn, exptime = self.expo.hw.getUvLedState()
                 #endwhile
             #endif
         else:
             sleep(exposureTime)
-            if self.expo.calibAreas:
-                lastArea = self.expo.calibAreas[0]
-                for area in self.expo.calibAreas[1:]:
+            if calibAreas:
+                lastArea = calibAreas[0]
+                for area in calibAreas[1:]:
                     self.expo.screen.fillArea(area = lastArea['rect'])
                     #self.logger.debug("blank area")
                     sleep(area['time'] - lastArea['time'])
@@ -526,15 +527,10 @@ class Exposure:
 
     def startProjectLoading(self):
         params = {
-                'filename' : self.project.source,
-                'toPrint' : self.project.to_print,
+                'project' : self.project.source,
                 'expTime' : self.project.expTime,
-                'calibrateRegions' : self.project.calibrateRegions,
+                'expTimeFirst' : self.project.expTimeFirst,
                 'calibrateTime' : self.project.calibrateTime,
-                'calibratePenetration' : self.project.calibratePenetration,
-                'perPartes' : self.hwConfig.perPartes,
-                'whitePixelsThd' : self.hwConfig.whitePixelsThd,
-                'overlayName' : 'calibPad',
                 }
         self.screen.startProject(params = params)
         self.expoCommands = queue.Queue()
@@ -547,7 +543,7 @@ class Exposure:
         self.actualLayer = 0
         self.resinCount = 0.0
         self.slowLayers = self.project.layersSlow    # we need local copy for decrementing
-        retcode, self.perPartes, self.calibAreas = self.screen.projectStatus()
+        retcode, self.perPartes = self.screen.projectStatus()
         return retcode
     #enddef
 

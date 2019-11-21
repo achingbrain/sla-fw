@@ -32,7 +32,7 @@ class TestExposure(Sl1fwTestCase):
         hw.getUvStatistics.return_value = (6912,)
         screen = Mock()
         screen.blitImg.return_value = 100
-        screen.projectStatus.return_value = True, False, list()
+        screen.projectStatus.return_value = True, False
         self.exposure = Exposure(hw_config, hw, screen)
 
     def test_exposure_init(self):

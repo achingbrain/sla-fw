@@ -222,7 +222,7 @@ class PageSrcSelect(Page):
             if not self.loadProject(item['fullpath']):
                 return "error"
             else:
-                return "printpreviewswipe"
+                return "_OK_"
             #endif
         #endif
     #enddef

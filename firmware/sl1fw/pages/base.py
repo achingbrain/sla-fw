@@ -15,9 +15,8 @@ from typing import TYPE_CHECKING
 import distro
 from deprecated import deprecated
 
-from sl1fw import actions
 from sl1fw import defines
-from sl1fw.actions import get_save_path
+from sl1fw.functions import files
 from sl1fw.libConfig import ConfigException
 from sl1fw.project.project import ProjectState
 
@@ -165,7 +164,7 @@ class Page:
 
     # Dynamic USB path, first usb device or None
     def getSavePath(self) -> str:
-        path = get_save_path()
+        path = files.get_save_path()
         if path is None:
             self.logger.debug("getSavePath returning None, no media seems present")
         #endif
@@ -195,7 +194,7 @@ class Page:
         pageWait = self.display.makeWait(self.display, line1=_("Saving logs"))
         pageWait.show()
         try:
-            actions.save_logs_to_usb(self.display.hw.cpuSerialNo)
+            files.save_logs_to_usb(self.display.hw.cpuSerialNo)
         except FileNotFoundError:
             self.logger.exception("File not found saving logs to usb")
             self.display.pages['error'].setParams(text=_("No USB storage present"))

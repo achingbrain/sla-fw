@@ -34,7 +34,7 @@ sys.modules['serial'] = sl1fw.tests.mocks.mc_port
 
 class Sl1fwTestCase(DBusTestCase):
     SL1FW_DIR = Path(sl1fw.__file__).parent
-    SAMPLES_DIR = Path(sl1fw.tests.samples.__file__).parent
+    SAMPLES_DIR = Path(samples.__file__).parent
     TEMP_DIR = Path(tempfile.gettempdir())
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
 

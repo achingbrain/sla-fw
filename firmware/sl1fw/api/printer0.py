@@ -12,8 +12,9 @@ import pydbus
 from pydbus.generic import signal
 from deprecated import deprecated
 
-from sl1fw import actions, defines
+from sl1fw import defines
 from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath
+from sl1fw.functions import files
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.states import Printer0State
@@ -121,7 +122,7 @@ class Printer0:
         Save logs to first usb device
         :return: None
         """
-        actions.save_logs_to_usb(self.printer.hw.cpuSerialNo)
+        files.save_logs_to_usb(self.printer.hw.cpuSerialNo)
 
     @auto_dbus
     @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])

@@ -6,6 +6,7 @@
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
+
 @page
 class PageTestWizards(Page):
     Name = "testwizards"

@@ -6,10 +6,14 @@
 import logging
 import os
 import shutil
+from time import time
 from datetime import datetime, timezone
 from pathlib import Path
 from enum import IntEnum, unique
 import zipfile
+from io import BytesIO
+import numpy
+from PIL import Image
 
 from sl1fw import defines
 from sl1fw.libConfig import HwConfig
@@ -34,14 +38,41 @@ class Project:
         self._hw_config = hw_config
         self.origin = None
         self.source = None
+        self.zf = None
+        self.mode_warn = True
         self.to_print = []
         self._total_layers = 0
+        self._calibrate_areas = []
+        self._calibrate_bbox = None
+        self._first_layer_bbox = None
+
+    def __del__(self):
+        self.data_close()
 
     def __str__(self):
-        return str(self.config)
+        res = [f"origin: {self.origin}", f"source: {self.source}", f"to_print: {self.to_print}"]
+        return str(self.config) + "\n\t" + "\n\t".join(res)
+
+    def as_dictionary(self):
+        project_data = {
+                'origin': self.origin,
+                'source': self.source,
+                'to_print': self.to_print,
+                }
+        for key, val in vars(self.__class__).items():
+            if isinstance(val, property):
+                project_data[key] = getattr(self, key)
+        return project_data
 
     def read(self, project_file: str) -> ProjectState:
         self.logger.debug("Opening project file '%s'", project_file)
+        self.origin = None
+        self.source = None
+        self.mode_warn = True
+        self.to_print = []
+        self._calibrate_areas = []
+        self._calibrate_bbox = None
+        self._first_layer_bbox = None
 
         if not Path(project_file).exists():
             self.logger.error("Project lookup exception: file not exists: " + project_file)
@@ -83,6 +114,7 @@ class Project:
     @expTime.setter
     def expTime(self, value: float) -> None:
         self.config.expTime = value
+        self._calibrate_areas = []
 
     @property
     def expTime2(self) -> float:
@@ -105,7 +137,7 @@ class Project:
         if self.config.layerHeight > 0.0099:
             return self._hw_config.calcMicroSteps(self.config.layerHeight)
         else:
-            # historicky zmatlano aby sedelo ze pri 8 mm na otacku stepNum = 40 odpovida 0.05 mm
+            # for backward compatibility: 8 mm per turn and stepNum = 40 is 0.05 mm
             return self.config.stepnum / (self._hw_config.screwMm / 4)
 
     @property
@@ -113,7 +145,7 @@ class Project:
         if self.config.layerHeight2 > 0.0099:
             return self._hw_config.calcMicroSteps(self.config.layerHeight2)
         else:
-            # historicky zmatlano aby sedelo ze pri 8 mm na otacku stepNum = 40 odpovida 0.05 mm
+            # for backward compatibility: 8 mm per turn and stepNum = 40 is 0.05 mm
             return self.config.stepnum2 / (self._hw_config.screwMm / 4)
 
     @property
@@ -121,7 +153,7 @@ class Project:
         if self.config.layerHeight3 > 0.0099:
             return self._hw_config.calcMicroSteps(self.config.layerHeight3)
         else:
-            # historicky zmatlano aby sedelo ze pri 8 mm na otacku stepNum = 40 odpovida 0.05 mm
+            # for backward compatibility: 8 mm per turn and stepNum = 40 is 0.05 mm
             return self.config.stepnum3 / (self._hw_config.screwMm / 4)
 
     @property
@@ -147,10 +179,19 @@ class Project:
     @calibrateTime.setter
     def calibrateTime(self, value: float) -> None:
         self.config.calibrateTime = value
+        self._calibrate_areas = []
 
     @property
     def calibrateRegions(self) -> int:
         return self.config.calibrateRegions
+
+    @calibrateRegions.setter
+    def calibrateRegions(self, value: int) -> bool:
+        if value not in [0, 2, 4, 6, 8, 9]:
+            self.logger.error("Value %d not in [0, 2, 4, 6, 8, 9]", value)
+            return False
+        self.config.calibrateRegions = value
+        self._calibrate_areas = []
 
     @property
     def calibrateInfoLayers(self) -> int:
@@ -159,6 +200,102 @@ class Project:
     @property
     def calibratePenetration(self) -> int:
         return int(self.config.raw_calibrate_penetration / defines.screenPixelSize)
+
+    @property
+    def firsLayerBBox(self) -> list:
+        if self.calibrateRegions and not self._first_layer_bbox:
+            bbox = self._check_bbox(self.config.raw_first_layer_bbox)
+            if bbox:
+                self._first_layer_bbox = bbox
+            else:
+                try:
+                    img = self.read_image(self.to_print[0])
+                    self._first_layer_bbox = list(img.getbbox())
+                    self.logger.debug("first layer bbox analyze done, result: %s", str(self._first_layer_bbox))
+                except Exception as e:
+                    self.logger.exception("bbox analyze exception:" + str(e))
+                    # FIXME warn user (calibration will not work)
+        return self._first_layer_bbox
+
+    @firsLayerBBox.setter
+    def firsLayerBBox(self, value: list):
+        self.config.raw_first_layer_bbox = self._first_layer_bbox = value
+
+    @property
+    def calibrateBBox(self) -> list:
+        if self.calibrateRegions and not self._calibrate_bbox:
+            bbox = self._check_bbox(self.config.raw_calibrate_bbox)
+            if bbox:
+                self._calibrate_bbox = bbox
+            else:
+                self.logger.debug("bbox analyze started")
+                startTime = time()
+                npArray = numpy.array([], numpy.int32)
+                firstbbox = None
+                try:
+                    # every second image (it's faster and it should be enough)
+                    for filename in self.to_print[::2]:
+                        img = self.read_image(filename)
+                        bbox = img.getbbox()
+                        self.logger.debug("'%s' bbox: %s", filename, bbox)
+                        npArray = numpy.append(npArray, bbox)
+                    npArray = numpy.reshape(npArray, (npArray.size//4, 2, 2))
+                    minval = npArray.min(axis = 0)
+                    maxval = npArray.max(axis = 0)
+                    self._calibrate_bbox = [minval[0][0], minval[0][1], maxval[1][0], maxval[1][1]]
+                    self.logger.debug("bbox analyze done in %f secs, result: %s", time() - startTime, str(self._calibrate_bbox))
+                except Exception as e:
+                    self.logger.exception("bbox analyze exception:" + str(e))
+                    # FIXME warn user (calibration will not work)
+        return self._calibrate_bbox
+
+    @calibrateBBox.setter
+    def calibrateBBox(self, value: list):
+        self.config.raw_calibrate_bbox = self._calibrate_bbox = value
+
+    @property
+    def calibrateAreas(self):
+        if not self.config.calibrateRegions or self._calibrate_areas:
+            return self._calibrate_areas
+
+        self._calibrate_areas = []
+        areaMap = {
+                2 : (2, 1),
+                4 : (2, 2),
+                6 : (3, 2),
+                8 : (4, 2),
+                9 : (3, 3),
+                #10 : (10, 1),  # TODO
+                }
+        if self.config.calibrateRegions not in areaMap:
+            self.logger.error("bad value calibrateRegions (%d)", self.config.calibrateRegions)
+            return []
+
+        divide = areaMap[self.config.calibrateRegions]
+        if defines.screenWidth > defines.screenHeight:
+            x = 0
+            y = 1
+        else:
+            x = 1
+            y = 0
+
+        stepW = defines.screenWidth // divide[x]
+        stepH = defines.screenHeight // divide[y]
+
+        lw = 0
+        etime = self.config.expTime
+        for i in range(divide[x]):
+            lh = 0
+            for j in range(divide[y]):
+                w = (i+1) * stepW
+                h = (j+1) * stepH
+                rect = {'x': lw, 'y': lh, 'w': stepW, 'h': stepH}
+                self.logger.debug("%.1f - %s", etime, str(rect))
+                self._calibrate_areas.append({ 'time' : etime, 'rect' : rect })
+                etime += self.config.calibrateTime
+                lh = h
+            lw = w
+        return self._calibrate_areas
 
     @property
     def usedMaterial(self) -> float:
@@ -199,8 +336,7 @@ class Project:
     def printerVariant(self) -> str:
         return self.config.printerVariant
 
-
-    def copyAndCheck(self):
+    def copy_and_check(self):
         state = ProjectState.OK
         # check free space
         statvfs = os.statvfs(defines.ramdiskPath)
@@ -212,19 +348,17 @@ class Project:
         except Exception:
             self.logger.exception("filesize exception:")
             return ProjectState.CANT_READ
-
         try:
             if ramdisk_available < filesize:
                 raise Exception("Not enough free space in the ramdisk!")
             (dummy, filename) = os.path.split(self.origin)
-            newSource = os.path.join(defines.ramdiskPath, filename)
-            if os.path.normpath(newSource) != os.path.normpath(self.origin):
-                shutil.copyfile(self.origin, newSource)
-            self.source = newSource
+            new_source = os.path.join(defines.ramdiskPath, filename)
+            if os.path.normpath(new_source) != os.path.normpath(self.origin):
+                shutil.copyfile(self.origin, new_source)
+            self.source = new_source
         except Exception:
             self.logger.exception("copyfile exception:")
             state = ProjectState.PRINT_DIRECTLY
-
         try:
             zf = zipfile.ZipFile(self.source, "r")
             badfile = zf.testzip()
@@ -235,5 +369,40 @@ class Project:
         except Exception:
             self.logger.exception("zip read exception:")
             return ProjectState.CANT_READ
-
         return state
+
+    def read_image(self, filename):
+        ''' may raise ZipFile exception '''
+        self.data_open()
+        self.logger.debug("loading '%s' from '%s'", filename, self.source)
+        img = Image.open(BytesIO(self.zf.read(filename)))
+        if img.mode != "L":
+            if self.mode_warn:
+                self.logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha)."
+                                    " Losing time in conversion. This is reported only once per project.",
+                                    filename, img.mode)
+                self.mode_warn = False
+            img = img.convert("L")
+        return img
+
+    def data_open(self):
+        ''' may raise ZipFile exception '''
+        if not self.zf:
+            self.zf = zipfile.ZipFile(self.source, "r")
+
+    def data_close(self):
+        if self.zf:
+            self.zf.close()
+
+    def _check_bbox(self, bbox):
+        if bbox and (len(bbox) != 4 \
+                or bbox[2] < bbox[0] \
+                or bbox[3] < bbox[1] \
+                or defines.screenWidth < bbox[0] < 0 \
+                or defines.screenHeight < bbox[1] < 0 \
+                or defines.screenWidth < bbox[2] < 0 \
+                or defines.screenHeight < bbox[3] < 0):
+            self.logger.warning("bbox %s is out of range [0,%d,0,%d]",
+                    str(bbox), defines.screenWidth, defines.screenHeight)
+            bbox = None
+        return bbox

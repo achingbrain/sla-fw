@@ -11,12 +11,14 @@ import multiprocessing
 from queue import Empty
 from io import BytesIO
 import subprocess
-import zipfile
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import numpy
 
 from sl1fw import defines
+from sl1fw.libConfig import HwConfig, ConfigException
+from sl1fw.project.project import Project, ProjectState
 
 
 class ScreenServer(multiprocessing.Process):
@@ -37,13 +39,11 @@ class ScreenServer(multiprocessing.Process):
         self.getImgBlack()
         self.font = ImageFont.truetype(defines.fontFile, int(5 / defines.screenPixelSize))
         self.overlays = dict()
-        self.calibAreas = list()
-        self.zf = None
+        self.project = None
         self.perPartes = False
         self.nextImage1 = None
         self.nextImage2 = None
         self.pasteData = None
-        self.mute_warning = False
     #enddef
 
 
@@ -89,10 +89,6 @@ class ScreenServer(multiprocessing.Process):
             #enddef
         #endwhile
 
-        if self.zf:
-            self.zf.close()
-        #endif
-
         self.logger.debug("process ended")
     #enddef
 
@@ -105,16 +101,13 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def _openImage(self, source, filename):
+    def _openImage(self, filename):
         self.logger.debug("loading '%s'", filename)
-        img = Image.open(source)
+        img = Image.open(filename)
         if img.mode != "L":
-            if not self.mute_warning:
-                self.logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha)."
-                                    " Losing time in conversion. This is reported only once per project.",
-                                    filename, img.mode)
-                self.mute_warning = True
-            #endif
+            self.logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha)."
+                                " Losing time in conversion.",
+                                filename, img.mode)
             img = img.convert("L")
         #endif
         return img
@@ -123,31 +116,65 @@ class ScreenServer(multiprocessing.Process):
 
     def startProject(self, params):
         self.overlays = dict()
-        self.calibAreas = list()
-        self.zf = None
         self.perPartes = False
         self.nextImage1 = None
         self.nextImage2 = None
         self.pasteData = None
-        self.mute_warning = False
         self.usage = numpy.zeros((defines.displayUsageSize[0], defines.displayUsageSize[2]))
+        hwConfig = HwConfig(file_path=Path(defines.hwConfigFile), factory_file_path=Path(defines.hwConfigFactoryDefaultsFile))
         try:
-            self.zf = zipfile.ZipFile(params['filename'], "r")
-        except Exception as e:
-            self.logger.exception("zip read exception:")
-            return
+            hwConfig.read_file()
+        except ConfigException:
+            self.logger.warning("Failed to read configuration file", exc_info=True)
         #endtry
-        self.createMasks(params['perPartes'])
-        self.createCalibrationAreas(params['calibrateRegions'], params['expTime'], params['calibrateTime'])
-        if self.calibAreas:
-            self.createCalibrationOverlays(params['toPrint'], params['calibratePenetration'])
+        self.project = Project(hwConfig)
+        if self.project.read(params['project']) != ProjectState.OK:
+            self.project = None
+            return
         #endif
-        self.preloadImg(params['toPrint'][0], params['overlayName'], params['whitePixelsThd'])
+
+        # "patch" project with possibly changed values
+        self.project.expTime = params['expTime']
+        self.project.expTimeFirst = params['expTimeFirst']
+        self.project.calibrateTime = params['calibrateTime']
+
+        # for unitttests only
+        overlay = params.get('overlayName', "calibPad")
+        per_partes_forced = params.get('perPartes', False)
+
+        if hwConfig.perPartes or per_partes_forced:
+            try:
+                self.overlays['ppm1'] = self._openImage(defines.perPartesMask)
+                self.overlays['ppm2'] = ImageOps.invert(self.overlays['ppm1'])
+                self.perPartes = True
+            except Exception as e:
+                self.logger.exception("per partes masks exception")
+            #endtry
+        #endif
+
+        try:
+            img = self.project.read_image(defines.maskFilename)
+            self.overlays['mask'] = ImageOps.invert(img)
+        except KeyError:
+            self.logger.info("No mask picture in the project")
+        except Exception as e:
+            self.logger.exception("project mask exception")
+        #endtry
+
+        if self.project.calibrateAreas:
+            self.createCalibrationOverlays(
+                    self.project.calibratePenetration,
+                    self.project.calibrateAreas,
+                    self.project.firsLayerBBox,
+                    self.project.calibrateBBox)
+        #endif
+
+        self.preloadImg(self.project.to_print[0], overlay, hwConfig.whitePixelsThd)
     #enddef
 
 
     def projectStatus(self):
-        return self.zf is not None, self.perPartes, self.calibAreas
+        return self.project is not None, self.perPartes
     #enddef
 
 
@@ -185,7 +212,7 @@ class ScreenServer(multiprocessing.Process):
     def getImg(self, filename):
         self.logger.debug("view of %s started", filename)
         startTime = time()
-        self.screen = self._openImage(filename, filename)
+        self.screen = self._openImage(filename)
         self._writefb()
         self.logger.debug("view of %s done in %f secs", filename, time() - startTime)
     #enddef
@@ -201,9 +228,7 @@ class ScreenServer(multiprocessing.Process):
             self.logger.debug("preload of %s started", filename)
 
             startTimeFirst = time()
-            filedata = self.zf.read(filename)
-            filedata_io = BytesIO(filedata)
-            temp = self._openImage(filedata_io, filename)
+            temp = self.project.read_image(filename)
             self.logger.debug("load of '%s' done in %f secs", filename, time() - startTimeFirst)
 
             if self.pasteData:
@@ -236,6 +261,7 @@ class ScreenServer(multiprocessing.Process):
             self.whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4])
             self.logger.debug("pixels manipulations done in %f secs, whitePixels: %f", time() - startTime, self.whitePixels)
 
+            print(self.perPartes, self.whitePixels, whitePixelsThd)
             if self.perPartes and self.whitePixels > whitePixelsThd:
                 self.nextImage2 = self.nextImage1.copy()
                 self.nextImage1.paste(self.blackImage, self.overlays['ppm1'])
@@ -306,108 +332,17 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def createMasks(self, perPartes):
-        if perPartes:
-            try:
-                self.overlays['ppm1'] = self._openImage(defines.perPartesMask, defines.perPartesMask)
-                self.overlays['ppm2'] = ImageOps.invert(self.overlays['ppm1'])
-                self.perPartes = True
-            except Exception as e:
-                self.logger.exception("createMasks exception")
-            #endtry
-        #endif
-
-        try:
-            filedata = self.zf.read(defines.maskFilename)
-        except KeyError as e:
-            self.logger.info("No mask picture in the project")
-            return
-        #endtry
-        filedata_io = BytesIO(filedata)
-        self.overlays['mask'] = ImageOps.invert(self._openImage(filedata_io, defines.maskFilename))
-    #enddef
-
-
-    def createCalibrationAreas(self, regions, baseTime, calibrateTime):
-        areaMap = {
-                2 : (2, 1),
-                4 : (2, 2),
-                6 : (3, 2),
-                8 : (4, 2),
-                9 : (3, 3),
-                #10 : (10, 1),  # TODO
-                }
-        if regions:
-            if regions not in areaMap:
-                self.logger.warning("bad value regions (%d), calibrate mode disabled", regions)
-            else:
-                divide = areaMap[regions]
-
-                if self.width > self.height:
-                    x = 0
-                    y = 1
-                else:
-                    x = 1
-                    y = 0
-                #endif
-
-                stepW = self.width // divide[x]
-                stepH = self.height // divide[y]
-
-                lw = 0
-                etime = baseTime
-                for i in range(divide[x]):
-                    lh = 0
-                    for j in range(divide[y]):
-                        w = (i+1) * stepW
-                        h = (j+1) * stepH
-                        rect = {'x': lw, 'y': lh, 'w': stepW, 'h': stepH}
-                        self.logger.debug("%.1f - %s", etime, str(rect))
-                        self.calibAreas.append({ 'time' : etime, 'rect' : rect })
-                        etime += calibrateTime
-                        lh = h
-                    #endfor
-                    lw = w
-                #endfor
-            #endif
-        #endif
-    #enddef
-
-
-    def createCalibrationOverlays(self, toPrint, penetration):
+    def createCalibrationOverlays(self, penetration, calibAreas, firstbbox, maxbbox):
         calib = Image.new("L", (self.width, self.height))
         calibPad = Image.new("L", (self.width, self.height))
         calibPadDraw = ImageDraw.Draw(calibPad)
         spacingX = 1.5
         spacingY = 1.5
-
-        self.logger.debug("project analyze started")
-        startTime = time()
-        npArray = numpy.array([], numpy.int32)
-        firstbbox = None
-        # every second image (it's faster and it should be enough)
-        for filename in toPrint[::2]:
-            filedata = self.zf.read(filename)
-            filedata_io = BytesIO(filedata)
-            baseImage = self._openImage(filedata_io, filename)
-            bbox = baseImage.getbbox()
-            #self.logger.debug("picture bbox: %s", bbox)
-            npArray = numpy.append(npArray, bbox)
-            if not firstbbox:
-                firstbbox = list(bbox)
-            #endif
-        #endfor
-        npArray = numpy.reshape(npArray, (npArray.size//4, 2, 2))
-        minval = npArray.min(axis = 0)
-        maxval = npArray.max(axis = 0)
-        maxbbox = [minval[0][0], minval[0][1], maxval[1][0], maxval[1][1]]
-        self.logger.debug("project analyze done in %f secs", time() - startTime)
-
         projSize = list((maxbbox[2] - maxbbox[0], maxbbox[3] - maxbbox[1]))
         self.logger.debug("max bbox: %s  project size: %s", maxbbox, projSize)
         firstPadding = list((firstbbox[0] - maxbbox[0], firstbbox[1] - maxbbox[1], maxbbox[2] - firstbbox[2], maxbbox[3] - firstbbox[3]))
         self.logger.debug("first bbox: %s  padding: %s", firstbbox, firstPadding)
-        areaSize = self.calibAreas[0]['rect']
+        areaSize = calibAreas[0]['rect']
 
         if areaSize['w'] < projSize[0]:
             shrink = (projSize[0] - areaSize['w']) // 2
@@ -454,7 +389,7 @@ class ScreenServer(multiprocessing.Process):
         #endif
         self.pasteData = { 'src' : maxbbox, 'dest' : list() }
 
-        for area in self.calibAreas:
+        for area in calibAreas:
             text = "%.2f" % area['time']
             self.logger.debug("text: '%s'", text)
             textSize = self.font.getsize(text)

@@ -3,7 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sl1fw.actions import end_display_test, start_display_test, display_test_cover_check
+from sl1fw.functions import display_test
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -26,13 +26,13 @@ class PageDisplayTest(Page):
 
 
     def show(self):
-        start_display_test(self.display)
+        display_test.start(self.display)
         self.items.update({
             'imageName' : "selftest-prusa_logo.jpg",
             'text' : _("Can you see the company logo on the exposure display through the orange cover?\n\n"
                        "Tip: The logo is best seen when you look from above.\n\n"
                        "DO NOT open the cover!")})
-        if display_test_cover_check(self.display):
+        if display_test.cover_check(self.display):
             super(PageDisplayTest, self).show()
         #endif
     #enddef
@@ -53,7 +53,7 @@ class PageDisplayTest(Page):
 
 
     def leave(self):
-        end_display_test(self.display)
+        display_test.end(self.display)
     #enddef
 
 #endclass

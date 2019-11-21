@@ -144,7 +144,7 @@ class PagePrintPreviewSwipe(Page):
 
         # Remove old projects from ramdisk
         ramdiskCleanup(self.logger)
-        project_state = self.display.expo.project.copyAndCheck()
+        project_state = self.display.expo.project.copy_and_check()
 
         while self.display.hw.isTowerMoving():
             sleep(0.25)

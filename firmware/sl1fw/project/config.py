@@ -3,7 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sl1fw.libConfig import Config, FloatValue, IntValue, TextValue
+from sl1fw.libConfig import Config, FloatValue, IntValue, TextValue, IntListValue
 from sl1fw import defines
 
 
@@ -53,15 +53,20 @@ class ProjectConfig(Config):
     )
 
     calibrateTime = FloatValue(
-        lambda self: self.expTime, doc="Time added to exposure per calibration region. [seconds]"
+        1.0, doc="Time added to exposure per calibration region. [seconds]"
     )
     calibrateRegions = IntValue(0, doc="Number of calibration regions (2, 4, 6, 8, 9), 0 = off")
     calibrateInfoLayers = IntValue(
         10, doc="Number of calibration layers that will include the label with exposure time."
     )
-
     raw_calibrate_penetration = FloatValue(
         0.5, key="calibratePenetration", doc="How much to sing calibration text to object. [millimeters]"
+    )
+    raw_calibrate_bbox = IntListValue(
+        None, key="calibrateBBox", doc="Bounding box of calibration object: xmin, ymin, xmax, ymax. [pixels]"
+    )
+    raw_first_layer_bbox = IntListValue(
+        None, key="firstLayerBBox", doc="Bounding box of first layer of calibration object: xmin, ymin, xmax, ymax. [pixels]"
     )
 
     usedMaterial = FloatValue(

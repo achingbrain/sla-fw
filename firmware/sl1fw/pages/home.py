@@ -58,7 +58,11 @@ class PageHome(Page):
             return "yesno"
         #endif
 
-        return "sourceselect"
+        if not self.display.doMenu("sourceselect"):
+            return "_EXIT_"
+        #endif
+
+        return "printpreviewswipe"
     #enddef
 
 

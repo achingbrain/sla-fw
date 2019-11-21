@@ -11,7 +11,7 @@ import bitstring
 
 if len(sys.argv) != 2:
     print("Usage: %s nvram_file" % sys.argv[0])
-    exit(1)
+    sys.exit(1)
 #enddef
 
 s = bitstring.BitArray(bytes=open(sys.argv[1], 'rb').read())
