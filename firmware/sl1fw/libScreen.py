@@ -389,7 +389,7 @@ class ScreenServer(multiprocessing.Process):
                 firstbbox = list(bbox)
             #endif
         #endfor
-        npArray = numpy.reshape(npArray, (len(toPrint)//2, 2, 2))
+        npArray = numpy.reshape(npArray, (npArray.size//4, 2, 2))
         minval = npArray.min(axis = 0)
         maxval = npArray.max(axis = 0)
         maxbbox = [minval[0][0], minval[0][1], maxval[1][0], maxval[1][1]]
