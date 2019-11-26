@@ -151,7 +151,14 @@ class PagePrint(Page):
     #enddef
 
 
-    def turnoffButtonRelease(self):
+    def turnoffButtonRelease(self, hw_button = False):
+        if hw_button:
+            self.display.pages['yesno'].setParams(
+                yesFce = self.exitPrint,
+                text = _("Do you really want to cancel the actual job?"))
+            return "yesno"
+        #endif
+
         return self.exitPrint()
     #enddef
 

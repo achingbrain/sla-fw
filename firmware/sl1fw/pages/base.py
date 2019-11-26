@@ -143,7 +143,7 @@ class Page:
     #enddef
 
 
-    def turnoffButtonRelease(self):
+    def turnoffButtonRelease(self, hw_button = False):
         self.display.pages['yesno'].setParams(
                 yesFce = self.turnoffContinue,
                 text = _("Do you really want to turn off the printer?"))
@@ -359,7 +359,7 @@ class Page:
         if self.powerButtonCount > 0:
             self.display.hw.powerLed("normal")
             self.display.hw.beepEcho()
-            return self.turnoffButtonRelease()
+            return self.turnoffButtonRelease(hw_button=True)
         #endif
 
         if not self.powerButtonCount:
