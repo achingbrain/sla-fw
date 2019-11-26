@@ -195,7 +195,7 @@ class PageCalibration5(MovePage):
         super(PageCalibration5, self).__init__(display)
         self.pageUI = "tiltmovecalibration"
         self.pageTitle = N_("Calibration step 5/11")
-        self.autorepeat = { "upslow" : (3, 1), "downslow" : (3, 1) }
+        self.autorepeat = { "upslow" : (2, 1), "downslow" : (2, 1) }
         self.prevTiltHeight = 0
     #enddef
 
@@ -214,11 +214,11 @@ class PageCalibration5(MovePage):
             self.display.hw.tiltMoveAbsolute(self.display.hw._tiltEnd)
             self.moving = True
         else:
+            self.showItems(value = self.display.hw.getTiltPosition())
             if self.display.hw.getTiltPosition() == self.display.hw._tiltEnd:
                 self.display.hw.beepAlarm(1)
             #endif
         #endif
-        self.showItems(value = self.display.hw.getTiltPosition())
     #enddef
 
 
@@ -228,11 +228,11 @@ class PageCalibration5(MovePage):
             self.display.hw.tiltMoveAbsolute(self.display.hw._tiltCalibStart)
             self.moving = True
         else:
+            self.showItems(value = self.display.hw.getTiltPosition())
             if self.display.hw.getTiltPosition() == self.display.hw._tiltCalibStart:
                 self.display.hw.beepAlarm(1)
             #endif
         #endif
-        self.showItems(value = self.display.hw.getTiltPosition())
     #enddef
 
 
