@@ -6,11 +6,9 @@ After=NetworkManager.service rauc.service
 [Service]
 ExecStartPre=/usr/bin/sh -c "/usr/bin/echo 0 > /sys/class/vtconsole/vtcon1/bind"
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/usr/bin/nohup /usr/bin/main.py
+ExecStart=/usr/bin/main.py
 Restart=always
 RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
-
-
