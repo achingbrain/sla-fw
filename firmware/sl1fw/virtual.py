@@ -34,6 +34,7 @@ fake_gettext()
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
 
 sys.modules["gpio"] = Mock()
+sys.modules['evdev'] = Mock()
 sys.modules["serial"] = sl1fw.tests.mocks.mc_port
 
 # use system locale settings for translation
