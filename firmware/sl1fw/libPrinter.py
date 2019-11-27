@@ -128,6 +128,11 @@ class Printer:
         #endif
 
         if self.firstRun:
+            if self.hwConfig.showI18nSelect:
+                self.hw.beepRepeat(1)
+                self.display.doMenu("setlanguage")
+            #endif
+
             if not self.hwConfig.is_factory_read() and not self.hw.isKit:
                 self.display.pages['error'].setParams(
                     text=_("Failed to load fans and LEDs factory calibration."))

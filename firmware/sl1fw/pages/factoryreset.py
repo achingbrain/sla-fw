@@ -100,6 +100,14 @@ class PageFactoryReset(Page):
             self.logger.exception("Failed to reset timezone")
         #endtry
 
+        # Reset locale
+        try:
+            locale = system_bus.get("org.freedesktop.locale1")
+            locale.SetLocale(["en_GB.UTF-8"], False)
+        except:
+            self.logger.exception("Setting locale failed")
+        #endtry
+
         # Reset user UV calibration data
         try:
             os.remove(defines.uvCalibDataPath)

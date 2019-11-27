@@ -5,6 +5,7 @@
 
 import pydbus
 
+from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -53,8 +54,18 @@ class PageSetLanguage(Page):
         try:
             self.locale.SetLocale([data['locale']], False)
         except:
-            self.logger.error("Setting locale failed")
+            self.logger.exception("Setting locale failed")
         #endtry
+
+        self.display.hwConfig.showI18nSelect = False
+        try:
+            self.display.hwConfig.write()
+        except ConfigException:
+            self.logger.exception("Failed to save language configuration")
+            self.display.pages['error'].setParams(
+                text = _("Cannot save language configuration"))
+            return "error"
+        #endif
 
         return "_BACK_"
     #enddef

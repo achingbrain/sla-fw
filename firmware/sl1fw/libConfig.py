@@ -893,6 +893,7 @@ class HwConfig(Config):
     tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off.")
     showWizard = BoolValue(True, doc="Display wizard at startup if True.")
     showUnboxing = BoolValue(True, doc="Display unboxing wizard at startup if True.")
+    showI18nSelect = BoolValue(True, doc="Display language select dialog at startup if True.")
 
 
 class PrintConfig(Config):
