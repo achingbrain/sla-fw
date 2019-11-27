@@ -730,9 +730,10 @@ class Config(ValueConfig):
 
         This does not save the config. Explict call to save is necessary
         """
+        self.logger.info("Running factory reset on config")
         with self.lock.gen_wlock():
             for val in self.values.values():
-                val.value = None
+                val.set_value(self, None)
 
     def is_factory_read(self) -> bool:
         """

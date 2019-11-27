@@ -157,6 +157,16 @@ class TestConfigValues(Sl1fwTestCase):
         s.read_text("a = 5")  # Setting value to default should not make it non-default
         self.assertNotIn('a', s.as_dictionary(nondefault=False))
 
+    def test_value_reset(self):
+        class SimpleConfig(Config):
+            a = IntValue(5)
+        s = SimpleConfig()
+        self.assertEqual(5, s.a)
+        s.a = 7
+        self.assertEqual(7, s.a)
+        s.factory_reset()
+        self.assertEqual(5, s.a)
+
 
 class TestHardwareConfig(Sl1fwTestCase):
     def __init__(self, *args, **kwargs):
