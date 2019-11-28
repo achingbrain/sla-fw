@@ -24,7 +24,7 @@ else:
 logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
 
 # use system locale settings for translation
-gettext.install('sl1fw', defines.localedir)
+gettext.install('sl1fw', defines.localedir, names=("ngettext"))
 builtins.N_ = lambda x: x
 
 from sl1fw import libPrinter

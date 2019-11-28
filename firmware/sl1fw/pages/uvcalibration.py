@@ -6,7 +6,6 @@
 import logging
 import os
 from dataclasses import dataclass, asdict
-from gettext import ngettext
 from threading import Thread
 from time import sleep
 
@@ -341,8 +340,8 @@ class PageUvWarmup(PageUvCalibrationBase):
         self.display.hw.uvLed(True)
 
         for countdown in range(self.display.hwConfig.uvWarmUpTime, 0, -1):
-            pageWait.showItems(line3 = ngettext("Remaining %d second" % countdown,
-                "Remaining %d seconds" % countdown, countdown))
+            pageWait.showItems(line3 = ngettext("Remaining %d second",
+                "Remaining %d seconds", countdown) % countdown)
             sleep(1)
         #endfor
 

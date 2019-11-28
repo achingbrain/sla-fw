@@ -3,7 +3,6 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from gettext import ngettext
 from time import sleep
 
 from sl1fw import defines
@@ -52,8 +51,8 @@ class PageFanTest(Page):
             rpm[1].append(tmp[1])   #blower
             rpm[2].append(tmp[2])   #rear
             cnt -= 1
-            pageWait.showItems(line3 = ngettext("Remaining %d second" % (cnt + 1),
-                    "Remaining %d seconds" % (cnt + 1),(cnt + 1)))
+            pageWait.showItems(line3 = ngettext("Remaining %d second",
+                    "Remaining %d seconds",(cnt + 1)) % (cnt + 1))
             sleep(1)
         #endfor
 

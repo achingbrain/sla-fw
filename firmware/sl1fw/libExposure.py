@@ -11,7 +11,6 @@ import queue
 import shutil
 import threading
 import zipfile
-from gettext import ngettext
 from time import sleep, time
 from typing import Optional, TYPE_CHECKING
 
@@ -164,8 +163,8 @@ class ExposureThread(threading.Thread):
 
         for sec in range(self.expo.hwConfig.upAndDownWait):
             cnt = self.expo.hwConfig.upAndDownWait - sec
-            pageWait.showItems(line1 = ngettext("Printing will continue in %d second" % cnt,
-                "Printing will continue in %d seconds" % cnt, cnt), line2 = "")
+            pageWait.showItems(line1 = ngettext("Printing will continue in %d second",
+                "Printing will continue in %d seconds", cnt) % cnt, line2 = "")
             sleep(1)
             if self.expo.hwConfig.coverCheck and not self.expo.hw.isCoverClosed():
                 pageWait.showItems(line1 = _("Paused"),

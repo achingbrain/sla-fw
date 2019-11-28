@@ -276,7 +276,7 @@ class Printer:
             self.logger.debug("Obtaining translation: %s" % lang)
             translation = gettext.translation('sl1fw', localedir=defines.localedir, languages=[lang], fallback=True)
             self.logger.debug("Installing translation: %s" % lang)
-            translation.install()
+            translation.install(names=("ngettext"))
         except (IOError, OSError):
             self.logger.exception("Translation for %s cannot be installed.", lang)
         #endtry

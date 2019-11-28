@@ -5,7 +5,6 @@
 
 import re
 from dataclasses import dataclass, asdict
-from gettext import ngettext
 from time import sleep
 
 import distro
@@ -312,8 +311,8 @@ class PageWizardUvLed(Page):
         pageWait.showItems(line1 = _("UV LED warmup check"))
         self.display.hw.uvLedPwm = uvPwms[3]
         for countdown in range(120, 0, -1):
-            pageWait.showItems(line2 = ngettext("Remaining %d second" % countdown,
-                    "Remaining %d seconds" % countdown, countdown))
+            pageWait.showItems(line2 = ngettext("Remaining %d second",
+                    "Remaining %d seconds", countdown) % countdown)
             sleep(1)
             temp = self.display.hw.getUvLedTemperature()
             if temp > defines.maxUVTemp:
