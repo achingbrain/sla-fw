@@ -16,7 +16,7 @@ class PageFansLeds(Page):
     def __init__(self, display):
         super(PageFansLeds, self).__init__(display)
         self.pageUI = "setup"
-        self.pageTitle = N_("Fans & UV LED")
+        self.pageTitle = "Fans & UV LED"
         self.autorepeat = {
                 'minus2g1' : (5, 1), 'plus2g1' : (5, 1),
                 'minus2g2' : (5, 1), 'plus2g2' : (5, 1),
@@ -28,24 +28,24 @@ class PageFansLeds(Page):
                 'minus2g8' : (5, 1), 'plus2g8' : (5, 1),
                 }
         self.items.update({
-                'label1g1' : _("UV LED fan"),
-                'label1g2' : _("Blower fan"),
-                'label1g3' : _("Rear fan"),
-                'label1g5' : _("UV LED"),
-                'label1g7' : _("Trigger"),
+                'label1g1' : "UV LED fan",
+                'label1g2' : "Blower fan",
+                'label1g3' : "Rear fan",
+                'label1g5' : "UV LED",
+                'label1g7' : "Trigger",
 
-                'label2g1' : _("UV LED fan RPM"),
-                'label2g2' : _("Blower fan RPM"),
-                'label2g3' : _("Rear fan RPM"),
-                'label2g5' : _("UV LED PWM"),
-                'label2g6' : _("UV calib. warm-up [s]"),
-                'label2g7' : _("UV calib. intensity"),
-                'label2g8' : _("UV cal. min. int. edge"),
+                'label2g1' : "UV LED fan RPM",
+                'label2g2' : "Blower fan RPM",
+                'label2g3' : "Rear fan RPM",
+                'label2g5' : "UV LED PWM",
+                'label2g6' : "UV calib. warm-up [s]",
+                'label2g7' : "UV calib. intensity",
+                'label2g8' : "UV cal. min. int. edge",
 
-                'button1' : _("Save defaults"),
-                'button3' : _("Defaults"),
-                'button4' : _("Save"),
-                'back' : _("Back"),
+                'button1' : "Save defaults",
+                'button3' : "Defaults",
+                'button4' : "Save",
+                'back' : "Back",
                 })
         self.updateDataPeriod = 0.5
         self.valuesToSave = list(('fan1rpm', 'fan2rpm', 'fan3rpm', 'uvpwm', 'uvwarmuptime', 'uvcalibintensity', 'uvcalibminintedge'))
@@ -102,7 +102,7 @@ class PageFansLeds(Page):
     def button1ButtonRelease(self):
         self.display.pages['yesno'].setParams(
             yesFce = self.save_defaults,
-            text = _("Save current values as factory defaults?"))
+            text = "Save current values as factory defaults?")
         return "yesno"
     #enddef
 
@@ -112,7 +112,7 @@ class PageFansLeds(Page):
 
         if not self.writeToFactory(self.saveDefaultsFile):
             self.display.pages['error'].setParams(
-                text = _("!!! Failed to save factory defaults !!!"))
+                text = "!!! Failed to save factory defaults !!!")
             return "error"
         #else
 
@@ -123,7 +123,7 @@ class PageFansLeds(Page):
     def button3ButtonRelease(self):
         self.display.pages['yesno'].setParams(
             yesFce = self.reset_to_defaults,
-            text = _("Reset to factory defaults?"))
+            text = "Reset to factory defaults?")
         return "yesno"
     #enddef
 
@@ -140,7 +140,7 @@ class PageFansLeds(Page):
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text = "Cannot save configuration")
             return "error"
         #endtry
         return "_BACK_"
@@ -166,7 +166,7 @@ class PageFansLeds(Page):
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
+                text="Cannot save configuration")
             return "error"
         # endtry
         return super(PageFansLeds, self).backButtonRelease()

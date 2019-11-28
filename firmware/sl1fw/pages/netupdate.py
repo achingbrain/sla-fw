@@ -24,7 +24,7 @@ class PageNetUpdate(Page):
     def __init__(self, display):
         super(PageNetUpdate, self).__init__(display)
         self.pageUI = "admin"
-        self.pageTitle = N_("Net Update")
+        self.pageTitle = "Net Update"
         self.firmwares = []
     #enddef
 
@@ -32,11 +32,11 @@ class PageNetUpdate(Page):
     def show(self):
         # Create item for downloading examples
         self.items.update({
-            "button15" : _("Download examples"),
+            "button15" : "Download examples",
         })
 
         try:
-            pageWait = PageWait(self.display, line1=_("Downloading firmware list"))
+            pageWait = PageWait(self.display, line1="Downloading firmware list")
             pageWait.show()
             query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + distro.version()
             self.display.inet.download_url(query_url,
@@ -74,7 +74,7 @@ class PageNetUpdate(Page):
             #endif
 
             with tempfile.NamedTemporaryFile() as archive:
-                pageWait = PageWait(self.display, line1=_("Fetching examples"))
+                pageWait = PageWait(self.display, line1="Fetching examples")
                 pageWait.show()
                 self.display.inet.download_url(defines.examplesURL,
                         archive.name,
@@ -82,7 +82,7 @@ class PageNetUpdate(Page):
                         self.display.hw.cpuSerialNo,
                         page=pageWait)
 
-                pageWait.showItems(line1=_("Extracting examples"), line2="")
+                pageWait.showItems(line1="Extracting examples", line2="")
 
                 with tempfile.TemporaryDirectory() as temp:
                     with tarfile.open(fileobj=archive) as tar:
@@ -91,7 +91,7 @@ class PageNetUpdate(Page):
                         #endfor
                     #endwith
 
-                    pageWait.showItems(line1=_("Storing examples"))
+                    pageWait.showItems(line1="Storing examples")
                     for item in os.listdir(temp):
                         dest = os.path.join(defines.internalProjectPath, item)
                         if os.path.exists(dest):
@@ -100,7 +100,7 @@ class PageNetUpdate(Page):
                         shutil.copytree(os.path.join(temp, item), dest)
                     #endfor
 
-                    pageWait.showItems(line1=_("Cleaning up"))
+                    pageWait.showItems(line1="Cleaning up")
                 #endwith
             #endwith
 
@@ -110,7 +110,7 @@ class PageNetUpdate(Page):
         except Exception as e:
             self.logger.exception("Exaples fetch failed: " + str(e))
             self.display.pages['error'].setParams(
-                text=_("Examples fetch failed"))
+                text="Examples fetch failed")
             return "error"
         #endexcept
     #enddef
@@ -125,7 +125,7 @@ class PageNetUpdate(Page):
         self.display.pages['yesno'].setParams(
             yesFce = self.display.pages['firmwareupdate'].fetchUpdate,
             yesParams = { 'fw_url': url },
-            text = _("Updating to %s.\n\nProceed update?") % name)
+            text = "Updating to %s.\n\nProceed update?" % name)
         return "yesno"
     #enddef
 

@@ -38,9 +38,9 @@ class ProfilesPage(Page):
 
     def show(self):
         self.items.update({
-                "button1" : _("Export"),
-                "button2" : _("Import"),
-                "button4" : _("Save"),
+                "button1" : "Export",
+                "button2" : "Import",
+                "button4" : "Save",
                 })
         super(ProfilesPage, self).show()
     #enddef
@@ -84,7 +84,7 @@ class ProfilesPage(Page):
         savepath = self.getSavePath()
         if savepath is None:
             self.display.pages['error'].setParams(
-                text=_("No USB storage present"))
+                text="No USB storage present")
             return "error"
         #endif
 
@@ -97,7 +97,7 @@ class ProfilesPage(Page):
         except Exception:
             self.logger.exception("export exception:")
             self.display.pages['error'].setParams(
-                text=_("Cannot export profile"))
+                text="Cannot export profile")
             return "error"
         #endtry
     #enddef
@@ -108,7 +108,7 @@ class ProfilesPage(Page):
         savepath = self.getSavePath()
         if savepath is None:
             self.display.pages['error'].setParams(
-                text=_("No USB storage present"))
+                text="No USB storage present")
             return "error"
         #endif
 
@@ -116,7 +116,7 @@ class ProfilesPage(Page):
 
         if not os.path.isfile(profile_file):
             self.display.pages['error'].setParams(
-                text=_("Cannot find profile to import"))
+                text="Cannot find profile to import")
             return "error"
         #endif
 
@@ -129,7 +129,7 @@ class ProfilesPage(Page):
         except Exception:
             self.logger.exception("import exception:")
             self.display.pages['error'].setParams(
-                text=_("Cannot import profile"))
+                text="Cannot import profile")
             return "error"
         #endtry
     #enddef
@@ -145,7 +145,7 @@ class ProfilesPage(Page):
         except Exception:
             self.logger.exception("import exception:")
             self.display.pages['error'].setParams(
-                text=_("Cannot load default profile"))
+                text="Cannot load default profile")
             return "error"
         #endtry
     #enddef
@@ -271,7 +271,7 @@ class PageTiltProfiles(ProfilesPage):
         super(PageTiltProfiles, self).__init__(display)
         self.profilesFilename = "tilt_profiles.json"
         self.profilesNames = display.hw.getTiltProfilesNames()
-        self.pageTitle = N_("Tilt Profiles")
+        self.pageTitle = "Tilt Profiles"
     #enddef
 
 
@@ -286,16 +286,16 @@ class PageTiltProfiles(ProfilesPage):
                 "label1g7" : self.profilesNames[6],
                 "label1g8" : self.profilesNames[7],
 
-                "label2g1" : _("starting steprate"),
-                "label2g2" : _("maximum steprate"),
-                "label2g3" : _("acceleration"),
-                "label2g4" : _("deceleration"),
-                "label2g5" : _("current"),
-                "label2g6" : _("stallguard threshold"),
-                "label2g7" : _("coolstep threshold"),
+                "label2g1" : "starting steprate",
+                "label2g2" : "maximum steprate",
+                "label2g3" : "acceleration",
+                "label2g4" : "deceleration",
+                "label2g5" : "current",
+                "label2g6" : "stallguard threshold",
+                "label2g7" : "coolstep threshold",
 
-                "button3" : _("Test"),
-                "button5" : _("Defaults"),
+                "button3" : "Test",
+                "button5" : "Defaults",
                 })
         super(PageTiltProfiles, self).show()
         if not self.profiles:
@@ -339,7 +339,7 @@ class PageTowerProfiles(ProfilesPage):
         super(PageTowerProfiles, self).__init__(display)
         self.profilesFilename = "tower_profiles.json"
         self.profilesNames = display.hw.getTowerProfilesNames()
-        self.pageTitle = N_("Tower Profiles")
+        self.pageTitle = "Tower Profiles"
     #enddef
 
 
@@ -354,16 +354,16 @@ class PageTowerProfiles(ProfilesPage):
                 "label1g7" : self.profilesNames[6],
                 "label1g8" : self.profilesNames[7],
 
-                "label2g1" : _("starting steprate"),
-                "label2g2" : _("maximum steprate"),
-                "label2g3" : _("acceleration"),
-                "label2g4" : _("deceleration"),
-                "label2g5" : _("current"),
-                "label2g6" : _("stallguard threshold"),
-                "label2g7" : _("coolstep threshold"),
+                "label2g1" : "starting steprate",
+                "label2g2" : "maximum steprate",
+                "label2g3" : "acceleration",
+                "label2g4" : "deceleration",
+                "label2g5" : "current",
+                "label2g6" : "stallguard threshold",
+                "label2g7" : "coolstep threshold",
 
-                "button3" : _("Test"),
-                "button5" : _("Defaults"),
+                "button3" : "Test",
+                "button5" : "Defaults",
                 })
         super(PageTowerProfiles, self).show()
         if not self.profiles:
@@ -407,7 +407,7 @@ class PageTuneTilt(ProfilesPage):
         super(PageTuneTilt, self).__init__(display)
         self.profilesFilename = "tilt_tune_profiles.json"
         self.profilesNames = display.hw.getTiltProfilesNames()
-        self.pageTitle = N_("Tilt Tune")
+        self.pageTitle = "Tilt Tune"
         self.nameIndexes = set((0,3))
         self.profileItems = 8
     #enddef
@@ -415,18 +415,18 @@ class PageTuneTilt(ProfilesPage):
 
     def show(self):
         self.items.update({
-                "label1g1" : _("Down slow"),
-                "label1g2" : _("Down fast"),
-                "label1g3" : _("Up"),
+                "label1g1" : "Down slow",
+                "label1g2" : "Down fast",
+                "label1g3" : "Up",
 
-                "label2g1" : _("init profile"),
-                "label2g2" : _("offset steps"),
-                "label2g3" : _("offset delay [ms]"),
-                "label2g4" : _("finish profile"),
-                "label2g5" : _("tilt cycles"),
-                "label2g6" : _("tilt delay [ms]"),
-                "label2g7" : _("homing tolerance"),
-                "label2g8" : _("homing cycles"),
+                "label2g1" : "init profile",
+                "label2g2" : "offset steps",
+                "label2g3" : "offset delay [ms]",
+                "label2g4" : "finish profile",
+                "label2g5" : "tilt cycles",
+                "label2g6" : "tilt delay [ms]",
+                "label2g7" : "homing tolerance",
+                "label2g8" : "homing cycles",
                 })
         super(PageTuneTilt, self).show()
         self.profiles = deepcopy(self.display.hwConfig.tuneTilt)
@@ -445,7 +445,7 @@ class PageTuneTilt(ProfilesPage):
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
+                text="Cannot save configuration")
             return "error"
         # endtry
         return super(PageTuneTilt, self).backButtonRelease()

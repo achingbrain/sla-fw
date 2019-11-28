@@ -17,7 +17,7 @@ class PageLogging(Page):
     def __init__(self, display):
         super(PageLogging, self).__init__(display)
         self.pageUI = "setup"
-        self.pageTitle = N_("Logging")
+        self.pageTitle = "Logging"
         self.debugEnabled = False
     #enddef
 
@@ -26,10 +26,10 @@ class PageLogging(Page):
         self.debugEnabled = get_log_level() == logging.DEBUG
 
         self.items.update({
-            'label1g1' : _("Debug"),
+            'label1g1' : "Debug",
             'state1g1' : int(self.debugEnabled),
-            'button1' : _("Export to USB"),
-            'button4' : _("Save settings"),
+            'button1' : "Export to USB",
+            'button4' : "Save settings",
         })
         super(PageLogging, self).show()
     #enddef
@@ -51,13 +51,13 @@ class PageLogging(Page):
             set_log_level(level)
         except:
             self.logger.exception("Failed to set log level")
-            self.display.pages['error'].setParams(text = _("Failed to set log level"))
+            self.display.pages['error'].setParams(text = "Failed to set log level")
             return "error"
         #endtry
 
         # force all forked processes to reload logging settings is overkill, let user do it
         self.display.pages['confirm'].setParams(
-                text = _("The setting become active after the printer's restart."))
+                text = "The setting become active after the printer's restart.")
         return "confirm"
     #enddef
 

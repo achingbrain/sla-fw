@@ -32,9 +32,9 @@ class PageSetup(Page):
 
     def show(self):
         self.items.update({
-                'button1' : _("Export"),
-                'button2' : _("Import"),
-                'button4' : _("Save"),
+                'button1' : "Export",
+                'button2' : "Import",
+                'button4' : "Save",
                 })
         super(PageSetup, self).show()
     #enddef
@@ -45,7 +45,7 @@ class PageSetup(Page):
         savepath = self.getSavePath()
         if savepath is None:
             self.display.pages['error'].setParams(
-                text=_("No USB storage present"))
+                text="No USB storage present")
             return "error"
         #endif
 
@@ -56,7 +56,7 @@ class PageSetup(Page):
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text = "Cannot save configuration")
             return "error"
         #endtry
     #enddef
@@ -67,7 +67,7 @@ class PageSetup(Page):
         savepath = self.getSavePath()
         if savepath is None:
             self.display.pages['error'].setParams(
-                text=_("No USB storage present"))
+                text="No USB storage present")
             return "error"
         #endif
 
@@ -75,7 +75,7 @@ class PageSetup(Page):
 
         if not os.path.isfile(config_file):
             self.display.pages['error'].setParams(
-                text=_("Cannot find configuration to import"))
+                text="Cannot find configuration to import")
             return "error"
         #endif
 
@@ -86,7 +86,7 @@ class PageSetup(Page):
         except Exception:
             self.logger.exception("import exception:")
             self.display.pages['error'].setParams(
-                text=_("Cannot import configuration"))
+                text="Cannot import configuration")
             return "error"
         #endtry
 
@@ -96,7 +96,7 @@ class PageSetup(Page):
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text = _("Cannot save configuration"))
+                text = "Cannot save configuration")
             return "error"
         #endtry
 
@@ -111,7 +111,7 @@ class PageSetup(Page):
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
+                text="Cannot save configuration")
             return "error"
         # endtry
         return super(PageSetup, self).backButtonRelease()
@@ -125,27 +125,27 @@ class PageSetupHw(PageSetup):
 
     def __init__(self, display):
         super(PageSetupHw, self).__init__(display)
-        self.pageTitle = N_("Hardware Setup")
+        self.pageTitle = "Hardware Setup"
     #enddef
 
 
     def show(self):
         self.items.update({
-                'label1g1' : _("Fan check"),
-                'label1g2' : _("Cover check"),
-                'label1g3' : _("MC version check"),
-                'label1g4' : _("Use resin sensor"),
-                'label1g5' : _("Auto power off"),
-                'label1g6' : _("Mute (no beeps)"),
+                'label1g1' : "Fan check",
+                'label1g2' : "Cover check",
+                'label1g3' : "MC version check",
+                'label1g4' : "Use resin sensor",
+                'label1g5' : "Auto power off",
+                'label1g6' : "Mute (no beeps)",
 
-                'label2g1' : _("Screw (mm/rot)"),
-                'label2g2' : _("Tilt msteps"),
-                'label2g3' : _("Measuring moves count"),
-                'label2g4' : _("Stirring moves count"),
-                'label2g5' : _("Delay after stirring [s]"),
-                'label2g6' : _("Power LED intensity"),
+                'label2g1' : "Screw [mm/rot]",
+                'label2g2' : "Tilt msteps",
+                'label2g3' : "Measuring moves count",
+                'label2g4' : "Stirring moves count",
+                'label2g5' : "Delay after stirring [s]",
+                'label2g6' : "Power LED intensity",
 
-                'label2g8' : _("MC board version"),
+                'label2g8' : "MC board version",
                 })
         self.changed = {}
         self.temp = {}
@@ -300,25 +300,25 @@ class PageSetupExposure(PageSetup):
 
     def __init__(self, display):
         super(PageSetupExposure, self).__init__(display)
-        self.pageTitle = N_("Exposure Setup")
+        self.pageTitle = "Exposure Setup"
     #enddef
 
 
     def show(self):
         self.items.update({
-                'label1g1' : _("Blink exposure"),
-                'label1g2' : _("Per-Partes expos."),
-                'label1g3' : _("Use tilt"),
-                'label1g4' : _("Up&down UV on"),
+                'label1g1' : "Blink exposure",
+                'label1g2' : "Per-Partes expos.",
+                'label1g3' : "Use tilt",
+                'label1g4' : "Up&down UV on",
 
-                'label2g1' : _("Layer trigger [s]"),
-                'label2g2' : _("Layer tower hop [mm]"),
-                'label2g3' : _("Delay before expos. [s]"),
-                'label2g4' : _("Delay after expos. [s]"),
-                'label2g5' : _("Up&down wait [s]"),
-                'label2g6' : _("Up&down every n-th l."),
-                'label2g7' : _("Up&down Z offset [mm]"),
-                'label2g8' : _("Up&down expo comp [s]"),
+                'label2g1' : "Layer trigger [s]",
+                'label2g2' : "Layer tower hop [mm]",
+                'label2g3' : "Delay before expos. [s]",
+                'label2g4' : "Delay after expos. [s]",
+                'label2g5' : "Up&down wait [s]",
+                'label2g6' : "Up&down every n-th l.",
+                'label2g7' : "Up&down Z offset [mm]",
+                'label2g8' : "Up&down expo comp [s]",
                 })
         self.changed = {}
         self.temp = {}

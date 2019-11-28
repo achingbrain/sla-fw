@@ -222,11 +222,11 @@ class Printer:
                 raise exception
             self.logger.exception("Printer run() init failed")
             self.display.pages['exception'].setParams(
-                text="An unexpected error has occured :-(.\n\n"
+                text=_("An unexpected error has occured :-(.\n\n"
                      "You can turn the printer off by pressing the front power button.\n\n"
                      "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
                      "Please send the log to us and help us improve the printer.\n\n"
-                     "Thank you!")
+                     "Thank you!"))
             self.display.doMenu("exception")
 
         try:
@@ -239,12 +239,12 @@ class Printer:
                 raise exception
             self.logger.exception("run() exception:")
             self.display.pages['exception'].setParams(
-                text ="An unexpected error has occured :-(.\n\n"
+                text=_("An unexpected error has occured :-(.\n\n"
                       "The SL1 will finish the print if you are currently printing.\n\n"
                       "You can turn the printer off by pressing the front power button.\n\n"
                       "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
                       "Please send the log to us and help us improve the printer.\n\n"
-                      "Thank you!")
+                      "Thank you!"))
             self.display.doMenu("exception")
         #endtry
 

@@ -20,16 +20,16 @@ class PageMotionController(Page):
     def __init__(self, display):
         super(PageMotionController, self).__init__(display)
         self.pageUI = "admin"
-        self.pageTitle = N_("Motion Controller")
+        self.pageTitle = "Motion Controller"
     #enddef
 
 
     def show(self):
         self.items.update({
-                'button1' : _("Flash MC"),
-                'button2' : _("Erase MC EEPROM"),
-                'button3' : _("MC2Net (bootloader)"),
-                'button4' : _("MC2Net (firmware)"),
+                'button1' : "Flash MC",
+                'button2' : "Erase MC EEPROM",
+                'button3' : "MC2Net (bootloader)",
+                'button4' : "MC2Net (firmware)",
                 })
         super(PageMotionController, self).show()
     #enddef
@@ -38,14 +38,14 @@ class PageMotionController(Page):
     def button1ButtonRelease(self):
         self.display.pages['yesno'].setParams(
                 yesFce = self.button1Continue,
-                text = _("This overwrites the motion controller with the selected firmware."))
+                text = "This overwrites the motion controller with the selected firmware.")
         return "yesno"
     #enddef
 
 
     def button1Continue(self):
         pageWait = PageWait(self.display)
-        pageWait.fill(line1=_("Forced update of the motion controller firmware"))
+        pageWait.fill(line1="Forced update of the motion controller firmware")
         pageWait.show()
         self.display.hw.flashMC()
         self.display.actualPage.show()
@@ -56,13 +56,13 @@ class PageMotionController(Page):
     def button2ButtonRelease(self):
         self.display.pages['yesno'].setParams(
                 yesFce = self.button2Continue,
-                text = _("This will erase all profiles and other motion controller settings."))
+                text = "This will erase all profiles and other motion controller settings.")
         return "yesno"
     #enddef
 
 
     def button2Continue(self):
-        pageWait = PageWait(self.display, line1 = _("Erasing EEPROM"))
+        pageWait = PageWait(self.display, line1 = "Erasing EEPROM")
         pageWait.show()
         self.display.hw.eraseEeprom()
         self.display.hw.initDefaults()
@@ -74,7 +74,7 @@ class PageMotionController(Page):
         self.display.pages['yesno'].setParams(
                 yesFce = self.mc2net,
                 yesParams = { 'bootloader' : True },
-                text = _("This will disable the GUI and connect the MC bootloader to TCP port."))
+                text = "This will disable the GUI and connect the MC bootloader to TCP port.")
         return "yesno"
     #enddef
 
@@ -83,7 +83,7 @@ class PageMotionController(Page):
         self.display.pages['yesno'].setParams(
                 yesFce = self.mc2net,
                 yesParams = { 'bootloader' : False },
-                text = _("This will disable the GUI and connect the motion controller to TCP port."))
+                text = "This will disable the GUI and connect the motion controller to TCP port.")
         return "yesno"
     #enddef
 
@@ -92,7 +92,7 @@ class PageMotionController(Page):
         ip = self.display.inet.ip
         if ip == None:
             self.display.pages['error'].setParams(
-                    text = _("Not connected to network"))
+                    text = "Not connected to network")
             return "error"
         #endif
 
@@ -114,9 +114,9 @@ class PageMotionController(Page):
                 continueParams = { 'pid' : pid },
                 backFce = self.mc2netStop,
                 backParams = { 'pid' : pid },
-                text = _("Baudrate is %(br)d.\n\n"
+                text = "Baudrate is %(br)d.\n\n"
                     "Serial line is redirected to %(ip)s:%(port)d.\n\n"
-                    "Press 'Continue' when done.") % { 'br' : baudrate, 'ip' : ip, 'port' : defines.socatPort })
+                    "Press 'Continue' when done." % { 'br' : baudrate, 'ip' : ip, 'port' : defines.socatPort })
         return "confirm"
     #enddef
 
@@ -124,7 +124,7 @@ class PageMotionController(Page):
     def mc2netStop(self, pid):
         os.killpg(os.getpgid(pid), signal.SIGTERM)
         pageWait = PageWait(self.display)
-        pageWait.fill(line1=_("Switching back to real MC"))
+        pageWait.fill(line1="Switching back to real MC")
         pageWait.show()
         self.display.hw.switchToMC()
         self.display.actualPage.show()

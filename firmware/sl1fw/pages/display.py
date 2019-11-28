@@ -22,7 +22,7 @@ class PageDisplay(Page):
     def __init__(self, display):
         super(PageDisplay, self).__init__(display)
         self.pageUI = "admin"
-        self.pageTitle = N_("Display")
+        self.pageTitle = "Display"
         self.checkCooling = True
     #enddef
 
@@ -30,23 +30,23 @@ class PageDisplay(Page):
     def show(self):
         state = self.display.hw.getUvLedState()[0]
         self.items.update({
-                'button1' : _("Chess 8"),
-                'button2' : _("Chess 16"),
-                'button3' : _("Grid 8"),
-                'button4' : _("Grid 16"),
-                'button5' : _("Maze"),
+                'button1' : "Chess 8",
+                'button2' : "Chess 16",
+                'button3' : "Grid 8",
+                'button4' : "Grid 16",
+                'button5' : "Maze",
 
                 'button6' : "USB:/test.png",
-                'button7' : _("Prusa logo"),
-                'button8' : _("Black"),
-                'button9' : _("Inverse"),
-                'button10' : _("UV off") if state else _("UV on"),
+                'button7' : "Prusa logo",
+                'button8' : "Black",
+                'button9' : "Inverse",
+                'button10' : "UV off" if state else "UV on",
 
-                'button11' : _("Infinite test"),
-                "button12" : _("Send factory config"),
-                'button13' : _("Show factory UV c.d."),
-                'button14' : _("Show UV calib. data"),
-                'button15' : _("UV (re)calibration"),
+                'button11' : "Infinite test",
+                "button12" : "Send factory config",
+                'button13' : "Show factory UV c.d.",
+                'button14' : "Show UV calib. data",
+                'button15' : "UV (re)calibration",
                 })
         super(PageDisplay, self).show()
     #enddef
@@ -81,7 +81,7 @@ class PageDisplay(Page):
         savepath = self.getSavePath()
         if savepath is None:
             self.display.pages['error'].setParams(
-                text = _("No USB storage present"))
+                text = "No USB storage present")
             return "error"
         #endif
 
@@ -89,7 +89,7 @@ class PageDisplay(Page):
 
         if not os.path.isfile(test_file):
             self.display.pages['error'].setParams(
-                text = _("Cannot find the test image"))
+                text = "Cannot find the test image")
             return "error"
         #endif
 
@@ -99,7 +99,7 @@ class PageDisplay(Page):
             # TODO: This is not reached. Exceptions from screen do not propagate here
             self.logger.exception("Error displaying test image")
             self.display.pages['error'].setParams(
-                text = _("Cannot display the test image"))
+                text = "Cannot display the test image")
             return "error"
         #endtry
 
@@ -123,7 +123,7 @@ class PageDisplay(Page):
 
     def button10ButtonRelease(self):
         state = not self.display.hw.getUvLedState()[0]
-        self.showItems(button10 = _("UV off") if state else _("UV on"))
+        self.showItems(button10 = "UV off" if state else "UV on")
         if state:
             self.display.hw.startFans()
             self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
@@ -145,7 +145,7 @@ class PageDisplay(Page):
 # FIXME for testing only
 #        if self.display.hw.isKit:
 #            self.display.pages['error'].setParams(
-#                    text = _("Factory config will NOT be sent for kit!"))
+#                    text = "Factory config will NOT be sent for kit!")
 #            return "error"
         #endif
 
@@ -153,14 +153,14 @@ class PageDisplay(Page):
         if not wizardDict:
             self.display.pages['error'].setParams(
                     backFce = self.gotoWizard,
-                    text = _("The wizard was not finished successfully!"))
+                    text = "The wizard was not finished successfully!")
             return "error"
         #endif
 
         if not self.display.hwConfig.calibrated:
             self.display.pages['error'].setParams(
                     backFce = self.gotoCalib,
-                    text = _("The calibration was not finished successfully!"))
+                    text = "The calibration was not finished successfully!")
             return "error"
         #endif
 
@@ -168,7 +168,7 @@ class PageDisplay(Page):
         if not calibDict:
             self.display.pages['error'].setParams(
                     backFce = self.gotoUVcalib,
-                    text = _("The automatic UV LED calibration was not finished successfully!"))
+                    text = "The automatic UV LED calibration was not finished successfully!")
             return "error"
         #endif
 
@@ -179,13 +179,13 @@ class PageDisplay(Page):
             mqtt.single(topic, json.dumps(wizardDict), qos=2, retain=True, hostname="mqttstage.prusa")
         except Exception as err:
             self.logger.error("mqtt message not delivered. %s", err)
-            self.display.pages['error'].setParams(text = _("Cannot send factory config!"))
+            self.display.pages['error'].setParams(text = "Cannot send factory config!")
             return "error"
         #endtry
 
         self.display.pages['confirm'].setParams(
                 continueFce = self.success,
-                text = _("Factory config was successfully sent."))
+                text = "Factory config was successfully sent.")
         return "confirm"
     #enddef
 

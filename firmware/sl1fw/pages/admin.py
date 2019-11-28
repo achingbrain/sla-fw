@@ -14,25 +14,25 @@ class PageAdmin(Page):
     def __init__(self, display):
         super(PageAdmin, self).__init__(display)
         self.pageUI = "admin"
-        self.pageTitle = N_("Admin Home")
+        self.pageTitle = "Admin Home"
     #enddef
 
 
     def show(self):
         self.items.update({
-                'button1' : _("Tilt & Tower"),
-                'button2' : _("Display"),
-                'button3' : _("Fans & UV LED"),
-                'button4' : _("Hardware setup"),
-                'button5' : _("Exposure setup"),
+                'button1' : "Tilt & Tower",
+                'button2' : "Display",
+                'button3' : "Fans & UV LED",
+                'button4' : "Hardware setup",
+                'button5' : "Exposure setup",
 
-                'button6' : _("Motion Controller"),
-                'button7' : _("Tests"),
-                'button8' : _("Service"),
+                'button6' : "Motion Controller",
+                'button7' : "Tests",
+                'button8' : "Service",
 
-                'button11' : _("Net update"),
-                'button12' : _("Logging"),
-                'button13' : _("System Information"),
+                'button11' : "Net update",
+                'button12' : "Logging",
+                'button13' : "System Information",
                 })
         super(PageAdmin, self).show()
     #enddef

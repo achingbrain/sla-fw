@@ -19,7 +19,7 @@ class PageService(Page):
     def __init__(self, display):
         super(PageService, self).__init__(display)
         self.pageUI = "admin"
-        self.pageTitle = N_("Service")
+        self.pageTitle = "Service"
     #enddef
 
 
@@ -27,12 +27,12 @@ class PageService(Page):
         stats = TomlConfigStats(defines.statsData, self.display.hw).load()
         minutes = stats['total_seconds'] // 60
         self.items.update({
-                'button1' : _("TODO"),
+                'button1' : "TODO",
 
-                'button6' : _("Projects: %d") % stats['projects'],
-                'button7' : _("Layers: %d") % stats['layers'],
-                'button8' : _("Total time: %(hour)dh%(minute)02dm") % {'hour' : minutes // 60, 'minute' : minutes % 60},
-                'button9' : _("Display usage heatmap"),
+                'button6' : "Projects: %d" % stats['projects'],
+                'button7' : "Layers: %d" % stats['layers'],
+                'button8' : "Total time: %(hour)dh%(minute)02dm" % {'hour' : minutes // 60, 'minute' : minutes % 60},
+                'button9' : "Display usage heatmap",
 
                 })
         super(PageService, self).show()
@@ -53,7 +53,7 @@ class PageDisplayUsage(Page):
     def __init__(self, display):
         super(PageDisplayUsage, self).__init__(display)
         self.pageUI = "picture"
-        self.pageTitle = N_("Display usage heatmap")
+        self.pageTitle = "Display usage heatmap"
         self.palette = None
         try:
             paletteBytes = bytes()
@@ -80,13 +80,13 @@ class PageDisplayUsage(Page):
         #endtry
 
         if savedData is None:
-            self.display.pages['error'].setParams(text = _("No data to show!"))
+            self.display.pages['error'].setParams(text = "No data to show!")
             return "error"
         #endif
 
         if savedData.shape != ((defines.displayUsageSize[0], defines.displayUsageSize[2])):
             self.logger.warning("Wrong saved data shape: %s", savedData.shape)
-            self.display.pages['error'].setParams(text = _("Wrong data format!"))
+            self.display.pages['error'].setParams(text = "Wrong data format!")
             return "error"
         #endif
 

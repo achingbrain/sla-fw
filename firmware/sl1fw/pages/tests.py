@@ -15,16 +15,16 @@ class PageTests(Page):
     def __init__(self, display):
         super(PageTests, self).__init__(display)
         self.pageUI = "admin"
-        self.pageTitle = N_("Tests")
+        self.pageTitle = "Tests"
     #enddef
 
 
     def show(self):
         self.items.update({
-                'button1' : _("Resin sensor test"),
-                'button2' : _("Fan test"),
+                'button1' : "Resin sensor test",
+                'button2' : "Fan test",
 
-                'button15' : _("Raise exception"),
+                'button15' : "Raise exception",
                 })
         super(PageTests, self).show()
     #enddef
@@ -33,8 +33,8 @@ class PageTests(Page):
     def button1ButtonRelease(self):
         self.display.pages['yesno'].setParams(
                 yesFce = self.button1Continue,
-                text = _("Is there the correct amount of resin in the tank?\n\n"
-                    "Is the tank secured with both screws?"))
+                text = "Is there the correct amount of resin in the tank?\n\n"
+                    "Is the tank secured with both screws?")
         return "yesno"
     #enddef
 
@@ -42,13 +42,13 @@ class PageTests(Page):
     def button1Continue(self):
         # TODO vyzadovat zavreny kryt po celou dobu!
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("Moving platform to the top"))
+        pageWait = PageWait(self.display, line1 = "Moving platform to the top")
         pageWait.show()
         retc = self._syncTower()
         if retc == "error":
             return retc
         #endif
-        pageWait.showItems(line1 = _("Tilt home"), line2 = "")
+        pageWait.showItems(line1 = "Tilt home", line2 = "")
         pageWait.show()
         retc = self._syncTilt()
         if retc == "error":
@@ -57,20 +57,20 @@ class PageTests(Page):
         self.display.hw.setTiltProfile('layerMoveSlow')
         self.display.hw.tiltUpWait()
 
-        pageWait.showItems(line1 = _("Measuring"), line2 = _("Do NOT TOUCH the printer"))
+        pageWait.showItems(line1 = "Measuring", line2 = "Do NOT TOUCH the printer")
         volume = self.display.hw.getResinVolume()
         self.display.hw.powerLed("normal")
         if not volume:
             self.display.pages['error'].setParams(
-                    text = _("Resin measuring failed!\n\n"
+                    text = "Resin measuring failed!\n\n"
                         "Is there the correct amount of resin in the tank?\n\n"
-                        "Is the tank secured with both screws?"))
+                        "Is the tank secured with both screws?")
             return "error"
         #endif
 
         self.display.pages['confirm'].setParams(
                 continueFce = self.backButtonRelease,
-                text = _("Measured resin volume: %d ml") % volume)
+                text = "Measured resin volume: %d ml" % volume)
         return "confirm"
     #enddef
 
