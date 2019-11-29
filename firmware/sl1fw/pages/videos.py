@@ -15,7 +15,6 @@ class PageVideos(Page):
     def __init__(self, display):
         super(PageVideos, self).__init__(display)
         self.pageUI = "videos"
-        self.pageTitle = N_("Videos")
         self.items.update({
             'videos_url': defines.videosURL,
             #'text' : "",

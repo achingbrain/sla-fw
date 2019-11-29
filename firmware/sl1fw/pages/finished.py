@@ -20,7 +20,6 @@ class PageFinished(Page):
     def __init__(self, display):
         super(PageFinished, self).__init__(display)
         self.pageUI = "finished"
-        self.pageTitle = N_("Finished")
         self.clearStack = True
         self.data = None
         self.readyBeep = True

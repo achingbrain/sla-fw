@@ -188,12 +188,12 @@ class PageUvCalibrationBase(Page):
             errors = {
                     defines.uvMeterErrorComm : _("Communication with the UV LED meter has failed.\n\n"
                         "Check the connection and try again."),
-                    defines.uvMeterErrorTrans : _("The UV LED meter detects some light on darken display. "
-                        "That mean there are some light 'leak' under the UV meter or "
-                        "your display do not block the UV light enough.\n\n"
+                    defines.uvMeterErrorTrans : _("The UV LED meter detected some light on a dark display."
+                        "This means there is a light 'leak' under the UV meter, or "
+                        "your display does not block the UV light enough.\n\n"
                         "Please check the UV meter placement on the screen or "
                         "replace the exposure display."),
-                    defines.uvMeterErrorInt : _("The UV LED meter failed to read meaningful UV light intensity.\n\n"
+                    defines.uvMeterErrorInt : _("The UV LED meter failed to read expected UV light intensity.\n\n"
                         "Please check the UV meter placement on the screen."),
                     }
             self.display.pages['error'].setParams(text = errors.get(retc, _("Unknown UV LED meter error code: %d" % retc)))
@@ -291,7 +291,7 @@ class PageUvCalibration(PageUvCalibrationBase):
                     _("The UV LED meter is not detected.\n\nCheck the connection and try again."))
             return False
         #endif
-        self.pageWait.showItems(line2 = _("Connecting to UV meter"))
+        self.pageWait.showItems(line2 = _("Connecting to the UV meter"))
         if not self.uvmeter.connect():
             self.display.pages['error'].setParams(text =
                     _("Cannot connect to the UV LED meter.\n\nCheck the connection and try again."))

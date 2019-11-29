@@ -15,7 +15,6 @@ class PageAbout(Page):
     def __init__(self, display):
         super(PageAbout, self).__init__(display)
         self.pageUI = "about"
-        self.pageTitle = N_("About")
         self.items.update({
                 'line1' : "2018-2019 Prusa Research s.r.o.",
                 'line2' : defines.aboutURL,

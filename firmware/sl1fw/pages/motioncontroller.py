@@ -74,7 +74,7 @@ class PageMotionController(Page):
         self.display.pages['yesno'].setParams(
                 yesFce = self.mc2net,
                 yesParams = { 'bootloader' : True },
-                text = "This will disable the GUI and connect the MC bootloader to TCP port.")
+                text = _("This will disable the GUI and connect the MC bootloader to a TCP port."))
         return "yesno"
     #enddef
 
@@ -83,7 +83,7 @@ class PageMotionController(Page):
         self.display.pages['yesno'].setParams(
                 yesFce = self.mc2net,
                 yesParams = { 'bootloader' : False },
-                text = "This will disable the GUI and connect the motion controller to TCP port.")
+                text = _("This will disable the GUI and connect the motion controller to a TCP port."))
         return "yesno"
     #enddef
 

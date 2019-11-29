@@ -12,7 +12,6 @@ class PageWait(Page):
     def __init__(self, display, **kwargs):
         super(PageWait, self).__init__(display)
         self.pageUI = "wait"
-        self.pageTitle = N_("Please wait")
         self.items.update(kwargs)
 
     def fill(self, **kwargs):

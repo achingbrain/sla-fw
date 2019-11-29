@@ -14,7 +14,6 @@ class PageSysInfo(Page):
     def __init__(self, display):
         super(PageSysInfo, self).__init__(display)
         self.pageUI = "sysinfo"
-        self.pageTitle = N_("System Information")
         self.updateDataPeriod = 0.5
         self.checkPowerbutton = False
     #enddef

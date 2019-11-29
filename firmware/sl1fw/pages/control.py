@@ -16,7 +16,6 @@ class PageControl(Page):
     def __init__(self, display):
         super(PageControl, self).__init__(display)
         self.pageUI = "control"
-        self.pageTitle = N_("Control")
     #enddef
 
 

@@ -14,7 +14,6 @@ class PageExposure(Page):
     def __init__(self, display):
         super(PageExposure, self).__init__(display)
         self.pageUI = "change"
-        self.pageTitle = N_("Change Exposure Times")
         self.autorepeat = {
             "exposaddsecond" : (5, 1),
             "expossubsecond" : (5, 1),

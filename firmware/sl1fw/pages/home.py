@@ -15,7 +15,6 @@ class PageHome(Page):
     def __init__(self, display):
         super(PageHome, self).__init__(display)
         self.pageUI = "home"
-        self.pageTitle = N_("Home")
         # meni se i z PageFinished!
         self.readyBeep = True
     #enddef

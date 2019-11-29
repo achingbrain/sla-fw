@@ -153,14 +153,14 @@ class PageDisplay(Page):
         if not wizardDict:
             self.display.pages['error'].setParams(
                     backFce = self.gotoWizard,
-                    text = "The wizard was not finished successfully!")
+                    text = _("The wizard did not finish successfully!"))
             return "error"
         #endif
 
         if not self.display.hwConfig.calibrated:
             self.display.pages['error'].setParams(
                     backFce = self.gotoCalib,
-                    text = "The calibration was not finished successfully!")
+                    text = _("The calibration did not finish successfully!"))
             return "error"
         #endif
 
@@ -168,7 +168,7 @@ class PageDisplay(Page):
         if not calibDict:
             self.display.pages['error'].setParams(
                     backFce = self.gotoUVcalib,
-                    text = "The automatic UV LED calibration was not finished successfully!")
+                    text = _("The automatic UV LED calibration did not finish successfully!"))
             return "error"
         #endif
 

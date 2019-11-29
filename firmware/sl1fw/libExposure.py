@@ -472,10 +472,10 @@ class ExposureThread(threading.Thread):
             self.expo.display.pages['error'].setParams(
                 backFce=lambda: "home",
                 text=_(
-                    "Print failed due to an unexpected error :-(\n"
+                    "Print failed due to an unexpected error\n"
                     "\n"
-                    "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
-                    "Please send the log to us and help us improve the printer.\n"
+                    "Please follow the instructions in Chapter 3.1 in the handbook to learn how "
+                    "to save a log file. Please send the log to us and help us improve the  printer.\n"
                     "\n"
                     "Thank you!"
                 ))

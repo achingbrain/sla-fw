@@ -15,7 +15,6 @@ class PageFeedMe(Page):
     def __init__(self, display):
         super(PageFeedMe, self).__init__(display)
         self.pageUI = "feedme"
-        self.pageTitle = N_("Feed me")
         self.manual = False
         self.checkCoverOveride = True
     #enddef

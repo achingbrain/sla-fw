@@ -31,7 +31,7 @@ class PageDisplayTest(Page):
         self.display.fanErrorOverride = True    #do not check fane. overheat check is sufficient
         self.items.update({
             'imageName' : "10_prusa_logo.jpg",
-            'text' : _("Can you see company logo on the exposure display through the orange cover?\n\n"
+            'text' : _("Can you see the company logo on the exposure display through the orange cover?\n\n"
                 "Tip: The logo is best seen when you look from above.\n\n"
                 "DO NOT open the cover!")})
         if not self.display.hwConfig.coverCheck or self.display.hw.isCoverClosed():

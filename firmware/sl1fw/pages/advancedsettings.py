@@ -67,7 +67,6 @@ class PageAdvancedSettings(Page):
     def __init__(self, display):
         super(PageAdvancedSettings, self).__init__(display)
         self.pageUI = "advancedsettings"
-        self.pageTitle = N_("Advanced Settings")
         self._display_test = False
         self.configwrapper = None
         self._calibTowerOffset_mm = None

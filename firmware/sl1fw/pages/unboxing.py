@@ -173,7 +173,7 @@ class PageUnboxing4(Page):
     def show(self):
         self.items.update({
             'imageName' : "17_remove_sticker_screen.jpg",
-            'text' : _("Carefully peel off the orange protective foil from the exposition display.")})
+            'text' : _("Carefully peel off the orange protective sticker from the exposition display.")})
         super(PageUnboxing4, self).show()
     #enddef
 

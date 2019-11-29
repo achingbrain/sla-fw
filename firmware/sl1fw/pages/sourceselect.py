@@ -115,7 +115,6 @@ class PageSrcSelect(Page):
     def __init__(self, display):
         super(PageSrcSelect, self).__init__(display)
         self.pageUI = "sourceselect"
-        self.pageTitle = N_("Projects")
         self.currentRoot = "."
         self.old_items = None
         self.sources = {}

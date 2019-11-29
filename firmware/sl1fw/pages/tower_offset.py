@@ -15,7 +15,6 @@ class PageTowerOffset(Page):
     def __init__(self, display):
         super().__init__(display)
         self.pageUI = "towermovecalibration"
-        self.pageTitle = N_("Tower Offset")
         self.stack = False
         self.autorepeat = { "upslow" : (3, 1), "downslow" : (3, 1) }
         self.tmpTowerOffset = None

@@ -18,7 +18,6 @@ class PagePrint(Page):
     def __init__(self, display):
         super(PagePrint, self).__init__(display)
         self.pageUI = "print"
-        self.pageTitle = N_("Print")
         self.callbackPeriod = 0.1
         self.callbackSkip = 6
         self.totalHeight = None
@@ -117,7 +116,7 @@ class PagePrint(Page):
     def feedmeButtonRelease(self):
         self.display.pages['yesno'].setParams(
             yesFce = self.doFeedme,
-            text = _("Do you really want add the resin to the tank?"))
+            text = _("Do you really want to add resin into the tank?"))
         return "yesno"
     #enddef
 

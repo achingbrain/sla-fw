@@ -15,7 +15,6 @@ class PageSetLoginCredentials(Page):
     def __init__(self, display):
         super(PageSetLoginCredentials, self).__init__(display)
         self.pageUI = "setlogincredentials"
-        self.pageTitle = N_("Login Credentials")
     #enddef
 
 

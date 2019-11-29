@@ -15,7 +15,6 @@ class PageManual(Page):
     def __init__(self, display):
         super(PageManual, self).__init__(display)
         self.pageUI = "manual"
-        self.pageTitle = N_("Manual")
         self.items.update({
             'manual_url': defines.manualURL,
             #'text' : "",

@@ -14,7 +14,6 @@ class PageSupport(Page):
     def __init__(self, display):
         super(PageSupport, self).__init__(display)
         self.pageUI = "support"
-        self.pageTitle = N_("Support")
     #enddef
 
 

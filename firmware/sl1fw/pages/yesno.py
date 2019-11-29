@@ -14,7 +14,6 @@ class PageYesNo(Page):
     def __init__(self, display):
         super(PageYesNo, self).__init__(display)
         self.pageUI = "yesno"
-        self.pageTitle = N_("Are you sure?")
         self.stack = False
         self.checkPowerbutton = False
     #enddef

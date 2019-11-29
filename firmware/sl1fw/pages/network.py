@@ -20,4 +20,3 @@ class PageNetwork(Page):
     def __init__(self, display: Display):
         super(PageNetwork, self).__init__(display)
         self.pageUI = "network"
-        self.pageTitle = N_("Network")

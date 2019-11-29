@@ -38,7 +38,6 @@ class PageTimeSettings(PageTimeDateBase):
     def __init__(self, display):
         super(PageTimeSettings, self).__init__(display)
         self.pageUI = "timesettings"
-        self.pageTitle = N_("Time Settings")
     #enddef
 
 
@@ -117,7 +116,6 @@ class PageSetTime(PageSetTimeBase):
     def __init__(self, display):
         super(PageSetTime, self).__init__(display)
         self.pageUI = "settime"
-        self.pageTitle = N_("Set Time")
     #enddef
 
 #endclass
@@ -130,7 +128,6 @@ class PageSetDate(PageSetTimeBase):
     def __init__(self, display):
         super(PageSetDate, self).__init__(display)
         self.pageUI = "setdate"
-        self.pageTitle = N_("Set Date")
     #enddef
 
 #endclass
@@ -144,7 +141,6 @@ class PageSetTimezone(PageTimeDateBase):
     def __init__(self, display):
         super(PageSetTimezone, self).__init__(display)
         self.pageUI = "settimezone"
-        self.pageTitle = N_("Set Timezone")
 
         # Available timezones
         regions = [zone.replace(PageSetTimezone.zoneinfo, "") for zone in glob.glob(os.path.join(PageSetTimezone.zoneinfo, "*"))]

@@ -17,7 +17,6 @@ class PageSetLanguage(Page):
     def __init__(self, display):
         super(PageSetLanguage, self).__init__(display)
         self.pageUI = "setlanguage"
-        self.pageTitle = N_("Set Language")
         self._locale = None
     #enddef
 

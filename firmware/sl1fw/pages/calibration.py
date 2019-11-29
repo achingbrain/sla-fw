@@ -288,7 +288,7 @@ class PageCalibration6(Page):
         self.items.update({
             'imageName' : "08_clean.jpg",
             'text' : _("Make sure the platform, tank and tilt are PERFECTLY clean.\n\n"
-                "The image is for illustation only.")})
+                "The image is for illustration only.")})
         super(PageCalibration6, self).show()
     #enddef
 
@@ -646,8 +646,8 @@ class PageCalibrationConfirm(Page):
 
     def show(self):
         self.items.update({
-            'text' : _("Do you really want to cancel calibration?\n\n"
-                "Machine will not work without going through it.")})
+            'text' : _("Do you really want to cancel the calibration?\n\n"
+                "The machine will not work without going through it.")})
         super(PageCalibrationConfirm, self).show()
     #enddef
 

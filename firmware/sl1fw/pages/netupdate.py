@@ -110,7 +110,7 @@ class PageNetUpdate(Page):
         except Exception as e:
             self.logger.exception("Exaples fetch failed: " + str(e))
             self.display.pages['error'].setParams(
-                text="Examples fetch failed")
+                text=_("Fetching of samples failed"))
             return "error"
         #endexcept
     #enddef
@@ -125,7 +125,7 @@ class PageNetUpdate(Page):
         self.display.pages['yesno'].setParams(
             yesFce = self.display.pages['firmwareupdate'].fetchUpdate,
             yesParams = { 'fw_url': url },
-            text = "Updating to %s.\n\nProceed update?" % name)
+            text = _("Updating to %s.\n\nProceed with the update?") % name)
         return "yesno"
     #enddef
 

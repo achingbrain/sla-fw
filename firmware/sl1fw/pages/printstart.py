@@ -22,7 +22,6 @@ class PagePrintPreviewSwipe(Page):
     def __init__(self, display):
         super(PagePrintPreviewSwipe, self).__init__(display)
         self.pageUI = "printpreviewswipe"
-        self.pageTitle = N_("Project")
     #enddef
 
     def fillData(self):
@@ -98,7 +97,7 @@ class PagePrintPreviewSwipe(Page):
                     pageTitle = N_("Continue?"),
                     yesFce = self.checkProjectAndPrinter,
                     text = _("Ambient temperature is over recommended value.\n\n"
-                        "You should move the printer to cooler place.\n\n"
+                        "You should move the printer to a cooler place.\n\n"
                         "Do you want to continue?"))
             return "yesno"
         #endif
@@ -244,7 +243,7 @@ class PagePrintPreviewSwipe(Page):
                         backFce = self.backButtonRelease,
                         continueFce = self.refillInfoContinue,
                         beep = True,
-                        text = _("Your tank fill is approx %(measured)d %%\n\n"
+                        text = _("Your resin volume is approx %(measured)d %%\n\n"
                             "For your project, %(requested)d %% is needed. A refill may be required during printing.") \
                         % { 'measured' : percMeas, 'requested' : self.percReq})
                 return "confirm"
@@ -283,9 +282,9 @@ class PagePrintPreviewSwipe(Page):
                 sleep(0.25)
             #endwhile
             self.display.pages['error'].setParams(
-                    text = _("The platform has failed to move to the desired position!\n\n"
-                        "Please clean any cured resin remains or other pieces that can block the move.\n\n"
-                        "If everything is clean, the printer needs service. Please contact tech support."))
+                    text = _("The platform has failed to move to the correct position!\n\n"
+                    "Clean any cured resin remains or other debris blocking the movement.\n\n"
+                    "If everything is clean, the printer needs service. Please contact tech support."))
             return "error"
         #endif
 
@@ -299,7 +298,7 @@ class PagePrintPreviewSwipe(Page):
         if not self.display.expo.collectProjectData():
             self.display.pages['error'].setParams(
                     text = _("Can't read data of your project.\n\n"
-                        "Regenerate it and try again."))
+                    "Re-export it and try again."))
             return "error"
         #endif
 

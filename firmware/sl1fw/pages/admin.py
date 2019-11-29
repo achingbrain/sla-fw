@@ -14,7 +14,6 @@ class PageAdmin(Page):
     def __init__(self, display):
         super(PageAdmin, self).__init__(display)
         self.pageUI = "admin"
-        self.pageTitle = "Admin Home"
     #enddef
 
 

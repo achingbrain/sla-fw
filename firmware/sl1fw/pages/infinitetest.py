@@ -26,8 +26,8 @@ class PageInfiniteTest(Page):
 
     def show(self):
         self.items.update({
-            'text' : _("It is strongly recommended to NOT run this test."
-            "This is infinite routine which tests durability of expostition display and printers mechanical parts."),
+            'text' : _("It is strongly recommended to NOT run this test. This is an infinite routine "
+            "which tests durability of expostition display and mechanical parts."),
         })
         super(PageInfiniteTest, self).show()
     #enddef

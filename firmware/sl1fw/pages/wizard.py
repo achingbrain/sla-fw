@@ -609,7 +609,7 @@ class PageWizardSpeaker(Page):
     def noButtonRelease(self):
         pygame.mixer.music.stop()
         self.display.pages['error'].setParams(
-            text = _("Speaker not working.\nPlease check propper connection and wiring of the speaker."))
+            text = _("Speaker not working.\nPlease check the wiring of the speaker."))
         return "error"
     #enddef
 

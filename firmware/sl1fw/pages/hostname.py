@@ -14,7 +14,6 @@ class PageSetHostname(Page):
     def __init__(self, display):
         super(PageSetHostname, self).__init__(display)
         self.pageUI = "sethostname"
-        self.pageTitle = N_("Set Hostname")
     #enddef
 
 

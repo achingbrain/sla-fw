@@ -16,7 +16,6 @@ class PageSettings(Page):
     def __init__(self, display):
         super(PageSettings, self).__init__(display)
         self.pageUI = "settings"
-        self.pageTitle = N_("Settings")
     #enddef
 
 

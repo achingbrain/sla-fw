@@ -78,7 +78,6 @@ class PageTowerMove(MovePage):
     def __init__(self, display):
         super(PageTowerMove, self).__init__(display)
         self.pageUI = "towermove"
-        self.pageTitle = N_("Tower Move")
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
         self.setProfiles = True
     #enddef
@@ -127,7 +126,6 @@ class PageTiltMove(MovePage):
     def __init__(self, display):
         super(PageTiltMove, self).__init__(display)
         self.pageUI = "tiltmove"
-        self.pageTitle = N_("Tilt Move")
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
         self.setProfiles = True
     #enddef
