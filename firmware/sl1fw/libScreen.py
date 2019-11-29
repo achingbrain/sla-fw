@@ -43,6 +43,7 @@ class ScreenServer(multiprocessing.Process):
         self.nextImage1 = None
         self.nextImage2 = None
         self.pasteData = None
+        self.mute_warning = False
     #enddef
 
 
@@ -108,7 +109,12 @@ class ScreenServer(multiprocessing.Process):
         self.logger.debug("loading '%s'", filename)
         img = Image.open(source)
         if img.mode != "L":
-            self.logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha). Losing time in conversion.", filename, img.mode)
+            if not self.mute_warning:
+                self.logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha)."
+                                    " Losing time in conversion. This is reported only once per project.",
+                                    filename, img.mode)
+                self.mute_warning = True
+            #endif
             img = img.convert("L")
         #endif
         return img
@@ -123,6 +129,7 @@ class ScreenServer(multiprocessing.Process):
         self.nextImage1 = None
         self.nextImage2 = None
         self.pasteData = None
+        self.mute_warning = False
         self.usage = numpy.zeros((defines.displayUsageSize[0], defines.displayUsageSize[2]))
         try:
             self.zf = zipfile.ZipFile(params['filename'], "r")
