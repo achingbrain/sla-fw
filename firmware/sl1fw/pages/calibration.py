@@ -27,7 +27,7 @@ class PageCalibrationStart(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "06_tighten_knob.jpg",
+            'imageName' : "calibration-tighten_knob.jpg",
             'text' : _("If the platform is not yet inserted, insert it according to the picture at 0° angle and secure it with the black knob.")})
         super(PageCalibrationStart, self).show()
     #enddef
@@ -81,7 +81,7 @@ class PageCalibration2(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "01_loosen_screws.jpg",
+            'imageName' : "calibration-loosen_cantilever.jpg",
             'text' : _("Loosen the small screw on the cantilever with an allen key. Be careful not to unscrew it completely.\n\n"
                 "Some SL1 printers may have two screws - see the handbook for more information.")})
         super(PageCalibration2, self).show()
@@ -118,7 +118,7 @@ class PageCalibration3(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "02_place_bed.jpg",
+            'imageName' : "calibration-place_bed.jpg",
             'text' : _("Unscrew the tank, rotate it by 90 degrees and place it flat across the tilt bed. Remove the tank screws completely!")})
         super(PageCalibration3, self).show()
     #enddef
@@ -164,7 +164,7 @@ class PageCalibration4(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "03_proper_aligment.jpg",
+            'imageName' : "calibration-proper_aligment.jpg",
             'text' : _("In the next step, move the tilt up/down until the tilt frame is in direct contact with the resin tank. The tilt frame and tank have to be aligned in a perfect line.")})
         super(PageCalibration4, self).show()
     #enddef
@@ -286,7 +286,7 @@ class PageCalibration6(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "08_clean.jpg",
+            'imageName' : "calibration-clean.jpg",
             'text' : _("Make sure the platform, tank and tilt are PERFECTLY clean.\n\n"
                 "The image is for illustration only.")})
         super(PageCalibration6, self).show()
@@ -323,7 +323,7 @@ class PageCalibration7(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "04_tighten_screws.jpg",
+            'imageName' : "tighten_screws.jpg",
             'text' : _("Return the tank to the original position and secure it with tank screws. Make sure you tighten both screws evenly and with the same amount of force.")})
         super(PageCalibration7, self).show()
     #enddef
@@ -364,7 +364,7 @@ class PageCalibration8(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "06_tighten_knob.jpg",
+            'imageName' : "calibration-tighten_knob.jpg",
             'text' : _("Check whether the platform is properly secured with the black knob (hold it in place and tighten the knob if needed).\n\n"
                 "Do not rotate the platform. It should be positioned according to the picture.")})
         super(PageCalibration8, self).show()
@@ -376,7 +376,7 @@ class PageCalibration8(Page):
             continueFce = self.continuePlatformCalib,
             backFce = self.backButtonRelease,
             pageTitle = N_("Calibration step 9/11"),
-            imageName = "12_close_cover.jpg",
+            imageName = "close_cover.jpg",
             text = _("Please close the orange lid."))
         return "confirm"
     #enddef
@@ -479,7 +479,7 @@ class PageCalibration9(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "05_align_platform.jpg",
+            'imageName' : "calibration-align_platform.jpg",
             'text' : _("Adjust the platform so it's aligned with the exposition display.\n\n"
                 "Front edges of the platform and exposition display need to be parallel.")})
         super(PageCalibration9, self).show()
@@ -516,7 +516,7 @@ class PageCalibration10(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "07_tighten_screws.jpg",
+            'imageName' : "calibration-tighten_cantilever.jpg",
             'text' : _("Tighten the small screw on the cantilever with an allen key.\n\n"
                 "Some SL1 printers may have two screws - tighten them evenly, little by little. See the handbook for more information.")})
         super(PageCalibration10, self).show()

@@ -239,7 +239,7 @@ class PageWizardUvLed(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "19_remove_tank.jpg",
+            'imageName' : "selftest-remove_tank.jpg",
             'text' : _("Please unscrew and remove the resin tank.")})
         super(PageWizardUvLed, self).show()
     #enddef
@@ -249,7 +249,7 @@ class PageWizardUvLed(Page):
             continueFce = self.continueCloselid,
             backFce = self.backButtonRelease,
             pageTitle = N_("Setup wizard step 3/10"),
-            imageName = "09_remove_platform.jpg",
+            imageName = "selftest-remove_platform.jpg",
             text = _("Loosen the black knob and remove the platform."))
         return "confirm"
     #enddef
@@ -260,7 +260,7 @@ class PageWizardUvLed(Page):
             continueFce = self.continueUvCheck,
             backFce = self.backButtonRelease,
             pageTitle = N_("Setup wizard step 4/10"),
-            imageName = "18_close_cover_no_tank.jpg",
+            imageName = "close_cover_no_tank.jpg",
             text = _("Please close the orange lid."))
         return "confirm"
     #enddef
@@ -360,7 +360,7 @@ class PageWizardTowerAxis(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "04_tighten_screws.jpg",
+            'imageName' : "tighten_screws.jpg",
             'text' : _("Secure the resin tank with resin tank screws.\n\n"
                 "Make sure the tank is empty and clean.")})
         super(PageWizardTowerAxis, self).show()
@@ -372,7 +372,7 @@ class PageWizardTowerAxis(Page):
             continueFce = self.continueTowerCheck,
             backFce = self.backButtonRelease,
             pageTitle = N_("Setup wizard step 6/10"),
-            imageName = "12_close_cover.jpg",
+            imageName = "close_cover.jpg",
             text = _("Please close the orange lid."))
         return "confirm"
     #enddef
@@ -440,7 +440,7 @@ class PageWizardResinSensor(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "11_insert_platform_60deg.jpg",
+            'imageName' : "selftest-insert_platform_60deg.jpg",
             'text' : _("Insert the platform at a 60-degree angle, exactly like in the picture. The platform must hit the edges of the tank on its way down.")})
         super(PageWizardResinSensor, self).show()
     #enddef
@@ -451,7 +451,7 @@ class PageWizardResinSensor(Page):
             continueFce = self.continueResinCheck,
             backFce = self.backButtonRelease,
             pageTitle = N_("Setup wizard step 8/10"),
-            imageName = "12_close_cover.jpg",
+            imageName = "close_cover.jpg",
             text = _("Please close the orange lid."))
         return "confirm"
     #enddef

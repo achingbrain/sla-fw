@@ -300,7 +300,7 @@ class PageAdvancedSettings(Page):
         self.display.pages['confirm'].setParams(
             continueFce = self.displaytestContinue,
             pageTitle = _("Display test"),
-            imageName = "19_remove_tank.jpg",
+            imageName = "selftest-remove_tank.jpg",
             text = _("Please unscrew and remove the resin tank."))
         return "confirm"
     #enddef
@@ -310,7 +310,7 @@ class PageAdvancedSettings(Page):
         self.display.pages['confirm'].setParams(
             continueFce = self.displaytest,
             pageTitle = _("Display test"),
-            imageName = "18_close_cover_no_tank.jpg",
+            imageName = "close_cover_no_tank.jpg",
             text = _("Please close the orange lid."))
         return "confirm"
     #enddef

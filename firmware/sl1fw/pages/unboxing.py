@@ -24,7 +24,7 @@ class PageUnboxing1(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "16_sticker_open_cover.jpg",
+            'imageName' : "unboxing-sticker_open_cover.jpg",
             'text' : _("Please remove the safety sticker on the right and open the orange cover.")})
         super(PageUnboxing1, self).show()
     #enddef
@@ -80,7 +80,7 @@ class PageUnboxing2(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "14_remove_foam.jpg",
+            'imageName' : "unboxing-remove_foam.jpg",
             'text' : _("Remove the black foam from both sides of the platform.")})
         super(PageUnboxing2, self).show()
     #enddef
@@ -121,7 +121,7 @@ class PageUnboxing3(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "15_remove_bottom_foam.jpg",
+            'imageName' : "unboxing-remove_bottom_foam.jpg",
             'text' : _("Unscrew and remove the resin tank and remove the black foam underneath it.")})
         super(PageUnboxing3, self).show()
     #enddef
@@ -157,7 +157,7 @@ class PageUnboxing4(Page):
 
     def show(self):
         self.items.update({
-            'imageName' : "17_remove_sticker_screen.jpg",
+            'imageName' : "unboxing-remove_sticker_screen.jpg",
             'text' : _("Carefully peel off the orange protective sticker from the exposition display.")})
         super(PageUnboxing4, self).show()
     #enddef
