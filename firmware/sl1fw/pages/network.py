@@ -13,6 +13,7 @@ from sl1fw.pages.base import Page
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
 
+
 @page
 class PageNetwork(Page):
     Name = "network"
@@ -20,3 +21,6 @@ class PageNetwork(Page):
     def __init__(self, display: Display):
         super(PageNetwork, self).__init__(display)
         self.pageUI = "network"
+
+    def wifiButtonRelease(self):
+        self.logger.debug("Skipping wifi button, already at page network")
