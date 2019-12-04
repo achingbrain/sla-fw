@@ -28,6 +28,7 @@ class PageAdmin(Page):
                 'button6' : "Motion Controller",
                 'button7' : "Tests",
                 'button8' : "Service",
+                'button9' : "Wizards",
 
                 'button11' : "Net update",
                 'button12' : "Logging",
@@ -74,6 +75,11 @@ class PageAdmin(Page):
 
     def button8ButtonRelease(self):
         return "service"
+    #enddef
+
+
+    def button9ButtonRelease(self):
+        return "testwizards"
     #enddef
 
 

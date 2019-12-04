@@ -60,11 +60,6 @@ class PageUnboxing1(Page):
     #enddef
 
 
-    def _BACK_(self):
-        return "wizardinit"
-    #enddef
-
-
     def _EXIT_(self):
         return "_EXIT_"
     #enddef
@@ -106,11 +101,6 @@ class PageUnboxing2(Page):
     #enddef
 
 
-    def _BACK_(self):
-        return "_BACK_"
-    #enddef
-
-
     def _EXIT_(self):
         return "_EXIT_"
     #enddef
@@ -144,11 +134,6 @@ class PageUnboxing3(Page):
 
     def backButtonRelease(self):
         return "unboxingconfirm"
-    #enddef
-
-
-    def _BACK_(self):
-        return "_BACK_"
     #enddef
 
 
@@ -197,11 +182,6 @@ class PageUnboxing4(Page):
     #enddef
 
 
-    def _BACK_(self):
-        return "_BACK_"
-    #enddef
-
-
     def _EXIT_(self):
         return "_EXIT_"
     #enddef
@@ -228,7 +208,7 @@ class PageUnboxing5(Page):
 
 
     def contButtonRelease(self):
-        return "wizardinit"
+        return "_EXIT_"
     #enddef
 
 
@@ -275,7 +255,7 @@ class PageUnboxingConfirm(Page):
                 text=_("Cannot save configuration"))
             return "error"
         # endtry
-        return "_BACK_"
+        return "_EXIT_"
     #enddef
 
 

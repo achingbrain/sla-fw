@@ -154,6 +154,8 @@ class Printer:
                 else:
                     self.display.doMenu("unboxing1")
                 #endif
+                # continue to wizard directly
+                self.display.doMenu("wizardinit")
                 sleep(0.5)
             elif self.hwConfig.showWizard:
                 self.hw.beepRepeat(1)
