@@ -36,7 +36,6 @@ class PageFirmwareUpdate(Page):
             query_url = defines.firmwareListURL + "/?serial=" + self.display.hw.cpuSerialNo + "&version=" + distro.version()
             self.display.inet.download_url(query_url,
                     defines.firmwareListTemp,
-                    distro.version(),
                     self.display.hw.cpuSerialNo,
                     page=pageWait,
                     timeout_sec=3)
@@ -124,7 +123,6 @@ class PageFirmwareUpdate(Page):
             pageWait.show()
             self.display.inet.download_url(fw_url,
                     defines.firmwareTempFile,
-                    distro.version(),
                     self.display.hw.cpuSerialNo,
                     page=pageWait)
         #endtry

@@ -10,6 +10,11 @@ from urllib.request import urlopen, Request
 
 import pydbus
 
+import tempfile
+import tarfile
+import shutil
+import distro
+from sl1fw import defines
 
 class Network:
     NETWORKMANAGER_SERVICE = "org.freedesktop.NetworkManager"
@@ -109,7 +114,7 @@ class Network:
         """
         return self.bus.get(self.NETWORKMANAGER_SERVICE, path)
 
-    def download_url(self, url, dest, version_id, cpu_serial_no, page=None, timeout_sec=10) -> None:
+    def download_url(self, url, dest, cpu_serial_no, page=None, timeout_sec=10) -> None:
         """Fetches file specified by url info destination while displaying progress. This is implemented as chunked
         copy from source file descriptor to the destination file descriptor. The progress is updated once the chunk is
         copied. The source file descriptor is either standard file when the source is mounted USB drive or urlopen
@@ -124,7 +129,7 @@ class Network:
             # URL is HTTP, source is url
             req = Request(url)
             req.add_header('User-Agent', 'Prusa-SL1')
-            req.add_header('Prusa-SL1-version', version_id)
+            req.add_header('Prusa-SL1-version', distro.version())
             req.add_header('Prusa-SL1-serial', cpu_serial_no)
             source = urlopen(req, timeout=timeout_sec)
 
@@ -164,3 +169,33 @@ class Network:
                 raise Exception("Download of %s failed to read whole file %d != %d", url, file_size, file.tell())
 
         source.close()
+
+    def download_examples(self, page, cpu_serial_no) -> None:
+        try:
+            if not os.path.isdir(defines.internalProjectPath):
+                os.makedirs(defines.internalProjectPath)
+
+            with tempfile.NamedTemporaryFile() as archive:
+                page.showItems(line1 = _("Fetching examples"))
+                self.download_url(defines.examplesURL,
+                        archive.name,
+                        cpu_serial_no,
+                        page)
+                page.showItems(line1 = _("Extracting examples"), line2="")
+
+                with tempfile.TemporaryDirectory() as temp:
+                    with tarfile.open(fileobj=archive) as tar:
+                        for member in tar.getmembers():
+                            tar.extract(member, temp)
+
+                    page.showItems(line1 = _("Storing examples"))
+                    for item in os.listdir(temp):
+                        dest = os.path.join(defines.internalProjectPath, item)
+                        if os.path.exists(dest):
+                            shutil.rmtree(dest)
+                        shutil.copytree(os.path.join(temp, item), dest)
+                    page.showItems(line1 = _("Cleaning up"))
+
+        except Exception as e:
+            self.logger.exception("Examples download failed: " + str(e))
+            raise Exception("Examples download failed.")

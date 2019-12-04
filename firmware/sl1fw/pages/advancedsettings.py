@@ -6,6 +6,7 @@
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException
 from sl1fw.pages.base import Page
+from sl1fw.pages.wait import PageWait
 from sl1fw.pages import page
 
 
@@ -388,6 +389,22 @@ class PageAdvancedSettings(Page):
     @confirm_leave
     def firmwareupdateButtonRelease(self):
         return "firmwareupdate"
+    #enddef
+
+
+    # Download examples
+    @confirm_leave
+    def downloadexamplesButtonRelease(self):
+        pageWait = PageWait(self.display)
+        pageWait.show()
+        try:
+            self.display.inet.download_examples(page=pageWait, cpu_serial_no=self.display.hw.cpuSerialNo)
+            return "_BACK_"
+        except Exception:
+            self.display.pages['error'].setParams(
+                text=_("Fetching of samples failed"))
+            return "error"
+        #endtry
     #enddef
 
 
