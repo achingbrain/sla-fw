@@ -766,7 +766,7 @@ msgstr ""
 "dodatečné informace."
 
 #: ../pages/fantest.py:29
-msgid "Make sure all fan air vens are clean and not blocked."
+msgid "Make sure all fan air vents are clean and not blocked."
 msgstr "Ujistěte se, že výdechy větráků jsou čisté a nezakryté."
 
 #: ../pages/calibration.py:290

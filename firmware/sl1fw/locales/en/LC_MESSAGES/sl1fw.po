@@ -769,8 +769,8 @@ msgstr ""
 "information."
 
 #: ../pages/fantest.py:29
-msgid "Make sure all fan air vens are clean and not blocked."
-msgstr "Make sure all fan air vens are clean and not blocked."
+msgid "Make sure all fan air vents are clean and not blocked."
+msgstr "Make sure all fan air vents are clean and not blocked."
 
 #: ../pages/calibration.py:290
 msgid ""

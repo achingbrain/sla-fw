@@ -26,7 +26,7 @@ class PageFanTest(Page):
 
     def show(self):
         self.items.update({
-            'text' : _("Make sure all fan air vens are clean and not blocked."),
+            'text' : _("Make sure all fan air vents are clean and not blocked."),
             'no_back' : True})
         super(PageFanTest, self).show()
     #enddef

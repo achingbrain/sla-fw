@@ -781,7 +781,7 @@ msgstr ""
 "obtener más información."
 
 #: ../pages/fantest.py:29
-msgid "Make sure all fan air vens are clean and not blocked."
+msgid "Make sure all fan air vents are clean and not blocked."
 msgstr "Asegúrate de que los entradas de los ventiladores no están bloqueadas."
 
 #: ../pages/calibration.py:290

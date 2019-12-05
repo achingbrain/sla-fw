@@ -782,7 +782,7 @@ msgstr ""
 "Informationen finden Sie im Handbuch."
 
 #: ../pages/fantest.py:29
-msgid "Make sure all fan air vens are clean and not blocked."
+msgid "Make sure all fan air vents are clean and not blocked."
 msgstr ""
 "Vergewissern Sie sich, dass alle Ventilator-Austritte sauber und nicht "
 "blockiert sind."
