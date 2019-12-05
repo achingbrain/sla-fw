@@ -44,6 +44,10 @@ class PageFactoryReset(Page):
 
         try:
             self.display.hwConfig.factory_reset()
+            # do not display unpacking after user factory reset
+            if not self.display.printer0.factory_mode:
+                self.display.hwConfig.showUnboxing = False
+            #endif
             self.display.hwConfig.write()
         except ConfigException:
             self.logger.exception("Failed to do factory reset on config")
@@ -124,6 +128,12 @@ class PageFactoryReset(Page):
 
         # disable factory mode
         self.writeToFactory(self._disableFactory)
+
+        # do not do packing moves for kit
+        if self.display.hw.isKit:
+            self.display.shutDown(True)
+            return
+        #endif
 
         pageWait.showItems(line1 = _("Printer is being set to packing positions"))
         self.display.hw.towerSync()

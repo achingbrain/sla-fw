@@ -3,10 +3,14 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
+from time import sleep
+
 import unittest
 
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 
+from sl1fw.libConfig import HwConfig, TomlConfig
 
 class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_turnoff(self):
@@ -140,6 +144,74 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.waitPage("home")
 
         self.test_turnoff()
+
+    def test_factory_reset_factory_complete(self):
+        self.printer.hw.boardData = ("TEST complete", False)
+        self.printer.factoryMode = True
+        self.switchPage("settings")
+        self.switchPage("advancedsettings")
+        self.press("factoryreset")
+        # confirm
+        self.waitPage("yesno")
+        self.press("yes")
+        self.waitPage("wait") # Relax...
+        self.waitPage("confirm", timeout_sec=30)  # Insert protective foam
+        self.press("cont")
+        self.waitPage("wait") # Printer is being set to packing positions
+        self._check_factory_reset(unboxing=True, factoryMode=False)
+
+    def test_factory_reset_factory_kit(self):
+        self.printer.hw.boardData = ("TEST kit", True)
+        self.printer.factoryMode = True
+        self.switchPage("settings")
+        self.switchPage("advancedsettings")
+        self.press("factoryreset")
+        # confirm
+        self.waitPage("yesno")
+        self.press("yes")
+        self.waitPage("wait") # Relax...
+        sleep(5)
+        self._check_factory_reset(unboxing=True, factoryMode=False)
+
+    def test_factory_reset_user_complete(self):
+        self.printer.hw.boardData = ("TEST complete", False)
+        self.printer.factoryMode = False
+        self.switchPage("settings")
+        self.switchPage("advancedsettings")
+        self.press("factoryreset")
+        # confirm
+        self.waitPage("yesno")
+        self.press("yes")
+        self.waitPage("wait") # Relax...
+        sleep(5)
+        self._check_factory_reset(unboxing=False, factoryMode=True) # user reset doesn't reset factoryMode
+
+    def test_factory_reset_user_kit(self):
+        self.printer.hw.boardData = ("TEST kit", True)
+        self.printer.factoryMode = False
+        self.switchPage("settings")
+        self.switchPage("advancedsettings")
+        self.press("factoryreset")
+        # confirm
+        self.waitPage("yesno")
+        self.press("yes")
+        self.waitPage("wait") # Relax...
+        sleep(5)
+        self._check_factory_reset(unboxing=False, factoryMode=True) # user reset doesn't reset factoryMode
+
+    def _check_factory_reset(self, unboxing, factoryMode):
+        self.assertFalse(os.path.exists(self.API_KEY_FILE), "apikey reset check")
+        self.assertFalse(os.path.exists(self.UV_CALIB_DATA_FILE), "user UV calibration data reset check")
+        hwConfig = HwConfig(self.HARDWARE_FILE)
+        hwConfig.read_file()
+        self.assertTrue(hwConfig.showUnboxing == unboxing, "config reset check")
+        factoryConfig = TomlConfig(self.FACTORY_CONFIG_FILE)
+        factoryConfig.load()
+        self.assertTrue(factoryConfig.data['factoryMode'] == factoryMode, "factory is disabled check")
+        # TODO check D-BUS hostname reset
+        # TODO check D-BUS wifi reset
+        # TODO check D-BUS timezone reset
+        # TODO check D-BUS locale reset
 
     def test_print_not_calibrated(self):
         # Try to print

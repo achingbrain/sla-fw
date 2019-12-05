@@ -25,6 +25,9 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     HARDWARE_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.hardware.cfg"
     SDL_AUDIO_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw"
     LAST_PROJECT_FILE = Sl1fwTestCase.TEMP_DIR / "last_project.toml"
+    API_KEY_FILE = Sl1fwTestCase.TEMP_DIR / "api.key"
+    UV_CALIB_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.uvCalibDataFilename
+    FACTORY_CONFIG_FILE = Sl1fwTestCase.TEMP_DIR / "factory.toml"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -35,10 +38,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     def setUp(self):
         super().setUp()
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
+        copyfile(self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.FACTORY_CONFIG_FILE)
 
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
+        defines.factoryConfigFile = str(self.FACTORY_CONFIG_FILE)
         defines.hwConfigFactoryDefaultsFile = str(self.SAMPLES_DIR / "hardware.toml")
         defines.lastProjectData = str(self.LAST_PROJECT_FILE)
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
@@ -54,12 +58,20 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
         defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
 
+        # factory reset
+        defines.apikeyFile = str(self.API_KEY_FILE)
+        defines.uvCalibDataPath = str(self.UV_CALIB_DATA_FILE)
+        Path(self.API_KEY_FILE).touch()
+        Path(self.UV_CALIB_DATA_FILE).touch()
+
         os.environ['SDL_AUDIODRIVER'] = "disk"
         os.environ['SDL_DISKAUDIOFILE'] = str(self.SDL_AUDIO_FILE)
 
         PagePrintPreviewSwipe.FanCheckOverride = True
 
         self.printer = Printer(debugDisplay=self.display)
+        # overide writeToFactory function
+        self.printer.display.pages['factoryreset'].writeToFactory = self.call
 
         self.thread = Thread(target=self.printer_thread)
 
@@ -93,7 +105,10 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             self.FB_DEV_FILE,
             self.HARDWARE_FILE,
             self.SDL_AUDIO_FILE,
-            self.LAST_PROJECT_FILE
+            self.LAST_PROJECT_FILE,
+            self.API_KEY_FILE,
+            self.UV_CALIB_DATA_FILE,
+            self.FACTORY_CONFIG_FILE,
         ]
 
         for file in files:
@@ -118,3 +133,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     def switchPage(self, page):
         self.press(page)
         self.waitPage(page)
+
+    def call(self, fce):
+        fce()

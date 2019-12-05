@@ -37,6 +37,9 @@ class TimeDate:
     def SetNTP(self, state, *_):
         self.NTP = state
 
+    def SetTimezone(self, tz, *_):
+        self.Timezone = tz
+
 
 class Hostname:
     def __init__(self):
@@ -96,15 +99,19 @@ class Rauc:
 class Locale:
     def __init__(self):
         self.PropertiesChanged = self
+        self.Locale = "C"
 
     def connect(self, callback):
         pass
 
+    def SetLocale(self, locale, *_):
+        self.Locale = locale
 
 class NetworkManager:
     def __init__(self):
         self.PropertiesChanged = self
         self.PrimaryConnection = "/"
+        self.connections = list(('test1', 'test2', 'test3'))
 
     @staticmethod
     def state():
@@ -116,3 +123,9 @@ class NetworkManager:
 
     def connect(self, callback):
         pass
+
+    def ListConnections(self):
+        return self.connections
+
+    def Delete(self):
+        self.connections.pop()
