@@ -98,6 +98,10 @@ maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some to
 maxA64Temp = 70.0
 maxUVTemp = 55.0
 
+# keep at least 10 MB / 110 MB of free space when copying project to ramdisk / extracting examples
+ramdiskReservedSpace = 10 * 1024 * 1024
+internalReservedSpace = 110 * 1024 * 1024
+
 localedir = os.path.join(swPath, "locales")
 multimediaRootPath = "/usr/share/sl1fw/multimedia"
 manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"

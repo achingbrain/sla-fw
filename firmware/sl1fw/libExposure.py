@@ -532,8 +532,8 @@ class Exposure:
         if self.config.zipName:
             # check free space
             statvfs = os.statvfs(defines.ramdiskPath)
-            ramdiskFree = statvfs.f_frsize * statvfs.f_bavail - 10 * 1024 * 1024  # for other files
-            self.logger.debug("Ramdisk free space: %d bytes" % ramdiskFree)
+            ramdiskAvailable = statvfs.f_frsize * statvfs.f_bavail - defines.ramdiskReservedSpace
+            self.logger.debug("Ramdisk available space: %d bytes" % ramdiskAvailable)
             try:
                 filesize = os.path.getsize(self.config.zipName)
                 self.logger.debug("Zip file size: %d bytes" % filesize)
@@ -544,7 +544,7 @@ class Exposure:
             #endtry
 
             try:
-                if ramdiskFree < filesize:
+                if ramdiskAvailable < filesize:
                     raise Exception("Not enough free space in the ramdisk!")
                 # endif
                 (dummy, filename) = os.path.split(self.config.zipName)

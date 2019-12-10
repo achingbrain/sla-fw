@@ -400,9 +400,9 @@ class PageAdvancedSettings(Page):
         try:
             self.display.inet.download_examples(page=pageWait, cpu_serial_no=self.display.hw.cpuSerialNo)
             return "_BACK_"
-        except Exception:
+        except Exception as e:
             self.display.pages['error'].setParams(
-                text=_("Fetching of samples failed"))
+                    text = _("Fetching of samples failed") + str(e))
             return "error"
         #endtry
     #enddef

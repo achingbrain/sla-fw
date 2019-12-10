@@ -171,7 +171,21 @@ class Network:
         source.close()
 
     def download_examples(self, page, cpu_serial_no) -> None:
+        failed = "."
+        # TODO call ramdiskCleanup()
         try:
+            if not self.ip:
+                failed = _(": Not connected to network!")
+                raise Exception("Not connected to network")
+
+            statvfs = os.statvfs(defines.internalProjectPath)
+            internalAvailable = statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
+            self.logger.debug("Internal storage available space: %d bytes" % internalAvailable)
+            # if internal storage is full, quit immediately
+            if internalAvailable < 0:
+                failed = _(": Not enough free space in the internal storage!")
+                raise Exception("Not enough free space in the internal storage")
+
             if not os.path.isdir(defines.internalProjectPath):
                 os.makedirs(defines.internalProjectPath)
 
@@ -184,18 +198,25 @@ class Network:
                 page.showItems(line1 = _("Extracting examples"), line2="")
 
                 with tempfile.TemporaryDirectory() as temp:
+                    extractedSize = 0
                     with tarfile.open(fileobj=archive) as tar:
                         for member in tar.getmembers():
+                            self.logger.debug("Found '%s' (%d bytes)", member.name, member.size)
+                            extractedSize += member.size
                             tar.extract(member, temp)
 
-                    page.showItems(line1 = _("Storing examples"))
-                    for item in os.listdir(temp):
-                        dest = os.path.join(defines.internalProjectPath, item)
-                        if os.path.exists(dest):
-                            shutil.rmtree(dest)
-                        shutil.copytree(os.path.join(temp, item), dest)
+                    if extractedSize > internalAvailable:
+                        failed = _(": Not enough free space in the internal storage!")
+                        raise Exception("Not enough free space in the internal storage")
+                    else:
+                        page.showItems(line1 = _("Storing examples"))
+                        for item in os.listdir(temp):
+                            dest = os.path.join(defines.internalProjectPath, item)
+                            if os.path.exists(dest):
+                                shutil.rmtree(dest)
+                            shutil.copytree(os.path.join(temp, item), dest)
                     page.showItems(line1 = _("Cleaning up"))
 
         except Exception as e:
             self.logger.exception("Examples download failed: " + str(e))
-            raise Exception("Examples download failed.")
+            raise Exception(failed)

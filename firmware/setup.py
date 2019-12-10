@@ -36,7 +36,7 @@ for root, dirs, files in walk('sl1fw/intranet'):
 
 setup(
     name="sl1fw",
-    version="2019.10.11",
+    version="2019.12.10",
     packages=find_packages(exclude=["sl1fw.tests"]),
     scripts=['sl1fw/main.py', 'sl1fw/scripts/export_logs.bash'],
     package_data={'sl1fw': ['data/*', 'locales/*/LC_MESSAGES/*.mo']},
