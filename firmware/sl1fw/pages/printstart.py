@@ -10,6 +10,8 @@ from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
+from sl1fw.project.functions import ramdiskCleanup
+from sl1fw.project.project import ProjectState
 
 @page
 class PagePrintPreviewSwipe(Page):
@@ -25,17 +27,17 @@ class PagePrintPreviewSwipe(Page):
     #enddef
 
     def fillData(self):
-        config = self.display.expo.config
+        project = self.display.expo.project
 
-        if config.calibrateRegions:
-            calibrateRegions = config.calibrateRegions
-            calibration = config.calibrateTime
+        if project.calibrateRegions:
+            calibrateRegions = project.calibrateRegions
+            calibration = project.calibrateTime
         else:
             calibrateRegions = None
             calibration = None
         #endif
 
-        self.percReq = self.display.hw.calcPercVolume(self.display.expo.config.usedMaterial + defines.resinMinVolume)
+        self.percReq = self.display.hw.calcPercVolume(project.usedMaterial + defines.resinMinVolume)
         if self.percReq <= 100:
             resinVolumeText =  _("Please fill the resin tank to at least %d %% and close the cover.") % self.percReq
         else:
@@ -43,14 +45,14 @@ class PagePrintPreviewSwipe(Page):
                     "Resin will have to be added during this print job.")
 
         return {
-            'name' : config.projectName,
+            'name' : project.name,
             'calibrationRegions' : calibrateRegions,
-            'date' : config.modificationTime,
-            'layers' : config.totalLayers,
-            'layer_height_first_mm' : self.display.hwConfig.calcMM(config.layerMicroStepsFirst),
-            'layer_height_mm' : self.display.hwConfig.calcMM(config.layerMicroSteps),
-            'exposure_time_first_sec' : config.expTimeFirst,
-            'exposure_time_sec' : config.expTime,
+            'date' : project.modificationTime,
+            'layers' : project.totalLayers,
+            'layer_height_first_mm' : self.display.hwConfig.calcMM(project.layerMicroStepsFirst),
+            'layer_height_mm' : self.display.hwConfig.calcMM(project.layerMicroSteps),
+            'exposure_time_first_sec' : project.expTimeFirst,
+            'exposure_time_sec' : project.expTime,
             'calibrate_time_sec' : calibration,
             'print_time_min' : self.display.expo.countRemainTime(),
             'text' : resinVolumeText
@@ -119,15 +121,22 @@ class PagePrintPreviewSwipe(Page):
         self.display.hw.tiltSync()
 
         # Remove old projects from ramdisk
-        self.ramdiskCleanup()
-        (error, confirm, zipName) = self.display.expo.copyAndCheckZip()
+        ramdiskCleanup(self.logger)
+        project_state = self.display.expo.project.copyAndCheck()
 
         while self.display.hw.isTowerMoving() or self.display.hw.isTiltMoving():
             sleep(0.25)
         #endwhile
 
-        if error:
-            self.display.pages['error'].setParams(text = error)
+        if project_state not in (ProjectState.OK, project_state.PRINT_DIRECTLY):
+            if project_state == ProjectState.CANT_READ:
+                project_error = _("Can't read project data.\n\nRe-export the project and try again.")
+            elif project_state == ProjectState.CORRUPTED:
+                project_error = _("Project data is corrupted.\n\nRe-export the project and try again.")
+            else:
+                project_error = _("Unknown project error.\n\nCheck the project and try again.")
+            #endif
+            self.display.pages['error'].setParams(text = project_error)
             return "error"
         #endif
 
@@ -175,14 +184,15 @@ class PagePrintPreviewSwipe(Page):
         pageWait.showItems(line3 = _("Fans OK"))
         self.display.fanErrorOverride = False
         self.display.checkCoolingExpo = True
-        self.display.expo.setProject(zipName)
 
-        if confirm:
+        if project_state == project_state.PRINT_DIRECTLY:
             self.display.pages['confirm'].setParams(
                     backFce = self.backButtonRelease,
                     continueFce = self.measureResin,
                     beep = True,
-                    text = confirm)
+                    text = _("Loading the file into the printer's memory failed.\n\n"
+                             "The project will be printed from USB drive.\n\n"
+                             "DO NOT remove the USB drive!"))
             return "confirm"
         #endif
 
@@ -191,7 +201,7 @@ class PagePrintPreviewSwipe(Page):
 
 
     def measureResin(self):
-        self.logger.info(str(self.display.expo.config))
+        self.logger.info(str(self.display.expo.project))
 
         # start data preparation by libScreen
         self.display.expo.startProjectLoading()
@@ -314,7 +324,7 @@ class PagePrintPreviewSwipe(Page):
 
     def _BACK_(self):
         self.allOff()
-        self.ramdiskCleanup()
+        ramdiskCleanup(self.logger)
     #enddef
 
 

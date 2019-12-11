@@ -8,7 +8,7 @@ from pathlib import Path
 from shutil import copyfile
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.libConfig import HwConfig, PrintConfig, Config, FloatValue, IntListValue, IntValue, BoolValue, \
+from sl1fw.libConfig import HwConfig, Config, FloatValue, IntListValue, IntValue, BoolValue, \
     FloatListValue, TextValue, ConfigWriter
 from sl1fw import defines
 
@@ -271,35 +271,6 @@ class TestHardwareConfig(Sl1fwTestCase):
                              factory_file_path=self.SAMPLES_DIR / "hardware-pwm.toml")
         hw_config.read_file()
         self.assertEqual(123, hw_config.uvPwm, "UV LED PWM - default direct PWM")
-
-
-class TestPrintConfig(Sl1fwTestCase):
-    def setUp(self):
-        self.hwConfig = HwConfig(self.SAMPLES_DIR / "samples" / "hardware.cfg",
-                                 factory_file_path=defines.factoryConfigFile)
-
-    def test_read(self):
-        config = PrintConfig(self.hwConfig)
-        print(config)
-
-        self.assertEqual(config.projectName, "no project", "Check empty project name")
-
-        config.parseFile(str(self.SAMPLES_DIR / "numbers.sl1"))
-
-        self.assertIs(config.zipError, None, "Test for no read errors")
-
-        print(config)
-
-
-        self.assertEqual(config.projectName, "numbers", "Check projectName")
-        self.assertEqual(config.totalLayers, 2, "Check total layers count")
-
-        print(config.as_dictionary())
-        config.expTime = 5.0
-
-        self.assertEqual(config.expTime, 5, "Check expTime value")
-
-        # config.write("printconfig.txt")
 
 
 class TestConfigHelper(Sl1fwTestCase):

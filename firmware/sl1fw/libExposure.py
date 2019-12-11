@@ -6,16 +6,14 @@
 from __future__ import annotations
 
 import logging
-import os
 import queue
-import shutil
 import threading
-import zipfile
 from time import sleep, time
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sl1fw import defines
-from sl1fw.libConfig import HwConfig, TomlConfigStats, PrintConfig
+from sl1fw.libConfig import HwConfig, TomlConfigStats
+from sl1fw.project.project import Project
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
 from sl1fw.pages.wait import PageWait
@@ -268,9 +266,9 @@ class ExposureThread(threading.Thread):
         stats = statsFile.load()
         seconds = 0
         try:
-            config = self.expo.config
+            project = self.expo.project
             prevWhitePixels = 0
-            totalLayers = config.totalLayers
+            totalLayers = project.totalLayers
             stuck = False
             wasStirring = True
             exposureCompensation = 0.0
@@ -348,31 +346,31 @@ class ExposureThread(threading.Thread):
 
                 # first layer - extra height + extra time
                 if not i:
-                    step = config.layerMicroStepsFirst
-                    etime = config.expTimeFirst
+                    step = project.layerMicroStepsFirst
+                    etime = project.expTimeFirst
                 # second two layers - normal height + extra time
                 elif i < 3:
-                    step = config.layerMicroSteps
-                    etime = config.expTimeFirst
-                # next config.fadeLayers is fade between config.expTimeFirst and config.expTime
-                elif i < config.fadeLayers + 3:
-                    step = config.layerMicroSteps
+                    step = project.layerMicroSteps
+                    etime = project.expTimeFirst
+                # next project.fadeLayers is fade between project.expTimeFirst and project.expTime
+                elif i < project.fadeLayers + 3:
+                    step = project.layerMicroSteps
                     # expTimes may be changed during print
-                    timeLoss = (config.expTimeFirst - config.expTime) / float(config.fadeLayers)
+                    timeLoss = (project.expTimeFirst - project.expTime) / float(project.fadeLayers)
                     self.logger.debug("timeLoss: %0.3f", timeLoss)
-                    etime = config.expTimeFirst - (i - 2) * timeLoss
+                    etime = project.expTimeFirst - (i - 2) * timeLoss
                 # standard parameters to first change
-                elif i + 1 < config.slice2:
-                    step = config.layerMicroSteps
-                    etime = config.expTime
+                elif i + 1 < project.slice2:
+                    step = project.layerMicroSteps
+                    etime = project.expTime
                 # parameters of second change
-                elif i + 1 < config.slice3:
-                    step = config.layerMicroSteps2
-                    etime = config.expTime2
+                elif i + 1 < project.slice3:
+                    step = project.layerMicroSteps2
+                    etime = project.expTime2
                 # parameters of third change
                 else:
-                    step = config.layerMicroSteps3
-                    etime = config.expTime3
+                    step = project.layerMicroSteps3
+                    etime = project.expTime3
                 #endif
 
                 etime += exposureCompensation
@@ -381,23 +379,23 @@ class ExposureThread(threading.Thread):
                 self.expo.actualLayer = i + 1
                 self.expo.position += step
                 self.logger.debug("LAYER %04d (%s)  steps: %d  position: %d  time: %.3f  slowLayers: %d",
-                        self.expo.actualLayer, config.toPrint[i], step, self.expo.position, etime, self.expo.slowLayers)
+                                  self.expo.actualLayer, project.to_print[i], step, self.expo.position, etime, self.expo.slowLayers)
 
                 if i < 2:
                     overlayName = 'calibPad'
-                elif i < config.calibrateInfoLayers + 2:
+                elif i < project.calibrateInfoLayers + 2:
                     overlayName = 'calib'
                 else:
                     overlayName = None
                 #endif
 
-                success, whitePixels, uvTemp, AmbTemp = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
-                        self.expo.position + self.expo.hwConfig.calibTowerOffset,
-                        etime,
-                        overlayName,
-                        prevWhitePixels,
-                        wasStirring,
-                        False)
+                success, whitePixels, uvTemp, AmbTemp = self.doFrame(project.to_print[i + 1] if i + 1 < totalLayers else None,
+                                                                     self.expo.position + self.expo.hwConfig.calibTowerOffset,
+                                                                     etime,
+                                                                     overlayName,
+                                                                     prevWhitePixels,
+                                                                     wasStirring,
+                                                                     False)
 
                 if not success and not self.doStuckRelease():
                     self.expo.hw.powerLed("normal")
@@ -408,13 +406,13 @@ class ExposureThread(threading.Thread):
 
                 # exposure second part too
                 if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
-                    success, dummy, uvTemp, AmbTemp = self.doFrame(config.toPrint[i+1] if i+1 < totalLayers else None,
-                            self.expo.position + self.expo.hwConfig.calibTowerOffset,
-                            etime,
-                            overlayName,
-                            whitePixels,
-                            wasStirring,
-                            True)
+                    success, dummy, uvTemp, AmbTemp = self.doFrame(project.to_print[i + 1] if i + 1 < totalLayers else None,
+                                                                   self.expo.position + self.expo.hwConfig.calibTowerOffset,
+                                                                   etime,
+                                                                   overlayName,
+                                                                   whitePixels,
+                                                                   wasStirring,
+                                                                   True)
 
                     if not success and not self.doStuckRelease():
                         stuck = True
@@ -493,7 +491,7 @@ class Exposure:
     def __init__(self, hwConfig: HwConfig, display: Display, hw: Hardware, screen: Screen):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
-        self.config = None
+        self.project: Optional[Project] = None
         self.display = display
         self.hw = hw
         self.screen = screen
@@ -514,80 +512,20 @@ class Exposure:
     #enddef
 
 
-    def setProject(self, zipName):
-        self.zipName = zipName
-    #enddef
-
-
-    def parseProject(self, project_file: str) -> Optional[str]:
-        self.config = PrintConfig(self.hwConfig)
-        self.config.parseFile(project_file)
-        return self.config.zipError
-    #enddef
-
-
-    def copyAndCheckZip(self):
-        confirm = None
-        newZipName = None
-        if self.config.zipName:
-            # check free space
-            statvfs = os.statvfs(defines.ramdiskPath)
-            ramdiskAvailable = statvfs.f_frsize * statvfs.f_bavail - defines.ramdiskReservedSpace
-            self.logger.debug("Ramdisk available space: %d bytes" % ramdiskAvailable)
-            try:
-                filesize = os.path.getsize(self.config.zipName)
-                self.logger.debug("Zip file size: %d bytes" % filesize)
-            except Exception:
-                self.logger.exception("filesize exception:")
-                return (_("Can't read from the USB drive.\n\n"
-                          "Check it and try again."), None, None)
-            #endtry
-
-            try:
-                if ramdiskAvailable < filesize:
-                    raise Exception("Not enough free space in the ramdisk!")
-                # endif
-                (dummy, filename) = os.path.split(self.config.zipName)
-                newZipName = os.path.join(defines.ramdiskPath, filename)
-                if os.path.normpath(newZipName) != os.path.normpath(self.config.zipName):
-                    shutil.copyfile(self.config.zipName, newZipName)
-                #endif
-            except Exception:
-                self.logger.exception("copyfile exception:")
-                confirm = _("Loading the file into the printer's memory failed.\n\n"
-                            "The project will be printed from USB drive.\n\n"
-                            "DO NOT remove the USB drive!")
-                newZipName = self.config.zipName
-            #endtry
-        #endif
-
-        try:
-            zf = zipfile.ZipFile(newZipName, 'r')
-            badfile = zf.testzip()
-            zf.close()
-            if badfile is not None:
-                self.logger.error("Corrupted file: %s", badfile)
-                return (_("Corrupted data detected.\n\n"
-                          "Re-export the file and try again."), None, None)
-            #endif
-        except Exception as e:
-            self.logger.exception("zip read exception:")
-            return (_("Can't read project data.\n\n"
-                      "Re-export the file and try again."), None, None)
-        #endtry
-
-        return None, confirm, newZipName
+    def setProject(self, project_filename):
+        self.project = Project(self.hwConfig)
+        return self.project.read(project_filename)
     #enddef
 
 
     def startProjectLoading(self):
         params = {
-                'filename' : self.zipName,
-                'toPrint' : self.config.toPrint,
-                'expTime' : self.config.expTime,
-                'calibrateRegions' : self.config.calibrateRegions,
-                'calibrateTime' : self.config.calibrateTime,
-                'calibratePenetration' : self.config.calibratePenetration,
+                'filename' : self.project.source,
+                'toPrint' : self.project.to_print,
+                'expTime' : self.project.expTime,
+                'calibrateRegions' : self.project.calibrateRegions,
+                'calibrateTime' : self.project.calibrateTime,
+                'calibratePenetration' : self.project.calibratePenetration,
                 'perPartes' : self.hwConfig.perPartes,
                 'whitePixelsThd' : self.hwConfig.whitePixelsThd,
                 'overlayName' : 'calibPad',
@@ -602,7 +540,7 @@ class Exposure:
         self.position = 0
         self.actualLayer = 0
         self.resinCount = 0.0
-        self.slowLayers = self.config.layersSlow # TODO: Is this necessary?
+        self.slowLayers = self.project.layersSlow    # we need local copy for decrementing
         retcode, self.perPartes, self.calibAreas = self.screen.projectStatus()
         return retcode
     #enddef
@@ -610,14 +548,13 @@ class Exposure:
 
     def prepare(self):
         # TODO: This must be a prepare method in exposure
-        config = self.config
 
         self.hw.setTowerProfile('layer')
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
 
         # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
-        self.totalHeight = (config.totalLayers - 1) * self.hwConfig.calcMM(
-            config.layerMicroSteps) + self.hwConfig.calcMM(config.layerMicroStepsFirst)
+        self.totalHeight = (self.project.totalLayers - 1) * self.hwConfig.calcMM(
+            self.project.layerMicroSteps) + self.hwConfig.calcMM(self.project.layerMicroStepsFirst)
 
         self.screen.getImgBlack()
         self.hw.uvLedPwm = self.hwConfig.uvPwm
@@ -697,28 +634,27 @@ class Exposure:
 
 
     def countRemainTime(self):
-        config = self.config
         hwConfig = self.hwConfig
         timeRemain = 0
-        fastLayers = config.totalLayers - self.actualLayer - self.slowLayers
+        fastLayers = self.project.totalLayers - self.actualLayer - self.slowLayers
         # first 3 layers with expTimeFirst
         long1 = 3 - self.actualLayer
         if long1 > 0:
-            timeRemain += long1 * (config.expTimeFirst - config.expTime)
+            timeRemain += long1 * (self.project.expTimeFirst - self.project.expTime)
         #endif
         # fade layers (approx)
-        long2 = config.fadeLayers + 3 - self.actualLayer
+        long2 = self.project.fadeLayers + 3 - self.actualLayer
         if long2 > 0:
-            timeRemain += long2 * ((config.expTimeFirst - config.expTime) / 2 - config.expTime)
+            timeRemain += long2 * ((self.project.expTimeFirst - self.project.expTime) / 2 - self.project.expTime)
         #endif
         timeRemain += fastLayers * hwConfig.tiltFastTime
         timeRemain += self.slowLayers * hwConfig.tiltSlowTime
 
         # FIXME slice2 and slice3
         timeRemain += (fastLayers + self.slowLayers) * (
-                config.calibrateRegions * config.calibrateTime
-                + self.hwConfig.calcMM(config.layerMicroSteps) * 5  # tower move
-                + config.expTime
+                self.project.calibrateRegions * self.project.calibrateTime
+                + self.hwConfig.calcMM(self.project.layerMicroSteps) * 5  # tower move
+                + self.project.expTime
                 + hwConfig.delayBeforeExposure
                 + hwConfig.delayAfterExposure)
         self.logger.debug("timeRemain: %f", timeRemain)

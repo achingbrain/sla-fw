@@ -19,6 +19,7 @@ from sl1fw import actions
 from sl1fw import defines
 from sl1fw.actions import get_save_path
 from sl1fw.libConfig import ConfigException
+from sl1fw.project.project import ProjectState
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -537,31 +538,22 @@ class Page:
     def loadProject(self, project_filename: str):
         pageWait = self.display.makeWait(self.display, line1 = _("Reading project data"))
         pageWait.show()
-        zip_error = self.display.expo.parseProject(project_filename)
-        if zip_error is not None:
-            sleep(0.5)
-            self.display.pages['error'].setParams(
-                text=_("Your project has a problem: %s\n\n"
-                       "Re-export it and try again.") % zip_error)
-            return False
+        project_state = self.display.expo.setProject(project_filename)
+        if project_state == ProjectState.OK:
+            return True
+        elif project_state == ProjectState.NOT_FOUND:
+            project_error = _("Project file not found.\n\nCheck it and try again.")
+        elif project_state == ProjectState.CANT_READ:
+            project_error = _("Can't read project data.\n\nRe-export the project and try again.")
+        elif project_state == ProjectState.NOT_ENOUGH_LAYERS:
+            project_error = _("Not enough layers.\n\nRe-export the project and try again.")
+        else:
+            project_error = _("Unknown project error.\n\nCheck the project and try again.")
         #endif
-        return True
-    #endef
 
-
-    def ramdiskCleanup(self):
-        project_files = []
-        for ext in defines.projectExtensions:
-            project_files.extend(glob.glob(defines.ramdiskPath + "/*" + ext))
-        #endfor
-        for project_file in project_files:
-            self.logger.debug("removing '%s'", project_file)
-            try:
-                os.remove(project_file)
-            except Exception as e:
-                self.logger.exception("ramdiskCleanup() exception:")
-            #endtry
-        #endfor
+        sleep(0.5)
+        self.display.pages['error'].setParams(project_error)
+        return False
     #enddef
 
 

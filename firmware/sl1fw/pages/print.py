@@ -55,15 +55,15 @@ class PagePrint(Page):
         #endif
 
         self.lastLayer = expo.actualLayer
-        config = self.display.expo.config
+        project = self.display.expo.project
         calcMM = self.display.hwConfig.calcMM
 
         time_remain_min = self.display.expo.countRemainTime()
         time_elapsed_min = int(round((time() - self.display.expo.printStartTime) / 60))
         positionMM = calcMM(expo.position)
-        percent = int(100 * (self.lastLayer-1) / config.totalLayers)
+        percent = int(100 * (self.lastLayer-1) / project.totalLayers)
         self.logger.info("Layer: %04d/%04d  Height [mm]: %.3f/%.3f  Elapsed [min]: %d  Remain [min]: %d  Percent: %d",
-                self.lastLayer, config.totalLayers, positionMM,
+                self.lastLayer, project.totalLayers, positionMM,
                 self.display.expo.totalHeight, time_elapsed_min, time_remain_min, percent)
 
         remain = None
@@ -86,12 +86,12 @@ class PagePrint(Page):
             'time_remain_min': time_remain_min,
             'time_elapsed_min': time_elapsed_min,
             'current_layer': self.lastLayer,
-            'total_layers': config.totalLayers,
-            'layer_height_first_mm': calcMM(config.layerMicroStepsFirst),
-            'layer_height_mm': calcMM(config.layerMicroSteps),
+            'total_layers': project.totalLayers,
+            'layer_height_first_mm': calcMM(project.layerMicroStepsFirst),
+            'layer_height_mm': calcMM(project.layerMicroSteps),
             'position_mm': positionMM,
             'total_mm': self.display.expo.totalHeight,
-            'project_name': config.projectName,
+            'project_name': project.name,
             'progress': percent,
             'resin_used_ml': expo.resinCount,
             'resin_remaining_ml': remain,

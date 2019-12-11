@@ -31,11 +31,11 @@ class PageFinished(Page):
             expo = self.display.expo
 
             self.data = {
-                'name' : expo.config.projectName,
+                'name' : expo.project.name,
                 'print_time' : expo.printTime,
                 'layers' : expo.actualLayer,
                 'consumed_resin' : expo.resinCount,
-                'project_file' : self.display.expo.config.origin,
+                'project_file' : self.display.expo.project.origin,
                 }
 
             self.display.hw.stopFans()

@@ -42,7 +42,6 @@ class TestExposure(Sl1fwTestCase):
 
     def test_exposure_load(self):
         self.exposure.setProject(TestExposure.PROJECT)
-        self.exposure.parseProject(TestExposure.PROJECT)
         self.exposure.startProjectLoading()
         self.exposure.collectProjectData()
 
