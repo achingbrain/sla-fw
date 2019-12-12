@@ -552,7 +552,7 @@ class Page:
         #endif
 
         sleep(0.5)
-        self.display.pages['error'].setParams(project_error)
+        self.display.pages['error'].setParams(text = project_error)
         return False
     #enddef
 
