@@ -360,8 +360,23 @@ class ExposureThread(threading.Thread):
 
                 self.expo.actualLayer = i + 1
                 self.expo.position += step
-                self.logger.debug("LAYER %04d (%s)  steps: %d  position: %d  time: %.3f  slowLayers: %d",
-                                  self.expo.actualLayer, project.to_print[i], step, self.expo.position, etime, self.expo.slowLayers)
+
+                self.logger.info(
+                    "Layer: %04d/%04d (%s), exposure [sec]: %.3f, slowLayers: %d, height [mm]: %.3f %.3f/%.3f,"
+                    " elapsed [min]: %d, remain [min]: %d, used [ml]: %d, remaining [ml]: %d",
+                    self.expo.actualLayer,
+                    project.totalLayers,
+                    project.to_print[i],
+                    etime,
+                    self.expo.slowLayers,
+                    step,
+                    self.expo.hwConfig.calcMM(self.expo.position),
+                    self.expo.totalHeight,
+                    int(round((time() - self.expo.printStartTime) / 60)),
+                    self.expo.countRemainTime(),
+                    self.expo.resinCount,
+                    self.expo.remain_resin_ml if self.expo.remain_resin_ml else -1
+                )
 
                 if i < 2:
                     overlayName = 'calibPad'

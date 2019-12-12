@@ -59,17 +59,7 @@ class PagePrint(PagePrintBase):
         time_remain_min = expo.countRemainTime()
         time_elapsed_min = int(round((time() - expo.printStartTime) / 60))
         positionMM = calcMM(expo.position)
-        percent = int(100 * (self.lastLayer-1) / project.totalLayers)
-        self.logger.info(
-            "Layer: %04d/%04d  Height [mm]: %.3f/%.3f  Elapsed [min]: %d  Remain [min]: %d  Percent: %d",
-            self.lastLayer,
-            project.totalLayers,
-            positionMM,
-            expo.totalHeight,
-            time_elapsed_min,
-            time_remain_min,
-            percent,
-        )
+        percent = int(100 * (self.lastLayer - 1) / project.totalLayers)
 
         if expo.warn_resin:
             self.display.hw.beepAlarm(1)
@@ -83,7 +73,7 @@ class PagePrint(PagePrintBase):
             layer_height_mm=calcMM(project.layerMicroSteps),
             position_mm=positionMM,
             total_mm=expo.totalHeight,
-            project_name=project.projectName,
+            project_name=project.name,
             progress=percent,
             resin_used_ml=expo.resinCount,
             resin_remaining_ml=expo.remain_resin_ml,
