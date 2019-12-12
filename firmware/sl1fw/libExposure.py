@@ -551,6 +551,7 @@ class Exposure:
 
         self.hw.setTowerProfile('layer')
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
+        self.canceled = False
 
         # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
         self.totalHeight = (self.project.totalLayers - 1) * self.hwConfig.calcMM(
