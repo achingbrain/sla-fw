@@ -33,7 +33,7 @@ class PageUvDataShow(Page):
         if not data:
             data = TomlConfig(defines.uvCalibDataPathFactory).load()
         #endif
-        self.showData(data)
+        return self.showData(data)
     #enddef
 
 
@@ -64,7 +64,7 @@ class PageUvDataShowFactory(PageUvDataShow):
 
     def prepare(self):
         data = TomlConfig(defines.uvCalibDataPathFactory).load()
-        self.showData(data)
+        return self.showData(data)
     #enddef
 
 #endclass
