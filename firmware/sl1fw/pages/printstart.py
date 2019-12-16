@@ -141,13 +141,12 @@ class PagePrintPreviewSwipe(Page):
         fanStartTime = monotonic()
         self.display.hw.startFans()
         self.display.hw.towerSync()
-        self.display.hw.tiltSync()
 
         # Remove old projects from ramdisk
         ramdiskCleanup(self.logger)
         project_state = self.display.expo.project.copyAndCheck()
 
-        while self.display.hw.isTowerMoving() or self.display.hw.isTiltMoving():
+        while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
 
@@ -171,6 +170,8 @@ class PagePrintPreviewSwipe(Page):
                         "Check the printer's hardware."))
             return "error"
         #endif
+
+        self.display.hw.tiltSyncWait()
 
         if not self.display.hw.isTiltSynced():
             self.display.pages['error'].setParams(

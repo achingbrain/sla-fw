@@ -37,7 +37,7 @@ class PageTiltTower(Page):
 
                 'button11' : "Turn motors off",
                 'button12' : "Tune tilt",
-                'button13' : "",
+                'button13' : "Tower sensitivity",
                 'button14' : "Tower offset",
                 'button15' : "",
                 })
@@ -163,7 +163,7 @@ class PageTiltTower(Page):
 
 
     def button13ButtonRelease(self):
-        pass
+        return "towersensitivity"
     #enddef
 
 

@@ -156,7 +156,7 @@ class PageWizardInit(Page):
 
         #tower home check
         pageWait.showItems(line1 = _("Tower home check"))
-        self.display.wizardData.towerSensitivity = 0    # default value
+        self.display.wizardData.towerSensitivity = self.display.hwConfig.towerSensitivity
         for i in range(3):
             if not self.display.hw.towerSyncWait():
                 if not self.display.doMenu("towersensitivity"):
