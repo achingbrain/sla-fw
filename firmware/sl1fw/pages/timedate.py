@@ -3,9 +3,9 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
+from pathlib import Path
 from time import time
-import glob
+
 import pydbus
 
 from sl1fw.pages import page
@@ -136,19 +136,15 @@ class PageSetDate(PageSetTimeBase):
 @page
 class PageSetTimezone(PageTimeDateBase):
     Name = "settimezone"
-    zoneinfo = "/usr/share/zoneinfo/"
+    zone_info = Path("/usr/share/zoneinfo")
 
     def __init__(self, display):
         super(PageSetTimezone, self).__init__(display)
         self.pageUI = "settimezone"
 
         # Available timezones
-        regions = [zone.replace(PageSetTimezone.zoneinfo, "") for zone in glob.glob(os.path.join(PageSetTimezone.zoneinfo, "*"))]
-        self.timezones = {}
-        for region in regions:
-            cities = [os.path.basename(city) for city in glob.glob(os.path.join(PageSetTimezone.zoneinfo, region, "*"))]
-            self.timezones[region] = cities
-
+        regions = self.zone_info.glob("*")
+        self.timezones = {region.name: [city.name for city in region.glob("*") if city.is_file()] for region in regions}
     #enddef
 
 
