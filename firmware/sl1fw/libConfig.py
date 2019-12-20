@@ -576,6 +576,7 @@ class Config(ValueConfig):
     """
 
     VAR_ASSIGN_PATTERN = re.compile(r"(?P<name>\w+) *= *(?P<value>.+)")
+    COMMENT_PATTERN = re.compile(r"#.*")
     ON_YES_PATTERN = re.compile(r"^(on|yes)$")
     OFF_NO_PATTERN = re.compile(r"^(off|no)$")
     NUM_LIST_ONLY = re.compile(r"\A([0-9.-]+ +)+[0-9.-]+\Z")
@@ -687,9 +688,9 @@ class Config(ValueConfig):
         # Split config to lines, process each line separately
         lines = []
         for line in text.split("\n"):
-            # Drop empty lines
+            # Drop empty lines and comments
             line = line.strip()
-            if not line:
+            if not line or self.COMMENT_PATTERN.match(line):
                 continue
 
             # Split line to variable name and value
