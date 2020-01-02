@@ -500,8 +500,9 @@ class Exposure:
         self.warn_resin = False
         self.remain_resin_ml = None
         self.exposure_end: Optional[datetime] = None
-        self.instance_id = self.instance_counter
-        self.instance_counter += 1
+        self.instance_id = Exposure.instance_counter
+        Exposure.instance_counter += 1
+        self.logger.debug("Created new exposure object id: %s", self.instance_id)
     #enddef
 
 

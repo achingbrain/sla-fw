@@ -104,7 +104,7 @@ class Printer:
         self.screen.exit()
         self.hw.exit()
         for obj in self.exposure_dbus_objects:
-            obj.unpublish()
+            obj.unregister()
         #endfor
         self.config0_dbus.unpublish()
     #enddef
@@ -115,10 +115,11 @@ class Printer:
 
         self.expo = Exposure(self.hwConfig, self.hw, self.screen)
         self.logger.debug("Created new exposure object id: %s", self.expo.instance_id)
-        self.exposure_dbus_objects.add(SystemBus().publish(
-            Exposure0.__INTERFACE__,
-            (Exposure0.dbus_path(self.expo.instance_id),
-             Exposure0(self.expo))))
+
+        path = Exposure0.dbus_path(self.expo.instance_id)
+        registration = SystemBus().register_object(path, Exposure0(self.expo), None)
+        self.exposure_dbus_objects.add(registration)
+
         self.display.initExpo(self.expo)
         self.screen.cleanup()
 

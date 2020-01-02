@@ -17,7 +17,7 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self.bus = pydbus.SystemBus()
         self.printer0 = self.bus.get("cz.prusa3d.sl1.printer0")
         path = self.printer0.get_current_exposure()
-        self.exposure0 = self.bus.get("cz.prusa3d.sl1.exposure0", path)
+        self.exposure0 = self.bus.get("cz.prusa3d.sl1.printer0", path)
 
     def test_init(self):
         self.assertEqual(Exposure0State.INIT.value, self.exposure0.state)
