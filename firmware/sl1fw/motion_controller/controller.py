@@ -96,7 +96,7 @@ class MotionController:
 
     @property
     def is_open(self) -> bool:
-        return self._port.is_open
+        return self._port.is_open if self._port else False
 
     def _read_port(self, garbage=False) -> bytes:
         """
