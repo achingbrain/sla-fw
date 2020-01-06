@@ -588,9 +588,6 @@ class Config(ValueConfig):
     # END is (?=\n|$) - positive lookahead, we want \n or $ to follow
     STRING_PATTERN = re.compile(
         r"\A(?!"  # NL(negative lookahead) in form (...|...|...)
-        r"\Atrue\Z|"  # NL part1 - true and end of the line or input
-        r"\Afalse\Z|"  # NL part2 - false and end of the line or input
-        r"\A[0-9.-]+\Z|"  # NL part3 - number at end of the line or input
         r'\A".*"\Z|'  # NL part4 - string already contained in ""
         r"\A\[ *(?:[0-9.-]+ *, *)+[0-9.-]+ *,? *]\Z"  # NL part4 - number list already in []
         r")"  # end of NL
@@ -683,38 +680,7 @@ class Config(ValueConfig):
         :param factory: Whenever to read factory configuration
         """
         # Drop inconsistent newlines, use \n
-        text = text.replace("\r\n", "\n").replace("\r", "\n")
-
-        # Split config to lines, process each line separately
-        lines = []
-        for line in text.split("\n"):
-            # Drop empty lines and comments
-            line = line.strip()
-            if not line or self.COMMENT_PATTERN.match(line):
-                continue
-
-            # Split line to variable name and value
-            match = self.VAR_ASSIGN_PATTERN.match(line)
-            if not match:
-                self._logger.warning("Line ignored as it does not match name=value pattern:\n%s", line)
-                continue
-            name = match.groupdict()["name"].strip()
-            value = match.groupdict()["value"].strip()
-
-            # Substitute on, off, yes, no with true and false
-            value = self.ON_YES_PATTERN.sub("true", value)
-            value = self.OFF_NO_PATTERN.sub("false", value)
-
-            # Wrap number lists in [] and separate numbers by comma
-            if self.NUM_LIST_ONLY.match(value):
-                value = self.NUM_SEP.sub(r", ", value)
-                value = f"[{value}]"
-
-            # Wrap possible strings in ""
-            value = self.STRING_PATTERN.sub(r'"\1"', value)
-
-            lines.append(f"{name} = {value}")
-        text = "\n".join(lines)
+        text = self._normalize_text(text)
         try:
             data = toml.loads(text)
         except toml.TomlDecodeError as exception:
@@ -734,6 +700,59 @@ class Config(ValueConfig):
                 self._logger.exception("Setting config value %s to %s failed" % (val.name, val))
         if data:
             self._logger.warning("Extra data in configuration source: \n %s" % data)
+
+    def _normalize_text(self, text: str) -> str:
+        """
+        Normalize config text
+
+        - Normalize newlines
+        - Fix old config format to toml
+
+        :param text: Raw config text
+        :return: TOML compatible config text
+        """
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Split config to lines, process each line separately
+        lines = []
+        for line in text.split("\n"):
+            # Drop empty lines and comments
+            line = line.strip()
+            if not line or self.COMMENT_PATTERN.match(line):
+                continue
+
+            # Split line to variable name and value
+            match = self.VAR_ASSIGN_PATTERN.match(line)
+            if not match:
+                self._logger.warning("Line ignored as it does not match name=value pattern:\n%s", line)
+                continue
+            name = match.groupdict()["name"].strip()
+            value = match.groupdict()["value"].strip()
+
+            # Obtain possibly matching config value for type hints
+            value_hint = None
+            for val in self._values.values():
+                if val.file_key == name:
+                    value_hint = val
+                elif val.file_key.lower() == name:
+                    value_hint = val
+
+            # Substitute on, off, yes, no with true and false
+            if isinstance(value_hint, BoolValue):
+                value = self.ON_YES_PATTERN.sub("true", value)
+                value = self.OFF_NO_PATTERN.sub("false", value)
+
+            # Wrap number lists in [] and separate numbers by comma
+            if isinstance(value_hint, ListValue) and self.NUM_LIST_ONLY.match(value):
+                value = self.NUM_SEP.sub(r", ", value)
+                value = f"[{value}]"
+
+            # Wrap possible strings in ""
+            if isinstance(value_hint, TextValue):
+                value = self.STRING_PATTERN.sub(r'"\1"', value)
+
+            lines.append(f"{name} = {value}")
+        return "\n".join(lines)
 
     def write(self, file_path: Optional[Path] = None) -> None:
         """

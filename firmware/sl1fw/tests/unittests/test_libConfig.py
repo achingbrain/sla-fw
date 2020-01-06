@@ -11,6 +11,7 @@ from shutil import copyfile
 from sl1fw import defines
 from sl1fw.libConfig import HwConfig, Config, FloatValue, IntListValue, IntValue, BoolValue, \
     FloatListValue, TextValue, ConfigWriter
+from sl1fw.project.config import ProjectConfig
 from sl1fw.tests.base import Sl1fwTestCase
 
 
@@ -345,6 +346,23 @@ class TestConfigHelper(Sl1fwTestCase):
         self.helper.calibrated = True
         self.helper.commit()
         on_change.assert_called_with("calibrated", True)
+
+
+class TestPrintConfig(Sl1fwTestCase):
+    CONFIG_PATH = Path("config.cfg")
+
+    def setUp(self):
+        self.print_config = ProjectConfig()
+        self.print_config.read_file(self.SAMPLES_DIR / "num_name_print_config.ini")
+
+    def test_num_fade(self):
+        self.assertEqual(10, self.print_config.fadeLayers)
+
+    def test_material(self):
+        self.assertEqual(19.292032, self.print_config.usedMaterial)
+
+    def test_name(self):
+        self.assertEqual("123456789", self.print_config.projectName)
 
 
 if __name__ == '__main__':
