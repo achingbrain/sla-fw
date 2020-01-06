@@ -15,7 +15,7 @@ import tarfile
 import shutil
 import distro
 from sl1fw import defines
-from sl1fw.project.functions import ramdiskCleanup
+from sl1fw.project.functions import ramdisk_cleanup
 
 
 class Network:
@@ -186,7 +186,7 @@ class Network:
 
     def download_examples(self, page) -> None:
         # remove old projects from ramdisk, downloader uses another ramdisk but this *may* help in some cases
-        ramdiskCleanup(self.logger)
+        ramdisk_cleanup(self.logger)
         failed = "."
         try:
             if not self.ip:

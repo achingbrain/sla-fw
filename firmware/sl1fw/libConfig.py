@@ -907,8 +907,8 @@ class HwConfig(Config):
     limit4fast = IntValue(45, minimum=0, maximum=100, doc="Fast tearing is used if layer area is under this value. [%]")
 
     @property
-    def whitePixelsThd(self) -> float:
-        return 1440 * 2560 * self.limit4fast / 100.0
+    def whitePixelsThd(self) -> int:
+        return 1440 * 2560 * self.limit4fast // 100
 
     calibTowerOffset = IntValue(
         lambda self: self.calcMicroSteps(defines.defaultTowerOffset),

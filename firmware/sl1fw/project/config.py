@@ -55,12 +55,21 @@ class ProjectConfig(Config):
     calibrateTime = FloatValue(
         1.0, doc="Time added to exposure per calibration region. [seconds]"
     )
-    calibrateRegions = IntValue(0, doc="Number of calibration regions (2, 4, 6, 8, 9), 0 = off")
-    calibrateInfoLayers = IntValue(
-        10, doc="Number of calibration layers that will include the label with exposure time."
+    calibrateRegions = IntValue(0, doc="Number of calibration regions (2, 4, 6, 8, 9, 10), 0 = off")
+    raw_calibrate_text_size = FloatValue(
+        5.0, key="calibrateTextSize", doc="Size of the text on calibration label. [millimeters]"
+    )
+    raw_calibrate_text_thickness = FloatValue(
+        0.5, key="calibrateTextThickness", doc="Thickness of the text on calibration label. [millimeters]"
+    )
+    raw_calibrate_pad_spacing = FloatValue(
+        1.0, key="calibratePadSpacing", doc="Spacing of the pad around the text. [millimeters]"
+    )
+    raw_calibrate_pad_thickness = FloatValue(
+        0.5, key="calibratePadThickness", doc="Thickness of the pad of the calibration label. [millimeters]"
     )
     raw_calibrate_penetration = FloatValue(
-        0.5, key="calibratePenetration", doc="How much to sing calibration text to object. [millimeters]"
+        0.5, key="calibratePenetration", doc="How much to sink the calibration label into the object. [millimeters]"
     )
     raw_calibrate_bbox = IntListValue(
         None, key="calibrateBBox", doc="Bounding box of calibration object: xmin, ymin, xmax, ymax. [pixels]"

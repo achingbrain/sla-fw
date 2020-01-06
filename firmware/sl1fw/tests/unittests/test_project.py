@@ -46,61 +46,78 @@ class TestProject(Sl1fwTestCase):
         project.config.calibrateRegions = 2
         project.expTime = 2.0
         result = [
-                {'time': 2.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth, 'h': defines.screenHeight // 2}},
-                {'time': 3.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth, 'h': defines.screenHeight // 2}},
+                {'stripe': False, 'time': 2.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth, 'h': defines.screenHeight // 2}},
+                {'stripe': False, 'time': 3.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth, 'h': defines.screenHeight // 2}},
                 ]
         self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 2")
 
         project.config.calibrateRegions = 4
         project.expTime = 4.0
         result = [
-                {'time': 4.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2 , 'h': defines.screenHeight // 2}},
-                {'time': 5.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
-                {'time': 6.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2 , 'h': defines.screenHeight // 2}},
-                {'time': 7.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
+                {'stripe': False, 'time': 4.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
+                {'stripe': False, 'time': 5.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
+                {'stripe': False, 'time': 6.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
+                {'stripe': False, 'time': 7.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
                 ]
         self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 4")
 
         project.config.calibrateRegions = 6
         project.expTime = 6.0
         result = [
-                {'time': 6.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2 , 'h': defines.screenHeight // 3}},
-                {'time': 7.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                {'time': 8.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                {'time': 9.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2 , 'h': defines.screenHeight // 3}},
-                {'time': 10.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                {'time': 11.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 6.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 7.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 8.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 9.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 10.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 11.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
                 ]
         self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 6")
 
         project.config.calibrateRegions = 8
         project.expTime = 8.0
         result = [
-                {'time': 8.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2 , 'h': defines.screenHeight // 4}},
-                {'time': 9.0, 'rect': {'x': 0, 'y': defines.screenHeight // 4, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'time': 10.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2 , 'h': defines.screenHeight // 4}},
-                {'time': 11.0, 'rect': {'x': 0, 'y': defines.screenHeight // 4 * 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'time': 12.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2 , 'h': defines.screenHeight // 4}},
-                {'time': 13.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 4, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'time': 14.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2 , 'h': defines.screenHeight // 4}},
-                {'time': 15.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 4 * 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
+                {'stripe': False, 'time': 8.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
+                {'stripe': False, 'time': 9.0, 'rect': {'x': 0, 'y': defines.screenHeight // 4, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
+                {'stripe': False, 'time': 10.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
+                {'stripe': False, 'time': 11.0, 'rect': {'x': 0, 'y': defines.screenHeight // 4 * 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
+                {'stripe': False, 'time': 12.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
+                {'stripe': False, 'time': 13.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 4, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
+                {'stripe': False, 'time': 14.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
+                {'stripe': False, 'time': 15.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 4 * 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
                 ]
         self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 8")
 
         project.config.calibrateRegions = 9
         project.expTime = 9.0
         result = [
-                {'time': 9.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 3 , 'h': defines.screenHeight // 3}},
-                {'time': 10.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'time': 11.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'time': 12.0, 'rect': {'x': defines.screenWidth // 3, 'y': 0, 'w': defines.screenWidth // 3 , 'h': defines.screenHeight // 3}},
-                {'time': 13.0, 'rect': {'x': defines.screenWidth // 3, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'time': 14.0, 'rect': {'x': defines.screenWidth // 3, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'time': 15.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': 0, 'w': defines.screenWidth // 3 , 'h': defines.screenHeight // 3}},
-                {'time': 16.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'time': 17.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 9.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 10.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 11.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 12.0, 'rect': {'x': defines.screenWidth // 3, 'y': 0, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 13.0, 'rect': {'x': defines.screenWidth // 3, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 14.0, 'rect': {'x': defines.screenWidth // 3, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 15.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': 0, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 16.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
+                {'stripe': False, 'time': 17.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
                 ]
         self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 9")
+
+        project.config.calibrateRegions = 10
+        project.expTime = 10.0
+        stripe = defines.screenHeight // 10
+        result = [
+                {'stripe': True, 'time': 10.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 11.0, 'rect': {'x': 0, 'y': 1 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 12.0, 'rect': {'x': 0, 'y': 2 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 13.0, 'rect': {'x': 0, 'y': 3 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 14.0, 'rect': {'x': 0, 'y': 4 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 15.0, 'rect': {'x': 0, 'y': 5 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 16.0, 'rect': {'x': 0, 'y': 6 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 17.0, 'rect': {'x': 0, 'y': 7 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 18.0, 'rect': {'x': 0, 'y': 8 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                {'stripe': True, 'time': 19.0, 'rect': {'x': 0, 'y': 9 * stripe, 'w': defines.screenWidth, 'h': stripe}},
+                ]
+        self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 10")
 
 if __name__ == '__main__':
     unittest.main()

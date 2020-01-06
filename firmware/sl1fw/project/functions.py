@@ -5,11 +5,14 @@
 
 import os
 import glob
+from logging import Logger
+from PIL import Image
+import numpy
 
 from sl1fw import defines
 
 
-def ramdiskCleanup(logger):
+def ramdisk_cleanup(logger: Logger) -> None:
     project_files = []
     for ext in defines.projectExtensions:
         project_files.extend(glob.glob(defines.ramdiskPath + "/*" + ext))
@@ -18,4 +21,8 @@ def ramdiskCleanup(logger):
         try:
             os.remove(project_file)
         except Exception as e:
-            logger.exception("ramdiskCleanup() exception:")
+            logger.exception("ramdisk_cleanup() exception:")
+
+def get_white_pixels(image: Image) -> int:
+    np_array = numpy.array(image.histogram())
+    return int(numpy.sum(np_array[128:]))   # simple treshold

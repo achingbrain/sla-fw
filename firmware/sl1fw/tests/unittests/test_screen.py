@@ -16,7 +16,8 @@ from sl1fw import defines
 
 class TestScreen(Sl1fwTestCase):
     NUMBERS = Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1"
-    CALIBRATION = Sl1fwTestCase.SAMPLES_DIR / "calibration_test.sl1"
+    CALIBRATION = Sl1fwTestCase.SAMPLES_DIR / "Resin_calibration_object.sl1"
+    CALIBRATION10 = Sl1fwTestCase.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"
     ZABA = Sl1fwTestCase.SAMPLES_DIR / "zaba.png"
     FB_DEV = Sl1fwTestCase.TEMP_DIR / "test.fbdev"
     PREVIEW_FILE = Sl1fwTestCase.TEMP_DIR / "live.png"
@@ -115,7 +116,7 @@ class TestScreen(Sl1fwTestCase):
         retcode, perPartes = self.screen.projectStatus()
         self.assertTrue(retcode, "calibPad - retcode")
         self.assertFalse(perPartes, "calibPad - perPartes")
-        self.assertEqual(1704721.0, self.screen.blitImg(second = False), "calibPad - wrong number of white pixels")
+        self.assertEqual(1294398, self.screen.blitImg(second = False), "calibPad - wrong number of white pixels")
         self.assertTrue(filecmp.cmp(self.FB_DEV, self.SAMPLES_DIR / "fbdev" / "calibPad",
             shallow=False), "calibPad - wrong display content")
 
@@ -125,9 +126,29 @@ class TestScreen(Sl1fwTestCase):
 #        retcode, perPartes = self.screen.projectStatus()
 #        self.assertTrue(retcode, "calib - retcode")
 #        self.assertFalse(perPartes, "calib - perPartes")
-#        self.assertEqual(1332082.25, self.screen.blitImg(second = False), "calib - wrong number of white pixels")
+#        self.assertEqual(1154913, self.screen.blitImg(second = False), "calib - wrong number of white pixels")
 #        self.assertTrue(filecmp.cmp(self.FB_DEV, self.SAMPLES_DIR / "fbdev" / "calib",
 #            shallow=False), "calib - wrong display content")
+
+#        del self.params['overlayName']
+        self.params['project'] = TestScreen.CALIBRATION10
+        self.screen.startProject(params = self.params)
+        retcode, perPartes = self.screen.projectStatus()
+        self.assertTrue(retcode, "calibPad10 - retcode")
+        self.assertFalse(perPartes, "calibPad10 - perPartes")
+        self.assertEqual(3585976, self.screen.blitImg(second = False), "calibPad10 - wrong number of white pixels")
+        self.assertTrue(filecmp.cmp(self.FB_DEV, self.SAMPLES_DIR / "fbdev" / "calibPad10",
+            shallow=False), "calibPad10 - wrong display content")
+
+# FIXME it doesn't work on docker image (different results)
+#        self.params['overlayName'] = "calib"
+#        self.screen.startProject(params = self.params)
+#        retcode, perPartes = self.screen.projectStatus()
+#        self.assertTrue(retcode, "calib10 - retcode")
+#        self.assertFalse(perPartes, "calib10 - perPartes")
+#        self.assertEqual(3414636, self.screen.blitImg(second = False), "calib10 - wrong number of white pixels")
+#        self.assertTrue(filecmp.cmp(self.FB_DEV, self.SAMPLES_DIR / "fbdev" / "calib10",
+#            shallow=False), "calib10 - wrong display content")
 
 if __name__ == '__main__':
     unittest.main()

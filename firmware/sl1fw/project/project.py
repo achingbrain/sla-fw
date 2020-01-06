@@ -18,6 +18,7 @@ from PIL import Image
 from sl1fw import defines
 from sl1fw.libConfig import HwConfig
 from sl1fw.project.config import ProjectConfig
+from sl1fw.project.functions import get_white_pixels
 
 
 @unique
@@ -104,8 +105,8 @@ class Project:
         self.to_print.sort()
         self._total_layers = len(self.to_print)
 
-        self.logger.debug("found %d layers", self._total_layers)
-        if self._total_layers < 2:
+        self.logger.debug("found %d layer(s)", self._total_layers)
+        if not self._total_layers:
             return ProjectState.NOT_ENOUGH_LAYERS
         return ProjectState.OK
 
@@ -140,7 +141,7 @@ class Project:
 
     @property
     def layerMicroSteps(self) -> int:
-        if self.config.layerHeight > 0.0099:
+        if self.config.layerHeight > 0.0099:    # min layer height
             return self._hw_config.calcMicroSteps(self.config.layerHeight)
         else:
             # for backward compatibility: 8 mm per turn and stepNum = 40 is 0.05 mm
@@ -148,7 +149,7 @@ class Project:
 
     @property
     def layerMicroSteps2(self) -> int:
-        if self.config.layerHeight2 > 0.0099:
+        if self.config.layerHeight2 > 0.0099:   # min layer height
             return self._hw_config.calcMicroSteps(self.config.layerHeight2)
         else:
             # for backward compatibility: 8 mm per turn and stepNum = 40 is 0.05 mm
@@ -156,7 +157,7 @@ class Project:
 
     @property
     def layerMicroSteps3(self) -> int:
-        if self.config.layerHeight3 > 0.0099:
+        if self.config.layerHeight3 > 0.0099:   # min layer height
             return self._hw_config.calcMicroSteps(self.config.layerHeight3)
         else:
             # for backward compatibility: 8 mm per turn and stepNum = 40 is 0.05 mm
@@ -193,15 +194,27 @@ class Project:
 
     @calibrateRegions.setter
     def calibrateRegions(self, value: int) -> bool:
-        if value not in [0, 2, 4, 6, 8, 9]:
-            self.logger.error("Value %d not in [0, 2, 4, 6, 8, 9]", value)
+        if value not in [0, 2, 4, 6, 8, 9, 10]:
+            self.logger.error("Value %d not in [0, 2, 4, 6, 8, 9, 10]", value)
             return False
         self.config.calibrateRegions = value
         self._calibrate_areas = []
 
     @property
-    def calibrateInfoLayers(self) -> int:
-        return self.config.calibrateInfoLayers
+    def calibrateTextSize(self) -> int:
+        return int(self.config.raw_calibrate_text_size / defines.screenPixelSize)
+
+    @property
+    def calibrateTextThickness(self) -> int:
+        return int(self.config.raw_calibrate_text_thickness / self._hw_config.calcMM(self.layerMicroSteps))
+
+    @property
+    def calibratePadSpacing(self) -> int:
+        return int(self.config.raw_calibrate_pad_spacing / defines.screenPixelSize)
+
+    @property
+    def calibratePadThickness(self) -> int:
+        return int(self.config.raw_calibrate_pad_thickness / self._hw_config.calcMM(self.layerMicroSteps))
 
     @property
     def calibratePenetration(self) -> int:
@@ -235,21 +248,29 @@ class Project:
                 self._calibrate_bbox = bbox
             else:
                 self.logger.debug("bbox analyze started")
-                startTime = time()
-                npArray = numpy.array([], numpy.int32)
-                firstbbox = None
+                start_time = time()
+                np_array = numpy.array([], numpy.int32)
+                new_slow_layers = 0
                 try:
                     # every second image (it's faster and it should be enough)
                     for filename in self.to_print[::2]:
                         img = self.read_image(filename)
                         bbox = img.getbbox()
                         self.logger.debug("'%s' bbox: %s", filename, bbox)
-                        npArray = numpy.append(npArray, bbox)
-                    npArray = numpy.reshape(npArray, (npArray.size//4, 2, 2))
-                    minval = npArray.min(axis = 0)
-                    maxval = npArray.max(axis = 0)
+                        np_array = numpy.append(np_array, bbox)
+                        # TODO labels and pads are ignored, does we need them?
+                        white_pixels = get_white_pixels(img.crop(bbox)) * self.calibrateRegions
+                        self.logger.debug("white_pixels: %s", white_pixels)
+                        if white_pixels > self._hw_config.whitePixelsThd:
+                            new_slow_layers += 2
+                    np_array = numpy.reshape(np_array, (np_array.size//4, 2, 2))
+                    minval = np_array.min(axis = 0)
+                    maxval = np_array.max(axis = 0)
                     self._calibrate_bbox = [minval[0][0], minval[0][1], maxval[1][0], maxval[1][1]]
-                    self.logger.debug("bbox analyze done in %f secs, result: %s", time() - startTime, str(self._calibrate_bbox))
+                    self.logger.debug("bbox analyze done in %f secs, result: %s", time() - start_time, str(self._calibrate_bbox))
+                    self.config.layersSlow = new_slow_layers
+                    self.config.layersFast = self._total_layers - new_slow_layers
+                    self.logger.debug("new layersSlow: %d, new layersFast: %s", self.config.layersSlow, self.config.layersFast)
                 except Exception as e:
                     self.logger.exception("bbox analyze exception:" + str(e))
                     # FIXME warn user (calibration will not work)
@@ -271,7 +292,7 @@ class Project:
                 6 : (3, 2),
                 8 : (4, 2),
                 9 : (3, 3),
-                #10 : (10, 1),  # TODO
+                10 : (10, 1),
                 }
         if self.config.calibrateRegions not in areaMap:
             self.logger.error("bad value calibrateRegions (%d)", self.config.calibrateRegions)
@@ -297,7 +318,7 @@ class Project:
                 h = (j+1) * stepH
                 rect = {'x': lw, 'y': lh, 'w': stepW, 'h': stepH}
                 self.logger.debug("%.1f - %s", etime, str(rect))
-                self._calibrate_areas.append({ 'time' : etime, 'rect' : rect })
+                self._calibrate_areas.append({ 'time': etime, 'rect': rect, 'stripe': self.config.calibrateRegions == 10})
                 etime += self.config.calibrateTime
                 lh = h
             lw = w
@@ -305,15 +326,11 @@ class Project:
 
     @property
     def usedMaterial(self) -> float:
-        return self.config.usedMaterial
-
-    @property
-    def layersSlow(self) -> int:
-        return self.config.layersSlow
-
-    @property
-    def layersFast(self) -> int:
-        return self.config.layersFast
+        used = self.config.usedMaterial
+        if self.config.calibrateRegions:
+            # label consumption is ignored
+            used *= self.config.calibrateRegions
+        return used
 
     @property
     def totalLayers(self) -> int:
@@ -377,7 +394,7 @@ class Project:
             return ProjectState.CANT_READ
         return state
 
-    def read_image(self, filename):
+    def read_image(self, filename: str):
         ''' may raise ZipFile exception '''
         self.data_open()
         self.logger.debug("loading '%s' from '%s'", filename, self.source)
@@ -400,7 +417,7 @@ class Project:
         if self.zf:
             self.zf.close()
 
-    def _check_bbox(self, bbox):
+    def _check_bbox(self, bbox: list):
         if bbox and (len(bbox) != 4 \
                 or bbox[2] < bbox[0] \
                 or bbox[3] < bbox[1] \
@@ -412,3 +429,33 @@ class Project:
                     str(bbox), defines.screenWidth, defines.screenHeight)
             bbox = None
         return bbox
+
+
+    def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0) -> int:
+        time_remain = 0
+        slow_layers = self.config.layersSlow - slow_layers_done
+        if slow_layers < 0:
+            slow_layers = 0
+        fast_layers = self._total_layers - layers_done - slow_layers
+        # first 3 layers with expTimeFirst
+        long1 = 3 - layers_done
+        if long1 > 0:
+            time_remain += long1 * (self.expTimeFirst - self.expTime)
+        #endif
+        # fade layers (approx)
+        long2 = self.fadeLayers + 3 - layers_done
+        if long2 > 0:
+            time_remain += long2 * ((self.expTimeFirst - self.expTime) / 2 - self.expTime)
+        #endif
+        time_remain += fast_layers * self._hw_config.tiltFastTime
+        time_remain += slow_layers * self._hw_config.tiltSlowTime
+
+        # FIXME slice2 and slice3
+        time_remain += (fast_layers + slow_layers) * (
+                self.calibrateRegions * self.calibrateTime
+                + self._hw_config.calcMM(self.layerMicroSteps) * 5  # tower move
+                + self.expTime
+                + self._hw_config.delayBeforeExposure
+                + self._hw_config.delayAfterExposure)
+        self.logger.debug("time_remain: %f", time_remain)
+        return int(round(time_remain / 60))

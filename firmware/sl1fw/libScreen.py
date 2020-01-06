@@ -18,6 +18,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from sl1fw import defines
 from sl1fw.libConfig import HwConfig, ConfigException
 from sl1fw.project.project import Project, ProjectState
+from sl1fw.project.functions import get_white_pixels
 
 
 class ScreenServer(multiprocessing.Process):
@@ -36,7 +37,6 @@ class ScreenServer(multiprocessing.Process):
         self.blackImage = Image.new("L", (self.width, self.height))
         self.whiteImage = Image.new("L", (self.width, self.height), 255)
         self.getImgBlack()
-        self.font = ImageFont.truetype(defines.fontFile, int(5 / defines.screenPixelSize))
         self.overlays = dict()
         self.project = None
         self.perPartes = False
@@ -161,11 +161,7 @@ class ScreenServer(multiprocessing.Process):
         #endtry
 
         if self.project.calibrateAreas:
-            self.createCalibrationOverlays(
-                    self.project.calibratePenetration,
-                    self.project.calibrateAreas,
-                    self.project.firsLayerBBox,
-                    self.project.calibrateBBox)
+            self.createCalibrationOverlays()
         #endif
 
         self.preloadImg(self.project.to_print[0], overlay, hwConfig.whitePixelsThd)
@@ -253,14 +249,11 @@ class ScreenServer(multiprocessing.Process):
 
             startTime = time()
             pixels = numpy.array(self.nextImage1)
-            hist = numpy.histogram(pixels, [0, 51, 102, 153, 204, 255])
             # 1500 layers on 0.1 mm layer height <0:255> -> <0.0:1.0>
             self.usage += numpy.reshape(pixels, defines.displayUsageSize).mean(axis=3).mean(axis=1) / 382500
-            del pixels
-            self.whitePixels = (hist[0][1] * 0.25 + hist[0][2] * 0.5 + hist[0][3] * 0.75 + hist[0][4])
-            self.logger.debug("pixels manipulations done in %f secs, whitePixels: %f", time() - startTime, self.whitePixels)
+            self.whitePixels = get_white_pixels(self.nextImage1)
+            self.logger.debug("pixels manipulations done in %f secs, whitePixels: %d", time() - startTime, self.whitePixels)
 
-            print(self.perPartes, self.whitePixels, whitePixelsThd)
             if self.perPartes and self.whitePixels > whitePixelsThd:
                 self.nextImage2 = self.nextImage1.copy()
                 self.nextImage1.paste(self.blackImage, self.overlays['ppm1'])
@@ -331,12 +324,16 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def createCalibrationOverlays(self, penetration, calibAreas, firstbbox, maxbbox):
+    def createCalibrationOverlays(self):
         calib = Image.new("L", (self.width, self.height))
         calibPad = Image.new("L", (self.width, self.height))
         calibPadDraw = ImageDraw.Draw(calibPad)
-        spacingX = 1.5
-        spacingY = 1.5
+        penetration = self.project.calibratePenetration
+        calibAreas = self.project.calibrateAreas
+        firstbbox = self.project.firsLayerBBox
+        maxbbox = self.project.calibrateBBox
+        spacing = 2 * self.project.calibratePadSpacing
+        font = ImageFont.truetype(defines.fontFile, self.project.calibrateTextSize)
         projSize = list((maxbbox[2] - maxbbox[0], maxbbox[3] - maxbbox[1]))
         self.logger.debug("max bbox: %s  project size: %s", maxbbox, projSize)
         firstPadding = list((firstbbox[0] - maxbbox[0], firstbbox[1] - maxbbox[1], maxbbox[2] - firstbbox[2], maxbbox[3] - firstbbox[3]))
@@ -389,35 +386,54 @@ class ScreenServer(multiprocessing.Process):
         self.pasteData = { 'src' : maxbbox, 'dest' : list() }
 
         for area in calibAreas:
-            text = "%.2f" % area['time']
+            text = "%.1f" % area['time']
             self.logger.debug("text: '%s'", text)
-            textSize = self.font.getsize(text)
-            self.logger.debug("textWidth: %d  textHeight: %d", textSize[0], textSize[1])
+            textSize = font.getsize(text)
+            textOffset = font.getoffset(text)
+            self.logger.debug("textWidth: %d (offset %d)  textHeight: %d (offset %d)",
+                    textSize[0], textOffset[0], textSize[1], textOffset[1])
 
-            padX = int(textSize[0] * spacingX)
-            padY = int(textSize[1] * spacingY)
+            padX = textSize[0] + spacing - textOffset[0]
+            padY = textSize[1] + spacing - textOffset[1]
             self.logger.debug("padX: %d  padY: %d", padX, padY)
 
-            ofsetX = (padX - textSize[0]) // 2
-            ofsetY = (padY - textSize[1]) // 2
+            ofsetX = (padX - textSize[0] - textOffset[0]) // 2
+            ofsetY = (padY - textSize[1] - textOffset[1]) // 2
             self.logger.debug("ofsetX: %d  ofsetY: %d", ofsetX, ofsetY)
 
             areaRect = area['rect']
-            place = areaRect['x'] + (areaRect['w'] - projSize[0]) // 2, areaRect['y'] + (areaRect['h'] - projSize[1]) // 2
+            if area['stripe']:
+                place = 0, areaRect['y'] + (areaRect['h'] - projSize[1]) // 2
+            else:
+                place = areaRect['x'] + (areaRect['w'] - projSize[0]) // 2, areaRect['y'] + (areaRect['h'] - projSize[1]) // 2
+            #endif
             self.logger.debug("placeX: %d  placeY: %d", place[0], place[1])
             self.pasteData['dest'].append(list(place))
 
             firstSizeX = maxbbox[2] - firstPadding[2] - maxbbox[0] - firstPadding[0]
-            startX = areaRect['x'] + (firstSizeX - padX) // 2 + (areaRect['w'] - firstSizeX) // 2
-            startY = place[1] + firstPadding[1] - padY + penetration
-            if startY < areaRect['y']:
-                startY = areaRect['y']
+            if area['stripe']:
+                firstSizeY = maxbbox[3] - firstPadding[3] - maxbbox[1] - firstPadding[1]
+                startX = firstSizeX - penetration
+                startY = areaRect['y'] + (firstSizeY - padX) // 2 + (areaRect['h'] - firstSizeY) // 2
+                if startY < 0:
+                    startY = 0
+                #endif
+            else:
+                startX = areaRect['x'] + (firstSizeX - padX) // 2 + (areaRect['w'] - firstSizeX) // 2
+                startY = place[1] + firstPadding[1] - padY + penetration
+                if startY < areaRect['y']:
+                    startY = areaRect['y']
+                #endif
             #endif
             self.logger.debug("startX: %d  startY: %d", startX, startY)
 
             tmp = Image.new("L", (padX, padY))  # should be "LA"?
             tmpDraw = ImageDraw.Draw(tmp)
-            tmpDraw.text((ofsetX, ofsetY), text, fill = 255, font = self.font)
+            tmpDraw.text((ofsetX, ofsetY), text, fill = 255, font = font, spacing = 0)
+            if area['stripe']:
+                tmp = tmp.transpose(Image.ROTATE_270)
+                padX, padY = padY, padX
+            #endif
             calib.paste(tmp.transpose(Image.FLIP_LEFT_RIGHT), (startX, startY))
             calibPadDraw.rectangle(((startX, startY, startX + padX, startY + padY)), 255)
         #endfor

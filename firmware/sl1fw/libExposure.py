@@ -21,7 +21,7 @@ from sl1fw.exposure_state import ExposureState, TiltFailure, TempSensorFailure, 
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
-from sl1fw.project.functions import ramdiskCleanup
+from sl1fw.project.functions import ramdisk_cleanup
 from sl1fw.project.project import Project, ProjectState
 
 
@@ -140,9 +140,9 @@ class ExposureThread(threading.Thread):
         #endif
 
         if self.expo.hwConfig.tilt:
-            slowMove = bool(whitePixels > self.expo.hwConfig.whitePixelsThd)  # avoid passing numpy bool
-            if slowMove and self.expo.slowLayers:
-                self.expo.slowLayers -= 1
+            slowMove = whitePixels > self.expo.hwConfig.whitePixelsThd
+            if slowMove:
+                self.expo.slowLayersDone += 1
             #endif
             if not self.expo.hw.tiltLayerDownWait(slowMove):
                 return False, whitePixels, temperatures[0], temperatures[1]
@@ -348,7 +348,7 @@ class ExposureThread(threading.Thread):
         #endif
 
         # Remove old projects from ramdisk
-        ramdiskCleanup(self.logger)
+        ramdisk_cleanup(self.logger)
         project_state = self.expo.project.copy_and_check()
 
         # TODO: This is weird, why it it here?
@@ -538,8 +538,11 @@ class ExposureThread(threading.Thread):
         stuck = False
         wasStirring = True
         exposureCompensation = 0.0
+        calibratePadThickness = project.calibratePadThickness
+        calibrateTextThickness = project.calibrateTextThickness
 
         for i in range(totalLayers):
+            ii = i + 1
             try:
                 command = self.commands.get_nowait()
             except queue.Empty:
@@ -620,11 +623,11 @@ class ExposureThread(threading.Thread):
                 self.logger.debug("timeLoss: %0.3f", timeLoss)
                 etime = project.expTimeFirst - (i - 2) * timeLoss
             # standard parameters to first change
-            elif i + 1 < project.slice2:
+            elif ii < project.slice2:
                 step = project.layerMicroSteps
                 etime = project.expTime
             # parameters of second change
-            elif i + 1 < project.slice3:
+            elif ii < project.slice3:
                 step = project.layerMicroSteps2
                 etime = project.expTime2
             # parameters of third change
@@ -636,17 +639,17 @@ class ExposureThread(threading.Thread):
             etime += exposureCompensation
             exposureCompensation = 0.0
 
-            self.expo.actualLayer = i + 1
+            self.expo.actualLayer = ii
             self.expo.position += step
 
             self.logger.info(
-                "Layer: %04d/%04d (%s), exposure [sec]: %.3f, slowLayers: %d, height [mm]: %.3f %.3f/%.3f,"
+                "Layer: %04d/%04d (%s), exposure [sec]: %.3f, slowLayersDone: %d, height [mm]: %.3f %.3f/%.3f,"
                 " elapsed [min]: %d, remain [min]: %d, used [ml]: %d, remaining [ml]: %d",
                 self.expo.actualLayer,
                 project.totalLayers,
                 project.to_print[i],
                 etime,
-                self.expo.slowLayers,
+                self.expo.slowLayersDone,
                 step,
                 self.expo.hwConfig.calcMM(self.expo.position),
                 self.expo.totalHeight,
@@ -656,15 +659,15 @@ class ExposureThread(threading.Thread):
                 self.expo.remain_resin_ml if self.expo.remain_resin_ml else -1
             )
 
-            if i < 2:
+            if ii < calibratePadThickness:
                 overlayName = 'calibPad'
-            elif i < project.calibrateInfoLayers + 2:
+            elif ii < calibratePadThickness + calibrateTextThickness:
                 overlayName = 'calib'
             else:
                 overlayName = None
             #endif
 
-            success, whitePixels, uvTemp, AmbTemp = self.doFrame(project.to_print[i + 1] if i + 1 < totalLayers else None,
+            success, whitePixels, uvTemp, AmbTemp = self.doFrame(project.to_print[ii] if ii < totalLayers else None,
                                                                  self.expo.position + self.expo.hwConfig.calibTowerOffset,
                                                                  etime,
                                                                  overlayName,
@@ -681,7 +684,7 @@ class ExposureThread(threading.Thread):
 
             # exposure second part too
             if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
-                success, dummy, uvTemp, AmbTemp = self.doFrame(project.to_print[i + 1] if i + 1 < totalLayers else None,
+                success, dummy, uvTemp, AmbTemp = self.doFrame(project.to_print[ii] if ii < totalLayers else None,
                                                                self.expo.position + self.expo.hwConfig.calibTowerOffset,
                                                                etime,
                                                                overlayName,
@@ -700,8 +703,8 @@ class ExposureThread(threading.Thread):
             prevWhitePixels = whitePixels
             wasStirring = False
 
-            # /1000 - we want cm3 (=ml) not mm3
-            self.expo.resinCount += float(whitePixels * defines.screenPixelSize ** 2 * self.expo.hwConfig.calcMM(step) / 1000)
+            # /1000.0 - we want cm3 (=ml) not mm3
+            self.expo.resinCount += float(whitePixels * defines.screenPixelSize ** 2 * self.expo.hwConfig.calcMM(step) / 1000.0)
             self.logger.debug("resinCount: %f" % self.expo.resinCount)
 
             seconds = time() - self.expo.printStartTime
@@ -764,7 +767,7 @@ class Exposure:
         self.perPartes = None
         self.position = 0
         self.actualLayer = 0
-        self.slowLayers = 0
+        self.slowLayersDone = 0
         self.totalHeight = None
         self.printStartTime = 0
         self.printTime = 0
@@ -867,7 +870,7 @@ class Exposure:
         self.position = 0
         self.actualLayer = 0
         self.resinCount = 0.0
-        self.slowLayers = self.project.layersSlow    # we need local copy for decrementing
+        self.slowLayersDone = 0
         retcode, self.perPartes = self.screen.projectStatus()
         return retcode
     #enddef
@@ -966,33 +969,13 @@ class Exposure:
         #endif
     #enddef
 
-
     def countRemainTime(self):
-        hwConfig = self.hwConfig
-        timeRemain = 0
-        fastLayers = self.project.totalLayers - self.actualLayer - self.slowLayers
-        # first 3 layers with expTimeFirst
-        long1 = 3 - self.actualLayer
-        if long1 > 0:
-            timeRemain += long1 * (self.project.expTimeFirst - self.project.expTime)
+        if self.project:
+            return self.project.count_remain_time(self.actualLayer, self.slowLayersDone)
+        else:
+            self.logger.warning("No active project to get remainng time")
+            return -1
         #endif
-        # fade layers (approx)
-        long2 = self.project.fadeLayers + 3 - self.actualLayer
-        if long2 > 0:
-            timeRemain += long2 * ((self.project.expTimeFirst - self.project.expTime) / 2 - self.project.expTime)
-        #endif
-        timeRemain += fastLayers * hwConfig.tiltFastTime
-        timeRemain += self.slowLayers * hwConfig.tiltSlowTime
-
-        # FIXME slice2 and slice3
-        timeRemain += (fastLayers + self.slowLayers) * (
-                self.project.calibrateRegions * self.project.calibrateTime
-                + self.hwConfig.calcMM(self.project.layerMicroSteps) * 5  # tower move
-                + self.project.expTime
-                + hwConfig.delayBeforeExposure
-                + hwConfig.delayAfterExposure)
-        self.logger.debug("timeRemain: %f", timeRemain)
-        return int(round(timeRemain / 60))
     #enddef
 
 #endclass
