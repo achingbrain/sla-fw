@@ -164,7 +164,7 @@ class PageUvCalibration(PageUvCalibrationBase):
                 "Do NOT remove the UV meter during measurement. "
                 "Doing so may expose your eyes to harmful UV radiation.\n\n"
                 "Connect the UV meter to the USB port.")
-        if self.display.printer0.factory_mode:
+        if self.display.factory_mode:
             text += _("\n\nCenter intensity: %(cint)d\n"
                 "Minimal edge intensity: %(eint)d\n"
                 "Warm-up time: %(time)d seconds\n"
