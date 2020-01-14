@@ -31,7 +31,7 @@ perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 
 configFile = "config.ini"
 maskFilename = "mask.png"
-projectExtensions = set((".dwz", ".sl1"))
+projectExtensions = {".dwz", ".sl1"}
 lastProjectData = os.path.join(persistentStorage, "last_project.toml")
 statsData = os.path.join(persistentStorage, "stats.toml")
 serviceData = os.path.join(persistentStorage, "service.toml")
@@ -137,3 +137,5 @@ exposure_time_first_min_ms = 10000
 exposure_time_first_max_ms = 120000
 exposure_time_calibrate_min_ms = 500
 exposure_time_calibrate_max_ms = 5000
+
+fan_check_override = testing

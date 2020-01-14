@@ -11,7 +11,7 @@ from time import sleep
 from typing import Optional, List
 
 from sl1fw import defines
-from sl1fw.libConfig import HwConfig
+from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
@@ -20,22 +20,23 @@ from sl1fw.libVirtualDisplay import VirtualDisplay
 from sl1fw.pages import pages
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
+from sl1fw.project.manager import ExposureManager
 
 
 class Display:
 
-    def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network, screen: Screen, factory_mode: bool):
+    def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network, screen: Screen,
+                 runtime_config: RuntimeConfig, exposure_manager: ExposureManager):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.devices = devices
-        self.show_admin = factory_mode
         self.hw = hw
         self.inet = inet
         self.screen = screen
-        self.factory_mode = factory_mode
+        self.runtime_config = runtime_config
         self.wizardData = None
         self.uvcalibData = None
-        self.expo: Optional[Exposure] = None
+        self.exposure_manager = exposure_manager
         self.running = False
 
         # Instantiate pages
@@ -47,13 +48,26 @@ class Display:
         self.actualPageStack = None
         self.actualPage: Page = self.pages['start']
 
-        self.fanErrorOverride = False
-        self.checkCoolingExpo = True
         self.backActions = {"_EXIT_", "_BACK_", "_OK_", "_NOK_"}
         self.waitPageItems = None
         self.forcedPage = None
 
         self.inet.register_net_change_handler(self.assignNetActive)
+    #enddef
+
+
+    @property
+    def expo(self) -> Optional[Exposure]:
+        """
+        Get current exposure
+
+        This is walk-around as common access to the current exposure is as "display.expo"
+
+        TODO: Would be nice if all display users could use exposure manager directly.
+
+        :return: Current exposure
+        """
+        return self.exposure_manager.exposure
     #enddef
 
 
@@ -70,12 +84,6 @@ class Display:
         for device in self.devices:
             device.exit()
         #endfor
-    #enddef
-
-
-    def initExpo(self, expo):
-        # TODO remove cyclic dependency
-        self.expo = expo
     #enddef
 
 

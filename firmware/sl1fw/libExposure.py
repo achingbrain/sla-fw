@@ -9,16 +9,20 @@ import logging
 import queue
 import threading
 from datetime import datetime, timedelta, timezone
-from time import sleep, time
-from typing import Optional, Callable, Any, Set
+from time import sleep, time, monotonic
+from typing import Optional, Callable, Any, Set, List
 
-from sl1fw.project.project import Project
+from deprecated import deprecated
 
 from sl1fw import defines
-from sl1fw.exposure_state import ExposureState
-from sl1fw.libConfig import HwConfig, TomlConfigStats
+from sl1fw.exposure_state import ExposureState, TiltFailure, TempSensorFailure, AmbientTooCold, AmbientTooHot, \
+    ModelMismatchWarning, ProjectFailure, PrintingDirectlyWarning, TowerFailure, FanFailure, ResinFailure, ResinTooLow, \
+    ResinTooHigh, TowerMoveFailure, ExposureWarning, ExposureException, WarningEscalation
+from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
+from sl1fw.project.functions import ramdiskCleanup
+from sl1fw.project.project import Project, ProjectState
 
 
 class ExposureThread(threading.Thread):
@@ -28,6 +32,7 @@ class ExposureThread(threading.Thread):
         self.logger = logging.getLogger(__name__)
         self.commands = commands
         self.expo = expo
+        self._fanCheckStartTime: Optional[float] = None
     #enddef
 
 
@@ -80,6 +85,7 @@ class ExposureThread(threading.Thread):
             if calibAreas:
                 exptime = 1000 * (exposureTime + calibAreas[-1]['time'] - calibAreas[0]['time'])
                 self.expo.hw.uvLed(True, exptime)
+                UVIsOn = True
 
                 for area in calibAreas:
                     while exptime > 1000 * (calibAreas[-1]['time'] - area['time']):
@@ -227,7 +233,7 @@ class ExposureThread(threading.Thread):
         self.expo.hw.powerLed("error")
         self.expo.hw.towerHoldTiltRelease()
         if self.doWait(True) == "back":
-            return False
+            raise TiltFailure()
         #endif
 
         self.expo.hw.powerLed("warn")
@@ -235,237 +241,506 @@ class ExposureThread(threading.Thread):
 
         if not self.expo.hw.tiltSyncWait(retries = 1):
             self.logger.error("Stuck release failed")
-            self.expo.state = ExposureState.TILT_FAILURE
-            self.doWait(True)
-            return False
+            raise TiltFailure()
         #endif
 
         self.expo.state = ExposureState.STIRRING
         self.expo.hw.stirResin()
         self.expo.hw.powerLed("normal")
         self.expo.state = ExposureState.PRINTING
-        return True
     #enddef
 
 
     def run(self):
-        self.logger.debug("Started exposure thread")
+        try:
+            self.logger.debug("Started exposure thread")
+
+            while self.expo.state not in [ExposureState.FAILURE, ExposureState.FINISHED, ExposureState.CANCELED]:
+                command = self.commands.get()
+                if command == "exit":
+                    self.logger.debug("Exiting exposure thread on exit command")
+                    break
+                elif command == "checks":
+                    self._run_checks()
+                elif command == "resin_measure":
+                    self._measure_resin_and_tank_prepare()
+                elif command == "confirm_resin_warning":
+                    self._prepare_tank_and_resin()
+                else:
+                    self.logger.error("Undefined command: \"%s\" ignored", command)
+                #endif
+            #endwhile
+
+            self.logger.debug("Exiting exposure thread on state: %s", self.expo.state)
+        except Exception as exception:
+            self.logger.exception("Exposure thread exception")
+            self.expo.exception = exception
+            self.expo.state = ExposureState.FAILURE
+        #endtry
+    #enddef
+
+
+    def _run_checks(self):
+        self.expo.state = ExposureState.CHECKS
+        self.logger.debug("Running pre-print checks")
+        self._initiate_fans_check()
+        self._check_cover_closed()
+        self._check_temps()
+        self._check_project_data()
+        self._check_start_positions()
+        self._check_fans()
+        if self.expo.state != ExposureState.CHECKS:
+            self.logger.info("Exiting exposure thread due to errors")
+            self.commands.put("exit")
+            return
+        #endif
+
+        if not self.expo.warnings:
+            self._measure_resin_and_tank_prepare()
+        else:
+            self.expo.state = ExposureState.CHECK_WARNING
+        #endif
+    #enddef
+
+
+    def _check_cover_closed(self):
+        while True:
+            if not self.expo.hwConfig.coverCheck or self.expo.hw.isCoverClosed():
+                self.expo.state = ExposureState.CHECKS
+                return
+            #endif
+
+            self.expo.state = ExposureState.COVER_OPEN
+            sleep(0.1)
+        #endwhile
+    #enddef
+
+
+    def _check_temps(self):
+        self.logger.debug("Running temperature checks")
+        temperatures = self.expo.hw.getMcTemperatures()
+        failed = [i for i in range(2) if temperatures[i] < 0]
+        if failed:
+            raise TempSensorFailure(failed)
+        #endif
+
+        if temperatures[1] < defines.minAmbientTemp:
+            self.expo.warnings.append(AmbientTooCold(temperatures[1]))
+        #endif
+
+        if temperatures[1] > defines.maxAmbientTemp:
+            self.expo.warnings.append(AmbientTooHot(temperatures[1]))
+        #endif
+        self.expo.temp_check_result = True
+    #enddef
+
+
+    def _check_project_data(self):
+        self.logger.debug("Running project checks")
+
+        # Raise warning when model or variant does not match the printer
+        if self.expo.project.printerModel != defines.slicerPrinterModel or\
+                self.expo.project.printerVariant != defines.slicerPrinterVariant:
+            self.expo.warnings.append(
+                ModelMismatchWarning(defines.slicerPrinterModel, defines.slicerPrinterVariant,
+                                     self.expo.project.printerModel, self.expo.project.printerVariant)
+            )
+        #endif
+
+        # Remove old projects from ramdisk
+        ramdiskCleanup(self.logger)
+        project_state = self.expo.project.copy_and_check()
+
+        # TODO: This is weird, why it it here?
+        while self.expo.hw.isTowerMoving():
+            sleep(0.25)
+        #endwhile
+
+        if project_state not in (ProjectState.OK, project_state.PRINT_DIRECTLY):
+            self.expo.project_check_result = False
+            raise ProjectFailure(project_state)
+        #endif
+
+        if project_state == project_state.PRINT_DIRECTLY:
+            self.expo.warnings.append(PrintingDirectlyWarning())
+        #endif
+
+        self.expo.project_check_result = True
+    #enddef
+
+
+    def _check_start_positions(self):
+        self.logger.debug("Running start positions hardware checks")
+        self.expo.hw.towerSyncWait()
+        if not self.expo.hw.isTowerSynced():
+            self.expo.start_position_check_result = False
+            raise TowerFailure()
+        #endif
+
+        self.expo.hw.tiltSyncWait()
+
+        if not self.expo.hw.isTiltSynced():
+            self.start_position_check_result = False
+            raise TiltFailure()
+        #endif
+
+        self.expo.hw.setTiltProfile('homingFast')
+        self.expo.hw.tiltUpWait()
+
+        self.expo.start_position_check_result = True
+    #enddef
+
+
+    def _initiate_fans_check(self):
+        """
+        Initiate fans warmup
+        """
+        self._fanCheckStartTime = monotonic()
+        self.expo.hw.startFans()
+    #enddef
+
+
+    def _check_fans(self):
+        self.logger.debug("Running fan checks")
+        # Wait for fans to finish warmup
+        fansRunningTime = monotonic() - self._fanCheckStartTime
+        if fansRunningTime < defines.fanStartStopTime:
+            sleepTime = defines.fanStartStopTime - fansRunningTime
+            self.logger.debug("Waiting %.2f secs for fans", sleepTime)
+            sleep(sleepTime)
+        #endif
+
+        fansState = self.expo.hw.getFansError().values()
+        failed_fans = []
+        if any(fansState) and not defines.fan_check_override:
+            for num, state in enumerate(fansState):
+                if state:
+                    failed_fans.append(num)
+                #endif
+            #endfor
+            self.expo.fans_check_result = False
+            raise FanFailure(failed_fans)
+        #endif
+
+        self.expo.runtime_config.fan_error_override = False
+        self.expo.runtime_config.check_cooling_expo = True
+
+        self.expo.fans_check_result = True
+    #enddef
+
+
+    def _measure_resin_and_tank_prepare(self):
+        self.logger.debug("Entering measure resin")
+        self.expo.state = ExposureState.RESIN_MEASURE_TANK_PREPARE
+
+        self.logger.info(str(self.expo.project))
+
+        # start data preparation by libScreen
+        self.expo.startProjectLoading()
+
+        if self.expo.hwConfig.resinSensor:
+            self._do_measure_resin()
+        else:
+            self._prepare_tank_and_resin()
+        #endif
+    #enddef
+
+
+    def _do_measure_resin(self):
+        self.logger.debug("Running resin measurement")
+
+        volume = self.expo.hw.getResinVolume()
+        self.expo.setResinVolume(volume)
+        sleep(1)
+
+        try:
+            if not volume:
+                raise ResinFailure(volume)
+            elif volume < defines.resinMinVolume:
+                raise ResinTooLow(volume)
+            elif volume > defines.resinMaxVolume:
+                raise ResinTooHigh(volume)
+            #endif
+        except ResinFailure as exception:
+            self.expo.state = ExposureState.GOING_UP_AFTER_FAIL
+            self.expo.hw.setTowerProfile('homingFast')
+            self.expo.hw.towerToTop()
+            while not self.expo.hw.isTowerOnTop():
+                sleep(0.25)
+            #endwhile
+            raise exception
+        #endtry
+
+        self.logger.debug("requested: %d [ml], measured: %d [ml]", self.expo.project.usedMaterial, volume)
+
+        if volume < self.expo.project.usedMaterial:
+            self.logger.debug("Switching to resin warning state")
+            self.expo.state = ExposureState.RESIN_WARNING
+        else:
+            self._prepare_tank_and_resin()
+        #endif
+    #enddef
+
+    def _prepare_tank_and_resin(self):
+        self.logger.debug("Prepare tank and resin")
+        if self.expo.hwConfig.tilt:
+            self.expo.state = ExposureState.TILTING_DOWN
+            self.expo.hw.tiltDownWait()
+        #endif
+
+        self.expo.state = ExposureState.GOING_DOWN
+        self.expo.hw.setTowerProfile('homingFast')
+        self.expo.hw.towerToPosition(0.25)
+        while not self.expo.hw.isTowerOnPosition(retries=2):
+            sleep(0.25)
+        #endwhile
+
+        if self.expo.hw.towerPositonFailed():
+            self.expo.state = ExposureState.GOING_UP_AFTER_FAIL
+            self.expo.hw.setTowerProfile('homingFast')
+            self.expo.hw.towerToTop()
+            while not self.expo.hw.isTowerOnTop():
+                sleep(0.25)
+            #endwhile
+
+            raise TowerMoveFailure()
+        #endif
+
+        if self.expo.hwConfig.tilt:
+            self.expo.state = ExposureState.STIRRING
+            self.expo.hw.stirResin()
+        #endif
+
+        # collect results from libScreen
+        if not self.expo.collectProjectData():
+            self.logger.error("Collect project data failed")
+            raise ProjectFailure(self.expo.project.state)
+        #endif
+
+        self.run_exposure()
+    #enddef
+
+
+    def run_exposure(self):
+        # TODO: Where is this supposed to be called from?
+        self.expo.prepare()
+
+        self.logger.debug("Running exposure")
+        self.expo.state = ExposureState.PRINTING
         self.expo.printStartTime = time()
         statsFile = TomlConfigStats(defines.statsData, self.expo.hw)
         stats = statsFile.load()
         seconds = 0
-        try:
-            project = self.expo.project
-            prevWhitePixels = 0
-            totalLayers = project.totalLayers
-            stuck = False
-            wasStirring = True
-            exposureCompensation = 0.0
 
-            for i in range(totalLayers):
-                try:
-                    command = self.commands.get_nowait()
-                except queue.Empty:
-                    command = None
-                except Exception:
-                    self.logger.exception("getCommand exception")
-                    command = None
-                #endtry
+        project = self.expo.project
+        prevWhitePixels = 0
+        totalLayers = project.totalLayers
+        stuck = False
+        wasStirring = True
+        exposureCompensation = 0.0
 
-                if command == "updown":
-                    self.doUpAndDown()
-                    wasStirring = True
-                    exposureCompensation = self.expo.hwConfig.upAndDownExpoComp / 10.0
+        for i in range(totalLayers):
+            try:
+                command = self.commands.get_nowait()
+            except queue.Empty:
+                command = None
+            except Exception:
+                self.logger.exception("getCommand exception")
+                command = None
+            #endtry
+
+            if command == "updown":
+                self.doUpAndDown()
+                wasStirring = True
+                exposureCompensation = self.expo.hwConfig.upAndDownExpoComp / 10.0
+            #endif
+
+            if command == "exit":
+                break
+            #endif
+
+            if command == "pause":
+                if not self.expo.hwConfig.blinkExposure:
+                    self.expo.hw.uvLed(False)
                 #endif
 
-                if command == "exit":
+                if self.doWait(False) == "exit":
                     break
                 #endif
 
-                if command == "pause":
-                    if not self.expo.hwConfig.blinkExposure:
-                        self.expo.hw.uvLed(False)
-                    #endif
-
-                    if self.doWait(False) == "exit":
-                        break
-                    #endif
-
-                    if not self.expo.hwConfig.blinkExposure:
-                        self.expo.hw.uvLed(True)
-                    #endif
+                if not self.expo.hwConfig.blinkExposure:
+                    self.expo.hw.uvLed(True)
                 #endif
+            #endif
 
-                if self.expo.resinVolume:
-                    self.expo.remain_resin_ml = self.expo.resinVolume - int(self.expo.resinCount)
-                    self.expo.warn_resin = self.expo.remain_resin_ml < defines.resinLowWarn
-                    self.expo.low_resin = self.expo.remain_resin_ml < defines.resinFeedWait
+            if self.expo.resinVolume:
+                self.expo.remain_resin_ml = self.expo.resinVolume - int(self.expo.resinCount)
+                self.expo.warn_resin = self.expo.remain_resin_ml < defines.resinLowWarn
+                self.expo.low_resin = self.expo.remain_resin_ml < defines.resinFeedWait
+            #endif
+
+            if command == "feedme" or self.expo.low_resin:
+                self.expo.hw.powerLed("warn")
+                if self.expo.hwConfig.tilt:
+                    self.expo.hw.tiltLayerUpWait()
                 #endif
+                self.expo.state = ExposureState.FEED_ME
+                self.doWait(self.expo.low_resin)
 
-                if command == "feedme" or self.expo.low_resin:
-                    self.expo.hw.powerLed("warn")
-                    if self.expo.hwConfig.tilt:
-                        self.expo.hw.tiltLayerUpWait()
-                    #endif
-                    self.expo.state = ExposureState.FEED_ME
-                    self.doWait(self.expo.low_resin)
-
-                    if self.expo.hwConfig.tilt:
-                        self.expo.state = ExposureState.STIRRING
-                        self.expo.hw.setTiltProfile('homingFast')
-                        self.expo.hw.tiltDownWait()
-                        self.expo.hw.stirResin()
-                    #endif
-                    wasStirring = True
-                    self.expo.hw.powerLed("normal")
-                    self.expo.state = ExposureState.PRINTING
+                if self.expo.hwConfig.tilt:
+                    self.expo.state = ExposureState.STIRRING
+                    self.expo.hw.setTiltProfile('homingFast')
+                    self.expo.hw.tiltDownWait()
+                    self.expo.hw.stirResin()
                 #endif
+                wasStirring = True
+                self.expo.hw.powerLed("normal")
+                self.expo.state = ExposureState.PRINTING
+            #endif
 
-                if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
-                    self.doUpAndDown()
-                    wasStirring = True
-                    exposureCompensation = self.expo.hwConfig.upAndDownExpoComp / 10.0
-                #endif
+            if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
+                self.doUpAndDown()
+                wasStirring = True
+                exposureCompensation = self.expo.hwConfig.upAndDownExpoComp / 10.0
+            #endif
 
-                # first layer - extra height + extra time
-                if not i:
-                    step = project.layerMicroStepsFirst
-                    etime = project.expTimeFirst
-                # second two layers - normal height + extra time
-                elif i < 3:
-                    step = project.layerMicroSteps
-                    etime = project.expTimeFirst
-                # next project.fadeLayers is fade between project.expTimeFirst and project.expTime
-                elif i < project.fadeLayers + 3:
-                    step = project.layerMicroSteps
-                    # expTimes may be changed during print
-                    timeLoss = (project.expTimeFirst - project.expTime) / float(project.fadeLayers)
-                    self.logger.debug("timeLoss: %0.3f", timeLoss)
-                    etime = project.expTimeFirst - (i - 2) * timeLoss
-                # standard parameters to first change
-                elif i + 1 < project.slice2:
-                    step = project.layerMicroSteps
-                    etime = project.expTime
-                # parameters of second change
-                elif i + 1 < project.slice3:
-                    step = project.layerMicroSteps2
-                    etime = project.expTime2
-                # parameters of third change
-                else:
-                    step = project.layerMicroSteps3
-                    etime = project.expTime3
-                #endif
+            # first layer - extra height + extra time
+            if not i:
+                step = project.layerMicroStepsFirst
+                etime = project.expTimeFirst
+            # second two layers - normal height + extra time
+            elif i < 3:
+                step = project.layerMicroSteps
+                etime = project.expTimeFirst
+            # next project.fadeLayers is fade between project.expTimeFirst and project.expTime
+            elif i < project.fadeLayers + 3:
+                step = project.layerMicroSteps
+                # expTimes may be changed during print
+                timeLoss = (project.expTimeFirst - project.expTime) / float(project.fadeLayers)
+                self.logger.debug("timeLoss: %0.3f", timeLoss)
+                etime = project.expTimeFirst - (i - 2) * timeLoss
+            # standard parameters to first change
+            elif i + 1 < project.slice2:
+                step = project.layerMicroSteps
+                etime = project.expTime
+            # parameters of second change
+            elif i + 1 < project.slice3:
+                step = project.layerMicroSteps2
+                etime = project.expTime2
+            # parameters of third change
+            else:
+                step = project.layerMicroSteps3
+                etime = project.expTime3
+            #endif
 
-                etime += exposureCompensation
-                exposureCompensation = 0.0
+            etime += exposureCompensation
+            exposureCompensation = 0.0
 
-                self.expo.actualLayer = i + 1
-                self.expo.position += step
+            self.expo.actualLayer = i + 1
+            self.expo.position += step
 
-                self.logger.info(
-                    "Layer: %04d/%04d (%s), exposure [sec]: %.3f, slowLayers: %d, height [mm]: %.3f %.3f/%.3f,"
-                    " elapsed [min]: %d, remain [min]: %d, used [ml]: %d, remaining [ml]: %d",
-                    self.expo.actualLayer,
-                    project.totalLayers,
-                    project.to_print[i],
-                    etime,
-                    self.expo.slowLayers,
-                    step,
-                    self.expo.hwConfig.calcMM(self.expo.position),
-                    self.expo.totalHeight,
-                    int(round((time() - self.expo.printStartTime) / 60)),
-                    self.expo.countRemainTime(),
-                    self.expo.resinCount,
-                    self.expo.remain_resin_ml if self.expo.remain_resin_ml else -1
-                )
+            self.logger.info(
+                "Layer: %04d/%04d (%s), exposure [sec]: %.3f, slowLayers: %d, height [mm]: %.3f %.3f/%.3f,"
+                " elapsed [min]: %d, remain [min]: %d, used [ml]: %d, remaining [ml]: %d",
+                self.expo.actualLayer,
+                project.totalLayers,
+                project.to_print[i],
+                etime,
+                self.expo.slowLayers,
+                step,
+                self.expo.hwConfig.calcMM(self.expo.position),
+                self.expo.totalHeight,
+                int(round((time() - self.expo.printStartTime) / 60)),
+                self.expo.countRemainTime(),
+                self.expo.resinCount,
+                self.expo.remain_resin_ml if self.expo.remain_resin_ml else -1
+            )
 
-                if i < 2:
-                    overlayName = 'calibPad'
-                elif i < project.calibrateInfoLayers + 2:
-                    overlayName = 'calib'
-                else:
-                    overlayName = None
-                #endif
+            if i < 2:
+                overlayName = 'calibPad'
+            elif i < project.calibrateInfoLayers + 2:
+                overlayName = 'calib'
+            else:
+                overlayName = None
+            #endif
 
-                success, whitePixels, uvTemp, AmbTemp = self.doFrame(project.to_print[i + 1] if i + 1 < totalLayers else None,
-                                                                     self.expo.position + self.expo.hwConfig.calibTowerOffset,
-                                                                     etime,
-                                                                     overlayName,
-                                                                     prevWhitePixels,
-                                                                     wasStirring,
-                                                                     False)
+            success, whitePixels, uvTemp, AmbTemp = self.doFrame(project.to_print[i + 1] if i + 1 < totalLayers else None,
+                                                                 self.expo.position + self.expo.hwConfig.calibTowerOffset,
+                                                                 etime,
+                                                                 overlayName,
+                                                                 prevWhitePixels,
+                                                                 wasStirring,
+                                                                 False)
+
+            if not success and not self.doStuckRelease():
+                self.expo.hw.powerLed("normal")
+                self.expo.cancel()
+                stuck = True
+                break
+            #endif
+
+            # exposure second part too
+            if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
+                success, dummy, uvTemp, AmbTemp = self.doFrame(project.to_print[i + 1] if i + 1 < totalLayers else None,
+                                                               self.expo.position + self.expo.hwConfig.calibTowerOffset,
+                                                               etime,
+                                                               overlayName,
+                                                               whitePixels,
+                                                               wasStirring,
+                                                               True)
 
                 if not success and not self.doStuckRelease():
-                    self.expo.hw.powerLed("normal")
-                    self.expo.canceled = True
                     stuck = True
                     break
                 #endif
-
-                # exposure second part too
-                if self.expo.perPartes and whitePixels > self.expo.hwConfig.whitePixelsThd:
-                    success, dummy, uvTemp, AmbTemp = self.doFrame(project.to_print[i + 1] if i + 1 < totalLayers else None,
-                                                                   self.expo.position + self.expo.hwConfig.calibTowerOffset,
-                                                                   etime,
-                                                                   overlayName,
-                                                                   whitePixels,
-                                                                   wasStirring,
-                                                                   True)
-
-                    if not success and not self.doStuckRelease():
-                        stuck = True
-                        break
-                    #endif
-                #endif
-
-                self.logger.info("UV temperature [C]: %.1f  Ambient temperature [C]: %.1f", uvTemp, AmbTemp)
-
-                prevWhitePixels = whitePixels
-                wasStirring = False
-
-                # /1000 - we want cm3 (=ml) not mm3
-                self.expo.resinCount += float(whitePixels * defines.screenPixelSize ** 2 * self.expo.hwConfig.calcMM(step) / 1000)
-                self.logger.debug("resinCount: %f" % self.expo.resinCount)
-
-                seconds = time() - self.expo.printStartTime
-                self.expo.printTime = int(seconds / 60)
-
-                if self.expo.hwConfig.trigger:
-                    self.expo.hw.cameraLed(True)
-                    sleep(self.expo.hwConfig.trigger / 10.0)
-                    self.expo.hw.cameraLed(False)
-                #endif
-
-            #endfor
-
-            self.expo.hw.saveUvStatistics()
-            self.expo.hw.uvLed(False)
-
-            if not stuck:
-                self.expo.state = ExposureState.GOING_UP
-                self.expo.hw.setTowerProfile('homingFast')
-                self.expo.hw.towerToTop()
-                while not self.expo.hw.isTowerOnTop():
-                    sleep(0.25)
-                #endwhile
             #endif
 
-            self.logger.info("Job finished - real printing time is %s minutes", self.expo.printTime)
+            self.logger.info("UV temperature [C]: %.1f  Ambient temperature [C]: %.1f", uvTemp, AmbTemp)
 
-            stats['projects'] += 1
-            stats['layers'] += self.expo.actualLayer
-            stats['total_seconds'] += seconds
-            statsFile.save(stats)
-            self.expo.screen.saveDisplayUsage()
+            prevWhitePixels = whitePixels
+            wasStirring = False
 
+            # /1000 - we want cm3 (=ml) not mm3
+            self.expo.resinCount += float(whitePixels * defines.screenPixelSize ** 2 * self.expo.hwConfig.calcMM(step) / 1000)
+            self.logger.debug("resinCount: %f" % self.expo.resinCount)
+
+            seconds = time() - self.expo.printStartTime
+            self.expo.printTime = int(seconds / 60)
+
+            if self.expo.hwConfig.trigger:
+                self.expo.hw.cameraLed(True)
+                sleep(self.expo.hwConfig.trigger / 10.0)
+                self.expo.hw.cameraLed(False)
+            #endif
+
+        #endfor
+
+        self.expo.hw.saveUvStatistics()
+        self.expo.hw.uvLed(False)
+
+        if not stuck:
+            self.expo.state = ExposureState.GOING_UP
+            self.expo.hw.setTowerProfile('homingFast')
+            self.expo.hw.towerToTop()
+            while not self.expo.hw.isTowerOnTop():
+                sleep(0.25)
+            #endwhile
+        #endif
+
+        self.logger.info("Job finished - real printing time is %s minutes", self.expo.printTime)
+
+        stats['projects'] += 1
+        stats['layers'] += self.expo.actualLayer
+        stats['total_seconds'] += seconds
+        statsFile.save(stats)
+        self.expo.screen.saveDisplayUsage()
+
+        if not self.expo.canceled:
             self.expo.state = ExposureState.FINISHED
-
-        except Exception as e:
-            self.logger.exception("Exposure thread exception")
-            self.expo.state = ExposureState.FAILURE
-        #endtry
-
-        self.logger.debug("Exposure thread ended")
+        else:
+            self.expo.state = ExposureState.CANCELED
+        #endif
+        self.logger.debug("Exposure ended")
     #enddef
 
 #endclass
@@ -474,22 +749,21 @@ class ExposureThread(threading.Thread):
 class Exposure:
     instance_counter = 0
 
-    def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen):
+    def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
         self._change_handlers: Set[Callable[[str, Any], None]] = set()
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
+        self.runtime_config = runtime_config
         self.project: Optional[Project] = None
         self.hw = hw
         self.screen = screen
         self.resinCount = 0.0
         self.resinVolume = None
-        self.canceled = False
-        self.expoThread = None
+        self.expoThread: Optional[threading.Thread] = None
         self.zipName = None
         self.perPartes = None
         self.position = 0
         self.actualLayer = 0
-        self.expoCommands = None
         self.slowLayers = 0
         self.totalHeight = None
         self.printStartTime = 0
@@ -502,13 +776,65 @@ class Exposure:
         self.exposure_end: Optional[datetime] = None
         self.instance_id = Exposure.instance_counter
         Exposure.instance_counter += 1
+
+        self.temp_check_result: Optional[bool] = None
+        self.project_check_result: Optional[bool] = None
+        self.start_position_check_result: Optional[bool] = None
+        self.fans_check_result: Optional[bool] = None
+        self.warnings: List[ExposureWarning] = []
+        self.exception: Optional[ExposureException] = None
+        self.canceled = False
+
+        self.expoCommands = queue.Queue()
+        self.expoThread = ExposureThread(self.expoCommands, self)
+
         self.logger.debug("Created new exposure object id: %s", self.instance_id)
     #enddef
 
 
     def setProject(self, project_filename):
+        self.state = ExposureState.READING_DATA
         self.project = Project(self.hwConfig)
-        return self.project.read(project_filename)
+        result = self.project.read(project_filename)
+        if result in [ProjectState.OK, ProjectState.PRINT_DIRECTLY]:
+            self.state = ExposureState.CONFIRM
+        else:
+            raise ProjectFailure(result)
+        #endif
+
+        return result
+    #enddef
+
+
+    def confirm_print_start(self):
+        self.expoThread.start()
+        self.expoCommands.put("checks")
+    #enddef
+
+
+    def confirm_print_warnings(self):
+        self.logger.debug("User confirmed print check warnings")
+        self.doMeasureResin()
+    #enddef
+
+
+    def reject_print_warnings(self):
+        self.logger.debug("User rejected print due to warnings")
+        self.state = ExposureState.FAILURE
+        self.exception = WarningEscalation()
+        self.doExitPrint()
+    #enddef
+
+
+    def cancel(self):
+        self.logger.info("Canceling exposure")
+        self.canceled = True
+        self.doExitPrint()
+    #enddef
+
+    def confirm_resin_warning(self):
+        self.doConfirmResinWarning()
+    #enddef
 
 
     def __setattr__(self, key: str, value: Any):
@@ -534,8 +860,6 @@ class Exposure:
                 'calibrateTime' : self.project.calibrateTime,
                 }
         self.screen.startProject(params = params)
-        self.expoCommands = queue.Queue()
-        self.expoThread = ExposureThread(self.expoCommands, self)
     #enddef
 
 
@@ -550,11 +874,8 @@ class Exposure:
 
 
     def prepare(self):
-        # TODO: This must be a prepare method in exposure
-
         self.hw.setTowerProfile('layer')
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
-        self.canceled = False
 
         # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
         self.totalHeight = (self.project.totalLayers - 1) * self.hwConfig.calcMM(
@@ -567,23 +888,25 @@ class Exposure:
         #endif
     #enddef
 
-
+    @deprecated(reason="Should be obolete, use confirm print start instead")
     def start(self):
         if self.expoThread:
+            self.screen.cleanup()
             self.expoThread.start()
-            self.state = ExposureState.PRINTING
         else:
             self.logger.error("Can't start exposure thread")
         #endif
     #enddef
 
+    @property
+    def in_progress(self):
+        return self.expoThread.is_alive()
+    #enddef
 
-    def inProgress(self):
-        if self.expoThread:
-            return self.expoThread.is_alive()
-        else:
-            return False
-        #endif
+
+    @property
+    def done(self):
+        return self.state in [ExposureState.CANCELED, ExposureState.FINISHED, ExposureState.FAILURE]
     #enddef
 
 
@@ -625,6 +948,15 @@ class Exposure:
         self.expoCommands.put("back")
     #enddef
 
+
+    def doMeasureResin(self):
+        self.expoCommands.put("resin_measure")
+    #enddef
+
+
+    def doConfirmResinWarning(self):
+        self.expoCommands.put("confirm_resin_warning")
+    #enddef
 
     def setResinVolume(self, volume):
         if volume is None:

@@ -199,8 +199,8 @@ class PageAdvancedSettings(Page):
         self._calibTowerOffset_mm = None
 
         self.items.update({
-            'showAdmin': self.display.show_admin,  # TODO: Remove once client uses show_admin
-            'show_admin': self.display.show_admin,
+            'showAdmin': self.display.runtime_config.show_admin,  # TODO: Remove once client uses show_admin
+            'show_admin': self.display.runtime_config.show_admin,
             'tilt_sensitivity': self.tilt_sensitivity,
             'tower_sensitivity': self.tower_sensitivity,
             'fast_tilt_limit': self.fast_tilt_limit,
@@ -418,7 +418,7 @@ class PageAdvancedSettings(Page):
     # Admin
     @confirm_leave
     def adminButtonRelease(self):
-        if self.display.show_admin:
+        if self.display.runtime_config.show_admin:
             return "admin"
         #endif
     #enddef

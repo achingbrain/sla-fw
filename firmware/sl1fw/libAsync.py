@@ -5,16 +5,17 @@
 
 import json
 import logging
-import threading
 import shutil
+import threading
 from abc import ABC, abstractmethod
 
 from sl1fw import defines
-from sl1fw.libDisplay import Display
+from sl1fw.libConfig import RuntimeConfig
+from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
-from sl1fw.slicer.slicer_profile import SlicerProfile
-from sl1fw.slicer.profile_parser import ProfileParser
 from sl1fw.slicer.profile_downloader import ProfileDownloader
+from sl1fw.slicer.profile_parser import ProfileParser
+from sl1fw.slicer.slicer_profile import SlicerProfile
 
 
 class BackgroundNetworkCheck(ABC):
@@ -36,19 +37,20 @@ class BackgroundNetworkCheck(ABC):
 
 
 class AdminCheck(BackgroundNetworkCheck):
-    def __init__(self, display: Display, inet: Network):
-        self.display = display
+    def __init__(self, config: RuntimeConfig, hw: Hardware, inet: Network):
+        self.config = config
+        self.hw = hw
         super().__init__(inet)
 
     def check(self):
         self.logger.info("The network is available, querying admin enabled")
-        query_url = defines.admincheckURL + "/?serial=" + self.display.hw.cpuSerialNo
+        query_url = defines.admincheckURL + "/?serial=" + self.hw.cpuSerialNo
         self.inet.download_url(query_url, defines.admincheckTemp)
 
         with open(defines.admincheckTemp, "r") as file:
             admin_check = json.load(file)
             if admin_check["result"]:
-                self.display.show_admin = True
+                self.config.show_admin = True
                 self.logger.info("Admin enabled")
             else:
                 self.logger.info("Admin not enabled")

@@ -7,6 +7,8 @@ import functools
 from time import monotonic
 from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints
 
+from pydbus import Variant
+
 from sl1fw.api.exceptions import NotAvailableInState, DBusMappingException
 from sl1fw.api.states import Printer0State, Exposure0State
 
@@ -143,6 +145,8 @@ def python_to_dbus_type(python_type: Any) -> str:
         Tuple[int, str, int]: "(isi)",
         DBusObjectPath: "o",
         List[Tuple[str, Dict[str, Any]]]: "a(sa{sv})",
+        Dict[str, Any]: "a{sv}",
+        List[Dict[str, Any]]: "aa{sv}",
     }
 
     if python_type in type_map:
@@ -171,3 +175,12 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
             raise ValueError(f"Unsupported dbus mapping type: {type(obj)}")
     except Exception as exception:
         raise DBusMappingException(f"Failed to generate dbus specification for {name}") from exception
+
+
+def wrap_variant_dict(func: Callable[[Any], Dict[str, Any]]):
+    @functools.wraps(func)
+    def wrap(*args, **kwargs) -> Dict[str, Variant]:
+        return {
+            key: Variant(python_to_dbus_type(type(val)), val) for key, val in func(*args, **kwargs).items()
+        }
+    return wrap

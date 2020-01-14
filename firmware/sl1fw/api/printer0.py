@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import List, Dict, Tuple, TYPE_CHECKING
 
 import distro
@@ -14,6 +15,7 @@ from deprecated import deprecated
 
 from sl1fw import defines
 from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath
+from sl1fw.exposure_state import ExposureState
 from sl1fw.functions import files
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.exposure0 import Exposure0
@@ -39,8 +41,6 @@ class Printer0:
         "exception": Printer0State.EXCEPTION,
         "factoryreset": Printer0State.INITIALIZING,
         "firmwareupdate": Printer0State.UPDATE,
-        "print": Printer0State.PRINTING,
-        "printstart": Printer0State.PRINTING,
         "start": Printer0State.INITIALIZING,
         "unboxingconfirm": Printer0State.UNBOXING,
         "uvcalibration": Printer0State.CALIBRATION,
@@ -63,6 +63,17 @@ class Printer0:
         f"calibration{i}": Printer0State.CALIBRATION for i in range(1, 12)
     })
 
+    @auto_dbus
+    @property
+    @deprecated(reason="Do not rely on current page, use state", action="once")
+    def current_page(self) -> str:
+        """
+        Get current page name
+
+        :return: Current page name
+        """
+        return self.printer.get_actual_page().Name
+
     PAGE_TO_STATE.update({
         f"unboxing{i}": Printer0State.UNBOXING for i in range(1, 6)
     })
@@ -75,35 +86,32 @@ class Printer0:
         self._calibration = None
         self._prints = []
 
+    """
+        :return: Global printer state
+        Get global printer state
+
+        """
     @auto_dbus
     @property
     def state(self) -> int:
-        """
-        Get global printer state
-
-        :return: Global printer state
-        """
         if self._display_test_registration:
             return Printer0State.DISPLAY_TEST.value
 
+        if self.printer.exposure_manager.exposure and not self.printer.exposure_manager.exposure.done:
+            return Printer0State.PRINTING.value
+
         # This is extremely ugly implementation, but currently it is hard to tell what is the printer doing. This
         # identifies current state based on matching current page stack against a state to page mapping.
+        pages = []
         if self.printer.get_actual_page_stack():
-            for p in [p.Name for p in self.printer.get_actual_page_stack()] + [self.printer.get_actual_page().Name]:
-                if p in self.PAGE_TO_STATE:
-                    return self.PAGE_TO_STATE[p].value
+            pages.extend(self.printer.get_actual_page_stack())
+        pages.append(self.printer.get_actual_page())
+
+        for p in [p.Name for p in pages]:
+            if p in self.PAGE_TO_STATE:
+                return self.PAGE_TO_STATE[p].value
+
         return Printer0State.IDLE.value
-
-    @auto_dbus
-    @property
-    @deprecated(reason="Do not rely on current page, use state", action="once")
-    def current_page(self) -> str:
-        """
-        Get current page name
-
-        :return: Current page name
-        """
-        return self.printer.get_actual_page().Name
 
     @auto_dbus
     def beep(self, frequency_hz: int, length_ms:int) -> None:
@@ -477,7 +485,7 @@ class Printer0:
 
         :return: True if in factory mode, False otherwise
         """
-        return self.printer.factoryMode
+        return self.printer.runtime_config.factory_mode
 
     @auto_dbus
     @state_checked([Printer0State.IDLE, Printer0State.DISPLAY_TEST])
@@ -541,15 +549,23 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
-    def print(self, project_path: str, auto_advance: bool) -> None:
-        """Start printing project NOT IMPLEMENTED
+    @state_checked(Printer0State.IDLE)
+    def print(self, project_path: str, auto_advance: bool) -> DBusObjectPath:
+        """
+        Start printing project
 
         :param project_path: Path to project in printer filesystem
-        :param auto_advance: Automatic print, no further questions
+        :param auto_advance: Automatic print, no further questions - NOT SUPPORTED
 
         :returns: Print task object
         """
-        raise NotImplementedError
+        if auto_advance:
+            raise NotImplementedError
+
+        expo = self.printer.exposure_manager.new_exposure(self.printer.hwConfig, self.printer.hw, self.printer.screen,
+                                                          self.printer.runtime_config)
+        expo.setProject(project_path)
+        return Exposure0.dbus_path(expo.instance_id)
 
     @auto_dbus
     def get_current_exposure(self) -> DBusObjectPath:
@@ -558,8 +574,8 @@ class Printer0:
 
         :return: DBus path of the object
         """
-        if self.printer.expo:
-            return Exposure0.dbus_path(self.printer.expo.instance_id)
+        if self.printer.exposure_manager.exposure:
+            return Exposure0.dbus_path(self.printer.exposure_manager.exposure.instance_id)
         else:
             return DBusObjectPath("/")
 
@@ -613,3 +629,19 @@ class Printer0:
         :return: Path as string
         """
         return defines.mediaRootPath
+
+    @auto_dbus
+    def list_projects_raw(self) -> List[str]:
+        """
+        List available projects
+
+        This just lists raw project paths that can be passed to print. No further info. Mainly for testing purposes.
+
+        :return: List of project files with path as list of strings
+        """
+        sources = [Path(defines.internalProjectPath), Path(defines.mediaRootPath)]
+        projects = []
+        for dir in sources:
+            for extension in defines.projectExtensions:
+                projects.extend(dir.rglob(f"*{extension}"))
+        return [str(project) for project in projects]

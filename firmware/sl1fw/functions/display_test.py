@@ -16,12 +16,12 @@ if TYPE_CHECKING:
 
 def start(display: Display):
     display.hw.startFans()
-    display.fanErrorOverride = True
+    display.runtime_config.fan_error_override = True
     display.screen.getImg(filename=str(Path(defines.dataPath) / "logo_1440x2560.png"))
 
 
 def end(display: Display):
-    display.fanErrorOverride = False
+    display.runtime_config.fan_error_override = False
     display.hw.saveUvStatistics()  # TODO: Why ???
     # can't call allOff(), motorsRelease() is harmful for the wizard
     display.screen.getImgBlack()

@@ -7,6 +7,7 @@ import functools
 import logging
 import re
 from abc import abstractmethod, ABC
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, List, Dict, Type, Union, Any, Callable, Set
 from queue import Queue
@@ -1043,3 +1044,14 @@ class TomlConfigStats(TomlConfig):
             # this is not so accurate but better than nothing
             data["total_seconds"] = self.hw.getUvStatistics()[0]
         return data
+
+
+@dataclass
+class RuntimeConfig:
+    """
+    Runtime printer configuration
+    """
+    show_admin: bool = False
+    fan_error_override:bool = False
+    check_cooling_expo:bool = True
+    factory_mode: bool = False

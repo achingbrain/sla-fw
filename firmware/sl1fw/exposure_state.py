@@ -3,24 +3,147 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from enum import Enum, auto
+from dataclasses import dataclass
+from enum import Enum, unique
+from typing import List
+
+from sl1fw.project.project import ProjectState
 
 
+@unique
 class ExposureState(Enum):
-    def _generate_next_value_(self, start, count, last_values):
-        return self
+    INIT = 0
+    READING_DATA = 1
+    CONFIRM = 2
+    CHECKS = 3
+    RESIN_MEASURE_TANK_PREPARE = 4
+    PRINTING = 5
+    GOING_UP = 6
+    GOING_DOWN = 7
+    WAITING = 8
+    COVER_OPEN = 9
+    FEED_ME = 10
+    FAILURE = 11
+    STIRRING = 13
+    PENDING_ACTION = 14
+    FINISHED = 15
+    STUCK = 16
+    STUCK_RECOVERY = 17
+    CHECK_WARNING = 22
+    RESIN_WARNING = 23
+    TILTING_DOWN = 24
+    GOING_UP_AFTER_FAIL = 25
+    CANCELED = 26
 
-    INIT = auto()
-    PRINTING = auto()
-    GOING_UP = auto()
-    GOING_DOWN = auto()
-    WAITING = auto()
-    COVER_OPEN = auto()
-    FEED_ME = auto()
-    FAILURE = auto()
-    TILT_FAILURE = auto()
-    STIRRING = auto()
-    PENDING_ACTION = auto()
-    FINISHED = auto()
-    STUCK = auto()
-    STUCK_RECOVERY = auto()
+@unique
+class ExposureWarningCode(Enum):
+    NONE = -1
+    UNKNOWN = 0
+    AMBIENT_TOO_HOT = 1
+    AMBIENT_TOO_COLD = 2
+    PRINTING_DIRECTLY = 3
+    PRINTER_MODEL_MISMATCH = 4
+
+
+@dataclass
+class ExposureWarning(Warning):
+    CODE = ExposureWarningCode.UNKNOWN
+
+
+@dataclass
+class AmbientTemperatureWarning(ExposureWarning):
+    ambient_temperature: float
+
+
+class AmbientTooHot(AmbientTemperatureWarning):
+    CODE = ExposureWarningCode.AMBIENT_TOO_HOT
+
+
+class AmbientTooCold(AmbientTemperatureWarning):
+    CODE = ExposureWarningCode.AMBIENT_TOO_COLD
+
+
+class PrintingDirectlyWarning(ExposureWarning):
+    CODE = ExposureWarningCode.PRINTING_DIRECTLY
+
+
+@dataclass
+class ModelMismatchWarning(ExposureWarning):
+    CODE = ExposureWarningCode.PRINTING_DIRECTLY
+
+    actual_model: str
+    actual_variant: str
+    project_model: str
+    project_variant: str
+
+
+@unique
+class ExposureExceptionCode(Enum):
+    NONE = -1
+    UNKNOWN = 0
+    TILT_FAILURE = 1
+    TOWER_FAILURE = 2
+    TOWR_MOVE_FAILURE = 3
+    PROJECT_FAILURE = 4
+    TEMP_SENSOR_FAILURE = 5
+    FAN_FAILURE = 6
+    RESIN_SENSOR_FAILURE = 7
+    RESIN_TOO_LOW = 8
+    RESIN_TOO_HIGH = 9
+    WARNING_ESCALATION = 10
+
+
+@dataclass
+class ExposureException(Exception):
+    CODE = ExposureExceptionCode.UNKNOWN
+
+
+class TiltFailure(ExposureException):
+    CODE = ExposureExceptionCode.TILT_FAILURE
+
+
+class TowerFailure(ExposureException):
+    CODE = ExposureExceptionCode.TOWER_FAILURE
+
+
+class TowerMoveFailure(ExposureException):
+    CODE = ExposureExceptionCode.TOWR_MOVE_FAILURE
+
+
+@dataclass
+class ProjectFailure(ExposureException):
+    CODE = ExposureExceptionCode.PROJECT_FAILURE
+
+    project_state: ProjectState
+
+
+@dataclass
+class TempSensorFailure(ExposureException):
+    CODE = ExposureExceptionCode.TEMP_SENSOR_FAILURE
+
+    failed_sensors: List[int]
+
+
+@dataclass
+class FanFailure(ExposureException):
+    CODE = ExposureExceptionCode.FAN_FAILURE
+    failed_fans: List[int]
+
+
+@dataclass
+class ResinFailure(ExposureException):
+    CODE = ExposureExceptionCode.RESIN_SENSOR_FAILURE
+
+    volume: float
+
+
+class ResinTooLow(ResinFailure):
+    CODE = ExposureExceptionCode.RESIN_TOO_LOW
+
+
+class ResinTooHigh(ResinFailure):
+    CODE = ExposureExceptionCode.RESIN_TOO_HIGH
+
+
+class WarningEscalation(ExposureException):
+    CODE = ExposureExceptionCode.WARNING_ESCALATION

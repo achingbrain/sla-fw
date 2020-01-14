@@ -18,7 +18,6 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libPrinter import Printer
-from sl1fw.pages.printstart import PagePrintPreviewSwipe
 from sl1fw.tests.mocks.display import TestDisplay
 
 
@@ -57,6 +56,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")
         defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
         defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
+        defines.fan_check_override = True
 
         # factory reset
         defines.apikeyFile = str(self.API_KEY_FILE)
@@ -66,8 +66,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         os.environ['SDL_AUDIODRIVER'] = "disk"
         os.environ['SDL_DISKAUDIOFILE'] = str(self.SDL_AUDIO_FILE)
-
-        PagePrintPreviewSwipe.FanCheckOverride = True
 
         self.printer = Printer(debugDisplay=self.display)
 

@@ -5,9 +5,7 @@
 
 from __future__ import annotations
 
-import glob
 import logging
-import os
 import subprocess
 from time import sleep
 from typing import TYPE_CHECKING
@@ -16,9 +14,9 @@ import distro
 from deprecated import deprecated
 
 from sl1fw import defines
+from sl1fw.exposure_state import ExposureState
 from sl1fw.functions import files
 from sl1fw.libConfig import ConfigException
-from sl1fw.project.project import ProjectState
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -88,7 +86,7 @@ class Page:
         # renew save path every time when page is shown, it may change
         self.items.update({
             'save_path' : self.getSavePath(),
-            'image_version' : "%s%s" % (distro.version(), _(" (factory mode)") if self.display.factory_mode else ""),
+            'image_version' : "%s%s" % (distro.version(), _(" (factory mode)") if self.display.runtime_config.factory_mode else ""),
             'page_title' : _(self.pageTitle),
             })
 
@@ -309,6 +307,9 @@ class Page:
 
 
     def callback(self):
+        if self.display.exposure_manager.exposure and self.display.exposure_manager.exposure.state == ExposureState.CONFIRM and self.display.actualPage.Name != "printpreviewswipe":
+            self.display.forcePage("printpreviewswipe")
+        #endif
 
         state = False
         if self.checkPowerbutton:
@@ -320,7 +321,7 @@ class Page:
         #endif
 
         if self.display.expo:
-            expoInProgress = self.display.expo.inProgress()
+            expoInProgress = self.display.expo.in_progress
         else:
             expoInProgress = False
         #endif
@@ -330,7 +331,7 @@ class Page:
             self.checkCoverCallback()
         #endif
 
-        if self.checkCooling or (expoInProgress and self.display.checkCoolingExpo):
+        if self.checkCooling or (expoInProgress and self.display.runtime_config.check_cooling_expo):
             state = True
             retc = self.checkCoolingCallback(expoInProgress)
             if retc:
@@ -415,7 +416,7 @@ class Page:
         if temp < 0:
             if expoInProgress:
                 self.display.expo.doPause()
-                self.display.checkCoolingExpo = False
+                self.display.runtime_config.check_cooling_expo = False
                 backFce = self.exitPrint
                 addText = _("Current job will be canceled.")
             else:
@@ -458,7 +459,7 @@ class Page:
         #endif
 
         # fans test
-        if not self.display.hwConfig.fanCheck or self.display.fanErrorOverride:
+        if not self.display.hwConfig.fanCheck or self.display.runtime_config.fan_error_override:
             return
         #endif
 
@@ -472,7 +473,7 @@ class Page:
             #endfor
             self.logger.error("Detected fan failure: %s", failedFans)
 
-            self.display.fanErrorOverride = True
+            self.display.runtime_config.fan_error_override = True
 
             if expoInProgress:
                 backFce = self.exitPrint
@@ -528,32 +529,15 @@ class Page:
 
 
     def exitPrint(self):
-        self.display.expo.doExitPrint()
-        self.display.expo.canceled = True
-        self.display.setWaitPage(line1 = _("Job will be canceled after layer finish"))
+        self.display.expo.cancel()
         return "_SELF_"
     #enddef
 
 
-    def loadProject(self, project_filename: str):
-        pageWait = self.display.makeWait(self.display, line1 = _("Reading project data"))
-        pageWait.show()
-        project_state = self.display.expo.setProject(project_filename)
-        if project_state == ProjectState.OK:
-            return True
-        elif project_state == ProjectState.NOT_FOUND:
-            project_error = _("Project file not found.\n\nCheck it and try again.")
-        elif project_state == ProjectState.CANT_READ:
-            project_error = _("Can't read project data.\n\nRe-export the project and try again.")
-        elif project_state == ProjectState.NOT_ENOUGH_LAYERS:
-            project_error = _("Not enough layers.\n\nRe-export the project and try again.")
-        else:
-            project_error = _("Unknown project error.\n\nCheck the project and try again.")
-        #endif
-
-        sleep(0.5)
-        self.display.pages['error'].setParams(text = project_error)
-        return False
+    def loadProject(self, project_filename: str) -> None:
+        self.display.exposure_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.screen,
+                                                   self.display.runtime_config)
+        self.display.expo.setProject(project_filename)
     #enddef
 
 

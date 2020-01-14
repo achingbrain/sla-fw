@@ -11,7 +11,7 @@ from mock import Mock
 from sl1fw.tests.base import Sl1fwTestCase
 
 from sl1fw.libExposure import Exposure
-from sl1fw.libConfig import HwConfig
+from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw import defines
 
 
@@ -27,13 +27,14 @@ class TestExposure(Sl1fwTestCase):
         defines.statsData = str(Sl1fwTestCase.TEMP_DIR / "stats.toml")
 
         hw_config = HwConfig()
+        runtime_config = RuntimeConfig()
         hw = Mock()
         hw.getUvLedState.return_value = (False, 0)
         hw.getUvStatistics.return_value = (6912,)
         screen = Mock()
         screen.blitImg.return_value = 100
         screen.projectStatus.return_value = True, False
-        self.exposure = Exposure(hw_config, hw, screen)
+        self.exposure = Exposure(hw_config, hw, screen, runtime_config)
 
     def test_exposure_init(self):
         pass

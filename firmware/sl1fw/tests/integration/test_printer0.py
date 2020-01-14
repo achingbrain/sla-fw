@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+from pathlib import Path
 from time import sleep
 
 import pydbus
@@ -119,6 +120,18 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
 
     def test_save_logs(self):
         self.assertRaises(Exception, self.printer0.save_logs_to_usb)
+
+    def test_project_list_raw(self):
+        project_list = self.printer0.list_projects_raw()
+        self.assertTrue(project_list)
+        for project in project_list:
+            self.assertTrue(Path(project).is_file())
+            self.assertRegex(Path(project).name, ".*\.sl1")
+
+    def test_print_start(self):
+        path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)
+        self.assertNotEqual(path, "/")
+        self.assertEqual(Printer0State.PRINTING, Printer0State(self.printer0.state))
 
 
 if __name__ == '__main__':

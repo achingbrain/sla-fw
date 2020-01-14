@@ -4,13 +4,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from sl1fw import defines
+from sl1fw.exposure_state import ExposureState
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.home import PageHome
 from sl1fw.pages.sourceselect import PageSrcSelect
-from sl1fw.pages.printstart import PagePrintPreviewSwipe
-from sl1fw.pages.error import PageError
 
 
 @page
@@ -40,7 +39,7 @@ class PageFinished(Page):
 
             self.display.hw.stopFans()
             self.display.hw.motorsRelease()
-            if self.display.hwConfig.autoOff and not expo.canceled:
+            if self.display.hwConfig.autoOff and not expo.state == ExposureState.CANCELED:
                 if not TomlConfig(defines.lastProjectData).save(self.data):
                     self.logger.error("Last project data was not saved!")
                 #endif
@@ -69,11 +68,8 @@ class PageFinished(Page):
 
 
     def reprintButtonRelease(self):
-        if not self.loadProject(self.data['project_file']):
-            return PageError.Name
-        else:
-            return PagePrintPreviewSwipe.Name
-        #endif
+        self.loadProject(self.data['project_file'])
+        return "reading"
     #enddef
 
 

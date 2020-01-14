@@ -3,18 +3,17 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
+import multiprocessing
 import os
 import signal
-import logging
-from time import time
-import multiprocessing
-from queue import Empty
-from io import BytesIO
 import subprocess
 from pathlib import Path
+from queue import Empty
+from time import time
 
-from PIL import Image, ImageDraw, ImageFont, ImageOps
 import numpy
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from sl1fw import defines
 from sl1fw.libConfig import HwConfig, ConfigException

@@ -9,7 +9,7 @@ import shutil
 from time import time
 from datetime import datetime, timezone
 from pathlib import Path
-from enum import IntEnum, unique
+from enum import Enum, unique
 import zipfile
 from io import BytesIO
 import numpy
@@ -21,7 +21,8 @@ from sl1fw.project.config import ProjectConfig
 
 
 @unique
-class ProjectState(IntEnum):
+class ProjectState(Enum):
+    UNINITIALIZED = -1
     OK = 0
     NOT_FOUND = 1
     CANT_READ = 2
@@ -40,6 +41,7 @@ class Project:
         self.source = None
         self.zf = None
         self.mode_warn = True
+        self.state = ProjectState.UNINITIALIZED
         self.to_print = []
         self._total_layers = 0
         self._calibrate_areas = []
@@ -65,6 +67,10 @@ class Project:
         return project_data
 
     def read(self, project_file: str) -> ProjectState:
+        self.state = self._read(project_file)
+        return self.state
+
+    def _read(self, project_file: str) -> ProjectState:
         self.logger.debug("Opening project file '%s'", project_file)
         self.origin = None
         self.source = None

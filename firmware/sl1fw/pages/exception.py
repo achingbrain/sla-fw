@@ -31,7 +31,7 @@ class PageException(Page):
 
 
     def callback(self) -> None:
-        if self.display.expo and self.display.expo.inProgress():
+        if self.display.expo and self.display.expo.in_progress:
             return
         #endif
 

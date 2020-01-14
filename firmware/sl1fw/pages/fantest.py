@@ -82,7 +82,7 @@ class PageFanTest(Page):
     #enddef
 
     def leave(self):
-        self.display.fanErrorOverride = False
+        self.display.runtime_config.fan_error_override = False
         self.display.hw.stopFans()
     #enddef
 

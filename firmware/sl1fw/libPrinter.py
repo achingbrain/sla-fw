@@ -10,7 +10,6 @@ import re
 import threading
 from pathlib import Path
 from time import sleep, monotonic
-from typing import Optional
 
 import distro
 from pydbus import SystemBus
@@ -18,14 +17,13 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.config0 import Config0
-from sl1fw.api.exposure0 import Exposure0
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
-from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig
-from sl1fw.libExposure import Exposure
+from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig, RuntimeConfig
 from sl1fw.libHardware import MotConComState
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
+from sl1fw.project.manager import ExposureManager
 from sl1fw.slicer.profile_parser import ProfileParser
 
 
@@ -40,8 +38,7 @@ class Printer:
         self.slicer_profile_updater = None
         self.running = True
         self.firstRun = True
-        self.expo: Optional[Exposure] = None
-        self.exposure_dbus_objects = set()
+        self.exposure_manager = ExposureManager()
         self.exited = threading.Event()
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
@@ -50,7 +47,8 @@ class Printer:
         self.hwConfig = HwConfig(file_path=Path(defines.hwConfigFile),
                                  factory_file_path=Path(defines.hwConfigFactoryDefaultsFile),
                                  is_master=True)
-        self.factoryMode = TomlConfig(defines.factoryConfigFile).load().get('factoryMode', False)
+        self.runtime_config = RuntimeConfig()
+        self.runtime_config.factory_mode = TomlConfig(defines.factoryConfigFile).load().get('factoryMode', False)
         try:
             self.hwConfig.read_file()
         except ConfigException:
@@ -92,7 +90,8 @@ class Printer:
 
         self.logger.debug("Initializing libDisplay")
         from sl1fw.libDisplay import Display
-        self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.factoryMode)
+        self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.runtime_config,
+                               self.exposure_manager)
 
         self.logger.debug(f"SL1 firmware initialized in {monotonic() - init_time}")
     #endclass
@@ -103,25 +102,13 @@ class Printer:
         self.exited.wait(timeout=60)
         self.screen.exit()
         self.hw.exit()
-        for obj in self.exposure_dbus_objects:
-            obj.unregister()
-        #endfor
+        self.exposure_manager.exit()
         self.config0_dbus.unpublish()
     #enddef
 
     def printer_run(self):
         self.hw.uvLed(False)
         self.hw.powerLed("normal")
-
-        self.expo = Exposure(self.hwConfig, self.hw, self.screen)
-        self.logger.debug("Created new exposure object id: %s", self.expo.instance_id)
-
-        path = Exposure0.dbus_path(self.expo.instance_id)
-        registration = SystemBus().register_object(path, Exposure0(self.expo), None)
-        self.exposure_dbus_objects.add(registration)
-
-        self.display.initExpo(self.expo)
-        self.screen.cleanup()
 
         if self.hw.checkFailedBoot():
             self.display.pages['error'].setParams(
@@ -143,7 +130,7 @@ class Printer:
                 self.display.doMenu("error")
             #endif
 
-            if self.factoryMode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
+            if self.runtime_config.factory_mode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
                 self.display.pages['error'].setParams(
                     text=_("Examples (any projects) are missing in the user storage."))
                 self.display.doMenu("error")
@@ -225,8 +212,8 @@ class Printer:
             self.logger.debug("Starting libScreen")
             self.screen.start()
             self.logger.debug("Starting admin checker")
-            if not self.factoryMode:
-                self.admin_check = AdminCheck(self.display, self.inet)
+            if not self.runtime_config.factory_mode:
+                self.admin_check = AdminCheck(self.runtime_config, self.hw, self.inet)
             #endif
             self.logger.debug("Loading slicer profiles")
             self.slicer_profile = ProfileParser().parse(defines.slicerProfilesFile)
@@ -273,8 +260,8 @@ class Printer:
             self.display.doMenu("exception")
         #endtry
 
-        if self.expo and self.expo.inProgress():
-            self.expo.waitDone()
+        if self.exposure_manager.exposure and self.exposure_manager.exposure.in_progress:
+            self.exposure_manager.exposure.waitDone()
         #endif
 
         self.exited.set()

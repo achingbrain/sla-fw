@@ -499,7 +499,7 @@ class PageWizardResinSensor(Page):
         savedData = wizardConfig.load()
 
         # store data only in factory mode or not saved before
-        if self.display.factory_mode or not savedData:
+        if self.display.runtime_config.factory_mode or not savedData:
             self.display.wizardData.osVersion = distro.version()
             self.display.wizardData.a64SerialNo = self.display.hw.cpuSerialNo
             self.display.wizardData.mcSerialNo = self.display.hw.mcSerialNo

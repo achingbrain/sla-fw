@@ -147,8 +147,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
     def test_factory_reset_factory_complete(self):
         self.printer.hw.boardData = ("TEST complete", False)
-        self.printer.factoryMode = True
-        self.printer.display.factory_mode = True
+        self.printer.runtime_config.factory_mode = True
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
@@ -163,8 +162,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
     def test_factory_reset_factory_kit(self):
         self.printer.hw.boardData = ("TEST kit", True)
-        self.printer.factoryMode = True
-        self.printer.display.factory_mode = True
+        self.printer.runtime_config.factory_mode = True
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
@@ -177,8 +175,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
     def test_factory_reset_user_complete(self):
         self.printer.hw.boardData = ("TEST complete", False)
-        self.printer.factoryMode = False
-        self.printer.display.factory_mode = False
+        self.printer.runtime_config.factory_mode = False
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
@@ -191,8 +188,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
     def test_factory_reset_user_kit(self):
         self.printer.hw.boardData = ("TEST kit", True)
-        self.printer.factoryMode = False
-        self.printer.display.factory_mode = False
+        self.printer.runtime_config.factory_mode = False
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
@@ -253,11 +249,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("back")
         self.waitPage("printpreviewswipe")
         self.press("cont")
-        self.waitPage("wait", timeout_sec=30)
-        self.waitPage("wait", timeout_sec=30)   # checking project and HW
-        self.waitPage("wait", timeout_sec=30)   # resin measure
-        self.waitPage("print", timeout_sec=30)  # Actual printing
-        self.waitPage("wait", timeout_sec=240)  # Moving platform to the top
+        self.waitPage("wait", timeout_sec=45) # checks
+        self.waitPage("wait", timeout_sec=30) # moving tilt down
+        self.waitPage("wait", timeout_sec=30) # moving tower down
+        self.waitPage("wait", timeout_sec=30) # stirring resin
+        self.waitPage("print", timeout_sec=30) # printing
+        self.waitPage("wait", timeout_sec=240) # moving platform to the top
         self.waitPage("finished", timeout_sec=30)
         # auto off enabled
 

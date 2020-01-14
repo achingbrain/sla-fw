@@ -12,7 +12,6 @@ from sl1fw.slicer.profile_parser import ProfileParser
 from sl1fw.slicer.profile_downloader import ProfileDownloader
 from sl1fw.libNetwork import Network
 
-from sl1fw import defines
 
 class TestSlicerProfiles(Sl1fwTestCase):
     FILENAME = Sl1fwTestCase.SAMPLES_DIR / "slicer_profiles.ini"

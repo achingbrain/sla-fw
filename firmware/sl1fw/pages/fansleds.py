@@ -193,7 +193,7 @@ class PageFansLeds(Page):
     def state1g1ButtonRelease(self):
         self._onOff(self.temp, self.changed, 0, 'fs1')
         self.display.hw.setFans({ 0 : self.temp['fs1'] })
-        self.display.fanErrorOverride = False
+        self.display.runtime_config.fan_error_override = False
         self.oldValues['state1g1'] = self.temp['fs1']
     #enddef
 
@@ -201,7 +201,7 @@ class PageFansLeds(Page):
     def state1g2ButtonRelease(self):
         self._onOff(self.temp, self.changed, 1, 'fs2')
         self.display.hw.setFans({ 1: self.temp['fs2'] })
-        self.display.fanErrorOverride = False
+        self.display.runtime_config.fan_error_override = False
         self.oldValues['state1g2'] = self.temp['fs2']
     #enddef
 
@@ -209,7 +209,7 @@ class PageFansLeds(Page):
     def state1g3ButtonRelease(self):
         self._onOff(self.temp, self.changed, 2, 'fs3')
         self.display.hw.setFans({ 2 : self.temp['fs3'] })
-        self.display.fanErrorOverride = False
+        self.display.runtime_config.fan_error_override = False
         self.oldValues['state1g3'] = self.temp['fs3']
     #enddef
 

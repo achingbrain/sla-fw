@@ -3,16 +3,18 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any
+from typing import Any, Dict, List
 
 from deprecated import deprecated
 from pydbus.generic import signal
 
 from sl1fw import defines
-from sl1fw.api.decorators import dbus_api, DBusObjectPath, auto_dbus, state_checked, range_checked
-from sl1fw.api.states import Exposure0State
+from sl1fw.api.decorators import dbus_api, DBusObjectPath, auto_dbus, state_checked, range_checked, wrap_variant_dict
+from sl1fw.api.states import Exposure0State, Exposure0ProjectState
+from sl1fw.exposure_state import ExposureExceptionCode, ExposureException, ExposureWarningCode, ExposureWarning
 from sl1fw.libExposure import Exposure
 
 
@@ -22,7 +24,7 @@ class Exposure0:
     Exposure dbus interface
 
     This is first draft. This should contain all data current pages do contain plus some new stuff that should be enough
-    to mimic wait pages and the similar stuff.
+    to mimic wait pages and similar stuff.
 
     Most of the functions should be deprecated and replaced by ones returning values in sane units.
     remaining minutes -> expected end timestamp, ...
@@ -38,6 +40,124 @@ class Exposure0:
     def __init__(self, exposure: Exposure):
         self.exposure = exposure
         self.exposure.add_onchange_handler(self._handle_change)
+
+    @auto_dbus
+    @state_checked(Exposure0State.CONFIRM)
+    def confirm_start(self) -> None:
+        """
+        Confirm exposure start
+
+        :return: None
+        """
+        self.exposure.confirm_print_start()
+
+    @auto_dbus
+    @state_checked(Exposure0State.CHECK_WARNING)
+    def confirm_print_warnings(self) -> None:
+        """
+        Confirm print continue despite of warnings
+
+        :return: None
+        """
+        self.exposure.confirm_print_warnings()
+
+    @auto_dbus
+    @state_checked(Exposure0State.CHECK_WARNING)
+    def reject_print_warnings(self) -> None:
+        """
+        Escalate warning to error and cancel print
+
+        :return: None
+        """
+        self.exposure.reject_print_warnings()
+
+    @auto_dbus
+    @state_checked(Exposure0State.RESIN_WARNING)
+    def confirm_resin_warning(self) -> None:
+        """
+        Confirm print continue despite of resin warning
+        :return: None
+        """
+        self.exposure.confirm_resin_warning()
+
+    @auto_dbus
+    @property
+    def exposure_warnings(self) -> List[Dict[str, Any]]:
+        """
+        Get current list of exposure warnings
+
+        Each exposure warning is represented as dictionary str -> variant
+        {
+            "code": code , see ExposureWarningCode
+            "code_specific_feature1": value1
+            "code_specific_feature2": value2
+            ...
+        }
+
+        :return: List of warning dictionaries
+        """
+        return [self._process_warning(warning) for warning in self.exposure.warnings]
+
+    @wrap_variant_dict
+    def _process_warning(self, warning: ExposureWarning) -> Dict[str, Any]:
+        if not warning:
+            return {
+                "code": ExposureWarningCode.NONE.value
+            }
+
+        if isinstance(warning, ExposureWarning):
+            ret = {
+                "code": warning.CODE.value
+            }
+            ret.update(asdict(warning))
+            return ret
+
+        return {
+            "code": ExposureWarningCode.UNKNOWN.value
+        }
+
+    @auto_dbus
+    @property
+    @wrap_variant_dict
+    def exposure_exception(self) -> Dict[str, Any]:
+        """
+        Get current exposure exception
+
+        Exposure exception is represented as dictionary str -> variant
+        {
+            "code": code , see ExposureExceptionCode
+            "code_specific_feature1": value1
+            "code_specific_feature2": value2
+            ...
+        }
+
+        :return: Exception dictionary
+        """
+        if not self.exposure.exception:
+            return {
+                "code": ExposureExceptionCode.NONE.value
+            }
+
+        if isinstance(self.exposure.exception, ExposureException):
+            ret = {
+                "code": self.exposure.exception.CODE.value
+            }
+            ret.update(asdict(self.exposure.exception))
+            return ret
+
+        return {
+            "code": ExposureExceptionCode.UNKNOWN.value
+        }
+
+    @auto_dbus
+    @property
+    def project_state(self) -> int:
+        """
+        State of source project data
+
+        :return: Exposure0ProjectState as integer
+        """
+        return Exposure0ProjectState.from_project(self.exposure.project.state).value
 
     @auto_dbus
     @property
@@ -194,7 +314,7 @@ class Exposure0:
 
         :return: Name as string
         """
-        return self.exposure.project.projectName
+        return self.exposure.project.name
 
     @auto_dbus
     @property
@@ -204,7 +324,7 @@ class Exposure0:
 
         :return: Project file with path
         """
-        return self.exposure.zipName
+        return self.exposure.project.source
 
     @auto_dbus
     @property
@@ -214,7 +334,10 @@ class Exposure0:
 
         :return: Percentage 0 - 100
         """
-        return 100 * (self.exposure.actualLayer - 1) / self.exposure.project.totalLayers
+        if self.exposure.in_progress:
+            return 100 * (self.exposure.actualLayer - 1) / self.exposure.project.totalLayers
+        else:
+            return 100
 
     @auto_dbus
     @property
@@ -307,6 +430,7 @@ class Exposure0:
         self.exposure.doUpAndDown()
 
     @auto_dbus
+    @deprecated(reason="Use cancel method instead")
     @state_checked(Exposure0State.PRINTING)
     def exit_print(self) -> None:
         """
@@ -314,7 +438,17 @@ class Exposure0:
 
         :return: None
         """
-        self.exposure.doExitPrint()
+        self.exposure.cancel()
+
+    @auto_dbus
+    @state_checked([Exposure0State.PRINTING, Exposure0State.CHECKS, Exposure0State.CONFIRM, Exposure0State.COVER_OPEN])
+    def cancel(self) -> None:
+        """
+        Cancel print
+
+        :return: None
+        """
+        self.exposure.cancel()
 
     @auto_dbus
     @state_checked(Exposure0State.PRINTING)

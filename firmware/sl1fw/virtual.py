@@ -42,13 +42,12 @@ builtins.N_ = lambda x: x
 
 from sl1fw import libPrinter
 from sl1fw.api.printer0 import Printer0
-from sl1fw.pages.printstart import PagePrintPreviewSwipe
 
 TEMP_DIR = Path(tempfile.gettempdir())
 SAMPLES_DIR = Path(sl1fw.tests.samples.__file__).parent
 SL1FW_DIR = Path(sl1fw.__file__).parent
 HARDWARE_FILE = TEMP_DIR / "sl1fw.hardware.cfg"
-copyfile(SAMPLES_DIR / "hardware.cfg", HARDWARE_FILE)
+copyfile(SAMPLES_DIR / "hardware-virtual.cfg", HARDWARE_FILE)
 LAST_PROJECT_FILE = TEMP_DIR / "last_project.toml"
 
 defines.hwConfigFile = HARDWARE_FILE
@@ -69,6 +68,7 @@ defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
 defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")
 defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
 defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
+defines.fan_check_override = True
 
 event_loop = GLib.MainLoop()
 
@@ -83,7 +83,6 @@ printer.hwConfig.calibrated = True
 printer.hwConfig.fanCheck = False
 printer.hwConfig.coverCheck = False
 printer.hwConfig.resinSensor = False
-PagePrintPreviewSwipe.FanCheckOverride = True
 
 bus.publish(Printer0.__INTERFACE__, Printer0(printer))
 printer.run()

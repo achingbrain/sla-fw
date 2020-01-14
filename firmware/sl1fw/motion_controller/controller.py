@@ -282,7 +282,7 @@ class MotionController:
             bits = list()
             num = int(data)
             for i in range(bitCount):
-                bits.append(True if num & (1 << i) else False)
+                bits.append(bool(num & (1 << i)))
             return bits
 
         return self.do(cmd, *args, return_process=process)
@@ -360,11 +360,11 @@ class MotionController:
                 err = CommError(err_code).name
                 self.logger.error("error: '%s'", err)
                 raise MotionControllerException(f"MC command failed with error: {err}", self.trace)
+
+            if line.startswith("#"):
+                self.logger.debug(f"Garbage response received: {line}")
             else:
-                if line.startswith("#"):
-                    self.logger.debug(f"Garbage response received: {line}")
-                else:
-                    raise MotionControllerException(f"MC command resulted in non-response line", self.trace)
+                raise MotionControllerException(f"MC command resulted in non-response line", self.trace)
 
     def soft_reset(self) -> None:
         with self._command_lock:

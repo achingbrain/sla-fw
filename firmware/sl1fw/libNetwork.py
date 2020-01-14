@@ -220,13 +220,14 @@ class Network:
                     if extractedSize > internalAvailable:
                         failed = _(": Not enough free space in the internal storage!")
                         raise Exception("Not enough free space in the internal storage")
-                    else:
-                        page.showItems(line1 = _("Storing examples"))
-                        for item in os.listdir(temp):
-                            dest = os.path.join(defines.internalProjectPath, item)
-                            if os.path.exists(dest):
-                                shutil.rmtree(dest)
-                            shutil.copytree(os.path.join(temp, item), dest)
+
+                    page.showItems(line1 = _("Storing examples"))
+                    for item in os.listdir(temp):
+                        dest = os.path.join(defines.internalProjectPath, item)
+                        if os.path.exists(dest):
+                            shutil.rmtree(dest)
+                        shutil.copytree(os.path.join(temp, item), dest)
+
                     page.showItems(line1 = _("Cleaning up"))
 
         except Exception as e:

@@ -219,11 +219,8 @@ class PageSrcSelect(Page):
             self.logger.info("Current project selection root: %s" % self.currentRoot)
             self.show()
         else:
-            if not self.loadProject(item['fullpath']):
-                return "error"
-            else:
-                return "_OK_"
-            #endif
+            self.loadProject(item['fullpath'])
+            return "reading"
         #endif
     #enddef
 
@@ -244,13 +241,12 @@ class PageSrcSelect(Page):
 #                        os.remove(os.path.join(root, file))
 #            return
             raise NotImplementedError
-        else:
-            try:
-                os.remove(item['fullpath'])
-            except OSError:
-                self.logger.error("Failed to remove project file")
-            return
         #endif
+
+        try:
+            os.remove(item['fullpath'])
+        except OSError:
+            self.logger.error("Failed to remove project file")
     #enddef
 
 

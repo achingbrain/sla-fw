@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sl1fw.exposure_state import ExposureState
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
 
@@ -15,41 +14,37 @@ if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
 
 
-class PageGoing(PagePrintBase):
+class PageTilting(PagePrintBase):
     def __init__(self, display: Display):
         super().__init__(display)
         self.pageUI = "wait"
 
     def callback(self):
-        pos_mm = self.display.expo.hw.tower_position_nm / 1000000
-        self.showItems(line2="%.3f mm" % pos_mm)
+        self.showItems(line2="%.3f" % self.display.expo.hw.tilt_position)
         return super().callback()
 
 
 @page
-class PageGoingUp(PageGoing):
-    Name = "goingup"
+class PageTiltingUp(PageTilting):
+    Name = "tiltingup"
 
     def __init__(self, display):
         super().__init__(display)
         self.pageTitle = N_("Going up")
 
     def show(self):
-        self.setItems(line1=_("Moving tower to the top position"))
-
-        if self.display.expo.state == ExposureState.GOING_UP_AFTER_FAIL:
-            self.setItems(line2=_("There is a problem with platform position"), line3=_("Moving platform up"))
+        self.setItems(line1=_("Moving tilt up"))
         super().show()
 
 
 @page
-class PageGoingDown(PageGoing):
-    Name = "goingdown"
+class PageTiltingDown(PageTilting):
+    Name = "tiltingdown"
 
     def __init__(self, display):
         super().__init__(display)
-        self.pageTitle = N_("Going down")
+        self.pageTitle = N_("Tilting down")
 
     def show(self):
-        self.setItems(line1=_("Moving tower down"), line2="")
+        self.setItems(line1=_("Moving tilt down"), line2="")
         super().show()

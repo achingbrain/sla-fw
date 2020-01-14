@@ -30,13 +30,12 @@ class PagePrint(PagePrintBase):
         self.last_expo_end = None
 
     def prepare(self):
-        if self.display.expo.inProgress():
+        if self.display.expo.in_progress:
             return
 
         self.display.expo.prepare()
         self.lastLayer = 0
 
-        self.display.expo.start()
         self.display.pages["finished"].data = None
 
     def callback(self):
@@ -81,12 +80,12 @@ class PagePrint(PagePrintBase):
         )
 
     def show(self):
-        self.items.update({"show_admin": self.display.show_admin})
+        self.items.update({"show_admin": self.display.runtime_config.show_admin})
         super(PagePrint, self).show()
 
     def feedmeButtonRelease(self):
         self.display.pages["yesno"].setParams(
-            yesFce=self.doFeedme, text = _("Do you really want to add resin into the tank?")
+            yesFce=self.doFeedme, text=_("Do you really want to add resin into the tank?")
         )
         return "yesno"
 
@@ -119,5 +118,5 @@ class PagePrint(PagePrintBase):
         return self.exitPrint()
 
     def adminButtonRelease(self):
-        if self.display.show_admin:
+        if self.display.runtime_config.show_admin:
             return "admin"
