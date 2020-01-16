@@ -19,10 +19,6 @@ if TYPE_CHECKING:
 class PagePrintPreviewSwipe(PagePrintBase):
     Name = "printpreviewswipe"
 
-    # For integration test only
-    # TODO: Make MC sim simulate fans spinning
-    FanCheckOverride = False
-
     def __init__(self, display: Display):
         super(PagePrintPreviewSwipe, self).__init__(display)
         self.pageUI = "printpreviewswipe"
@@ -62,3 +58,7 @@ class PagePrintPreviewSwipe(PagePrintBase):
 
     def contButtonRelease(self):
         self.display.expo.confirm_print_start()
+
+    def backButtonRelease(self):
+        self.display.expo.cancel()
+        self.display.forcePage("home")

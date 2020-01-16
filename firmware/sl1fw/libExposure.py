@@ -738,10 +738,10 @@ class ExposureThread(threading.Thread):
         statsFile.save(stats)
         self.expo.screen.saveDisplayUsage()
 
-        if not self.expo.canceled:
-            self.expo.state = ExposureState.FINISHED
-        else:
+        if self.expo.canceled:
             self.expo.state = ExposureState.CANCELED
+        else:
+            self.expo.state = ExposureState.FINISHED
         #endif
         self.logger.debug("Exposure ended")
     #enddef
@@ -832,7 +832,14 @@ class Exposure:
     def cancel(self):
         self.logger.info("Canceling exposure")
         self.canceled = True
-        self.doExitPrint()
+        if self.in_progress:
+            # Will be terminated by after layer finished
+            self.state = ExposureState.PENDING_ACTION
+            self.doExitPrint()
+        else:
+            # Exposure thread not yet running (cancel before start)
+            self.state = ExposureState.INIT
+        #endif
     #enddef
 
     def confirm_resin_warning(self):

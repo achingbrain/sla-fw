@@ -307,9 +307,7 @@ class Page:
 
 
     def callback(self):
-        if self.display.exposure_manager.exposure and self.display.exposure_manager.exposure.state == ExposureState.CONFIRM and self.display.actualPage.Name != "printpreviewswipe":
-            self.display.forcePage("printpreviewswipe")
-        #endif
+        self._page_switch_callback()
 
         state = False
         if self.checkPowerbutton:
@@ -348,6 +346,21 @@ class Page:
         #endif
     #enddef
 
+
+    def _page_switch_callback(self):
+        if not self.display.exposure_manager.exposure:
+            return
+        #endif
+
+        if self.display.exposure_manager.exposure.state != ExposureState.CONFIRM:
+            return
+        #endif
+
+        if self.display.actualPage.Name not in ["printpreviewswipe", "exposure"]:
+            self.logger.debug("Exposure in confirm state. Swithing %s -> printpreview", self.display.actualPage.Name)
+            self.display.forcePage("printpreviewswipe")
+        #endif
+    #enddef
 
     def powerButtonCallback(self):
         if not self.display.hw.getPowerswitchState():

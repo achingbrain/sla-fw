@@ -46,12 +46,12 @@ class PagePrintBase(Page):
             ExposureState.PENDING_ACTION: "printactionpending",
             ExposureState.COVER_OPEN: "printcoveropen",
             ExposureState.FINISHED: "finished",
+            ExposureState.CANCELED: "finished",
             ExposureState.FEED_ME: "feedme",
             ExposureState.STUCK: "printstuck",
             ExposureState.STUCK_RECOVERY: "printstuckrecovery",
             ExposureState.RESIN_MEASURE_TANK_PREPARE: "resinmeasure",
             ExposureState.TILTING_DOWN: "tiltingdown",
-            ExposureState.CANCELED: "printcanceled",
             ExposureState.RESIN_WARNING: "resinconfirm",
             ExposureState.CHECK_WARNING: "checkconfirm",
         }
