@@ -589,11 +589,22 @@ class Config(ValueConfig):
     # END is (?=\n|$) - positive lookahead, we want \n or $ to follow
     STRING_PATTERN = re.compile(
         r"\A(?!"  # NL(negative lookahead) in form (...|...|...)
+          r"\Atrue\Z|"  # NL part1 - true and end of the line or input
+          r"\Afalse\Z|"  # NL part2 - false and end of the line or input
+          r"\A[0-9.-]+\Z|"  # NL part3 - number at end of the line or input
+          r'\A".*"\Z|'  # NL part4 - string already contained in ""
+          r"\A\[ *(?:[0-9.-]+ *, *)+[0-9.-]+ *,? *]\Z"  # NL part4 - number list already in []
+          r")"  # end of NL
+        r"(.+)\Z"  # the matched string + positive lookahead for end
+    )
+    SURE_STRING_PATTERN = re.compile(
+        r"\A(?!"  # NL(negative lookahead) in form (...|...|...)
         r'\A".*"\Z|'  # NL part4 - string already contained in ""
         r"\A\[ *(?:[0-9.-]+ *, *)+[0-9.-]+ *,? *]\Z"  # NL part4 - number list already in []
         r")"  # end of NL
         r"(.+)\Z"  # the matched string + positive lookahead for end
     )
+
 
     def __init__(
         self, file_path: Optional[Path] = None, factory_file_path: Optional[Path] = None, is_master: bool = False
@@ -738,19 +749,33 @@ class Config(ValueConfig):
                 elif val.file_key.lower() == name:
                     value_hint = val
 
-            # Substitute on, off, yes, no with true and false
+
             if isinstance(value_hint, BoolValue):
+                # Substitute on, off, yes, no with true and false
+                value = self.ON_YES_PATTERN.sub("true", value)
+                value = self.OFF_NO_PATTERN.sub("false", value)
+            elif isinstance(value_hint, ListValue) and self.NUM_LIST_ONLY.match(value):
+                # Wrap number lists in [] and separate numbers by comma
+                value = self.NUM_SEP.sub(r", ", value)
+                value = f"[{value}]"
+            elif isinstance(value_hint, TextValue):
+                # Wrap strings in ""
+                value = self.SURE_STRING_PATTERN.sub(r'"\1"', value)
+            else:
+                # This is an unknown value, lets guess
+
+                # Substitute on, off, yes, no with true and false
                 value = self.ON_YES_PATTERN.sub("true", value)
                 value = self.OFF_NO_PATTERN.sub("false", value)
 
-            # Wrap number lists in [] and separate numbers by comma
-            if isinstance(value_hint, ListValue) and self.NUM_LIST_ONLY.match(value):
-                value = self.NUM_SEP.sub(r", ", value)
-                value = f"[{value}]"
+                # Wrap number lists in [] and separate numbers by comma
+                if self.NUM_LIST_ONLY.match(value):
+                    value = self.NUM_SEP.sub(r", ", value)
+                    value = f"[{value}]"
 
-            # Wrap possible strings in ""
-            if isinstance(value_hint, TextValue):
+                # Wrap possible strings in ""
                 value = self.STRING_PATTERN.sub(r'"\1"', value)
+            #endif
 
             lines.append(f"{name} = {value}")
         return "\n".join(lines)
