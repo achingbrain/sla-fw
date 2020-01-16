@@ -425,6 +425,7 @@ class PageAdvancedSettings(Page):
 
 
     # Logs export to usb
+    @confirm_leave
     def exportlogstoflashdiskButtonRelease(self):
         return self.saveLogsToUSB()
     #enddef
