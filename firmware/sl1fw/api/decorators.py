@@ -137,6 +137,7 @@ def python_to_dbus_type(python_type: Any) -> str:
         List[int]: "ai",
         List[DBusObjectPath]: "ao",
         List[List[int]]: "aai",
+        Dict[int, int]: "a{ii}",
         Dict[str, int]: "a{si}",
         Dict[str, str]: "a{ss}",
         Dict[str, float]: "a{sd}",

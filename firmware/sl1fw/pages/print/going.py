@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sl1fw.exposure_state import ExposureState
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
 
@@ -37,7 +36,7 @@ class PageGoingUp(PageGoing):
     def show(self):
         self.setItems(line1=_("Moving tower to the top position"))
 
-        if self.display.expo.state == ExposureState.GOING_UP_AFTER_FAIL:
+        if self.display.expo.exception:
             self.setItems(line2=_("There is a problem with platform position"), line3=_("Moving platform up"))
         super().show()
 

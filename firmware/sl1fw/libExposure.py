@@ -5,19 +5,23 @@
 
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
 import logging
 import queue
 import threading
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from time import sleep, time, monotonic
-from typing import Optional, Callable, Any, Set, List
+from typing import Optional, Callable, Any, Set, List, Dict
 
 from deprecated import deprecated
 
 from sl1fw import defines
 from sl1fw.exposure_state import ExposureState, TiltFailure, TempSensorFailure, AmbientTooCold, AmbientTooHot, \
     ModelMismatchWarning, ProjectFailure, PrintingDirectlyWarning, TowerFailure, FanFailure, ResinFailure, ResinTooLow, \
-    ResinTooHigh, TowerMoveFailure, ExposureWarning, ExposureException, WarningEscalation
+    ResinTooHigh, TowerMoveFailure, ExposureWarning, ExposureException, WarningEscalation, ExposureCheck, \
+    ExposureCheckResult, ResinNotEnoughWarning
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
@@ -255,17 +259,15 @@ class ExposureThread(threading.Thread):
         try:
             self.logger.debug("Started exposure thread")
 
-            while self.expo.state not in [ExposureState.FAILURE, ExposureState.FINISHED, ExposureState.CANCELED]:
+            while not self.expo.done:
                 command = self.commands.get()
                 if command == "exit":
                     self.logger.debug("Exiting exposure thread on exit command")
                     break
                 elif command == "checks":
-                    self._run_checks()
-                elif command == "resin_measure":
-                    self._measure_resin_and_tank_prepare()
-                elif command == "confirm_resin_warning":
-                    self._prepare_tank_and_resin()
+                    asyncio.run(self._run_checks())
+                elif command == "confirm_warnings":
+                    self.run_exposure()
                 else:
                     self.logger.error("Undefined command: \"%s\" ignored", command)
                 #endif
@@ -280,33 +282,62 @@ class ExposureThread(threading.Thread):
     #enddef
 
 
-    def _run_checks(self):
+    async def _run_checks(self):
         self.expo.state = ExposureState.CHECKS
         self.logger.debug("Running pre-print checks")
-        self._initiate_fans_check()
-        self._check_cover_closed()
-        self._check_temps()
-        self._check_project_data()
-        self._check_start_positions()
-        self._check_fans()
-        if self.expo.state != ExposureState.CHECKS:
-            self.logger.info("Exiting exposure thread due to errors")
-            self.commands.put("exit")
-            return
-        #endif
+
+        loop = asyncio.get_running_loop()
+
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            fans = loop.run_in_executor(pool, self._check_fans)
+            temps = loop.run_in_executor(pool, self._check_temps)
+            project = loop.run_in_executor(pool, self._check_project_data)
+            hw = loop.run_in_executor(pool, self._check_hw_related)
+        #endwith
+
+        await asyncio.gather(
+            fans, temps, project, hw
+        )
 
         if not self.expo.warnings:
-            self._measure_resin_and_tank_prepare()
+            self.run_exposure()
         else:
             self.expo.state = ExposureState.CHECK_WARNING
         #endif
     #enddef
 
 
+    def _check_hw_related(self):
+        if not self.expo.hwConfig.resinSensor:
+            self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.DISABLED
+        #endif
+
+        if not self.expo.hwConfig.tilt:
+            self.expo.check_results[ExposureCheck.STIRRING] = ExposureCheckResult.DISABLED
+        #endif
+
+        self._check_cover_closed()
+        self._check_hardware()
+
+        if self.expo.hwConfig.resinSensor:
+            self._check_resin()
+        #endif
+
+        self._check_start_positions()
+        self._check_resin_stirring()
+    #enddef
+
+
     def _check_cover_closed(self):
+        self.expo.check_results[ExposureCheck.COVER] = ExposureCheckResult.RUNNING
+        if not self.expo.hwConfig.coverCheck:
+            self.expo.check_results[ExposureCheck.COVER] = ExposureCheckResult.DISABLED
+            return
+
         while True:
-            if not self.expo.hwConfig.coverCheck or self.expo.hw.isCoverClosed():
+            if self.expo.hw.isCoverClosed():
                 self.expo.state = ExposureState.CHECKS
+                self.expo.check_results[ExposureCheck.COVER] = ExposureCheckResult.SUCCESS
                 return
             #endif
 
@@ -318,25 +349,29 @@ class ExposureThread(threading.Thread):
 
     def _check_temps(self):
         self.logger.debug("Running temperature checks")
+        self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.RUNNING
         temperatures = self.expo.hw.getMcTemperatures()
         failed = [i for i in range(2) if temperatures[i] < 0]
         if failed:
+            self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.FAILURE
             raise TempSensorFailure(failed)
         #endif
 
         if temperatures[1] < defines.minAmbientTemp:
             self.expo.warnings.append(AmbientTooCold(temperatures[1]))
-        #endif
-
-        if temperatures[1] > defines.maxAmbientTemp:
+            self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.WARNING
+        elif temperatures[1] > defines.maxAmbientTemp:
             self.expo.warnings.append(AmbientTooHot(temperatures[1]))
+            self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.WARNING
+        else:
+            self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.SUCCESS
         #endif
-        self.expo.temp_check_result = True
     #enddef
 
 
     def _check_project_data(self):
         self.logger.debug("Running project checks")
+        self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.RUNNING
 
         # Raise warning when model or variant does not match the printer
         if self.expo.project.printerModel != defines.slicerPrinterModel or\
@@ -351,57 +386,62 @@ class ExposureThread(threading.Thread):
         ramdisk_cleanup(self.logger)
         project_state = self.expo.project.copy_and_check()
 
-        # TODO: This is weird, why it it here?
-        while self.expo.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-
         if project_state not in (ProjectState.OK, project_state.PRINT_DIRECTLY):
-            self.expo.project_check_result = False
+            self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.FAILURE
             raise ProjectFailure(project_state)
+        #endif
+
+        self.logger.info(str(self.expo.project))
+
+        # start data preparation by libScreen
+        self.expo.startProjectLoading()
+
+        # collect results from libScreen
+        if not self.expo.collectProjectData():
+            self.logger.error("Collect project data failed")
+            self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
+            raise ProjectFailure(self.expo.project.state)
         #endif
 
         if project_state == project_state.PRINT_DIRECTLY:
             self.expo.warnings.append(PrintingDirectlyWarning())
+            self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
+        else:
+            self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.SUCCESS
         #endif
-
-        self.expo.project_check_result = True
     #enddef
 
 
-    def _check_start_positions(self):
+    def _check_hardware(self):
         self.logger.debug("Running start positions hardware checks")
+        self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.RUNNING
+
         self.expo.hw.towerSyncWait()
         if not self.expo.hw.isTowerSynced():
-            self.expo.start_position_check_result = False
+            self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.FAILURE
             raise TowerFailure()
         #endif
 
         self.expo.hw.tiltSyncWait()
 
         if not self.expo.hw.isTiltSynced():
-            self.start_position_check_result = False
+            self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.FAILURE
             raise TiltFailure()
         #endif
 
         self.expo.hw.setTiltProfile('homingFast')
         self.expo.hw.tiltUpWait()
 
-        self.expo.start_position_check_result = True
-    #enddef
-
-
-    def _initiate_fans_check(self):
-        """
-        Initiate fans warmup
-        """
-        self._fanCheckStartTime = monotonic()
-        self.expo.hw.startFans()
+        self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.SUCCESS
     #enddef
 
 
     def _check_fans(self):
         self.logger.debug("Running fan checks")
+        self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.RUNNING
+        self._fanCheckStartTime = monotonic()
+        self.expo.hw.startFans()
+
         # Wait for fans to finish warmup
         fansRunningTime = monotonic() - self._fanCheckStartTime
         if fansRunningTime < defines.fanStartStopTime:
@@ -418,77 +458,66 @@ class ExposureThread(threading.Thread):
                     failed_fans.append(num)
                 #endif
             #endfor
-            self.expo.fans_check_result = False
+            self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
             raise FanFailure(failed_fans)
         #endif
 
         self.expo.runtime_config.fan_error_override = False
         self.expo.runtime_config.check_cooling_expo = True
 
-        self.expo.fans_check_result = True
+        self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.SUCCESS
     #enddef
 
 
-    def _measure_resin_and_tank_prepare(self):
-        self.logger.debug("Entering measure resin")
-        self.expo.state = ExposureState.RESIN_MEASURE_TANK_PREPARE
+    def _check_resin(self):
+        self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.RUNNING
 
-        self.logger.info(str(self.expo.project))
-
-        # start data preparation by libScreen
-        self.expo.startProjectLoading()
-
-        if self.expo.hwConfig.resinSensor:
-            self._do_measure_resin()
-        else:
-            self._prepare_tank_and_resin()
-        #endif
-    #enddef
-
-
-    def _do_measure_resin(self):
         self.logger.debug("Running resin measurement")
 
         volume = self.expo.hw.getResinVolume()
         self.expo.setResinVolume(volume)
-        sleep(1)
 
         try:
             if not volume:
                 raise ResinFailure(volume)
-            elif volume < defines.resinMinVolume:
+            #endif
+
+            if volume < defines.resinMinVolume:
                 raise ResinTooLow(volume)
-            elif volume > defines.resinMaxVolume:
+            #endif
+
+            if volume > defines.resinMaxVolume:
                 raise ResinTooHigh(volume)
             #endif
-        except ResinFailure as exception:
-            self.expo.state = ExposureState.GOING_UP_AFTER_FAIL
+        except ResinFailure:
+            self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.FAILURE
             self.expo.hw.setTowerProfile('homingFast')
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
             #endwhile
-            raise exception
+            raise
         #endtry
 
         self.logger.debug("requested: %d [ml], measured: %d [ml]", self.expo.project.usedMaterial, volume)
 
         if volume < self.expo.project.usedMaterial:
-            self.logger.debug("Switching to resin warning state")
-            self.expo.state = ExposureState.RESIN_WARNING
-        else:
-            self._prepare_tank_and_resin()
+            self.expo.warnings.append(ResinNotEnoughWarning(volume, self.expo.project.usedMaterial))
+            self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.WARNING
         #endif
+
+        self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.SUCCESS
     #enddef
 
-    def _prepare_tank_and_resin(self):
+
+    def _check_start_positions(self):
+        self.expo.check_results[ExposureCheck.START_POSITIONS] = ExposureCheckResult.RUNNING
+
         self.logger.debug("Prepare tank and resin")
         if self.expo.hwConfig.tilt:
-            self.expo.state = ExposureState.TILTING_DOWN
             self.expo.hw.tiltDownWait()
         #endif
 
-        self.expo.state = ExposureState.GOING_DOWN
         self.expo.hw.setTowerProfile('homingFast')
         self.expo.hw.towerToPosition(0.25)
         while not self.expo.hw.isTowerOnPosition(retries=2):
@@ -496,28 +525,28 @@ class ExposureThread(threading.Thread):
         #endwhile
 
         if self.expo.hw.towerPositonFailed():
-            self.expo.state = ExposureState.GOING_UP_AFTER_FAIL
+            self.expo.check_results[ExposureCheck.START_POSITIONS] = ExposureCheckResult.FAILURE
+            exception = TowerMoveFailure()
+            self.expo.exception = exception
             self.expo.hw.setTowerProfile('homingFast')
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
             #endwhile
 
-            raise TowerMoveFailure()
+            raise exception
         #endif
 
+        self.expo.check_results[ExposureCheck.START_POSITIONS] = ExposureCheckResult.SUCCESS
+    #enddef
+
+
+    def _check_resin_stirring(self):
+        self.expo.check_results[ExposureCheck.STIRRING] = ExposureCheckResult.RUNNING
         if self.expo.hwConfig.tilt:
-            self.expo.state = ExposureState.STIRRING
             self.expo.hw.stirResin()
+            self.expo.check_results[ExposureCheck.STIRRING] = ExposureCheckResult.SUCCESS
         #endif
-
-        # collect results from libScreen
-        if not self.expo.collectProjectData():
-            self.logger.error("Collect project data failed")
-            raise ProjectFailure(self.expo.project.state)
-        #endif
-
-        self.run_exposure()
     #enddef
 
 
@@ -779,18 +808,12 @@ class Exposure:
         self.exposure_end: Optional[datetime] = None
         self.instance_id = Exposure.instance_counter
         Exposure.instance_counter += 1
-
-        self.temp_check_result: Optional[bool] = None
-        self.project_check_result: Optional[bool] = None
-        self.start_position_check_result: Optional[bool] = None
-        self.fans_check_result: Optional[bool] = None
+        self.check_results: Dict[ExposureCheck, ExposureCheckResult] = defaultdict(lambda: ExposureCheckResult.SCHEDULED)
         self.warnings: List[ExposureWarning] = []
         self.exception: Optional[ExposureException] = None
         self.canceled = False
-
         self.expoCommands = queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self)
-
         self.logger.debug("Created new exposure object id: %s", self.instance_id)
     #enddef
 
@@ -817,7 +840,7 @@ class Exposure:
 
     def confirm_print_warnings(self):
         self.logger.debug("User confirmed print check warnings")
-        self.doMeasureResin()
+        self.doConfirmWarnings()
     #enddef
 
 
@@ -840,10 +863,6 @@ class Exposure:
             # Exposure thread not yet running (cancel before start)
             self.state = ExposureState.INIT
         #endif
-    #enddef
-
-    def confirm_resin_warning(self):
-        self.doConfirmResinWarning()
     #enddef
 
 
@@ -916,7 +935,7 @@ class Exposure:
 
     @property
     def done(self):
-        return self.state in [ExposureState.CANCELED, ExposureState.FINISHED, ExposureState.FAILURE]
+        return self.state in ExposureState.FINISHED_STATES()
     #enddef
 
 
@@ -959,13 +978,8 @@ class Exposure:
     #enddef
 
 
-    def doMeasureResin(self):
-        self.expoCommands.put("resin_measure")
-    #enddef
-
-
-    def doConfirmResinWarning(self):
-        self.expoCommands.put("confirm_resin_warning")
+    def doConfirmWarnings(self):
+        self.expoCommands.put("confirm_warnings")
     #enddef
 
     def setResinVolume(self, volume):

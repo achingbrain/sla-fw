@@ -16,7 +16,6 @@ class ExposureState(Enum):
     READING_DATA = 1
     CONFIRM = 2
     CHECKS = 3
-    RESIN_MEASURE_TANK_PREPARE = 4
     PRINTING = 5
     GOING_UP = 6
     GOING_DOWN = 7
@@ -32,8 +31,11 @@ class ExposureState(Enum):
     CHECK_WARNING = 22
     RESIN_WARNING = 23
     TILTING_DOWN = 24
-    GOING_UP_AFTER_FAIL = 25
     CANCELED = 26
+
+    @staticmethod
+    def FINISHED_STATES():
+        return [ExposureState.FAILURE, ExposureState.CANCELED, ExposureState.FINISHED]
 
 @unique
 class ExposureWarningCode(Enum):
@@ -43,6 +45,7 @@ class ExposureWarningCode(Enum):
     AMBIENT_TOO_COLD = 2
     PRINTING_DIRECTLY = 3
     PRINTER_MODEL_MISMATCH = 4
+    RESIN_NOT_ENOUGH = 5
 
 
 @dataclass
@@ -77,6 +80,14 @@ class ModelMismatchWarning(ExposureWarning):
     project_variant: str
 
 
+@dataclass
+class ResinNotEnoughWarning(ExposureWarning):
+    CODE = ExposureWarningCode.RESIN_NOT_ENOUGH
+
+    measured_resin_ml: float
+    required_resin_ml: float
+
+
 @unique
 class ExposureExceptionCode(Enum):
     NONE = -1
@@ -91,6 +102,28 @@ class ExposureExceptionCode(Enum):
     RESIN_TOO_LOW = 8
     RESIN_TOO_HIGH = 9
     WARNING_ESCALATION = 10
+
+
+@unique
+class ExposureCheck(Enum):
+    TEMPERATURE = 1
+    PROJECT = 2
+    HARDWARE = 3
+    FAN = 4
+    COVER = 5
+    RESIN = 6
+    START_POSITIONS = 7
+    STIRRING = 8
+
+
+@unique
+class ExposureCheckResult(Enum):
+    SCHEDULED = -1
+    RUNNING = 0
+    SUCCESS = 1
+    FAILURE = 2
+    WARNING = 3
+    DISABLED = 4
 
 
 @dataclass

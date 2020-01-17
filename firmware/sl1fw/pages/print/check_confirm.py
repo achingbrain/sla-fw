@@ -8,7 +8,13 @@ from __future__ import annotations
 from queue import Queue
 from typing import TYPE_CHECKING
 
-from sl1fw.exposure_state import PrintingDirectlyWarning, AmbientTooCold, AmbientTooHot, ModelMismatchWarning
+from sl1fw.exposure_state import (
+    PrintingDirectlyWarning,
+    AmbientTooCold,
+    AmbientTooHot,
+    ModelMismatchWarning,
+    ResinNotEnoughWarning,
+)
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
 
@@ -89,6 +95,20 @@ class PageCheckConfirm(PagePrintBase):
                     ),
                 )
                 return "yesno"
+            elif isinstance(warning, ResinNotEnoughWarning):
+                self.display.pages["confirm"].setParams(
+                    continueFce=self.warn,
+                    backFce=self.cancel_print,
+                    text=_(
+                        "Your resin volume is approx %(measured)d %%\n\n"
+                        "For your project, %(requested)d %% is needed. A refill may be required during printing."
+                    )
+                    % {
+                        "measured": self.display.hw.calcPercVolume(warning.measured_resin_ml),
+                        "requested": self.display.hw.calcPercVolume(warning.required_resin_ml),
+                    },
+                )
+                return "confirm"
             else:
                 self.logger.error("Unknown exposure warning: %s", warning)
 

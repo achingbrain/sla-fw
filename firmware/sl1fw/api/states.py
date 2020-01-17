@@ -35,7 +35,6 @@ class Exposure0State(Enum):
     COVER_OPEN = 5
     FEED_ME = 6
     FAILURE = 7
-    TILT_FAILURE = 8
     STIRRING = 9
     PENDING_ACTION = 10
     FINISHED = 11
@@ -44,12 +43,8 @@ class Exposure0State(Enum):
     READING_DATA = 14
     CONFIRM = 15
     CHECKS = 16
-    RESIN_MEASURE = 17
-    PROJECT_FAILURE = 18
     TILTING_DOWN = 19
     CANCELED = 20
-    RESIN_WARNING = 21
-    GOING_UP_AFTER_FAIL = 22
     CHECK_WARNING = 23
 
     @staticmethod
@@ -71,11 +66,8 @@ class Exposure0State(Enum):
             ExposureState.READING_DATA: Exposure0State.READING_DATA,
             ExposureState.CONFIRM: Exposure0State.CONFIRM,
             ExposureState.CHECKS: Exposure0State.CHECKS,
-            ExposureState.RESIN_MEASURE_TANK_PREPARE: Exposure0State.RESIN_MEASURE,
             ExposureState.TILTING_DOWN: Exposure0State.TILTING_DOWN,
             ExposureState.CANCELED: Exposure0State.CANCELED,
-            ExposureState.RESIN_WARNING: Exposure0State.RESIN_WARNING,
-            ExposureState.GOING_UP_AFTER_FAIL: Exposure0State.GOING_UP_AFTER_FAIL,
             ExposureState.CHECK_WARNING: Exposure0State.CHECK_WARNING,
         }[state]
 

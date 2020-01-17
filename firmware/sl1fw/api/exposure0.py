@@ -72,15 +72,6 @@ class Exposure0:
         self.exposure.reject_print_warnings()
 
     @auto_dbus
-    @state_checked(Exposure0State.RESIN_WARNING)
-    def confirm_resin_warning(self) -> None:
-        """
-        Confirm print continue despite of resin warning
-        :return: None
-        """
-        self.exposure.confirm_resin_warning()
-
-    @auto_dbus
     @property
     def exposure_warnings(self) -> List[Dict[str, Any]]:
         """
@@ -148,6 +139,16 @@ class Exposure0:
         return {
             "code": ExposureExceptionCode.UNKNOWN.value
         }
+
+    @auto_dbus
+    @property
+    def checks_state(self) -> Dict[int, int]:
+        """
+        State of exposure checks
+
+        :return: Dictionary mapping from check id to state id
+        """
+        return {check.value: state.value for check, state in self.exposure.check_results.items()}
 
     @auto_dbus
     @property
