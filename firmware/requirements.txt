@@ -16,7 +16,6 @@ pydbus==0.6.0
 pygame==1.9.4
 pygobject==3.28.3
 pyserial==3.4
-six==1.11.0
 systemd-python==234
 toml==0.10.0
 websocket-server==0.4
