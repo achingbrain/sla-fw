@@ -8,27 +8,35 @@
 import unittest
 
 from sl1fw.tests.base import Sl1fwTestCase
+from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.slicer.profile_parser import ProfileParser
 from sl1fw.slicer.profile_downloader import ProfileDownloader
 from sl1fw.libNetwork import Network
 
 
 class TestSlicerProfiles(Sl1fwTestCase):
-    FILENAME = Sl1fwTestCase.SAMPLES_DIR / "slicer_profiles.ini"
+    INI = Sl1fwTestCase.SAMPLES_DIR / "slicer_profiles.ini"
+    CMP = Sl1fwTestCase.SAMPLES_DIR / "slicer_profiles.toml"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def test_load(self):
-        profile = ProfileParser().parse(self.FILENAME)
-        self.assertIsNotNone(profile)
-        print(profile)
+        profile = ProfileParser().parse(self.INI)
+        self.assertTrue(profile.vendor)
+        self.assertTrue(profile.printer)
+        #profile.save(filename = "slicer_profiles_test.toml")
+        profile2test = SlicerProfile(self.CMP)
+        profile2test.load()
+        self.assertEqual(profile.vendor, profile2test.vendor, "vendor")
+        self.assertEqual(profile.printer, profile2test.printer, "printer")
+
         downloader = ProfileDownloader(Network("CZPX1234X123XC12345"), profile.vendor)
-        newVersion = downloader.checkUpdates()
-        self.assertIsNotNone(newVersion)
-        newProfile = ProfileParser().parse(downloader.download(newVersion))
-        self.assertIsNotNone(newProfile)
-        print(newProfile)
+        new_version = downloader.checkUpdates()
+        self.assertIsNotNone(new_version)
+        new_profile = ProfileParser().parse(downloader.download(new_version))
+        self.assertIsNotNone(new_profile)
+        print(new_profile)
 
 
 if __name__ == '__main__':

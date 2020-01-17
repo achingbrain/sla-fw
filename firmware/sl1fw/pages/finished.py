@@ -40,7 +40,7 @@ class PageFinished(Page):
             self.display.hw.stopFans()
             self.display.hw.motorsRelease()
             if self.display.hwConfig.autoOff and not expo.state == ExposureState.CANCELED:
-                if not TomlConfig(defines.lastProjectData).save(self.data):
+                if not TomlConfig(defines.lastProjectData).save(data = self.data):
                     self.logger.error("Last project data was not saved!")
                 #endif
                 self.display.shutDown(True)

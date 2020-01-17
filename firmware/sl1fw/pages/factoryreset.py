@@ -191,7 +191,7 @@ class PageFactoryReset(Page):
 
 
     def _disableFactory(self):
-        if not libConfig.TomlConfig(defines.factoryConfigFile).save({ 'factoryMode': False }):
+        if not libConfig.TomlConfig(defines.factoryConfigFile).save(data = { 'factoryMode': False }):
             self.logger.error("Factory mode was not disabled!")
         #endif
     #enddef

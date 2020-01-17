@@ -5,8 +5,8 @@
 
 import json
 import logging
-import shutil
 import threading
+from time import sleep
 from abc import ABC, abstractmethod
 
 from sl1fw import defines
@@ -19,17 +19,30 @@ from sl1fw.slicer.slicer_profile import SlicerProfile
 
 
 class BackgroundNetworkCheck(ABC):
-    def __init__(self, inet: Network):
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, inet: Network, name: str):
+        self.logger = logging.getLogger(name)
         self.inet = inet
-        self.first = True
+        self.change_trigger = True
+        self.logger.debug("Registering net change handler")
         self.inet.register_net_change_handler(self.connection_changed)
 
     def connection_changed(self, value):
-        if value and self.first:
-            self.first = False
+        if value and self.change_trigger:
             self.logger.debug("Starting background network check thread")
-            threading.Thread(target=self.check, daemon=True).start()
+            threading.Thread(target=self._check, daemon=True).start()
+
+    def _check(self):
+        while True:
+            run_after = self.check()
+            if run_after is None:
+                self.logger.debug("Check returned error, waiting for next connection change.")
+                break
+            self.change_trigger = False
+            if not run_after:
+                self.logger.debug("Check returned no repeat, exiting thread.")
+                break
+            self.logger.debug("Check returned repeat after %d secs, sleeping.", run_after)
+            sleep(run_after)
 
     @abstractmethod
     def check(self):
@@ -40,41 +53,50 @@ class AdminCheck(BackgroundNetworkCheck):
     def __init__(self, config: RuntimeConfig, hw: Hardware, inet: Network):
         self.config = config
         self.hw = hw
-        super().__init__(inet)
+        super().__init__(inet, "sl1fw.AdminCheck")
 
     def check(self):
-        self.logger.info("The network is available, querying admin enabled")
+        self.logger.info("Querying admin enabled")
         query_url = defines.admincheckURL + "/?serial=" + self.hw.cpuSerialNo
-        self.inet.download_url(query_url, defines.admincheckTemp)
-
+        try:
+            self.inet.download_url(query_url, defines.admincheckTemp)
+        except Exception:
+            self.logger.exception("download_url exception:")
+            return None
         with open(defines.admincheckTemp, "r") as file:
             admin_check = json.load(file)
-            if admin_check["result"]:
+            result = admin_check.get("result", None)
+            if result is None:
+                self.logger.warning("Error querying admin enabled")
+                return None
+            elif result:
                 self.config.show_admin = True
                 self.logger.info("Admin enabled")
             else:
                 self.logger.info("Admin not enabled")
+        return 0
 
 
 class SlicerProfileUpdater(BackgroundNetworkCheck):
     def __init__(self, inet: Network, profile: SlicerProfile):
         self.profile = profile
-        super().__init__(inet)
+        super().__init__(inet, "sl1fw.SlicerProfileUpdater")
 
     def check(self):
-        self.logger.info("The network is available, checking slicer profiles update")
+        self.logger.info("Checking slicer profiles update")
         downloader = ProfileDownloader(self.inet, self.profile.vendor)
-        newVersion = downloader.checkUpdates()
-        if newVersion:
-            f = downloader.download(newVersion)
-            newProfile = ProfileParser().parse(f)
-            if newProfile:
-                try:
-                    shutil.copyfile(f, defines.slicerProfilesFile)
-                except Exception:
-                    self.logger.exception("copyfile exception:")
-                self.profile.update(newProfile)
+        new_version = downloader.checkUpdates()
+        retc = defines.slicerProfilesCheckOK
+        if new_version is None:
+            retc = defines.slicerProfilesCheckProblem
+        elif new_version:
+            f = downloader.download(new_version)
+            new_profile = ProfileParser().parse(f)
+            if new_profile and new_profile.save(filename = defines.slicerProfilesFile):
+                self.profile.data = new_profile.data
             else:
                 self.logger.info("Problem with new profile file, giving up")
+                retc = defines.slicerProfilesCheckProblem
         else:
             self.logger.info("No new version of slicer profiles available")
+        return retc

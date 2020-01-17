@@ -54,6 +54,8 @@ class Network:
         """
         assert handler is not None
         self.net_change_handlers.append(handler)
+        # call handler immediately with actual status (network can already be connected)
+        handler(self.nm.state() == self.NM_STATE_CONNECTED_GLOBAL)
 
     def state_changed(self, changed: map) -> None:
         events = {'Connectivity', 'Metered', 'ActiveConnections', 'WirelessEnabled'}

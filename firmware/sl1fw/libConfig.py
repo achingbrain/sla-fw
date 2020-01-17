@@ -1021,13 +1021,15 @@ class HwConfig(Config):
 
 
 class TomlConfig:
-    def __init__(self, filename):
+    def __init__(self, filename = None):
         self.logger = logging.getLogger(__name__)
         self.filename = filename
         self.data = {}
 
     def load(self):
         try:
+            if not self.filename:
+                raise Exception("No filename specified")
             with open(self.filename, "r") as f:
                 self.data = toml.load(f)
         except FileNotFoundError:
@@ -1041,12 +1043,17 @@ class TomlConfig:
         return self.data
 
     def save_raw(self):
+        if not self.filename:
+            raise Exception("No filename specified")
         with open(self.filename, "w") as f:
             toml.dump(self.data, f)
 
-    def save(self, data):
+    def save(self, data = None, filename = None):
         try:
-            self.data = data
+            if data:
+                self.data = data
+            if filename:
+                self.filename = filename
             self.save_raw()
         except Exception as exception:
             if defines.testing:

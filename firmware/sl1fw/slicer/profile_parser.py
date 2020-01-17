@@ -152,9 +152,9 @@ class ProfileParser:
                         printer['sla_print_profiles'][setting]['sla_material_profiles'][material] = tmp[key]
 
         profile = SlicerProfile()
-        profile['printer'] = printer
+        profile.printer = printer
 
         # vendor section
-        profile['vendor'] = tmp.get('vendor', None)
+        profile.vendor = tmp.get('vendor', {})
 
         return profile

@@ -735,7 +735,7 @@ class ExposureThread(threading.Thread):
         stats['projects'] += 1
         stats['layers'] += self.expo.actualLayer
         stats['total_seconds'] += seconds
-        statsFile.save(stats)
+        statsFile.save(data = stats)
         self.expo.screen.saveDisplayUsage()
 
         if self.expo.canceled:

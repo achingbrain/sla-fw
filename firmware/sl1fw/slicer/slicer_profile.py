@@ -4,17 +4,26 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pprint
+from sl1fw.libConfig import TomlConfig
 
-class SlicerProfile(dict):
+class SlicerProfile(TomlConfig):
 
     def __str__(self) -> str:
         pp = pprint.PrettyPrinter(width=200)
-        return pp.pformat(self)
+        return pp.pformat(self.data)
 
     @property
     def vendor(self) -> dict:
-        return self['vendor']
+        return self.data['vendor']
+
+    @vendor.setter
+    def vendor(self, value: dict) -> None:
+        self.data['vendor'] = value
 
     @property
     def printer(self) -> dict:
-        return self['printer']
+        return self.data['printer']
+
+    @printer.setter
+    def printer(self, value: dict) -> None:
+        self.data['printer'] = value

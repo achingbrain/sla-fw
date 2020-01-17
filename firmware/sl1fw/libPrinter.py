@@ -24,7 +24,7 @@ from sl1fw.libHardware import MotConComState
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
 from sl1fw.project.manager import ExposureManager
-from sl1fw.slicer.profile_parser import ProfileParser
+from sl1fw.slicer.slicer_profile import SlicerProfile
 
 
 class Printer:
@@ -211,20 +211,20 @@ class Printer:
             PageStart(self.display).show()
             self.logger.debug("Starting libScreen")
             self.screen.start()
-            self.logger.debug("Starting admin checker")
             if not self.runtime_config.factory_mode:
+                self.logger.debug("Starting admin checker")
                 self.admin_check = AdminCheck(self.runtime_config, self.hw, self.inet)
             #endif
             self.logger.debug("Loading slicer profiles")
-            self.slicer_profile = ProfileParser().parse(defines.slicerProfilesFile)
-            if not self.slicer_profile:
+            self.slicer_profile = SlicerProfile(defines.slicerProfilesFile)
+            if not self.slicer_profile.load():
                 self.logger.debug("Trying bundled slicer profiles")
-                self.slicer_profile = ProfileParser().parse(defines.slicerProfilesFallback)
-                if not self.slicer_profile:
+                self.slicer_profile = SlicerProfile(defines.slicerProfilesFallback)
+                if not self.slicer_profile.load():
                     self.logger.error("No suitable slicer profiles found")
                 #endif
             #endif
-            if self.slicer_profile:
+            if self.slicer_profile.vendor:
                 self.logger.debug("Starting slicer profiles updater")
                 self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile)
             #endif

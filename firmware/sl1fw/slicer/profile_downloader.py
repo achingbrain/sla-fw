@@ -24,7 +24,7 @@ class ProfileDownloader:
         updateURL = self.vendor.get('config_update_url', None)
         if not updateURL:
             self.logger.error("Missing 'config_update_url' key")
-            return None
+            return ""
         try:
             updateURL += self.INDEX_FILENAME
             tmpfile = Path(defines.ramdiskPath) / self.INDEX_FILENAME
@@ -47,9 +47,9 @@ class ProfileDownloader:
             if version != self.vendor.get('config_version', None):
                 return version
             else:
-                return None
+                return ""
         except Exception:
-            self.logger.exception("Exception, returning 'no update'.")
+            self.logger.exception("Exception, returning error")
             return None
 
 
