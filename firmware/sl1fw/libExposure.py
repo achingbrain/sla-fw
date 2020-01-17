@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from time import sleep, time, monotonic
 from typing import Optional, Callable, Any, Set, List, Dict
 
+import psutil
 from deprecated import deprecated
 
 from sl1fw import defines
@@ -673,7 +674,7 @@ class ExposureThread(threading.Thread):
 
             self.logger.info(
                 "Layer: %04d/%04d (%s), exposure [sec]: %.3f, slowLayersDone: %d, height [mm]: %.3f %.3f/%.3f,"
-                " elapsed [min]: %d, remain [min]: %d, used [ml]: %d, remaining [ml]: %d",
+                " elapsed [min]: %d, remain [min]: %d, used [ml]: %d, remaining [ml]: %d, RAM: %.1f%%, CPU: %.1f%%",
                 self.expo.actualLayer,
                 project.totalLayers,
                 project.to_print[i],
@@ -685,7 +686,9 @@ class ExposureThread(threading.Thread):
                 int(round((time() - self.expo.printStartTime) / 60)),
                 self.expo.countRemainTime(),
                 self.expo.resinCount,
-                self.expo.remain_resin_ml if self.expo.remain_resin_ml else -1
+                self.expo.remain_resin_ml if self.expo.remain_resin_ml else -1,
+                psutil.virtual_memory().percent,
+                psutil.cpu_percent(),
             )
 
             if ii < calibratePadThickness:
