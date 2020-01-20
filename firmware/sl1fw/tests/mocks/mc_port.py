@@ -51,7 +51,7 @@ class Serial:
         :param data: Data to be written to simulated serial port
         :return: None
         """
-        self.logger.debug(f"< {data}")
+        self.logger.debug("< %s", data)
         try:
             self.process.stdin.write(data)
             self.process.stdin.flush()
@@ -75,7 +75,7 @@ class Serial:
         for i in range(self.TIMEOUT_MS):
             line = self.process.stdout.readline()
             if line:
-                self.logger.debug(f"> {line}")
+                self.logger.debug("> %s", line)
                 return line
             sleep(0.001)
 

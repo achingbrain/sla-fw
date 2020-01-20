@@ -265,7 +265,8 @@ class ExposureThread(threading.Thread):
                 if command == "exit":
                     self.logger.debug("Exiting exposure thread on exit command")
                     break
-                elif command == "checks":
+
+                if command == "checks":
                     asyncio.run(self._run_checks())
                 elif command == "confirm_warnings":
                     self.run_exposure()

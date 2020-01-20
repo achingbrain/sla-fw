@@ -20,7 +20,13 @@ from sl1fw.api.config0 import Config0
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig, RuntimeConfig
+from sl1fw.libDisplay import Display
+from sl1fw.libHardware import Hardware
 from sl1fw.libHardware import MotConComState
+from sl1fw.libNetwork import Network
+from sl1fw.libQtDisplay import QtDisplay
+from sl1fw.libScreen import Screen
+from sl1fw.libWebDisplay import WebDisplay
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
 from sl1fw.project.manager import ExposureManager
@@ -58,7 +64,7 @@ class Printer:
         self.logger.info(str(self.hwConfig))
 
         self.logger.debug("Initializing libHardware")
-        from sl1fw.libHardware import Hardware
+
         self.hw = Hardware(self.hwConfig)
 
         # needed before init of other components (display etc)
@@ -70,31 +76,26 @@ class Printer:
         # #endif
 
         self.logger.debug("Initializing libNetwork")
-        from sl1fw.libNetwork import Network
         self.inet = Network(self.hw.cpuSerialNo)
 
         self.logger.debug("Initializing display devices")
         if debugDisplay:
             devices = [debugDisplay]
         else:
-            from sl1fw.libQtDisplay import QtDisplay
-            from sl1fw.libWebDisplay import WebDisplay
             devices = [QtDisplay(), WebDisplay()]
         #endif
 
         self.logger.debug("Initializing libScreen")
-        from sl1fw.libScreen import Screen
         self.screen = Screen()
 
         self.logger.debug("Registering config D-Bus services")
         self.config0_dbus = SystemBus().publish(Config0.__INTERFACE__, Config0(self.hwConfig))
 
         self.logger.debug("Initializing libDisplay")
-        from sl1fw.libDisplay import Display
         self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.runtime_config,
                                self.exposure_manager)
 
-        self.logger.debug(f"SL1 firmware initialized in {monotonic() - init_time}")
+        self.logger.debug("SL1 firmware initialized in %.03f", monotonic() - init_time)
     #endclass
 
     def exit(self):
@@ -229,7 +230,7 @@ class Printer:
                 self.logger.debug("Starting slicer profiles updater")
                 self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile)
             #endif
-            self.logger.debug(f"SL1 firmware started in {monotonic() - self.start_time} seconds")
+            self.logger.debug("SL1 firmware started in %.03f seconds", monotonic() - self.start_time)
         except Exception as exception:
             if defines.testing:
                 raise exception

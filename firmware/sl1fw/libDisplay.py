@@ -18,6 +18,7 @@ from sl1fw.libNetwork import Network
 from sl1fw.libScreen import Screen
 from sl1fw.libVirtualDisplay import VirtualDisplay
 from sl1fw.pages import pages
+# TODO: Get rid of cyclic dependencies
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
 from sl1fw.project.manager import ExposureManager
@@ -239,7 +240,8 @@ class Display:
                             actualPage.show()
                         #endif
                         continue
-                    elif newPage is not None:
+
+                    if newPage is not None:
                         if actualPage.clearStack:
                             pageStack = list()
                         #endif

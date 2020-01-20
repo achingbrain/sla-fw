@@ -65,7 +65,7 @@ class Network:
         for handler in self.net_change_handlers:
             handler(self.nm.state() == self.NM_STATE_CONNECTED_GLOBAL)
 
-        self.logger.debug(f"NetworkManager state changed: {changed}, devices: {self.devices}")
+        self.logger.debug("NetworkManager state changed: %s, devices: %s", changed, self.devices)
 
     @property
     def ip(self) -> Optional[str]:

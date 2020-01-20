@@ -126,7 +126,7 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         self.assertTrue(project_list)
         for project in project_list:
             self.assertTrue(Path(project).is_file())
-            self.assertRegex(Path(project).name, ".*\.sl1")
+            self.assertRegex(Path(project).name, r".*\.sl1")
 
     def test_print_start(self):
         path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)

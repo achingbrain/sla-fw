@@ -26,7 +26,7 @@ from mock import Mock
 
 import sl1fw.tests.mocks.mc_port
 from sl1fw import defines
-from sl1fw.tests import samples
+from sl1fw.tests import samples  # pylint: disable=W0611
 from sl1fw.tests.mocks.dbus.rauc import Rauc
 from sl1fw.tests.mocks.gettext import fake_gettext
 

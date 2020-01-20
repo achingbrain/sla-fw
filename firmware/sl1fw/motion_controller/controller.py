@@ -11,6 +11,7 @@ from threading import Thread, Lock
 from time import sleep
 from typing import Optional, Callable, List, Any
 
+import gpio
 import serial
 from evdev import UInput, ecodes as e
 
@@ -321,9 +322,9 @@ class MotionController:
         while self.in_waiting():
             try:
                 line = self._read_port(garbage=True)
-                self.logger.debug(f"Garbage pending in MC port: {line}")
+                self.logger.debug("Garbage pending in MC port: %s", line)
             except (serial.SerialException, UnicodeError) as e:
-                raise MotionControllerException(f"Failed garbage read", self.trace) from e
+                raise MotionControllerException("Failed garbage read", self.trace) from e
 
     def do(self, cmd, *args, return_process: Callable = lambda x: x) -> Any:
         with self._exclusive_lock, self._command_lock:
@@ -377,7 +378,7 @@ class MotionController:
                 raise MotionControllerException(f"MC command failed with error: {err}", self.trace)
 
             if line.startswith("#"):
-                self.logger.debug(f"Garbage response received: {line}")
+                self.logger.debug("Garbage response received: %s", line)
             else:
                 raise MotionControllerException(f"MC command resulted in non-response line", self.trace)
 
@@ -397,10 +398,10 @@ class MotionController:
         This assumes portLock to be already acquired
         """
         try:
-            self.logger.debug(f'"MCUSR..." read resulted in: "{self.read_port_text()}"')
+            self.logger.debug("\"MCUSR...\" read resulted in: \"%s\"", self.read_port_text())
             ready = self.read_port_text()
             if ready != "ready":
-                self.logger.info(f'"ready" read resulted in: "{ready}". Sleeping to ensure MC is ready.')
+                self.logger.info("\"ready\" read resulted in: \"%s\". Sleeping to ensure MC is ready.", ready)
                 sleep(1.5)
                 self._read_garbage()
         except Exception as e:
@@ -440,8 +441,6 @@ class MotionController:
         Assumes portLock is already acquired
         """
         self.logger.info("Doing hard reset of the motion controller")
-        import gpio
-
         self.trace.append_trace(LineTrace(LineMarker.RESET, b"Motion controller hard reset"))
         gpio.setup(131, gpio.OUT)
         gpio.set(131, 1)

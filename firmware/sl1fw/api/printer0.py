@@ -15,7 +15,6 @@ from deprecated import deprecated
 
 from sl1fw import defines
 from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath
-from sl1fw.exposure_state import ExposureState
 from sl1fw.functions import files
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.exposure0 import Exposure0
@@ -87,14 +86,14 @@ class Printer0:
         self._calibration = None
         self._prints = []
 
-    """
-        :return: Global printer state
-        Get global printer state
-
-        """
     @auto_dbus
     @property
     def state(self) -> int:
+        """
+        Get global printer state
+
+        :return: Global printer state
+        """
         if self._display_test_registration:
             return Printer0State.DISPLAY_TEST.value
 
@@ -642,9 +641,9 @@ class Printer0:
         """
         sources = [Path(defines.internalProjectPath), Path(defines.mediaRootPath)]
         projects = []
-        for dir in sources:
+        for directory in sources:
             for extension in defines.projectExtensions:
-                projects.extend(dir.rglob(f"*{extension}"))
+                projects.extend(directory.rglob(f"*{extension}"))
         return [str(project) for project in projects]
 
     @auto_dbus

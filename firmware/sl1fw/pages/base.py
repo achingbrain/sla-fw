@@ -78,7 +78,6 @@ class Page:
         """
         Override this to modify page this page is left for.
         """
-        pass
     #enddef
 
 
@@ -459,7 +458,7 @@ class Page:
             pageWait = self.display.makeWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down"))
             pageWait.show()
             self.display.hw.beepAlarm(3)
-            while(temp > defines.maxUVTemp - 10): # hystereze
+            while temp > defines.maxUVTemp - 10: # hystereze
                 pageWait.showItems(line3 = _("Temperature is %.1f C") % temp)
                 sleep(10)
                 temp = self.display.hw.getUvLedTemperature()
@@ -522,22 +521,21 @@ class Page:
             self.display.hw.startFans()
             #self.checkCooling = True #shouldn't this start the fan check also?
         #endif
-        '''
-        do not shut down the printer for now
-        if A64temperature > defines.maxA64Temp: # 70 C
-            self.logger.warning("Printer is shuting down due to overheat! Measured %.1f °C on A64.", A64temperature)
-            self.display.pages['error'].setParams(
-                text = _("Printers temperature is too high. Measured: %.1f °C!\n\n"
-                    "Shutting down in 10 seconds") % A64temperature)
-            self.display.pages['error'].show()
-            for i in range(10):
-                self.display.hw.beepAlarm(3)
-                sleep(1)
-            #endfor
-            self.display.shutDown(True)
-            return "error"
-        #endif
-        '''
+
+        # # do not shut down the printer for now
+        # if A64temperature > defines.maxA64Temp: # 70 C
+        #     self.logger.warning("Printer is shuting down due to overheat! Measured %.1f °C on A64.", A64temperature)
+        #     self.display.pages['error'].setParams(
+        #         text = _("Printers temperature is too high. Measured: %.1f °C!\n\n"
+        #             "Shutting down in 10 seconds") % A64temperature)
+        #     self.display.pages['error'].show()
+        #     for i in range(10):
+        #         self.display.hw.beepAlarm(3)
+        #         sleep(1)
+        #     #endfor
+        #     self.display.shutDown(True)
+        #     return "error"
+        # #endif
     #enddef
 
 
@@ -571,13 +569,11 @@ class Page:
     #enddef
 
     def getMinPwm(self):
-        min, max = self.getMeasPwms()
-        return min
+        return self.getMeasPwms()[0]
     #enddef
 
     def getMaxPwm(self):
-        min, max = self.getMeasPwms()
-        return max
+        return self.getMeasPwms()[1]
     #enddef
 
 #endclass

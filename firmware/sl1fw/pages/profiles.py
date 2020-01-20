@@ -46,7 +46,7 @@ class ProfilesPage(Page):
     #enddef
 
 
-    def _value(self, index, valmin, valmax, change):
+    def __value(self, index, valmin, valmax, change):
         if valmin <= self.profiles[self.actualProfile][index] + change <= valmax:
             self.profiles[self.actualProfile][index] += change
             if index in self.nameIndexes:
@@ -192,72 +192,72 @@ class ProfilesPage(Page):
 
 
     def minus2g1Button(self):
-        self._value(0, 0, 20000, -10)
+        self.__value(0, 0, 20000, -10)
     #enddef
 
 
     def plus2g1Button(self):
-        self._value(0, 0, 20000, 10)
+        self.__value(0, 0, 20000, 10)
     #enddef
 
 
     def minus2g2Button(self):
-        self._value(1, 0, 20000, -10)
+        self.__value(1, 0, 20000, -10)
     #enddef
 
 
     def plus2g2Button(self):
-        self._value(1, 0, 20000, 10)
+        self.__value(1, 0, 20000, 10)
     #enddef
 
 
     def minus2g3Button(self):
-        self._value(2, 0, 600, -1)
+        self.__value(2, 0, 600, -1)
     #enddef
 
 
     def plus2g3Button(self):
-        self._value(2, 0, 600, 1)
+        self.__value(2, 0, 600, 1)
     #enddef
 
 
     def minus2g4Button(self):
-        self._value(3, 0, 600, -1)
+        self.__value(3, 0, 600, -1)
     #enddef
 
 
     def plus2g4Button(self):
-        self._value(3, 0, 600, 1)
+        self.__value(3, 0, 600, 1)
     #enddef
 
 
     def minus2g5Button(self):
-        self._value(4, 0, 63, -1)
+        self.__value(4, 0, 63, -1)
     #enddef
 
 
     def plus2g5Button(self):
-        self._value(4, 0, 63, 1)
+        self.__value(4, 0, 63, 1)
     #enddef
 
 
     def minus2g6Button(self):
-        self._value(5, -128, 127, -1)
+        self.__value(5, -128, 127, -1)
     #enddef
 
 
     def plus2g6Button(self):
-        self._value(5, -128, 127, 1)
+        self.__value(5, -128, 127, 1)
     #enddef
 
 
     def minus2g7Button(self):
-        self._value(6, 0, 4000, -10)
+        self.__value(6, 0, 4000, -10)
     #enddef
 
 
     def plus2g7Button(self):
-        self._value(6, 0, 4000, 10)
+        self.__value(6, 0, 4000, 10)
     #enddef
 
 #endclass
@@ -408,7 +408,7 @@ class PageTuneTilt(ProfilesPage):
         self.profilesFilename = "tilt_tune_profiles.json"
         self.profilesNames = display.hw.getTiltProfilesNames()
         self.pageTitle = "Tilt Tune"
-        self.nameIndexes = set((0,3))
+        self.nameIndexes = {0, 3}
         self.profileItems = 8
     #enddef
 
@@ -485,81 +485,81 @@ class PageTuneTilt(ProfilesPage):
 
     #init profile
     def minus2g1Button(self):
-        self._value(0, 0, 7, -1)
+        self.__value(0, 0, 7, -1)
     #enddef
 
     def plus2g1Button(self):
-        self._value(0, 0, 7, 1)
+        self.__value(0, 0, 7, 1)
     #enddef
 
 
     #offset steps
     def minus2g2Button(self):
-        self._value(1, 0, 2000, -10)
+        self.__value(1, 0, 2000, -10)
     #enddef
 
     def plus2g2Button(self):
-        self._value(1, 0, 2000, 10)
+        self.__value(1, 0, 2000, 10)
     #enddef
 
 
     #offset delay [ms]
     def minus2g3Button(self):
-        self._value(2, 0, 4000, -10)
+        self.__value(2, 0, 4000, -10)
     #enddef
 
     def plus2g3Button(self):
-        self._value(2, 0, 4000, 10)
+        self.__value(2, 0, 4000, 10)
     #enddef
 
 
     #finish profile
     def minus2g4Button(self):
-        self._value(3, 0, 7, -1)
+        self.__value(3, 0, 7, -1)
     #enddef
 
     def plus2g4Button(self):
-        self._value(3, 0, 7, 1)
+        self.__value(3, 0, 7, 1)
     #enddef
 
 
     #tilt cycles
     def minus2g5Button(self):
-        self._value(4, 1, 10, -1)
+        self.__value(4, 1, 10, -1)
     #enddef
 
     def plus2g5Button(self):
-        self._value(4, 1, 10, 1)
+        self.__value(4, 1, 10, 1)
     #enddef
 
 
     #tilt delay [ms]
     def minus2g6Button(self):
-        self._value(5, 0, 4000, -10)
+        self.__value(5, 0, 4000, -10)
     #enddef
 
     def plus2g6Button(self):
-        self._value(5, 0, 4000, 10)
+        self.__value(5, 0, 4000, 10)
     #enddef
 
 
     #homing tolerance
     def minus2g7Button(self):
-        self._value(6, 0, 512, -1)
+        self.__value(6, 0, 512, -1)
     #enddef
 
     def plus2g7Button(self):
-        self._value(6, 0, 512, 1)
+        self.__value(6, 0, 512, 1)
     #enddef
 
 
     #homing cycles
     def minus2g8Button(self):
-        self._value(7, 1, 10, -1)
+        self.__value(7, 1, 10, -1)
     #enddef
 
     def plus2g8Button(self):
-        self._value(7, 1, 10, 1)
+        self.__value(7, 1, 10, 1)
     #enddef
 
 #endclass

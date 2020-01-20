@@ -149,7 +149,7 @@ class PageFansLeds(Page):
 
     def _update_config(self):
         # filter only wanted items
-        filtered = { k : v for k, v in [t for t in self.changed.items() if t[0] in self.valuesToSave] }
+        filtered = {k: v for k, v in self.changed.items() if k in self.valuesToSave}
         if 'uvpwm' in filtered:
             del self.display.hwConfig.uvCurrent   # remove old value too
         #enddef

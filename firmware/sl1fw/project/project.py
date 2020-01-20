@@ -418,18 +418,22 @@ class Project:
             self.zf.close()
 
     def _check_bbox(self, bbox: list):
-        if bbox and (len(bbox) != 4 \
-                or bbox[2] < bbox[0] \
-                or bbox[3] < bbox[1] \
-                or defines.screenWidth < bbox[0] < 0 \
-                or defines.screenHeight < bbox[1] < 0 \
-                or defines.screenWidth < bbox[2] < 0 \
-                or defines.screenHeight < bbox[3] < 0):
-            self.logger.warning("bbox %s is out of range [0,%d,0,%d]",
-                    str(bbox), defines.screenWidth, defines.screenHeight)
-            bbox = None
-        return bbox
+        if not bbox:
+            return None
 
+        if len(bbox) != 4 or bbox[2] < bbox[0] or bbox[3] < bbox[1]:
+            self.logger.warning("bbox %s is not a rectangle", str(bbox))
+            return None
+
+        if (not 0 <= bbox[0] <= defines.screenWidth
+                or not 0 <= bbox[1] <= defines.screenHeight
+                or not 0 <= bbox[2] <= defines.screenWidth
+                or not 0 <= bbox[3] <= defines.screenHeight):
+            self.logger.warning("bbox %s is out of range [0,%d,0,%d]",
+                                str(bbox), defines.screenWidth, defines.screenHeight)
+            return None
+
+        return bbox
 
     def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0) -> int:
         time_remain = 0

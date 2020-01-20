@@ -63,7 +63,8 @@ strict-pylint:
   dependencies: []
   script:
     - cd firmware
-    - python3 -m pylint --jobs 0 --additional-builtins=_,N_,ngettext --extension-pkg-whitelist=pygame --max-line-length=120 --disable C0330,C0326,C0103,C0111,W0702,W0511,R0201,W0703,C0301,R0902,R0904,R0914,R0915,W1201,R0903,R1705,W1201,W0715,R0912,R0913,W0212,R0901,W1203,W0613,C0123,C0411,R1710,W0201,C0302,R1702,R0911,W0612 sl1fw
+    - python3 -m pylint --version
+    - python3 -m pylint --persistent=n --additional-builtins=_,N_,ngettext --extension-pkg-whitelist=pygame --max-line-length=120 --disable C0330,C0326,C0103,C0111,W0702,W0511,R0201,W0703,C0301,R0902,R0904,R0914,R0915,W1201,R0903,R1705,W1201,W0715,R0912,R0913,W0212,R0901,W1203,W0613,C0123,C0411,R1710,W0201,C0302,R1702,R0911,W0612,C0413,R0801,R0401 sl1fw
   allow_failure: true
 
 sphinx:

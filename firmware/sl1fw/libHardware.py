@@ -321,7 +321,7 @@ class Hardware:
                     prefix = ""
                 #endif
                 sn = "%s%3sX%02u%02uX%03uX%c%05u" % (prefix, ot.get(origin, "UNK"), week, year, ean_pn, "K" if is_kit else "C", sequence_number)
-                self.logger.info(f"SN: {sn}")
+                self.logger.info("SN: %s", sn)
             #endif
         except Exception:
             self.logger.exception("CPU serial:")
@@ -577,7 +577,7 @@ class Hardware:
     @safe_call([0, 0], (ValueError, MotionControllerException))
     def getUvLedState(self):
         uvData = self.mcc.doGetIntList("?uled")
-        if 0 < len(uvData) < 3:
+        if uvData and len(uvData) < 3:
             return uvData if len(uvData) == 2 else list((uvData[0], 0))
         else:
             raise ValueError(f"UV data count not match! ({uvData})")
@@ -710,7 +710,7 @@ class Hardware:
 
     @safe_call({ 0: False, 1: False, 2: False }, (MotionControllerException, ValueError))
     def getFansError(self):
-        state = self.mcc.getStateBits(('fans',))
+        state = self.mcc.getStateBits(['fans'])
         if 'fans' not in state:
             raise ValueError(f"'fans' not in state: {state}")
         #endif
@@ -764,7 +764,7 @@ class Hardware:
             #endfor
             return retval
         except (MotionControllerException, ValueError):
-            self.logger.exception(f"getFansRpm failed")
+            self.logger.exception("getFansRpm failed")
             return dict.fromkeys(request, 0)
         #endtry
     #enddef

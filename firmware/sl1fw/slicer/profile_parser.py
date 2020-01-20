@@ -66,8 +66,7 @@ class ProfileParser:
                     #self.logger.debug("False comparsion '%s' in '%s'", val, key)
                     result = False
                     break
-                else:
-                    continue
+                continue
             pt = test.split("=~")
             if len(pt) > 1:
                 key = pt[0].strip()
@@ -76,8 +75,7 @@ class ProfileParser:
                     #self.logger.debug("False regex '%s' in '%s'", val, key)
                     result = False
                     break
-                else:
-                    continue
+                continue
             if test == "and":
                 continue
             self.logger.debug("Unknown test '%s', failing whole condition", test)

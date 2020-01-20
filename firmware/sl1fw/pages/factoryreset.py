@@ -91,7 +91,7 @@ class PageFactoryReset(Page):
                     con = system_bus.get(self.NETWORK_MANAGER, item)
                     con.Delete()
                 except:
-                    self.logger.exception(f"Failed to delete connection {item}")
+                    self.logger.exception("Failed to delete connection %s", item)
         except:
             self.logger.exception("Failed to reset wifi config")
         #endtry

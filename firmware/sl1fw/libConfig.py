@@ -221,7 +221,7 @@ class Value(property, ABC):
                 raise ValueError(f"Using default for key {self.name} as {val} is {type(val)} but should be {self.type}")
             adapted = self.adapt(val)
             if adapted != val:
-                self.logger.warning(f"Adapting config value {self.name} from {val} to {adapted}")
+                self.logger.warning("Adapting config value %s from %s to %s", self.name, val, adapted)
             self.check(adapted)
 
             if dry_run:
