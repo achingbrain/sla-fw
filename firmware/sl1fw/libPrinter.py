@@ -49,6 +49,7 @@ class Printer:
                                  is_master=True)
         self.runtime_config = RuntimeConfig()
         self.runtime_config.factory_mode = TomlConfig(defines.factoryConfigFile).load().get('factoryMode', False)
+        self.runtime_config.show_admin = self.runtime_config.factory_mode
         try:
             self.hwConfig.read_file()
         except ConfigException:

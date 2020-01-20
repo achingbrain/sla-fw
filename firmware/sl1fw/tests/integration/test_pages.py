@@ -249,10 +249,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("back")
         self.waitPage("printpreviewswipe")
         self.press("cont")
-        self.waitPage("wait", timeout_sec=45) # checks
-        self.waitPage("wait", timeout_sec=30) # moving tilt down
-        self.waitPage("wait", timeout_sec=30) # moving tower down
-        self.waitPage("wait", timeout_sec=30) # stirring resin
+        self.waitPage("wait", timeout_sec=120) # checks
         self.waitPage("print", timeout_sec=30) # printing
         self.waitPage("wait", timeout_sec=240) # moving platform to the top
         self.waitPage("finished", timeout_sec=30)
