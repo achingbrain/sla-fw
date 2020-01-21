@@ -20,6 +20,7 @@ from sl1fw.functions import files
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.states import Printer0State
+from sl1fw.functions.files import get_save_path
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
@@ -645,3 +646,16 @@ class Printer0:
             for extension in defines.projectExtensions:
                 projects.extend(dir.rglob(f"*{extension}"))
         return [str(project) for project in projects]
+
+    @auto_dbus
+    @property
+    def usb_path(self) -> str:
+        """
+        Read path to currently inserted USB drive
+
+        :return: Path as string or empty string in case of no USB present
+        """
+        path = get_save_path()
+        if path:
+            return str(path)
+        return ""
