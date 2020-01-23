@@ -102,7 +102,7 @@ class PagePrintBase(Page):
         elif isinstance(exception, TempSensorFailure):
             self.display.pages["error"].setParams(
                 backFce=lambda: "home",
-                text=_("Can't read %s\n\n" "Please check if temperature sensors are connected correctly.")
+                text=_("%s cannot be read.\n\n" "Please check if temperature sensors are connected correctly.")
                 % str([self.display.hw.getSensorName(i) for i in exception.failed_sensors]),
             )
         elif isinstance(exception, ResinFailure):

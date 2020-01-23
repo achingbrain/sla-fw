@@ -185,7 +185,7 @@ class PageWizardInit(Page):
         for i in range(2):
             if temperatures[i] < 0:
                 self.display.pages['error'].setParams(
-                    text = _("Can't read %s\n\n"
+                    text = _("%s cannot be read.\n\n"
                         "Please check if temperature sensors are connected correctly.") % self.display.hw.getSensorName(i))
                 return "error"
             #endif

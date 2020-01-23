@@ -131,10 +131,10 @@ class Hardware:
                 }
 
         self._sensorsNames = {
-                0 : _("UV LED temperature"),
-                1 : _("Ambient temperature"),
-                2 : _("<reserved1>"),
-                3 : _("<reserved2>"),
+                0 : N_("UV LED temperature"),
+                1 : N_("Ambient temperature"),
+                2 : N_("<reserved1>"),
+                3 : N_("<reserved2>"),
                 }
 
         self._tiltMin = -12800        # whole turn
@@ -806,7 +806,7 @@ class Hardware:
 
 
     def getSensorName(self, sensorNumber):
-        return self._sensorsNames.get(sensorNumber, _("unknown sensor"))
+        return _(self._sensorsNames.get(sensorNumber, N_("unknown sensor")))
     #enddef
 
 
