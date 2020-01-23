@@ -83,6 +83,7 @@ class Hardware:
         self._fanFailed = False
         self._coolDownCounter = 0
         self._ledTempIdx = 0
+        self._ambientTempIdx = 1
 
         # (mode, speed)
         self._powerLedStates= { 'normal' : (1, 2), 'warn' : (2, 10), 'error' : (3, 15), 'off' : (3, 64) }
@@ -804,6 +805,9 @@ class Hardware:
         return self.getMcTemperatures(logTemps = False)[self._ledTempIdx]
     #endif
 
+    def getAmbientTemperature(self):
+        return self.getMcTemperatures(logTemps = False)[self._ambientTempIdx]
+    #endif
 
     def getSensorName(self, sensorNumber):
         return _(self._sensorsNames.get(sensorNumber, N_("unknown sensor")))

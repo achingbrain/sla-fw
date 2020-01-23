@@ -22,6 +22,9 @@ class WebDisplayServer(SocketServer):
         self.newClientData['page'] = "home"
     #enddef
 
+    def _onMessageReceived(self, client, server, message):
+        pass
+    #enddef
 
     def formatMessage(self, data):
         #self.logger.debug("data: '%s'", str(data))
@@ -31,27 +34,8 @@ class WebDisplayServer(SocketServer):
 
             if data['command'] == "showPage":
 
-                self.newClientData = data
-                page = data['page']
-
-                try:
-                    content_template = self.jinja.get_template("_%sC.html" % page)
-                except jinja2.exceptions.TemplateNotFound:
-                    content_template = self.jinja.get_template("_default.html")
-                content = content_template.render(items = data)
-
-                for header_filename in ["_%sH.html" % page, "_head_common.html", "_head_default.html"]:
-                    try:
-                        header_template = self.jinja.get_template(header_filename)
-                        break
-                    except jinja2.exceptions.TemplateNotFound:
-                        continue
-                header = header_template.render(items = data, page = page)
-
-                html = self.jinja.get_template('layout.html').render(content = content, header = header, page = page)
-                #self.logger.debug("HTML: '%s'", html.replace("\n", " | "))
                 output['type'] = "page"
-                output['content'] = html
+                # output['content'] = "page"
 
             elif data['command'] == "showItems":
 

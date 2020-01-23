@@ -41,7 +41,8 @@ class PagePrint(PagePrintBase):
     def callback(self):
         # Update exposure end
         if self.display.expo.exposure_end and self.display.expo.exposure_end != self.last_expo_end:
-            diff = self.display.expo.exposure_end - datetime.now(tz=timezone.utc)
+            diff = self.display.expo.exposure_end - \
+                datetime.now(tz=timezone.utc)
             self.showItems(exposure=diff.seconds + diff.microseconds / 1000000)
             self.last_expo_end = self.display.expo.exposure_end
 
@@ -53,30 +54,30 @@ class PagePrint(PagePrintBase):
     def _layer_update(self, expo: Exposure):
         self.lastLayer = expo.actualLayer
         project = self.display.expo.project
-        calcMM = self.display.hwConfig.calcMM
 
         time_remain_min = expo.countRemainTime()
         time_elapsed_min = int(round((time() - expo.printStartTime) / 60))
-        positionMM = calcMM(expo.position)
         percent = int(100 * (self.lastLayer - 1) / project.totalLayers)
 
         if expo.warn_resin:
             self.display.hw.beepAlarm(1)
-
+        fansRpm = self.display.hw.getFansRpm()
         self.showItems(
             time_remain_min=time_remain_min,
             time_elapsed_min=time_elapsed_min,
             current_layer=self.lastLayer,
             total_layers=project.totalLayers,
-            layer_height_first_mm=calcMM(project.layerMicroStepsFirst),
-            layer_height_mm=calcMM(project.layerMicroSteps),
-            position_mm=positionMM,
-            total_mm=expo.totalHeight,
             project_name=project.name,
             progress=percent,
             resin_used_ml=expo.resinCount,
             resin_remaining_ml=expo.remain_resin_ml,
-            resin_low=expo.warn_resin,
+            temp_cpu=self.display.hw.getCpuTemperature(),
+            temp_led=self.display.hw.getUvLedTemperature(),
+            temp_amb=self.display.hw.getAmbientTemperature(),
+            uv_led_fan=fansRpm[0],
+            blower_fan=fansRpm[1],
+            rear_fan=fansRpm[2],
+            cover_closed=self.display.hw.isCoverClosed(),
         )
 
     def show(self):
@@ -84,9 +85,7 @@ class PagePrint(PagePrintBase):
         super(PagePrint, self).show()
 
     def feedmeButtonRelease(self):
-        self.display.pages["yesno"].setParams(
-            yesFce=self.doFeedme, text=_("Do you really want to add resin into the tank?")
-        )
+        self.display.pages["yesno"].setParams(yesFce=self.doFeedme, text=_("Do you really want to add resin into the tank?"))
         return "yesno"
 
     def doFeedme(self):
@@ -96,7 +95,8 @@ class PagePrint(PagePrintBase):
     def updownButtonRelease(self):
         self.display.pages["yesno"].setParams(
             yesFce=self.doUpAndDown,
-            text=_("Do you really want the platform to go up and down?\n\n" "It may affect the printed object!"),
+            text=_(
+                "Do you really want the platform to go up and down?\n\n" "It may affect the printed object!"),
         )
         return "yesno"
 
@@ -111,7 +111,8 @@ class PagePrint(PagePrintBase):
     def turnoffButtonRelease(self, hw_button=False):
         if hw_button:
             self.display.pages["yesno"].setParams(
-                yesFce=self.exitPrint, text=_("Do you really want to cancel the actual job?")
+                yesFce=self.exitPrint, text=_(
+                    "Do you really want to cancel the actual job?")
             )
             return "yesno"
 
