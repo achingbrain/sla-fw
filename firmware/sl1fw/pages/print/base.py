@@ -120,7 +120,7 @@ class PagePrintBase(Page):
                 text=_(
                     "Failed: %s\n\n"
                     "Check if fans are connected properly and can rotate without resistance."
-                    % ", ".join([self.display.hw.getFanName(i) for i in exception.failed_fans])
+                    % ", ".join([self.display.hw.fans[i].name for i in exception.failed_fans])
                 ),
             )
         elif isinstance(exception, ResinTooLow):

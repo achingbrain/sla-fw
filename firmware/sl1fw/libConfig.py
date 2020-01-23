@@ -964,9 +964,9 @@ class HwConfig(Config):
     upAndDownExpoComp = IntValue(0, minimum=-10, maximum=300)
 
     # Fans & LEDs
-    fan1Rpm = IntValue(2000, minimum=500, maximum=2800, factory=True, doc="UV LED fan RPMs.")
-    fan2Rpm = IntValue(3300, minimum=500, maximum=3300, factory=True, doc="Blower fan RPMs.")
-    fan3Rpm = IntValue(1000, minimum=400, maximum=5000, factory=True, doc="Rear fan RPMs.")
+    fan1Rpm = IntValue(2000, minimum=800, maximum=2700, factory=True, doc="UV LED fan RPMs.")
+    fan2Rpm = IntValue(3300, minimum=800, maximum=3300, factory=True, doc="Blower fan RPMs.")
+    fan3Rpm = IntValue(1000, minimum=800, maximum=5000, factory=True, doc="Rear fan RPMs.")
     uvCurrent = FloatValue(0.0, minimum=0.0, maximum=800.0, doc="UV LED current, DEPRECATED.")
     uvPwm = IntValue(
         lambda self: int(round(self.uvCurrent / 3.2)),

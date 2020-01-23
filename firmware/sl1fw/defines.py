@@ -96,9 +96,14 @@ tiltHomingTolerance = 96    # tilt axis check has this tolerance
 towerHoldCurrent = 12
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40
-fanStartStopTime = 6       # in secs
-fanMeasCycles = 14
-fanMinRPM = 500
+
+fanStartStopTime = 10       # in secs
+fanWizardStabilizeTime = 30
+
+uvFanMaxRPM = 2700
+blowerFanMaxRPM = 3300
+rearFanMaxRPM = 5000
+fanMinRPM = 800
 
 minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance
 maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some tolerance

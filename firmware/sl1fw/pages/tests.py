@@ -22,7 +22,8 @@ class PageTests(Page):
     def show(self):
         self.items.update({
                 'button1' : "Resin sensor test",
-                'button2' : "Fan test",
+                'button2' : "UV & Fan test",
+                'button3' : "Tower sensitivity",
 
                 'button15' : "Raise exception",
                 })
@@ -76,7 +77,7 @@ class PageTests(Page):
 
 
     def button2ButtonRelease(self):
-        return "fantest"
+        return "uvfanstest"
     #enddef
 
 

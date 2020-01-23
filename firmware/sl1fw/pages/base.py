@@ -480,7 +480,7 @@ class Page:
             failedFans = []
             for num, state in enumerate(fansState):
                 if state:
-                    failedFans.append(self.display.hw.getFanName(num))
+                    failedFans.append(self.display.hw.fans[num].name)
                 #endif
             #endfor
             self.logger.error("Detected fan failure: %s", failedFans)

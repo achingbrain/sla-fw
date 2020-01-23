@@ -197,20 +197,30 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertFalse(self.hw.checkState('fans'))
 
         self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
+        for key in range(3):
+            self.assertEqual(False, self.hw.fans[key].enabled)
         self.hw.startFans()
         self.assertEqual({0: True, 1: True, 2: True}, self.hw.getFans())
+        for key in range(3):
+            self.assertEqual(True, self.hw.fans[key].enabled)
 
         fans = {0: True, 1: False, 2: True}
         self.hw.setFans(fans)
         self.assertEqual(fans, self.hw.getFans())
+        for key in fans:
+            self.assertEqual(fans[key], self.hw.fans[key].enabled)
 
         self.hw.stopFans()
         self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
+        for key in range(3):
+            self.assertEqual(False, self.hw.fans[key].enabled)
         # TODO: Unreliable
         # self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
 
         # Check mask
         self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFanCheckMask())
+        for key in range(3):
+            self.assertEqual(False, self.hw.fans[key].mask)
 
         # RPMs
         # FIXME RPMs are not simulated
@@ -220,14 +230,15 @@ class TestLibHardware(Sl1fwTestCase):
 
         # RPMs
         rpms = self.hw.getFansRpm()
-        for rpm in rpms:
+        for key, rpm in enumerate(rpms):
             self.assertGreaterEqual(rpm, 0)
+            self.assertGreaterEqual(self.hw.fans[key].realRpm, 0)
             # TODO: This is weak test, The simulated value seems random 0 - 20
 
         # Names
-        self.assertEqual("UV LED fan", self.hw.getFanName(0))
-        self.assertEqual("blower fan", self.hw.getFanName(1))
-        self.assertEqual("rear fan", self.hw.getFanName(2))
+        self.assertEqual("UV LED fan", self.hw.fans[0].name)
+        self.assertEqual("blower fan", self.hw.fans[1].name)
+        self.assertEqual("rear fan", self.hw.fans[2].name)
 
     def test_temperatures(self):
         temps = self.hw.getMcTemperatures()

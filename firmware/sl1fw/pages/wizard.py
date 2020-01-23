@@ -207,10 +207,6 @@ class PageWizardInit(Page):
         self.display.wizardData.wizardTempUvInit = temperatures[0]
         self.display.wizardData.wizardTempAmbient = temperatures[1]
 
-        if not self.display.doMenu("fantest"):
-            return self._EXIT_()
-        #endif
-
         return "wizarduvled"
     #enddef
 
@@ -267,65 +263,9 @@ class PageWizardUvLed(Page):
 
 
     def continueUvCheck(self):
-        self.ensureCoverIsClosed()
-        self.display.hw.startFans()
-        # UV LED voltage comparation
-        pageWait = PageWait(self.display, line1 = _("UV LED check"))
-        pageWait.show()
-        self.display.hw.uvLedPwm = 0
-        self.display.hw.uvLed(True)
-        if self.display.hw.is500khz:
-            uvPwms = [40, 122, 243, 250]    # board rev 0.6c+
-        else:
-            uvPwms = [31, 94, 188, 219]     # board rev. < 0.6c
+        if not self.display.doMenu("uvfanstest"):
+            return self._EXIT_()
         #endif
-        diff = 0.55    # [mV] voltages in all rows cannot differ more than this limit
-        row1 = list()
-        row2 = list()
-        row3 = list()
-        for i in range(3):
-            self.display.hw.uvLedPwm = uvPwms[i]
-            if self.display.hw.mcFwRevision < 6:
-                sleep(10)   # wait to refresh all voltages (board rev. 0.5)
-            else:
-                sleep(5)    # wait to refresh all voltages (board rev. 0.6+)
-            volts = self.display.hw.getVoltages()
-            del volts[-1]   # delete power supply voltage
-            if max(volts) - min(volts) > diff:
-                self.display.hw.uvLed(False)
-                self.display.pages['error'].setParams(
-                    text = _("UV LED voltages differ too much!\n\n"
-                        "Please check if the UV LED panel is connected properly.\n\n"
-                        "Data: %(pwm)d, %(value)s V") % { 'pwm' : uvPwms[i], 'value' : volts})
-                return "error"
-            #endif
-            row1.append(int(volts[0] * 1000))
-            row2.append(int(volts[1] * 1000))
-            row3.append(int(volts[2] * 1000))
-        #endfor
-        self.display.wizardData.wizardUvVoltageRow1 = row1
-        self.display.wizardData.wizardUvVoltageRow2 = row2
-        self.display.wizardData.wizardUvVoltageRow3 = row3
-
-        # UV LED temperature check
-        pageWait.showItems(line1 = _("UV LED warmup check"))
-        self.display.hw.uvLedPwm = uvPwms[3]
-        for countdown in range(120, 0, -1):
-            pageWait.showItems(line2 = ngettext("Remaining %d second",
-                    "Remaining %d seconds", countdown) % countdown)
-            sleep(1)
-            temp = self.display.hw.getUvLedTemperature()
-            if temp > defines.maxUVTemp:
-                self.display.hw.uvLed(False)
-                self.display.pages['error'].setParams(
-                    text = _("UV LED too hot!\n\n"
-                        "Please check if the UV LED panel is attached to the heatsink.\n\n"
-                        "Temperature data: %s") % temp)
-                return "error"
-            #endif
-        #endfor
-        self.display.wizardData.wizardTempUvWarm = temp
-        self.display.hw.uvLedPwm = uvPwms[2]
 
         if not self.display.doMenu("displaytest"):
             return self._EXIT_()

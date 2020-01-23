@@ -145,7 +145,7 @@ class PageAdvancedSettings(Page):
     #enddef
 
     @rear_fan_speed.setter
-    @value_saturate(400, 5000)
+    @value_saturate(defines.fanMinRPM, defines.rearFanMaxRPM)
     @item_updater(minLimit = defines.fanMinRPM)
     def rear_fan_speed(self, value):
         self.configwrapper.fan3Rpm = value
