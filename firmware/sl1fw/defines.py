@@ -107,7 +107,7 @@ fanMinRPM = 800
 
 minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance
 maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some tolerance
-maxA64Temp = 70.0
+maxA64Temp = 80.0     # maximal temperature of A64 is 125 C according to datasheet
 maxUVTemp = 55.0
 
 # keep at least 10 MB / 110 MB of free space when copying project to ramdisk / extracting examples
