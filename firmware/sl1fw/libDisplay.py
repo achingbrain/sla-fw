@@ -311,8 +311,8 @@ class Display:
             if reboot:
                 os.system("reboot")
             else:
-                self.hw.shutdown()
                 os.system("poweroff")
+            #endif
         #endif
 
         self.screen.exit()
