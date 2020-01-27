@@ -132,6 +132,12 @@ class PageUvCalibration(PageUvCalibrationBase):
     Name = "uvcalibration"
 
     def prepare(self):
+        # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
+        if self.display.hw.isKit and self.display.printer0.factory_mode:
+            # Skip setting of initial positions as the kit not fully assembled at the factory (there is no tower)
+            return
+        #endif
+
         self.pageWait = PageWait(self.display, line1 = _("UV calibration"), line2 = _("Setting start positions..."))
         self.pageWait.show()
 

@@ -150,14 +150,14 @@ class PageDisplay(Page):
         #endif
 
         wizardDict = TomlConfig(defines.wizardDataFile).load()
-        if not wizardDict:
+        if not wizardDict and not (self.display.hw.isKit and self.display.printer0.factory_mode):
             self.display.pages['error'].setParams(
                     backFce = self.gotoWizard,
                     text = _("The wizard did not finish successfully!"))
             return "error"
         #endif
 
-        if not self.display.hwConfig.calibrated:
+        if not self.display.hwConfig.calibrated and not (self.display.hw.isKit and self.display.printer0.factory_mode):
             self.display.pages['error'].setParams(
                     backFce = self.gotoCalib,
                     text = _("The calibration did not finish successfully!"))
