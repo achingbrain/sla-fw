@@ -3,17 +3,18 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
 import logging
-from typing import Optional, Any, Callable, Dict
+import os
+import shutil
+import tarfile
+import tempfile
+from typing import Optional, Any, Dict
 from urllib.request import urlopen, Request
 
-import pydbus
-
-import tempfile
-import tarfile
-import shutil
 import distro
+import pydbus
+from PySignal import Signal
+
 from sl1fw import defines
 from sl1fw.project.functions import ramdisk_cleanup
 
@@ -28,7 +29,7 @@ class Network:
         self.version_id = distro.version()
         self.cpu_serial_no = cpu_serial_no
         self.assign_active = None
-        self.net_change_handlers = []
+        self.net_change = Signal()
         self.bus = pydbus.SystemBus()
         self.nm = self.bus.get(self.NETWORKMANAGER_SERVICE)
         self.hostname_service = self.bus.get(self.HOSTNAME_SERVICE)
@@ -36,35 +37,28 @@ class Network:
     def register_events(self) -> None:
         """
         Start network monitoring
-        Use register_net_change_handler to register for network updates
+        Use net_change signal to register for network state updates
 
         :return: None
         """
-        self.nm.PropertiesChanged.connect(self.state_changed)
+        self.nm.PropertiesChanged.connect(self._state_changed)
         for device_path in self.nm.GetAllDevices():
             device = self.bus.get(self.NETWORKMANAGER_SERVICE, device_path)
-            device.PropertiesChanged.connect(self.state_changed)
+            device.PropertiesChanged.connect(self._state_changed)
 
-    def register_net_change_handler(self, handler: Callable[[bool], None]) -> None:
-        """
-        Register handler fo network change
+    def force_refresh_state(self):
+        self.net_change.emit(self.online)
 
-        :param handler: Handler to call, global connectivity is passed as the only boolean argument
-        :return: None
-        """
-        assert handler is not None
-        self.net_change_handlers.append(handler)
-        # call handler immediately with actual status (network can already be connected)
-        handler(self.nm.state() == self.NM_STATE_CONNECTED_GLOBAL)
+    @property
+    def online(self) -> bool:
+        return self.nm.state() == self.NM_STATE_CONNECTED_GLOBAL
 
-    def state_changed(self, changed: map) -> None:
+    def _state_changed(self, changed: map) -> None:
         events = {'Connectivity', 'Metered', 'ActiveConnections', 'WirelessEnabled'}
         if not events & set(changed.keys()):
             return
 
-        for handler in self.net_change_handlers:
-            handler(self.nm.state() == self.NM_STATE_CONNECTED_GLOBAL)
-
+        self.force_refresh_state()
         self.logger.debug("NetworkManager state changed: %s, devices: %s", changed, self.devices)
 
     @property

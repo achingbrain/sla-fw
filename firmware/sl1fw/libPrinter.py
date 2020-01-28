@@ -10,8 +10,10 @@ import re
 import threading
 from pathlib import Path
 from time import sleep, monotonic
+from typing import Optional
 
 import distro
+from PySignal import Signal
 from pydbus import SystemBus
 
 from sl1fw import defines
@@ -29,6 +31,7 @@ from sl1fw.libScreen import Screen
 from sl1fw.libWebDisplay import WebDisplay
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
+from sl1fw.printer_state import PrinterState
 from sl1fw.project.manager import ExposureManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
 
@@ -38,13 +41,16 @@ class Printer:
     def __init__(self, debugDisplay=None):
         self.logger = logging.getLogger(__name__)
         init_time = monotonic()
+        self.exception: Optional[Exception] = None
         self.start_time = None
         self.admin_check = None
         self.slicer_profile = None
         self.slicer_profile_updater = None
-        self.running = True
+        self._state = PrinterState.INIT
+        self.state_changed = Signal()
         self.firstRun = True
         self.exposure_manager = ExposureManager()
+        self.exposure_manager.exposure_change.connect(self._exposure_changed)
         self.exited = threading.Event()
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
@@ -89,7 +95,8 @@ class Printer:
         self.screen = Screen()
 
         self.logger.debug("Registering config D-Bus services")
-        self.config0_dbus = SystemBus().publish(Config0.__INTERFACE__, Config0(self.hwConfig))
+        self.system_bus = SystemBus()
+        self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hwConfig))
 
         self.logger.debug("Initializing libDisplay")
         self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.runtime_config,
@@ -98,8 +105,21 @@ class Printer:
         self.logger.debug("SL1 firmware initialized in %.03f", monotonic() - init_time)
     #endclass
 
+    @property
+    def state(self) -> PrinterState:
+        return self._state
+    #enddef
+
+    @state.setter
+    def state(self, value: PrinterState):
+        if self._state != value:
+            self._state = value
+            self.state_changed.emit(value)
+        #endif
+    #enddef
+
     def exit(self):
-        self.running = False
+        self.state = PrinterState.EXIT
         self.display.exit()
         self.exited.wait(timeout=60)
         self.screen.exit()
@@ -189,15 +209,14 @@ class Printer:
         self.hw.start()
         self.logger.debug("Starting libDisplay")
         self.display.start()
-        self.logger.debug("Registering event handlers")
-        self.inet.register_events()
-        locale = SystemBus().get("org.freedesktop.locale1")
-        locale.PropertiesChanged.connect(self.localeChanged)
 
-        # Trigger property changed on start to set initial connected state
-        self.inet.state_changed({'Connectivity': None})
-
+        # Since display is initialized we can catch exceptions and report problems to display
         try:
+            self.logger.debug("Registering event handlers")
+            self.inet.register_events()
+            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(self._locale_changed)
+            self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
+
             self.logger.debug("Connecting motion controller")
             state = self.hw.connectMC()
             if state != MotConComState.OK:
@@ -230,8 +249,15 @@ class Printer:
                 self.logger.debug("Starting slicer profiles updater")
                 self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile)
             #endif
+
+            # Force update network state (in case we missed network going online)
+            # All network state handler should be already registered
+            self.inet.force_refresh_state()
+
             self.logger.debug("SL1 firmware started in %.03f seconds", monotonic() - self.start_time)
         except Exception as exception:
+            self.exception = exception
+            self.state = PrinterState.EXCEPTION
             if defines.testing:
                 raise exception
             self.logger.exception("Printer run() init failed")
@@ -245,10 +271,13 @@ class Printer:
 
         try:
             self.exited.clear()
-            while self.running:
+            self.state = PrinterState.RUNNING
+            while self.state != PrinterState.EXIT:
                 self.printer_run()
             #endwhile
         except Exception as exception:
+            self.exception = exception
+            self.state = PrinterState.EXCEPTION
             if defines.testing:
                 raise exception
             self.logger.exception("run() exception:")
@@ -269,7 +298,7 @@ class Printer:
         self.exited.set()
     #enddef
 
-    def localeChanged(self, __, changed, ___):
+    def _locale_changed(self, __, changed, ___):
         if 'Locale' not in changed:
             return
         #endif
@@ -280,18 +309,38 @@ class Printer:
             self.logger.debug("Obtaining translation: %s" % lang)
             translation = gettext.translation('sl1fw', localedir=defines.localedir, languages=[lang], fallback=True)
             self.logger.debug("Installing translation: %s" % lang)
-            translation.install(names=("ngettext"))
+            translation.install(names="ngettext")
         except (IOError, OSError):
             self.logger.exception("Translation for %s cannot be installed.", lang)
         #endtry
+    #enddef
+
+    def _rauc_changed(self, __, changed, ___):
+        if "Operation" in changed:
+            if changed["Operation"] == "idle":
+                if self.state == PrinterState.UPDATING:
+                    self.state = PrinterState.RUNNING
+                #endif
+            else:
+                self.state = PrinterState.UPDATING
+            #endif
+        #endif
     #enddef
 
     def get_actual_page(self):
         return self.display.actualPage
     #enddef
 
-    def get_actual_page_stack(self):
-        return self.display.actualPageStack
+    def _exposure_changed(self):
+        if self.state == PrinterState.PRINTING:
+            if not self.exposure_manager.exposure or self.exposure_manager.exposure.done:
+                self.state = PrinterState.RUNNING
+            #endif
+        else:
+            if self.exposure_manager.exposure and not self.exposure_manager.exposure.done:
+                self.state = PrinterState.PRINTING
+            #endif
+        #endif
     #enddef
 
 #endclass

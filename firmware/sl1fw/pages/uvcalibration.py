@@ -11,6 +11,7 @@ from abc import abstractmethod
 
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException, TomlConfig
+from sl1fw.display_state import DisplayState
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -132,6 +133,8 @@ class PageUvCalibration(PageUvCalibrationBase):
     Name = "uvcalibration"
 
     def prepare(self):
+        self.display.state = DisplayState.CALIBRATION
+
         # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
         if self.display.hw.isKit and self.display.printer0.factory_mode:
             # Skip setting of initial positions as the kit not fully assembled at the factory (there is no tower)
@@ -149,12 +152,14 @@ class PageUvCalibration(PageUvCalibrationBase):
         #endwhile
 
         if not self.display.hw.isTowerSynced():
+            self.display.state = DisplayState.IDLE
             self.display.pages['error'].setParams(
                     text = _("Tower homing failed!\n\nCheck the printer's hardware."))
             return "error"
         #endif
 
         if not self.display.hw.isTiltSynced():
+            self.display.state = DisplayState.IDLE
             self.display.pages['error'].setParams(
                     text = _("Tilt homing failed!\n\nCheck the printer's hardware."))
             return "error"
@@ -191,6 +196,7 @@ class PageUvCalibration(PageUvCalibrationBase):
     def contButtonRelease(self):
         if not self.checkUVMeter():
             self.allOff()
+            self.display.state = DisplayState.IDLE
             return "error"
         #endif
         self.warmUp()
@@ -199,6 +205,7 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def backButtonRelease(self):
+        self.display.state = DisplayState.IDLE
         return self._BACK_()
     #enddef
 
@@ -540,6 +547,7 @@ class PageUvCalibrationConfirm(Page):
 
 
     def yesButtonRelease(self):
+        self.display.state = DisplayState.IDLE
         self.display.hwConfig.uvPwm = self.display.uvcalibData.uvFoundPwm
         del self.display.hwConfig.uvCurrent   # remove old value too
         try:
@@ -580,6 +588,7 @@ class PageUvCalibrationConfirm(Page):
 
 
     def noButtonRelease(self):
+        self.display.state = DisplayState.IDLE
         return "_BACK_"
     #enddef
 

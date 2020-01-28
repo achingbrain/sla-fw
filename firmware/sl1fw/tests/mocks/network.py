@@ -3,6 +3,8 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from PySignal import Signal
+
 
 class Network:
     def __init__(self):
@@ -11,9 +13,7 @@ class Network:
             'eth0': "1.2.3.4"
         }
         self.hostname = "test_hostname"
+        self.net_change = Signal()
 
     def start_net_monitor(self):
-        pass
-
-    def register_net_change_handler(self, _):
         pass

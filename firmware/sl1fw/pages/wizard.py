@@ -11,6 +11,7 @@ import distro
 import pygame
 
 from sl1fw import defines
+from sl1fw.display_state import DisplayState
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages.calibration import PageCalibrationStart
 
@@ -76,6 +77,7 @@ class PageWizardInit(Page):
 
 
     def contButtonRelease(self):
+        self.display.state = DisplayState.WIZARD
         # check serial numbers
         if (not re.match(r"CZPX\d{4}X009X[CK]\d{5}", self.display.hw.cpuSerialNo) or
         not re.match(r"CZPX\d{4}X012X[CK01]\d{5}", self.display.hw.mcSerialNo)):
@@ -573,6 +575,7 @@ class PageWizardFinish(Page):
 
 
     def show(self):
+        self.display.state = DisplayState.IDLE
         self.items.update({
             'text' : _("Selftest OK.\n\n"
                 "Continue to calibration?")})
@@ -618,6 +621,7 @@ class PageWizardSkip(Page):
 
 
     def yesButtonRelease(self):
+        self.display.state = DisplayState.IDLE
         self.display.hwConfig.showWizard = False
         try:
             self.display.hwConfig.write()

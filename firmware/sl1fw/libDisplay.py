@@ -10,7 +10,10 @@ from time import monotonic
 from time import sleep
 from typing import Optional, List
 
+from PySignal import Signal
+
 from sl1fw import defines
+from sl1fw.display_state import DisplayState
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware
@@ -39,6 +42,8 @@ class Display:
         self.uvcalibData = None
         self.exposure_manager = exposure_manager
         self.running = False
+        self._state = DisplayState.IDLE
+        self.state_changed = Signal()
 
         # Instantiate pages
         self.pages = {}
@@ -53,9 +58,22 @@ class Display:
         self.waitPageItems = None
         self.forcedPage = None
 
-        self.inet.register_net_change_handler(self.assignNetActive)
+        self.inet.net_change.connect(self.assignNetActive)
+        self.assignNetActive(self.inet.online)
     #enddef
 
+    @property
+    def state(self) -> DisplayState:
+        return self._state
+    #enddef
+
+    @state.setter
+    def state(self, value: DisplayState):
+        if self._state != value:
+            self._state = value
+            self.state_changed.emit(value)
+        #endif
+    #enddef
 
     @property
     def expo(self) -> Optional[Exposure]:

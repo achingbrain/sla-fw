@@ -20,6 +20,8 @@ from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.states import Printer0State
 from sl1fw.functions.files import get_save_path
+from sl1fw.display_state import DisplayState
+from sl1fw.printer_state import PrinterState
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
@@ -33,35 +35,23 @@ class Printer0:
     """
     __INTERFACE__ = "cz.prusa3d.sl1.printer0"
 
-    PropertiesChanged = signal()
-
-    PAGE_TO_STATE = {
-        "admin": Printer0State.ADMIN,
-        "calibrationconfirm": Printer0State.CALIBRATION,
-        "exception": Printer0State.EXCEPTION,
-        "factoryreset": Printer0State.INITIALIZING,
-        "firmwareupdate": Printer0State.UPDATE,
-        "start": Printer0State.INITIALIZING,
-        "unboxingconfirm": Printer0State.UNBOXING,
-        "uvcalibration": Printer0State.CALIBRATION,
-        "uvmetershow": Printer0State.CALIBRATION,
-        "uvcalibrationtest": Printer0State.CALIBRATION,
-        "uvmeter": Printer0State.CALIBRATION,
-        "uvcalibrationconfirm": Printer0State.CALIBRATION,
-        "wizardinit": Printer0State.WIZARD,
-        "wizarduvled": Printer0State.WIZARD,
-        "wizardtoweraxis": Printer0State.WIZARD,
-        "wizardresinsensor": Printer0State.WIZARD,
-        "wizardtimezone": Printer0State.WIZARD,
-        "wizardspeaker": Printer0State.WIZARD,
-        "wizardfinish": Printer0State.WIZARD,
-        "wizardskip": Printer0State.WIZARD,
-        "displaytest": Printer0State.DISPLAY_TEST
+    PRINTER_STATE_TO_STATE = {
+        PrinterState.INIT: Printer0State.INITIALIZING,
+        PrinterState.EXCEPTION: Printer0State.EXCEPTION,
+        PrinterState.UPDATING: Printer0State.UPDATE,
+        PrinterState.PRINTING: Printer0State.PRINTING,
     }
 
-    PAGE_TO_STATE.update({
-        f"calibration{i}": Printer0State.CALIBRATION for i in range(1, 12)
-    })
+    DISPLAY_STATE_TO_STATE = {
+        DisplayState.CALIBRATION: Printer0State.CALIBRATION,
+        DisplayState.WIZARD: Printer0State.WIZARD,
+        DisplayState.UNBOXING: Printer0State.UNBOXING,
+        DisplayState.FACTORY_RESET: Printer0State.INITIALIZING,
+        DisplayState.ADMIN: Printer0State.ADMIN,
+        DisplayState.DISPLAY_TEST: Printer0State.DISPLAY_TEST,
+    }
+
+    PropertiesChanged = signal()
 
     @auto_dbus
     @property
@@ -74,10 +64,6 @@ class Printer0:
         """
         return self.printer.get_actual_page().Name
 
-    PAGE_TO_STATE.update({
-        f"unboxing{i}": Printer0State.UNBOXING for i in range(1, 6)
-    })
-
     def __init__(self, printer: Printer):
         self.printer = printer
         self._display_test_registration = None
@@ -85,6 +71,11 @@ class Printer0:
         self._wizard = None
         self._calibration = None
         self._prints = []
+        self.printer.display.state_changed.connect(lambda x: self._state_update())
+        self.printer.state_changed.connect(lambda x: self._state_update())
+
+    def _state_update(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
 
     @auto_dbus
     @property
@@ -94,22 +85,14 @@ class Printer0:
 
         :return: Global printer state
         """
+        if self.printer.state in self.PRINTER_STATE_TO_STATE:
+            return self.PRINTER_STATE_TO_STATE[self.printer.state].value
+
+        if self.printer.display.state in self.DISPLAY_STATE_TO_STATE:
+            return self.DISPLAY_STATE_TO_STATE[self.printer.display.state].value
+
         if self._display_test_registration:
             return Printer0State.DISPLAY_TEST.value
-
-        if self.printer.exposure_manager.exposure and not self.printer.exposure_manager.exposure.done:
-            return Printer0State.PRINTING.value
-
-        # This is extremely ugly implementation, but currently it is hard to tell what is the printer doing. This
-        # identifies current state based on matching current page stack against a state to page mapping.
-        pages = []
-        if self.printer.get_actual_page_stack():
-            pages.extend(self.printer.get_actual_page_stack())
-        pages.append(self.printer.get_actual_page())
-
-        for p in [p.Name for p in pages]:
-            if p in self.PAGE_TO_STATE:
-                return self.PAGE_TO_STATE[p].value
 
         return Printer0State.IDLE.value
 
@@ -503,11 +486,13 @@ class Printer0:
 
         display_test = DisplayTest0(self.printer.display, self._clear_display_test)
         self._display_test_registration = pydbus.SystemBus().publish(DisplayTest0.__INTERFACE__, (path, display_test))
+        self._state_update()
         return DBusObjectPath(path)
 
     def _clear_display_test(self):
         self._display_test_registration.unpublish()
         self._display_test_registration = None
+        self._state_update()
 
     @auto_dbus
     def wizard(self):

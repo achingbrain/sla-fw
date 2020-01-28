@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y python3 python3-pip python3-pygame pyth
 git openssh-client build-essential xxd gawk gettext python3-coverage python3-networkmanager python3-dbusmock python3-pil python3-distro python3-sphinx python3-psutil python3-deprecated python3-evdev
 
 # Install python deps
-RUN pip3 install websocket-server gpio readerwriterlock pylint
+RUN pip3 install websocket-server gpio readerwriterlock pylint pysignal
 
 # Create use that will run the build
 RUN useradd --create-home --user-group appuser

@@ -21,3 +21,4 @@ systemd-python==234
 toml==0.10.0
 websocket-server==0.4
 mock>=2.0.0
+PySignal

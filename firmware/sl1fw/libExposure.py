@@ -13,9 +13,10 @@ import threading
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from time import sleep, time, monotonic
-from typing import Optional, Callable, Any, Set, List, Dict
+from typing import Optional, Any, List, Dict
 
 import psutil
+from PySignal import Signal
 from deprecated import deprecated
 
 from sl1fw import defines
@@ -786,7 +787,7 @@ class Exposure:
     instance_counter = 0
 
     def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
-        self._change_handlers: Set[Callable[[str, Any], None]] = set()
+        self.change = Signal()
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.runtime_config = runtime_config
@@ -873,15 +874,8 @@ class Exposure:
     def __setattr__(self, key: str, value: Any):
         object.__setattr__(self, key, value)
         if not key.startswith("_"):
-            for handler in self._change_handlers:
-                handler(key, value)
-            #endfor
+            self.change.emit(key, value)
         #endif
-    #enddef
-
-
-    def add_onchange_handler(self, handler: Callable[[str, Any], None]):
-        self._change_handlers.add(handler)
     #enddef
 
 

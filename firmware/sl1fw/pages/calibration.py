@@ -7,6 +7,7 @@ from time import time, sleep
 
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException
+from sl1fw.display_state import DisplayState
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.move import MovePage
@@ -25,6 +26,7 @@ class PageCalibrationStart(Page):
 
 
     def show(self):
+        self.display.state = DisplayState.CALIBRATION
         self.items.update({
             'imageName' : "calibration-tighten_knob.jpg",
             'text' : _("If the platform is not yet inserted, insert it according to the picture at 0° angle and secure it with the black knob.")})
@@ -620,11 +622,13 @@ class PageCalibrationEnd(Page):
 
 
     def contButtonRelease(self):
+        self.display.state = DisplayState.IDLE
         return "_EXIT_"
     #enddef
 
 
     def backButtonRelease(self):
+        self.display.state = DisplayState.IDLE
         return "_EXIT_"
     #enddef
 
@@ -652,6 +656,7 @@ class PageCalibrationConfirm(Page):
 
 
     def yesButtonRelease(self):
+        self.display.state = DisplayState.IDLE
         return "_EXIT_"
     #endif
 

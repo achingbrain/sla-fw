@@ -5,10 +5,12 @@
 
 import os
 from time import sleep
+
 import pydbus
 
 from sl1fw import defines
 from sl1fw import libConfig
+from sl1fw.display_state import DisplayState
 from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -38,6 +40,7 @@ class PageFactoryReset(Page):
 
 
     def yesButtonRelease(self):
+        self.display.state = DisplayState.FACTORY_RESET
         # http://www.wavsource.com/snds_2018-06-03_5106726768923853/movie_stars/schwarzenegger/erased.wav
         pageWait = PageWait(self.display, line1 = _("Relax... You've been erased."))
         pageWait.show()

@@ -39,7 +39,7 @@ class Exposure0:
 
     def __init__(self, exposure: Exposure):
         self.exposure = exposure
-        self.exposure.add_onchange_handler(self._handle_change)
+        self.exposure.change.connect(self._handle_change)
 
     @auto_dbus
     @state_checked(Exposure0State.CONFIRM)

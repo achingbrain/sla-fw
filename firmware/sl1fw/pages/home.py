@@ -2,7 +2,7 @@
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+from sl1fw.display_state import DisplayState
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.calibration import PageCalibrationStart
@@ -22,6 +22,10 @@ class PageHome(Page):
 
     def show(self):
         super(PageHome, self).show()
+
+        # This is admin leave detection
+        self.display.state = DisplayState.IDLE
+
         if self.readyBeep:
             self.display.hw.beepRepeat(2)
             self.readyBeep = False

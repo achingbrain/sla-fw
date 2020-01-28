@@ -5,6 +5,7 @@
 
 from time import sleep
 
+from sl1fw.display_state import DisplayState
 from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -23,6 +24,7 @@ class PageUnboxing1(Page):
 
 
     def show(self):
+        self.display.state = DisplayState.UNBOXING
         self.items.update({
             'imageName' : "unboxing-sticker_open_cover.jpg",
             'text' : _("Please remove the safety sticker on the right and open the orange cover.")})
@@ -79,6 +81,7 @@ class PageUnboxing2(Page):
 
 
     def show(self):
+        self.display.state = DisplayState.UNBOXING
         self.items.update({
             'imageName' : "unboxing-remove_foam.jpg",
             'text' : _("Remove the black foam from both sides of the platform.")})
@@ -120,6 +123,7 @@ class PageUnboxing3(Page):
 
 
     def show(self):
+        self.display.state = DisplayState.UNBOXING
         self.items.update({
             'imageName' : "unboxing-remove_bottom_foam.jpg",
             'text' : _("Unscrew and remove the resin tank and remove the black foam underneath it.")})
@@ -156,6 +160,7 @@ class PageUnboxing4(Page):
 
 
     def show(self):
+        self.display.state = DisplayState.UNBOXING
         self.items.update({
             'imageName' : "unboxing-remove_sticker_screen.jpg",
             'text' : _("Carefully peel off the orange protective sticker from the exposition display.")})
@@ -201,6 +206,7 @@ class PageUnboxing5(Page):
 
 
     def show(self):
+        self.display.state = DisplayState.IDLE
         self.items.update({
             'text' : _("The printer is fully unboxed and ready for the selftest.")})
         super(PageUnboxing5, self).show()
@@ -247,6 +253,7 @@ class PageUnboxingConfirm(Page):
 
     def yesButtonRelease(self):
         self.display.hwConfig.showUnboxing = False
+        self.display.state = DisplayState.IDLE
         try:
             self.display.hwConfig.write()
         except ConfigException:

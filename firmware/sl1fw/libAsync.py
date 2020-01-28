@@ -24,7 +24,7 @@ class BackgroundNetworkCheck(ABC):
         self.inet = inet
         self.change_trigger = True
         self.logger.debug("Registering net change handler")
-        self.inet.register_net_change_handler(self.connection_changed)
+        self.inet.net_change.connect(self.connection_changed)
 
     def connection_changed(self, value):
         if value and self.change_trigger:

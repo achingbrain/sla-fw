@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from sl1fw import defines
+from sl1fw.display_state import DisplayState
 from sl1fw.libConfig import ConfigException
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
@@ -191,6 +192,9 @@ class PageAdvancedSettings(Page):
 
 
     def show(self):
+        # This is admin leave detection
+        self.display.state = DisplayState.IDLE
+
         if self.configwrapper is None or not self.confirmReturnPending:
             self.configwrapper = self.display.hwConfig.get_writer()
         else:
@@ -210,7 +214,7 @@ class PageAdvancedSettings(Page):
             'cover_check': self.cover_check,
             'resin_sensor': self.resin_sensor,
         })
-        super(PageAdvancedSettings, self).show()
+        super().show()
     #enddef
 
 
@@ -297,6 +301,7 @@ class PageAdvancedSettings(Page):
     # Display test
     @confirm_leave
     def displaytestButtonRelease(self):
+        self.display.state = DisplayState.DISPLAY_TEST
         self.display.pages['confirm'].setParams(
             continueFce = self.displaytestContinue,
             pageTitle = _("Display test"),
