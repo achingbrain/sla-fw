@@ -155,8 +155,7 @@ class MotionController:
         self._exclusive_lock.acquire()
 
     def _unlock_exclusive(self):
-        # Disable pylint warning, there is a bug in pylint causing locked to be unknown
-        if self._exclusive_lock.locked():  # pylint: disable=E1101
+        if self._exclusive_lock.locked():
             self._exclusive_lock.release()
 
     def _debug(self, bootloader: bool) -> None:
@@ -183,6 +182,11 @@ class MotionController:
             self._port.baudrate = self.BAUD_RATE_NORMAL
             self._unlock_exclusive()
             self.logger.info("Debugging session terminated")
+
+            if bootloader:
+                # A custom firmware was uploaded, lets reconnect with version check disabled
+                if self.connect(False) != MotConComState.OK:
+                    raise MotionControllerException("Reconnect after MC debug in bootloader mode failed", self.trace)
 
     def _debug_bootloader(self):
         self.logger.info("Starting bootloader debugging session")
