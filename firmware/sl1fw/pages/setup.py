@@ -372,11 +372,6 @@ class PageSetupExposure(PageSetup):
 
     def state1g3ButtonRelease(self):
         self._onOff(self.temp, self.changed, 2, 'tilt')
-        if not self.temp['tilt'] and not self.temp['layertowerhop']:
-            self.temp['layertowerhop'] = self.display.hwConfig.calcMicroSteps(5)
-            self.changed['layertowerhop'] = str(self.temp['layertowerhop'])
-            self.showItems(**{ 'value2g2' : self._strZMove(self.temp['layertowerhop']) })
-        #endif
     #enddef
 
 
@@ -397,11 +392,6 @@ class PageSetupExposure(PageSetup):
 
     def minus2g2Button(self):
         self._value(self.temp, self.changed, 1, 'layertowerhop', 0, 8000, -20, self._strZMove)
-        if not self.temp['tilt'] and not self.temp['layertowerhop']:
-            self.temp['tilt'] = True
-            self.changed['tilt'] = "on"
-            self.showItems(**{ 'state1g3' : 1 })
-        #endif
     #enddef
 
 
