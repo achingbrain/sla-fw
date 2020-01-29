@@ -1,4 +1,5 @@
 TEMPLATE = sl1fw.pot
+LANGS=cs de en es fr it pl
 
 SOURCES = $(wildcard ../*.py ../pages/*.py)
 
@@ -9,6 +10,14 @@ OUT = $(IN:.po=.mo)
 compile: $(OUT)
 
 extract: $(TEMPLATE)
+
+check: $(addprefix check_,$(LANGS))
+	@echo $^
+
+check_%: %/LC_MESSAGES/sl1fw.po ${TEMPLATE}
+	@echo
+	@echo "Checking $<"
+	msgcmp $^
 
 clean:
 	rm -f $(TEMPLATE)
