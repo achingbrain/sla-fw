@@ -127,7 +127,7 @@ class Page:
 
     @deprecated(reason = "There should be no wifi button, only network icon")
     def wifiButtonRelease(self):
-        return "network"
+        return self.networkButtonRelease()
     #enddef
 
 

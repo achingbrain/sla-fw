@@ -22,5 +22,5 @@ class PageNetwork(Page):
         super(PageNetwork, self).__init__(display)
         self.pageUI = "network"
 
-    def wifiButtonRelease(self):
+    def networkButtonRelease(self):
         self.logger.debug("Skipping wifi button, already at page network")

@@ -56,6 +56,10 @@ class PageUvDataShow(Page):
         #endif
     #enddef
 
+    def networkButtonRelease(self):
+        self.logger.debug("Network control disabled in uvcalibration")
+    #enddef
+
 #endclass
 
 
@@ -123,6 +127,10 @@ class PageUvCalibrationBase(Page):
         #endif
 
         return True
+    #enddef
+
+    def networkButtonRelease(self):
+        self.logger.debug("Network control disabled in uvcalibration")
     #enddef
 
 #endclass
