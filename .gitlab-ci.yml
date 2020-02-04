@@ -103,7 +103,7 @@ pot-deploy:
     - cp sl1fw.pot ${CI_COMMIT_REF_NAME}-sl1fw.pot
     - >
         lftp -c "
-        set ssl:verify-certificate ${DEPLOY_FTP_FINGERPRINT};
+        set sftp:ssl-force yes;
         open -u ${DEPLOY_FTP_USER},${DEPLOY_FTP_PASS} ${DEPLOY_FTP_HOST};
         put -O ${DEPLOY_FTP_DEST} ${CI_COMMIT_REF_NAME}-sl1fw.pot;
         "
