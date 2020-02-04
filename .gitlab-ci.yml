@@ -10,6 +10,12 @@ before_script:
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
   - cat ~/.ssh/known_hosts
 
+build:
+  stage: build
+  script:
+    - cd firmware
+    - python3 setup.py build
+
 mcsim:
   stage: build
   script:
