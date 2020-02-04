@@ -833,7 +833,7 @@ msgstr ""
 "La máquina no funcionará sin pasar por ella."
 
 #: ../pages/print.py:158
-msgid "Do you really want to cancel the actual job?"
+msgid "Do you really want to cancel the current job?"
 msgstr "¿Realmente quieres cancelar el trabajo actual?"
 
 #: ../pages/calibration.py:650

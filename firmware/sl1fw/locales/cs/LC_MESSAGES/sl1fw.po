@@ -815,7 +815,7 @@ msgstr ""
 "Bez kalibrace nebude přístroj správně tisknout."
 
 #: ../pages/print.py:158
-msgid "Do you really want to cancel the actual job?"
+msgid "Do you really want to cancel the current job?"
 msgstr "Opravdu chcete zrušit momentální tiskovou úlohu?"
 
 #: ../pages/calibration.py:650

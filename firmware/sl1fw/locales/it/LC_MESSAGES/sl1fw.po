@@ -834,7 +834,7 @@ msgstr ""
 "La macchina non funzionerà senza averla completata."
 
 #: ../pages/print.py:158
-msgid "Do you really want to cancel the actual job?"
+msgid "Do you really want to cancel the current job?"
 msgstr "Vuoi davvero annullare la stampa in corso?"
 
 #: ../pages/calibration.py:650

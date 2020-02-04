@@ -112,7 +112,7 @@ class PagePrint(PagePrintBase):
         if hw_button:
             self.display.pages["yesno"].setParams(
                 yesFce=self.exitPrint, text=_(
-                    "Do you really want to cancel the actual job?")
+                    "Do you really want to cancel the current job?")
             )
             return "yesno"
 
