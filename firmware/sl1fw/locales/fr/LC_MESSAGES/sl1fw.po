@@ -836,10 +836,6 @@ msgstr ""
 "\n"
 "La machine ne fonctionnera pas sans l'effectuer."
 
-#: ../pages/print.py:158
-msgid "Do you really want to cancel the current job?"
-msgstr "Voulez-vous vraiment annuler le travail en cours ?"
-
 #: ../pages/calibration.py:650
 msgid ""
 "Do you really want to cancel the calibration?\n"

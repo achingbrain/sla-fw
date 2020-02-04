@@ -827,10 +827,6 @@ msgstr ""
 "\n"
 "Urządzenie nie będzie działać bez jej ukończenia."
 
-#: ../pages/print.py:158
-msgid "Do you really want to cancel the current job?"
-msgstr "Czy na pewno chcesz przerwać bieżące zadanie?"
-
 #: ../pages/calibration.py:650
 msgid ""
 "Do you really want to cancel the calibration?\n"
