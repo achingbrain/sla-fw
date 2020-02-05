@@ -20,6 +20,7 @@ class PageUvFansTest(Page):
         self.pageUI = "confirm"
         self.pageTitle = N_("UV & Fans test")
         self.stack = False
+        self.checkCooling = True
     #enddef
 
 

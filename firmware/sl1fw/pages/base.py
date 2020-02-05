@@ -524,14 +524,15 @@ class Page:
         #endif
 
         if A64temperature < defines.maxA64Temp - 20: # 60 C
-            if any(fan.enabled for fan in self.display.hw.fans.values()):
+            if any(fan.enabled for fan in self.display.hw.fans.values()) and \
+                    not self.display.expo.in_progress and not self.checkCooling:
                 self.display.hw.stopFans()
             #self.checkCooling = True #shouldn't this start the fan check also?
         #endif
 
         # # do not shut down the printer for now
         # if A64temperature > defines.maxA64Temp + 10: # 90 C
-        #     self.logger.warning("Printer is shuting down due to overheat! Measured %.1f °C on A64.", A64temperature)
+        #     self.logger.warning("Printer is shutting down due to overheat! Measured %.1f °C on A64.", A64temperature)
         #     self.display.pages['error'].setParams(
         #         text = _("Printers temperature is too high. Measured: %.1f °C!\n\n"
         #             "Shutting down in 10 seconds") % A64temperature)
