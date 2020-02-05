@@ -12,7 +12,7 @@ import queue
 import threading
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from time import sleep, time, monotonic
+from time import sleep, time
 from typing import Optional, Any, List, Dict
 
 import psutil
@@ -38,7 +38,6 @@ class ExposureThread(threading.Thread):
         self.logger = logging.getLogger(__name__)
         self.commands = commands
         self.expo = expo
-        self._fanCheckStartTime: Optional[float] = None
     #enddef
 
 
@@ -442,32 +441,22 @@ class ExposureThread(threading.Thread):
     def _check_fans(self):
         self.logger.debug("Running fan checks")
         self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.RUNNING
-        self._fanCheckStartTime = monotonic()
+
+        # Warm-up fans
         self.expo.hw.startFans()
+        self.logger.debug("Waiting %.2f secs for fans", defines.fanStartStopTime)
+        sleep(defines.fanStartStopTime)
 
-        # Wait for fans to finish warmup
-        fansRunningTime = monotonic() - self._fanCheckStartTime
-        if fansRunningTime < defines.fanStartStopTime:
-            sleepTime = defines.fanStartStopTime - fansRunningTime
-            self.logger.debug("Waiting %.2f secs for fans", sleepTime)
-            sleep(sleepTime)
-        #endif
-
-        fansState = self.expo.hw.getFansError().values()
-        failed_fans = []
-        if any(fansState) and not defines.fan_check_override:
-            for num, state in enumerate(fansState):
-                if state:
-                    failed_fans.append(num)
-                #endif
-            #endfor
+        # Check fans
+        fans_state = self.expo.hw.getFansError().values()
+        if any(fans_state) and not defines.fan_check_override:
+            failed_fans = [num for num, state in enumerate(fans_state) if state]
             self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
             raise FanFailure(failed_fans)
         #endif
 
         self.expo.runtime_config.fan_error_override = False
         self.expo.runtime_config.check_cooling_expo = True
-
         self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.SUCCESS
     #enddef
 
