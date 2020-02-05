@@ -30,7 +30,7 @@ class SocketServer(multiprocessing.Process):
     #enddef
 
 
-    def signalHandler(self, signum, frame):
+    def signalHandler(self, _signal, _frame):
         self.logger.debug("signal received")
         self.stoprequest.set()
     #enddef
@@ -80,12 +80,13 @@ class SocketServer(multiprocessing.Process):
     #enddef
 
 
-    def receiveMessage(self, data):
+    @staticmethod
+    def receiveMessage(data):
         return data
     #enddef
 
 
-    def _onClientLeft(self, client, server):
+    def _onClientLeft(self, client, _server):
         try:
             if client:
                 self.logger.debug("Client [%d]:%s:%d has disconnected",
@@ -97,7 +98,7 @@ class SocketServer(multiprocessing.Process):
     #enddef
 
 
-    def _onNewClient(self, client, server):
+    def _onNewClient(self, client, _server):
         try:
             if client:
                 self.logger.debug("New client [%d]:%s:%d connected",
@@ -110,7 +111,7 @@ class SocketServer(multiprocessing.Process):
     #enddef
 
 
-    def _onMessageReceived(self, client, server, message):
+    def _onMessageReceived(self, client, _server, message):
         try:
             if client:
                 #self.logger.debug("Message from client [%d]:%s:%d - '%s'",

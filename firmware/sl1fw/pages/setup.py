@@ -105,7 +105,11 @@ class PageSetup(Page):
 
 
     def button4ButtonRelease(self):
-        ''' save '''
+        """
+        Save
+
+        :return: None
+        """
         try:
             self.display.hwConfig.get_writer().commit_dict(self.changed)
         except ConfigException:
@@ -113,7 +117,7 @@ class PageSetup(Page):
             self.display.pages['error'].setParams(
                 text="Cannot save configuration")
             return "error"
-        # endtry
+        #endtry
         return super(PageSetup, self).backButtonRelease()
     #endif
 #enddef
@@ -126,6 +130,7 @@ class PageSetupHw(PageSetup):
     def __init__(self, display):
         super(PageSetupHw, self).__init__(display)
         self.pageTitle = "Hardware Setup"
+        self.temp = {}
     #enddef
 
 
@@ -301,6 +306,7 @@ class PageSetupExposure(PageSetup):
     def __init__(self, display):
         super(PageSetupExposure, self).__init__(display)
         self.pageTitle = "Exposure Setup"
+        self.temp = {}
     #enddef
 
 

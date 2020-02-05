@@ -44,7 +44,7 @@ class Rauc:
         return ""
 
     @auto_dbus
-    def GetSlotStatus(self) -> List[Tuple[str, Dict[str, Any]]]:
+    def GetSlotStatus(self) -> List[Tuple[str, Dict[str, Any]]]: # pylint: disable=no-self-use
         return [
             (
                 "rootfs.0",

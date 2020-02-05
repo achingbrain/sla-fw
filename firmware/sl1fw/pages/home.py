@@ -33,12 +33,14 @@ class PageHome(Page):
     #enddef
 
 
-    def controlButtonRelease(self):
+    @staticmethod
+    def controlButtonRelease():
         return "control"
     #enddef
 
 
-    def settingsButtonRelease(self):
+    @staticmethod
+    def settingsButtonRelease():
         return "settings"
     #enddef
 
@@ -70,12 +72,14 @@ class PageHome(Page):
     #enddef
 
 
-    def showWizard(self):
+    @staticmethod
+    def showWizard():
         return "wizardinit"
     #enddef
 
 
-    def printContinue(self):
+    @staticmethod
+    def printContinue():
         return PageCalibrationStart.Name
     #enddef
 

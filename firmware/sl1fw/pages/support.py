@@ -16,23 +16,23 @@ class PageSupport(Page):
         self.pageUI = "support"
     #enddef
 
-
-    def manualButtonRelease(self):
+    @staticmethod
+    def manualButtonRelease():
         return "manual"
     #enddef
 
-
-    def videosButtonRelease(self):
+    @staticmethod
+    def videosButtonRelease():
         return "videos"
     #enddef
 
-
-    def sysinfoButtonRelease(self):
+    @staticmethod
+    def sysinfoButtonRelease():
         return "sysinfo"
     #enddef
 
-
-    def aboutButtonRelease(self):
+    @staticmethod
+    def aboutButtonRelease():
         return "about"
     #enddef
 

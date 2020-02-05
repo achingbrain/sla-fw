@@ -15,9 +15,10 @@ class ProfileParser:
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
+        self.config = None
 
-
-    def _convert(self, val : str):
+    @staticmethod
+    def _convert(val : str):
         """
         'smart' value conversion
         """

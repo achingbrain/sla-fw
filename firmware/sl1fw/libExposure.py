@@ -728,7 +728,7 @@ class ExposureThread(threading.Thread):
 
             # /1000.0 - we want cm3 (=ml) not mm3
             self.expo.resinCount += float(whitePixels * defines.screenPixelSize ** 2 * self.expo.hwConfig.calcMM(step) / 1000.0)
-            self.logger.debug("resinCount: %f" % self.expo.resinCount)
+            self.logger.debug("resinCount: %f", self.expo.resinCount)
 
             seconds = time() - self.expo.printStartTime
             self.expo.printTime = int(seconds / 60)

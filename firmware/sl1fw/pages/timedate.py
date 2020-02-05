@@ -65,18 +65,18 @@ class PageTimeSettings(PageTimeDateBase):
         self.timedate.SetNTP(False, False)
     #enddef
 
-
-    def settimeButtonSubmit(self, data):
+    @staticmethod
+    def settimeButtonSubmit(_data):
         return "settime"
     #enddef
 
-
-    def setdateButtonSubmit(self, data):
+    @staticmethod
+    def setdateButtonSubmit(_data):
         return "setdate"
     #enddef
 
-
-    def settimezoneButtonSubmit(self, data):
+    @staticmethod
+    def settimezoneButtonSubmit(_data):
         return "settimezone"
     #enddef
 

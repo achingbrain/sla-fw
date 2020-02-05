@@ -43,10 +43,13 @@ class ScreenServer(multiprocessing.Process):
         self.nextImage1 = None
         self.nextImage2 = None
         self.pasteData = None
+        self.usage = None
+        self.screen = None
+        self.whitePixels = None
     #enddef
 
 
-    def signalHandler(self, signum, frame):
+    def signalHandler(self, _signum, _frame):
         self.logger.debug("signal received")
         self.stoprequest.set()
     #enddef
@@ -79,7 +82,7 @@ class ScreenServer(multiprocessing.Process):
                 #endif
             except Empty:
                 continue
-            except Exception as e:
+            except Exception:
                 self.logger.exception("ScreenServer exception")
                 continue
             #endtry
@@ -146,7 +149,7 @@ class ScreenServer(multiprocessing.Process):
                 self.overlays['ppm1'] = self._openImage(defines.perPartesMask)
                 self.overlays['ppm2'] = ImageOps.invert(self.overlays['ppm1'])
                 self.perPartes = True
-            except Exception as e:
+            except Exception:
                 self.logger.exception("per partes masks exception")
             #endtry
         #endif
@@ -156,7 +159,7 @@ class ScreenServer(multiprocessing.Process):
             self.overlays['mask'] = ImageOps.invert(img)
         except KeyError:
             self.logger.info("No mask picture in the project")
-        except Exception as e:
+        except Exception:
             self.logger.exception("project mask exception")
         #endtry
 
@@ -199,7 +202,8 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    def _calcPixels(self, perc, whole):
+    @staticmethod
+    def _calcPixels(perc, whole):
         return int((perc * whole) / 100)
     #enddef
 
@@ -263,7 +267,7 @@ class ScreenServer(multiprocessing.Process):
             #endif
 
             self.logger.debug("preload of %s done in %f secs", filename, time() - startTimeFirst)
-        except Exception as e:
+        except Exception:
             self.logger.exception("preload exception:")
         #endtry
     #enddef
@@ -295,7 +299,7 @@ class ScreenServer(multiprocessing.Process):
                 startTime = time()
                 preview.save(defines.livePreviewImage + "-tmp.png")
                 self.logger.debug("screenshot done in %f secs", time() - startTime)
-            except Exception as e:
+            except Exception:
                 self.logger.exception("screenshot exception:")
             #endtry
         else:
@@ -308,7 +312,7 @@ class ScreenServer(multiprocessing.Process):
         startTime = time()
         try:
             os.rename(defines.livePreviewImage + "-tmp.png", defines.livePreviewImage)
-        except Exception as e:
+        except Exception:
             self.logger.exception("screenshotRename exception:")
         #endtry
         self.logger.debug("rename done in %f secs", time() - startTime)
@@ -460,8 +464,8 @@ class ScreenServer(multiprocessing.Process):
         numpy.savez_compressed(defines.displayUsageData, display_usage = self.usage)
     #enddef
 
-
-    def ping(self):
+    @staticmethod
+    def ping():
         return "pong"
     #enddef
 
@@ -482,8 +486,8 @@ class Screen:
         self.server.start()
     #enddef
 
-
-    def cleanup(self):
+    @staticmethod
+    def cleanup():
         # Remove live preview from last run
         if os.path.exists(defines.livePreviewImage):
             os.remove(defines.livePreviewImage)

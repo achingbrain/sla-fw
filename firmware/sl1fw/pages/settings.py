@@ -32,17 +32,20 @@ class PageSettings(Page):
     #enddef
 
 
-    def advancedsettingsButtonRelease(self):
+    @staticmethod
+    def advancedsettingsButtonRelease():
         return PageAdvancedSettings.Name
     #enddef
 
 
-    def supportButtonRelease(self):
+    @staticmethod
+    def supportButtonRelease():
         return "support"
     #enddef
 
 
-    def calibrateContinue(self):
+    @staticmethod
+    def calibrateContinue():
         return PageCalibrationStart.Name
     #enddef
 

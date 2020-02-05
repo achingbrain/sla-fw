@@ -82,7 +82,7 @@ class Project:
         self._first_layer_bbox = None
 
         if not Path(project_file).exists():
-            self.logger.error("Project lookup exception: file not exists: " + project_file)
+            self.logger.error("Project lookup exception: file not exists: %s", project_file)
             return ProjectState.NOT_FOUND
 
         try:
@@ -91,7 +91,7 @@ class Project:
             namelist = zf.namelist()
             zf.close()
         except Exception as e:
-            self.logger.exception("zip read exception:" + str(e))
+            self.logger.exception("zip read exception: %s", str(e))
             return ProjectState.CANT_READ
 
         # Set paths
@@ -232,7 +232,7 @@ class Project:
                     self._first_layer_bbox = list(img.getbbox())
                     self.logger.debug("first layer bbox analyze done, result: %s", str(self._first_layer_bbox))
                 except Exception as e:
-                    self.logger.exception("bbox analyze exception:" + str(e))
+                    self.logger.exception("bbox analyze exception: %s", str(e))
                     # FIXME warn user (calibration will not work)
         return self._first_layer_bbox
 
@@ -272,7 +272,7 @@ class Project:
                     self.config.layersFast = self._total_layers - new_slow_layers
                     self.logger.debug("new layersSlow: %d, new layersFast: %s", self.config.layersSlow, self.config.layersFast)
                 except Exception as e:
-                    self.logger.exception("bbox analyze exception:" + str(e))
+                    self.logger.exception("bbox analyze exception: %s", str(e))
                     # FIXME warn user (calibration will not work)
         return self._calibrate_bbox
 
@@ -313,6 +313,7 @@ class Project:
         etime = self.config.expTime
         for i in range(divide[x]):
             lh = 0
+            w = 0
             for j in range(divide[y]):
                 w = (i+1) * stepW
                 h = (j+1) * stepH
@@ -345,7 +346,7 @@ class Project:
             try:
                 date_time = datetime.strptime(self.config.raw_modification_time, '%Y-%m-%d at %H:%M:%S %Z').replace(tzinfo=timezone.utc)
             except Exception as e:
-                self.logger.exception("Cannot parse project modification time: " + str(e))
+                self.logger.exception("Cannot parse project modification time: %s", str(e))
                 date_time = datetime.now(timezone.utc)
         else:
             date_time = datetime.now(timezone.utc)
@@ -364,10 +365,10 @@ class Project:
         # check free space
         statvfs = os.statvfs(defines.ramdiskPath)
         ramdisk_available = statvfs.f_frsize * statvfs.f_bavail - defines.ramdiskReservedSpace
-        self.logger.debug("Ramdisk available space: %d bytes" % ramdisk_available)
+        self.logger.debug("Ramdisk available space: %d bytes", ramdisk_available)
         try:
             filesize = os.path.getsize(self.origin)
-            self.logger.debug("Zip file size: %d bytes" % filesize)
+            self.logger.debug("Zip file size: %d bytes", filesize)
         except Exception:
             self.logger.exception("filesize exception:")
             return ProjectState.CANT_READ

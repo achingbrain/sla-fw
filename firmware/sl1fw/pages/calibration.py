@@ -43,7 +43,7 @@ class PageCalibrationStart(Page):
         self.display.hw.tiltHomeCalibrateWait()
         #tower home check
         pageWait.showItems(line1 = _("Tower axis homing check"))
-        for i in range(3):
+        for __ in range(3):
             if not self.display.hw.towerSyncWait():
                 return "towersensitivity"
         #endfor
@@ -57,7 +57,8 @@ class PageCalibrationStart(Page):
     #enddef
 
 
-    def _OK_(self):
+    @staticmethod
+    def _OK_():
         return "calibration2"
     #enddef
 
@@ -89,7 +90,8 @@ class PageCalibration2(Page):
     #enddef
 
 
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
         return "calibration3"
     #endif
 
@@ -99,7 +101,8 @@ class PageCalibration2(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -145,7 +148,8 @@ class PageCalibration3(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -171,7 +175,8 @@ class PageCalibration4(Page):
     #enddef
 
 
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
         return "calibration5"
     #endif
 
@@ -181,7 +186,8 @@ class PageCalibration4(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -198,6 +204,7 @@ class PageCalibration5(MovePage):
         self.pageTitle = N_("Calibration step 5/11")
         self.autorepeat = { "upslow" : (2, 1), "downslow" : (2, 1) }
         self.prevTiltHeight = 0
+        self.moving = False
     #enddef
 
 
@@ -267,7 +274,8 @@ class PageCalibration5(MovePage):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -294,7 +302,8 @@ class PageCalibration6(Page):
     #enddef
 
 
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
         return "calibration7"
     #endif
 
@@ -304,7 +313,8 @@ class PageCalibration6(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -330,7 +340,8 @@ class PageCalibration7(Page):
     #enddef
 
 
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
         return "calibration8"
     #endif
 
@@ -340,12 +351,14 @@ class PageCalibration7(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
 
-    def _BACK_(self):
+    @staticmethod
+    def _BACK_():
         return "_BACK_"
     #enddef
 
@@ -445,7 +458,8 @@ class PageCalibration8(Page):
     #endif
 
 
-    def positionFailed(self):
+    @staticmethod
+    def positionFailed():
         return "_BACK_"
     #enddef
 
@@ -455,12 +469,14 @@ class PageCalibration8(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
 
-    def _BACK_(self):
+    @staticmethod
+    def _BACK_():
         return "_BACK_"
     #enddef
 
@@ -487,7 +503,8 @@ class PageCalibration9(Page):
     #enddef
 
 
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
         return "calibration10"
     #endif
 
@@ -497,7 +514,8 @@ class PageCalibration9(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -562,7 +580,8 @@ class PageCalibration10(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -661,7 +680,8 @@ class PageCalibrationConfirm(Page):
     #endif
 
 
-    def noButtonRelease(self):
+    @staticmethod
+    def noButtonRelease():
         return "_NOK_"
     #enddef
 

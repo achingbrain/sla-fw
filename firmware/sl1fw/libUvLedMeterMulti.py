@@ -66,6 +66,8 @@ class UvLedMeterMulti:
         self.ndigits = 1
         self.port = None
         self.np = None
+        self.temp = None
+        self.datetime = None
     #enddef
 
 
@@ -110,7 +112,7 @@ class UvLedMeterMulti:
             self.logger.info("UV meter connected successfully")
             return True
 
-        except Exception as e:
+        except Exception:
             self.logger.exception("Connection failed:")
             return False
         #endtry
@@ -149,7 +151,7 @@ class UvLedMeterMulti:
             #endif
 
             data = list([int(x) for x in line[1:].split(',')])
-        except Exception as e:
+        except Exception:
             self.logger.exception("Invalid response:")
             return False
         #endtry

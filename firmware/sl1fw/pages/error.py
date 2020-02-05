@@ -16,6 +16,8 @@ class PageError(Page):
         self.pageUI = "error"
         self.pageTitle = N_("Error")
         self.stack = False
+        self.backFce = None
+        self.backParams = {}
     #enddef
 
 

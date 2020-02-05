@@ -16,6 +16,11 @@ class PageConfirm(Page):
         self.pageUI = "confirm"
         self.pageTitle = N_("Confirm")
         self.stack = False
+        self.continueFce = None
+        self.continueParams = {}
+        self.backFce = None
+        self.backParams = {}
+        self.beep = False
     #enddef
 
 

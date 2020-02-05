@@ -155,6 +155,7 @@ class Hardware:
 
         self._tower_moving = False
         self._tilt_moving = False
+        self._towerPositionRetries = None
     #enddef
 
 
@@ -309,7 +310,7 @@ class Hardware:
             mac, mcs1, mcs2, snbe = s.unpack('pad:192, bits:48, uint:8, uint:8, pad:224, uintbe:64')
             mcsc = mac.count(1)
             if mcsc != mcs1 or mcsc ^ 255 != mcs2:
-                self.logger.error("MAC checksum FAIL (is %02x:%02x, should be %02x:%02x)" % (mcs1, mcs2, mcsc, mcsc ^ 255))
+                self.logger.error("MAC checksum FAIL (is %02x:%02x, should be %02x:%02x)", mcs1, mcs2, mcsc, mcsc ^ 255)
             else:
                 mac_hex = ":".join(re.findall("..", mac.hex))
                 self.logger.info("MAC: %s (checksum %02x:%02x)", mac_hex, mcs1, mcs2)
@@ -320,7 +321,7 @@ class Hardware:
                 scs2, scs1, snnew = sn.unpack('uint:8, uint:8, bits:48')
                 scsc = snnew.count(1)
                 if scsc != scs1 or scsc ^ 255 != scs2:
-                    self.logger.warning("SN checksum FAIL (is %02x:%02x, should be %02x:%02x), getting old SN format" % (scs1, scs2, scsc, scsc ^ 255))
+                    self.logger.warning("SN checksum FAIL (is %02x:%02x, should be %02x:%02x), getting old SN format", scs1, scs2, scsc, scsc ^ 255)
                     sequence_number, is_kit, ean_pn, year, week, origin = sn.unpack('pad:14, uint:17, bool, uint:10, uint:6, pad:2, uint:6, pad:2, uint:4')
                     prefix = "*"
                 else:
@@ -502,7 +503,7 @@ class Hardware:
 
 
     def beepRepeat(self, count):
-        for num in range(count):
+        for _ in range(count):
             self.beep(1800, 0.1)
             sleep(0.5)
         #endfor
@@ -510,7 +511,7 @@ class Hardware:
 
 
     def beepAlarm(self, count):
-        for num in range(count):
+        for _ in range(count):
             self.beep(1900, 0.05)
             sleep(0.25)
         #endfor
@@ -815,7 +816,7 @@ class Hardware:
 
 
     @safe_call(-273.2, Exception)
-    def getCpuTemperature(self):
+    def getCpuTemperature(self): # pylint: disable=no-self-use
         with open(defines.cpuTempFile, "r") as f:
             return round((int(f.read()) / 1000.0), 1)
         #endwith
@@ -1057,7 +1058,7 @@ class Hardware:
 
 
     @safe_call(None, (MotionControllerException, ValueError))
-    def setTowerCurrent(self, current):
+    def setTowerCurrent(self, current): # pylint: disable=unused-argument,no-self-use
         return
 #        if 0 <= current <= 63:
 #            self.mcc.do("!twcu", current)
@@ -1100,8 +1101,8 @@ class Hardware:
         #endif
     #enddef
 
-
-    def calcPercVolume(self, volume):
+    @staticmethod
+    def calcPercVolume(volume):
         return int(ceil(volume * 0.05) * 10)
     #enddef
 
@@ -1298,7 +1299,7 @@ class Hardware:
         # next movement may be splited
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
         movePerCycle = int(self.getTiltPositionMicroSteps() / tiltProfile[4])
-        for i in range(tiltProfile[4]):
+        for _ in range(tiltProfile[4]):
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
             while self.isTiltMoving():
                 sleep(0.1)
@@ -1346,7 +1347,7 @@ class Hardware:
 
         #finish move may be also splited in multiple sections
         movePerCycle = int((self.hwConfig.tiltHeight - self.getTiltPositionMicroSteps()) / self.hwConfig.tuneTilt[2][4])
-        for i in range(self.hwConfig.tuneTilt[2][4]):
+        for _ in range(self.hwConfig.tuneTilt[2][4]):
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() + movePerCycle)
             while self.isTiltMoving():
                 sleep(0.1)
@@ -1403,7 +1404,7 @@ class Hardware:
 
 
     def stirResin(self):
-        for i in range(self.hwConfig.stirringMoves):
+        for _ in range(self.hwConfig.stirringMoves):
             self.setTiltProfile('homingFast')
             # do not verify end positions
             self.tiltUp()

@@ -39,7 +39,8 @@ class PageService(Page):
     #enddef
 
 
-    def button9ButtonRelease(self):
+    @staticmethod
+    def button9ButtonRelease():
         return "displayusage"
     #enddef
 
@@ -109,12 +110,14 @@ class PageDisplayUsage(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
 
-    def _BACK_(self):
+    @staticmethod
+    def _BACK_():
         return "_BACK_"
     #enddef
 

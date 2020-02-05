@@ -3,11 +3,15 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
+import functools
 import os
 from dataclasses import asdict
 from threading import Thread
 from time import sleep
 from abc import abstractmethod
+from typing import TYPE_CHECKING, Optional
 
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException, TomlConfig
@@ -16,6 +20,9 @@ from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
+
+if TYPE_CHECKING:
+    from sl1fw.libDisplay import Display
 
 
 @page
@@ -94,12 +101,13 @@ class PageUvCalibrationBase(Page):
     #enddef
 
 
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
-
-    def _BACK_(self):
+    @staticmethod
+    def _BACK_():
         return "_BACK_"
     #enddef
 
@@ -139,6 +147,10 @@ class PageUvCalibrationBase(Page):
 @page
 class PageUvCalibration(PageUvCalibrationBase):
     Name = "uvcalibration"
+
+    def __init__(self, display: Display):
+        super().__init__(display)
+        self.pageWait = None
 
     def prepare(self):
         self.display.state = DisplayState.CALIBRATION
@@ -292,6 +304,8 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         self.minValue = None
         self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
         self.updated = False
+        self.result = None
+        self.thread: Optional[Thread] = None
     #enddef
 
 
@@ -566,20 +580,20 @@ class PageUvCalibrationConfirm(Page):
                 text=_("Cannot save configuration"))
             return "error"
         #endtry
-        self.uvcalibConfig = TomlConfig(defines.uvCalibDataPath)
+        uvcalibConfig = TomlConfig(defines.uvCalibDataPath)
         try:
-            self.uvcalibConfig.data = asdict(self.display.uvcalibData)
+            uvcalibConfig.data = asdict(self.display.uvcalibData)
         except AttributeError:
             self.logger.exception("uvcalibData is not completely filled")
             self.display.pages['error'].setParams(
                 text = _("!!! Failed to serialize calibration data !!!"))
             return "error"
         #endtry
-        self.uvcalibConfig.save_raw()
+        uvcalibConfig.save_raw()
         if self.display.factory_mode:
-            self.uvcalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
-            self.uvcalibConfigFactory.data = self.uvcalibConfig.data
-            if not self.writeToFactory(self.writeAllDefaults):
+            uvcalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
+            uvcalibConfigFactory.data = uvcalibConfig.data
+            if not self.writeToFactory(functools.partial(self.writeAllDefaults, uvcalibConfigFactory)):
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save factory defaults !!!"))
                 return "error"
@@ -589,9 +603,9 @@ class PageUvCalibrationConfirm(Page):
     #enddef
 
 
-    def writeAllDefaults(self):
+    def writeAllDefaults(self, uvcalibConfigFactory):
         self.saveDefaultsFile()
-        self.uvcalibConfigFactory.save_raw()
+        uvcalibConfigFactory.save_raw()
     #enddef
 
 

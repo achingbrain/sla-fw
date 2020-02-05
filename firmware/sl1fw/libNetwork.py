@@ -133,7 +133,7 @@ class Network:
         if page:
             page.showItems(line2="0%")
 
-        self.logger.info("Downloading %s" % url)
+        self.logger.info("Downloading %s", url)
 
         if url.startswith("http://") or url.startswith("https://"):
             # URL is HTTP, source is url
@@ -153,7 +153,7 @@ class Network:
             block_size = 8 * 1024
         else:
             # URL is file, source is file
-            self.logger.info("Copying file %s" % url)
+            self.logger.info("Copying file %s", url)
             source = open(url, "rb")
             file_size = os.path.getsize(url)
             block_size = 1024 * 1024
@@ -176,7 +176,7 @@ class Network:
                     old_progress = progress
 
             if file_size and file.tell() != file_size:
-                raise Exception("Download of %s failed to read whole file %d != %d", url, file_size, file.tell())
+                raise Exception("Download of %s failed to read whole file %d != %d" % (url, file_size, file.tell()))
 
         source.close()
 
@@ -191,7 +191,7 @@ class Network:
 
             statvfs = os.statvfs(defines.internalProjectPath)
             internalAvailable = statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
-            self.logger.debug("Internal storage available space: %d bytes" % internalAvailable)
+            self.logger.debug("Internal storage available space: %d bytes", internalAvailable)
             # if internal storage is full, quit immediately
             if internalAvailable < 0:
                 failed = _(": Not enough free space in the internal storage!")
@@ -227,5 +227,5 @@ class Network:
                     page.showItems(line1 = _("Cleaning up"))
 
         except Exception as e:
-            self.logger.exception("Examples download failed: " + str(e))
+            self.logger.exception("Examples download failed: %s", str(e))
             raise Exception(failed)

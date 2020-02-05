@@ -61,8 +61,8 @@ class PageFinished(Page):
         return PageHome.Name
     #enddef
 
-
-    def printButtonRelease(self):
+    @staticmethod
+    def printButtonRelease():
         return PageSrcSelect.Name
     #enddef
 

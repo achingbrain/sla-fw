@@ -53,7 +53,8 @@ class PagePrintPreviewSwipe(PagePrintBase):
         self.items.update(self.fillData())
         super(PagePrintPreviewSwipe, self).show()
 
-    def changeButtonRelease(self):
+    @staticmethod
+    def changeButtonRelease():
         return "exposure"
 
     def contButtonRelease(self):

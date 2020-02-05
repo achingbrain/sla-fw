@@ -280,8 +280,8 @@ class PageWizardUvLed(Page):
         return "wizardskip"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -360,8 +360,8 @@ class PageWizardTowerAxis(Page):
         return "wizardskip"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -473,8 +473,8 @@ class PageWizardResinSensor(Page):
         return "wizardskip"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -497,23 +497,23 @@ class PageWizardTimezone(Page):
         super(PageWizardTimezone, self).show()
     #enddef
 
-
-    def yesButtonRelease(self):
+    @staticmethod
+    def yesButtonRelease():
         return "settimezone"
     #endif
 
-
-    def noButtonRelease(self):
+    @staticmethod
+    def noButtonRelease():
         return "wizardspeaker"
     #enddef
 
-
-    def _BACK_(self):
+    @staticmethod
+    def _BACK_():
         return "wizardspeaker"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -540,7 +540,7 @@ class PageWizardSpeaker(Page):
         super(PageWizardSpeaker, self).show()
     #enddef
 
-
+    @staticmethod
     def yesButtonRelease(self):
         return "wizardfinish"
     #endif
@@ -552,8 +552,8 @@ class PageWizardSpeaker(Page):
         return "error"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -579,8 +579,8 @@ class PageWizardFinish(Page):
         super(PageWizardFinish, self).show()
     #enddef
 
-
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
         return PageCalibrationStart.Name
     #enddef
 
@@ -589,8 +589,8 @@ class PageWizardFinish(Page):
         return "_EXIT_"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -631,8 +631,8 @@ class PageWizardSkip(Page):
         return "_EXIT_"
     #endif
 
-
-    def noButtonRelease(self):
+    @staticmethod
+    def noButtonRelease():
         return "_NOK_"
     #enddef
 

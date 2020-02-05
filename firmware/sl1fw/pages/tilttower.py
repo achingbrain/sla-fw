@@ -54,8 +54,8 @@ class PageTiltTower(Page):
         return retc
     #enddef
 
-
-    def button2ButtonRelease(self):
+    @staticmethod
+    def button2ButtonRelease():
         return "tiltmove"
     #enddef
 
@@ -85,8 +85,8 @@ class PageTiltTower(Page):
         return "_SELF_"
     #enddef
 
-
-    def button4ButtonRelease(self):
+    @staticmethod
+    def button4ButtonRelease():
         return "tiltprofiles"
     #enddef
 
@@ -111,8 +111,8 @@ class PageTiltTower(Page):
         return retc
     #enddef
 
-
-    def button7ButtonRelease(self):
+    @staticmethod
+    def button7ButtonRelease():
         return "towermove"
     #enddef
 
@@ -136,7 +136,8 @@ class PageTiltTower(Page):
     #enddef
 
 
-    def button9ButtonRelease(self):
+    @staticmethod
+    def button9ButtonRelease():
         return "towerprofiles"
     #enddef
 
@@ -156,18 +157,18 @@ class PageTiltTower(Page):
         self.display.hw.motorsRelease()
     #enddef
 
-
-    def button12ButtonRelease(self):
+    @staticmethod
+    def button12ButtonRelease():
         return "tunetilt"
     #enddef
 
-
-    def button13ButtonRelease(self):
+    @staticmethod
+    def button13ButtonRelease():
         return "towersensitivity"
     #enddef
 
-
-    def button14ButtonRelease(self):
+    @staticmethod
+    def button14ButtonRelease():
         return "toweroffset"
     #enddef
 

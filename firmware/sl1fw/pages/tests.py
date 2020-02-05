@@ -76,12 +76,13 @@ class PageTests(Page):
     #enddef
 
 
-    def button2ButtonRelease(self):
+    @staticmethod
+    def button2ButtonRelease():
         return "uvfanstest"
     #enddef
 
-
-    def button15ButtonRelease(self):
+    @staticmethod
+    def button15ButtonRelease():
         raise Exception("Test problem")
     #enddef
 

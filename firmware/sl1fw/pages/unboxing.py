@@ -61,8 +61,8 @@ class PageUnboxing1(Page):
         return "unboxingconfirm"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -103,8 +103,8 @@ class PageUnboxing2(Page):
         return "unboxingconfirm"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -130,8 +130,8 @@ class PageUnboxing3(Page):
         super(PageUnboxing3, self).show()
     #enddef
 
-
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
         return "unboxing4"
     #enddef
 
@@ -140,8 +140,8 @@ class PageUnboxing3(Page):
         return "unboxingconfirm"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -186,8 +186,8 @@ class PageUnboxing4(Page):
         return "unboxingconfirm"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -212,8 +212,8 @@ class PageUnboxing5(Page):
         super(PageUnboxing5, self).show()
     #enddef
 
-
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
         return "_EXIT_"
     #enddef
 
@@ -222,8 +222,8 @@ class PageUnboxing5(Page):
         return "_EXIT_"
     #enddef
 
-
-    def _EXIT_(self):
+    @staticmethod
+    def _EXIT_():
         return "_EXIT_"
     #enddef
 
@@ -265,8 +265,8 @@ class PageUnboxingConfirm(Page):
         return "_EXIT_"
     #enddef
 
-
-    def noButtonRelease(self):
+    @staticmethod
+    def noButtonRelease():
         return "_NOK_"
     #enddef
 

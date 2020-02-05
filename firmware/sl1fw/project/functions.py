@@ -20,7 +20,7 @@ def ramdisk_cleanup(logger: Logger) -> None:
         logger.debug("removing '%s'", project_file)
         try:
             os.remove(project_file)
-        except Exception as e:
+        except Exception:
             logger.exception("ramdisk_cleanup() exception:")
 
 def get_white_pixels(image: Image) -> int:

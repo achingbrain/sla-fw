@@ -20,7 +20,7 @@ class NetworkManager:
         self.connections = ['test1', 'test2', 'test3']
 
     @auto_dbus
-    def GetAllDevices(self) -> List[DBusObjectPath]:
+    def GetAllDevices(self) -> List[DBusObjectPath]: # pylint: disable=no-self-use
         return []
 
     @auto_dbus
@@ -29,7 +29,7 @@ class NetworkManager:
         return DBusObjectPath("/")
 
     @auto_dbus
-    def state(self) -> int:
+    def state(self) -> int: # pylint: disable=no-self-use
         return 0
 
     @auto_dbus

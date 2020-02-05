@@ -40,62 +40,74 @@ class PageAdmin(Page):
     #enddef
 
 
-    def button1ButtonRelease(self):
+    @staticmethod
+    def button1ButtonRelease():
         return "tilttower"
     #enddef
 
 
-    def button2ButtonRelease(self):
+    @staticmethod
+    def button2ButtonRelease():
         return "display"
     #enddef
 
 
-    def button3ButtonRelease(self):
+    @staticmethod
+    def button3ButtonRelease():
         return "fansleds"
     #enddef
 
 
-    def button4ButtonRelease(self):
+    @staticmethod
+    def button4ButtonRelease():
         return "setuphw"
     #enddef
 
 
-    def button5ButtonRelease(self):
+    @staticmethod
+    def button5ButtonRelease():
         return "setupexpo"
     #enddef
 
 
-    def button6ButtonRelease(self):
+    @staticmethod
+    def button6ButtonRelease():
         return "motioncontroller"
     #enddef
 
 
-    def button7ButtonRelease(self):
+    @staticmethod
+    def button7ButtonRelease():
         return "tests"
     #enddef
 
 
-    def button8ButtonRelease(self):
+    @staticmethod
+    def button8ButtonRelease():
         return "service"
     #enddef
 
 
-    def button9ButtonRelease(self):
+    @staticmethod
+    def button9ButtonRelease():
         return "testwizards"
     #enddef
 
 
-    def button11ButtonRelease(self):
+    @staticmethod
+    def button11ButtonRelease():
         return "netupdate"
     #enddef
 
 
-    def button12ButtonRelease(self):
+    @staticmethod
+    def button12ButtonRelease():
         return "logging"
     #enddef
 
 
-    def button13ButtonRelease(self):
+    @staticmethod
+    def button13ButtonRelease():
         return "sysinfo"
     #enddef
 

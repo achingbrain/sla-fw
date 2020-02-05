@@ -57,7 +57,7 @@ class SourceDir:
             # Count number of projects in current root and number of dirs that contain some projects
             nonempty_dirs = set()
             root_projects = 0
-            for root, dirs, files in os.walk(full_path):
+            for root, _dirs, files in os.walk(full_path):
                 for file in files:
                     (_, ext) = os.path.splitext(file)
                     if ext not in defines.projectExtensions:
@@ -216,7 +216,7 @@ class PageSrcSelect(Page):
         if item['type'] == 'dir':
             self.currentRoot = os.path.join(self.currentRoot, item['path'])
             self.currentRoot = os.path.normpath(self.currentRoot)
-            self.logger.info("Current project selection root: %s" % self.currentRoot)
+            self.logger.info("Current project selection root: %s", self.currentRoot)
             self.show()
         else:
             self.loadProject(item['fullpath'])

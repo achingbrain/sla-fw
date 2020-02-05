@@ -65,7 +65,7 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         initial = self.printer0.tower_position_nm
         offset = 12500
         self.printer0.tower_position_nm += offset
-        for i in range(1, 30):
+        for _ in range(1, 30):
             sleep(0.1)
             if self.printer0.tower_position_nm == initial + offset:
                 break
@@ -75,7 +75,7 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         initial = self.printer0.tilt_position
         offset = 12500
         self.printer0.tilt_position += offset
-        for i in range(1, 30):
+        for _ in range(1, 30):
             sleep(0.1)
             if self.printer0.tilt_position == initial + offset:
                 break

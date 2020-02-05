@@ -44,7 +44,7 @@ class MotConComState(Enum):
     UNKNOWN_ERROR = 999
 
     @classmethod
-    def _missing_(cls, value):
+    def _missing_(cls, _value):
         return MotConComState.UNKNOWN_ERROR
 
 
@@ -59,7 +59,7 @@ class CommError(Enum):
     COMMAND_NOT_FOUND = 7
 
     @classmethod
-    def _missing_(cls, value):
+    def _missing_(cls, _value):
         return CommError.UNSPECIFIED_FAILURE
 
 
@@ -74,5 +74,5 @@ class ResetFlags(Enum):
     STACK_OVERFLOW = 7
 
     @classmethod
-    def _missing_(cls, value):
+    def _missing_(cls, _value):
         return ResetFlags.UNKNOWN

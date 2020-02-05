@@ -220,42 +220,42 @@ class PageAdvancedSettings(Page):
 
     # Move platform
     @confirm_leave
-    def towermoveButtonRelease(self):
+    def towermoveButtonRelease(self): # pylint: disable=no-self-use
         return "towermove"
     #enddef
 
 
     # Move resin tank
     @confirm_leave
-    def tiltmoveButtonRelease(self):
+    def tiltmoveButtonRelease(self): # pylint: disable=no-self-use
         return "tiltmove"
     #enddef
 
 
     # Time settings
     @confirm_leave
-    def timesettingsButtonRelease(self):
+    def timesettingsButtonRelease(self): # pylint: disable=no-self-use
         return "timesettings"
     #enddef
 
 
     # Change language (TODO: Not in the graphical design, not yet implemented properly)
     @confirm_leave
-    def setlanguageButtonRelease(self):
+    def setlanguageButtonRelease(self): # pylint: disable=no-self-use
         return "setlanguage"
     #enddef
 
 
     # Hostname
     @confirm_leave
-    def sethostnameButtonRelease(self):
+    def sethostnameButtonRelease(self): # pylint: disable=no-self-use
         return "sethostname"
     #enddef
 
 
     # Change name/password
     @confirm_leave
-    def setremoteaccessButtonRelease(self):
+    def setremoteaccessButtonRelease(self): # pylint: disable=no-self-use
         return "setlogincredentials"
     #enddef
 
@@ -320,8 +320,8 @@ class PageAdvancedSettings(Page):
         return "confirm"
     #enddef
 
-
-    def displaytest(self):
+    @staticmethod
+    def displaytest():
         return "displaytest"
     #endif
 
@@ -392,7 +392,7 @@ class PageAdvancedSettings(Page):
 
     # Firmware update
     @confirm_leave
-    def firmwareupdateButtonRelease(self):
+    def firmwareupdateButtonRelease(self): # pylint: disable=no-self-use
         return "firmwareupdate"
     #enddef
 
@@ -415,7 +415,7 @@ class PageAdvancedSettings(Page):
 
     # Factory reset
     @confirm_leave
-    def factoryresetButtonRelease(self):
+    def factoryresetButtonRelease(self): # pylint: disable=no-self-use
         return "factoryreset"
     #enddef
 
@@ -438,14 +438,14 @@ class PageAdvancedSettings(Page):
 
     # Show wizard
     @confirm_leave
-    def wizardButtonRelease(self):
+    def wizardButtonRelease(self): # pylint: disable=no-self-use
         return "wizardinit"
     #enddef
 
 
     @confirm_leave
-    def backButtonRelease(self):
-        return super(PageAdvancedSettings, self).backButtonRelease()
+    def backButtonRelease(self): # pylint: disable=no-self-use
+        return super().backButtonRelease()
     #enddef
 
 

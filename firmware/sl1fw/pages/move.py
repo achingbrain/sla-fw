@@ -80,6 +80,7 @@ class PageTowerMove(MovePage):
         self.pageUI = "towermove"
         self.autorepeat = { "upfast" : (1, 1), "upslow" : (1, 1), "downfast" : (1, 1), "downslow" : (1, 1) }
         self.setProfiles = True
+        self.moving = False
     #enddef
 
 

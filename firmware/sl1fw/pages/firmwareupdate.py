@@ -26,6 +26,7 @@ class PageFirmwareUpdate(Page):
         self.old_items = None
         self.rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
         self.updateDataPeriod = 1
+        self.net_list = []
     #enddef
 
 
@@ -49,7 +50,7 @@ class PageFirmwareUpdate(Page):
         # Get list of available firmware files on USB
         fw_files = glob(path.join(defines.mediaRootPath, "**/*.raucb"))
 
-        # Get list of avaible firmware files on net
+        # Get list of available firmware files on net
         try:
             for fw in self.net_list:
                 if fw['branch'] != "stable":
@@ -71,7 +72,7 @@ class PageFirmwareUpdate(Page):
             operation = self.rauc.Operation
             progress = self.rauc.Progress
         except Exception as e:
-            self.logger.error("Rauc status read failed: " + str(e))
+            self.logger.error("Rauc status read failed: %s", str(e))
         #endtry
 
         return {
@@ -102,7 +103,9 @@ class PageFirmwareUpdate(Page):
         try:
             fw_url = data['firmware']
         except Exception as e:
-            self.logger.error("Error reading data['firmware']: " + str(e))
+            self.logger.error("Error reading data['firmware']: %s", str(e))
+            self.display.pages['error'].setParams(text=_("Invalid firmware source!"))
+            return "error"
         #endtry
 
         self.display.pages['yesno'].setParams(
@@ -118,25 +121,24 @@ class PageFirmwareUpdate(Page):
             pageWait = PageWait(self.display, line1=_("Fetching firmware"))
             pageWait.show()
             self.display.inet.download_url(fw_url, defines.firmwareTempFile, page=pageWait)
-        #endtry
         except Exception as e:
-            self.logger.error("Firmware fetch failed: " + str(e))
+            self.logger.error("Firmware fetch failed: %s", str(e))
             self.display.pages['error'].setParams(
                     text = _("Firmware fetch failed!"))
             return "error"
-        #endexcept
+        #endtry
 
         return self.doUpdate(defines.firmwareTempFile)
     #enddef
 
 
     def doUpdate(self, fw_file):
-        self.logger.info("Flashing: " + fw_file)
+        self.logger.info("Flashing: %s", fw_file)
         try:
             rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
             rauc.Install(fw_file)
         except Exception as e:
-            self.logger.error("Rauc install call failed: " + str(e))
+            self.logger.error("Rauc install call failed: %s", str(e))
         #endtry
 
         pageWait = PageWait(self.display, line1 = _("Updating the firmware"))
@@ -144,7 +146,6 @@ class PageFirmwareUpdate(Page):
 
         try:
             while True:
-                operation = self.rauc.Operation
                 progress = self.rauc.Progress
 
                 pageWait.showItems(
@@ -172,7 +173,7 @@ class PageFirmwareUpdate(Page):
         #endtry
 
         except Exception as e:
-            self.logger.error("Rauc update failed: " + str(e))
+            self.logger.error("Rauc update failed: %s", str(e))
             self.display.pages['error'].setParams(
                     text = _("Update failed!"))
             return "error"

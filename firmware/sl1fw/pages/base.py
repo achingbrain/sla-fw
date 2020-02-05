@@ -63,7 +63,7 @@ class Page:
                 return f.read()
             #endwith
         except IOError as e:
-            self.logger.exception("octoprintAuthFile exception: %s" % str(e))
+            self.logger.exception("octoprintAuthFile exception: %s", str(e))
             return None
         #endtry
     #enddef
@@ -120,7 +120,7 @@ class Page:
     #enddef
 
 
-    def backButtonRelease(self):
+    def backButtonRelease(self): # pylint: disable=no-self-use
         return "_BACK_"
     #enddef
 
@@ -131,17 +131,18 @@ class Page:
     #enddef
 
 
-    def networkButtonRelease(self):
+    def networkButtonRelease(self): # pylint: disable=no-self-use
         return "network"
     #enddef
 
 
-    def infoButtonRelease(self):
+    @staticmethod
+    def infoButtonRelease():
         return "about"
     #enddef
 
 
-    def turnoffButtonRelease(self, hw_button = False):
+    def turnoffButtonRelease(self, hw_button = False): # pylint: disable=unused-argument
         self.display.pages['yesno'].setParams(
                 yesFce = self.turnoffContinue,
                 text = _("Do you really want to turn off the printer?"))
@@ -259,7 +260,8 @@ class Page:
     #enddef
 
 
-    def _setItem(self, items, oldValues, index, value):
+    @staticmethod
+    def _setItem(items, oldValues, index, value):
         if oldValues.get(index, None) != value:
             if isinstance(value, bool):
                 items[index] = int(value)
@@ -300,7 +302,8 @@ class Page:
     #enddef
 
 
-    def _strTenth(self, value):
+    @staticmethod
+    def _strTenth(value):
         return "%.1f" % (value / 10.0)
     #enddef
 

@@ -68,7 +68,7 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self.assertEqual(ExposureExceptionCode(exception["code"]), ExposureExceptionCode.WARNING_ESCALATION)
 
     def _wait_for_state(self, state: Exposure0State, timeout_s: int):
-        for i in range(timeout_s):
+        for _ in range(timeout_s):
             if self.exposure0.state == state.value:
                 break
             sleep(1)

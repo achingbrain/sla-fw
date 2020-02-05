@@ -16,6 +16,11 @@ class PageYesNo(Page):
         self.pageUI = "yesno"
         self.stack = False
         self.checkPowerbutton = False
+        self.yesFce = None
+        self.yesParams = {}
+        self.noFce = None
+        self.noParams = {}
+        self.beep = False
     #enddef
 
 
@@ -31,7 +36,7 @@ class PageYesNo(Page):
 
 
     def show(self):
-        super(PageYesNo, self).show()
+        super().show()
         if self.beep:
             self.display.hw.beepAlarm(1)
         #endif

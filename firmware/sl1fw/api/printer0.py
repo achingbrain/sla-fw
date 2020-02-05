@@ -616,7 +616,7 @@ class Printer0:
         return defines.mediaRootPath
 
     @auto_dbus
-    def list_projects_raw(self) -> List[str]:
+    def list_projects_raw(self) -> List[str]: # pylint: disable=no-self-use
         """
         List available projects
 

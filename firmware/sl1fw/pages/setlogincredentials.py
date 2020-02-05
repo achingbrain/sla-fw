@@ -36,7 +36,7 @@ class PageSetLoginCredentials(Page):
 
         try:
             subprocess.check_call(["/bin/api-keygen.sh", apikey])
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             self.display.pages['error'].setParams(
                 text = _("Octoprint API key change failed"))
             return "error"

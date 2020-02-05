@@ -254,7 +254,7 @@ class TestLibHardware(Sl1fwTestCase):
 
     def test_tilt_sync(self):
         self.hw.tiltSync()
-        for i in range(1, 100):
+        for _ in range(1, 100):
             if self.hw.isTiltSynced():
                 break
             sleep(0.1)

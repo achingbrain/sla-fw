@@ -72,7 +72,7 @@ class Serial:
 
         :return: Line read from simulated serial port
         """
-        for i in range(self.TIMEOUT_MS):
+        for _ in range(self.TIMEOUT_MS):
             line = self.process.stdout.readline()
             if line:
                 self.logger.debug("> %s", line)

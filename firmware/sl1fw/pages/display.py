@@ -189,23 +189,23 @@ class PageDisplay(Page):
         return "confirm"
     #enddef
 
-
-    def gotoWizard(self):
+    @staticmethod
+    def gotoWizard():
         return "wizardinit"
     #enddef
 
-
-    def gotoCalib(self):
+    @staticmethod
+    def gotoCalib():
         return PageCalibrationStart.Name
     #enddef
 
-
-    def gotoUVcalib(self):
+    @staticmethod
+    def gotoUVcalib():
         return PageUvCalibration.Name
     #enddef
 
-
-    def success(self):
+    @staticmethod
+    def success():
         return "_BACK_"
     #enddef
 

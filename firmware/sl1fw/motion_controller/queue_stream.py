@@ -16,7 +16,7 @@ class QueueStream(IOBase):
 
     def read(self, size: int = 1) -> Optional[bytes]:
         ret = b''
-        for i in range(size):
+        for _ in range(size):
             ret += self._queue.get(timeout=self._timeout_sec)
         return ret
 

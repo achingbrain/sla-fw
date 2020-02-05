@@ -90,7 +90,7 @@ class Exposure0:
         return [self._process_warning(warning) for warning in self.exposure.warnings]
 
     @wrap_variant_dict
-    def _process_warning(self, warning: ExposureWarning) -> Dict[str, Any]:
+    def _process_warning(self, warning: ExposureWarning) -> Dict[str, Any]:  # pylint: disable=no-self-use
         if not warning:
             return {
                 "code": ExposureWarningCode.NONE.value

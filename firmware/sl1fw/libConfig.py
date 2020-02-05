@@ -116,7 +116,7 @@ class Value(property, ABC):
 
         :return: Docstring text
         """
-        if type(self.default) in self.type:
+        if any(isinstance(self.default, t) for t in self.type):
             doc_default = str(self.default).lower()
         else:
             doc_default = "<Computed>"
@@ -138,7 +138,8 @@ class Value(property, ABC):
         :param val: Value to check
         """
 
-    def adapt(self, val):
+    @staticmethod
+    def adapt(val):
         """
         Adapt value being set
 
@@ -179,7 +180,7 @@ class Value(property, ABC):
         config.get_data_factory_values()[self.name] = value
 
     def get_default_value(self, config: BaseConfig) -> Any:
-        if type(self.default) not in self.type and isinstance(self.default, Callable):
+        if not any(isinstance(self.default, t) for t in self.type) and isinstance(self.default, Callable):
             if config:
                 return self.default(config)
             else:
@@ -217,7 +218,7 @@ class Value(property, ABC):
                 raise Exception("Cannot write to read-only config !!!")
             if val is None:
                 raise ValueError(f"Using default for key {self.name} as {val} is None")
-            if type(val) not in self.type:
+            if not any(isinstance(val, t) for t in self.type):
                 raise ValueError(f"Using default for key {self.name} as {val} is {type(val)} but should be {self.type}")
             adapted = self.adapt(val)
             if adapted != val:
@@ -365,7 +366,7 @@ class ListValue(Value):
 
         :param val: Value to check
         """
-        if any([type(x) not in self.inner_type for x in val]):
+        if any(not any(isinstance(x, t) for t in self.inner_type) for x in val):
             raise ValueError(f"Using default for key {self.name} as {val} is has incorrect inner type")
         if self.length is not None and len(val) != self.length:
             raise ValueError(f"Using default for key {self.name} as {val} does not match required length")
@@ -682,7 +683,7 @@ class Config(ValueConfig):
         try:
             self.read_text(text, factory=factory)
         except Exception as exception:
-            raise ConfigException('Failed to parse config file: "%s"', file_path) from exception
+            raise ConfigException('Failed to parse config file: "%s"' % file_path) from exception
 
     def read_text(self, text: str, factory: bool = False) -> None:
         """
@@ -696,7 +697,7 @@ class Config(ValueConfig):
         try:
             data = toml.loads(text)
         except toml.TomlDecodeError as exception:
-            raise ConfigException("Failed to decode config content:\n %s", text) from exception
+            raise ConfigException("Failed to decode config content:\n %s" % text) from exception
 
         for val in self._values.values():
             try:
@@ -709,9 +710,9 @@ class Config(ValueConfig):
                     val.value_setter(self, data[key], write_override=True, factory=factory)
                     del data[key]
             except (KeyError, ConfigException):
-                self._logger.exception("Setting config value %s to %s failed" % (val.name, val))
+                self._logger.exception("Setting config value %s to %s failed", val.name, val)
         if data:
-            self._logger.warning("Extra data in configuration source: \n %s" % data)
+            self._logger.warning("Extra data in configuration source: \n %s", data)
 
     def _normalize_text(self, text: str) -> str:
         """
