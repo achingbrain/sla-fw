@@ -13,7 +13,9 @@ from time import sleep, monotonic
 from typing import Optional
 
 import distro
+import pydbus
 from PySignal import Signal
+from gi.repository import GLib
 from pydbus import SystemBus
 
 from sl1fw import defines
@@ -141,10 +143,15 @@ class Printer:
         #endif
 
         if self.firstRun:
-            if self.hwConfig.showI18nSelect:
-                self.hw.beepRepeat(1)
-                self.display.doMenu("setlanguage")
-            #endif
+            try:
+                locale = pydbus.SystemBus().get("org.freedesktop.locale1")
+                if locale.Locale == ['LANG=C']:
+                    self.hw.beepRepeat(1)
+                    self.display.doMenu("setlanguage")
+                #endif
+            except GLib.GError:
+                self.logger.exception("Failed to obtain current locale.")
+            #endtry
 
             if not self.hwConfig.is_factory_read() and not self.hw.isKit:
                 self.display.pages['error'].setParams(

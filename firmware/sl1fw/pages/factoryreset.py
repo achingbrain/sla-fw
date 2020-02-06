@@ -111,7 +111,7 @@ class PageFactoryReset(Page):
         # Reset locale
         try:
             locale = system_bus.get("org.freedesktop.locale1")
-            locale.SetLocale(["en_GB.UTF-8"], False)
+            locale.SetLocale(["C"], False)
         except:
             self.logger.exception("Setting locale failed")
         #endtry
