@@ -8,7 +8,6 @@ from dataclasses import dataclass, asdict
 from time import sleep
 
 import distro
-import pygame
 
 from sl1fw import defines
 from sl1fw.display_state import DisplayState
@@ -524,32 +523,30 @@ class PageWizardTimezone(Page):
 @page
 class PageWizardSpeaker(Page):
     Name = "wizardspeaker"
+    SampleMusic = defines.multimediaRootPath + "/chromag_-_the_prophecy.xm"
 
     def __init__(self, display):
         super(PageWizardSpeaker, self).__init__(display)
         self.pageUI = "yesno"
         self.pageTitle = N_("Setup wizard step 10/10")
-        pygame.mixer.init(44100, -16, 2, 2048)
-        pygame.mixer.music.load(defines.multimediaRootPath + "/chromag_-_the_prophecy.xm")
     #enddef
 
 
     def show(self):
-        pygame.mixer.music.play(-1)
         self.items.update({
-            'text' : _("Can you hear the music?")})
+            'text': _("Can you hear the music?"),
+            'audio': self.SampleMusic,
+        })
         super(PageWizardSpeaker, self).show()
     #enddef
 
 
     def yesButtonRelease(self):
-        pygame.mixer.music.stop()
         return "wizardfinish"
     #endif
 
 
     def noButtonRelease(self):
-        pygame.mixer.music.stop()
         self.display.pages['error'].setParams(
             text = _("Speaker not working.\nPlease check the wiring of the speaker."))
         return "error"

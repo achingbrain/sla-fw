@@ -14,7 +14,6 @@ numpy==1.14.5
 paho-mqtt==1.4.0
 pyalsaaudio==0.8.4
 pydbus==0.6.0
-pygame==1.9.4
 pygobject==3.28.3
 pyserial==3.4
 systemd-python==234
