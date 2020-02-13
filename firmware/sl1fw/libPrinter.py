@@ -188,7 +188,7 @@ class Printer:
 
         lastProject = libConfig.TomlConfig(defines.lastProjectData).load()
         if lastProject:
-            self.display.pages['finished'].data = lastProject
+            self.runtime_config.last_project_data = lastProject
             try:
                 os.remove(defines.lastProjectData)
             except FileNotFoundError:

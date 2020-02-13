@@ -754,6 +754,9 @@ class ExposureThread(threading.Thread):
             #endwhile
         #endif
 
+        self.expo.hw.stopFans()
+        self.expo.hw.motorsRelease()
+
         self.logger.info("Job finished - real printing time is %s minutes", self.expo.printTime)
 
         stats['projects'] += 1
@@ -762,10 +765,22 @@ class ExposureThread(threading.Thread):
         statsFile.save(data = stats)
         self.expo.screen.saveDisplayUsage()
 
+        self.expo.runtime_config.last_project_data = {
+            'name': self.expo.project.name,
+            'print_time': self.expo.printTime,
+            'layers': self.expo.actualLayer,
+            'consumed_resin': self.expo.resinCount,
+            'project_file': self.expo.project.origin,
+        }
+
         if self.expo.canceled:
             self.expo.state = ExposureState.CANCELED
         else:
             self.expo.state = ExposureState.FINISHED
+            if self.expo.hwConfig.autoOff:
+                if not TomlConfig(defines.lastProjectData).save(data=self.expo.runtime_config.last_project_data):
+                    self.logger.error("Last project data was not saved!")
+                shut_down(self.expo.hw)
         #endif
         self.logger.debug("Exposure ended")
     #enddef
