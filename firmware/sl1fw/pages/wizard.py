@@ -541,7 +541,7 @@ class PageWizardSpeaker(Page):
     #enddef
 
     @staticmethod
-    def yesButtonRelease(self):
+    def yesButtonRelease():
         return "wizardfinish"
     #endif
 
