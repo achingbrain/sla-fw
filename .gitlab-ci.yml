@@ -75,16 +75,8 @@ pylint:
   dependencies: []
   script:
     - cd firmware
-    - python3 -m pylint sl1fw --jobs 0 --errors-only --additional-builtins=_,N_,ngettext
-
-strict-pylint:
-  stage: test
-  dependencies: []
-  script:
-    - cd firmware
     - python3 -m pylint --version
     - python3 -m pylint --persistent=n --jobs 0 --additional-builtins=_,N_,ngettext --max-line-length=120 --disable similarities,bad-continuation,bad-whitespace,invalid-name,missing-docstring,bare-except,fixme,broad-except,line-too-long,too-many-instance-attributes,too-many-public-methods,too-many-locals,too-many-statements,too-few-public-methods,no-else-return,too-many-branches,too-many-arguments,protected-access,too-many-ancestors,wrong-import-order,too-many-lines,too-many-nested-blocks,too-many-return-statements,wrong-import-position,duplicate-code,cyclic-import,inconsistent-return-statements sl1fw
-  allow_failure: true
 
 i18n-complete:
   stage: test
