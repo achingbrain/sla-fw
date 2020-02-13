@@ -11,6 +11,7 @@ import pydbus
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.display_state import DisplayState
+from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import ConfigException
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -131,7 +132,7 @@ class PageFactoryReset(Page):
 
         # continue only in factory mode
         if not self.display.runtime_config.factory_mode:
-            self.display.shutDown(doShutDown=True, reboot=True)
+            shut_down(self.display.hw, reboot=True)
             return
         #endif
 
@@ -140,7 +141,7 @@ class PageFactoryReset(Page):
 
         # do not do packing moves for kit
         if self.display.hw.isKit:
-            self.display.shutDown(True)
+            shut_down(self.display.hw)
             return
         #endif
 
@@ -183,7 +184,7 @@ class PageFactoryReset(Page):
             sleep(0.25)
         #endwhile
 
-        self.display.shutDown(True)
+        shut_down(self.display.hw)
     #enddef
 
 

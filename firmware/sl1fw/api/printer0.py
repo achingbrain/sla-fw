@@ -21,6 +21,7 @@ from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.states import Printer0State
 from sl1fw.functions.files import get_save_path
 from sl1fw.display_state import DisplayState
+from sl1fw.functions.system import shut_down
 from sl1fw.printer_state import PrinterState
 
 if TYPE_CHECKING:
@@ -125,7 +126,12 @@ class Printer0:
         :param reboot: True does reboot, False means real shutdown
         :return: None
         """
-        self.printer.display.shutDown(do_shutdown, reboot=reboot)
+        if do_shutdown:
+            shut_down(self.printer.hw, reboot=reboot)
+        else:
+            self.printer.hw.uvLed(False)
+            self.printer.hw.motorsRelease()
+            self.printer.display.forcedPage("start")
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)

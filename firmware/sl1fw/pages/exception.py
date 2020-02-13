@@ -3,6 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from sl1fw.functions.system import shut_down
 from sl1fw.libHardware import MotionControllerException
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -40,7 +41,7 @@ class PageException(Page):
         self.display.hw.motorsRelease()
 
         if self.display.hw.getPowerswitchState():
-            self.display.shutDown(True)
+            shut_down(self.display.hw)
         #endif
 
         super().show()

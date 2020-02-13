@@ -4,15 +4,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
-import os
-import sys
 from time import monotonic
 from time import sleep
 from typing import Optional, List
 
 from PySignal import Signal
 
-from sl1fw import defines
 from sl1fw.display_state import DisplayState
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
@@ -293,32 +290,6 @@ class Display:
     @staticmethod
     def makeWait(*args, **kwargs) -> PageWait:
         return PageWait(*args, **kwargs)
-    #enddef
-
-
-    # TODO presunout pryc
-    def shutDown(self, doShutDown, reboot=False):
-        if defines.testing:
-            self.logger.info("Skipping poweroff due to testing")
-            return
-        #endif
-
-        self.forcePage("start")
-        self.hw.uvLed(False)
-        self.hw.motorsRelease()
-
-        if doShutDown:
-            if reboot:
-                os.system("reboot")
-            else:
-                os.system("poweroff")
-            #endif
-        #endif
-
-        self.screen.exit()
-        self.hw.exit()
-        self.exit()
-        sys.exit()
     #enddef
 
 #endclass

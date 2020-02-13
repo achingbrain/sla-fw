@@ -11,6 +11,7 @@ from glob import glob
 from os import path
 
 from sl1fw import defines
+from sl1fw.functions.system import shut_down
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
@@ -159,7 +160,7 @@ class PageFirmwareUpdate(Page):
                         line1 = _("Update done"),
                         line2 = _("Shutting down"))
                     sleep(3)
-                    self.display.shutDown(True, reboot=True)
+                    shut_down(self.display.hw, True)
                 #endif
 
                 # Check for operation failure

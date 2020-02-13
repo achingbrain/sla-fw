@@ -24,7 +24,8 @@ from sl1fw.exposure_state import ExposureState, TiltFailure, TempSensorFailure, 
     ModelMismatchWarning, ProjectFailure, PrintingDirectlyWarning, TowerFailure, FanFailure, ResinFailure, ResinTooLow, \
     ResinTooHigh, TowerMoveFailure, ExposureWarning, ExposureException, WarningEscalation, ExposureCheck, \
     ExposureCheckResult, ResinNotEnoughWarning
-from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
+from sl1fw.functions.system import shut_down
+from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig, TomlConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
 from sl1fw.project.functions import ramdisk_cleanup

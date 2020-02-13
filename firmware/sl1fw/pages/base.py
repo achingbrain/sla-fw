@@ -16,6 +16,7 @@ from deprecated import deprecated
 from sl1fw import defines
 from sl1fw.exposure_state import ExposureState
 from sl1fw.functions import files
+from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import ConfigException
 
 if TYPE_CHECKING:
@@ -151,7 +152,7 @@ class Page:
 
 
     def turnoffContinue(self):
-        self.display.shutDown(True)
+        shut_down(self.display.hw)
     #enddef
 
 
@@ -544,7 +545,7 @@ class Page:
         #         self.display.hw.beepAlarm(3)
         #         sleep(1)
         #     #endfor
-        #     self.display.shutDown(True)
+        #     shut_down(self.display.hw)
         #     return "error"
         # #endif
     #enddef

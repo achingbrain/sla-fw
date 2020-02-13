@@ -11,6 +11,7 @@ import distro
 
 from sl1fw import defines
 from sl1fw.display_state import DisplayState
+from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages.calibration import PageCalibrationStart
 
@@ -178,7 +179,7 @@ class PageWizardInit(Page):
                 self.display.hw.beepAlarm(3)
                 sleep(1)
             #endfor
-            self.display.shutDown(True)
+            shut_down(self.display.hw)
             return "error"
         #endif
 
