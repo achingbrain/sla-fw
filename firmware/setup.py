@@ -28,12 +28,6 @@ data_files = [
     ('/usr/share/dbus-1/system.d', glob('dbus/*'))
 ]
 
-
-for root, dirs, files in walk('sl1fw/intranet'):
-    target = path.join("/srv/http/intranet/", path.relpath(root, 'sl1fw/intranet'))
-    content = [path.join(root, filename) for filename in files]
-    data_files.append((target, content))
-
 setup(
     name="sl1fw",
     version="2019.12.10",
