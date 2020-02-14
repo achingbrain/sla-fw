@@ -5,6 +5,8 @@
 
 import os
 import json
+
+import distro
 import paho.mqtt.publish as mqtt
 
 from sl1fw import defines
@@ -149,6 +151,7 @@ class PageDisplay(Page):
 #            return "error"
         #endif
 
+        # Get wizard data
         wizardDict = TomlConfig(defines.wizardDataFile).load()
         if not wizardDict and not (self.display.hw.isKit and self.display.printer0.factory_mode):
             self.display.pages['error'].setParams(
@@ -164,6 +167,7 @@ class PageDisplay(Page):
             return "error"
         #endif
 
+        # Get UV calibration data
         calibDict = TomlConfig(defines.uvCalibDataPathFactory).load()
         if not calibDict:
             self.display.pages['error'].setParams(
@@ -172,11 +176,22 @@ class PageDisplay(Page):
             return "error"
         #endif
 
+        # Compose data to single dict, ensure basic data are present
+        mqtt_data = {
+            "osVersion": distro.version(),
+            "a64SerialNo": self.display.hw.cpuSerialNo,
+            "mcSerialNo": self.display.hw.mcSerialNo,
+            "mcFwVersion": self.display.hw.mcFwVersion,
+            "mcBoardRev": self.display.hw.mcBoardRevision,
+        }
+        mqtt_data.update(wizardDict)
+        mqtt_data.update(calibDict)
+
+        # Send data to MQTT
         topic = "prusa/sl1/factoryConfig"
-        wizardDict.update(calibDict)
-        self.logger.debug("mqtt data: %s", wizardDict)
+        self.logger.debug("mqtt data: %s", mqtt_data)
         try:
-            mqtt.single(topic, json.dumps(wizardDict), qos=2, retain=True, hostname="mqttstage.prusa")
+            mqtt.single(topic, json.dumps(mqtt_data), qos=2, retain=True, hostname="mqttstage.prusa")
         except Exception as err:
             self.logger.error("mqtt message not delivered. %s", err)
             self.display.pages['error'].setParams(text = "Cannot send factory config!")

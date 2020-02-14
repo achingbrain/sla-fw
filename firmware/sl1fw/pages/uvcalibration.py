@@ -13,6 +13,8 @@ from time import sleep
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Optional
 
+import distro
+
 from sl1fw import defines
 from sl1fw.libConfig import ConfigException, TomlConfig
 from sl1fw.display_state import DisplayState
@@ -583,6 +585,8 @@ class PageUvCalibrationConfirm(Page):
         uvcalibConfig = TomlConfig(defines.uvCalibDataPath)
         try:
             uvcalibConfig.data = asdict(self.display.uvcalibData)
+            uvcalibConfig.data["uvOsVersion"] = distro.version()
+            uvcalibConfig.data["uvMcBoardRev"] = self.display.hw.mcBoardRevision
         except AttributeError:
             self.logger.exception("uvcalibData is not completely filled")
             self.display.pages['error'].setParams(
