@@ -358,7 +358,9 @@ class Exposure0:
 
         :return: Volume in milliliters
         """
-        return self.exposure.remain_resin_ml
+        if self.exposure.remain_resin_ml:
+            return self.exposure.remain_resin_ml
+        return -1
 
     @auto_dbus
     @property

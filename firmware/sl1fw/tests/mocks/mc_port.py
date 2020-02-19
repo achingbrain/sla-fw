@@ -28,7 +28,7 @@ class Serial:
 
     @property
     def is_open(self) -> bool:
-        return not self.process.returncode
+        return not (self.process and self.process.returncode)
 
     def close(self):
         """

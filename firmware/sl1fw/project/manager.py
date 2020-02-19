@@ -28,9 +28,25 @@ class ExposureManager:
         self._system_bus = SystemBus()
         self.exposure_change = Signal()
 
-    def new_exposure(self, config: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig) -> Exposure:
-        # Create new exposure object
-        self._current = Exposure(config, hw, screen, runtime_config)
+    def new_exposure(
+        self,
+        config: HwConfig,
+        hw: Hardware,
+        screen: Screen,
+        runtime_config: RuntimeConfig,
+        project: str,
+        exp_time_ms: Optional[int] = None,
+        exp_time_first_ms: Optional[int] = None,
+        exp_time_calibrate_ms: Optional[int] = None,
+    ) -> Exposure:
+        # Create new exposure object and apply passed settings
+        self._current = Exposure(config, hw, screen, runtime_config, project)
+        if exp_time_ms:
+            self._current.project.expTime = exp_time_ms / 1000
+        if exp_time_first_ms:
+            self.exposure.project.expTimeFirst = exp_time_first_ms / 1000
+        if exp_time_calibrate_ms:
+            self.exposure.project.calibrateTime = exp_time_calibrate_ms / 1000
 
         # Register exposure on DBus using the API wrapper
         path = Exposure0.dbus_path(self._current.instance_id)
@@ -48,6 +64,7 @@ class ExposureManager:
         exposure_dbus = self._system_bus.get("cz.prusa3d.sl1.printer0", path)
         self._current_change_registration = exposure_dbus.PropertiesChanged.connect(self._on_change)
 
+        self.exposure_change.emit()
         return self._current
 
     @property

@@ -557,13 +557,6 @@ class Page:
     #enddef
 
 
-    def loadProject(self, project_filename: str) -> None:
-        self.display.exposure_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.screen,
-                                                   self.display.runtime_config)
-        self.display.expo.setProject(project_filename)
-    #enddef
-
-
     def allOff(self):
         self.display.screen.getImgBlack()
         self.display.hw.uvLed(False)

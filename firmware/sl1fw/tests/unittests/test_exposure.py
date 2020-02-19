@@ -26,31 +26,32 @@ class TestExposure(Sl1fwTestCase):
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.statsData = str(Sl1fwTestCase.TEMP_DIR / "stats.toml")
 
-        hw_config = HwConfig()
-        runtime_config = RuntimeConfig()
-        hw = Mock()
-        hw.getUvLedState.return_value = (False, 0)
-        hw.getUvStatistics.return_value = (6912,)
-        screen = Mock()
-        screen.blitImg.return_value = 100
-        screen.projectStatus.return_value = True, False
-        self.exposure = Exposure(hw_config, hw, screen, runtime_config)
+        self.hw_config = HwConfig()
+        self.runtime_config = RuntimeConfig()
+        self.hw = Mock()
+        self.hw.getUvLedState.return_value = (False, 0)
+        self.hw.getUvStatistics.return_value = (6912,)
+        self.screen = Mock()
+        self.screen.blitImg.return_value = 100
+        self.screen.projectStatus.return_value = True, False
 
     def test_exposure_init(self):
-        pass
+        Exposure(self.hw_config, self.hw, self.screen, self.runtime_config, TestExposure.PROJECT)
 
     def test_exposure_load(self):
-        self.exposure.setProject(TestExposure.PROJECT)
-        self.exposure.startProjectLoading()
-        self.exposure.collectProjectData()
+        exposure = Exposure(self.hw_config, self.hw, self.screen, self.runtime_config, TestExposure.PROJECT)
+        exposure.startProjectLoading()
+        exposure.collectProjectData()
 
     def test_exposure_start_stop(self):
-        self.test_exposure_load()
+        exposure = Exposure(self.hw_config, self.hw, self.screen, self.runtime_config, TestExposure.PROJECT)
+        exposure.startProjectLoading()
+        exposure.collectProjectData()
 
-        self.exposure.start()
-        self.exposure.doExitPrint()
-        self.exposure.waitDone()
+        exposure.start()
+        exposure.doExitPrint()
+        exposure.waitDone()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

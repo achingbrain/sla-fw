@@ -10,13 +10,13 @@ from time import sleep
 import pydbus
 
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
-from sl1fw.api.printer0 import Printer0State
+from sl1fw.api.printer0 import Printer0State, Printer0
 
 
 class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
     def setUp(self):
         super().setUp()
-        self.printer0 = pydbus.SystemBus().get("cz.prusa3d.sl1.printer0")
+        self.printer0: Printer0 = pydbus.SystemBus().get("cz.prusa3d.sl1.printer0")
 
     def test_initial_state(self):
         self.assertEqual(Printer0State.IDLE.value, self.printer0.state)
@@ -89,13 +89,23 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         self.assertGreater(len(self.printer0.system_name), 3)
         self.assertEqual(type(self.printer0.system_name), str)
         self.assertEqual(type(self.printer0.system_version), str)
-        self.assertEqual(self.printer0.fans, {'fan0': {'rpm': 0, 'error': False}, 'fan1': {'rpm': 0, 'error': False}, 'fan2': {'rpm': 0, 'error': False}})
-        self.assertEqual(self.printer0.temps,
-                         {'temp0_celsius': 46.7, 'temp1_celsius': 26.1, 'temp2_celsius': 26.1, 'temp3_celsius': 26.1})
+        self.assertEqual(
+            self.printer0.fans,
+            {
+                "fan0": {"rpm": 0, "error": False},
+                "fan1": {"rpm": 0, "error": False},
+                "fan2": {"rpm": 0, "error": False},
+            },
+        )
+        self.assertEqual(
+            self.printer0.temps,
+            {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 26.1, "temp3_celsius": 26.1},
+        )
         self.assertEqual(type(self.printer0.cpu_temp), float)
-        self.assertEqual(self.printer0.leds,
-                         {'led0_voltage_volt': 0.0, 'led1_voltage_volt': 0.0, 'led2_voltage_volt': 0.0,
-                          'led3_voltage_volt': 17.776})
+        self.assertEqual(
+            self.printer0.leds,
+            {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0, "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.776},
+        )
         # TODO: Chained dbus call ends in deadlock
         # self.assertEqual(self.printer0.devlist, {})
         # TODO: Statistics report out of range integer
@@ -134,5 +144,5 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         self.assertEqual(Printer0State.PRINTING, Printer0State(self.printer0.state))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

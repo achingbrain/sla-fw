@@ -15,6 +15,7 @@ from deprecated import deprecated
 
 from sl1fw import defines
 from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath
+from sl1fw.api.exceptions import ReprintWithoutHistory
 from sl1fw.functions import files
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.exposure0 import Exposure0
@@ -34,6 +35,7 @@ class Printer0:
     This is prototype of the public printer API, implementation is naive, incomplete and possibly broken.
     Keep implementation out of this file. Methods here should only adapt interfaces and reformat data.
     """
+
     __INTERFACE__ = "cz.prusa3d.sl1.printer0"
 
     PRINTER_STATE_TO_STATE = {
@@ -98,7 +100,7 @@ class Printer0:
         return Printer0State.IDLE.value
 
     @auto_dbus
-    def beep(self, frequency_hz: int, length_ms:int) -> None:
+    def beep(self, frequency_hz: int, length_ms: int) -> None:
         """
         Motion controller beeper beep
 
@@ -291,11 +293,11 @@ class Printer0:
 
         :return: Dictionary mapping from fan names to RPMs and errors
         """
-        result ={}
+        result = {}
         rpms = self.printer.hw.getFansRpm()
         errors = self.printer.hw.getFansError()
         for i in range(len(self.printer.hw.getFansRpm())):
-            result['fan%d' % i] = {'rpm': rpms[i], 'error': errors[i]}
+            result["fan%d" % i] = {"rpm": rpms[i], "error": errors[i]}
         return result
 
     @auto_dbus
@@ -307,7 +309,7 @@ class Printer0:
 
         :return: Dictionary mapping from temp sensor name to temperature in celsius
         """
-        return {'temp%d_celsius' % i: v for i, v in enumerate(self.printer.hw.getMcTemperatures())}
+        return {"temp%d_celsius" % i: v for i, v in enumerate(self.printer.hw.getMcTemperatures())}
 
     @auto_dbus
     @property
@@ -329,12 +331,12 @@ class Printer0:
 
         :return: Dictionary mapping from LED channel name to voltage value
         """
-        return {'led%d_voltage_volt' % i: v for i, v in enumerate(self.printer.hw.getVoltages())}
+        return {"led%d_voltage_volt" % i: v for i, v in enumerate(self.printer.hw.getVoltages())}
 
     @auto_dbus
     @property
     @cached(validity_s=5)
-    @deprecated(reason = "Use NetworkManager", action="once")
+    @deprecated(reason="Use NetworkManager", action="once")
     def devlist(self) -> Dict[str, str]:
         """
         Get network devices
@@ -352,7 +354,7 @@ class Printer0:
 
         :return: Dictionary mapping from statistics name to integer value
         """
-        return {'uv_stat%d' % i: v for i, v in enumerate(self.printer.hw.getUvStatistics())}
+        return {"uv_stat%d" % i: v for i, v in enumerate(self.printer.hw.getUvStatistics())}
         # uv_stats0 - time counter [s] # TODO: add uv average current,
 
     @auto_dbus
@@ -546,16 +548,46 @@ class Printer0:
         Start printing project
 
         :param project_path: Path to project in printer filesystem
-        :param auto_advance: Automatic print, no further questions - NOT SUPPORTED
+        :param auto_advance: Automatic print
 
         :returns: Print task object
         """
+        expo = self.printer.exposure_manager.new_exposure(
+            self.printer.hwConfig, self.printer.hw, self.printer.screen, self.printer.runtime_config, project_path
+        )
         if auto_advance:
-            raise NotImplementedError
+            expo.confirm_print_start()
 
-        expo = self.printer.exposure_manager.new_exposure(self.printer.hwConfig, self.printer.hw, self.printer.screen,
-                                                          self.printer.runtime_config)
-        expo.setProject(project_path)
+        return Exposure0.dbus_path(expo.instance_id)
+
+    @auto_dbus
+    @state_checked(Printer0State.IDLE)
+    def reprint(self, auto_advance: bool) -> DBusObjectPath:
+        """
+        Reprint last project
+
+        :raises ReprintWithoutHistory
+
+        :param auto_advance: Automatic print
+        :return:  Print task object
+        """
+        if not self.printer.runtime_config.last_project_data:
+            raise ReprintWithoutHistory()
+
+        old_data = self.printer.runtime_config.last_project_data
+        expo = self.printer.exposure_manager.new_exposure(
+            self.printer.hwConfig,
+            self.printer.hw,
+            self.printer.screen,
+            self.printer.runtime_config,
+            self.printer.exposure_manager.exposure.project.origin,
+            exp_time_ms=old_data["exp_time_ms"],
+            exp_time_first_ms=old_data["exp_time_first_ms"],
+            exp_time_calibrate_ms=old_data["exp_time_calibrate_ms"],
+        )
+        if auto_advance:
+            expo.confirm_print_start()
+
         return Exposure0.dbus_path(expo.instance_id)
 
     @auto_dbus
@@ -622,7 +654,7 @@ class Printer0:
         return defines.mediaRootPath
 
     @auto_dbus
-    def list_projects_raw(self) -> List[str]: # pylint: disable=no-self-use
+    def list_projects_raw(self) -> List[str]:  # pylint: disable=no-self-use
         """
         List available projects
 

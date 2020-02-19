@@ -27,7 +27,7 @@ class Printer0State(Enum):
 
 @unique
 class Exposure0State(Enum):
-    INIT = 0
+    # INIT = 0
     PRINTING = 1
     GOING_UP = 2
     GOING_DOWN = 3
@@ -50,7 +50,6 @@ class Exposure0State(Enum):
     @staticmethod
     def from_exposure(state: ExposureState) -> Exposure0State:
         return {
-            ExposureState.INIT: Exposure0State.INIT,
             ExposureState.PRINTING: Exposure0State.PRINTING,
             ExposureState.GOING_UP: Exposure0State.GOING_UP,
             ExposureState.GOING_DOWN: Exposure0State.GOING_DOWN,

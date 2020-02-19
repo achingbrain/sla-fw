@@ -771,6 +771,9 @@ class ExposureThread(threading.Thread):
             'layers': self.expo.actualLayer,
             'consumed_resin': self.expo.resinCount,
             'project_file': self.expo.project.origin,
+            'exp_time_ms': self.expo.project.expTime * 1000,
+            'exp_time_first_ms': self.expo.project.expTimeFirst * 1000,
+            'exp_time_calibrate_ms': self.expo.project.calibrateTime * 1000,
         }
 
         if self.expo.canceled:
@@ -791,7 +794,7 @@ class ExposureThread(threading.Thread):
 class Exposure:
     instance_counter = 0
 
-    def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
+    def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig, project: str):
         self.change = Signal()
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
@@ -810,11 +813,11 @@ class Exposure:
         self.totalHeight = None
         self.printStartTime = 0
         self.printTime = 0
-        self.state = ExposureState.INIT
+        self.state = ExposureState.READING_DATA
         self.remaining_wait_sec = 0
         self.low_resin = False
         self.warn_resin = False
-        self.remain_resin_ml = None
+        self.remain_resin_ml: Optional[float] = None
         self.exposure_end: Optional[datetime] = None
         self.instance_id = Exposure.instance_counter
         Exposure.instance_counter += 1
@@ -824,21 +827,17 @@ class Exposure:
         self.canceled = False
         self.expoCommands = queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self)
-        self.logger.debug("Created new exposure object id: %s", self.instance_id)
-    #enddef
 
-
-    def setProject(self, project_filename):
-        self.state = ExposureState.READING_DATA
+        # Read project
         self.project = Project(self.hwConfig)
-        result = self.project.read(project_filename)
+        result = self.project.read(project)
         if result in [ProjectState.OK, ProjectState.PRINT_DIRECTLY]:
             self.state = ExposureState.CONFIRM
         else:
             raise ProjectFailure(result)
         #endif
 
-        return result
+        self.logger.debug("Created new exposure object id: %s", self.instance_id)
     #enddef
 
 
@@ -871,7 +870,7 @@ class Exposure:
             self.doExitPrint()
         else:
             # Exposure thread not yet running (cancel before start)
-            self.state = ExposureState.INIT
+            self.state = ExposureState.CANCELED
         #endif
     #enddef
 

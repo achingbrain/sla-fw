@@ -42,7 +42,17 @@ class PageFinished(Page):
         if not self.display.runtime_config.last_project_data:
             raise AttributeError("Page finished reprint without data set.")
 
-        self.loadProject(self.display.runtime_config.last_project_data["project_file"])
+        old_data = self.display.runtime_config.last_project_data
+        self.display.exposure_manager.new_exposure(
+            self.display.hwConfig,
+            self.display.hw,
+            self.display.screen,
+            self.display.runtime_config,
+            old_data["project_file"],
+            exp_time_ms=old_data["exp_time_ms"],
+            exp_time_first_ms=old_data["exp_time_first_ms"],
+            exp_time_calibrate_ms=old_data["exp_time_calibrate_ms"]
+        )
         return "reading"
 
     def _BACK_(self):

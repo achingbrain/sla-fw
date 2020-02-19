@@ -193,10 +193,9 @@ class Project:
         return self.config.calibrateRegions
 
     @calibrateRegions.setter
-    def calibrateRegions(self, value: int) -> bool:
+    def calibrateRegions(self, value: int) -> None:
         if value not in [0, 2, 4, 6, 8, 9, 10]:
-            self.logger.error("Value %d not in [0, 2, 4, 6, 8, 9, 10]", value)
-            return False
+            raise ValueError("Value %d not in [0, 2, 4, 6, 8, 9, 10]" % value)
         self.config.calibrateRegions = value
         self._calibrate_areas = []
 

@@ -18,3 +18,7 @@ class PositionNotAvailable(Exception):
 
 class DBusMappingException(Exception):
     pass
+
+
+class ReprintWithoutHistory(Exception):
+    pass

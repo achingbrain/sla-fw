@@ -12,6 +12,7 @@ from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 
 from sl1fw.libConfig import HwConfig, TomlConfig
 
+
 class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_turnoff(self):
         # Turn off
@@ -154,10 +155,10 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         # confirm
         self.waitPage("yesno")
         self.press("yes")
-        self.waitPage("wait") # Relax...
+        self.waitPage("wait")  # Relax...
         self.waitPage("confirm", timeout_sec=30)  # Insert protective foam
         self.press("cont")
-        self.waitPage("wait") # Printer is being set to packing positions
+        self.waitPage("wait")  # Printer is being set to packing positions
         self._check_factory_reset(unboxing=True, factoryMode=False)
 
     def test_factory_reset_factory_kit(self):
@@ -169,7 +170,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         # confirm
         self.waitPage("yesno")
         self.press("yes")
-        self.waitPage("wait") # Relax...
+        self.waitPage("wait")  # Relax...
         sleep(5)
         self._check_factory_reset(unboxing=True, factoryMode=False)
 
@@ -182,9 +183,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         # confirm
         self.waitPage("yesno")
         self.press("yes")
-        self.waitPage("wait") # Relax...
+        self.waitPage("wait")  # Relax...
         sleep(5)
-        self._check_factory_reset(unboxing=False, factoryMode=True) # user reset doesn't reset factoryMode
+        self._check_factory_reset(unboxing=False, factoryMode=True)  # user reset doesn't reset factoryMode
 
     def test_factory_reset_user_kit(self):
         self.printer.hw.boardData = ("TEST kit", True)
@@ -195,9 +196,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         # confirm
         self.waitPage("yesno")
         self.press("yes")
-        self.waitPage("wait") # Relax...
+        self.waitPage("wait")  # Relax...
         sleep(5)
-        self._check_factory_reset(unboxing=False, factoryMode=True) # user reset doesn't reset factoryMode
+        self._check_factory_reset(unboxing=False, factoryMode=True)  # user reset doesn't reset factoryMode
 
     def _check_factory_reset(self, unboxing, factoryMode):
         self.assertFalse(os.path.exists(self.API_KEY_FILE), "apikey reset check")
@@ -207,7 +208,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.assertTrue(hwConfig.showUnboxing == unboxing, "config reset check")
         factoryConfig = TomlConfig(self.FACTORY_CONFIG_FILE)
         factoryConfig.load()
-        self.assertTrue(factoryConfig.data['factoryMode'] == factoryMode, "factory is disabled check")
+        self.assertTrue(factoryConfig.data["factoryMode"] == factoryMode, "factory is disabled check")
         # TODO check D-BUS hostname reset
         # TODO check D-BUS wifi reset
         # TODO check D-BUS timezone reset
@@ -236,12 +237,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("print")
         self.waitPage("sourceselect")
         choice = None
-        for source in self.readItems()['sources']:
-            if source['name'] == PROJECT_NAME:
-                choice = source['choice']
+        for source in self.readItems()["sources"]:
+            if source["name"] == PROJECT_NAME:
+                choice = source["choice"]
         self.assertIsNotNone(choice, f"Test project name ({PROJECT_NAME} in sources")
-        self.press("source", data={'choice': choice})
-        self.waitPage("wait") # reading project data
+        self.press("source", data={"choice": choice})
+        self.waitPage("wait")  # reading project data
         self.waitPage("printpreviewswipe")
         self.press("change")
         self.waitPage("change")
@@ -249,9 +250,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("back")
         self.waitPage("printpreviewswipe")
         self.press("cont")
-        self.waitPage("wait", timeout_sec=120) # checks
-        self.waitPage("print", timeout_sec=30) # printing
-        self.waitPage("wait", timeout_sec=240) # moving platform to the top
+        self.waitPage("wait", timeout_sec=120)  # checks
+        self.waitPage("print", timeout_sec=30)  # printing
+        self.waitPage("wait", timeout_sec=240)  # moving platform to the top
         self.waitPage("finished", timeout_sec=30)
         # auto off enabled
 
@@ -303,5 +304,5 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.test_turnoff()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
