@@ -293,7 +293,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
     ERROR_TOO_BRIGHT = 2
     ERROR_TOO_DIMM = 3
     ERROR_TOO_HIGH_DEVIATION = 4
-    INTENSITY_DEVIATION_THRESHOLD = 20
+    INTENSITY_DEVIATION_THRESHOLD = 25
 
 
     def __init__(self, display):
