@@ -8,13 +8,8 @@ from __future__ import annotations
 from queue import Queue
 from typing import TYPE_CHECKING
 
-from sl1fw.exposure_state import (
-    PrintingDirectlyWarning,
-    AmbientTooCold,
-    AmbientTooHot,
-    ModelMismatchWarning,
-    ResinNotEnoughWarning,
-)
+from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, ModelMismatch, \
+    ResinNotEnough
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
 
@@ -41,7 +36,7 @@ class PageCheckConfirm(PagePrintBase):
         else:
             warning = self.warnings_to_show.get()
 
-            if isinstance(warning, PrintingDirectlyWarning):
+            if isinstance(warning, PrintingDirectlyFromMedia):
                 self.display.pages["confirm"].setParams(
                     continueFce=self.warn,
                     backFce=self.cancel_print,
@@ -76,7 +71,7 @@ class PageCheckConfirm(PagePrintBase):
                     ),
                 )
                 return "yesno"
-            elif isinstance(warning, ModelMismatchWarning):
+            elif isinstance(warning, ModelMismatch):
                 self.display.pages["yesno"].setParams(
                     pageTitle=N_("Wrong project printer"),
                     yesFce=self.warn,
@@ -95,7 +90,7 @@ class PageCheckConfirm(PagePrintBase):
                     ),
                 )
                 return "yesno"
-            elif isinstance(warning, ResinNotEnoughWarning):
+            elif isinstance(warning, ResinNotEnough):
                 self.display.pages["confirm"].setParams(
                     continueFce=self.warn,
                     backFce=self.cancel_print,

@@ -7,7 +7,7 @@ import unittest
 
 import pydbus
 
-from sl1fw.api.states import DisplayTest0State
+from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 
 

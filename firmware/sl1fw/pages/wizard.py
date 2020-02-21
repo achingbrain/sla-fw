@@ -10,7 +10,7 @@ from time import sleep
 import distro
 
 from sl1fw import defines
-from sl1fw.display_state import DisplayState
+from sl1fw.states.display import DisplayState
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages.calibration import PageCalibrationStart
@@ -51,7 +51,7 @@ class WizardData:
     towerSensitivity: int
 #endclass
 
-from sl1fw.libConfig import ConfigException
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.pages.base import Page
 from sl1fw.pages import page
 from sl1fw.pages.wait import PageWait

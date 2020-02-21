@@ -20,10 +20,11 @@ from PySignal import Signal
 from deprecated import deprecated
 
 from sl1fw import defines
-from sl1fw.exposure_state import ExposureState, TiltFailure, TempSensorFailure, AmbientTooCold, AmbientTooHot, \
-    ModelMismatchWarning, ProjectFailure, PrintingDirectlyWarning, TowerFailure, FanFailure, ResinFailure, ResinTooLow, \
-    ResinTooHigh, TowerMoveFailure, ExposureWarning, ExposureException, WarningEscalation, ExposureCheck, \
-    ExposureCheckResult, ResinNotEnoughWarning
+from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerMoveFailure, ProjectFailure, \
+    TempSensorFailure, FanFailure, ResinFailure, ResinTooLow, ResinTooHigh, WarningEscalation
+from sl1fw.errors.warnings import ExposureWarning, AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
+    ModelMismatch, ResinNotEnough
+from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig, TomlConfig
 from sl1fw.libHardware import Hardware
@@ -380,8 +381,8 @@ class ExposureThread(threading.Thread):
         if self.expo.project.printerModel != defines.slicerPrinterModel or\
                 self.expo.project.printerVariant != defines.slicerPrinterVariant:
             self.expo.warnings.append(
-                ModelMismatchWarning(defines.slicerPrinterModel, defines.slicerPrinterVariant,
-                                     self.expo.project.printerModel, self.expo.project.printerVariant)
+                ModelMismatch(defines.slicerPrinterModel, defines.slicerPrinterVariant,
+                              self.expo.project.printerModel, self.expo.project.printerVariant)
             )
         #endif
 
@@ -407,7 +408,7 @@ class ExposureThread(threading.Thread):
         #endif
 
         if project_state == project_state.PRINT_DIRECTLY:
-            self.expo.warnings.append(PrintingDirectlyWarning())
+            self.expo.warnings.append(PrintingDirectlyFromMedia())
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
         else:
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.SUCCESS
@@ -495,7 +496,7 @@ class ExposureThread(threading.Thread):
         self.logger.debug("requested: %d [ml], measured: %d [ml]", self.expo.project.usedMaterial, volume)
 
         if volume < self.expo.project.usedMaterial:
-            self.expo.warnings.append(ResinNotEnoughWarning(volume, self.expo.project.usedMaterial))
+            self.expo.warnings.append(ResinNotEnough(volume, self.expo.project.usedMaterial))
             self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.WARNING
         #endif
 
@@ -823,7 +824,7 @@ class Exposure:
         Exposure.instance_counter += 1
         self.check_results: Dict[ExposureCheck, ExposureCheckResult] = defaultdict(lambda: ExposureCheckResult.SCHEDULED)
         self.warnings: List[ExposureWarning] = []
-        self.exception: Optional[ExposureException] = None
+        self.exception: Optional[ExposureError] = None
         self.canceled = False
         self.expoCommands = queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self)
@@ -937,7 +938,7 @@ class Exposure:
 
     @property
     def done(self):
-        return self.state in ExposureState.FINISHED_STATES()
+        return self.state in ExposureState.finished_states()
     #enddef
 
 

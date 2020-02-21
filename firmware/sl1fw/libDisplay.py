@@ -10,7 +10,7 @@ from typing import Optional, List
 
 from PySignal import Signal
 
-from sl1fw.display_state import DisplayState
+from sl1fw.states.display import DisplayState
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware

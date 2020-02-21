@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from sl1fw.functions.system import shut_down
-from sl1fw.libHardware import MotionControllerException
+from sl1fw.errors.exceptions import MotionControllerException
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 

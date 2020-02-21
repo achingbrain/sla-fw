@@ -5,28 +5,43 @@
 
 from __future__ import annotations
 
+from enum import unique, Enum
 from pathlib import Path
-from typing import List, Dict, Tuple, TYPE_CHECKING
+from typing import List, Dict, Tuple, TYPE_CHECKING, Any, Optional
 
 import distro
 import pydbus
-from pydbus.generic import signal
 from deprecated import deprecated
+from pydbus.generic import signal
 
 from sl1fw import defines
-from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath
-from sl1fw.api.exceptions import ReprintWithoutHistory
-from sl1fw.functions import files
+from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath, wrap_variant_dict, \
+    wrap_exception, last_error
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.exposure0 import Exposure0
-from sl1fw.api.states import Printer0State
+from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
-from sl1fw.display_state import DisplayState
 from sl1fw.functions.system import shut_down
-from sl1fw.printer_state import PrinterState
+from sl1fw.errors.exceptions import ReprintWithoutHistory
+from sl1fw.states.display import DisplayState
+from sl1fw.states.printer import PrinterState
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
+
+
+@unique
+class Printer0State(Enum):
+    INITIALIZING = 0
+    IDLE = 1
+    UNBOXING = 2
+    WIZARD = 3
+    CALIBRATION = 4
+    DISPLAY_TEST = 5
+    PRINTING = 6
+    UPDATE = 7
+    ADMIN = 8
+    EXCEPTION = 9
 
 
 @dbus_api
@@ -68,6 +83,7 @@ class Printer0:
         return self.printer.get_actual_page().Name
 
     def __init__(self, printer: Printer):
+        self._last_exception: Optional[Exception] = None
         self.printer = printer
         self._display_test_registration = None
         self._unpacking = None
@@ -100,6 +116,19 @@ class Printer0:
         return Printer0State.IDLE.value
 
     @auto_dbus
+    @property
+    @wrap_variant_dict
+    def last_exception(self) -> Dict[str, Any]:
+        return wrap_exception(self._last_exception)
+
+    @auto_dbus
+    @property
+    @wrap_variant_dict
+    def printer_exception(self) -> Dict[str, Any]:
+        return wrap_exception(self.printer.exception)
+
+    @auto_dbus
+    @last_error
     def beep(self, frequency_hz: int, length_ms: int) -> None:
         """
         Motion controller beeper beep
@@ -111,6 +140,7 @@ class Printer0:
         self.printer.hw.beep(frequency_hz, length_ms / 1000)
 
     @auto_dbus
+    @last_error
     def save_logs_to_usb(self) -> None:
         """
         Save logs to first usb device
@@ -120,6 +150,7 @@ class Printer0:
 
     @auto_dbus
     @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])
+    @last_error
     def poweroff(self, do_shutdown: bool, reboot: bool) -> None:
         """
         Shut down the printer
@@ -137,6 +168,7 @@ class Printer0:
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
+    @last_error
     def tower_home(self) -> None:
         """
         Home tower axis
@@ -145,6 +177,7 @@ class Printer0:
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
+    @last_error
     def tilt_home(self) -> None:
         """
         Home tilt axis
@@ -155,6 +188,7 @@ class Printer0:
 
     @state_checked(Printer0State.IDLE)
     @auto_dbus
+    @last_error
     def disable_motors(self) -> None:
         """
         Disable motors
@@ -167,6 +201,7 @@ class Printer0:
 
     @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
     @auto_dbus
+    @last_error
     def tower_move(self, speed: int) -> bool:
         """
         Start / stop tower movement
@@ -187,6 +222,7 @@ class Printer0:
 
     @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
     @auto_dbus
+    @last_error
     def tilt_move(self, speed: int) -> bool:
         """
         Start / stop tilt movement
@@ -206,6 +242,7 @@ class Printer0:
         return self.printer.hw.tilt_move(speed)
 
     @property
+    @last_error
     def tower_position_nm(self) -> int:
         """
         Read or set tower position in nm
@@ -215,10 +252,12 @@ class Printer0:
     @auto_dbus
     @tower_position_nm.setter
     @state_checked(Printer0State.IDLE)
+    @last_error
     def tower_position_nm(self, position_nm: int) -> None:
         self.printer.hw.tower_position_nm = position_nm
 
     @property
+    @last_error
     def tilt_position(self) -> int:
         """
         Read or set tilt position in micro-steps
@@ -228,10 +267,12 @@ class Printer0:
     @auto_dbus
     @tilt_position.setter
     @state_checked(Printer0State.IDLE)
+    @last_error
     def tilt_position(self, micro_steps: int):
         self.printer.hw.tilt_position = micro_steps
 
     @auto_dbus
+    @last_error
     def get_projects(self) -> List[str]:
         """
         Get available project files
@@ -243,6 +284,7 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
+    @last_error
     def get_firmwares(self) -> List[str]:
         """
         Get available firmware files
@@ -255,6 +297,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached()
     def serial_number(self) -> str:
         """
@@ -266,6 +309,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached()
     def system_name(self) -> str:
         """
@@ -277,6 +321,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached()
     def system_version(self) -> str:
         """
@@ -288,6 +333,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def fans(self) -> Dict[str, Dict[str, int]]:
         """
@@ -304,6 +350,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def temps(self) -> Dict[str, float]:
         """
@@ -315,6 +362,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def cpu_temp(self) -> float:
         """
@@ -326,6 +374,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def leds(self) -> Dict[str, float]:
         """
@@ -337,6 +386,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     @deprecated(reason="Use NetworkManager", action="once")
     def devlist(self) -> Dict[str, str]:
@@ -349,6 +399,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def uv_statistics(self) -> Dict[str, int]:
         """
@@ -361,6 +412,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def controller_sw_version(self) -> str:
         """
@@ -372,6 +424,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def controller_serial(self) -> str:
         """
@@ -383,18 +436,21 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def controller_revision(self) -> str:
         return self.printer.hw.mcBoardRevision
 
     @auto_dbus
     @property
+    @last_error
     @cached()
     def controller_revision_bin(self) -> Tuple[int, int]:
         return self.printer.hw.mcBoardRevisionBin
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     def api_key(self) -> str:
         """
@@ -406,6 +462,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     @deprecated(reason="Use config api")
     def tilt_fast_time_sec(self) -> float:
@@ -417,6 +474,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=5)
     @deprecated(reason="Use config api")
     def tilt_slow_time_sec(self) -> float:
@@ -428,6 +486,7 @@ class Printer0:
         return self.printer.hwConfig.tiltSlowTime
 
     @auto_dbus
+    @last_error
     def enable_resin_sensor(self, value: bool) -> None:
         """
         Set resin sensor enabled flag
@@ -439,6 +498,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=0.5)
     def resin_sensor_state(self) -> bool:
         """
@@ -450,6 +510,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=0.5)
     def cover_state(self) -> bool:
         """
@@ -461,6 +522,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     @cached(validity_s=0.5)
     def power_switch_state(self) -> bool:
         """
@@ -472,6 +534,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def factory_mode(self) -> bool:
         """
         Check for factory mode
@@ -481,6 +544,7 @@ class Printer0:
         return self.printer.runtime_config.factory_mode
 
     @auto_dbus
+    @last_error
     @state_checked([Printer0State.IDLE, Printer0State.DISPLAY_TEST])
     def display_test(self) -> DBusObjectPath:
         """
@@ -505,6 +569,7 @@ class Printer0:
         self._state_update()
 
     @auto_dbus
+    @last_error
     def wizard(self):
         """
         Initiate wizard test object
@@ -516,6 +581,7 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
+    @last_error
     def update_firmware(self):
         """
         Initiate firmware update
@@ -526,6 +592,7 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
+    @last_error
     def factory_reset(self) -> None:
         """
         Do factory reset
@@ -535,6 +602,7 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
+    @last_error
     def enter_admin(self) -> None:
         """
         Initiate admin mode
@@ -544,6 +612,7 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
+    @last_error
     @state_checked(Printer0State.IDLE)
     def print(self, project_path: str, auto_advance: bool) -> DBusObjectPath:
         """
@@ -563,6 +632,7 @@ class Printer0:
         return Exposure0.dbus_path(expo.instance_id)
 
     @auto_dbus
+    @last_error
     @state_checked(Printer0State.IDLE)
     def reprint(self, auto_advance: bool) -> DBusObjectPath:
         """
@@ -593,6 +663,7 @@ class Printer0:
         return Exposure0.dbus_path(expo.instance_id)
 
     @auto_dbus
+    @last_error
     def get_current_exposure(self) -> DBusObjectPath:
         """
         Get current exposure object DBus path
@@ -606,6 +677,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def project_config_file_name(self) -> str:
         """
         Name of the config file embedded in project files
@@ -616,6 +688,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def project_extensions(self) -> List[str]:
         """
         Set of supported project extensions
@@ -626,6 +699,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def persistent_storage_path(self) -> str:
         """
         Filesystem path of the persistent internal storage
@@ -636,6 +710,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def internal_project_path(self) -> str:
         """
         Filesystem path to the projects root on the internal storage
@@ -645,6 +720,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def media_root_path(self) -> str:
         """
         Filesystem path to the root of the mounted media
@@ -656,6 +732,7 @@ class Printer0:
         return defines.mediaRootPath
 
     @auto_dbus
+    @last_error
     def list_projects_raw(self) -> List[str]:  # pylint: disable=no-self-use
         """
         List available projects
@@ -673,6 +750,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def usb_path(self) -> str:
         """
         Read path to currently inserted USB drive

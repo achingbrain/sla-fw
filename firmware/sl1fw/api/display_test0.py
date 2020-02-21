@@ -6,20 +6,25 @@
 from __future__ import annotations
 
 import logging
+from enum import unique, Enum
 from typing import Callable, TYPE_CHECKING
 
 from gi.repository.GLib import timeout_add_seconds
 from pydbus.generic import signal
 
-from sl1fw.functions import display_test
 from sl1fw.api.decorators import dbus_api, auto_dbus
-from sl1fw.api.states import DisplayTest0State
+from sl1fw.functions import display_test
 
 if TYPE_CHECKING:
-    from sl1fw.libConfig import HwConfig
     from sl1fw.libDisplay import Display
-    from sl1fw.libHardware import Hardware
-    from sl1fw.libScreen import Screen
+
+
+@unique
+class DisplayTest0State(Enum):
+    INIT = 0
+    COVER_OPEN = 1
+    DISPLAY = 2
+    FINISHED = 3
 
 
 @dbus_api

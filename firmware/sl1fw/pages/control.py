@@ -3,7 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sl1fw.libHardware import MoveException
+from sl1fw.errors.errors import TowerHomeFailure, TiltHomeFailure
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
@@ -24,7 +24,7 @@ class PageControl(Page):
         pageWait.show()
         try:
             self.display.hw.tower_home()
-        except MoveException:
+        except TowerHomeFailure:
             self.logger.exception("Tower homing failed")
             self.display.pages['error'].setParams(text=_("Tower homing failed!\n\nCheck the printer's hardware."))
             return "error"
@@ -37,7 +37,7 @@ class PageControl(Page):
         pageWait.show()
         try:
             self.display.hw.tilt_home()
-        except MoveException:
+        except TiltHomeFailure:
             self.logger.exception("Tank homing failed")
             self.display.pages['error'].setParams(text=_("Tank homing failed!\n\nCheck the printer's hardware."))
             return "error"

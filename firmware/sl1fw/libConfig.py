@@ -16,12 +16,7 @@ import toml
 from readerwriterlock import rwlock
 
 from sl1fw import defines
-
-
-class ConfigException(Exception):
-    """
-    Exception used to signal problems with configuration
-    """
+from sl1fw.errors.exceptions import ConfigException
 
 
 class BaseConfig(ABC):
@@ -215,7 +210,7 @@ class Value(property, ABC):
         """
         try:
             if not config.is_master() and not write_override:
-                raise Exception("Cannot write to read-only config !!!")
+                raise ConfigException("Cannot write to read-only config !!!")
             if val is None:
                 raise ValueError(f"Using default for key {self.name} as {val} is None")
             if not any(isinstance(val, t) for t in self.type):

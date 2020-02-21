@@ -5,14 +5,6 @@
 
 from enum import unique, Enum
 
-from sl1fw.motion_controller.trace import Trace
-
-
-class MotionControllerException(Exception):
-    def __init__(self, message: str, trace: Trace):
-        self.__trace = trace
-        super().__init__(f"{message}, trace: {trace}")
-
 
 @unique
 class StatusBits(Enum):

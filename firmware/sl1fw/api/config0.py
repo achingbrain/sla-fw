@@ -30,6 +30,7 @@ def wrap_hw_config(cls: Config0):
 
         def func():
             pass
+
         func.__name__ = val
         setattr(cls, val, auto_dbus(wrap_property()(func)))
         if val not in cls._CHANGED_MAP:
@@ -45,6 +46,7 @@ def wrap_property(func_name=None):
     :param func_name: Input function
     :return: mapped property
     """
+
     def decor(func):
         if func_name is None:
             name = func.__name__
@@ -55,13 +57,16 @@ def wrap_property(func_name=None):
         @functools.wraps(f.fget)
         def getter(self):
             return getattr(self._hw_config, name)
+
         getter.__name__ = func.__name__
         getter.__doc__ = f.__doc__
 
         @functools.wraps(f.fset)
         def setter(self, value):
             setattr(self._hw_config, name, value)
+
         return property(fget=getter, fset=setter)
+
     return decor
 
 
@@ -75,6 +80,7 @@ class Config0:
     HwConfig properties automatically. Simple on change mapping is added automatically hwconfig.name -> Config0.name.
     This one can be extended by putting custom mapping to _CHANGED_MAP.
     """
+
     __INTERFACE__ = "cz.prusa3d.sl1.config0"
 
     PropertiesChanged = signal()

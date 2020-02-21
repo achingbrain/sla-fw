@@ -14,10 +14,10 @@ import distro
 from deprecated import deprecated
 
 from sl1fw import defines
-from sl1fw.exposure_state import ExposureState
+from sl1fw.states.exposure import ExposureState
 from sl1fw.functions import files
 from sl1fw.functions.system import shut_down
-from sl1fw.libConfig import ConfigException
+from sl1fw.errors.exceptions import ConfigException
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display

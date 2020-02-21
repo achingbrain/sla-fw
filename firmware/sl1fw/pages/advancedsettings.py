@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from sl1fw import defines
-from sl1fw.display_state import DisplayState
-from sl1fw.libConfig import ConfigException
+from sl1fw.states.display import DisplayState
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
 from sl1fw.pages import page

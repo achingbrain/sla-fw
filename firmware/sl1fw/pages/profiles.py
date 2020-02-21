@@ -8,7 +8,7 @@ import json
 from copy import deepcopy
 
 from sl1fw import defines
-from sl1fw.libConfig import ConfigException
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 

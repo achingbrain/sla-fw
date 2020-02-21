@@ -23,7 +23,8 @@ from sl1fw import libConfig
 from sl1fw.api.config0 import Config0
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
-from sl1fw.libConfig import HwConfig, ConfigException, TomlConfig, RuntimeConfig
+from sl1fw.libConfig import HwConfig, TomlConfig, RuntimeConfig
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libHardware import MotConComState
@@ -33,7 +34,7 @@ from sl1fw.libScreen import Screen
 from sl1fw.libWebDisplay import WebDisplay
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
-from sl1fw.printer_state import PrinterState
+from sl1fw.states.printer import PrinterState
 from sl1fw.project.manager import ExposureManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
 

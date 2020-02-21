@@ -4,20 +4,22 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
+from dataclasses import is_dataclass, asdict
+from enum import Enum
 from time import monotonic
 from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints
 
 from pydbus import Variant
 
-from sl1fw.api.exceptions import NotAvailableInState, DBusMappingException
-from sl1fw.api.states import Printer0State, Exposure0State
+from sl1fw.errors.codes import ErrorCode
+from sl1fw.errors.exceptions import NotAvailableInState, DBusMappingException, PrinterException
 
 
 class DBusObjectPath(str):
     pass
 
 
-def state_checked(allowed_state: Union[Printer0State, Exposure0State, List[Printer0State], List[Exposure0State]]):
+def state_checked(allowed_state: Union[Enum, List[Enum]]):
     """
     Decorator restricting method call based on allowed state
 
@@ -50,13 +52,16 @@ def range_checked(minimum, maximum):
     :param maximum: Maximal allowed value
     :return: Decorathed method
     """
+
     def decor(func):
         @functools.wraps(func)
         def wrap(self, value):
             if value < minimum or value > maximum:
                 raise ValueError(f"Value: {value} out of range: [{minimum}, {maximum}]")
             return func(self, value)
+
         return wrap
+
     return decor
 
 
@@ -82,7 +87,9 @@ def cached(validity_s: float = None):
                 cache["value"] = function(self)
                 cache["last"] = monotonic()
             return cache["value"]
+
         return func
+
     return decor
 
 
@@ -181,7 +188,53 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
 def wrap_variant_dict(func: Callable[[Any], Dict[str, Any]]):
     @functools.wraps(func)
     def wrap(*args, **kwargs) -> Dict[str, Variant]:
-        return {
-            key: Variant(python_to_dbus_type(type(val)), val) for key, val in func(*args, **kwargs).items()
-        }
+        return {key: Variant(python_to_dbus_type(type(val)), val) for key, val in func(*args, **kwargs).items()}
+
     return wrap
+
+
+def last_error(method):
+    @functools.wraps(method)
+    def wrap(self, *args, **kwargs):
+        try:
+            return method(self, *args, **kwargs)
+        except Exception as e:
+            assert hasattr(self, "_last_exception")
+            self._last_exception = e
+            raise e
+
+    return wrap
+
+
+def wrap_exception(e: Exception) -> Dict[str, Any]:
+    """
+    Wrap exception in dictionary
+
+    Exception is represented as dictionary str -> variant
+    {
+        "code": code , see ExposureExceptionCode
+        "code_specific_feature1": value1
+        "code_specific_feature2": value2
+        ...
+    }
+
+    :return: Exception dictionary
+    """
+    if not e:
+        return {"code": ErrorCode.NONE.value}
+
+    if isinstance(e, PrinterException):
+        ret = {
+            "code": e.CODE.value,
+            "name": type(e).__name__,
+            "text": str(e),
+        }
+        if is_dataclass(e):
+            ret.update(asdict(e))
+        return ret
+
+    return {
+        "code": ErrorCode.UNKNOWN.value,
+        "name": type(e).__name__,
+        "text": str(e),
+    }

@@ -16,7 +16,8 @@ import numpy
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from sl1fw import defines
-from sl1fw.libConfig import HwConfig, ConfigException
+from sl1fw.libConfig import HwConfig
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.project.project import Project, ProjectState
 from sl1fw.project.functions import get_white_pixels
 

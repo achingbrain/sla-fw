@@ -16,8 +16,9 @@ from typing import TYPE_CHECKING, Optional
 import distro
 
 from sl1fw import defines
-from sl1fw.libConfig import ConfigException, TomlConfig
-from sl1fw.display_state import DisplayState
+from sl1fw.libConfig import TomlConfig
+from sl1fw.errors.exceptions import ConfigException
+from sl1fw.states.display import DisplayState
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState
 from sl1fw.pages import page
 from sl1fw.pages.base import Page

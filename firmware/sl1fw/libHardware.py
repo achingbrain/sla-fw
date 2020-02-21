@@ -13,14 +13,11 @@ import bitstring
 import pydbus
 
 from sl1fw import defines
+from sl1fw.errors.errors import TiltHomeFailure, TowerHomeFailure
 from sl1fw.libConfig import HwConfig
 from sl1fw.motion_controller.controller import MotionController
-from sl1fw.motion_controller.states import MotConComState, MotionControllerException
-
-
-class MoveException(Exception):
-    pass
-#endclass
+from sl1fw.motion_controller.states import MotConComState
+from sl1fw.errors.exceptions import MotionControllerException
 
 
 def safe_call(default_value, exceptions):
@@ -1446,7 +1443,7 @@ class Hardware:
         """
         self.powerLed("warn")
         if not self.towerSyncWait():
-            raise MoveException("Tower home failed")
+            raise TowerHomeFailure()
         self.powerLed("normal")
     #enddef
 
@@ -1460,7 +1457,7 @@ class Hardware:
         self.setTiltPosition(self.tilt_end)
         self.tiltLayerDownWait(True)
         if not self.tiltSyncWait():
-            raise MoveException("Tilt home failed")
+            raise TiltHomeFailure()
         self.setTiltProfile("moveFast")
         self.tiltLayerUpWait()
         self.powerLed("normal")

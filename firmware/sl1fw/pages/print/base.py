@@ -9,8 +9,9 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from sl1fw import defines
-from sl1fw.exposure_state import ProjectFailure, ExposureState, ExposureException, TiltFailure, TowerMoveFailure, \
-    TowerFailure, FanFailure, TempSensorFailure, ResinTooLow, ResinTooHigh, ResinFailure, WarningEscalation
+from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerMoveFailure, ProjectFailure, \
+    TempSensorFailure, FanFailure, ResinFailure, ResinTooLow, ResinTooHigh, WarningEscalation
+from sl1fw.states.exposure import ExposureState
 from sl1fw.pages.base import Page
 from sl1fw.project.project import ProjectState
 
@@ -66,7 +67,7 @@ class PagePrintBase(Page):
         if self.display.expo.state == ExposureState.FAILURE:
             self._handle_exposure_failure(self.display.expo.exception)
 
-    def _handle_exposure_failure(self, exception: ExposureException):
+    def _handle_exposure_failure(self, exception: ExposureError):
         if isinstance(exception, WarningEscalation):
             self.display.forcePage("home")
             return

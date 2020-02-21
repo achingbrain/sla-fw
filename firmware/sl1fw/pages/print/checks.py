@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sl1fw.exposure_state import ExposureCheckResult, ExposureCheck
+from sl1fw.states.exposure import ExposureCheck, ExposureCheckResult
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
 

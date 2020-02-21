@@ -3,19 +3,94 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from dataclasses import asdict
+from __future__ import annotations
+
+from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta, timezone
+from enum import unique, Enum
 from time import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from deprecated import deprecated
 from pydbus.generic import signal
 
 from sl1fw import defines
-from sl1fw.api.decorators import dbus_api, DBusObjectPath, auto_dbus, state_checked, range_checked, wrap_variant_dict
-from sl1fw.api.states import Exposure0State, Exposure0ProjectState
-from sl1fw.exposure_state import ExposureExceptionCode, ExposureException, ExposureWarningCode, ExposureWarning
+from sl1fw.api.decorators import dbus_api, DBusObjectPath, auto_dbus, state_checked, range_checked, wrap_variant_dict, \
+    wrap_exception, last_error
+from sl1fw.errors.codes import WarningCode
+from sl1fw.errors.warnings import ExposureWarning
 from sl1fw.libExposure import Exposure
+from sl1fw.project.project import ProjectState
+from sl1fw.states.exposure import ExposureState
+
+
+@unique
+class Exposure0State(Enum):
+    # INIT = 0
+    PRINTING = 1
+    GOING_UP = 2
+    GOING_DOWN = 3
+    WAITING = 4
+    COVER_OPEN = 5
+    FEED_ME = 6
+    FAILURE = 7
+    STIRRING = 9
+    PENDING_ACTION = 10
+    FINISHED = 11
+    STUCK = 12
+    STUCK_RECOVERY = 13
+    READING_DATA = 14
+    CONFIRM = 15
+    CHECKS = 16
+    TILTING_DOWN = 19
+    CANCELED = 20
+    CHECK_WARNING = 23
+
+    @staticmethod
+    def from_exposure(state: ExposureState) -> Exposure0State:
+        return {
+            ExposureState.PRINTING: Exposure0State.PRINTING,
+            ExposureState.GOING_UP: Exposure0State.GOING_UP,
+            ExposureState.GOING_DOWN: Exposure0State.GOING_DOWN,
+            ExposureState.WAITING: Exposure0State.WAITING,
+            ExposureState.COVER_OPEN: Exposure0State.COVER_OPEN,
+            ExposureState.FEED_ME: Exposure0State.FEED_ME,
+            ExposureState.FAILURE: Exposure0State.FAILURE,
+            ExposureState.STIRRING: Exposure0State.STIRRING,
+            ExposureState.PENDING_ACTION: Exposure0State.PENDING_ACTION,
+            ExposureState.FINISHED: Exposure0State.FINISHED,
+            ExposureState.STUCK: Exposure0State.STUCK,
+            ExposureState.STUCK_RECOVERY: Exposure0State.STUCK_RECOVERY,
+            ExposureState.READING_DATA: Exposure0State.READING_DATA,
+            ExposureState.CONFIRM: Exposure0State.CONFIRM,
+            ExposureState.CHECKS: Exposure0State.CHECKS,
+            ExposureState.TILTING_DOWN: Exposure0State.TILTING_DOWN,
+            ExposureState.CANCELED: Exposure0State.CANCELED,
+            ExposureState.CHECK_WARNING: Exposure0State.CHECK_WARNING,
+        }[state]
+
+
+@unique
+class Exposure0ProjectState(Enum):
+    UNINITIALIZED = -1
+    OK = 0
+    NOT_FOUND = 1
+    CANT_READ = 2
+    NOT_ENOUGH_LAYERS = 3
+    CORRUPTED = 4
+    PRINT_DIRECTLY = 5
+
+    @staticmethod
+    def from_project(state: ProjectState) -> Exposure0ProjectState:
+        return {
+            ProjectState.UNINITIALIZED: Exposure0ProjectState.UNINITIALIZED,
+            ProjectState.OK: Exposure0ProjectState.OK,
+            ProjectState.NOT_FOUND: Exposure0ProjectState.NOT_FOUND,
+            ProjectState.CANT_READ: Exposure0ProjectState.CANT_READ,
+            ProjectState.NOT_ENOUGH_LAYERS: Exposure0ProjectState.NOT_ENOUGH_LAYERS,
+            ProjectState.CORRUPTED: Exposure0ProjectState.CORRUPTED,
+            ProjectState.PRINT_DIRECTLY: Exposure0ProjectState.PRINT_DIRECTLY,
+        }[state]
 
 
 @dbus_api
@@ -38,10 +113,12 @@ class Exposure0:
         return DBusObjectPath(f"/cz/prusa3d/sl1/exposures0/{instance_id}")
 
     def __init__(self, exposure: Exposure):
+        self._last_exception: Optional[Exception] = None
         self.exposure = exposure
         self.exposure.change.connect(self._handle_change)
 
     @auto_dbus
+    @last_error
     @state_checked(Exposure0State.CONFIRM)
     def confirm_start(self) -> None:
         """
@@ -52,6 +129,7 @@ class Exposure0:
         self.exposure.confirm_print_start()
 
     @auto_dbus
+    @last_error
     @state_checked(Exposure0State.CHECK_WARNING)
     def confirm_print_warnings(self) -> None:
         """
@@ -62,6 +140,7 @@ class Exposure0:
         self.exposure.confirm_print_warnings()
 
     @auto_dbus
+    @last_error
     @state_checked(Exposure0State.CHECK_WARNING)
     def reject_print_warnings(self) -> None:
         """
@@ -73,6 +152,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def exposure_warnings(self) -> List[Dict[str, Any]]:
         """
         Get current list of exposure warnings
@@ -92,56 +172,26 @@ class Exposure0:
     @wrap_variant_dict
     def _process_warning(self, warning: ExposureWarning) -> Dict[str, Any]:  # pylint: disable=no-self-use
         if not warning:
-            return {
-                "code": ExposureWarningCode.NONE.value
-            }
+            return {"code": WarningCode.NONE.value}
 
         if isinstance(warning, ExposureWarning):
-            ret = {
-                "code": warning.CODE.value
-            }
-            ret.update(asdict(warning))
+            ret = {"code": warning.CODE.value}
+            if is_dataclass(warning):
+                ret.update(asdict(warning))
             return ret
 
-        return {
-            "code": ExposureWarningCode.UNKNOWN.value
-        }
+        return {"code": WarningCode.UNKNOWN.value}
 
     @auto_dbus
     @property
+    @last_error
     @wrap_variant_dict
     def exposure_exception(self) -> Dict[str, Any]:
-        """
-        Get current exposure exception
-
-        Exposure exception is represented as dictionary str -> variant
-        {
-            "code": code , see ExposureExceptionCode
-            "code_specific_feature1": value1
-            "code_specific_feature2": value2
-            ...
-        }
-
-        :return: Exception dictionary
-        """
-        if not self.exposure.exception:
-            return {
-                "code": ExposureExceptionCode.NONE.value
-            }
-
-        if isinstance(self.exposure.exception, ExposureException):
-            ret = {
-                "code": self.exposure.exception.CODE.value
-            }
-            ret.update(asdict(self.exposure.exception))
-            return ret
-
-        return {
-            "code": ExposureExceptionCode.UNKNOWN.value
-        }
+        return wrap_exception(self.exposure.exception)
 
     @auto_dbus
     @property
+    @last_error
     def checks_state(self) -> Dict[int, int]:
         """
         State of exposure checks
@@ -152,6 +202,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def project_state(self) -> int:
         """
         State of source project data
@@ -162,6 +213,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def current_layer(self) -> int:
         """
         Layer currently being printed
@@ -172,6 +224,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def total_layers(self) -> int:
         """
         Total number of layers in the project
@@ -182,6 +235,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     @deprecated(reason="Use expected_finish_timestamp", action="once")
     def time_remain_min(self) -> int:
         """
@@ -193,6 +247,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def expected_finish_timestamp(self) -> float:
         """
         Get timestamp of expected print end
@@ -204,6 +259,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     @deprecated(reason="Use print_start_timestamp", action="once")
     def time_elapsed_min(self) -> int:
         """
@@ -215,6 +271,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def print_start_timestamp(self) -> float:
         """
         Get print start time
@@ -225,6 +282,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     @deprecated(reason="Use layer_height_first_nm", action="once")
     def layer_height_first_mm(self) -> int:
         """
@@ -236,6 +294,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def layer_height_first_nm(self) -> int:
         """
         Height of the first layer
@@ -246,6 +305,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     @deprecated(reason="Use layer_height_nm", action="once")
     def layer_height_mm(self) -> int:
         """
@@ -257,6 +317,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def layer_height_nm(self) -> int:
         """
         Height of the standard layer
@@ -267,6 +328,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     @deprecated(reason="Use position_nm", action="once")
     def position_mm(self) -> int:
         """
@@ -278,6 +340,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def position_nm(self) -> int:
         """
         Current layer position
@@ -288,6 +351,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     @deprecated(reason="Use total_nm", action="once")
     def total_mm(self) -> int:
         """
@@ -299,6 +363,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def total_nm(self) -> int:
         """
         Model height
@@ -309,6 +374,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def project_name(self) -> str:
         """
         Name of the project
@@ -319,6 +385,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def project_file(self) -> str:
         """
         Full path to the project being printed
@@ -329,6 +396,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def progress(self) -> float:
         """
         Progress percentage
@@ -342,6 +410,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def resin_used_ml(self) -> float:
         """
         Amount of resin used
@@ -352,6 +421,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def resin_remaining_ml(self) -> float:
         """
         Remaining resin in the tank
@@ -364,6 +434,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def resin_warn(self) -> bool:
         """
         Whenever the remaining resin has reached warning level
@@ -374,6 +445,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def resin_low(self) -> bool:
         """
         Whenever the resin has reached forced pause level
@@ -384,6 +456,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def remaining_wait_sec(self) -> int:
         """
         If in waiting state this is number of seconds remaing in wait
@@ -394,6 +467,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def wait_until_timestamp(self) -> float:
         """
         If in wait state this represents end of wait timestamp
@@ -404,6 +478,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def exposure_end(self) -> float:
         """
         End of current layer exposure
@@ -414,6 +489,7 @@ class Exposure0:
 
     @auto_dbus
     @property
+    @last_error
     def state(self) -> int:
         """
         Print job state :class:`.states.Exposure0State`
@@ -423,6 +499,7 @@ class Exposure0:
         return Exposure0State.from_exposure(self.exposure.state).value
 
     @auto_dbus
+    @last_error
     @state_checked(Exposure0State.PRINTING)
     def up_and_down(self) -> None:
         """
@@ -433,6 +510,7 @@ class Exposure0:
         self.exposure.doUpAndDown()
 
     @auto_dbus
+    @last_error
     @deprecated(reason="Use cancel method instead")
     @state_checked(Exposure0State.PRINTING)
     def exit_print(self) -> None:
@@ -444,6 +522,7 @@ class Exposure0:
         self.exposure.cancel()
 
     @auto_dbus
+    @last_error
     @state_checked([Exposure0State.PRINTING, Exposure0State.CHECKS, Exposure0State.CONFIRM, Exposure0State.COVER_OPEN])
     def cancel(self) -> None:
         """
@@ -454,6 +533,7 @@ class Exposure0:
         self.exposure.cancel()
 
     @auto_dbus
+    @last_error
     @state_checked(Exposure0State.PRINTING)
     def feed_me(self) -> None:
         """
@@ -464,6 +544,7 @@ class Exposure0:
         self.exposure.doFeedMe()
 
     @auto_dbus
+    @last_error
     @state_checked(Exposure0State.FEED_ME)
     def cont(self) -> None:
         """
@@ -474,6 +555,7 @@ class Exposure0:
         self.exposure.doContinue()
 
     @auto_dbus
+    @last_error
     @state_checked(Exposure0State.FEED_ME)
     def back(self) -> None:
         """
@@ -486,45 +568,58 @@ class Exposure0:
         self.exposure.doBack()
 
     @property
+    @last_error
     def exposure_time_ms(self) -> int:
         return int(self.exposure.project.expTime * 1000)
 
     @auto_dbus
     @exposure_time_ms.setter
+    @last_error
     @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
     def exposure_time_ms(self, value: int) -> None:
         self.exposure.project.expTime = value / 1000
 
     @property
+    @last_error
     def exposure_time_first_ms(self) -> int:
         return int(self.exposure.project.expTimeFirst * 1000)
 
     @auto_dbus
     @exposure_time_first_ms.setter
+    @last_error
     @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
     def exposure_time_first_ms(self, value: int) -> None:
         self.exposure.project.expTimeFirst = value / 1000
 
     @property
+    @last_error
     def exposure_time_calibrate_ms(self) -> int:
         return int(self.exposure.project.calibrateTime * 1000)
 
     @auto_dbus
     @exposure_time_calibrate_ms.setter
+    @last_error
     # @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     def exposure_time_calibrate_ms(self, value: int) -> None:
         self.exposure.project.calibrateTime = value / 1000
 
     _CHANGE_MAP = {
         "state": {"state"},
-        "actualLayer": {"current_layer", "progress", "time_remain_min", "time_elapsed_min", "position_mm",
-                        "position_nm", "expected_finish_timestamp"},
+        "actualLayer": {
+            "current_layer",
+            "progress",
+            "time_remain_min",
+            "time_elapsed_min",
+            "position_mm",
+            "position_nm",
+            "expected_finish_timestamp",
+        },
         "resinCount": {"resin_used_ml"},
         "remain_resin_ml": {"resin_remaining_ml"},
         "warn_resin": {"resin_warn"},
         "low_resin": {"resin_low"},
         "remaining_wait_sec": {"remaining_wait_sec"},
-        "exposure_end": {"exposure_end"}
+        "exposure_end": {"exposure_end"},
     }
 
     def _handle_change(self, key: str, _: Any):

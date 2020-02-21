@@ -17,7 +17,8 @@ from evdev import UInput, ecodes as e
 
 from sl1fw import defines
 from sl1fw.motion_controller.queue_stream import QueueStream
-from sl1fw.motion_controller.states import MotConComState, MotionControllerException, ResetFlags, CommError, StatusBits
+from sl1fw.motion_controller.states import MotConComState, ResetFlags, CommError, StatusBits
+from sl1fw.errors.exceptions import MotionControllerException
 from sl1fw.motion_controller.trace import LineTrace, LineMarker, Trace
 
 
