@@ -977,7 +977,7 @@ class HwConfig(Config):
         doc="Calibrated UV LED PWM.",
     )
     uvWarmUpTime = IntValue(120, minimum=0, maximum=300, doc="UV LED calibration warmup time. [seconds]")
-    uvCalibIntensity = IntValue(150, minimum=90, maximum=200, doc="UV LED calibration intensity.")
+    uvCalibIntensity = IntValue(140, minimum=90, maximum=200, doc="UV LED calibration intensity.")
     uvCalibMinIntEdge = IntValue(90, minimum=80, maximum=150, doc="UV LED calibration minimum intensity at the edge.")
 
     # Tilt & Tower -> Tilt tune
