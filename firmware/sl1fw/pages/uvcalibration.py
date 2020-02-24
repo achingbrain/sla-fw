@@ -159,7 +159,7 @@ class PageUvCalibration(PageUvCalibrationBase):
         self.pageWait = PageWait(self.display, line1=_("UV calibration"), line2=_("Setting start positions..."))
 
         # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
-        if self.display.hw.isKit and self.display.printer0.factory_mode:
+        if self.display.hw.isKit and self.display.runtime_config.factory_mode:
             # Skip setting of initial positions as the kit not fully assembled at the factory (there is no tower)
             return
         #endif
@@ -594,7 +594,7 @@ class PageUvCalibrationConfirm(Page):
             return "error"
         #endtry
         uvcalibConfig.save_raw()
-        if self.display.factory_mode:
+        if self.display.runtime_config.factory_mode:
             uvcalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
             uvcalibConfigFactory.data = uvcalibConfig.data
             if not self.writeToFactory(functools.partial(self.writeAllDefaults, uvcalibConfigFactory)):
