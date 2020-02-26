@@ -55,21 +55,21 @@ class UvLedMeterMulti:
 
     uvLedMeterDevice = "/dev/uvmeter"
     uvSensorType = 0
-    INTENSITY_ERROR_THRESHOLD = 0.5
+    INTENSITY_ERROR_THRESHOLD = 1
 
-    WEIGHTS60 = numpy.array([ \
-            0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, \
-            0.30, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.30, \
-            0.30, 0.75, 1.30, 1.30, 1.30, 1.30, 1.30, 1.30, 0.75, 0.30, \
-            0.30, 0.75, 1.30, 1.30, 1.30, 1.30, 1.30, 1.30, 0.75, 0.30, \
-            0.30, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.30, \
-            0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, \
-            ])
-    WEIGHTS15 = numpy.array([ \
-            0.50, 0.50, 0.50, 0.50, 0.50, \
-            0.50, 1.30, 1.00, 1.30, 0.50, \
-            0.50, 0.50, 0.50, 0.50, 0.50, \
-            ])
+    WEIGHTS60 = numpy.array([
+        0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30,
+        0.30, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.30,
+        0.30, 0.75, 1.30, 1.30, 1.30, 1.30, 1.30, 1.30, 0.75, 0.30,
+        0.30, 0.75, 1.30, 1.30, 1.30, 1.30, 1.30, 1.30, 0.75, 0.30,
+        0.30, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.30,
+        0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30,
+    ])
+    WEIGHTS15 = numpy.array([
+        0.50, 0.50, 0.50, 0.50, 0.50,
+        0.50, 1.30, 1.00, 1.30, 0.50,
+        0.50, 0.50, 0.50, 0.50, 0.50,
+    ])
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -138,10 +138,9 @@ class UvLedMeterMulti:
 
 
     def read(self):
-        sleep(3)
         self.np = None
         try:
-            self.port.write(('>all\n').encode())
+            self.port.write('>all\n'.encode())
             self.logger.debug("UV meter command reply: %s", self.port.readline().strip().decode())
             timeout = defines.uvLedMeterMaxWait_s * 10
             while not self.port.inWaiting() and timeout:
@@ -216,6 +215,7 @@ class UvLedMeterMulti:
 
 
     def checkPlace(self, screenOn):
+        sleep(0.5)
         self.read()
         if self.np is None:
             return UvMeterState.ERROR_COMMUNICATION
@@ -225,6 +225,7 @@ class UvLedMeterMulti:
             return UvMeterState.ERROR_TRANSLUCENT
         #enddef
         screenOn()
+        sleep(0.5)
         self.read()
         if self.np is None:
             return UvMeterState.ERROR_COMMUNICATION
