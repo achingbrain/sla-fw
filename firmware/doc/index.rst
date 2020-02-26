@@ -15,7 +15,7 @@ Configuration
 .. toctree::
    :maxdepth: 2
 
-   printconfig
+   projectconfig
    hwconfig
 
 API
@@ -27,6 +27,12 @@ API
    config0
    exposure0
 
+Error handling
+==============
+.. toctree::
+   :maxdepth: 2
+
+   errors
 
 
 Indices and tables

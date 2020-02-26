@@ -32,6 +32,9 @@ if TYPE_CHECKING:
 
 @unique
 class Printer0State(Enum):
+    """
+    General printer state enumeration
+    """
     INITIALIZING = 0
     IDLE = 1
     UNBOXING = 2
@@ -47,7 +50,10 @@ class Printer0State(Enum):
 @dbus_api
 class Printer0:
     """
-    This is prototype of the public printer API, implementation is naive, incomplete and possibly broken.
+    This is a 0 revision of the printer public API. This contains all the stuff that the display/pages interface can do,
+    but some parts are still not implemented. As the structure was preserved from pages for easy porting and new methods
+    were added as needed the API is not looking very well.
+
     Keep implementation out of this file. Methods here should only adapt interfaces and reformat data.
     """
 

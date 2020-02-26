@@ -26,6 +26,9 @@ from sl1fw.states.exposure import ExposureState
 
 @unique
 class Exposure0State(Enum):
+    """
+    Exposure state enumeration
+    """
     # INIT = 0
     PRINTING = 1
     GOING_UP = 2
@@ -72,6 +75,9 @@ class Exposure0State(Enum):
 
 @unique
 class Exposure0ProjectState(Enum):
+    """
+    Project configuration state enumeration
+    """
     UNINITIALIZED = -1
     OK = 0
     NOT_FOUND = 1
@@ -155,15 +161,17 @@ class Exposure0:
     @last_error
     def exposure_warnings(self) -> List[Dict[str, Any]]:
         """
-        Get current list of exposure warnings
+        Get current list of exposure warnings.
 
-        Each exposure warning is represented as dictionary str -> variant
-        {
-            "code": code , see ExposureWarningCode
-            "code_specific_feature1": value1
-            "code_specific_feature2": value2
-            ...
-        }
+        .. seealso:: :meth:`sl1fw.errors.codes.WarningCode`
+
+        Each exposure warning is represented as dictionary str -> variant::
+
+            {
+                "code": code
+                "code_specific_feature1": value1
+                "code_specific_feature2": value2
+            }
 
         :return: List of warning dictionaries
         """
