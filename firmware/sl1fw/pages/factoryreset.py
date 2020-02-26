@@ -4,9 +4,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+from shutil import copyfile
 from time import sleep
 
 import pydbus
+from gi.repository import GLib
 
 from sl1fw import defines
 from sl1fw import libConfig
@@ -81,7 +83,7 @@ class PageFactoryReset(Page):
         # Reset apikey (will be regenerated on next boot)
         try:
             os.remove(defines.apikeyFile)
-        except:
+        except FileNotFoundError:
             self.logger.exception("Failed to remove api.key")
         #endtry
 
@@ -94,17 +96,21 @@ class PageFactoryReset(Page):
                     self.logger.info("Removing connection %s", item)
                     con = system_bus.get(self.NETWORK_MANAGER, item)
                     con.Delete()
-                except:
+                except GLib.GError:
                     self.logger.exception("Failed to delete connection %s", item)
-        except:
+        except GLib.GError:
             self.logger.exception("Failed to reset wifi config")
         #endtry
 
         # Reset timezone
         try:
-            timedate = system_bus.get("org.freedesktop.timedate1")
-            timedate.SetTimezone("Universal", False)
-        except:
+            os.remove("/etc/localtime")
+        except (FileNotFoundError, PermissionError):
+            self.logger.exception("Failed to remove old timezone configuration")
+        #endtry
+        try:
+            copyfile("/usr/share/factory/etc/localtime", "/etc/localtime", follow_symlinks=False)
+        except (OSError, FileNotFoundError, PermissionError):
             self.logger.exception("Failed to reset timezone")
         #endtry
 
@@ -112,21 +118,21 @@ class PageFactoryReset(Page):
         try:
             locale = system_bus.get("org.freedesktop.locale1")
             locale.SetLocale(["C"], False)
-        except:
+        except GLib.GError:
             self.logger.exception("Setting locale failed")
         #endtry
 
         # Reset user UV calibration data
         try:
             os.remove(defines.uvCalibDataPath)
-        except:
+        except (FileNotFoundError, PermissionError):
             self.logger.exception("Failed to remove user UV calibration data")
         #endtry
 
         # remove downloaded slicer profiles
         try:
             os.remove(defines.slicerProfilesFile)
-        except:
+        except (FileNotFoundError, PermissionError):
             self.logger.exception("Failed to remove remove downloaded slicer profiles")
         #endtry
 
