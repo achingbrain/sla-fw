@@ -3,3 +3,4 @@ dist
 *.egg-info
 *.mo
 .coverage
+EEPROM.dat

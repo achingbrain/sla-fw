@@ -71,9 +71,11 @@ class Sl1fwTestCase(DBusTestCase):
         cls.event_loop.quit()
         cls.event_thread.join()
 
-    @staticmethod
-    def compareImages(path1: str, path2: str) -> bool:
-        one = Image.open(path1)
-        two = Image.open(path2)
-        diff = ImageChops.difference(one, two)
-        return diff.getbbox() is not None
+    def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg = None):
+        if a.mode != b.mode:
+            a = a.convert(b.mode)
+        diff = ImageChops.difference(a, b).convert(mode="L")
+        thres = diff.point(lambda x: 1 if x > threshold else 0, mode="L")
+        if thres.getbbox():
+            msg = self._formatMessage(msg, f"Images contain pixels different by mote than {threshold}.")
+            raise self.failureException(msg)

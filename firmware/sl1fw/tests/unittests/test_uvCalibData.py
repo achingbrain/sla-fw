@@ -4,7 +4,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import asdict
+
 import toml
+from PIL import Image
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libUvLedMeterMulti import UvCalibrationData, UvLedMeterMulti
@@ -17,17 +19,18 @@ class TestUvCalibData(Sl1fwTestCase):
 
         # TODO fill
         ucd.uvSensorType = 0
-        ucd.uvSensorData = [150, 118,]
+        ucd.uvSensorData = [150, 118, ]
         ucd.uvTemperature = 40.0
         ucd.uvDateTime = "14.10.2019 12:58:32"
         ucd.uvMean = 150.4
         ucd.uvStdDev = 0.0
         ucd.uvMinValue = 118
         ucd.uvMaxValue = 150
-        ucd.uvPercDiff = [12.1, -12.1,]
+        ucd.uvPercDiff = [12.1, -12.1, ]
         ucd.uvFoundPwm = 210
 
         self.assertEqual(len(asdict(ucd)), 10, "UvCalibrationData completeness")
+
 
 class TestUvMeterMulti60(Sl1fwTestCase):
     DATA = Sl1fwTestCase.SAMPLES_DIR / "uvcalib_data-60.toml"
@@ -48,7 +51,7 @@ class TestUvMeterMulti60(Sl1fwTestCase):
     def test_generatePNG(self):
         data = toml.load(self.DATA)
         self.uvmeter.savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], self.OUT, data)
-        self.assertTrue(self.compareImages(self.OUT, self.PNG), "Generated PNG")
+        self.assertSameImage(Image.open(self.OUT), Image.open(self.PNG), 32, "Generated PNG")
 
 
 # TODO TestUvMeterMulti15
