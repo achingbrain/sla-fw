@@ -27,6 +27,7 @@ class ExposureManager:
         self._exposure_dbus_objects = Queue()
         self._system_bus = SystemBus()
         self.exposure_change = Signal()
+        self._bus_name = None
 
     def new_exposure(
         self,
@@ -40,32 +41,65 @@ class ExposureManager:
         exp_time_calibrate_ms: Optional[int] = None,
     ) -> Exposure:
         # Create new exposure object and apply passed settings
-        self._current = Exposure(config, hw, screen, runtime_config, project)
-        if exp_time_ms:
-            self._current.project.expTime = exp_time_ms / 1000
-        if exp_time_first_ms:
-            self.exposure.project.expTimeFirst = exp_time_first_ms / 1000
-        if exp_time_calibrate_ms:
-            self.exposure.project.calibrateTime = exp_time_calibrate_ms / 1000
+        exposure = self._create_exposure(
+            config, hw, screen, runtime_config, project, exp_time_ms, exp_time_first_ms, exp_time_calibrate_ms
+        )
 
-        # Register exposure on DBus using the API wrapper
-        path = Exposure0.dbus_path(self._current.instance_id)
-        registration = self._system_bus.register_object(path, Exposure0(self._current), None)
-        self._exposure_dbus_objects.put(registration)
-        self.logger.info("New exposure registered as: %s", path)
-
-        # Maintain history exposure registrations
-        while self._exposure_dbus_objects.qsize() > self.MAX_EXPOSURES:
-            self._exposure_dbus_objects.get().unregister()
+        path = self._register_exposure(exposure)
 
         # Register properties changed signal of the new exposure as current exposure signal source
         if self._current_change_registration:
             self._current_change_registration.unsubscribe()
-        exposure_dbus = self._system_bus.get("cz.prusa3d.sl1.printer0", path)
+        exposure_dbus = self._system_bus.get(Exposure0.__INTERFACE__, path)
         self._current_change_registration = exposure_dbus.PropertiesChanged.connect(self._on_change)
 
+        self._current = exposure
         self.exposure_change.emit()
-        return self._current
+        return exposure
+
+    @staticmethod
+    def _create_exposure(
+        config: HwConfig,
+        hw: Hardware,
+        screen: Screen,
+        runtime_config: RuntimeConfig,
+        project: str,
+        exp_time_ms: Optional[int] = None,
+        exp_time_first_ms: Optional[int] = None,
+        exp_time_calibrate_ms: Optional[int] = None,
+    ):
+        exposure = Exposure(config, hw, screen, runtime_config, project)
+        if exp_time_ms:
+            exposure.project.expTime = exp_time_ms / 1000
+        if exp_time_first_ms:
+            exposure.project.expTimeFirst = exp_time_first_ms / 1000
+        if exp_time_calibrate_ms:
+            exposure.project.calibrateTime = exp_time_calibrate_ms / 1000
+
+        return exposure
+
+    def _register_exposure(self, exposure: Exposure) -> str:
+        """
+        Register exposure on DBus using the API wrapper.
+
+        :param exposure: Exposure to register
+        :return: Registered path
+        """
+        # Register bus name if not already registered
+        if not self._bus_name:
+            self._bus_name = self._system_bus.request_name(Exposure0.__INTERFACE__)
+
+        path = Exposure0.dbus_path(exposure.instance_id)
+        exposure0 = Exposure0(exposure)
+        registration = self._system_bus.register_object(path, exposure0, None)
+        self._exposure_dbus_objects.put(registration)
+        self.logger.info("New exposure registered as: %s", path)
+
+        # Maintain history of exposure registrations
+        while self._exposure_dbus_objects.qsize() > self.MAX_EXPOSURES:
+            self._exposure_dbus_objects.get().unregister()
+
+        return path
 
     @property
     def exposure(self) -> Optional[Exposure]:
@@ -74,6 +108,8 @@ class ExposureManager:
     def exit(self):
         while not self._exposure_dbus_objects.empty():
             self._exposure_dbus_objects.get().unregister()
+        if self._bus_name:
+            self._bus_name.unown()
 
     def _on_change(self, __, changed, ___):
         if "state" in changed:

@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from enum import Enum
+from typing import List
 
 from sl1fw.errors.codes import ErrorCode
 from sl1fw.motion_controller.trace import Trace
@@ -48,7 +49,8 @@ class MotionControllerException(PrinterException):
 
 @with_code(ErrorCode.GENERAL_NOT_AVAILABLE_IN_STATE)
 class NotAvailableInState(PrinterException):
-    pass
+    def __init__(self, current_state: Enum, allowed_states: List[Enum]):
+        super().__init__(f"Only available in {allowed_states}, currently in {current_state}")
 
 
 @with_code(ErrorCode.GENERAL_DBUS_MAPPING_EXCEPTION)

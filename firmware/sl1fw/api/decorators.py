@@ -1,6 +1,6 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
-# Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
@@ -34,10 +34,16 @@ def state_checked(allowed_state: Union[Enum, List[Enum]]):
                 allowed = [state.value for state in allowed_state]
             else:
                 allowed = [allowed_state.value]
-            if self.state in allowed:
+
+            if isinstance(self.state, Enum):
+                current = self.state.value
+            else:
+                current = self.state
+
+            if current in allowed:
                 return function(self, *args, **kwargs)
             else:
-                raise NotAvailableInState
+                raise NotAvailableInState(self.state, allowed)
 
         return func
 
@@ -127,8 +133,8 @@ def auto_dbus(func):
             name = func.fget.__name__
         else:
             name = func.__name__
-    except:
-        raise DBusMappingException(f"Failed to obtain name for {func}")
+    except Exception as e:
+        raise DBusMappingException(f"Failed to obtain name for {func}") from e
 
     dbus = gen_method_dbus_spec(func, name)
     return manual_dbus(dbus)(func)

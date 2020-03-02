@@ -83,7 +83,8 @@ class MotionController:
             self._port.close()
             if self._reader_thread:
                 self._reader_thread.join()
-        self.u_input.close()
+        if self.u_input:
+            self.u_input.close()
 
     def _port_read_thread(self):
         """

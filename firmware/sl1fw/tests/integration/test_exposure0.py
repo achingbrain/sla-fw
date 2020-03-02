@@ -9,10 +9,10 @@ from time import sleep
 
 import pydbus
 
+from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 from sl1fw.api.exposure0 import Exposure0State
 from sl1fw.errors.codes import WarningCode, ErrorCode
 from sl1fw.project.project import ProjectState
-from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 from sl1fw.errors.warnings import AmbientTooHot
 
 
@@ -30,7 +30,7 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self.bus = pydbus.SystemBus()
         self.printer0 = self.bus.get("cz.prusa3d.sl1.printer0")
         expo_path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)
-        self.exposure0 = self.bus.get("cz.prusa3d.sl1.printer0", expo_path)
+        self.exposure0 = self.bus.get("cz.prusa3d.sl1.exposure0", expo_path)
 
     def test_init(self):
         self.assertEqual(Exposure0State.CONFIRM, Exposure0State(self.exposure0.state))

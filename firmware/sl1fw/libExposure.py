@@ -766,16 +766,7 @@ class ExposureThread(threading.Thread):
         statsFile.save(data = stats)
         self.expo.screen.saveDisplayUsage()
 
-        self.expo.runtime_config.last_project_data = {
-            'name': self.expo.project.name,
-            'print_time': self.expo.printTime,
-            'layers': self.expo.actualLayer,
-            'consumed_resin': self.expo.resinCount,
-            'project_file': self.expo.project.origin,
-            'exp_time_ms': self.expo.project.expTime * 1000,
-            'exp_time_first_ms': self.expo.project.expTimeFirst * 1000,
-            'exp_time_calibrate_ms': self.expo.project.calibrateTime * 1000,
-        }
+        self.expo._write_last_project()
 
         if self.expo.canceled:
             self.expo.state = ExposureState.CANCELED
@@ -871,6 +862,7 @@ class Exposure:
             self.doExitPrint()
         else:
             # Exposure thread not yet running (cancel before start)
+            self._write_last_project()
             self.state = ExposureState.CANCELED
         #endif
     #enddef
@@ -997,9 +989,22 @@ class Exposure:
         if self.project:
             return self.project.count_remain_time(self.actualLayer, self.slowLayersDone)
         else:
-            self.logger.warning("No active project to get remainng time")
+            self.logger.warning("No active project to get remaining time")
             return -1
         #endif
+    #enddef
+
+    def _write_last_project(self):
+        self.runtime_config.last_project_data = {
+            'name': self.project.name,
+            'print_time': self.printTime,
+            'layers': self.actualLayer,
+            'consumed_resin': self.resinCount,
+            'project_file': self.project.origin,
+            'exp_time_ms': self.project.expTime * 1000,
+            'exp_time_first_ms': self.project.expTimeFirst * 1000,
+            'exp_time_calibrate_ms': self.project.calibrateTime * 1000,
+        }
     #enddef
 
 #endclass
