@@ -165,13 +165,14 @@ class Printer0:
         """
         self.printer.hw.motorsRelease()
 
-    @state_checked(Printer0State.IDLE)
+    @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
     @auto_dbus
     def tower_move(self, speed: int) -> bool:
         """
         Start / stop tower movement
 
         TODO: This should be checked by heartbeat or the command should have limited ttl
+        TODO: Allowed for calibration as calibration does not have dedicated control object, yet
 
         :param: Movement speed
 
@@ -184,13 +185,14 @@ class Printer0:
         """
         return self.printer.hw.tower_move(speed)
 
-    @state_checked(Printer0State.IDLE)
+    @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
     @auto_dbus
     def tilt_move(self, speed: int) -> bool:
         """
         Start / stop tilt movement
 
         TODO: This should be checked by heartbeat or the command should have limited ttl
+        TODO: Allowed for calibration as calibration does not have dedicated control object, yet
 
         :param: Movement speed
 
