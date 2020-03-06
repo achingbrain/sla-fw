@@ -72,7 +72,7 @@ class MotionController:
             {e.EV_KEY: [e.KEY_CLOSE, e.KEY_POWER]}, name="sl1-motioncontroller", version=0x1  # pylint: disable=E1101
         )
 
-        self._reader_thread = Thread(target=self._port_read_thread)
+        self._reader_thread = Thread(target=self._port_read_thread, daemon=True)
         self._reader_thread.start()
 
     def __del__(self):
@@ -81,8 +81,6 @@ class MotionController:
     def exit(self):
         if self.is_open:
             self._port.close()
-            if self._reader_thread:
-                self._reader_thread.join()
         if self.u_input:
             self.u_input.close()
 

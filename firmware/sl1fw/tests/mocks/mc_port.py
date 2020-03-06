@@ -5,7 +5,7 @@
 
 import logging
 from subprocess import Popen, PIPE
-from time import sleep
+from time import monotonic_ns, sleep
 from typing import Optional
 
 from serial import SerialTimeoutException
@@ -39,7 +39,6 @@ class Serial:
         """
         self.process.terminate()
         self.process.wait(timeout=3)
-
         self.process.stdin.close()
         self.process.stdout.close()
         self.process.stderr.close()
@@ -72,11 +71,16 @@ class Serial:
 
         :return: Line read from simulated serial port
         """
-        for _ in range(self.TIMEOUT_MS):
-            line = self.process.stdout.readline()
+        start_ns = monotonic_ns()
+
+        while monotonic_ns() - start_ns < self.TIMEOUT_MS * 1000:
+            # Unfortunately, there is no way how to make readline not block
+            try:
+                line = self.process.stdout.readline()
+            except ValueError:
+                break
             if line:
                 self.logger.debug("> %s", line)
                 return line
             sleep(0.001)
-
         raise SerialTimeoutException("Nothing to read from serial port")

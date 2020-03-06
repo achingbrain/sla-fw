@@ -1,6 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -10,10 +11,9 @@ import concurrent.futures
 import logging
 import queue
 import threading
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from time import sleep, time
-from typing import Optional, Any, List, Dict
+from typing import Optional, Any
 
 import psutil
 from PySignal import Signal
@@ -22,15 +22,16 @@ from deprecated import deprecated
 from sl1fw import defines
 from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerMoveFailure, ProjectFailure, \
     TempSensorFailure, FanFailure, ResinFailure, ResinTooLow, ResinTooHigh, WarningEscalation
-from sl1fw.errors.warnings import ExposureWarning, AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
+from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
     ModelMismatch, ResinNotEnough
-from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig, TomlConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
 from sl1fw.project.functions import ramdisk_cleanup
 from sl1fw.project.project import Project, ProjectState
+from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
+from sl1fw.utils.signaled_collections import TraceableList, TraceableDefaultDict
 
 
 class ExposureThread(threading.Thread):
@@ -813,8 +814,10 @@ class Exposure:
         self.exposure_end: Optional[datetime] = None
         self.instance_id = Exposure.instance_counter
         Exposure.instance_counter += 1
-        self.check_results: Dict[ExposureCheck, ExposureCheckResult] = defaultdict(lambda: ExposureCheckResult.SCHEDULED)
-        self.warnings: List[ExposureWarning] = []
+        self.check_results = TraceableDefaultDict(lambda: ExposureCheckResult.SCHEDULED)
+        self.check_results.changed.connect(lambda: self.change.emit("check_results", self.check_results))
+        self.warnings = TraceableList()
+        self.warnings.changed.connect(lambda: self.change.emit("warnings", self.warnings))
         self.exception: Optional[ExposureError] = None
         self.canceled = False
         self.expoCommands = queue.Queue()

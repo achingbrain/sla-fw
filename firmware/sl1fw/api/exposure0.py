@@ -15,8 +15,16 @@ from deprecated import deprecated
 from pydbus.generic import signal
 
 from sl1fw import defines
-from sl1fw.api.decorators import dbus_api, DBusObjectPath, auto_dbus, state_checked, range_checked, wrap_variant_dict, \
-    wrap_exception, last_error
+from sl1fw.api.decorators import (
+    dbus_api,
+    DBusObjectPath,
+    auto_dbus,
+    state_checked,
+    range_checked,
+    wrap_variant_dict,
+    wrap_exception,
+    last_error,
+)
 from sl1fw.errors.codes import WarningCode
 from sl1fw.errors.warnings import ExposureWarning
 from sl1fw.libExposure import Exposure
@@ -29,6 +37,7 @@ class Exposure0State(Enum):
     """
     Exposure state enumeration
     """
+
     # INIT = 0
     PRINTING = 1
     GOING_UP = 2
@@ -78,6 +87,7 @@ class Exposure0ProjectState(Enum):
     """
     Project configuration state enumeration
     """
+
     UNINITIALIZED = -1
     OK = 0
     NOT_FOUND = 1
@@ -626,6 +636,8 @@ class Exposure0:
         "low_resin": {"resin_low"},
         "remaining_wait_sec": {"remaining_wait_sec"},
         "exposure_end": {"exposure_end"},
+        "warnings": {"exposure_warnings"},
+        "check_results": {"checks_state"},
     }
 
     def _handle_change(self, key: str, _: Any):
