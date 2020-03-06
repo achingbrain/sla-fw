@@ -57,7 +57,7 @@ class PagePrint(PagePrintBase):
 
         time_remain_min = expo.countRemainTime()
         time_elapsed_min = int(round((time() - expo.printStartTime) / 60))
-        percent = int(100 * (self.lastLayer - 1) / project.totalLayers)
+        percent = int(100 * self.display.expo.progress)
 
         if expo.warn_resin:
             self.display.hw.beepAlarm(1)

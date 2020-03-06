@@ -411,10 +411,8 @@ class Exposure0:
 
         :return: Percentage 0 - 100
         """
-        if self.exposure.in_progress:
-            return 100 * (self.exposure.actualLayer - 1) / self.exposure.project.totalLayers
-        else:
-            return 100
+        # TODO: In new API revision report progress as 0-1
+        return 100 * self.exposure.progress
 
     @auto_dbus
     @property

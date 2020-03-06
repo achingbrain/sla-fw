@@ -934,6 +934,16 @@ class Exposure:
     #enddef
 
 
+    @property
+    def progress(self) -> float:
+        if self.state == ExposureState.FINISHED:
+            return 1
+
+        completed_layers = self.actualLayer - 1 if self.actualLayer else 0
+        return completed_layers / self.project.totalLayers
+    #enddef
+
+
     def waitDone(self):
         if self.expoThread:
             self.expoThread.join()
