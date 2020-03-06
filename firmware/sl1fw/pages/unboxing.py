@@ -1,273 +1,256 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
-# Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from time import sleep
+from __future__ import annotations
 
-from sl1fw.states.display import DisplayState
-from sl1fw.errors.exceptions import ConfigException
+from typing import TYPE_CHECKING
+
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
-from sl1fw.pages.wait import PageWait
+from sl1fw.states.unboxing import UnboxingState
+
+if TYPE_CHECKING:
+    from sl1fw.libDisplay import Display
+
+
+class PageUnboxingBase(Page):
+    def __init__(self, display: Display):
+        super().__init__(display)
+        self.callbackPeriod = 0.1
+
+    def callback(self):
+        self._unboxing_state_switch()
+
+    def _unboxing_state_switch(self):
+        mapping = {
+            UnboxingState.STICKER: "unboxing-sticker",
+            UnboxingState.COVER_CLOSED: "unboxing-cover-closed",
+            UnboxingState.MOVING_TO_FOAM: "unboxing-moving",
+            UnboxingState.SIDE_FOAM: "unboxing-side-foam",
+            UnboxingState.MOVING_TO_TANK: "unboxing-moving",
+            UnboxingState.TANK_FOAM: "unboxing-tank-foam",
+            UnboxingState.DISPLAY_FOIL: "unboxing-display-foil",
+            UnboxingState.FINISHED: "unboxing-finished",
+        }
+        state = self.display.action_manager.unboxing.state
+        page_name = self.display.actualPage.Name
+        if state in mapping and page_name != mapping[state] and page_name != "unboxing-confirm":
+            self.logger.debug(
+                "Unboxing state: %s, current page: %s, switching to: %s",
+                state,
+                self.display.actualPage.Name,
+                mapping[state],
+            )
+            self.display.forcePage(mapping[state])
+        if state == UnboxingState.CANCELED:
+            self.display.leave_menu()
+
+@page
+class PageUnboxing(PageUnboxingBase):
+    Name = "unboxing"
 
 
 @page
-class PageUnboxing1(Page):
-    Name = "unboxing1"
+class PageUnboxingSticker(PageUnboxingBase):
+    Name = "unboxing-sticker"
 
-    def __init__(self, display):
-        super(PageUnboxing1, self).__init__(display)
+    def __init__(self, display: Display):
+        super().__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Unboxing step 1/4")
-    #enddef
-
 
     def show(self):
-        self.display.state = DisplayState.UNBOXING
-        self.items.update({
-            'imageName' : "unboxing-sticker_open_cover.jpg",
-            'text' : _("Please remove the safety sticker on the right and open the orange cover.")})
-        super(PageUnboxing1, self).show()
-    #enddef
-
+        self.items.update(
+            {
+                "imageName": "unboxing-sticker_open_cover.jpg",
+                "text": _("Please remove the safety sticker on the right and open the orange cover."),
+            }
+        )
+        super().show()
 
     def contButtonRelease(self):
-        self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display)
-        pageWait.show()
-        if self.display.hwConfig.coverCheck and self.display.hw.isCoverClosed():
-            pageWait.showItems(
-                    line1 = _("The cover is closed!"),
-                    line2 = _("Please remove the safety sticker and open the orange cover."))
-            self.display.hw.beepAlarm(3)
-            while self.display.hw.isCoverClosed():
-                sleep(0.5)
-            #endwhile
-        #endif
-        pageWait.showItems(line1 = _("The printer is moving to allow for easier manipulation"), line2 = "")
-        self.display.hw.setTowerPosition(0)
-        self.display.hw.setTowerProfile("homingFast")
-        self.display.hw.towerMoveAbsolute(self.display.hwConfig.calcMicroSteps(30))
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        self.display.hw.powerLed("normal")
-        return "unboxing2"
-    #endif
-
+        self.display.action_manager.unboxing.sticker_removed_cover_open()
 
     def backButtonRelease(self):
-        return "unboxingconfirm"
-    #enddef
+        return "unboxing-confirm"
+
+    @staticmethod
+    def _BACK_():
+        return "wizardinit"
 
     @staticmethod
     def _EXIT_():
         return "_EXIT_"
-    #enddef
-
-#endclass
 
 
 @page
-class PageUnboxing2(Page):
-    Name = "unboxing2"
+class PageUnboxingCoverClosed(PageUnboxingBase):
+    Name = "unboxing-cover-closed"
+
+    def __init__(self, display: Display):
+        super().__init__(display)
+        self.pageUI = "wait"
+
+    def show(self):
+        self.setItems(
+            line1=_("The cover is closed!"), line2=_("Please remove the safety sticker and open the orange cover.")
+        )
+        super().show()
+
+
+@page
+class PageUnboxingMoving(PageUnboxingBase):
+    Name = "unboxing-moving"
+
+    def __init__(self, display: Display):
+        super().__init__(display)
+        self.pageUI = "wait"
+
+    def show(self):
+        self.setItems(text=_("The printer is moving to allow for easier manipulation"))
+        super().show()
+
+
+@page
+class PageUnboxingSideFoam(PageUnboxingBase):
+    Name = "unboxing-side-foam"
 
     def __init__(self, display):
-        super(PageUnboxing2, self).__init__(display)
+        super().__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Unboxing step 2/4")
-    #enddef
-
 
     def show(self):
-        self.display.state = DisplayState.UNBOXING
-        self.items.update({
-            'imageName' : "unboxing-remove_foam.jpg",
-            'text' : _("Remove the black foam from both sides of the platform.")})
-        super(PageUnboxing2, self).show()
-    #enddef
-
+        self.items.update(
+            {
+                "imageName": "unboxing-remove_foam.jpg",
+                "text": _("Remove the black foam from both sides of the platform."),
+            }
+        )
+        super().show()
 
     def contButtonRelease(self):
-        self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display, line1 = _("The printer is moving to allow for easier manipulation"))
-        pageWait.show()
-        self.display.hw.towerSyncWait()
-        self.display.hw.powerLed("normal")
-        return "unboxing3"
-    #enddef
-
+        self.display.action_manager.unboxing.side_foam_removed()
 
     def backButtonRelease(self):
-        return "unboxingconfirm"
-    #enddef
+        return "unboxing-confirm"
 
     @staticmethod
     def _EXIT_():
         return "_EXIT_"
-    #enddef
-
-#endclass
 
 
 @page
-class PageUnboxing3(Page):
-    Name = "unboxing3"
+class PageUnboxingTankFoam(PageUnboxingBase):
+    Name = "unboxing-tank-foam"
 
     def __init__(self, display):
-        super(PageUnboxing3, self).__init__(display)
+        super().__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Unboxing step 3/4")
-    #enddef
-
 
     def show(self):
-        self.display.state = DisplayState.UNBOXING
-        self.items.update({
-            'imageName' : "unboxing-remove_bottom_foam.jpg",
-            'text' : _("Unscrew and remove the resin tank and remove the black foam underneath it.")})
-        super(PageUnboxing3, self).show()
-    #enddef
-
-    @staticmethod
-    def contButtonRelease():
-        return "unboxing4"
-    #enddef
-
-
-    def backButtonRelease(self):
-        return "unboxingconfirm"
-    #enddef
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
-#endclass
-
-
-@page
-class PageUnboxing4(Page):
-    Name = "unboxing4"
-
-    def __init__(self, display):
-        super(PageUnboxing4, self).__init__(display)
-        self.pageUI = "confirm"
-        self.pageTitle = N_("Unboxing step 4/4")
-    #enddef
-
-
-    def show(self):
-        self.display.state = DisplayState.UNBOXING
-        self.items.update({
-            'imageName' : "unboxing-remove_sticker_screen.jpg",
-            'text' : _("Carefully peel off the orange protective sticker from the exposition display.")})
-        super(PageUnboxing4, self).show()
-    #enddef
-
+        self.items.update(
+            {
+                "imageName": "unboxing-remove_bottom_foam.jpg",
+                "text": _("Unscrew and remove the resin tank and remove the black foam underneath it."),
+            }
+        )
+        super().show()
 
     def contButtonRelease(self):
-        self.display.hwConfig.showUnboxing = False
-        try:
-            self.display.hwConfig.write()
-        except ConfigException:
-            self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
-            return "error"
-        #endtry
-        return "unboxing5"
-    #enddef
-
+        self.display.action_manager.unboxing.tank_foam_removed()
 
     def backButtonRelease(self):
-        return "unboxingconfirm"
-    #enddef
+        return "unboxing-confirm"
 
     @staticmethod
     def _EXIT_():
         return "_EXIT_"
-    #enddef
-
-#endclass
 
 
 @page
-class PageUnboxing5(Page):
-    Name = "unboxing5"
+class PageUnboxingDisplayFoil(PageUnboxingBase):
+    Name = "unboxing-display-foil"
 
     def __init__(self, display):
-        super(PageUnboxing5, self).__init__(display)
+        super().__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("Unboxing done")
-    #enddef
-
+        self.pageTitle = N_("Unboxing step 4/4")
 
     def show(self):
-        self.display.state = DisplayState.IDLE
-        self.items.update({
-            'text' : _("The printer is fully unboxed and ready for the selftest.")})
-        super(PageUnboxing5, self).show()
-    #enddef
+        self.items.update(
+            {
+                "imageName": "unboxing-remove_sticker_screen.jpg",
+                "text": _("Carefully peel off the orange protective sticker from the exposition display."),
+            }
+        )
+        super().show()
+
+    def contButtonRelease(self):
+        self.display.action_manager.unboxing.display_foil_removed()
+
+    def backButtonRelease(self):
+        return "unboxing-confirm"
+
+    @staticmethod
+    def _EXIT_():
+        return "_EXIT_"
+
+
+@page
+class PageUnboxingFinished(PageUnboxingBase):
+    Name = "unboxing-finished"
+
+    def __init__(self, display):
+        super().__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Unboxing done")
+
+    def show(self):
+        self.items.update({"text": _("The printer is fully unboxed and ready for the selftest.")})
+        super().show()
 
     @staticmethod
     def contButtonRelease():
         return "_EXIT_"
-    #enddef
-
 
     def backButtonRelease(self):
         return "_EXIT_"
-    #enddef
 
     @staticmethod
     def _EXIT_():
         return "_EXIT_"
-    #enddef
-
-#endclass
 
 
 @page
-class PageUnboxingConfirm(Page):
-    Name = "unboxingconfirm"
+class PageUnboxingCancel(PageUnboxingBase):
+    Name = "unboxing-confirm"
 
     def __init__(self, display):
-        super(PageUnboxingConfirm, self).__init__(display)
+        super().__init__(display)
         self.pageUI = "yesno"
         self.pageTitle = N_("Skip unboxing?")
         self.checkPowerbutton = False
-    #enddef
-
 
     def show(self):
-        self.items.update({
-            'text' : _("Do you really want to skip the unboxing wizard?\n\n"
-                "Press 'Yes' only in case you went through this wizard "
-                "previously and the printer is unpacked.")})
-        super(PageUnboxingConfirm, self).show()
-    #enddef
-
+        self.items.update(
+            {
+                "text": _(
+                    "Do you really want to skip the unboxing wizard?\n\n"
+                    "Press 'Yes' only in case you went through this wizard "
+                    "previously and the printer is unpacked."
+                )
+            }
+        )
+        super().show()
 
     def yesButtonRelease(self):
-        self.display.hwConfig.showUnboxing = False
-        self.display.state = DisplayState.IDLE
-        try:
-            self.display.hwConfig.write()
-        except ConfigException:
-            self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
-            return "error"
-        # endtry
+        self.display.action_manager.unboxing.cancel()
         return "_EXIT_"
-    #enddef
 
     @staticmethod
     def noButtonRelease():
         return "_NOK_"
-    #enddef
-
-#endclass

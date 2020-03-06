@@ -26,13 +26,15 @@ class PageTestWizards(Page):
         super(PageTestWizards, self).show()
 
     def button1ButtonRelease(self):
-        self.display.doMenu("unboxing1")
+        self.display.action_manager.start_unboxing(self.display.hw, self.display.hwConfig, kit=False)
+        self.display.doMenu("unboxing")
+        self.display.action_manager.cleanup_unboxing()
         return "_SELF_"
 
     def button2ButtonRelease(self):
-        # force page title
-        self.display.pages['unboxing4'].pageTitle = N_("Unboxing step 1/1")
-        self.display.doMenu("unboxing4")
+        self.display.action_manager.start_unboxing(self.display.hw, self.display.hwConfig, kit=True)
+        self.display.doMenu("unboxing")
+        self.display.action_manager.cleanup_unboxing()
         return "_SELF_"
 
     def button3ButtonRelease(self):

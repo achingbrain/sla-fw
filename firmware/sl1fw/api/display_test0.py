@@ -30,6 +30,7 @@ class DisplayTest0State(Enum):
 @dbus_api
 class DisplayTest0:
     __INTERFACE__ = "cz.prusa3d.sl1.displaytest0"
+    DBUS_PATH = "/cz/prusa3d/sl1/displaytest0"
 
     PropertiesChanged = signal()
 

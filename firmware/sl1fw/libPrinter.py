@@ -21,10 +21,10 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.config0 import Config0
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, TomlConfig, RuntimeConfig
-from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libHardware import MotConComState
@@ -34,14 +34,15 @@ from sl1fw.libScreen import Screen
 from sl1fw.libWebDisplay import WebDisplay
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
-from sl1fw.states.printer import PrinterState
-from sl1fw.project.manager import ExposureManager
+from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
+from sl1fw.states.printer import PrinterState
+from sl1fw.states.unboxing import UnboxingState
 
 
 class Printer:
 
-    def __init__(self, debugDisplay=None):
+    def __init__(self, debug_display=None):
         self.logger = logging.getLogger(__name__)
         init_time = monotonic()
         self.exception: Optional[Exception] = None
@@ -52,8 +53,9 @@ class Printer:
         self._state = PrinterState.INIT
         self.state_changed = Signal()
         self.firstRun = True
-        self.exposure_manager = ExposureManager()
-        self.exposure_manager.exposure_change.connect(self._exposure_changed)
+        self.action_manager = ActionManager()
+        self.action_manager.exposure_change.connect(self._exposure_changed)
+        self.action_manager.unboxing_change.connect(self._unboxing_changed)
         self.exited = threading.Event()
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
@@ -88,8 +90,8 @@ class Printer:
         self.inet = Network(self.hw.cpuSerialNo)
 
         self.logger.debug("Initializing display devices")
-        if debugDisplay:
-            devices = [debugDisplay]
+        if debug_display:
+            devices = [debug_display]
         else:
             devices = [QtDisplay(), WebDisplay()]
         #endif
@@ -103,7 +105,7 @@ class Printer:
 
         self.logger.debug("Initializing libDisplay")
         self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.runtime_config,
-                               self.exposure_manager)
+                               self.action_manager)
 
         self.logger.debug("SL1 firmware initialized in %.03f", monotonic() - init_time)
     #endclass
@@ -127,7 +129,7 @@ class Printer:
         self.exited.wait(timeout=60)
         self.screen.exit()
         self.hw.exit()
-        self.exposure_manager.exit()
+        self.action_manager.exit()
         self.config0_dbus.unpublish()
     #enddef
 
@@ -136,10 +138,14 @@ class Printer:
         self.hw.powerLed("normal")
 
         if self.hw.checkFailedBoot():
-            self.display.pages['error'].setParams(
-                text=_("The printer has booted from an alternative slot due to failed boot attempts using the primary slot.\n\n"
-                       "Update the printer with up-to-date firmware ASAP to recover the primary slot.\n\n"
-                       "This usually happens after a failed update, or due to a hardware failure. Printer settings may have been reset."))
+            self.display.pages["error"].setParams(
+                text=_(
+                    "The printer has booted from an alternative slot due to failed boot attempts using the primary "
+                    "slot.\n\n Update the printer with up-to-date firmware ASAP to recover the primary slot.\n\n"
+                    "This usually happens after a failed update, or due to a hardware failure. Printer settings may "
+                    "have been reset. "
+                )
+            )
             self.display.doMenu("error")
         #endif
 
@@ -167,26 +173,29 @@ class Printer:
             #endif
 
             if self.hwConfig.showUnboxing:
-                self.hw.beepRepeat(1)
-                if self.hw.isKit:
-                    # force page title
-                    self.display.pages['unboxing4'].pageTitle = N_("Unboxing step 1/1")
-                    self.display.doMenu("unboxing4")
-                else:
-                    self.display.doMenu("unboxing1")
-                #endif
-                # continue to wizard directly
-                self.display.doMenu("wizardinit")
-                sleep(0.5)
-            elif self.hwConfig.showWizard:
+                self.action_manager.start_unboxing(self.hw, self.hwConfig)
+                self.display.doMenu("unboxing")
+                self.action_manager.cleanup_unboxing()
+                self.enter_menu(True)
+            else:
+                self.enter_menu(True)
+            #endif
+        else:
+            self.enter_menu(False)
+        #endif
+    #enddef
+
+    def enter_menu(self, first_run: bool) -> None:
+        if first_run:
+            if self.hwConfig.showWizard:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("wizardinit")
                 sleep(0.5)
             elif not self.hwConfig.calibrated:
                 self.display.pages['yesno'].setParams(
-                        pageTitle = N_("Calibrate now?"),
-                        text = _("Printer is not calibrated!\n\n"
-                                 "Calibrate now?"))
+                    pageTitle=N_("Calibrate now?"),
+                    text=_("Printer is not calibrated!\n\n"
+                           "Calibrate now?"))
                 self.hw.beepRepeat(1)
                 if self.display.doMenu("yesno"):
                     self.display.doMenu("calibrationstart")
@@ -194,9 +203,9 @@ class Printer:
             #endif
         #endif
 
-        lastProject = libConfig.TomlConfig(defines.lastProjectData).load()
-        if lastProject:
-            self.runtime_config.last_project_data = lastProject
+        last_project = libConfig.TomlConfig(defines.lastProjectData).load()
+        if last_project:
+            self.runtime_config.last_project_data = last_project
             try:
                 os.remove(defines.lastProjectData)
             except FileNotFoundError:
@@ -208,6 +217,7 @@ class Printer:
         #endif
         self.firstRun = False
     #enddef
+
 
     def run(self):
         self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
@@ -229,9 +239,9 @@ class Printer:
             state = self.hw.connectMC()
             if state != MotConComState.OK:
                 self.logger.info("Failed first motion controller connect attempt, state: %s", state)
-                waitPage = PageWait(self.display)
-                waitPage.fill(line1=_("Updating motion controller firmware"))
-                waitPage.show()
+                wait_page = PageWait(self.display)
+                wait_page.fill(line1=_("Updating motion controller firmware"))
+                wait_page.show()
                 state = self.hw.connectMC(force_flash=True)
             #endif
             if state != MotConComState.OK:
@@ -271,10 +281,10 @@ class Printer:
             self.logger.exception("Printer run() init failed")
             self.display.pages['exception'].setParams(
                 text=_("An unexpected error has occured :-(.\n\n"
-                     "You can turn the printer off by pressing the front power button.\n\n"
-                     "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
-                     "Please send the log to us and help us improve the printer.\n\n"
-                     "Thank you!"))
+                       "You can turn the printer off by pressing the front power button.\n\n"
+                       "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
+                       "Please send the log to us and help us improve the printer.\n\n"
+                       "Thank you!"))
             self.display.doMenu("exception")
 
         try:
@@ -291,16 +301,16 @@ class Printer:
             self.logger.exception("run() exception:")
             self.display.pages['exception'].setParams(
                 text=_("An unexpected error has occured :-(.\n\n"
-                      "The SL1 will finish the print if you are currently printing.\n\n"
-                      "You can turn the printer off by pressing the front power button.\n\n"
-                      "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
-                      "Please send the log to us and help us improve the printer.\n\n"
-                      "Thank you!"))
+                       "The SL1 will finish the print if you are currently printing.\n\n"
+                       "You can turn the printer off by pressing the front power button.\n\n"
+                       "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
+                       "Please send the log to us and help us improve the printer.\n\n"
+                       "Thank you!"))
             self.display.doMenu("exception")
         #endtry
 
-        if self.exposure_manager.exposure and self.exposure_manager.exposure.in_progress:
-            self.exposure_manager.exposure.waitDone()
+        if self.action_manager.exposure and self.action_manager.exposure.in_progress:
+            self.action_manager.exposure.waitDone()
         #endif
 
         self.exited.set()
@@ -341,12 +351,25 @@ class Printer:
 
     def _exposure_changed(self):
         if self.state == PrinterState.PRINTING:
-            if not self.exposure_manager.exposure or self.exposure_manager.exposure.done:
+            if not self.action_manager.exposure or self.action_manager.exposure.done:
                 self.state = PrinterState.RUNNING
             #endif
         else:
-            if self.exposure_manager.exposure and not self.exposure_manager.exposure.done:
+            if self.action_manager.exposure and not self.action_manager.exposure.done:
                 self.state = PrinterState.PRINTING
+            #endif
+        #endif
+    #enddef
+
+    def _unboxing_changed(self):
+        unboxing = self.action_manager.unboxing
+        if self.state == PrinterState.UNBOXING:
+            if not unboxing or unboxing.state in [UnboxingState.FINISHED, UnboxingState.CANCELED]:
+                self.state = PrinterState.RUNNING
+            #endif
+        else:
+            if unboxing and unboxing.state not in [UnboxingState.FINISHED, UnboxingState.CANCELED]:
+                self.state = PrinterState.UNBOXING
             #endif
         #endif
     #enddef

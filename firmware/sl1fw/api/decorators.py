@@ -230,17 +230,9 @@ def wrap_exception(e: Exception) -> Dict[str, Any]:
         return {"code": ErrorCode.NONE.value}
 
     if isinstance(e, PrinterException):
-        ret = {
-            "code": e.CODE.value,
-            "name": type(e).__name__,
-            "text": str(e),
-        }
+        ret = {"code": e.CODE.value, "name": type(e).__name__, "text": str(e)}
         if is_dataclass(e):
             ret.update(asdict(e))
         return ret
 
-    return {
-        "code": ErrorCode.UNKNOWN.value,
-        "name": type(e).__name__,
-        "text": str(e),
-    }
+    return {"code": ErrorCode.UNKNOWN.value, "name": type(e).__name__, "text": str(e)}

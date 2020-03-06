@@ -67,7 +67,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         os.environ['SDL_AUDIODRIVER'] = "disk"
         os.environ['SDL_DISKAUDIOFILE'] = str(self.SDL_AUDIO_FILE)
 
-        self.printer = Printer(debugDisplay=self.display)
+        self.printer = Printer(debug_display=self.display)
 
         # overide writeToFactory function
         self.printer.display.pages['factoryreset'].writeToFactory = self.call

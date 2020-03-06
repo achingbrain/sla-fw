@@ -219,7 +219,7 @@ class PageSrcSelect(Page):
             self.logger.info("Current project selection root: %s", self.currentRoot)
             self.show()
         else:
-            self.display.exposure_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.screen,
+            self.display.action_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.screen,
                                                        self.display.runtime_config, item['fullpath'])
             return "reading"
         #endif

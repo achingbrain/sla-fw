@@ -1,6 +1,6 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
-# Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -10,8 +10,8 @@ from typing import Optional, List
 
 from PySignal import Signal
 
-from sl1fw.states.display import DisplayState
-from sl1fw.libConfig import HwConfig, RuntimeConfig
+from sl1fw.libConfig import HwConfig
+from sl1fw.libConfig import RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
@@ -21,13 +21,14 @@ from sl1fw.pages import pages
 # TODO: Get rid of cyclic dependencies
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
-from sl1fw.project.manager import ExposureManager
+from sl1fw.state_actions.manager import ActionManager
+from sl1fw.states.display import DisplayState
 
 
 class Display:
 
     def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network, screen: Screen,
-                 runtime_config: RuntimeConfig, exposure_manager: ExposureManager):
+                 runtime_config: RuntimeConfig, action_manager: ActionManager):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.devices = devices
@@ -37,7 +38,7 @@ class Display:
         self.runtime_config = runtime_config
         self.wizardData = None
         self.uvcalibData = None
-        self.exposure_manager = exposure_manager
+        self.action_manager = action_manager
         self.running = False
         self._state = DisplayState.IDLE
         self.state_changed = Signal()
@@ -54,6 +55,7 @@ class Display:
         self.backActions = {"_EXIT_", "_BACK_", "_OK_", "_NOK_"}
         self.waitPageItems = None
         self.forcedPage = None
+        self._leave_menu = False
 
         self.inet.net_change.connect(self.assignNetActive)
         self.assignNetActive(self.inet.online)
@@ -83,7 +85,7 @@ class Display:
 
         :return: Current exposure
         """
-        return self.exposure_manager.exposure
+        return self.action_manager.exposure
     #enddef
 
 
@@ -106,6 +108,16 @@ class Display:
     def forcePage(self, page):
         self.forcedPage = self._setPage(page)
     #endef
+
+
+    def leave_menu(self) -> None:
+        """
+        Exit doMenu
+
+        :return: None
+        """
+        self._leave_menu = True
+    #enddef
 
 
     def _setPage(self, page):
@@ -165,6 +177,11 @@ class Display:
         callbackTime = 0.0  # call the callback immediately
         updateDataTime = callbackTime
         while self.running:
+            if self._leave_menu:
+                self._leave_menu = False
+                return False
+            #endif
+
             if self.forcedPage is not None:
                 actualPage = self.forcedPage
                 self.forcedPage = None

@@ -14,3 +14,4 @@ class PrinterState(Enum):
     UPDATING = 3
     EXIT = 4
     EXCEPTION = 5
+    UNBOXING = 6

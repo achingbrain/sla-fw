@@ -43,7 +43,7 @@ class PageFinished(Page):
             raise AttributeError("Page finished reprint without data set.")
 
         old_data = self.display.runtime_config.last_project_data
-        self.display.exposure_manager.new_exposure(
+        self.display.action_manager.new_exposure(
             self.display.hwConfig,
             self.display.hw,
             self.display.screen,

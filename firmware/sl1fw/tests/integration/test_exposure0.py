@@ -52,7 +52,7 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self._wait_for_state(Exposure0State.CANCELED, 45)
 
     def test_print_warning(self):
-        self.printer.exposure_manager.exposure.warnings.append(AmbientTooHot(ambient_temperature=42.0))
+        self.printer.action_manager.exposure.warnings.append(AmbientTooHot(ambient_temperature=42.0))
         self.exposure0.confirm_start()
         self._wait_for_state(Exposure0State.CHECK_WARNING, 30)
 

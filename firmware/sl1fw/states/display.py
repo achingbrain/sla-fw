@@ -11,7 +11,6 @@ class DisplayState(Enum):
     IDLE = 0
     CALIBRATION = 1
     WIZARD = 2
-    UNBOXING = 3
     FACTORY_RESET = 4
     ADMIN = 5
     DISPLAY_TEST = 6

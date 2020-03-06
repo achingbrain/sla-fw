@@ -64,12 +64,12 @@ class Printer0:
         PrinterState.EXCEPTION: Printer0State.EXCEPTION,
         PrinterState.UPDATING: Printer0State.UPDATE,
         PrinterState.PRINTING: Printer0State.PRINTING,
+        PrinterState.UNBOXING: Printer0State.UNBOXING,
     }
 
     DISPLAY_STATE_TO_STATE = {
         DisplayState.CALIBRATION: Printer0State.CALIBRATION,
         DisplayState.WIZARD: Printer0State.WIZARD,
-        DisplayState.UNBOXING: Printer0State.UNBOXING,
         DisplayState.FACTORY_RESET: Printer0State.INITIALIZING,
         DisplayState.ADMIN: Printer0State.ADMIN,
         DisplayState.DISPLAY_TEST: Printer0State.DISPLAY_TEST,
@@ -558,16 +558,15 @@ class Printer0:
 
         :return: Display test object path
         """
-        path = "/cz/prusa3d/sl1/displaytest0"
-
         # If test is already pending just return test object
         if self._display_test_registration:
-            return DBusObjectPath(path)
+            return DBusObjectPath(DisplayTest0.DBUS_PATH)
 
         display_test = DisplayTest0(self.printer.display, self._clear_display_test)
-        self._display_test_registration = pydbus.SystemBus().publish(DisplayTest0.__INTERFACE__, (path, display_test))
+        self._display_test_registration = pydbus.SystemBus().publish(DisplayTest0.__INTERFACE__,
+                                                                     (DisplayTest0.DBUS_PATH, display_test))
         self._state_update()
-        return DBusObjectPath(path)
+        return DBusObjectPath(DisplayTest0.DBUS_PATH)
 
     def _clear_display_test(self):
         self._display_test_registration.unpublish()
@@ -629,7 +628,7 @@ class Printer0:
 
         :returns: Print task object
         """
-        expo = self.printer.exposure_manager.new_exposure(
+        expo = self.printer.action_manager.new_exposure(
             self.printer.hwConfig, self.printer.hw, self.printer.screen, self.printer.runtime_config, project_path
         )
         if auto_advance:
@@ -653,12 +652,12 @@ class Printer0:
             raise ReprintWithoutHistory()
 
         old_data = self.printer.runtime_config.last_project_data
-        expo = self.printer.exposure_manager.new_exposure(
+        expo = self.printer.action_manager.new_exposure(
             self.printer.hwConfig,
             self.printer.hw,
             self.printer.screen,
             self.printer.runtime_config,
-            self.printer.exposure_manager.exposure.project.origin,
+            self.printer.action_manager.exposure.project.origin,
             exp_time_ms=old_data["exp_time_ms"],
             exp_time_first_ms=old_data["exp_time_first_ms"],
             exp_time_calibrate_ms=old_data["exp_time_calibrate_ms"],
@@ -676,8 +675,8 @@ class Printer0:
 
         :return: DBus path of the object
         """
-        if self.printer.exposure_manager.exposure:
-            return Exposure0.dbus_path(self.printer.exposure_manager.exposure.instance_id)
+        if self.printer.action_manager.exposure:
+            return Exposure0.dbus_path(self.printer.action_manager.exposure.instance_id)
         else:
             return DBusObjectPath("/")
 

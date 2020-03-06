@@ -351,11 +351,11 @@ class Page:
 
 
     def _page_switch_callback(self):
-        if not self.display.exposure_manager.exposure:
+        if not self.display.action_manager.exposure:
             return
         #endif
 
-        state = self.display.exposure_manager.exposure.state
+        state = self.display.action_manager.exposure.state
         page = self.display.actualPage.Name
 
         if state == ExposureState.CONFIRM and page not in ["printpreviewswipe", "exposure"]:
