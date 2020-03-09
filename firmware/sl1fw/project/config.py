@@ -21,7 +21,7 @@ class ProjectConfig(Config):
     def __init__(self):
         super().__init__(is_master=True)
 
-    projectName = TextValue("no project", key="jobDir", doc="Name of the project.")
+    job_dir = TextValue("no project", key="jobDir", doc="Name of the directory containing layer images.")
 
     expTime = FloatValue(8.0, doc="Exposure time. [s]")
     expTime2 = FloatValue(lambda self: self.expTime, doc="Exposure time 2. [s]")

@@ -362,7 +362,7 @@ class TestPrintConfig(Sl1fwTestCase):
         self.assertEqual(19.292032, self.print_config.usedMaterial)
 
     def test_name(self):
-        self.assertEqual("123456789", self.print_config.projectName)
+        self.assertEqual("123456789", self.print_config.job_dir)
 
 
 if __name__ == '__main__':

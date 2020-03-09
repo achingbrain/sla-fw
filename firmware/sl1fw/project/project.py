@@ -99,7 +99,7 @@ class Project:
 
         for filename in namelist:
             fName, fExt = os.path.splitext(filename)
-            if fExt.lower() == ".png" and fName.startswith(self.config.projectName):
+            if fExt.lower() == ".png" and fName.startswith(self.config.job_dir):
                 self.to_print.append(filename)
 
         self.to_print.sort()
@@ -112,7 +112,14 @@ class Project:
 
     @property
     def name(self) -> str:
-        return self.config.projectName
+        """
+        Name of the project
+
+        This is basename of the original project filename.
+
+        :return: Name of the project as string
+        """
+        return Path(self.origin).stem
 
     @property
     def expTime(self) -> float:
