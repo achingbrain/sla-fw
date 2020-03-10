@@ -220,7 +220,7 @@ class Page:
         try:
             self.logger.info("Remounting factory partition rw")
             subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", str(defines.factoryMountPoint)])
-            saveFce()
+            return saveFce()
         except:
             self.logger.exception("Failed to save to factory partition")
             return False
@@ -232,7 +232,6 @@ class Page:
                 self.logger.exception("Failed to remount factory partion ro")
             #endtry
         #endtry
-        return True
     #enddef
 
 

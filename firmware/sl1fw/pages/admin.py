@@ -35,6 +35,7 @@ class PageAdmin(Page):
                 'button11' : "Net update",
                 'button12' : "Logging",
                 'button13' : "System Information",
+                'button15' : "System tools"
                 })
         super(PageAdmin, self).show()
     #enddef
@@ -111,4 +112,8 @@ class PageAdmin(Page):
         return "sysinfo"
     #enddef
 
+    @staticmethod
+    def button15ButtonRelease():
+        return "tools"
+    #enddef
 #endclass

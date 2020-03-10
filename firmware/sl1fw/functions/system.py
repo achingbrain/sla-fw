@@ -5,7 +5,7 @@
 
 import os
 
-from sl1fw import defines
+from sl1fw import defines, libConfig
 from sl1fw.libHardware import Hardware
 
 
@@ -21,3 +21,15 @@ def shut_down(hw: Hardware, reboot=False):
         os.system("reboot")
     else:
         os.system("poweroff")
+
+
+def save_factory_mode(enable: bool):
+    """
+    Save factory mode
+
+    This has to be called with factory partition mounted rw
+
+    :param enable: Required factory mode state
+    :return: True if successful, false otherwise
+    """
+    return libConfig.TomlConfig(defines.factoryConfigFile).save(data={"factoryMode": enable})
