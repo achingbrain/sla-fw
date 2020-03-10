@@ -7,6 +7,16 @@ from collections import defaultdict
 from PySignal import Signal
 
 
+class TraceableDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.changed = Signal()
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self.changed.emit()
+
+
 class TraceableDefaultDict(defaultdict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

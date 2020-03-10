@@ -42,7 +42,7 @@ from sl1fw.libScreen import Screen
 from sl1fw.project.functions import ramdisk_cleanup
 from sl1fw.project.project import Project, ProjectState
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
-from sl1fw.utils.signaled_collections import TraceableList, TraceableDefaultDict
+from sl1fw.utils.traceable_collections import TraceableList, TraceableDict
 
 
 class ExposureThread(threading.Thread):
@@ -301,9 +301,9 @@ class ExposureThread(threading.Thread):
     async def _run_checks(self):
         self.expo.state = ExposureState.CHECKS
         self.logger.debug("Running pre-print checks")
+        self.expo.check_results.update({check: ExposureCheckResult.SCHEDULED for check in ExposureCheck})
 
         loop = asyncio.get_running_loop()
-
         with concurrent.futures.ThreadPoolExecutor() as pool:
             fans = loop.run_in_executor(pool, self._check_fans)
             temps = loop.run_in_executor(pool, self._check_temps)
@@ -825,7 +825,7 @@ class Exposure:
         self.exposure_end: Optional[datetime] = None
         self.instance_id = Exposure.instance_counter
         Exposure.instance_counter += 1
-        self.check_results = TraceableDefaultDict(lambda: ExposureCheckResult.SCHEDULED)
+        self.check_results = TraceableDict()
         self.check_results.changed.connect(lambda: self.change.emit("check_results", self.check_results))
         self.warnings = TraceableList()
         self.warnings.changed.connect(lambda: self.change.emit("warnings", self.warnings))
