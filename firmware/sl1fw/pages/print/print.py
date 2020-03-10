@@ -121,3 +121,4 @@ class PagePrint(PagePrintBase):
     def adminButtonRelease(self):
         if self.display.runtime_config.show_admin:
             return "admin"
+        return None

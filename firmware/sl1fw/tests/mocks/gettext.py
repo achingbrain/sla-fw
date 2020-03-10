@@ -13,8 +13,7 @@ def _identity(message):
 def _plural_identity(singular, plural, count):
     if count == 1:
         return singular
-    else:
-        return plural
+    return plural
 
 
 def fake_gettext():

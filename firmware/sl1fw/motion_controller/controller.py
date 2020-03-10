@@ -3,6 +3,10 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-public-methods
+
 import logging
 import re
 import socket
@@ -253,8 +257,8 @@ class MotionController:
         self.MCFWversion = self.do("?ver")
         if MCversionCheck and self.MCFWversion != defines.reqMcVersion:
             return MotConComState.WRONG_FIRMWARE
-        else:
-            self.logger.info("motion controller firmware version: %s", self.MCFWversion)
+
+        self.logger.info("motion controller firmware version: %s", self.MCFWversion)
 
         tmp = self.doGetIntList("?rev")
         if len(tmp) == 2 and 0 <= divmod(tmp[1], 32)[0] <= 7:

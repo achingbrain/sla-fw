@@ -3,15 +3,25 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
+# TODO: Fix following pylint problems
+# pylint: disable=inconsistent-return-statements
+# pylint: disable=no-else-return
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-statements
+
+
 import logging
-import serial
-import numpy
-from PIL import Image, ImageDraw, ImageFont
-from datetime import datetime
-from time import sleep
+import os
 from dataclasses import dataclass
+from datetime import datetime
 from enum import IntEnum, unique
+from time import sleep
+
+import numpy
+import serial
+from PIL import Image, ImageDraw, ImageFont
 
 from sl1fw import defines
 

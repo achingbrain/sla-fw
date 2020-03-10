@@ -40,13 +40,10 @@ def state_checked(allowed_state: Union[Enum, List[Enum]]):
             else:
                 current = self.state
 
-            if current in allowed:
-                return function(self, *args, **kwargs)
-            else:
+            if current not in allowed:
                 raise NotAvailableInState(self.state, allowed)
-
+            return function(self, *args, **kwargs)
         return func
-
     return decor
 
 
@@ -163,10 +160,9 @@ def python_to_dbus_type(python_type: Any) -> str:
         List[Dict[str, Any]]: "aa{sv}",
     }
 
-    if python_type in type_map:
-        return type_map[python_type]
-    else:
+    if python_type not in type_map:
         raise ValueError(f"Type: {python_type} has no defined mapping to dbus")
+    return type_map[python_type]
 
 
 def gen_method_dbus_spec(obj: Any, name: str) -> str:
@@ -177,7 +173,7 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
             if obj.fset:
                 access = "readwrite"
             return f'<property name="{name}" type="{get_type}" access="{access}"></property>'
-        elif isinstance(obj, Callable):
+        if isinstance(obj, Callable):
             args = []
             for n, t in get_type_hints(obj).items():
                 if t == type(None):
@@ -185,8 +181,7 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
                 direction = "out" if n == "return" else "in"
                 args.append(f"<arg type='{python_to_dbus_type(t)}' name='{n}' direction='{direction}'/>")
             return f"<method name='{name}'>{''.join(args)}</method>"
-        else:
-            raise ValueError(f"Unsupported dbus mapping type: {type(obj)}")
+        raise ValueError(f"Unsupported dbus mapping type: {type(obj)}")
     except Exception as exception:
         raise DBusMappingException(f"Failed to generate dbus specification for {name}") from exception
 
@@ -199,14 +194,17 @@ def wrap_variant_dict(func: Callable[[Any], Dict[str, Any]]):
     return wrap
 
 
+LAST_EXCEPTION_ATTR = "_last_exception"
+
+
 def last_error(method):
     @functools.wraps(method)
     def wrap(self, *args, **kwargs):
         try:
             return method(self, *args, **kwargs)
         except Exception as e:
-            assert hasattr(self, "_last_exception")
-            self._last_exception = e
+            assert hasattr(self, LAST_EXCEPTION_ATTR)
+            setattr(self, LAST_EXCEPTION_ATTR, e)
             raise e
 
     return wrap

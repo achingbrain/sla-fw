@@ -32,6 +32,7 @@ class PagePrintBase(Page):
         if self.callbackSkip >= 5:
             self.callbackSkip = 0
             return super().callback()
+        return None
 
     def _exposure_state_switch(self):
         mapping = {

@@ -4,6 +4,17 @@
 # Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=no-else-return
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-public-methods
+
+
 from __future__ import annotations
 
 import asyncio
@@ -767,7 +778,7 @@ class ExposureThread(threading.Thread):
         statsFile.save(data = stats)
         self.expo.screen.saveDisplayUsage()
 
-        self.expo._write_last_project()
+        self.expo.write_last_project()
 
         if self.expo.canceled:
             self.expo.state = ExposureState.CANCELED
@@ -865,7 +876,7 @@ class Exposure:
             self.doExitPrint()
         else:
             # Exposure thread not yet running (cancel before start)
-            self._write_last_project()
+            self.write_last_project()
             self.state = ExposureState.CANCELED
         #endif
     #enddef
@@ -1007,7 +1018,7 @@ class Exposure:
         #endif
     #enddef
 
-    def _write_last_project(self):
+    def write_last_project(self):
         self.runtime_config.last_project_data = {
             'name': self.project.name,
             'print_time': self.printTime,

@@ -3,6 +3,9 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=too-few-public-methods
+
 from __future__ import annotations
 
 import functools
@@ -33,9 +36,9 @@ def wrap_hw_config(cls: Config0):
 
         func.__name__ = val
         setattr(cls, val, auto_dbus(wrap_property()(func)))
-        if val not in cls._CHANGED_MAP:
-            cls._CHANGED_MAP[val] = set()
-        cls._CHANGED_MAP[val].add(val)
+        if val not in cls.CHANGED_MAP:
+            cls.CHANGED_MAP[val] = set()
+        cls.CHANGED_MAP[val].add(val)
     return cls
 
 
@@ -56,14 +59,14 @@ def wrap_property(func_name=None):
 
         @functools.wraps(f.fget)
         def getter(self):
-            return getattr(self._hw_config, name)
+            return getattr(self.hw_config, name)
 
         getter.__name__ = func.__name__
         getter.__doc__ = f.__doc__
 
         @functools.wraps(f.fset)
         def setter(self, value):
-            setattr(self._hw_config, name, value)
+            setattr(self.hw_config, name, value)
 
         return property(fget=getter, fset=setter)
 
@@ -86,8 +89,8 @@ class Config0:
     PropertiesChanged = signal()
 
     def __init__(self, hw_config: HwConfig):
-        self._hw_config = hw_config
-        self._hw_config.add_onchange_handler(self._on_change)
+        self.hw_config = hw_config
+        self.hw_config.add_onchange_handler(self._on_change)
 
     @auto_dbus
     def save(self) -> None:
@@ -96,14 +99,14 @@ class Config0:
 
         :return: None
         """
-        self._hw_config.write()
+        self.hw_config.write()
 
     def _on_change(self, key: str, _: Any):
-        if key in self._CHANGED_MAP:
-            for changed in self._CHANGED_MAP[key]:
-                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self._hw_config, key)}, [])
+        if key in self.CHANGED_MAP:
+            for changed in self.CHANGED_MAP[key]:
+                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.hw_config, key)}, [])
 
-    _CHANGED_MAP = {
+    CHANGED_MAP = {
         "screwMm": {"microStepsMM"},
         "limit4fast": {"whitePixelsThd"},
         "raw_tiltdownlargefill": {"tuneTilt"},

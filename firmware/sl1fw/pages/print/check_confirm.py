@@ -47,7 +47,7 @@ class PageCheckConfirm(PagePrintBase):
                     ),
                 )
                 return "confirm"
-            elif isinstance(warning, AmbientTooCold):
+            if isinstance(warning, AmbientTooCold):
                 self.display.pages["yesno"].setParams(
                     pageTitle=N_("Continue?"),
                     yesFce=self.warn,
@@ -59,7 +59,7 @@ class PageCheckConfirm(PagePrintBase):
                     ),
                 )
                 return "yesno"
-            elif isinstance(warning, AmbientTooHot):
+            if isinstance(warning, AmbientTooHot):
                 self.display.pages["yesno"].setParams(
                     pageTitle=N_("Continue?"),
                     yesFce=self.warn,
@@ -71,7 +71,7 @@ class PageCheckConfirm(PagePrintBase):
                     ),
                 )
                 return "yesno"
-            elif isinstance(warning, ModelMismatch):
+            if isinstance(warning, ModelMismatch):
                 self.display.pages["yesno"].setParams(
                     pageTitle=N_("Wrong project printer"),
                     yesFce=self.warn,
@@ -90,7 +90,7 @@ class PageCheckConfirm(PagePrintBase):
                     ),
                 )
                 return "yesno"
-            elif isinstance(warning, ResinNotEnough):
+            if isinstance(warning, ResinNotEnough):
                 self.display.pages["confirm"].setParams(
                     continueFce=self.warn,
                     backFce=self.cancel_print,
@@ -104,8 +104,8 @@ class PageCheckConfirm(PagePrintBase):
                     },
                 )
                 return "confirm"
-            else:
-                self.logger.error("Unknown exposure warning: %s", warning)
+
+            self.logger.error("Unknown exposure warning: %s", warning)
 
         return "checks"
 

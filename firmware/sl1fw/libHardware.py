@@ -3,6 +3,15 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=no-else-return
+# pylint: disable=too-many-lines
+# pylint: disable=too-few-public-methods
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-public-methods
+
+
 import logging
 import os
 import re

@@ -3,6 +3,9 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=too-many-public-methods
+
 from __future__ import annotations
 
 from enum import unique, Enum
@@ -675,10 +678,9 @@ class Printer0:
 
         :return: DBus path of the object
         """
-        if self.printer.action_manager.exposure:
-            return Exposure0.dbus_path(self.printer.action_manager.exposure.instance_id)
-        else:
+        if not self.printer.action_manager.exposure:
             return DBusObjectPath("/")
+        return Exposure0.dbus_path(self.printer.action_manager.exposure.instance_id)
 
     @auto_dbus
     @property

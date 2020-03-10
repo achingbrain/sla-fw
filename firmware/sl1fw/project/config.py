@@ -3,6 +3,9 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=too-many-instance-attributes
+
 from sl1fw.libConfig import Config, FloatValue, IntValue, TextValue, IntListValue
 from sl1fw import defines
 

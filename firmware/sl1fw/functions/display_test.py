@@ -33,6 +33,5 @@ def cover_check(display: Display) -> bool:
     if not display.hwConfig.coverCheck or display.hw.isCoverClosed():
         display.hw.uvLed(True)
         return True
-    else:
-        display.hw.uvLed(False)
-        return False
+    display.hw.uvLed(False)
+    return False

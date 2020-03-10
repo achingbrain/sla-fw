@@ -3,6 +3,9 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=too-many-locals
+
 import os
 import logging
 import glob
@@ -210,7 +213,7 @@ class PageSrcSelect(Page):
             item = self.sources[data['choice']]
         except KeyError:
             self.logger.info("Invalid choice id passed %s", data['choice'])
-            return
+            return None
         #endtry
 
         if item['type'] == 'dir':
@@ -218,11 +221,11 @@ class PageSrcSelect(Page):
             self.currentRoot = os.path.normpath(self.currentRoot)
             self.logger.info("Current project selection root: %s", self.currentRoot)
             self.show()
-        else:
-            self.display.action_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.screen,
-                                                       self.display.runtime_config, item['fullpath'])
-            return "reading"
+            return None
         #endif
+        self.display.action_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.screen,
+                                                 self.display.runtime_config, item['fullpath'])
+        return "reading"
     #enddef
 
 
@@ -260,9 +263,8 @@ class PageSrcSelect(Page):
         ip = self.display.inet.ip
         if ip is not None and self.octoprintAuth:
             return "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
-        else:
-            return _("Not connected to network")
         #endif
+        return _("Not connected to network")
     #enddef
 
 #endclass

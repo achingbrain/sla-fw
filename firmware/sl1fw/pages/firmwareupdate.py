@@ -3,12 +3,13 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import distro
-import pydbus
 import json
-from time import sleep
 from glob import glob
 from os import path
+from time import sleep
+
+import distro
+import pydbus
 
 from sl1fw import defines
 from sl1fw.functions.system import shut_down

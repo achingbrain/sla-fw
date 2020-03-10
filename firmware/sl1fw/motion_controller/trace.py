@@ -33,8 +33,7 @@ class LineTrace:
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        else:
-            return self._line == other._line and self._marker == other._marker
+        return self._line == other._line and self._marker == other._marker
 
     def repeat(self):
         self._repeats += 1
@@ -42,14 +41,12 @@ class LineTrace:
     def __str__(self):
         if self._repeats > 1:
             return f"{self._repeats}x {self._marker.value} {self._line}"
-        else:
-            return f"{self._marker.value} {self._line}"
+        return f"{self._marker.value} {self._line}"
 
     def __bytes__(self) -> bytes:
         if self._repeats > 1:
-            return f"{self._repeats}x {self._marker.value} {self._line}".encode('ascii') # TODO: THis is not nice
-        else:
-            return f"{self._marker.value} {self._line}".encode('ascii') # TODO: THis is not nice
+            return f"{self._repeats}x {self._marker.value} {self._line}".encode('ascii') # TODO: This is not nice
+        return f"{self._marker.value} {self._line}".encode('ascii') # TODO: This is not nice
 
 
 class Trace:

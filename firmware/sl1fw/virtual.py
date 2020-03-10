@@ -11,6 +11,9 @@ integration test mocks. All in all this launches the printer (similar to the one
 a desktop computer without motion controller connected. This mode is intended for GUI testing.
 """
 
+# TODO: Fix following pylint problems
+# pylint: disable=wrong-import-position
+
 import builtins
 import gettext
 import logging

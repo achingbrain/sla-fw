@@ -3,6 +3,11 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=inconsistent-return-statements
+# pylint: disable=no-else-return
+# pylint: disable=too-many-instance-attributes
+
 from __future__ import annotations
 
 import functools

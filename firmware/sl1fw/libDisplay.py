@@ -3,6 +3,15 @@
 # Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=cyclic-import
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-nested-blocks
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-arguments
+
 import logging
 from time import monotonic
 from time import sleep

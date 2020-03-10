@@ -3,6 +3,12 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments
+# pylint: disable=too-few-public-methods
+
 import functools
 import logging
 import re
@@ -175,13 +181,9 @@ class Value(property, ABC):
         config.get_data_factory_values()[self.name] = value
 
     def get_default_value(self, config: BaseConfig) -> Any:
-        if not any(isinstance(self.default, t) for t in self.type) and isinstance(self.default, Callable):
-            if config:
-                return self.default(config)
-            else:
-                return self.default
-        else:
-            return self.default
+        if not any(isinstance(self.default, t) for t in self.type) and isinstance(self.default, Callable) and config:
+            return self.default(config)
+        return self.default
 
     def setup(self, config: BaseConfig, name: str) -> None:
         """
@@ -493,10 +495,9 @@ class ConfigWriter:
         item = self._get_attribute_name(item)
         if item in self._changed:
             return self._changed[item]
-        elif item in self._deleted:
+        if item in self._deleted:
             return None
-        else:
-            return getattr(self._config, item)
+        return getattr(self._config, item)
 
     def __setattr__(self, key, value):
         if key.startswith("_"):
@@ -561,8 +562,7 @@ class ConfigWriter:
         """
         if key is None:
             return bool(self._changed)
-        else:
-            return key in self._changed
+        return key in self._changed
 
 
 class Config(ValueConfig):

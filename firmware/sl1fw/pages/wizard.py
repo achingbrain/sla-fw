@@ -3,6 +3,13 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# TODO: Fix following pylint problems
+# pylint: disable=no-else-return
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-return-statements
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
+
 import re
 from dataclasses import dataclass, asdict
 from time import sleep
@@ -10,10 +17,14 @@ from time import sleep
 import distro
 
 from sl1fw import defines
-from sl1fw.states.display import DisplayState
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import TomlConfig
+from sl1fw.pages import page
+from sl1fw.pages.base import Page
 from sl1fw.pages.calibration import PageCalibrationStart
+from sl1fw.pages.wait import PageWait
+from sl1fw.states.display import DisplayState
 
 
 @dataclass(init=False)
@@ -50,11 +61,6 @@ class WizardData:
     # tower axis sensitivity for homing
     towerSensitivity: int
 #endclass
-
-from sl1fw.errors.exceptions import ConfigException
-from sl1fw.pages.base import Page
-from sl1fw.pages import page
-from sl1fw.pages.wait import PageWait
 
 
 @page
