@@ -3,9 +3,6 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# TODO: Fix following pylint problems
-# pylint: disable=too-many-public-methods
-
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
@@ -115,7 +112,7 @@ class Exposure0ProjectState(Enum):
 @dbus_api
 class Exposure0:
     """
-    Exposure dbus interface
+    Exposure D-Bus interface
 
     This is first draft. This should contain all data current pages do contain plus some new stuff that should be enough
     to mimic wait pages and similar stuff.
@@ -123,6 +120,9 @@ class Exposure0:
     Most of the functions should be deprecated and replaced by ones returning values in sane units.
     remaining minutes -> expected end timestamp, ...
     """
+    # This class is an API to the exposure process. As the API is a draft it turned out to have many methods. Let's
+    # disable the pylint warning about this, but keep in mind to reduce the interface in next API revision.
+    # pylint: disable=too-many-public-methods
 
     __INTERFACE__ = "cz.prusa3d.sl1.exposure0"
     PropertiesChanged = signal()
@@ -454,6 +454,32 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
+    def total_resin_required_ml(self) -> float:
+        """
+        Total resin required to finish the project
+
+        This is project used material plus minimal amount of resin required for the printer to work
+
+        :return: Required resin in milliliters
+        """
+        return self.exposure.project.usedMaterial + defines.resinMinVolume
+
+    @auto_dbus
+    @property
+    @last_error
+    def total_resin_required_percent(self) -> float:
+        """
+        Total resin required to finish the project
+
+        Values over 100 mean the tank has to be refilled during the print.
+
+        :return: Required resin in tank percents
+        """
+        return self.exposure.hw.calcPercVolume(self.exposure.project.usedMaterial + defines.resinMinVolume)
+
+    @auto_dbus
+    @property
+    @last_error
     def resin_warn(self) -> bool:
         """
         Whenever the remaining resin has reached warning level
@@ -621,6 +647,19 @@ class Exposure0:
     # @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     def exposure_time_calibrate_ms(self, value: int) -> None:
         self.exposure.project.calibrateTime = value / 1000
+
+    @auto_dbus
+    @property
+    @last_error
+    def calibration_regions(self) -> int:
+        """
+        Number of calibration regions
+
+        Zero regions means the project is not calibration project.
+
+        :return: Number of calibration regions
+        """
+        return self.exposure.project.calibrateRegions
 
     _CHANGE_MAP = {
         "state": {"state"},

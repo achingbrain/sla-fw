@@ -37,6 +37,9 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self.assertEqual("numbers.sl1", Path(self.exposure0.project_file).name)
         self.assertEqual("numbers", self.exposure0.project_name)
         self.assertEqual(0, self.exposure0.current_layer)
+        self.assertEqual(0, self.exposure0.calibration_regions)
+        self.assertAlmostEqual(87.792032, self.exposure0.total_resin_required_ml, 1)
+        self.assertAlmostEqual(50, self.exposure0.total_resin_required_percent, 1)
 
     def test_print(self):
         self.exposure0.confirm_start()
