@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import subprocess
 from time import sleep
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import distro
 from deprecated import deprecated
@@ -170,11 +170,16 @@ class Page:
     #enddef
 
 
-    # Dynamic USB path, first usb device or None
-    def getSavePath(self) -> str:
+    def getSavePath(self) -> Optional[str]:
+        """
+        Dynamic USB path, first usb device or None
+
+        :return: USB path as str or None
+        """
         path = files.get_save_path()
         if path is None:
             self.logger.debug("getSavePath returning None, no media seems present")
+            return None
         #endif
         return str(path)
     #enddef

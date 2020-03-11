@@ -17,6 +17,7 @@ def with_code(code: Enum):
     :param code: Exception error code
     :return: Decorated class
     """
+
     def decor(cls):
         cls.CODE = code
         cls.__name__ = f"e{code.value}.{cls.__name__}"
@@ -30,6 +31,7 @@ class PrinterException(Exception):
     """
     General exception for printers
     """
+
     CODE = ErrorCode.UNKNOWN
 
 

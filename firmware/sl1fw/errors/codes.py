@@ -20,6 +20,7 @@ def ranged_enum(minimum: int, maximum: int):
             if member.value < minimum or member.value > maximum:
                 raise ValueError(f"{enumeration} value {name} is out of permitted range ({minimum} to {maximum}).")
         return enumeration
+
     return decor
 
 
@@ -46,6 +47,11 @@ class ErrorCode(Enum):
     GENERAL_NOT_AVAILABLE_IN_STATE = 1010
     GENERAL_DBUS_MAPPING_EXCEPTION = 1011
     GENERAL_REPRINT_WITHOUT_HISTORY = 1012
+    GENERAL_MISSING_WIZARD_DATA = 1013
+    GENERAL_MISSING_CALIBRATION_DATA = 1014
+    GENERAL_MISSING_UVCALIBRATION_DATA = 1015
+    GENERAL_MISSING_UVPWM_SETTINGS = 1016
+    GENERAL_FAILED_TO_MQTT_SEND = 1017
 
     # Exposure error codes
     EXPOSURE_TILT_FAILURE = 2001

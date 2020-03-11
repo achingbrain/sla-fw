@@ -150,6 +150,8 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.test_turnoff()
 
     def test_factory_reset_factory_complete(self):
+        self._fake_calibration()
+
         self.printer.hw.boardData = ("TEST complete", False)
         self.printer.runtime_config.factory_mode = True
         self.switchPage("settings")
@@ -231,11 +233,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_print(self):
         PROJECT_NAME = "numbers"
 
-        # Fake calibration
-        self.printer.hwConfig.calibrated = True
-        self.printer.hwConfig.fanCheck = False
-        self.printer.hwConfig.coverCheck = False
-        self.printer.hwConfig.resinSensor = False
+        self._fake_calibration()
 
         self.press("print")
         self.waitPage("sourceselect")
@@ -306,6 +304,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         self.test_turnoff()
 
+    def _fake_calibration(self):
+        # Fake calibration
+        self.printer.hwConfig.calibrated = True
+        self.printer.hwConfig.fanCheck = False
+        self.printer.hwConfig.coverCheck = False
+        self.printer.hwConfig.resinSensor = False
 
 if __name__ == "__main__":
     unittest.main()

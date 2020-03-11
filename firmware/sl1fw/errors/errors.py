@@ -91,3 +91,34 @@ class ResinTooHigh(ResinFailure):
 @with_code(ErrorCode.EXPOSURE_WARNING_ESCALATION)
 class WarningEscalation(ExposureError):
     pass
+
+
+class PrinterDataSendError(PrinterError):
+    """
+    Printer data send error base
+    """
+
+
+@with_code(ErrorCode.GENERAL_MISSING_WIZARD_DATA)
+class MissingWizardData(PrinterDataSendError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_MISSING_CALIBRATION_DATA)
+class MissingCalibrationData(PrinterDataSendError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_MISSING_UVCALIBRATION_DATA)
+class MissingUVCalibrationData(PrinterDataSendError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_MISSING_UVPWM_SETTINGS)
+class MissingUVPWM(PrinterDataSendError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_FAILED_TO_MQTT_SEND)
+class ErrorSendingDataToMQTT(PrinterDataSendError):
+    pass

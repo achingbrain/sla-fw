@@ -22,7 +22,8 @@ hwConfigFileName = "hardware.cfg"
 hwConfigFile = configDir / hwConfigFileName
 loggingConfig = configDir / "loggerConfig.json"
 hwConfigFactoryDefaultsFile = factoryMountPoint / "hardware.toml"
-wizardDataFile = factoryMountPoint / "wizard_data.toml"
+wizardDataFilename = "wizard_data.toml"
+wizardDataFile = factoryMountPoint / wizardDataFilename
 uvCalibDataFilename = "uvcalib_data.toml"
 uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename
 uvCalibDataPath = configDir / uvCalibDataFilename
@@ -146,3 +147,5 @@ exposure_time_calibrate_min_ms = 500
 exposure_time_calibrate_max_ms = 5000
 
 fan_check_override = testing
+default_hostname = "prusa64-sl1"
+mqtt_prusa_host = "mqttstage.prusa"

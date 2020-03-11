@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import shutil
 
 from pathlib import Path
 from queue import Empty
@@ -28,6 +29,8 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     LAST_PROJECT_FILE = Sl1fwTestCase.TEMP_DIR / "last_project.toml"
     API_KEY_FILE = Sl1fwTestCase.TEMP_DIR / "api.key"
     UV_CALIB_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.uvCalibDataFilename
+    UV_CALIB_FACTORY_DATA_FILE = Sl1fwTestCase.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}"
+    WIZARD_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.wizardDataFilename
     FACTORY_CONFIG_FILE = Sl1fwTestCase.TEMP_DIR / "factory.toml"
 
     def __init__(self, *args, **kwargs):
@@ -61,8 +64,12 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         # factory reset
         defines.apikeyFile = str(self.API_KEY_FILE)
         defines.uvCalibDataPath = str(self.UV_CALIB_DATA_FILE)
+        defines.uvCalibDataPathFactory = str(self.UV_CALIB_FACTORY_DATA_FILE)
+        defines.wizardDataFile = str(self.WIZARD_DATA_FILE)
         Path(self.API_KEY_FILE).touch()
         Path(self.UV_CALIB_DATA_FILE).touch()
+        shutil.copy(self.SAMPLES_DIR / "wizard_data.toml", Path(self.WIZARD_DATA_FILE))
+        shutil.copy(self.SAMPLES_DIR / "uvcalib_data-60.toml", Path(self.UV_CALIB_FACTORY_DATA_FILE))
 
         os.environ['SDL_AUDIODRIVER'] = "disk"
         os.environ['SDL_DISKAUDIOFILE'] = str(self.SDL_AUDIO_FILE)

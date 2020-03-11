@@ -1,11 +1,24 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import json
+import logging
 import os
 
+import distro
+import paho.mqtt.publish as mqtt
+
 from sl1fw import defines, libConfig
+from sl1fw.errors.errors import (
+    MissingWizardData,
+    MissingCalibrationData,
+    MissingUVCalibrationData,
+    ErrorSendingDataToMQTT,
+)
+from sl1fw.libConfig import TomlConfig, HwConfig
 from sl1fw.libHardware import Hardware
 
 
@@ -33,3 +46,43 @@ def save_factory_mode(enable: bool):
     :return: True if successful, false otherwise
     """
     return libConfig.TomlConfig(defines.factoryConfigFile).save(data={"factoryMode": enable})
+
+
+def send_printer_data(hw: Hardware, config: HwConfig):
+    logger = logging.getLogger(__name__)
+
+    # Get wizard data
+    wizard_dict = TomlConfig(defines.wizardDataFile).load()
+    if not wizard_dict and not hw.isKit:
+        raise MissingWizardData()
+
+    if not config.calibrated and not hw.isKit:
+        raise MissingCalibrationData()
+
+    # Get UV calibration data
+    calibration_dict = TomlConfig(defines.uvCalibDataPathFactory).load()
+    if not calibration_dict:
+        raise MissingUVCalibrationData()
+
+    # Compose data to single dict, ensure basic data are present
+    mqtt_data = {
+        "osVersion": distro.version(),
+        "a64SerialNo": hw.cpuSerialNo,
+        "mcSerialNo": hw.mcSerialNo,
+        "mcFwVersion": hw.mcFwVersion,
+        "mcBoardRev": hw.mcBoardRevision,
+    }
+    mqtt_data.update(wizard_dict)
+    mqtt_data.update(calibration_dict)
+
+    # Send data to MQTT
+    topic = "prusa/sl1/factoryConfig"
+    logger.debug("mqtt data: %s", mqtt_data)
+    try:
+        if not defines.testing:
+            mqtt.single(topic, json.dumps(mqtt_data), qos=2, retain=True, hostname=defines.mqtt_prusa_host)
+        else:
+            logger.debug("Testing mode, not sending MQTT data")
+    except Exception as e:
+        logger.error("mqtt message not delivered. %s", e)
+        raise ErrorSendingDataToMQTT() from e
