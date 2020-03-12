@@ -22,7 +22,7 @@ class PageTools(Page):
     Name = "tools"
 
     SYSTEMD_DBUS = ".systemd1"
-    SSH_SERIVCE = "sshd.socket"
+    SSH_SERVICE = "sshd.socket"
     SERIAL_SERVICE = "serial-getty@ttyS0.service"
 
     def __init__(self, display: Display):
@@ -34,7 +34,7 @@ class PageTools(Page):
 
     def show(self):
         self.systemd = pydbus.SystemBus().get(self.SYSTEMD_DBUS)
-        self.ssh_enabled = self.systemd.GetUnitFileState(self.SSH_SERIVCE) == "enabled"
+        self.ssh_enabled = self.systemd.GetUnitFileState(self.SSH_SERVICE) == "enabled"
         self.serial_enabled = self.systemd.GetUnitFileState(self.SERIAL_SERVICE) == "enabled"
         self.items.update(
             {
@@ -53,7 +53,7 @@ class PageTools(Page):
         return "_SELF_"
 
     def button2ButtonRelease(self):
-        self._trigger_unit(self.SSH_SERIVCE)
+        self._trigger_unit(self.SSH_SERVICE)
         return "_SELF_"
 
     def button3ButtonRelease(self):
@@ -61,10 +61,13 @@ class PageTools(Page):
         return "_SELF_"
 
     def _trigger_unit(self, name: str):
-        if self.systemd.GetUnitFileState(name) == "enabled":
+        state = self.systemd.GetUnitFileState(name)
+        if state == "enabled":
             self.systemd.StopUnit(name, "replace")
             self.systemd.DisableUnitFiles([name], False)
         else:
-            self.systemd.UnmaskUnitFiles([name], False)
+            if state == "masked":
+                self.systemd.UnmaskUnitFiles([name], False)
+                self.systemd.Reload()
             self.systemd.EnableUnitFiles([name], False, False)
             self.systemd.StartUnit(name, "replace")
