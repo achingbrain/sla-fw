@@ -47,6 +47,14 @@ class PageUnboxingBase(Page):
         if state == UnboxingState.CANCELED:
             self.display.leave_menu()
 
+    def backButtonRelease(self):
+        return "unboxing-confirm"
+
+    @staticmethod
+    def _EXIT_():
+        return "_EXIT_"
+
+
 @page
 class PageUnboxing(PageUnboxingBase):
     Name = "unboxing"
@@ -72,17 +80,6 @@ class PageUnboxingSticker(PageUnboxingBase):
 
     def contButtonRelease(self):
         self.display.action_manager.unboxing.sticker_removed_cover_open()
-
-    def backButtonRelease(self):
-        return "unboxing-confirm"
-
-    @staticmethod
-    def _BACK_():
-        return "wizardinit"
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
 
 
 @page
@@ -134,13 +131,6 @@ class PageUnboxingSideFoam(PageUnboxingBase):
     def contButtonRelease(self):
         self.display.action_manager.unboxing.side_foam_removed()
 
-    def backButtonRelease(self):
-        return "unboxing-confirm"
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-
 
 @page
 class PageUnboxingTankFoam(PageUnboxingBase):
@@ -162,13 +152,6 @@ class PageUnboxingTankFoam(PageUnboxingBase):
 
     def contButtonRelease(self):
         self.display.action_manager.unboxing.tank_foam_removed()
-
-    def backButtonRelease(self):
-        return "unboxing-confirm"
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
 
 
 @page
@@ -192,13 +175,6 @@ class PageUnboxingDisplayFoil(PageUnboxingBase):
     def contButtonRelease(self):
         self.display.action_manager.unboxing.display_foil_removed()
 
-    def backButtonRelease(self):
-        return "unboxing-confirm"
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-
 
 @page
 class PageUnboxingFinished(PageUnboxingBase):
@@ -210,18 +186,13 @@ class PageUnboxingFinished(PageUnboxingBase):
         self.pageTitle = N_("Unboxing done")
 
     def show(self):
-        self.items.update({"text": _("The printer is fully unboxed and ready for the selftest.")})
+        self.items.update({
+            "text": _("The printer is fully unboxed and ready for the selftest."),
+            "no_back" : True })
         super().show()
 
     @staticmethod
     def contButtonRelease():
-        return "_EXIT_"
-
-    def backButtonRelease(self):
-        return "_EXIT_"
-
-    @staticmethod
-    def _EXIT_():
         return "_EXIT_"
 
 

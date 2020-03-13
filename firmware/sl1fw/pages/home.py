@@ -6,6 +6,7 @@ from sl1fw.states.display import DisplayState
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.calibration import PageCalibrationStart
+from sl1fw.pages.uvcalibration import PageUvCalibrationStart
 
 
 @page
@@ -47,40 +48,20 @@ class PageHome(Page):
 
     def printButtonRelease(self):
 # FIXME temporaily disabled until it works perfectly on all printers
-#        if self.display.hwConfig.showWizard:
-#            self.display.pages['yesno'].setParams(
-#                    pageTitle = N_("Go through wizard?"),
-#                    yesFce = self.showWizard,
-#                    text = _("Printer needs to be set up!\n\n"
-#                        "Go through wizard now?"))
-#            return "yesno"
+#       if self.display.hwConfig.showWizard:
+#           return PageWizardInit.Name
+        #endif
+        if self.display.hwConfig.uvPwm <= self.getMinPwm():
+            return PageUvCalibrationStart.Name
         #endif
         if not self.display.hwConfig.calibrated:
-            self.display.pages['yesno'].setParams(
-                    pageTitle = N_("Calibrate now?"),
-                    yesFce = self.printContinue,
-                    text = _("Printer is not calibrated!\n\n"
-                        "Calibrate now?"))
-            return "yesno"
+            return PageCalibrationStart.Name
         #endif
-
         if not self.display.doMenu("sourceselect"):
             return "_EXIT_"
         #endif
 
         return "printpreviewswipe"
-    #enddef
-
-
-    @staticmethod
-    def showWizard():
-        return "wizardinit"
-    #enddef
-
-
-    @staticmethod
-    def printContinue():
-        return PageCalibrationStart.Name
     #enddef
 
 #endclass

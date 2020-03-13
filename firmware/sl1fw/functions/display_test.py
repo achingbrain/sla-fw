@@ -31,6 +31,7 @@ def end(display: Display):
 
 def cover_check(display: Display) -> bool:
     if not display.hwConfig.coverCheck or display.hw.isCoverClosed():
+        display.hw.uvLedPwm = display.actualPage.getMinPwm()
         display.hw.uvLed(True)
         return True
     display.hw.uvLed(False)

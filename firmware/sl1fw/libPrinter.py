@@ -13,7 +13,7 @@ import os
 import re
 import threading
 from pathlib import Path
-from time import sleep, monotonic
+from time import monotonic
 from typing import Optional
 
 import distro
@@ -176,7 +176,7 @@ class Printer:
                 self.display.doMenu("error")
             #endif
 
-            if self.hwConfig.showUnboxing:
+            if not self.runtime_config.factory_mode and self.hwConfig.showUnboxing:
                 self.action_manager.start_unboxing(self.hw, self.hwConfig)
                 self.display.doMenu("unboxing")
                 self.action_manager.cleanup_unboxing()
@@ -194,16 +194,14 @@ class Printer:
             if self.hwConfig.showWizard:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("wizardinit")
-                sleep(0.5)
-            elif not self.hwConfig.calibrated:
-                self.display.pages['yesno'].setParams(
-                    pageTitle=N_("Calibrate now?"),
-                    text=_("Printer is not calibrated!\n\n"
-                           "Calibrate now?"))
+            #endif
+            if self.display.hwConfig.uvPwm <= self.display.actualPage.getMinPwm():
                 self.hw.beepRepeat(1)
-                if self.display.doMenu("yesno"):
-                    self.display.doMenu("calibrationstart")
-                #endif
+                self.display.doMenu("uvcalibrationstart")
+            #endif
+            if not self.hwConfig.calibrated:
+                self.hw.beepRepeat(1)
+                self.display.doMenu("calibrationstart")
             #endif
         #endif
 

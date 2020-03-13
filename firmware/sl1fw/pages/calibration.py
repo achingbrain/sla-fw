@@ -18,11 +18,67 @@ from sl1fw.pages.wait import PageWait
 
 
 @page
-class PageCalibrationStart(Page):
+class PageCalibrationBase(Page):
+
+    def backButtonRelease(self):
+        return PageCalibrationConfirm.Name
+    #enddef
+
+
+    @staticmethod
+    def _BACK_():
+        return "_BACK_"
+    #enddef
+
+
+    def _EXIT_(self):
+        self.display.state = DisplayState.IDLE
+        self.display.hw.motorsRelease()
+        return "_EXIT_"
+    #enddef
+
+#enddef
+
+
+@page
+class PageCalibrationStart(PageCalibrationBase):
     Name = "calibrationstart"
 
     def __init__(self, display):
         super(PageCalibrationStart, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("Printer calibration")
+    #enddef
+
+
+    def show(self):
+        self.items.update({
+            'text' : _("Printer is not calibrated!\n\n"
+                "Calibrate now?")})
+        super(PageCalibrationStart, self).show()
+    #enddef
+
+
+    @staticmethod
+    def contButtonRelease():
+        return "calibration1"
+    #enddef
+
+
+    @staticmethod
+    def _OK_():
+        return "calibration1"
+    #enddef
+
+#endclass
+
+
+@page
+class PageCalibration1(PageCalibrationBase):
+    Name = "calibration1"
+
+    def __init__(self, display):
+        super(PageCalibration1, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("Calibration step 1/11")
     #enddef
@@ -33,7 +89,7 @@ class PageCalibrationStart(Page):
         self.items.update({
             'imageName' : "calibration-tighten_knob.jpg",
             'text' : _("If the platform is not yet inserted, insert it according to the picture at 0° angle and secure it with the black knob.")})
-        super(PageCalibrationStart, self).show()
+        super(PageCalibration1, self).show()
     #enddef
 
 
@@ -55,26 +111,16 @@ class PageCalibrationStart(Page):
     #enddef
 
 
-    def backButtonRelease(self):
-        return "calibrationconfirm"
-    #enddef
-
-
     @staticmethod
     def _OK_():
         return "calibration2"
-    #enddef
-
-    def _EXIT_(self):
-        self.display.hw.motorsRelease()
-        return "_EXIT_"
     #enddef
 
 #endclass
 
 
 @page
-class PageCalibration2(Page):
+class PageCalibration2(PageCalibrationBase):
     Name = "calibration2"
 
     def __init__(self, display):
@@ -98,22 +144,11 @@ class PageCalibration2(Page):
         return "calibration3"
     #endif
 
-
-    def backButtonRelease(self):
-        return "calibrationconfirm"
-    #enddef
-
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageCalibration3(Page):
+class PageCalibration3(PageCalibrationBase):
     Name = "calibration3"
 
     def __init__(self, display):
@@ -145,22 +180,11 @@ class PageCalibration3(Page):
         return "calibration4"
     #endif
 
-
-    def backButtonRelease(self):
-        return "calibrationconfirm"
-    #enddef
-
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageCalibration4(Page):
+class PageCalibration4(PageCalibrationBase):
     Name = "calibration4"
 
     def __init__(self, display):
@@ -182,17 +206,6 @@ class PageCalibration4(Page):
     def contButtonRelease():
         return "calibration5"
     #endif
-
-
-    def backButtonRelease(self):
-        return "calibrationconfirm"
-    #enddef
-
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
 
 #endclass
 
@@ -273,7 +286,7 @@ class PageCalibration5(MovePage):
 
 
     def backButtonRelease(self):
-        return "calibrationconfirm"
+        return PageCalibrationConfirm.Name
     #enddef
 
 
@@ -286,7 +299,7 @@ class PageCalibration5(MovePage):
 
 
 @page
-class PageCalibration6(Page):
+class PageCalibration6(PageCalibrationBase):
     Name = "calibration6"
 
     def __init__(self, display):
@@ -310,22 +323,11 @@ class PageCalibration6(Page):
         return "calibration7"
     #endif
 
-
-    def backButtonRelease(self):
-        return "calibrationconfirm"
-    #enddef
-
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageCalibration7(Page):
+class PageCalibration7(PageCalibrationBase):
     Name = "calibration7"
 
     def __init__(self, display):
@@ -348,28 +350,11 @@ class PageCalibration7(Page):
         return "calibration8"
     #endif
 
-
-    def backButtonRelease(self):
-        return "calibrationconfirm"
-    #enddef
-
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
-
-    @staticmethod
-    def _BACK_():
-        return "_BACK_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageCalibration8(Page):
+class PageCalibration8(PageCalibrationBase):
     Name = "calibration8"
 
     def __init__(self, display):
@@ -466,28 +451,11 @@ class PageCalibration8(Page):
         return "_BACK_"
     #enddef
 
-
-    def backButtonRelease(self):
-        return "calibrationconfirm"
-    #enddef
-
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
-
-    @staticmethod
-    def _BACK_():
-        return "_BACK_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageCalibration9(Page):
+class PageCalibration9(PageCalibrationBase):
     Name = "calibration9"
 
     def __init__(self, display):
@@ -511,22 +479,11 @@ class PageCalibration9(Page):
         return "calibration10"
     #endif
 
-
-    def backButtonRelease(self):
-        return "calibrationconfirm"
-    #enddef
-
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageCalibration10(Page):
+class PageCalibration10(PageCalibrationBase):
     Name = "calibration10"
 
     def __init__(self, display):
@@ -578,17 +535,6 @@ class PageCalibration10(Page):
     #endif
 
 
-    def backButtonRelease(self):
-        return PageCalibrationConfirm.Name
-    #enddef
-
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
-
     def getTiltTime(self, pageWait, slowMove):
         tiltTime = 0
         total = self.display.hwConfig.measuringMoves
@@ -638,19 +584,15 @@ class PageCalibrationEnd(Page):
                 "Area fill: %(area)d %%") % {
                 'fast' : self.display.hwConfig.tiltFastTime,
                 'slow' : self.display.hwConfig.tiltSlowTime,
-                'area' : self.display.hwConfig.limit4fast }})
+                'area' : self.display.hwConfig.limit4fast },
+            'no_back' : True })
         super(PageCalibrationEnd, self).show()
     #enddef
 
 
     def contButtonRelease(self):
         self.display.state = DisplayState.IDLE
-        return "_EXIT_"
-    #enddef
-
-
-    def backButtonRelease(self):
-        self.display.state = DisplayState.IDLE
+        self.display.hw.motorsRelease()
         return "_EXIT_"
     #enddef
 
@@ -679,6 +621,7 @@ class PageCalibrationConfirm(Page):
 
     def yesButtonRelease(self):
         self.display.state = DisplayState.IDLE
+        self.display.hw.motorsRelease()
         return "_EXIT_"
     #endif
 

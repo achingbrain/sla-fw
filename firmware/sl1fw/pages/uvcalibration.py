@@ -120,6 +120,11 @@ class PageUvCalibrationBase(Page):
     #enddef
 
 
+    def backButtonRelease(self):
+        return "uvcalibrationcancel"
+    #enddef
+
+
     def checkPlacemet(self):
         pageWait = PageWait(self.display, line1 = _("UV calibration"), line2 = _("Checking UV meter placement on the screen"))
         pageWait.show()
@@ -151,6 +156,31 @@ class PageUvCalibrationBase(Page):
 
 #endclass
 
+@page
+class PageUvCalibrationStart(PageUvCalibrationBase):
+    Name = "uvcalibrationstart"
+
+    def __init__(self, display):
+        super(PageUvCalibrationStart, self).__init__(display)
+        self.pageUI = "confirm"
+        self.pageTitle = N_("UV LED calibration")
+    #enddef
+
+
+    def show(self):
+        self.items.update({
+            'text' : _("UV intensity not set!\n\n"
+                "Calibrate now?")})
+        super(PageUvCalibrationStart, self).show()
+    #enddef
+
+
+    @staticmethod
+    def contButtonRelease():
+        return "uvcalibration"
+    #enddef
+
+#endclass
 
 @page
 class PageUvCalibration(PageUvCalibrationBase):
@@ -232,12 +262,6 @@ class PageUvCalibration(PageUvCalibrationBase):
     #enddef
 
 
-    def backButtonRelease(self):
-        self.display.state = DisplayState.IDLE
-        return self._BACK_()
-    #enddef
-
-
     def checkUVMeter(self):
         self.pageWait.showItems(line2 = _("Waiting for UV meter"))
         self.pageWait.show()
@@ -281,12 +305,6 @@ class PageUvCalibration(PageUvCalibrationBase):
         #endfor
 
         self.display.hw.uvLedPwm = self.getMinPwm()
-    #enddef
-
-
-    def _BACK_(self):
-        self.off()
-        return "_BACK_"
     #enddef
 
 #endclass
@@ -571,6 +589,10 @@ class PageUvCalibrationConfirm(Page):
                 'min' : self.display.uvcalibData.uvMinValue,
                 'dev' : dev,
                 }})
+        self.items.update({
+            'text' : _("Calibration done\n"
+                "Would you like to apply the calibration?"),
+            'no_back' : True })
         super(PageUvCalibrationConfirm, self).show()
         self.display.hw.beepRepeat(1)
     #enddef
@@ -609,7 +631,7 @@ class PageUvCalibrationConfirm(Page):
                 return "error"
             #endif
         #endif
-        return "_BACK_"
+        return "_EXIT_"
     #enddef
 
 
@@ -621,7 +643,41 @@ class PageUvCalibrationConfirm(Page):
 
     def noButtonRelease(self):
         self.display.state = DisplayState.IDLE
-        return "_BACK_"
+        return "_EXIT_"
+    #enddef
+
+#endclass
+
+@page
+class PageUvCalibrationCancel(Page):
+    Name = "uvcalibrationcancel"
+
+    def __init__(self, display):
+        super(PageUvCalibrationCancel, self).__init__(display)
+        self.pageUI = "yesno"
+        self.pageTitle = N_("Cancel calibration?")
+        self.checkPowerbutton = False
+    #enddef
+
+
+    def show(self):
+        self.items.update({
+            'text' : _("Do you really want to cancel the calibration?\n\n"
+                "The machine will not work without going through it.")})
+        super(PageUvCalibrationCancel, self).show()
+    #enddef
+
+
+    def yesButtonRelease(self):
+        self.display.state = DisplayState.IDLE
+        self.allOff()
+        return "_EXIT_"
+    #endif
+
+
+    @staticmethod
+    def noButtonRelease():
+        return "_NOK_"
     #enddef
 
 #endclass

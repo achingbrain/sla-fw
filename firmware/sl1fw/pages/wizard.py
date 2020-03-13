@@ -22,7 +22,6 @@ from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
-from sl1fw.pages.calibration import PageCalibrationStart
 from sl1fw.pages.wait import PageWait
 from sl1fw.states.display import DisplayState
 
@@ -64,7 +63,19 @@ class WizardData:
 
 
 @page
-class PageWizardInit(Page):
+class PageWizardBase(Page):
+    def backButtonRelease(self):
+        return PageWizardSkip.Name
+    #enddef
+
+    def _EXIT_(self):
+        self.allOff()
+        return "_EXIT_"
+    #enddef
+
+
+@page
+class PageWizardInit(PageWizardBase):
     Name = "wizardinit"
 
     def __init__(self, display):
@@ -108,7 +119,7 @@ class PageWizardInit(Page):
         homeStatus = 0
 
         #tilt home check
-        pageWait = PageWait(self.display, line1 = _("Tilt home check"))
+        pageWait = PageWait(self.display, line1 = _("Tank home check"))
         pageWait.show()
         for i in range(3):
             self.display.hw.tiltSyncWait()
@@ -218,20 +229,11 @@ class PageWizardInit(Page):
         return "wizarduvled"
     #enddef
 
-    def backButtonRelease(self):
-        return "wizardskip"
-    #enddef
-
-
-    def _EXIT_(self):
-        self.allOff()
-        return "_EXIT_"
-    #enddef
 #endclass
 
 
 @page
-class PageWizardUvLed(Page):
+class PageWizardUvLed(PageWizardBase):
     Name = "wizarduvled"
 
     def __init__(self, display):
@@ -282,21 +284,11 @@ class PageWizardUvLed(Page):
         return "wizardtoweraxis"
     #enddef
 
-
-    def backButtonRelease(self):
-        return "wizardskip"
-    #enddef
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageWizardTowerAxis(Page):
+class PageWizardTowerAxis(PageWizardBase):
     Name = "wizardtoweraxis"
 
     def __init__(self, display):
@@ -362,21 +354,11 @@ class PageWizardTowerAxis(Page):
         return "wizardresinsensor"
     #enddef
 
-
-    def backButtonRelease(self):
-        return "wizardskip"
-    #enddef
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageWizardResinSensor(Page):
+class PageWizardResinSensor(PageWizardBase):
     Name = "wizardresinsensor"
 
     def __init__(self, display):
@@ -475,20 +457,10 @@ class PageWizardResinSensor(Page):
         return "wizardtimezone"
     #enddef
 
-
-    def backButtonRelease(self):
-        return "wizardskip"
-    #enddef
-
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 @page
-class PageWizardTimezone(Page):
+class PageWizardTimezone(PageWizardBase):
     Name = "wizardtimezone"
 
     def __init__(self, display):
@@ -519,16 +491,11 @@ class PageWizardTimezone(Page):
         return "wizardspeaker"
     #enddef
 
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageWizardSpeaker(Page):
+class PageWizardSpeaker(PageWizardBase):
     Name = "wizardspeaker"
     SampleMusic = defines.multimediaRootPath + "/chromag_-_the_prophecy.xm"
 
@@ -559,16 +526,11 @@ class PageWizardSpeaker(Page):
         return "error"
     #enddef
 
-    @staticmethod
-    def _EXIT_():
-        return "_EXIT_"
-    #enddef
-
 #endclass
 
 
 @page
-class PageWizardFinish(Page):
+class PageWizardFinish(PageWizardBase):
     Name = "wizardfinish"
 
     def __init__(self, display):
@@ -581,23 +543,14 @@ class PageWizardFinish(Page):
     def show(self):
         self.display.state = DisplayState.IDLE
         self.items.update({
-            'text' : _("Selftest OK.\n\n"
-                "Continue to calibration?")})
+            'text' : _("Selftest passed OK.\n\n"
+                "Printer ready for calibration."),
+            'no_back' : True })
         super(PageWizardFinish, self).show()
     #enddef
 
     @staticmethod
     def contButtonRelease():
-        return PageCalibrationStart.Name
-    #enddef
-
-
-    def backButtonRelease(self):
-        return "_EXIT_"
-    #enddef
-
-    @staticmethod
-    def _EXIT_():
         return "_EXIT_"
     #enddef
 

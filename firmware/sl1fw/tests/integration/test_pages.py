@@ -223,9 +223,11 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         # Try to print
         self.press("print")
         # Expect problem with not being calibrated
+        self.waitPage("confirm")
+        self.press("back")
         self.waitPage("yesno")
+        self.press("yes")
         # Return to home
-        self.press("no")
         self.waitPage("home")
 
         self.test_turnoff()
@@ -265,8 +267,8 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         self.switchPage("settings")
         self.press("recalibration")
-        self.waitPage("yesno")  # Calibrate printer now?
-        self.press("yes")
+        self.waitPage("confirm")  # Calibrate printer now?
+        self.press("cont")
         self.waitPage("confirm")  # If platform is not yet inserted ...
         self.press("cont")
         self.waitPage("wait")  # Printer homing

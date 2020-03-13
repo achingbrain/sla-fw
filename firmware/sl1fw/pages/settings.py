@@ -24,11 +24,9 @@ class PageSettings(Page):
     #enddef
 
 
-    def recalibrationButtonRelease(self):
-        self.display.pages['yesno'].setParams(
-            yesFce = self.calibrateContinue,
-            text = _("Calibrate printer now?"))
-        return "yesno"
+    @staticmethod
+    def recalibrationButtonRelease():
+        return PageCalibrationStart.Name
     #enddef
 
 
@@ -41,12 +39,6 @@ class PageSettings(Page):
     @staticmethod
     def supportButtonRelease():
         return "support"
-    #enddef
-
-
-    @staticmethod
-    def calibrateContinue():
-        return PageCalibrationStart.Name
     #enddef
 
 #endclass
