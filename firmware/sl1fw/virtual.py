@@ -73,6 +73,7 @@ defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")
 defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
 defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
 defines.fan_check_override = True
+defines.mediaRootPath = str(SAMPLES_DIR)
 
 event_loop = GLib.MainLoop()
 

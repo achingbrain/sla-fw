@@ -122,3 +122,13 @@ class MissingUVPWM(PrinterDataSendError):
 @with_code(ErrorCode.GENERAL_FAILED_TO_MQTT_SEND)
 class ErrorSendingDataToMQTT(PrinterDataSendError):
     pass
+
+
+@with_code(ErrorCode.GENERAL_FAILED_UPDATE_CHANNEL_SET)
+class FailedUpdateChannelSet(PrinterError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_FAILED_UPDATE_CHANNEL_GET)
+class FailedUpdateChannelGet(PrinterError):
+    pass

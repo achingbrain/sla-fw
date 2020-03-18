@@ -149,3 +149,5 @@ exposure_time_calibrate_max_ms = 5000
 fan_check_override = testing
 default_hostname = "prusa64-sl1"
 mqtt_prusa_host = "mqttstage.prusa"
+set_update_channel_bin = "/usr/sbin/set-update-channel.sh"
+update_channel = Path("/etc/update_channel")

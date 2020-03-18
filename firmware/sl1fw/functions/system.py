@@ -7,6 +7,7 @@
 import json
 import logging
 import os
+import subprocess
 
 import distro
 import paho.mqtt.publish as mqtt
@@ -17,7 +18,7 @@ from sl1fw.errors.errors import (
     MissingCalibrationData,
     MissingUVCalibrationData,
     ErrorSendingDataToMQTT,
-)
+    FailedUpdateChannelSet, FailedUpdateChannelGet)
 from sl1fw.libConfig import TomlConfig, HwConfig
 from sl1fw.libHardware import Hardware
 
@@ -86,3 +87,17 @@ def send_printer_data(hw: Hardware, config: HwConfig):
     except Exception as e:
         logger.error("mqtt message not delivered. %s", e)
         raise ErrorSendingDataToMQTT() from e
+
+
+def get_update_channel() -> str:
+    try:
+        return defines.update_channel.read_text().strip()
+    except (FileNotFoundError, PermissionError) as e:
+        raise FailedUpdateChannelGet() from e
+
+
+def set_update_channel(channel: str):
+    try:
+        subprocess.check_call([defines.set_update_channel_bin, channel])
+    except Exception as e:
+        raise FailedUpdateChannelSet() from e
