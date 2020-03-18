@@ -25,47 +25,64 @@ def ranged_enum(minimum: int, maximum: int):
 
 
 @unique
-@ranged_enum(0, 4999)
+class ErrorClass(Enum):
+    # This mapping is taken from general Prusa guidelines on errors, do not modify.
+    MECHANICAL = 1  # Mechanical failures, engines XYZ, tower
+    TEMPERATURE = 2  # Temperature measurement, thermistors, heating
+    ELECTRICAL = 3  # Electrical, MINDA, FINDA, Motion Controller, …
+    CONNECTIVITY = 4  # Connectivity - Wi - Fi, LAN, Prusa Connect Cloud
+    SYSTEM = 5  # System - BSOD, ...
+
+
+def make_code(cls: ErrorClass, error_code: int) -> int:
+    if error_code < 0 or error_code > 99:
+        raise ValueError(f"Error code {error_code} out of range")
+    return cls.value * 100 + error_code
+
+
+@unique
+@ranged_enum(0, 999)
 class ErrorCode(Enum):
     """
     Error and exception identification codes
 
     TODO: @!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!
-    TODO: Big fat WARNING, these code are not finalized. Do not copy numbers, use these values.
+    TODO: WARNING, these codes are based on draft of the specification.
+    TODO: Remove this warning once the source document is accepted.
     TODO: @!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!
     """
 
     # Basic error codes
-    NONE = 0
-    UNKNOWN = 1
+    NONE = make_code(ErrorClass.SYSTEM, 0)
+    UNKNOWN = make_code(ErrorClass.SYSTEM, 1)
 
     # General error codes
-    GENERAL_TILT_HOME_FAILURE = 1001
-    GENERAL_TOWER_HOME_FAILURE = 1002
-    GENERAL_CONFIG_EXCEPTION = 1005
-    GENERAL_MOTION_CONTROLLER_EXCEPTION = 1006
-    GENERAL_NOT_AVAILABLE_IN_STATE = 1010
-    GENERAL_DBUS_MAPPING_EXCEPTION = 1011
-    GENERAL_REPRINT_WITHOUT_HISTORY = 1012
-    GENERAL_MISSING_WIZARD_DATA = 1013
-    GENERAL_MISSING_CALIBRATION_DATA = 1014
-    GENERAL_MISSING_UVCALIBRATION_DATA = 1015
-    GENERAL_MISSING_UVPWM_SETTINGS = 1016
-    GENERAL_FAILED_TO_MQTT_SEND = 1017
-    GENERAL_FAILED_UPDATE_CHANNEL_SET = 1018
-    GENERAL_FAILED_UPDATE_CHANNEL_GET = 1019
+    GENERAL_TILT_HOME_FAILURE = make_code(ErrorClass.MECHANICAL, 1)
+    GENERAL_TOWER_HOME_FAILURE = make_code(ErrorClass.MECHANICAL, 2)
+    GENERAL_CONFIG_EXCEPTION = make_code(ErrorClass.SYSTEM, 5)
+    GENERAL_MOTION_CONTROLLER_EXCEPTION = make_code(ErrorClass.ELECTRICAL, 6)
+    GENERAL_NOT_AVAILABLE_IN_STATE = make_code(ErrorClass.SYSTEM, 6)
+    GENERAL_DBUS_MAPPING_EXCEPTION = make_code(ErrorClass.SYSTEM, 7)
+    GENERAL_REPRINT_WITHOUT_HISTORY = make_code(ErrorClass.SYSTEM, 8)
+    GENERAL_MISSING_WIZARD_DATA = make_code(ErrorClass.SYSTEM, 9)
+    GENERAL_MISSING_CALIBRATION_DATA = make_code(ErrorClass.SYSTEM, 10)
+    GENERAL_MISSING_UVCALIBRATION_DATA = make_code(ErrorClass.SYSTEM, 11)
+    GENERAL_MISSING_UVPWM_SETTINGS = make_code(ErrorClass.SYSTEM, 12)
+    GENERAL_FAILED_TO_MQTT_SEND = make_code(ErrorClass.CONNECTIVITY, 1)
+    GENERAL_FAILED_UPDATE_CHANNEL_SET = make_code(ErrorClass.SYSTEM, 13)
+    GENERAL_FAILED_UPDATE_CHANNEL_GET = make_code(ErrorClass.SYSTEM, 14)
 
     # Exposure error codes
-    EXPOSURE_TILT_FAILURE = 2001
-    EXPOSURE_TOWER_FAILURE = 2002
-    EXPOSURE_TOWER_MOVE_FAILURE = 2003
-    EXPOSURE_PROJECT_FAILURE = 2004
-    EXPOSURE_TEMP_SENSOR_FAILURE = 2005
-    EXPOSURE_FAN_FAILURE = 2006
-    EXPOSURE_RESIN_SENSOR_FAILURE = 2007
-    EXPOSURE_RESIN_TOO_LOW = 2008
-    EXPOSURE_RESIN_TOO_HIGH = 2009
-    EXPOSURE_WARNING_ESCALATION = 2010
+    EXPOSURE_TILT_FAILURE = make_code(ErrorClass.MECHANICAL, 10)
+    EXPOSURE_TOWER_FAILURE = make_code(ErrorClass.MECHANICAL, 12)
+    EXPOSURE_TOWER_MOVE_FAILURE = make_code(ErrorClass.MECHANICAL, 3)
+    EXPOSURE_PROJECT_FAILURE = make_code(ErrorClass.SYSTEM, 4)
+    EXPOSURE_TEMP_SENSOR_FAILURE = make_code(ErrorClass.TEMPERATURE, 5)
+    EXPOSURE_FAN_FAILURE = make_code(ErrorClass.MECHANICAL, 6)
+    EXPOSURE_RESIN_SENSOR_FAILURE = make_code(ErrorClass.ELECTRICAL, 7)
+    EXPOSURE_RESIN_TOO_LOW = make_code(ErrorClass.MECHANICAL, 8)
+    EXPOSURE_RESIN_TOO_HIGH = make_code(ErrorClass.MECHANICAL, 9)
+    EXPOSURE_WARNING_ESCALATION = make_code(ErrorClass.SYSTEM, 15)
 
 
 @unique
@@ -75,7 +92,8 @@ class WarningCode(Enum):
     Warning identification codes
 
     TODO: @!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!
-    TODO: Big fat WARNING, these code are not finalized. Do not copy numbers, use these values.
+    TODO: Big fat WARNING, these codes are not finalized. Do not copy numbers, use these values.
+    TODO: There are no guidelines for warnings, yet.
     TODO: @!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!
     """
 
