@@ -110,28 +110,10 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         # TODO: Test changing settings
 
-        # Test display test - passing
-        self.printer.hwConfig.coverCheck = False
-        self.press("displaytest")
-        self.waitPage("confirm")  # Please unscrew and remove ...
-        self.press("cont")
-        self.waitPage("confirm")  # Please close the orange lid...
-        self.press("cont")
-        self.waitPage("yesno")  # Can you see company logo...
-        self.press("yes")
-        self.waitPage("advancedsettings")
-
-        # Test display test - failing
-        self.printer.hwConfig.coverCheck = False
-        self.press("displaytest")
-        self.waitPage("confirm")  # Please unscrew and remove ...
-        self.press("cont")
-        self.waitPage("confirm")  # Please close the orange lid...
-        self.press("cont")
-        self.waitPage("yesno")  # Can you see company logo...
-        self.press("no")
-        self.waitPage("error")  # No logo, contact service
-        self.press("ok")
+        # Test display & UV settings
+        self.press("uvdispsettings")
+        self.waitPage("uvdispsettings")  # Enter into UV submenu
+        self.press("back")
         self.waitPage("advancedsettings")
 
         # Test firmware update
@@ -146,6 +128,61 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         self.press("back")
         self.waitPage("home")
+
+        self.test_turnoff()
+
+    def test_display_uv_settings(self):
+        self.printer.hwConfig.coverCheck = False
+        self.switchPage("settings")
+        self.switchPage("advancedsettings")
+        self.switchPage("uvdispsettings")
+
+        # Test display test - passing
+        self.press("displaytest")
+        self.waitPage("confirm")  # Please unscrew and remove ...
+        self.press("cont")
+        self.waitPage("confirm")  # Please close the orange lid...
+        self.press("cont")
+        self.waitPage("yesno")  # Can you see company logo...
+        self.press("yes")
+        self.waitPage("uvdispsettings")
+
+        # Test display test - failing
+        self.press("displaytest")
+        self.waitPage("confirm")  # Please unscrew and remove ...
+        self.press("cont")
+        self.waitPage("confirm")  # Please close the orange lid...
+        self.press("cont")
+        self.waitPage("yesno")  # Can you see company logo...
+        self.press("no")
+        self.waitPage("error")  # No logo, contact service
+        self.press("ok")
+        self.waitPage("uvdispsettings")
+
+        # Test UV calibration enter and exit
+        self.press("uvcalibration")
+        self.waitPage("confirm")  # Welcome to UV calibration ...
+        self.press("back")
+        self.waitPage("yesno")  # Cancel calibration? ...
+        self.press("yes")
+        self.waitPage("uvdispsettings")
+
+        # Test UV calibration without UV meter
+        self.printer.hwConfig.coverCheck = False
+        self.press("uvcalibration")
+        self.waitPage("confirm")  # Welcome to UV calibration ...
+        self.press("cont")
+        self.waitPage("yesno")  # Display test. Can you see the logo? ...
+        self.press("yes")
+        self.waitPage("confirm")  # Place the UV meter in and close lid ...
+        self.press("cont")
+        self.waitPage("wait")  # Start positions
+        self.waitPage("wait")  # Waiting for UV meter
+        self.waitPage("error")  # No UV meter connected
+        self.press("ok")
+        self.waitPage("uvdispsettings")
+
+        #TODO simulate UV meter and run whole calibration
 
         self.test_turnoff()
 

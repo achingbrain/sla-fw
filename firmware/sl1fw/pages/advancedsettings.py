@@ -304,32 +304,12 @@ class PageAdvancedSettings(Page):
     #enddef
 
 
-    # Display test
+    # UV & Display settings
     @confirm_leave
-    def displaytestButtonRelease(self):
-        self.display.state = DisplayState.DISPLAY_TEST
-        self.display.pages['confirm'].setParams(
-            continueFce = self.displaytestContinue,
-            pageTitle = _("Display test"),
-            imageName = "selftest-remove_tank.jpg",
-            text = _("Please unscrew and remove the resin tank."))
-        return "confirm"
+    def uvdispsettingsButtonRelease(self): # pylint: disable=no-self-use
+        return "uvdispsettings"
     #enddef
 
-
-    def displaytestContinue(self):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.displaytest,
-            pageTitle = _("Display test"),
-            imageName = "close_cover_no_tank.jpg",
-            text = _("Please close the orange lid."))
-        return "confirm"
-    #enddef
-
-    @staticmethod
-    def displaytest():
-        return "displaytest"
-    #endif
 
     # Rear fan speed
     def minus_rearfanspeedButton(self):

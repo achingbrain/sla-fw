@@ -51,8 +51,8 @@ class PageDisplayTest(Page):
     def noButtonRelease(self):
         self.display.state = DisplayState.IDLE
         self.display.pages['error'].setParams(
-            text = _("Your display is probably broken.\n\n"
-                     "Please contact tech support!"))
+            text = _("Your display or LED set is probably not connected properly or broken.\n\n"
+                     "Please check the proper connection first. Contact tech support in any case of troubles!"))
         return "error"
     #enddef
 
