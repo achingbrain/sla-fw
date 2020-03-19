@@ -132,3 +132,26 @@ class FailedUpdateChannelSet(PrinterError):
 @with_code(ErrorCode.GENERAL_FAILED_UPDATE_CHANNEL_GET)
 class FailedUpdateChannelGet(PrinterError):
     pass
+
+
+@with_code(ErrorCode.GENERAL_NOT_CONNECTED_TO_NETWORK)
+class NotConnected(PrinterError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_CONNECTION_FAILED)
+class ConnectionFailed(PrinterError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_NOT_ENOUGH_INTERNAL_SPACE)
+class NotEnoughInternalSpace(PrinterError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_DOWNLOAD_FAILED)
+@dataclass()
+class DownloadFailed(PrinterError):
+    url: str
+    total_bytes: int
+    completed_bytes: int

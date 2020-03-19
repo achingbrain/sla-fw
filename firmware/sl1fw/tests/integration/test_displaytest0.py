@@ -4,11 +4,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+from time import sleep
 
 import pydbus
 
-from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
+from sl1fw.api.display_test0 import DisplayTest0State
 
 
 class TestIntegrationRawDisplayTest(Sl1FwIntegrationTestCaseBase):
@@ -28,12 +29,14 @@ class TestIntegrationDisplayTest0(Sl1FwIntegrationTestCaseBase):
 
     def test_init(self):
         self.assertEqual(DisplayTest0State.INIT.value, self.displaytest0.state)
-        self.displaytest0.finish(True)
 
     def test_pass(self):
         self.assertEqual(DisplayTest0State.INIT.value, self.displaytest0.state)
         self.displaytest0.start()
         self.assertEqual(DisplayTest0State.COVER_OPEN.value, self.displaytest0.state)
+        self.printer.hwConfig.coverCheck = False
+        sleep(2)
+        self.assertEqual(DisplayTest0State.DISPLAY.value, self.displaytest0.state)
         self.displaytest0.finish(True)
 
 

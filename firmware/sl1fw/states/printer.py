@@ -15,3 +15,4 @@ class PrinterState(Enum):
     EXIT = 4
     EXCEPTION = 5
     UNBOXING = 6
+    DISPLAY_TEST = 7

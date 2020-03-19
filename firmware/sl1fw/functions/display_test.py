@@ -6,33 +6,32 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from sl1fw import defines
-
-if TYPE_CHECKING:
-    from sl1fw.libDisplay import Display
-
-
-def start(display: Display):
-    display.hw.startFans()
-    display.runtime_config.fan_error_override = True
-    display.screen.getImg(filename=str(Path(defines.dataPath) / "logo_1440x2560.png"))
+from sl1fw.libConfig import RuntimeConfig, HwConfig
+from sl1fw.libHardware import Hardware
+from sl1fw.libScreen import Screen
 
 
-def end(display: Display):
-    display.runtime_config.fan_error_override = False
-    display.hw.saveUvStatistics()  # TODO: Why ???
+def start(hw: Hardware, screen : Screen, runtime_config: RuntimeConfig):
+    hw.startFans()
+    runtime_config.fan_error_override = True
+    screen.getImg(filename=str(Path(defines.dataPath) / "logo_1440x2560.png"))
+
+
+def end(hw: Hardware, screen : Screen, runtime_config: RuntimeConfig):
+    runtime_config.fan_error_override = False
+    hw.saveUvStatistics()
     # can't call allOff(), motorsRelease() is harmful for the wizard
-    display.screen.getImgBlack()
-    display.hw.uvLed(False)
-    display.hw.stopFans()
+    screen.getImgBlack()
+    hw.uvLed(False)
+    hw.stopFans()
 
 
-def cover_check(display: Display) -> bool:
-    if not display.hwConfig.coverCheck or display.hw.isCoverClosed():
-        display.hw.uvLedPwm = display.actualPage.getMinPwm()
-        display.hw.uvLed(True)
+def cover_check(hw: Hardware, hw_config: HwConfig) -> bool:
+    if not hw_config.coverCheck or hw.isCoverClosed():
+        hw.uvLedPwm = hw.getMinPwm()
+        hw.uvLed(True)
         return True
-    display.hw.uvLed(False)
+    hw.uvLed(False)
     return False

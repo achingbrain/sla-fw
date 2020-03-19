@@ -168,7 +168,7 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def show(self):
-        minpwm, maxpwm = self.getMeasPwms()
+        minpwm, maxpwm = self.display.hw.getMeasPwms()
         text = _("Welcome to the UV LED calibration.\n"
                 "Use this function only if you have replaced the print display or experiencing issues with the prints.\n\n"
                 "1. Release the screws and remove them with the resin tank.\n"
@@ -293,7 +293,7 @@ class PageUvCalibration(PageUvCalibrationBase):
         self.pageWait.showItems(line1 = _("Warming up"))
 
         self.display.hw.startFans()
-        self.display.hw.uvLedPwm = self.getMaxPwm()
+        self.display.hw.uvLedPwm = self.display.hw.getMaxPwm()
         self.display.screen.getImgBlack()
         self.display.hw.uvLed(True)
 
@@ -303,7 +303,7 @@ class PageUvCalibration(PageUvCalibrationBase):
             sleep(1)
         #endfor
 
-        self.display.hw.uvLedPwm = self.getMinPwm()
+        self.display.hw.uvLedPwm = self.display.hw.getMinPwm()
     #enddef
 
     def checkPlacement(self):
@@ -448,7 +448,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
 
     def calibrate(self):
         # Start UV led with minimal pwm
-        self.pwm = self.getMinPwm()
+        self.pwm = self.display.hw.getMinPwm()
 
         error = 0
         integrated_error = 0
@@ -487,7 +487,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
 
             # Adjust PWM according to error, integrated error and operational limits
             self.pwm = self.pwm + self.PARAM_P * error + self.PARAM_I * integrated_error
-            self.pwm = max(self.getMinPwm(), min(self.getMaxPwm(), self.pwm))
+            self.pwm = max(self.display.hw.getMinPwm(), min(self.display.hw.getMaxPwm(), self.pwm))
         #endfor
 
         # Report ranges and deviation errors
@@ -522,7 +522,7 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
     def calibrate(self):
         self.display.screen.getImgBlack()
         self.display.screen.inverse()
-        maxpwm = self.getMaxPwm()
+        maxpwm = self.display.hw.getMaxPwm()
         # check PWM value from previous step
         self.pwm = self.display.hw.uvLedPwm
         while self.pwm <= maxpwm:

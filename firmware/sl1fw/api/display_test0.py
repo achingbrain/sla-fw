@@ -7,16 +7,16 @@ from __future__ import annotations
 
 import logging
 from enum import unique, Enum
-from typing import Callable, TYPE_CHECKING
 
+from PySignal import Signal
 from gi.repository.GLib import timeout_add_seconds
 from pydbus.generic import signal
 
-from sl1fw.api.decorators import dbus_api, auto_dbus
+from sl1fw.api.decorators import dbus_api, auto_dbus, state_checked
 from sl1fw.functions import display_test
-
-if TYPE_CHECKING:
-    from sl1fw.libDisplay import Display
+from sl1fw.libConfig import RuntimeConfig, HwConfig
+from sl1fw.libHardware import Hardware
+from sl1fw.libScreen import Screen
 
 
 @unique
@@ -34,11 +34,15 @@ class DisplayTest0:
 
     PropertiesChanged = signal()
 
-    def __init__(self, display: Display, on_exit: Callable[[], None]):
+    def __init__(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
         self.logger = logging.getLogger(__name__)
-        self.display = display
-        self.exit = on_exit
+        self._hw = hw
+        self._screen = screen
+        self._runtime_config = runtime_config
+        self._hw_config = hw_config
         self._state = DisplayTest0State.INIT
+        self.change = Signal()
+        self.change.connect(self._state_changed)
 
     @auto_dbus
     @property
@@ -46,29 +50,36 @@ class DisplayTest0:
         return self._state.value
 
     @auto_dbus
+    @state_checked(DisplayTest0State.INIT)
     def start(self) -> None:
         self.logger.debug("Starting display test")
         self._state = DisplayTest0State.COVER_OPEN
-        display_test.start(self.display)
+        self.change.emit()
+        display_test.start(self._hw, self._screen, self._runtime_config)
         timeout_add_seconds(1, self._update_cover)
 
     @auto_dbus
+    @state_checked(DisplayTest0State.DISPLAY)
     def finish(self, logo_seen: bool) -> None:
         self.logger.info("Display test finished with logo seen: %s", logo_seen)
-        display_test.end(self.display)
+        display_test.end(self._hw, self._screen, self._runtime_config)
         self._state = DisplayTest0State.FINISHED
-        self.exit()
+        self.change.emit()
 
     def _update_cover(self):
         if self._state == DisplayTest0State.FINISHED:
             return False
 
         old = self._state
-        if display_test.cover_check(self.display):
+        if display_test.cover_check(self._hw, self._hw_config):
             self._state = DisplayTest0State.DISPLAY
+            self.change.emit()
         else:
             self._state = DisplayTest0State.COVER_OPEN
         if old != self._state:
-            self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
+            self.change.emit()
 
         return True
+
+    def _state_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])

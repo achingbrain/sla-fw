@@ -583,21 +583,4 @@ class Page:
         self.display.hw.motorsRelease()
     #enddef
 
-
-    def getMeasPwms(self):
-        if self.display.hw.is500khz:
-            return defines.uvLedMeasMinPwm500k, defines.uvLedMeasMaxPwm500k
-        else:
-            return defines.uvLedMeasMinPwm, defines.uvLedMeasMaxPwm
-        #endif
-    #enddef
-
-    def getMinPwm(self):
-        return self.getMeasPwms()[0]
-    #enddef
-
-    def getMaxPwm(self):
-        return self.getMeasPwms()[1]
-    #enddef
-
 #endclass

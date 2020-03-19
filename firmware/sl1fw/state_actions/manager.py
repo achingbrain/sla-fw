@@ -15,6 +15,7 @@ from typing import Optional
 from PySignal import Signal
 from pydbus import SystemBus
 
+from sl1fw.api.display_test0 import DisplayTest0, DisplayTest0State
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.unboxing0 import Unboxing0
 from sl1fw.libConfig import HwConfig, RuntimeConfig
@@ -35,9 +36,12 @@ class ActionManager:
         self._system_bus = SystemBus()
         self.exposure_change = Signal()
         self.unboxing_change = Signal()
+        self.display_test_change = Signal()
         self._exposure_bus_name = None
         self._unboxing: Optional[Unboxing] = None
         self._unboxing_dbus_registration = None
+        self._display_test: Optional[DisplayTest0] = None
+        self._display_test_registration = None
 
     def new_exposure(
         self,
@@ -129,15 +133,39 @@ class ActionManager:
     def cleanup_unboxing(self) -> None:
         self._unboxing.join()
 
+    def start_display_test(self, hw: Hardware, hw_config: HwConfig, screen : Screen, runtime_config: RuntimeConfig):
+        # Do nothing if display test is already running
+        if self._display_test and self._display_test.state != DisplayTest0State.FINISHED:
+            return
+
+        # Test is in finished state unregister it
+        if self._display_test_registration:
+            self._display_test_registration.unpublish()
+            self._display_test_registration = None
+
+        # Create new display test
+        display_test = DisplayTest0(hw, hw_config, screen, runtime_config)
+        display_test.change.connect(self.display_test_change.emit)
+        self._display_test_registration = self._system_bus.publish(
+            DisplayTest0.__INTERFACE__, (DisplayTest0.DBUS_PATH, display_test)
+        )
+        self.display_test_change.emit()
+
     @property
     def unboxing(self) -> Optional[Unboxing]:
         return self._unboxing
+
+    @property
+    def display_test(self) -> Optional[DisplayTest0]:
+        return self._display_test
 
     def exit(self):
         while not self._exposure_dbus_objects.empty():
             self._exposure_dbus_objects.get().unregister()
         if self._exposure_bus_name:
             self._exposure_bus_name.unown()
+        if self._display_test_registration:
+            self._display_test_registration.unpublish()
 
     def _on_exposure_change(self, __, changed, ___):
         if "state" in changed:

@@ -51,7 +51,7 @@ class PageHome(Page):
 #       if self.display.hwConfig.showWizard:
 #           return PageWizardInit.Name
         #endif
-        if self.display.hwConfig.uvPwm <= self.getMinPwm():
+        if self.display.hwConfig.uvPwm <= self.display.hw.getMinPwm():
             return PageUvCalibrationStart.Name
         #endif
         if not self.display.hwConfig.calibrated:

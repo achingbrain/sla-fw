@@ -25,6 +25,7 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw import libConfig
 from sl1fw.api.config0 import Config0
+from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
@@ -60,6 +61,7 @@ class Printer:
         self.action_manager = ActionManager()
         self.action_manager.exposure_change.connect(self._exposure_changed)
         self.action_manager.unboxing_change.connect(self._unboxing_changed)
+        self.action_manager.display_test_change.connect(self._display_test_changed)
         self.exited = threading.Event()
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
@@ -195,7 +197,7 @@ class Printer:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("wizardinit")
             #endif
-            if self.display.hwConfig.uvPwm <= self.display.actualPage.getMinPwm():
+            if self.display.hwConfig.uvPwm <= self.hw.getMinPwm():
                 self.hw.beepRepeat(1)
                 self.display.doMenu("uvcalibrationstart")
             #endif
@@ -372,6 +374,19 @@ class Printer:
         else:
             if unboxing and unboxing.state not in [UnboxingState.FINISHED, UnboxingState.CANCELED]:
                 self.state = PrinterState.UNBOXING
+            #endif
+        #endif
+    #enddef
+
+    def _display_test_changed(self):
+        display_test = self.action_manager.display_test
+        if self.state == PrinterState.DISPLAY_TEST:
+            if not display_test or display_test.state != DisplayTest0State.FINISHED:
+                self.state = PrinterState.RUNNING
+            #endif
+        else:
+            if display_test and display_test.state != DisplayTest0State.FINISHED:
+                self.state = PrinterState.DISPLAY_TEST
             #endif
         #endif
     #enddef

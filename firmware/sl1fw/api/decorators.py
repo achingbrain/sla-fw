@@ -43,7 +43,9 @@ def state_checked(allowed_state: Union[Enum, List[Enum]]):
             if current not in allowed:
                 raise NotAvailableInState(self.state, allowed)
             return function(self, *args, **kwargs)
+
         return func
+
     return decor
 
 

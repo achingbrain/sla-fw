@@ -120,6 +120,7 @@ class Exposure0:
     Most of the functions should be deprecated and replaced by ones returning values in sane units.
     remaining minutes -> expected end timestamp, ...
     """
+
     # This class is an API to the exposure process. As the API is a draft it turned out to have many methods. Let's
     # disable the pylint warning about this, but keep in mind to reduce the interface in next API revision.
     # pylint: disable=too-many-public-methods

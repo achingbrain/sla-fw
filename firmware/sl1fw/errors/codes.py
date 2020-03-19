@@ -71,6 +71,10 @@ class ErrorCode(Enum):
     GENERAL_FAILED_TO_MQTT_SEND = make_code(ErrorClass.CONNECTIVITY, 1)
     GENERAL_FAILED_UPDATE_CHANNEL_SET = make_code(ErrorClass.SYSTEM, 13)
     GENERAL_FAILED_UPDATE_CHANNEL_GET = make_code(ErrorClass.SYSTEM, 14)
+    GENERAL_NOT_CONNECTED_TO_NETWORK = make_code(ErrorClass.CONNECTIVITY, 2)
+    GENERAL_CONNECTION_FAILED = make_code(ErrorClass.CONNECTIVITY, 3)
+    GENERAL_DOWNLOAD_FAILED = make_code(ErrorClass.CONNECTIVITY, 4)
+    GENERAL_NOT_ENOUGH_INTERNAL_SPACE = make_code(ErrorClass.SYSTEM, 16)
 
     # Exposure error codes
     EXPOSURE_TILT_FAILURE = make_code(ErrorClass.MECHANICAL, 10)

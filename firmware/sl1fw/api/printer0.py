@@ -5,6 +5,7 @@
 
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-public-methods
+# pylint: disable=too-many-instance-attributes
 
 from __future__ import annotations
 
@@ -18,15 +19,26 @@ from deprecated import deprecated
 from pydbus.generic import signal
 
 from sl1fw import defines
-from sl1fw.api.decorators import dbus_api, state_checked, cached, auto_dbus, DBusObjectPath, wrap_variant_dict, \
-    wrap_exception, last_error
+from sl1fw.api.decorators import (
+    dbus_api,
+    state_checked,
+    cached,
+    auto_dbus,
+    DBusObjectPath,
+    wrap_variant_dict,
+    wrap_exception,
+    last_error,
+)
 from sl1fw.api.display_test0 import DisplayTest0
+from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
+from sl1fw.errors.exceptions import ReprintWithoutHistory
 from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
-from sl1fw.errors.exceptions import ReprintWithoutHistory
+from sl1fw.state_actions.examples import Examples
 from sl1fw.states.display import DisplayState
+from sl1fw.states.examples import ExamplesState
 from sl1fw.states.printer import PrinterState
 
 if TYPE_CHECKING:
@@ -38,6 +50,7 @@ class Printer0State(Enum):
     """
     General printer state enumeration
     """
+
     INITIALIZING = 0
     IDLE = 1
     UNBOXING = 2
@@ -68,6 +81,7 @@ class Printer0:
         PrinterState.UPDATING: Printer0State.UPDATE,
         PrinterState.PRINTING: Printer0State.PRINTING,
         PrinterState.UNBOXING: Printer0State.UNBOXING,
+        PrinterState.DISPLAY_TEST: Printer0State.DISPLAY_TEST,
     }
 
     DISPLAY_STATE_TO_STATE = {
@@ -94,7 +108,9 @@ class Printer0:
     def __init__(self, printer: Printer):
         self._last_exception: Optional[Exception] = None
         self.printer = printer
-        self._display_test_registration = None
+        self._examples: Optional[Examples] = None
+        self._examples0: Optional[Examples0] = None
+        self._examples_registration = None
         self._unpacking = None
         self._wizard = None
         self._calibration = None
@@ -118,9 +134,6 @@ class Printer0:
 
         if self.printer.display.state in self.DISPLAY_STATE_TO_STATE:
             return self.DISPLAY_STATE_TO_STATE[self.printer.display.state].value
-
-        if self._display_test_registration:
-            return Printer0State.DISPLAY_TEST.value
 
         return Printer0State.IDLE.value
 
@@ -553,7 +566,6 @@ class Printer0:
         return self.printer.runtime_config.factory_mode
 
     @auto_dbus
-    @last_error
     @state_checked([Printer0State.IDLE, Printer0State.DISPLAY_TEST])
     def display_test(self) -> DBusObjectPath:
         """
@@ -561,20 +573,38 @@ class Printer0:
 
         :return: Display test object path
         """
-        # If test is already pending just return test object
-        if self._display_test_registration:
-            return DBusObjectPath(DisplayTest0.DBUS_PATH)
-
-        display_test = DisplayTest0(self.printer.display, self._clear_display_test)
-        self._display_test_registration = pydbus.SystemBus().publish(DisplayTest0.__INTERFACE__,
-                                                                     (DisplayTest0.DBUS_PATH, display_test))
-        self._state_update()
+        self.printer.action_manager.start_display_test(
+            self.printer.hw, self.printer.hwConfig, self.printer.screen, self.printer.runtime_config
+        )
         return DBusObjectPath(DisplayTest0.DBUS_PATH)
 
-    def _clear_display_test(self):
-        self._display_test_registration.unpublish()
-        self._display_test_registration = None
-        self._state_update()
+    @auto_dbus
+    @state_checked([Printer0State.IDLE])
+    def download_examples(self) -> DBusObjectPath:
+        """
+        Initiate examples download
+
+        :return: Download object path
+        """
+        # Examples download in progress, just return existing object
+        if self._examples and self._examples.state not in ExamplesState.get_finished():
+            return DBusObjectPath(Examples0.DBUS_PATH)
+
+        # Unregister existing instance and join examples thread
+        if self._examples_registration:
+            self._examples_registration.unpublish()
+            self._examples_registration = None
+        if self._examples:
+            self._examples.join()
+
+        # Initiate new examples download
+        self._examples = Examples(self.printer.inet)
+        self._examples0 = Examples0(self._examples)
+        self._examples_registration = pydbus.SystemBus().publish(
+            Examples0.__INTERFACE__, (Examples0.DBUS_PATH, self._examples0)
+        )
+        self._examples.start()
+        return DBusObjectPath(Examples0.DBUS_PATH)
 
     @auto_dbus
     @last_error
@@ -678,8 +708,9 @@ class Printer0:
         return Exposure0.dbus_path(expo.instance_id)
 
     @auto_dbus
+    @property
     @last_error
-    def get_current_exposure(self) -> DBusObjectPath:
+    def current_exposure(self) -> DBusObjectPath:
         """
         Get current exposure object DBus path
 
@@ -688,6 +719,12 @@ class Printer0:
         if not self.printer.action_manager.exposure:
             return DBusObjectPath("/")
         return Exposure0.dbus_path(self.printer.action_manager.exposure.instance_id)
+
+    @auto_dbus
+    @last_error
+    @deprecated(reason="Use current_exposure property")
+    def get_current_exposure(self) -> DBusObjectPath:
+        return self.current_exposure
 
     @auto_dbus
     @property
