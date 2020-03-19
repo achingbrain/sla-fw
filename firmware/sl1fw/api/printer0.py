@@ -578,26 +578,29 @@ class Printer0:
 
     @auto_dbus
     @last_error
-    def wizard(self):
+    @state_checked(Printer0State.IDLE)
+    def wizard(self) -> DBusObjectPath:
         """
         Initiate wizard test object
 
-        NOT IMPLEMENTED
+        Implemented by page transition. No wizard object available, yet.
 
-        :return: Wizard object path
+        :return: Wizard object path - currently only "/" string
         """
-        raise NotImplementedError
+        self.printer.display.forcePage("wizardinit")
+        return DBusObjectPath("/")
 
+    # pylint: disable=no-self-use
     @auto_dbus
     @last_error
-    def update_firmware(self):
+    @state_checked(Printer0State.IDLE)
+    def update_firmware(self, fw_file: str):
         """
         Initiate firmware update
 
-        NOT IMPLEMENTED
+        Pass-through to Rauc install. Only works when printer in idle state.
         """
-        # TODO: Do we need to have this here? If we can do update while printing we do not need to care.
-        raise NotImplementedError
+        pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"].Install(fw_file)
 
     @auto_dbus
     @last_error
@@ -611,13 +614,17 @@ class Printer0:
 
     @auto_dbus
     @last_error
-    def enter_admin(self) -> None:
+    @state_checked([Printer0State.IDLE, Printer0State.PRINTING])
+    def enter_admin(self) -> DBusObjectPath:
         """
         Initiate admin mode
 
-        NOT IMPLEMENTED
+        Implemented by page transition. No admin object available, yet.
+
+        :return: Admin object path - currently only "/" string
         """
-        raise NotImplementedError
+        self.printer.display.forcePage("admin")
+        return DBusObjectPath("/")
 
     @auto_dbus
     @last_error

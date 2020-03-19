@@ -3,18 +3,19 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# TODO: Fix following pylint problems
-# pylint: disable=too-few-public-methods
-
 from __future__ import annotations
 
 import functools
 from typing import Any
+from typing import TYPE_CHECKING
 
 from pydbus.generic import signal
 
 from sl1fw.api.decorators import auto_dbus, dbus_api
 from sl1fw.libConfig import HwConfig
+
+if TYPE_CHECKING:
+    from sl1fw.libHardware import Hardware
 
 
 def wrap_hw_config(cls: Config0):
@@ -88,9 +89,10 @@ class Config0:
 
     PropertiesChanged = signal()
 
-    def __init__(self, hw_config: HwConfig):
-        self.hw_config = hw_config
-        self.hw_config.add_onchange_handler(self._on_change)
+    def __init__(self, hw_config: HwConfig, hw: Hardware):
+        self._hw_config = hw_config
+        self._hw = hw
+        self._hw_config.add_onchange_handler(self._on_change)
 
     @auto_dbus
     def save(self) -> None:
@@ -99,12 +101,21 @@ class Config0:
 
         :return: None
         """
-        self.hw_config.write()
+        self._hw_config.write()
+
+    @auto_dbus
+    def update_motor_sensitivity(self) -> None:
+        """
+        Write configured motor sensitivity to Motion Controller
+
+        :return: None
+        """
+        self._hw.updateMotorSensitivity(self._hw_config.tiltSensitivity, self._hw_config.towerSensitivity)
 
     def _on_change(self, key: str, _: Any):
         if key in self.CHANGED_MAP:
             for changed in self.CHANGED_MAP[key]:
-                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.hw_config, key)}, [])
+                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self._hw_config, key)}, [])
 
     CHANGED_MAP = {
         "screwMm": {"microStepsMM"},

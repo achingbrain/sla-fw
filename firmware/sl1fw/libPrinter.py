@@ -105,7 +105,7 @@ class Printer:
 
         self.logger.debug("Registering config D-Bus services")
         self.system_bus = SystemBus()
-        self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hwConfig))
+        self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hwConfig, self.hw))
 
         self.logger.debug("Initializing libDisplay")
         self.display = Display(self.hwConfig, devices, self.hw, self.inet, self.screen, self.runtime_config,
