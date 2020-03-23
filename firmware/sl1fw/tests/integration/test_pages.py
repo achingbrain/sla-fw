@@ -290,7 +290,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("back")
         self.waitPage("printpreviewswipe")
         self.press("cont")
-        self.waitPage("wait", timeout_sec=120)  # checks
+        self.waitPage("preprintchecks", timeout_sec=120)  # checks
         self.waitPage("print", timeout_sec=30)  # printing
         self.waitPage("wait", timeout_sec=240)  # moving platform to the top
         self.waitPage("finished", timeout_sec=30)
