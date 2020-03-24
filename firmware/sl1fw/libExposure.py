@@ -814,7 +814,6 @@ class Exposure:
         self.position = 0
         self.actualLayer = 0
         self.slowLayersDone = 0
-        self.totalHeight = None
         self.printStartTime = 0
         self.printTime = 0
         self.state = ExposureState.READING_DATA
@@ -842,6 +841,10 @@ class Exposure:
         else:
             raise ProjectFailure(result)
         #endif
+
+        # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
+        self.totalHeight = (self.project.totalLayers - 1) * self.hwConfig.calcMM(
+            self.project.layerMicroSteps) + self.hwConfig.calcMM(self.project.layerMicroStepsFirst)
 
         self.logger.debug("Created new exposure object id: %s", self.instance_id)
     #enddef
@@ -914,10 +917,6 @@ class Exposure:
     def prepare(self):
         self.hw.setTowerProfile('layer')
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
-
-        # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)
-        self.totalHeight = (self.project.totalLayers - 1) * self.hwConfig.calcMM(
-            self.project.layerMicroSteps) + self.hwConfig.calcMM(self.project.layerMicroStepsFirst)
 
         self.screen.getImgBlack()
         self.hw.uvLedPwm = self.hwConfig.uvPwm

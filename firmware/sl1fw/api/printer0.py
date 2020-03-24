@@ -768,3 +768,14 @@ class Printer0:
         if path:
             return str(path)
         return ""
+
+    @auto_dbus
+    @property
+    @last_error
+    def resin_tank_capacity_ml(self) -> float:
+        """
+        Resin tank capacity in milliliters
+
+        :return: Resin tank capacity as float in milliliters
+        """
+        return defines.resinMaxVolume

@@ -305,7 +305,7 @@ class Exposure0:
     @property
     @last_error
     @deprecated(reason="Use layer_height_first_nm", action="once")
-    def layer_height_first_mm(self) -> int:
+    def layer_height_first_mm(self) -> float:
         """
         Height of the first layer
 
@@ -328,7 +328,7 @@ class Exposure0:
     @property
     @last_error
     @deprecated(reason="Use layer_height_nm", action="once")
-    def layer_height_mm(self) -> int:
+    def layer_height_mm(self) -> float:
         """
         Height of the standard layer
 
@@ -374,7 +374,7 @@ class Exposure0:
     @property
     @last_error
     @deprecated(reason="Use total_nm", action="once")
-    def total_mm(self) -> int:
+    def total_mm(self) -> float:
         """
         Model height
 
@@ -454,6 +454,19 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
+    def resin_measured_ml(self) -> float:
+        """
+        Amount of resin measured during last measurement
+
+        :return: Resin volume in milliliters, or -1 if not measured yet
+        """
+        if self.exposure.resinVolume:
+            return self.exposure.resinVolume
+        return -1
+
+    @auto_dbus
+    @property
+    @last_error
     def total_resin_required_ml(self) -> float:
         """
         Total resin required to finish the project
@@ -528,9 +541,11 @@ class Exposure0:
         """
         End of current layer exposure
 
-        :return: Timestamp as float
+        :return: Timestamp as float, or -1 of no layer exposed to UV
         """
-        return self.exposure.exposure_end.timestamp()
+        if self.exposure.exposure_end:
+            return self.exposure.exposure_end.timestamp()
+        return -1
 
     @auto_dbus
     @property
