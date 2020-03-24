@@ -1108,8 +1108,8 @@ class Hardware:
     #enddef
 
     @staticmethod
-    def calcPercVolume(volume):
-        return int(ceil(volume * 0.05) * 10)
+    def calcPercVolume(volume_ml):
+        return 10 * ceil(10 * volume_ml / defines.resinMaxVolume)
     #enddef
 
 
