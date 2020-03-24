@@ -27,6 +27,7 @@ wizardDataFile = factoryMountPoint / wizardDataFilename
 uvCalibDataFilename = "uvcalib_data.toml"
 uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename
 uvCalibDataPath = configDir / uvCalibDataFilename
+uvCalibDuration = 180 # 3 minutes countdown
 
 perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 

@@ -126,28 +126,6 @@ class PageUvCalibrationBase(Page):
     #enddef
 
 
-    def checkPlacemet(self):
-        retc = self.uvmeter.checkPlace(self.display.screen.inverse)
-        if retc:
-            errors = {
-                    UvMeterState.ERROR_COMMUNICATION : _("Communication with the UV LED meter has failed.\n\n"
-                        "Check the connection and try again."),
-                    UvMeterState.ERROR_TRANSLUCENT : _("The UV LED meter detected some light on a dark display. "
-                        "This means there is a light 'leak' under the UV meter, or "
-                        "your display does not block the UV light enough.\n\n"
-                        "Please check the UV meter placement on the screen or "
-                        "replace the exposure display."),
-                    UvMeterState.ERROR_INTENSITY : _("The UV LED meter failed to read expected UV light intensity.\n\n"
-                        "Please check the UV meter placement on the screen."),
-                    }
-            self.display.pages['error'].setParams(text = errors.get(retc, _("Unknown UV LED meter error code: %d" % retc)))
-            self.off()
-            return False
-        #endif
-
-        return True
-    #enddef
-
     def networkButtonRelease(self):
         self.logger.debug("Network control disabled in uvcalibration")
     #enddef
@@ -209,7 +187,6 @@ class PageUvCalibration(PageUvCalibrationBase):
             'text' : text,
             'imageName' : "selftest-prusa_logo.jpg"})   #FIXME replace with proper image
         super(PageUvCalibration, self).show()
-        self.display.hw.beepRepeat(1)
     #enddef
 
 
@@ -266,11 +243,16 @@ class PageUvCalibration(PageUvCalibrationBase):
         self.display.hw.tiltLayerUpWait()
 
         if not self.checkUVMeter():
-            self.allOff()
+            self.off()
             self.display.state = DisplayState.IDLE
             return "error"
         #endif
         self.warmUp()
+        if not self.checkPlacement():
+            self.off()
+            self.display.state = DisplayState.IDLE
+            return "error"
+        #endif
         return PageUVCalibrateCenter.Name
     #enddef
 
@@ -321,6 +303,25 @@ class PageUvCalibration(PageUvCalibrationBase):
         self.display.hw.uvLedPwm = self.getMinPwm()
     #enddef
 
+    def checkPlacement(self):
+        self.showItems(line1 = _("Checking UV meter placement on the screen"), line2 = _("Please wait..."))
+        retc = self.uvmeter.checkPlace(self.display.screen.inverse)
+        if retc:
+            errors = {
+                    UvMeterState.ERROR_COMMUNICATION : _("Communication with the UV LED meter has failed.\n\n"
+                        "Check the connection and try again."),
+                    UvMeterState.ERROR_TRANSLUCENT : _("The UV LED meter detected some light on a dark display. "
+                        "This means there is a light 'leak' under the UV meter, or "
+                        "your display does not block the UV light enough.\n\n"
+                        "Please check the UV meter placement on the screen or "
+                        "replace the exposure display."),
+                    UvMeterState.ERROR_INTENSITY : _("The UV LED meter failed to read expected UV light intensity.\n\n"
+                        "Please check the UV meter placement on the screen."),
+                    }
+            self.display.pages['error'].setParams(text = errors.get(retc, _("Unknown UV LED meter error code: %d" % retc)))
+            return False
+        #endif
+        return True
 #endclass
 
 
@@ -349,32 +350,28 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
 
 
     def show(self):
-        self.showItems(line1 = _("Checking UV meter placement on the screen"), line2 = _("Please wait..."))
-        if not self.checkPlacemet():
-            return "error"
-        #endif
         self.intensity = None
         self.minValue = None
         self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
         self.display.uvcalibData = None
-
-        if self.Name == PageUVCalibrateCenter.Name:
-            self.showItems(line1 = _("Calibrating UV LED power in the center of the print display"))
-        else:
-            self.showItems(line1 = _("Calibrating UV LED power on the edges of the print display"))
 
         # TODO Concurent.futures would allow us to pass errors as exceptions
         self.result = None
         self.thread = Thread(target = self.calibrate_thread)
         self.thread.start()
 
-        for countdown in range(self.display.hwConfig.uvWarmUpTime, 0, -1):
-            if self.result == self.ERROR_DONE:
-                break
-            self.showItems(line2 = ngettext("Remaining %d second",
-                "Remaining %d seconds", countdown) % countdown)
-            sleep(1)
-        #endfor
+        if self.Name == PageUVCalibrateCenter.Name:
+            self.showItems(line1 = _("Calibrating UV LED power in the center of the print display"))
+            for countdown in range(defines.uvCalibDuration, 0, -1):
+                if self.result == self.ERROR_DONE:
+                    break
+                self.showItems(line2 = ngettext("Remaining %d second",
+                    "Remaining %d seconds", countdown) % countdown)
+                sleep(1)
+            #endfor
+        else:
+            self.showItems(line1 = _("Calibrating UV LED power on the edges of the print display"), line2 = _("Please wait..."))
+        #endif
     #enddef
 
 
@@ -519,6 +516,8 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
 
 
     def calibrate(self):
+        self.display.screen.getImgBlack()
+        self.display.screen.inverse()
         maxpwm = self.getMaxPwm()
         # check PWM value from previous step
         self.pwm = self.display.hw.uvLedPwm
@@ -560,7 +559,7 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
 
 
 @page
-class PageUvCalibrationConfirm(Page):
+class PageUvCalibrationConfirm(PageUvCalibrationBase):
     Name = "uvcalibrationconfirm"
 
     def __init__(self, display):
@@ -575,7 +574,7 @@ class PageUvCalibrationConfirm(Page):
 
 
     def prepare(self):
-        self.allOff()
+        self.off()
     #enddef
 
 
@@ -666,7 +665,7 @@ class PageUvCalibrationConfirm(Page):
 #endclass
 
 @page
-class PageUvCalibrationCancel(Page):
+class PageUvCalibrationCancel(PageUvCalibrationBase):
     Name = "uvcalibrationcancel"
 
     def __init__(self, display):
@@ -687,7 +686,7 @@ class PageUvCalibrationCancel(Page):
 
     def yesButtonRelease(self):
         self.display.state = DisplayState.IDLE
-        self.allOff()
+        self.off()
         return "_EXIT_"
     #endif
 
