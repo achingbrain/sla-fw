@@ -121,6 +121,8 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         self.printer0.enable_resin_sensor(False)
         self.assertEqual(self.printer0.cover_state, False)
         self.assertEqual(self.printer0.power_switch_state, False)
+        self.assertTrue(self.printer0.factory_mode)
+        self.assertTrue(self.printer0.admin_enabled)
 
         # self.printer0.display_test()
         # self.printer0.wizard()

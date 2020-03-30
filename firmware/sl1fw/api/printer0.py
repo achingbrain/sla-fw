@@ -779,3 +779,14 @@ class Printer0:
         :return: Resin tank capacity as float in milliliters
         """
         return defines.resinMaxVolume
+
+    @auto_dbus
+    @property
+    @last_error
+    def admin_enabled(self) -> bool:
+        """
+        Whenever the user has admin access (show admin)
+
+        :return: True if admin enabled, false otherwise
+        """
+        return self.printer.runtime_config.show_admin
