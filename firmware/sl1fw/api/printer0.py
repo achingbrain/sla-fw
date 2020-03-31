@@ -32,7 +32,7 @@ from sl1fw.api.decorators import (
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
-from sl1fw.errors.exceptions import ReprintWithoutHistory
+from sl1fw.errors.exceptions import ReprintWithoutHistory, AdminNotAvailable
 from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
@@ -653,6 +653,9 @@ class Printer0:
 
         :return: Admin object path - currently only "/" string
         """
+        if not self.printer.runtime_config.show_admin:
+            raise AdminNotAvailable()
+
         self.printer.display.forcePage("admin")
         return DBusObjectPath("/")
 

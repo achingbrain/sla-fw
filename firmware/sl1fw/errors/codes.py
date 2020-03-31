@@ -75,6 +75,7 @@ class ErrorCode(Enum):
     GENERAL_CONNECTION_FAILED = make_code(ErrorClass.CONNECTIVITY, 3)
     GENERAL_DOWNLOAD_FAILED = make_code(ErrorClass.CONNECTIVITY, 4)
     GENERAL_NOT_ENOUGH_INTERNAL_SPACE = make_code(ErrorClass.SYSTEM, 16)
+    GENERAL_ADMIN_NOT_AVAILABLE = make_code(ErrorClass.SYSTEM, 17)
 
     # Exposure error codes
     EXPOSURE_TILT_FAILURE = make_code(ErrorClass.MECHANICAL, 10)

@@ -63,3 +63,8 @@ class DBusMappingException(PrinterException):
 @with_code(ErrorCode.GENERAL_REPRINT_WITHOUT_HISTORY)
 class ReprintWithoutHistory(PrinterException):
     pass
+
+
+@with_code(ErrorCode.GENERAL_ADMIN_NOT_AVAILABLE)
+class AdminNotAvailable(PrinterException):
+    pass

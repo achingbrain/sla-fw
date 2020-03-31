@@ -6,13 +6,13 @@
 from __future__ import annotations
 
 import functools
-from typing import Any
+from typing import Any, Dict
 from typing import TYPE_CHECKING
 
 from pydbus.generic import signal
 
-from sl1fw.api.decorators import auto_dbus, dbus_api
-from sl1fw.libConfig import HwConfig
+from sl1fw.api.decorators import auto_dbus, dbus_api, wrap_variant_dict
+from sl1fw.libConfig import HwConfig, Value, NumericValue, ListValue, TextValue
 
 if TYPE_CHECKING:
     from sl1fw.libHardware import Hardware
@@ -90,9 +90,9 @@ class Config0:
     PropertiesChanged = signal()
 
     def __init__(self, hw_config: HwConfig, hw: Hardware):
-        self._hw_config = hw_config
+        self.hw_config = hw_config
         self._hw = hw
-        self._hw_config.add_onchange_handler(self._on_change)
+        self.hw_config.add_onchange_handler(self._on_change)
 
     @auto_dbus
     def save(self) -> None:
@@ -101,7 +101,7 @@ class Config0:
 
         :return: None
         """
-        self._hw_config.write()
+        self.hw_config.write()
 
     @auto_dbus
     def update_motor_sensitivity(self) -> None:
@@ -110,12 +110,52 @@ class Config0:
 
         :return: None
         """
-        self._hw.updateMotorSensitivity(self._hw_config.tiltSensitivity, self._hw_config.towerSensitivity)
+        self._hw.updateMotorSensitivity(self.hw_config.tiltSensitivity, self.hw_config.towerSensitivity)
+
+    @auto_dbus
+    @property
+    @wrap_variant_dict
+    def constraints(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Configuration constraints
+
+        Provides dictionary containing configuration value constraints. The dictionary is uses value names as keys and
+        values are dictionaries holding constraint names as keys and constraint values as values. Example:
+
+        {
+            'stirringMoves': {'min': 1, 'max': 10},
+            'stirringDelay': {'max': 300},
+            'towerSensitivity': {'min': -2, 'max': 2},
+            ...
+        }
+
+        :return: Config settings constraints as dictionary
+        """
+        values = self.hw_config.get_values()
+        return {
+            name: self._process_value(value)
+            for name, value in values.items()
+            if not name.startswith("raw_") and self._process_value(value)
+        }
+
+    @staticmethod
+    def _process_value(value: Value):
+        ret = {}
+        if isinstance(value, NumericValue):
+            if value.min:
+                ret["min"] = value.min
+            if value.max:
+                ret["max"] = value.max
+        if isinstance(value, ListValue):
+            ret["length"] = value.length
+        if isinstance(value, TextValue):
+            ret["regex"] = value.regex
+        return ret
 
     def _on_change(self, key: str, _: Any):
         if key in self.CHANGED_MAP:
             for changed in self.CHANGED_MAP[key]:
-                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self._hw_config, key)}, [])
+                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.hw_config, key)}, [])
 
     CHANGED_MAP = {
         "screwMm": {"microStepsMM"},

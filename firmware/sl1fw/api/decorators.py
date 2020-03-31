@@ -7,7 +7,7 @@ import functools
 from dataclasses import is_dataclass, asdict
 from enum import Enum
 from time import monotonic
-from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints
+from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints # pylint: disable=unused-import
 
 from pydbus import Variant
 
@@ -55,7 +55,7 @@ def range_checked(minimum, maximum):
 
     :param minimum: Minimal allowed value
     :param maximum: Maximal allowed value
-    :return: Decorathed method
+    :return: Decorated method
     """
 
     def decor(func):
@@ -139,32 +139,35 @@ def auto_dbus(func):
     return manual_dbus(dbus)(func)
 
 
-def python_to_dbus_type(python_type: Any) -> str:
-    type_map = {
-        int: "i",
-        float: "d",
-        bool: "b",
-        str: "s",
-        List[str]: "as",
-        List[int]: "ai",
-        List[DBusObjectPath]: "ao",
-        List[List[int]]: "aai",
-        Dict[int, int]: "a{ii}",
-        Dict[str, int]: "a{si}",
-        Dict[str, str]: "a{ss}",
-        Dict[str, float]: "a{sd}",
-        Dict[str, Dict[str, int]]: "a{sa{si}}",
-        Tuple[int, int]: "(ii)",
-        Tuple[int, str, int]: "(isi)",
-        DBusObjectPath: "o",
-        List[Tuple[str, Dict[str, Any]]]: "a(sa{sv})",
-        Dict[str, Any]: "a{sv}",
-        List[Dict[str, Any]]: "aa{sv}",
-    }
+PYTHON_TO_DBUS_TYPE = {
+    int: "i",
+    float: "d",
+    bool: "b",
+    str: "s",
+    DBusObjectPath: "o",
+    Any: "v",
+}
 
-    if python_type not in type_map:
-        raise ValueError(f"Type: {python_type} has no defined mapping to dbus")
-    return type_map[python_type]
+
+def python_to_dbus_type(python_type: Any) -> str:
+    # TODO: Use typing.get_args and typing.get_origin once we adopt python 3.8
+    if python_type in PYTHON_TO_DBUS_TYPE:
+        return PYTHON_TO_DBUS_TYPE[python_type]
+
+    if hasattr(python_type, "__origin__"):
+        if python_type.__origin__ is dict:
+            key = python_to_dbus_type(python_type.__args__[0])
+            val = python_to_dbus_type(python_type.__args__[1])
+            return "a{" + key + val + "}"
+
+        if python_type.__origin__ is list:
+            return "a" + python_to_dbus_type(python_type.__args__[0])
+
+        if python_type.__origin__ is tuple:
+            items = [python_to_dbus_type(arg) for arg in python_type.__args__]
+            return "(" + "".join(items) + ")"
+
+    raise ValueError(f"Type: {python_type} has no defined mapping to dbus")
 
 
 def gen_method_dbus_spec(obj: Any, name: str) -> str:
@@ -188,10 +191,19 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
         raise DBusMappingException(f"Failed to generate dbus specification for {name}") from exception
 
 
+def wrap_dict_data(data):
+    if isinstance(data, Dict):
+        return {
+            key: wrap_dict_data(val) for key, val in data.items()
+        }
+
+    return Variant(python_to_dbus_type(type(data)), data)
+
+
 def wrap_variant_dict(func: Callable[[Any], Dict[str, Any]]):
     @functools.wraps(func)
     def wrap(*args, **kwargs) -> Dict[str, Variant]:
-        return {key: Variant(python_to_dbus_type(type(val)), val) for key, val in func(*args, **kwargs).items()}
+        return wrap_dict_data(func(*args, **kwargs))
 
     return wrap
 
