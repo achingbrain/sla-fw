@@ -185,7 +185,7 @@ class PageUvCalibration(PageUvCalibrationBase):
         #endif
         self.items.update({
             'text' : text,
-            'imageName' : "selftest-prusa_logo.jpg"})   #FIXME replace with proper image
+            'imageName' : "selftest-remove_tank.jpg"})
         super(PageUvCalibration, self).show()
     #enddef
 
@@ -199,7 +199,7 @@ class PageUvCalibration(PageUvCalibrationBase):
             continueFce = self.prepareUvCalibration,
             backFce = self.backButtonRelease,
             pageTitle = N_("UV LED calibration"),
-            imageName = "close_cover.jpg", #FIXME replace with proper image
+            imageName = "uvcalibration_insert_meter.jpg",
             text = _("1. Place the UV meter on the print display and connect it to the front USB.\n"
                 "2. Close the orange lid, don't open it! UV radiation is harmful!"))
         return "confirm"
@@ -207,6 +207,7 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def prepareUvCalibration(self):
+        self.ensureCoverIsClosed()
         self.display.state = DisplayState.CALIBRATION
         self.pageWait = PageWait(self.display, line1=_("Setting start positions"), line2=_("Please wait..."))
         self.pageWait.pageTitle = N_("UV LED calibration")
@@ -258,6 +259,7 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def checkUVMeter(self):
+        self.ensureCoverIsClosed()
         self.pageWait.showItems(line1 = _("Waiting for UV meter"))
         self.pageWait.show()
         for i in range(0, defines.uvLedMeterMaxWait_s, -1):
@@ -287,6 +289,7 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def warmUp(self):
+        self.ensureCoverIsClosed()
         self.pageWait.showItems(line1 = _("Warming up"))
 
         self.display.hw.startFans()
@@ -304,6 +307,7 @@ class PageUvCalibration(PageUvCalibrationBase):
     #enddef
 
     def checkPlacement(self):
+        self.ensureCoverIsClosed()
         self.showItems(line1 = _("Checking UV meter placement on the screen"), line2 = _("Please wait..."))
         retc = self.uvmeter.checkPlace(self.display.screen.inverse)
         if retc:
