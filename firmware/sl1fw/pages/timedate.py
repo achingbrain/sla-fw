@@ -100,9 +100,7 @@ class PageSetTimeBase(PageTimeDateBase):
 
 
     def settimeButtonSubmit(self, data):
-        self.timedate.SetNTP(False, False)
         self.timedate.SetTime(float(data['unix_timestamp_sec']) * 1000000, False, False)
-
         return "_BACK_"
     #enddef
 
