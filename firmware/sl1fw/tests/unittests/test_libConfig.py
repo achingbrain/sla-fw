@@ -169,6 +169,21 @@ class TestConfigValues(Sl1fwTestCase):
         s.factory_reset()
         self.assertEqual(5, s.a)
 
+    def test_alternated(self):
+        class SimpleConfig(Config):
+            a = IntValue(5, minimum=4, maximum=6)
+
+        # No alternated values
+        s = SimpleConfig()
+        s.read_text("a = 4")
+        self.assertEqual(4, s.a)
+        self.assertEqual({}, s.get_altered_values())
+
+        # Alternated value a
+        s.read_text("a = 10")
+        self.assertEqual(6, s.a)
+        self.assertEqual({"a": (6, 10)}, s.get_altered_values())
+
 
 class TestHardwareConfig(Sl1fwTestCase):
     def __init__(self, *args, **kwargs):

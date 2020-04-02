@@ -15,7 +15,7 @@ import re
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List, Dict, Type, Union, Any, Callable, Set
+from typing import Optional, List, Dict, Type, Union, Any, Callable, Set, Tuple
 from queue import Queue
 
 import toml
@@ -39,15 +39,23 @@ class BaseConfig(ABC):
         self._is_master = is_master
         self._lock = rwlock.RWLockRead()
         self._data_values: Dict[str, Any] = {}
+        self._data_raw_values: Dict[str, Any] = {}
         self._data_factory_values: Dict[str, Any] = {}
 
-    def get_lock(self) -> rwlock.RWLockRead:
+    @property
+    def lock(self) -> rwlock.RWLockRead:
         return self._lock
 
-    def get_data_values(self) -> Dict[str, Any]:
+    @property
+    def data_values(self) -> Dict[str, Any]:
         return self._data_values
 
-    def get_data_factory_values(self) -> Dict[str, Any]:
+    @property
+    def data_raw_values(self) -> Dict[str, Any]:
+        return self._data_raw_values
+
+    @property
+    def data_factory_values(self) -> Dict[str, Any]:
         return self._data_factory_values
 
     def lower_to_normal_map(self, key: str) -> Optional[str]:
@@ -83,15 +91,17 @@ class Value(property, ABC):
         """
         Config value constructor
 
-        :param value_type: List of types this value can be instance of. (used to specify [int, float], think twice before passing multiple values)
-        :param default: Default value. Can be function that receives configuration instance as the only parameter and returns default value.
+        :param value_type: List of types this value can be instance of. (used to specify [int, float], think twice
+         before passing multiple values)
+        :param default: Default value. Can be function that receives configuration instance as the only parameter and
+         returns default value.
         :param key: Key name in the configuration file. If set to None (default) it will be set to property name.
         :param factory: Whenever the value should be stored in factory configuration file.
         :param doc: Documentation string fro the configuration item
         """
 
         def getter(config: BaseConfig) -> value_type[0]:
-            with config.get_lock().gen_rlock():
+            with config.lock.gen_rlock():
                 return self.value_getter(config)
 
         def setter(config: BaseConfig, val: value_type[0]):
@@ -101,6 +111,7 @@ class Value(property, ABC):
 
         def deleter(config: BaseConfig):
             self.set_value(config, None)
+            self.set_raw_value(config, None)
 
         super().__init__(getter, setter, deleter)
         self.logger = logging.getLogger(__name__)
@@ -161,10 +172,24 @@ class Value(property, ABC):
         :param config: Config to read from
         :return: Value
         """
-        return config.get_data_values()[self.name]
+        return config.data_values[self.name]
 
     def set_value(self, config: BaseConfig, value: Any) -> None:
-        config.get_data_values()[self.name] = value
+        config.data_values[self.name] = value
+
+    def get_raw_value(self, config: BaseConfig) -> Any:
+        """
+        Get current raw (unadapted) value stored in configuration file
+
+        Data are read from Config instance as value instances are per config type.
+
+        :param config: Config to read from
+        :return: Value
+        """
+        return config.data_raw_values[self.name]
+
+    def set_raw_value(self, config: BaseConfig, value: Any) -> None:
+        config.data_raw_values[self.name] = value
 
     def get_factory_value(self, config: BaseConfig) -> Any:
         """
@@ -175,10 +200,10 @@ class Value(property, ABC):
         :param config: Config to read from
         :return: Value
         """
-        return config.get_data_factory_values()[self.name]
+        return config.data_factory_values[self.name]
 
     def set_factory_value(self, config: BaseConfig, value: Any) -> None:
-        config.get_data_factory_values()[self.name] = value
+        config.data_factory_values[self.name] = value
 
     def get_default_value(self, config: BaseConfig) -> Any:
         if not any(isinstance(self.default, t) for t in self.type) and isinstance(self.default, Callable) and config:
@@ -196,6 +221,7 @@ class Value(property, ABC):
         if self.key is None:
             self.key = name
         self.set_value(config, None)
+        self.set_raw_value(config, None)
         self.set_factory_value(config, None)
 
     def value_setter(
@@ -206,7 +232,8 @@ class Value(property, ABC):
 
         :param config: Config to read from
         :param val: New value to set (must have already correct type)
-        :param write_override: Set value even when config is read-only (!is_master) Used internally while reading config data from file.
+        :param write_override: Set value even when config is read-only (!is_master) Used internally while reading config
+         data from file.
         :param factory: Whenever to set factory value instead of normal value. Defaults to normal value
         :param dry_run: If set to true the value is not actually set. Used to check value consistency.
         """
@@ -229,6 +256,7 @@ class Value(property, ABC):
                 self.set_factory_value(config, adapted)
             else:
                 self.set_value(config, adapted)
+                self.set_raw_value(config, val)
         except (ValueError, ConfigException) as exception:
             raise ConfigException(f"Setting config value {self.name} to {val} failed") from exception
 
@@ -536,7 +564,7 @@ class ConfigWriter:
         :param: write Whenever to write configuration file
         """
         # Update values with write lock
-        with self._config.get_lock().gen_wlock():
+        with self._config.lock.gen_wlock():
             for key, val in self._changed.items():
                 if key in self._config.get_values():
                     self._config.get_values()[key].value_setter(self._config, val)
@@ -585,12 +613,12 @@ class Config(ValueConfig):
     # END is (?=\n|$) - positive lookahead, we want \n or $ to follow
     STRING_PATTERN = re.compile(
         r"\A(?!"  # NL(negative lookahead) in form (...|...|...)
-          r"\Atrue\Z|"  # NL part1 - true and end of the line or input
-          r"\Afalse\Z|"  # NL part2 - false and end of the line or input
-          r"\A[0-9.-]+\Z|"  # NL part3 - number at end of the line or input
-          r'\A".*"\Z|'  # NL part4 - string already contained in ""
-          r"\A\[ *(?:[0-9.-]+ *, *)+[0-9.-]+ *,? *]\Z"  # NL part4 - number list already in []
-          r")"  # end of NL
+        r"\Atrue\Z|"  # NL part1 - true and end of the line or input
+        r"\Afalse\Z|"  # NL part2 - false and end of the line or input
+        r"\A[0-9.-]+\Z|"  # NL part3 - number at end of the line or input
+        r'\A".*"\Z|'  # NL part4 - string already contained in ""
+        r"\A\[ *(?:[0-9.-]+ *, *)+[0-9.-]+ *,? *]\Z"  # NL part4 - number list already in []
+        r")"  # end of NL
         r"(.+)\Z"  # the matched string + positive lookahead for end
     )
     SURE_STRING_PATTERN = re.compile(
@@ -600,7 +628,6 @@ class Config(ValueConfig):
         r")"  # end of NL
         r"(.+)\Z"  # the matched string + positive lookahead for end
     )
-
 
     def __init__(
         self, file_path: Optional[Path] = None, factory_file_path: Optional[Path] = None, is_master: bool = False
@@ -745,7 +772,6 @@ class Config(ValueConfig):
                 elif val.file_key.lower() == name:
                     value_hint = val
 
-
             if isinstance(value_hint, BoolValue):
                 # Substitute on, off, yes, no with true and false
                 value = self.ON_YES_PATTERN.sub("true", value)
@@ -771,7 +797,7 @@ class Config(ValueConfig):
 
                 # Wrap possible strings in ""
                 value = self.STRING_PATTERN.sub(r'"\1"', value)
-            #endif
+            # endif
 
             lines.append(f"{name} = {value}")
         return "\n".join(lines)
@@ -847,6 +873,21 @@ class Config(ValueConfig):
             if val.get_factory_value(self) is not None:
                 return True
         return False
+
+    def get_altered_values(self) -> Dict[str, Tuple[Any, Any]]:
+        """
+        Get map of altered values
+
+        These values were adjusted from the values set in config according to limits set in the configuration
+        specification.
+
+        :return: String -> (adapted, raw) mapping.
+        """
+        return {
+            name: (value.get_value(self), value.get_raw_value(self))
+            for name, value in self.get_values().items()
+            if value.get_value(self) != value.get_raw_value(self)
+        }
 
 
 class HwConfig(Config):
@@ -960,9 +1001,15 @@ class HwConfig(Config):
     upAndDownExpoComp = IntValue(0, minimum=-10, maximum=300)
 
     # Fans & LEDs
-    fan1Rpm = IntValue(2000, minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[0], factory=True, doc="UV LED fan RPMs.")
-    fan2Rpm = IntValue(3300, minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[1], factory=True, doc="Blower fan RPMs.")
-    fan3Rpm = IntValue(1000, minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[2], factory=True, doc="Rear fan RPMs.")
+    fan1Rpm = IntValue(
+        2000, minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[0], factory=True, doc="UV LED fan RPMs."
+    )
+    fan2Rpm = IntValue(
+        3300, minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[1], factory=True, doc="Blower fan RPMs."
+    )
+    fan3Rpm = IntValue(
+        1000, minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[2], factory=True, doc="Rear fan RPMs."
+    )
     fan1Enabled = BoolValue(True, doc="UV LED fan status.")
     fan2Enabled = BoolValue(True, doc="Blower fan status.")
     fan3Enabled = BoolValue(True, doc="Rear fan status.")
@@ -1020,7 +1067,7 @@ class HwConfig(Config):
 
 
 class TomlConfig:
-    def __init__(self, filename = None):
+    def __init__(self, filename=None):
         self.logger = logging.getLogger(__name__)
         self.filename = filename
         self.data = {}
@@ -1047,7 +1094,7 @@ class TomlConfig:
         with open(self.filename, "w") as f:
             toml.dump(self.data, f)
 
-    def save(self, data = None, filename = None):
+    def save(self, data=None, filename=None):
         try:
             if data:
                 self.data = data
@@ -1082,8 +1129,9 @@ class RuntimeConfig:
     """
     Runtime printer configuration
     """
+
     show_admin: bool = False
-    fan_error_override:bool = False
-    check_cooling_expo:bool = True
+    fan_error_override: bool = False
+    check_cooling_expo: bool = True
     factory_mode: bool = False
     last_project_data: Optional[Dict] = None
