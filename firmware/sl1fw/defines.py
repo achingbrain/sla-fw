@@ -102,9 +102,7 @@ tiltCalibCurrent = 40
 fanStartStopTime = 10       # in secs
 fanWizardStabilizeTime = 30
 
-uvFanMaxRPM = 2700
-blowerFanMaxRPM = 3300
-rearFanMaxRPM = 5000
+fanMaxRPM = {0: 2700, 1: 3300, 2: 5000}
 fanMinRPM = 800
 
 minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some tolerance

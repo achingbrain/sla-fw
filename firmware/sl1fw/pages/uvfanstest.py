@@ -41,7 +41,7 @@ class PageUvFansTest(Page):
         self.ensureCoverIsClosed()
 
         # UV LED voltage comparation
-        pageWait = PageWait(self.display, line1 = _("UV LED check"))
+        pageWait = PageWait(self.display, line1 = _("UV LED check"), line2 = _("Please wait..."))
         pageWait.show()
 
         self.display.hw.uvLedPwm = 0
@@ -103,9 +103,9 @@ class PageUvFansTest(Page):
             #endif
 
             if fansWaitTime < self.display.hwConfig.uvWarmUpTime - countdown:
-                self.display.hw.getFansRpm()
-                for i in range(3):
-                    rpm[i].append(self.display.hw.fans[i].realRpm)
+                actualRpm = self.display.hw.getFansRpm()
+                for i in self.display.hw.fans:
+                    rpm[i].append(actualRpm[i])
                 #endfor
             #endif
             sleep(1)
@@ -114,15 +114,15 @@ class PageUvFansTest(Page):
 
         #evaluate fans data
         avgRpms = list()
-        self.display.hw.getFansError()
+        fanError = self.display.hw.getFansError()
         for i, fan in self.display.hw.fans.items(): #iterate over fans
-            if not rpm[i] == 0:
+            if len(rpm[i]) == 0:
                 rpm[i].append(fan.targetRpm)
             #endif
             avgRpm = sum(rpm[i]) / len(rpm[i])
-            if not fan.targetRpm - fanDiff <= avgRpm <= fan.targetRpm + fanDiff or fan.error:
+            if not fan.targetRpm - fanDiff <= avgRpm <= fan.targetRpm + fanDiff or fanError[i]:
                 self.logger.error("Fans raw RPM: %s", rpm)
-                self.logger.error("Fans error: %s", fan.error)
+                self.logger.error("Fans error: %s", fanError)
                 self.logger.error("Fans samples: %s", len(rpm[i]))
                 self.display.pages['error'].setParams(
                     text = _("RPM of %(fan)s not in range!\n\n"
@@ -133,7 +133,7 @@ class PageUvFansTest(Page):
                         % { 'fan' : fan.name,
                             'rpm' : str(min(rpm[i]))+"-"+str(max(rpm[i])) if len(rpm[i]) > 1 else "NA",
                             'avg' : round(avgRpm) if len(rpm[i]) > 1 else "NA",
-                            'fanError' : fan.error })
+                            'fanError' : fanError })
                 return "error"
             #endif
             avgRpms.append(avgRpm)

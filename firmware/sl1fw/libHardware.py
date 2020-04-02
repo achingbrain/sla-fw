@@ -54,21 +54,37 @@ def safe_call(default_value, exceptions):
 
 
 class Fan:
-    def __init__(self, name, targetRpm):
+    def __init__(self, name, maxRpm, defaultRpm, enabled):
         super().__init__()
-        self.fanName = name
-        self.targetRpm = targetRpm
-        self.enabled = False
-        self.mask = 0
-        self.error = False
-        self.realRpm = 0
-    #enddef
+        self.name = name
+        self.__minRpm = defines.fanMinRPM
+        self.__maxRpm = maxRpm
+        self.targetRpm = defaultRpm
+        self.__enabled = enabled
+        # TODO add periodic callback on the background
+        # self.__error = False
+        # self.__realRpm = 0
 
     @property
-    def name(self) -> str:
-        return _(self.fanName)
-    #enddef
-#endclass
+    def targetRpm(self) -> int:
+        return self.__targetRpm
+
+    @targetRpm.setter
+    def targetRpm(self, val):
+        self.__enabled = True
+        if val < self.__minRpm :
+            self.__targetRpm = self.__minRpm
+            self.__enabled = False
+        elif val > self.__maxRpm :
+            self.__targetRpm = self.__maxRpm
+        else:
+            self.__targetRpm = val
+
+    @property
+    def enabled(self) -> bool:
+        return self.__enabled
+
+    # TODO methods to save, load, reset to defaults
 
 
 class Hardware:
@@ -132,10 +148,10 @@ class Hardware:
         }
 
         self.fans = {
-                0 : Fan(N_("UV LED fan"), targetRpm = self.hwConfig.fan1Rpm),
-                1 : Fan(N_("blower fan"), targetRpm = self.hwConfig.fan2Rpm),
-                2 : Fan(N_("rear fan"), targetRpm = self.hwConfig.fan3Rpm),
-                }
+            0 : Fan(N_("UV LED fan"), defines.fanMaxRPM[0], self.hwConfig.fan1Rpm, self.hwConfig.fan1Enabled),
+            1 : Fan(N_("blower fan"), defines.fanMaxRPM[1], self.hwConfig.fan2Rpm, self.hwConfig.fan2Enabled),
+            2 : Fan(N_("rear fan"), defines.fanMaxRPM[2], self.hwConfig.fan3Rpm, self.hwConfig.fan3Enabled)
+        }
 
         self._sensorsNames = {
                 0 : N_("UV LED temperature"),
@@ -202,11 +218,6 @@ class Hardware:
 
     def initDefaults(self):
         self.motorsRelease()
-        self.setFansRpm({
-            0 : self.hwConfig.fan1Rpm,
-            1 : self.hwConfig.fan2Rpm,
-            2 : self.hwConfig.fan3Rpm,
-            })
         self.uvLedPwm = self.hwConfig.uvPwm
         self.powerLedPwm = self.hwConfig.pwrLedPwm
         self.resinSensor(False)
@@ -691,47 +702,32 @@ class Hardware:
 
 
     def startFans(self):
-        self.setFans({ 0 : True, 1 : True, 2 : True })
+        self.setFans(mask = { 0 : True, 1 : True, 2 : True })
     #enddef
 
 
     def stopFans(self):
-        self.setFans({ 0 : False, 1 : False, 2 : False })
+        self.setFans(mask = { 0 : False, 1 : False, 2 : False })
     #enddef
 
 
-    def setFans(self, fans = None):
-        if fans is None:
-            fans = dict()
-        #endif
-        for key in fans:
-            self.fans[key].enabled = fans[key]
-        #endfor
+    def setFans(self, mask):
         out = list()
-        for fan in self.fans.values():
-            out.append(fan.enabled)
+        for key in self.fans:
+            if self.fans[key].enabled and mask.get(key):
+                out.append(True)
+            else:
+                out.append(False)
         #endfor
+        self.mcc.do("!frpm", " ".join(str(fan.targetRpm) for fan in self.fans.values()))
         self.mcc.doSetBoolList("!fans", out)
-        self.mcc.doSetBoolList("!fmsk", out)
     #enddef
 
 
     def getFans(self, request = (0, 1, 2)):
-        fansStatus = self.getFansBits("?fans", request)
-        for key in request:
-            self.fans[key].enabled = fansStatus[key]
-        #endfor
-        return fansStatus
+        return self.getFansBits("?fans", request)
     #enddef
 
-
-    def getFanCheckMask(self, request = (0, 1, 2)):
-        fansMask = self.getFansBits("?fmsk", request)
-        for key in request:
-            self.fans[key].mask = fansMask[key]
-        #endfor
-        return fansMask
-    #enddef
 
     @safe_call({ 0: False, 1: False, 2: False }, (MotionControllerException, ValueError))
     def getFansError(self):
@@ -740,9 +736,6 @@ class Hardware:
             raise ValueError(f"'fans' not in state: {state}")
         #endif
         fansError = self.getFansBits("?fane", (0, 1, 2))
-        for key in fansError:
-            self.fans[key].error = fansError[key]
-        #endfor
         return fansError
     #enddef
 
@@ -761,33 +754,13 @@ class Hardware:
     #enddef
 
 
-    def setFansRpm(self, rpms):
-        for key, value in rpms.items():
-            if value < defines.fanMinRPM:
-                value = defines.fanMinRPM
-            #endif
-            self.fans[key].targetRpm = value
-        #endfor
-        self.mcc.do("!frpm", " ".join(str(fan.targetRpm) for fan in self.fans.values()))
-        self.setFans()
-    #enddef
-
-
     def getFansRpm(self, request = (0, 1, 2)):
         try:
             rpms = self.mcc.doGetIntList("?frpm", multiply = 1)
             if not rpms or len(rpms) != 3:
                 raise ValueError(f"RPMs count not match! ({rpms})")
             #endif
-            for idx in request:
-                try:
-                    self.fans[idx].realRpm = rpms[idx]
-                except Exception:
-                    self.logger.exception("exception:")
-                    return dict.fromkeys(request, 0)
-                #endtry
-            #endfor
-            return list(fan.realRpm for fan in self.fans.values())
+            return rpms
         except (MotionControllerException, ValueError):
             self.logger.exception("getFansRpm failed")
             return dict.fromkeys(request, 0)

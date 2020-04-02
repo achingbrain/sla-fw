@@ -199,30 +199,18 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertFalse(self.hw.checkState('fans'))
 
         self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
-        for key in range(3):
-            self.assertEqual(False, self.hw.fans[key].enabled)
+
         self.hw.startFans()
         self.assertEqual({0: True, 1: True, 2: True}, self.hw.getFans())
-        for key in range(3):
-            self.assertEqual(True, self.hw.fans[key].enabled)
 
         fans = {0: True, 1: False, 2: True}
         self.hw.setFans(fans)
-        self.assertEqual(fans, self.hw.getFans())
-        for key in fans:
-            self.assertEqual(fans[key], self.hw.fans[key].enabled)
+        self.assertEqual({0: True, 1: False, 2: True}, self.hw.getFans())
 
         self.hw.stopFans()
         self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
-        for key in range(3):
-            self.assertEqual(False, self.hw.fans[key].enabled)
         # TODO: Unreliable
         # self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
-
-        # Check mask
-        self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFanCheckMask())
-        for key in range(3):
-            self.assertEqual(False, self.hw.fans[key].mask)
 
         # RPMs
         # FIXME RPMs are not simulated
@@ -230,11 +218,39 @@ class TestLibHardware(Sl1fwTestCase):
         # self.hw.setFansRpm(rpms)
         # self.assertEqual(rpms, self.hw.getFansRpm())
 
+        # setters
+        self.assertEqual(len(fans), len(self.hw.fans))
+        for key in fans:
+            # max RPM
+            self.hw.fans[key].targetRpm = defines.fanMaxRPM[key]
+            self.assertEqual(defines.fanMaxRPM[key], self.hw.fans[key].targetRpm)
+            self.assertEqual(True, self.hw.fans[key].enabled)
+
+            # min RPM
+            self.hw.fans[key].targetRpm = defines.fanMinRPM
+            self.assertEqual(defines.fanMinRPM, self.hw.fans[key].targetRpm)
+            self.assertEqual(True, self.hw.fans[key].enabled)
+
+            # below min RPM (disabled)
+            self.hw.fans[key].targetRpm = defines.fanMinRPM - 1
+            self.assertEqual(defines.fanMinRPM, self.hw.fans[key].targetRpm)
+            self.assertEqual(False, self.hw.fans[key].enabled)
+
+        # override start by enabled
+        for key in fans:
+            self.hw.fans[key].targetRpm = defines.fanMaxRPM[key]
+        self.hw.startFans()
+        self.assertEqual({0: True, 1: True, 2: True}, self.hw.getFans())
+
+        for key in fans:
+            self.hw.fans[key].targetRpm = defines.fanMinRPM - 1
+        self.hw.startFans()
+        self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
+
         # RPMs
         rpms = self.hw.getFansRpm()
         for key, rpm in enumerate(rpms):
             self.assertGreaterEqual(rpm, 0)
-            self.assertGreaterEqual(self.hw.fans[key].realRpm, 0)
             # TODO: This is weak test, The simulated value seems random 0 - 20
 
         # Names

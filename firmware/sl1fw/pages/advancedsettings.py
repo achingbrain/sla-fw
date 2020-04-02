@@ -152,12 +152,13 @@ class PageAdvancedSettings(Page):
     #enddef
 
     @rear_fan_speed.setter
-    @value_saturate(defines.fanMinRPM, defines.rearFanMaxRPM)
+    @value_saturate(defines.fanMinRPM - 100, defines.fanMaxRPM[2])
     @item_updater(minLimit = defines.fanMinRPM)
     def rear_fan_speed(self, value):
-        self.configwrapper.fan3Rpm = value
-        self.display.hw.setFansRpm({ 2 : self.configwrapper.fan3Rpm })
-        self.display.hw.setFans({ 2 : True })
+        self.display.hw.fans[2].targetRpm = value
+        self.configwrapper.fan3Rpm = self.display.hw.fans[2].targetRpm
+        self.configwrapper.fan3Enabled = self.display.hw.fans[2].enabled
+        self.display.hw.setFans({2 : True})
     #enddef
 
 
@@ -215,7 +216,7 @@ class PageAdvancedSettings(Page):
             'tower_sensitivity': self.tower_sensitivity,
             'fast_tilt_limit': self.fast_tilt_limit,
             'tower_offset': "%+.3f" % self.tower_offset,
-            'rear_fan_speed': self.rear_fan_speed if self.rear_fan_speed >= defines.fanMinRPM else "OFF",
+            'rear_fan_speed': self.rear_fan_speed if self.display.hw.fans[2].enabled else "OFF",
             'auto_power_off': self.auto_power_off,
             'cover_check': self.cover_check,
             'resin_sensor': self.resin_sensor,
@@ -436,7 +437,7 @@ class PageAdvancedSettings(Page):
 
 
     def confirmChanges(self):
-        self.display.hw.setFans({ 2 : False })
+        self.display.hw.setFans({2 : False})
         if self.configwrapper.changed():
             self.display.pages['yesno'].setParams(
                     pageTitle = N_("Save changes?"),
@@ -458,7 +459,7 @@ class PageAdvancedSettings(Page):
                 #endif
             else:
                 # discard changes
-                self.display.hw.setFansRpm({ 2 : self.display.hwConfig.fan3Rpm })
+                self.display.hw.fans[2].targetRpm = self.display.hwConfig.fan3Rpm
             #endif
         #endif
     #enddef
