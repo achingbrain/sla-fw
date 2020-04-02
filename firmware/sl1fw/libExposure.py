@@ -294,6 +294,7 @@ class ExposureThread(threading.Thread):
             self.logger.exception("Exposure thread exception")
             self.expo.exception = exception
             self.expo.state = ExposureState.FAILURE
+            self.expo.hw.motorsRelease()
         #endtry
     #enddef
 
