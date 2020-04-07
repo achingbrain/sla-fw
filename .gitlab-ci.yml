@@ -3,6 +3,7 @@ image: prusa/sl1fw
 stages:
   - build
   - test
+  - i18n
   - deploy
 
 before_script:
@@ -34,10 +35,6 @@ pot:
   artifacts:
     paths:
       - sl1fw.pot
-  only:
-    refs:
-      - master
-      - /[0-9]*\.[0-9]*/
 
 sphinx:
   stage: build
@@ -79,12 +76,9 @@ pylint:
     - python3 -m pylint --persistent=n --jobs 0 --additional-builtins=_,N_,ngettext --max-line-length=120 --disable similarities,duplicate-code,fixme,missing-docstring --disable bad-continuation,bad-whitespace,invalid-name,bare-except,broad-except,line-too-long sl1fw
 
 i18n-complete:
-  stage: test
+  stage: i18n
   dependencies:
     - pot
-  only:
-    refs:
-      - /[0-9]*\.[0-9]*/
   script:
     - make --keep-going -C firmware/sl1fw/locales check
   allow_failure: true
