@@ -89,7 +89,7 @@ class PageUnboxingCoverClosed(PageUnboxingBase):
     def __init__(self, display: Display):
         super().__init__(display)
         self.pageUI = "wait"
-        self.pageTitle = N_("Wait")
+        self.pageTitle = N_("Please wait")
 
     def show(self):
         self.setItems(
@@ -105,7 +105,7 @@ class PageUnboxingMoving(PageUnboxingBase):
     def __init__(self, display: Display):
         super().__init__(display)
         self.pageUI = "wait"
-        self.pageTitle = N_("Wait")
+        self.pageTitle = N_("Please wait")
 
     def show(self):
         self.setItems(text=_("The printer is moving to allow for easier manipulation"))
