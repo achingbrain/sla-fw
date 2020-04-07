@@ -1383,6 +1383,7 @@ msgid ""
 msgstr ""
 "Poluzuj małą śrubę na wsporniku za pomocą klucza imbusowego. Uważaj, aby nie "
 "wykręcić jej całkowicie.\n"
+"\n"
 "Najstarsze wersje SL1 mogą mieć dwie śruby - zajrzyj do Podręcznika po "
 "więcej informacji."
 

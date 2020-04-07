@@ -98,7 +98,9 @@ msgid ""
 "\n"
 "Please check if temperature sensors are connected correctly."
 msgstr ""
-"%s nelze načíst. Zkontrolujte, zda jsou teplotní senzory správně zapojeny."
+"%s nelze načíst.\n"
+"\n"
+"Zkontrolujte, zda jsou teplotní senzory správně zapojeny."
 
 #: ../pages/fantest.py:35
 msgid "(fans are running)"
@@ -177,7 +179,7 @@ msgstr "Admin Menu"
 
 #: ../pages/about.py:44
 msgid "Admin not accessible"
-msgstr "Administrační rozhraní není dostupné."
+msgstr "Administrační rozhraní není dostupné"
 
 #: ../pages/advancedsettings.py:69
 msgid "Advanced Settings"
@@ -264,6 +266,10 @@ msgid ""
 msgstr ""
 "Tisk selhal kvůli nečekané chybě.\n"
 "\n"
+"SL1 dokončí tisk, pokud zrovna tiskne.\n"
+"\n"
+"Tiskárnu můžete vypnout stisknutím předního tlačítka napájení.\n"
+"\n"
 "Prosím, následujte instrukce v handbooku, kapitola 3.1, kde se dozvíte, jak "
 "uložit log soubor. Log soubor nám zašlete a pomozte nám tiskárnu vylepšit.\n"
 "\n"
@@ -290,7 +296,7 @@ msgstr ""
 
 #: ../libHardware.py:111
 msgid "An unknown issue has occured"
-msgstr "Došlo k neznámé chybě."
+msgstr "Došlo k neznámé chybě"
 
 #: ../libHardware.py:50
 msgid "Application flash checksum has failed"
@@ -345,11 +351,11 @@ msgstr "Otáčky bočního ventilátoru"
 
 #: ../libHardware.py:54
 msgid "Boot-section lock has failed"
-msgstr "Zámek bootovací sekce selhal."
+msgstr "Zámek bootovací sekce selhal"
 
 #: ../libHardware.py:51
 msgid "Bootloader flash checksum has failed"
-msgstr "Chyba kontrolního součtu pro flash bootloaderu."
+msgstr "Chyba kontrolního součtu pro flash bootloaderu"
 
 #: ../pages/calibration.py:592
 msgid "Calibrate UV?"
@@ -369,7 +375,7 @@ msgstr "Kalibrace výkonu UV LED"
 
 #: ../pages/uvcalibration.py:364
 msgid "Calibrating UV LED power in the center of the print display"
-msgstr "Kalibrace výkonu UV LED ve středu tiskového displeje."
+msgstr "Kalibrace výkonu UV LED ve středu tiskového displeje"
 
 #: ../pages/uvcalibration.py:373
 msgid "Calibrating UV LED power on the edges of the print display"
@@ -693,7 +699,7 @@ msgstr ""
 
 #: ../libHardware.py:106
 msgid "Communication with the motion controller has failed"
-msgstr "Chyba komunikace s motion controllerem."
+msgstr "Chyba komunikace s motion controllerem"
 
 #: ../pages/confirm.py:16 ../pages/confirm.py:27 ../pages/printstart.py:280
 msgid "Confirm"
@@ -730,11 +736,11 @@ msgstr "Připojování k UV LED měřáku"
 
 #: ../pages/uvcalibration.py:173
 msgid "Connecting to the UV LED meter"
-msgstr "Připojování k UV LED měřáku."
+msgstr "Připojování k UV LED měřáku"
 
 #: ../pages/uvcalibration.py:297
 msgid "Connecting to the UV meter"
-msgstr "Připojování k UV LED měřáku."
+msgstr "Připojování k UV LED měřáku"
 
 #: ../pages/network.py:132
 msgid "Connection failed!"
@@ -758,7 +764,9 @@ msgid ""
 "\n"
 "Re-export the file and try again."
 msgstr ""
-"Soubor obsahuje poškozená data. Zkuste jej exportovat znovu a opakujte akci."
+"Soubor obsahuje poškozená data.\n"
+"\n"
+"Zkuste jej exportovat znovu a opakujte akci."
 
 #: ../pages/setup.py:125
 msgid "Cover check"
@@ -812,8 +820,10 @@ msgid ""
 "CAUTION: This may lead to unwanted exposure to UV light. This action is not "
 "recommended!"
 msgstr ""
-"Vypnout senzor zavření krytu? VAROVÁNÍ: Může dojít k nežádoucímu osvitu "
-"resinu ve vaničce (např. slunečním světlem). Tato akce není doporučena!"
+"Vypnout senzor zavření krytu?\n"
+"\n"
+"VAROVÁNÍ: Může dojít k nežádoucímu osvitu resinu ve vaničce (např. slunečním "
+"světlem). Tato akce není doporučena!"
 
 #: ../pages/advancedsettings.py:371
 msgid ""
@@ -902,8 +912,9 @@ msgid ""
 "\n"
 "Wrong settings will damage your printer!"
 msgstr ""
-"Skutečně chcete zpřístupnit administrátorské rozhraní? Špatné nastavení může "
-"poškodit vaši tiskárnu."
+"Skutečně chcete zpřístupnit administrátorské rozhraní?\n"
+"\n"
+"Špatné nastavení může poškodit vaši tiskárnu!"
 
 #: ../pages/factoryreset.py:29
 msgid ""
@@ -931,8 +942,9 @@ msgid ""
 "\n"
 "It may disconnect the web client."
 msgstr ""
-"Skutečně chcete nastavit Wi-fi do režimu AP? Může dojít k odpojení webového "
-"klienta."
+"Skutečně chcete nastavit Wi-fi do režimu AP?\n"
+"\n"
+"Může dojít k odpojení webového klienta."
 
 #: ../pages/network.py:58
 msgid ""
@@ -940,8 +952,9 @@ msgid ""
 "\n"
 "It may disconnect the web client."
 msgstr ""
-"Skutečně chcete nastavit Wi-fi do režimu klient? Může dojít k odpojení "
-"webového klienta."
+"Skutečně chcete nastavit Wi-fi do režimu klient?\n"
+"\n"
+"Může dojít k odpojení webového klienta."
 
 #: ../pages/unboxing.py:255
 msgid ""
@@ -1164,7 +1177,7 @@ msgstr "Stahování firmware"
 
 #: ../pages/netupdate.py:113
 msgid "Fetching of samples failed"
-msgstr "Stahuji modely"
+msgstr "Stahování modelů selhalo"
 
 #: ../pages/finished.py:24
 msgid "Finished"
@@ -1192,7 +1205,7 @@ msgstr "Chyba nastavení fuse bit"
 
 #: ../libHardware.py:55
 msgid "GPIO SPI has failed"
-msgstr "Selhalo GPIO SPI."
+msgstr "Selhalo GPIO SPI"
 
 #: ../libExposure.py:219
 msgid "Going back"
@@ -1560,7 +1573,7 @@ msgstr "Zavřete oranžové víko."
 
 #: ../libHardware.py:575
 msgid "Please contact tech support!"
-msgstr "Prosím, kontaktujte technickou podporu."
+msgstr "Prosím, kontaktujte technickou podporu!"
 
 #: ../pages/printstart.py:291
 #, python-format
@@ -1687,7 +1700,10 @@ msgid ""
 "Printer is not calibrated!\n"
 "\n"
 "Calibrate now?"
-msgstr "Tiskárna není zkalibrovaná. Zahájit kalibraci?"
+msgstr ""
+"Tiskárna není zkalibrovaná.\n"
+"\n"
+"Zahájit kalibraci?"
 
 #: ../libExposure.py:203
 #, python-format
@@ -1736,7 +1752,10 @@ msgid ""
 "Average: %(avg)s\n"
 "Fan error: %(fanError)s"
 msgstr ""
-"RPM %(fan)s není v rozsahu! Zkontrolujte, zda je správně zapojen.\n"
+"RPM %(fan)s není v rozsahu!\n"
+"\n"
+"Zkontrolujte, zda je správně zapojen.\n"
+"\n"
 "RPM údaje: %(rpm)s\n"
 "Průměr: %(avg)s\n"
 "Chyba větráku: %(fanError)s"
@@ -1835,9 +1854,10 @@ msgid ""
 "your eyes may be exposed to harmful UV radiation."
 msgstr ""
 "Vyjměte vaničku a místo ní umístěte modul s vyříznutými otvory pro UV LED "
-"měřák. Během měření budete umísťovat UV sondu do jednotlivých slotů - dbejte "
-"na správné umístění sondy, jinak mohou být vaše oči vystaveny dávce UV "
-"záření."
+"měřák.\n"
+"\n"
+"Během měření budete umísťovat UV sondu do jednotlivých slotů - dbejte na "
+"správné umístění sondy, jinak mohou být vaše oči vystaveny dávce UV záření."
 
 #: ../pages/uvcalibration.py:455
 msgid "Requested intensity cannot be reached by max. allowed PWM"
@@ -2017,7 +2037,10 @@ msgid ""
 "Selftest passed OK.\n"
 "\n"
 "Printer ready for calibration."
-msgstr "Selftest byl úspěšný. Tiskárna je připravena ke kalibraci."
+msgstr ""
+"Selftest byl úspěšný.\n"
+"\n"
+"Tiskárna je připravena ke kalibraci."
 
 #: ../pages/netupdate.py:32
 msgid "Send factory config"
@@ -2025,11 +2048,11 @@ msgstr "Zaslat tovární konfiguraci"
 
 #: ../pages/factoryreset.py:64
 msgid "Sending printer data"
-msgstr "Odesílám data..."
+msgstr "Odesílám data"
 
 #: ../libHardware.py:52
 msgid "Serial number check has failed"
-msgstr "Selhala kontrola sériového čísla."
+msgstr "Selhala kontrola sériového čísla"
 
 #: ../pages/wizard.py:43
 #, python-format
@@ -2294,7 +2317,10 @@ msgid ""
 "The UV LED is already calibrated.\n"
 "\n"
 "Would you like to recalibrate?"
-msgstr "UV LED je už zkalibrovaná. Chcete ji zkalibrovat znovu?"
+msgstr ""
+"UV LED je už zkalibrovaná.\n"
+"\n"
+"Chcete ji zkalibrovat znovu?"
 
 #: ../pages/uvcalibration.py:192
 msgid ""
@@ -2481,7 +2507,9 @@ msgid ""
 "Would you like to apply the calibration results?"
 msgstr ""
 "Tiskárna byla úspěšně zkalibrována! Nyní můžete otevřít kryt a sejmout UV "
-"měřák. Chcete aplikovat kalibrované hodnoty?"
+"měřák.\n"
+"\n"
+"Chcete aplikovat kalibrované hodnoty?"
 
 #: ../libPrinter.py:147
 msgid ""
@@ -2495,10 +2523,13 @@ msgid ""
 "Printer settings may have been reset. "
 msgstr ""
 "Tiskárna nastartovala ze záložního úložiště, protože start z primárního "
-"úložiště opakovaně selhal. Neodkladně aktualizujte firmware tiskárny na "
-"nejnovější verzi, abyste obnovili primární úložiště. Pravděpodobně došlo k "
-"selhání aktualizace firmwaru nebo k chybě hardwaru. Je možné, že došlo k "
-"resetu nastavení tiskárny."
+"úložiště opakovaně selhal.\n"
+"\n"
+"Neodkladně aktualizujte firmware tiskárny na nejnovější verzi, abyste "
+"obnovili primární úložiště.\n"
+"\n"
+"Pravděpodobně došlo k selhání aktualizace firmwaru nebo k chybě hardwaru. Je "
+"možné, že došlo k resetu nastavení tiskárny. "
 
 #: ../libPrinter.py:114
 msgid ""
@@ -2700,7 +2731,7 @@ msgstr "Výchozí pozice náklonu"
 
 #: ../pages/tilttower.py:28
 msgid "Tilt home calib."
-msgstr "Kalibrace výchozí pozice náklonu"
+msgstr "Kalibrace výchozí pozice náklonu."
 
 #: ../pages/tilttower.py:94
 msgid "Tilt home calibration"
@@ -2729,7 +2760,10 @@ msgid ""
 "Tilt homing failed!\n"
 "\n"
 "Check the printer's hardware."
-msgstr "Selhal homing náklonu! Zkontrolujte hardware tiskárny."
+msgstr ""
+"Selhal homing náklonu!\n"
+"\n"
+"Zkontrolujte hardware tiskárny."
 
 #: ../libExposure.py:282
 msgid ""
@@ -2847,7 +2881,7 @@ msgstr "Výchozí pozice věže"
 
 #: ../pages/tilttower.py:34
 msgid "Tower home calib."
-msgstr "Kalibrace výchozí pozice věže"
+msgstr "Kalibrace výchozí pozice věže."
 
 #: ../pages/tilttower.py:144
 msgid "Tower home calibration"
@@ -3097,7 +3131,7 @@ msgstr "Po skončení vrstvy bude provedena akce Nahoru/Dolů"
 
 #: ../pages/setup.py:312
 msgid "Up&down UV on"
-msgstr "Up&Down UV zap."
+msgstr "Up&Down UV zap"
 
 #: ../pages/setup.py:320
 msgid "Up&down Z offset [mm]"
@@ -3176,7 +3210,9 @@ msgid ""
 "Do you want to proceed?"
 msgstr ""
 "VAROVÁNÍ: Tato procedura přepíše výchozí kalibrační data. Pokračujte POUZE "
-"POKUD jste nainstalovali nový modul s UV LED. Pokračovat?"
+"POKUD jste nainstalovali nový modul s UV LED.\n"
+"\n"
+"Pokračovat?"
 
 #: ../pages/uvdispsettings.py:60
 msgid ""
@@ -3186,7 +3222,9 @@ msgid ""
 "Do you want to proceed?"
 msgstr ""
 "VAROVÁNÍ: Tato procedura přepíše výchozí kalibrační data. Pokračujte POUZE "
-"POKUD jste nainstalovali nový tiskový displej. Pokračovat?"
+"POKUD jste nainstalovali nový tiskový displej.\n"
+"\n"
+"Pokračovat?"
 
 #: ../pages/print.py:90 ../pages/print.py:141
 msgid "Wait until layer finish"
@@ -3214,10 +3252,12 @@ msgid ""
 "1. Release the screws and remove them with the resin tank.\n"
 "2. Close the orange lid, don't open it! UV radiation is harmful!"
 msgstr ""
-"Vítejte v průvodci kalibrací UV LED. Tuto funkci použijte pouze v případě, "
-"že jste vyměnili tiskový displej, nebo máte problémy s kvalitou tisku. 1. "
-"Odstraňte šrouby z vaničky a odejměte vaničku. 2. Zavřete oranžový kryt a "
-"neotvírejte jej! UV světlo je škodlivé!"
+"Vítejte v průvodci kalibrací UV LED.\n"
+"Tuto funkci použijte pouze v případě, že jste vyměnili tiskový displej, nebo "
+"máte problémy s kvalitou tisku.\n"
+"\n"
+"1. Odstraňte šrouby z vaničky a odejměte vaničku.\n"
+"2. Zavřete oranžový kryt a neotvírejte jej! UV světlo je škodlivé!"
 
 #: ../pages/wizard.py:30
 msgid ""
@@ -3235,7 +3275,7 @@ msgstr "Špatný datový formát!"
 
 #: ../libHardware.py:128
 msgid "Wrong motion controller firmware version"
-msgstr "Nesprávná verze firmwaru pro motion controller."
+msgstr "Nesprávná verze firmwaru pro motion controller"
 
 #: ../pages/displaytest.py:52
 msgid ""
@@ -3255,8 +3295,10 @@ msgid ""
 "of troubles!"
 msgstr ""
 "Tiskový displej nebo modul s UV LED není pravděpodobně správně zapojen nebo "
-"došlo k poškození. Zkontrolujte, zda je vše správně zapojeno. V případě "
-"problémů kontaktujte technickou podporu!"
+"došlo k poškození.\n"
+"\n"
+"Zkontrolujte, zda je vše správně zapojeno. V případě problémů kontaktujte "
+"technickou podporu!"
 
 #: ../libPages.py:661
 #, python-format
@@ -3300,7 +3342,7 @@ msgstr "akcelerace"
 
 #: ../libHardware.py:474
 msgid "blower fan"
-msgstr "Boční ventilátor"
+msgstr "boční ventilátor"
 
 #: ../pages/profiles.py:293 ../pages/profiles.py:361
 msgid "coolstep threshold"
@@ -3344,7 +3386,7 @@ msgstr "kroky offsetu"
 
 #: ../libHardware.py:475
 msgid "rear fan"
-msgstr "Zadní ventilátor"
+msgstr "zadní ventilátor"
 
 #: ../pages/profiles.py:292 ../pages/profiles.py:360
 msgid "stallguard threshold"
@@ -3369,7 +3411,7 @@ msgstr "neznámý"
 
 #: ../libHardware.py:1120
 msgid "unknown fan"
-msgstr "Neznámý ventilátor"
+msgstr "neznámý ventilátor"
 
 #: ../libHardware.py:1142
 msgid "unknown sensor"
