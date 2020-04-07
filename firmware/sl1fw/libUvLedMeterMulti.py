@@ -78,6 +78,7 @@ class UvLedMeterMulti:
         self.np = None
         self.temp = None
         self.datetime = None
+        self.sleepTime = 3
     #enddef
 
 
@@ -138,6 +139,7 @@ class UvLedMeterMulti:
 
 
     def read(self):
+        sleep(self.sleepTime)
         self.np = None
         try:
             self.port.write('>all\n'.encode())
@@ -172,6 +174,9 @@ class UvLedMeterMulti:
 
         self.temp = data[-1] / 10.0
         self.np = numpy.array(data[:-1])
+        if len(self.np) < 60:
+            self.sleepTime = 0.5
+        #endif
         self.datetime = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
         return True
     #enddef
@@ -215,7 +220,6 @@ class UvLedMeterMulti:
 
 
     def checkPlace(self, screenOn):
-        sleep(0.5)
         self.read()
         if self.np is None:
             return UvMeterState.ERROR_COMMUNICATION
@@ -225,7 +229,7 @@ class UvLedMeterMulti:
             return UvMeterState.ERROR_TRANSLUCENT
         #enddef
         screenOn()
-        sleep(0.5)
+        sleep(1)    # wait just to be sure display really opens
         self.read()
         if self.np is None:
             return UvMeterState.ERROR_COMMUNICATION

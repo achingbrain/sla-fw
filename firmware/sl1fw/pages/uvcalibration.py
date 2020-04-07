@@ -458,7 +458,6 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
         for iteration in range(0, self.TUNNING_ITERATIONS):
             self.display.hw.uvLedPwm = self.pwm
             # Read new intensity value
-            sleep(0.1)
             data = self.uvmeter.readData()
             if data is None:
                 return self.ERROR_READ_FAILED, None
@@ -529,7 +528,6 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
         while self.pwm <= maxpwm:
             self.display.hw.uvLedPwm = self.pwm
             # Read new intensity value
-            sleep(0.1)
             data = self.uvmeter.readData()
             if data is None:
                 return self.ERROR_READ_FAILED, None
