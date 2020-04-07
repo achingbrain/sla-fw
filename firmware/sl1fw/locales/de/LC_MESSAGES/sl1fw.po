@@ -7,6 +7,32 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: PhraseApp (phraseapp.com)\n"
 
+#: ../pages/uvcalibration.py:177
+#, python-format
+msgid ""
+"\n"
+"\n"
+"Intensity: center %(cint)d, edge %(eint)d\n"
+"Warm-up: %(time)d s, PWM: <%(minp)d, %(maxp)d>"
+msgstr ""
+"\n"
+"\n"
+"Intensität: Mitte %(cint)d, Rand %(eint)d\n"
+"Aufwärmen: %(time)d s, PWM: <%(minp)d, %(maxp)d>"
+
+#: ../pages/uvcalibration.py:590
+#, python-format
+msgid ""
+"\n"
+"The result of calibration\n"
+"PWM: %(pwm)d, Intensity: %(int).1f\n"
+"Min value: %(min)d, %(dev)s"
+msgstr ""
+"\n"
+"Das Ergebnis der Kalibrierung\n"
+"PWM: %(pwm)d, Intensität: %(int).1f\n"
+"Min Wert: %(min)d, %(dev)s"
+
 #: ../libPages.py:79
 msgid " (factory mode)"
 msgstr " (Werksmodus)"
@@ -64,6 +90,17 @@ msgstr ""
 "Wenn Sie nicht nachfüllen möchten, drücken Sie bitte die Zurück-Taste oben "
 "auf dem Bildschirm."
 
+#: ../pages/wizard.py:188 ../pages/printstart.py:79
+#, python-format
+msgid ""
+"%s cannot be read.\n"
+"\n"
+"Please check if temperature sensors are connected correctly."
+msgstr ""
+"%s kann nicht gelesen werden.\n"
+"\n"
+"Bitte prüfen Sie, ob die Temperatursensoren korrekt angeschlossen sind."
+
 #: ../pages/fantest.py:35
 msgid "(fans are running)"
 msgstr "(Lüfter laufen)"
@@ -82,6 +119,16 @@ msgstr ", Intensität: %.1f"
 #, python-format
 msgid ", min. int.: %d"
 msgstr ", Min. int.: %d"
+
+#: ../pages/uvcalibration.py:203
+msgid ""
+"1. Place the UV meter on the print display and connect it to the front USB.\n"
+"2. Close the orange lid, don't open it! UV radiation is harmful!"
+msgstr ""
+"1. Stellen Sie das UV-Meter auf das Druckdisplay und schließen Sie es an den "
+"USB-Anschluss an der Vorderseite an.\n"
+"2. Schließen Sie den orangefarbenen Deckel, öffnen Sie ihn nicht! UV-"
+"Strahlung ist schädlich!"
 
 #: ../libNetwork.py:178
 msgid ": Not connected to network!"
@@ -336,6 +383,14 @@ msgstr "Drucker jetzt kalibrieren?"
 msgid "Calibrating UV LED power"
 msgstr "Kalibriere UV LED Stärke"
 
+#: ../pages/uvcalibration.py:364
+msgid "Calibrating UV LED power in the center of the print display"
+msgstr "Kalibrieren der UV-LED-Leistung in der Mitte des Druckdisplays"
+
+#: ../pages/uvcalibration.py:373
+msgid "Calibrating UV LED power on the edges of the print display"
+msgstr "Kalibrieren der UV-LED-Leistung an den Rändern des Druckdisplays"
+
 #: ../pages/calibration.py:574
 msgid "Calibration done"
 msgstr "Kalibrierung abgeschlossen"
@@ -495,6 +550,12 @@ msgstr ""
 #: ../pages/display.py:96
 msgid "Cannot display the test image"
 msgstr "Das Testbild kann nicht angezeigt werden"
+
+#: ../pages/factoryreset.py:55
+msgid "Cannot do factory config UV PWM is not set !!!"
+msgstr ""
+"Kann die Werkskonfiguration nicht durchführen UV PWM ist nicht "
+"eingestellt !!!"
 
 #: ../pages/profiles.py:98
 msgid "Cannot export profile"
@@ -743,6 +804,10 @@ msgstr "Aktuelle Temperatur: %.1f °C"
 msgid "DO NOT touch the printer"
 msgstr "Den Drucker NICHT BERÜHREN"
 
+#: ../pages/uvcalibration.py:70
+msgid "Data is from unknown UV LED sensor!"
+msgstr "Daten stammen von einem unbekannten UV-LED-Sensor!"
+
 #: ../pages/logs.py:29
 msgid "Debug"
 msgstr "Debug"
@@ -839,6 +904,10 @@ msgstr ""
 "Möchten Sie die Kalibrierung wirklich abbrechen?\n"
 "\n"
 "Die Maschine wird nicht funktionieren, ohne sie durchlaufen zu haben."
+
+#: ../pages/print.py:158
+msgid "Do you really want to cancel the actual job?"
+msgstr "Möchten Sie wirklich den laufenden Auftrag abbrechen?"
 
 #: ../pages/calibration.py:650
 msgid ""
@@ -1239,6 +1308,10 @@ msgstr ""
 "Setzen Sie die Plattform in einem Winkel von 60 Grad ein, genau wie im Bild. "
 "Die Plattform muss auf dem Weg nach unten auf die Kanten des Tanks treffen."
 
+#: ../pages/firmwareupdate.py:109
+msgid "Invalid firmware source!"
+msgstr "Ungültige Firmware-Quelle!"
+
 #: ../pages/display.py:40
 msgid "Inverse"
 msgstr "Invers"
@@ -1587,6 +1660,11 @@ msgstr "Bitte lösen und entfernen Sie den Harztank."
 msgid "Please wait"
 msgstr "Bitte warten"
 
+#: ../pages/uvcalibration.py:211 ../pages/uvcalibration.py:278
+#: ../pages/uvcalibration.py:307 ../pages/uvcalibration.py:373
+msgid "Please wait..."
+msgstr "Bitte warten..."
+
 #: ../pages/setup.py:136
 msgid "Power LED intensity"
 msgstr "Power LED Intensität"
@@ -1649,6 +1727,10 @@ msgstr ""
 "\n"
 "Wir danken Ihnen!"
 
+#: ../pages/calibration.py:50
+msgid "Printer calibration"
+msgstr "Druckerkalibrierung"
+
 #: ../pages/calibration.py:35
 msgid "Printer homing"
 msgstr "Drucker homen"
@@ -1701,6 +1783,25 @@ msgstr "Prusa Logo"
 #: ../pages/qrcode.py:16
 msgid "QR Code"
 msgstr "QR Code"
+
+#: ../pages/uvfanstest.py:122
+#, python-format
+msgid ""
+"RPM of %(fan)s not in range!\n"
+"\n"
+"Please check if the fan is connected correctly.\n"
+"\n"
+"RPM data: %(rpm)s\n"
+"Average: %(avg)s\n"
+"Fan error: %(fanError)s"
+msgstr ""
+"Drehzahl von %(fan)s ist nicht im Sollbereich!\n"
+"\n"
+"Bitte prüfen Sie, ob der Lüfter korrekt angeschlossen ist.\n"
+"\n"
+"Drehzahldaten: %(rpm)s \n"
+"durchschnittlich: %(avg)s\n"
+"Lüfter Fehler: %(fanError)s"
 
 #: ../pages/fantest.py:81
 #, python-format
@@ -1983,9 +2084,23 @@ msgstr ""
 "\n"
 "Weiter zur Kalibrierung?"
 
+#: ../pages/wizard.py:546
+msgid ""
+"Selftest passed OK.\n"
+"\n"
+"Printer ready for calibration."
+msgstr ""
+"Selbsttest mit OK bestanden.\n"
+"\n"
+"Drucker bereit für die Kalibrierung."
+
 #: ../pages/netupdate.py:32
 msgid "Send factory config"
 msgstr "Werkskonfiguration senden"
+
+#: ../pages/factoryreset.py:64
+msgid "Sending printer data"
+msgstr "Sende Druckerdaten"
 
 #: ../libHardware.py:52
 msgid "Serial number check has failed"
@@ -2152,6 +2267,11 @@ msgstr "Starten des AP fehlgeschlagen!"
 msgid "Starting Access Point"
 msgstr "Starte Access Point"
 
+#: ../pages/uvcalibration.py:583
+#, python-format
+msgid "Std dev: %.1f\n"
+msgstr "Std Abw: %.1f\n"
+
 #: ../pages/setup.py:134
 msgid "Stirring moves count"
 msgstr "Mischbewegungszähler"
@@ -2207,6 +2327,10 @@ msgstr "Tankachsen Check"
 #: ../pages/calibration.py:38
 msgid "Tank axis homing"
 msgstr "Referenzfahrt der Tankachse"
+
+#: ../pages/wizard.py:122
+msgid "Tank home check"
+msgstr "Tank Referenztest"
 
 #: ../pages/control.py:43
 msgid ""
@@ -2436,6 +2560,39 @@ msgstr ""
 "\n"
 "Wenn Sie nicht fortfahren möchten, drücken Sie die Zurück-Taste oben auf dem "
 "Bildschirm und der aktuelle Auftrag wird abgebrochen."
+
+#: ../pages/uvcalibration.py:587
+msgid ""
+"The printer has been successfully calibrated! You can now open the lid and "
+"remove the UV meter.\n"
+"\n"
+"Would you like to apply the calibration results?"
+msgstr ""
+"Der Drucker wurde erfolgreich kalibriert! Sie können nun den Deckel öffnen "
+"und das UV-Meter entfernen.\n"
+"\n"
+"Möchten Sie die Kalibrierungsergebnisse anwenden?"
+
+#: ../libPrinter.py:147
+msgid ""
+"The printer has booted from an alternative slot due to failed boot attempts "
+"using the primary slot.\n"
+"\n"
+" Update the printer with up-to-date firmware ASAP to recover the primary "
+"slot.\n"
+"\n"
+"This usually happens after a failed update, or due to a hardware failure. "
+"Printer settings may have been reset. "
+msgstr ""
+"Der Drucker hat aufgrund fehlgeschlagener Bootversuche über den primären "
+"Steckplatz von einem alternativen Steckplatz gebootet.\n"
+"\n"
+" Aktualisieren Sie den Drucker so schnell wie möglich mit aktueller "
+"Firmware, um den primären Steckplatz wiederherzustellen.\n"
+"\n"
+"Dies geschieht normalerweise nach einer fehlgeschlagenen Aktualisierung oder "
+"aufgrund eines Hardware-Fehlers. Möglicherweise wurden die "
+"Druckereinstellungen zurückgesetzt. "
 
 #: ../libPrinter.py:114
 msgid ""
@@ -2881,6 +3038,10 @@ msgstr "Anpassen Kipp"
 msgid "Turn motors off"
 msgstr "Motoren ausschalten"
 
+#: ../pages/uvfanstest.py:21
+msgid "UV & Fans test"
+msgstr "UV & Lüfter Test"
+
 #: ../pages/display.py:49
 msgid "UV (re)calibration"
 msgstr "UV (Re)Kalibrierung"
@@ -2975,6 +3136,16 @@ msgstr "UV Kalibrierung"
 #: ../pages/uvcalibration.py:45
 msgid "UV calibration data"
 msgstr "UV Kalibrierungsdaten"
+
+#: ../pages/uvcalibration.py:148
+msgid ""
+"UV intensity not set!\n"
+"\n"
+"Calibrate now?"
+msgstr ""
+"UV-Intensität nicht eingestellt!\n"
+"\n"
+"Jetzt kalibrieren?"
 
 #: ../pages/display.py:42 ../pages/display.py:126
 msgid "UV off"
@@ -3113,6 +3284,32 @@ msgstr "Video"
 msgid "Videos"
 msgstr "Videos"
 
+#: ../pages/uvdispsettings.py:73
+msgid ""
+"WARNING! This procedure will rewrite the factory calibration data. Continue "
+"ONLY if you installed new UV LED set.\n"
+"\n"
+"Do you want to proceed?"
+msgstr ""
+"WARNUNG! Bei diesem Verfahren werden die Werkskalibrierungsdaten neu "
+"geschrieben. Fahren Sie NUR dann fort, wenn Sie ein neues UV-LED-Set "
+"installiert haben.\n"
+"\n"
+"Wollen Sie fortfahren?"
+
+#: ../pages/uvdispsettings.py:60
+msgid ""
+"WARNING! This procedure will rewrite the factory calibration data. Continue "
+"ONLY if you installed new print display.\n"
+"\n"
+"Do you want to proceed?"
+msgstr ""
+"WARNUNG! Bei diesem Verfahren werden die Werkskalibrierungsdaten neu "
+"geschrieben. Fahren Sie NUR dann fort, wenn Sie ein neues Druckdisplay "
+"installiert haben.\n"
+"\n"
+"Wollen Sie fortfahren?"
+
 #: ../pages/print.py:90 ../pages/print.py:141
 msgid "Wait until layer finish"
 msgstr "Warte bis Schichtende"
@@ -3129,6 +3326,23 @@ msgstr "Wärme auf"
 #, python-format
 msgid "Warming up to %d °C"
 msgstr "Wärme auf %d °C"
+
+#: ../pages/uvcalibration.py:172
+msgid ""
+"Welcome to the UV LED calibration.\n"
+"Use this function only if you have replaced the print display or "
+"experiencing issues with the prints.\n"
+"\n"
+"1. Release the screws and remove them with the resin tank.\n"
+"2. Close the orange lid, don't open it! UV radiation is harmful!"
+msgstr ""
+"Willkommen bei der UV-LED-Kalibrierung.\n"
+"Verwenden Sie diese Funktion nur, wenn Sie das Druckdisplay ausgetauscht "
+"haben oder Probleme mit den Drucken aufgetreten sind.\n"
+"\n"
+"1. Lösen Sie die Schrauben und entfernen Sie sie mit dem Harzbehälter.\n"
+"2. Schließen Sie den orangefarbenen Deckel, öffnen Sie ihn nicht! UV-"
+"Strahlung ist schädlich!"
 
 #: ../pages/wizard.py:30
 msgid ""
@@ -3158,6 +3372,19 @@ msgstr ""
 "Ihr Display ist möglicherweise gebrochen.\n"
 "\n"
 "Bitte kontaktieren Sie den technischen Support!"
+
+#: ../pages/displaytest.py:54
+msgid ""
+"Your display or LED set is probably not connected properly or broken.\n"
+"\n"
+"Please check the proper connection first. Contact tech support in any case "
+"of troubles!"
+msgstr ""
+"Ihr Druckdisplay oder LED-Set ist wahrscheinlich nicht richtig angeschlossen "
+"oder kaputt.\n"
+"\n"
+"Bitte überprüfen Sie zuerst den korrekten Anschluss. Wenden Sie sich im "
+"Falle von Problemen an den technischen Support!"
 
 #: ../libPages.py:661
 #, python-format
