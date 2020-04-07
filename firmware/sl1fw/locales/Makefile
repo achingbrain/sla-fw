@@ -14,10 +14,20 @@ extract: $(TEMPLATE)
 check: $(addprefix check_,$(LANGS))
 	@echo $^
 
+process: $(addprefix process_,$(LANGS))
+	@echo $^
+
 check_%: %/LC_MESSAGES/sl1fw.po ${TEMPLATE}
 	@echo
 	@echo "Checking $<"
+	msgfmt --check-format $<
 	msgcmp $^
+
+process_%: %/LC_MESSAGES/sl1fw.po
+	@echo
+	msguniq -s $< > /tmp/sl1fw.po.uniq
+	msgattrib --clear-previous --no-obsolete /tmp/sl1fw.po.uniq > $<
+	rm /tmp/sl1fw.po.uniq
 
 clean:
 	rm -f $(TEMPLATE)
