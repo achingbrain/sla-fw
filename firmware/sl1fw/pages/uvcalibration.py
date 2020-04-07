@@ -609,7 +609,10 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
 
     def yesButtonRelease(self):
         self.display.state = DisplayState.IDLE
+
+        # save hwConfig
         self.display.hwConfig.uvPwm = self.display.uvcalibData.uvFoundPwm
+        self.display.hw.uvLedPwm = self.display.uvcalibData.uvFoundPwm
         del self.display.hwConfig.uvCurrent   # remove old value too
         try:
             self.display.hwConfig.write()
@@ -619,6 +622,8 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
                 text=_("Cannot save configuration"))
             return "error"
         #endtry
+
+        # save UV calibration data
         uvcalibConfig = TomlConfig(defines.uvCalibDataPath)
         try:
             uvcalibConfig.data = asdict(self.display.uvcalibData)
@@ -632,6 +637,8 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
             return "error"
         #endtry
         uvcalibConfig.save_raw()
+
+        # save to factory partition if needed
         if self.display.runtime_config.factory_mode or self.writeDataToFactory:
             uvcalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
             uvcalibConfigFactory.data = uvcalibConfig.data
@@ -641,9 +648,12 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
                 return "error"
             #endif
         #endif
+
+        # reset UV led counter in MC
         if self.resetLedCounter:
             self.display.hw.clearUvStatistics()
         #endif
+
         return "_EXIT_"
     #enddef
 

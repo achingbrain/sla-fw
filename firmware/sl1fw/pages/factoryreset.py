@@ -19,7 +19,7 @@ from sl1fw.errors.errors import (
     ErrorSendingDataToMQTT,
     PrinterDataSendError,
 )
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, MotionControllerException
 from sl1fw.functions.system import shut_down, save_factory_mode, send_printer_data
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -61,7 +61,7 @@ class PageFactoryReset(Page):
         page_wait.show()
 
         if self.display.runtime_config.factory_mode:
-            page_wait.setItems(line1=_("Sending printer data"))
+            page_wait.showItems(line1=_("Sending printer data"))
             try:
                 send_printer_data(self.display.hw, self.display.hwConfig)
             except PrinterDataSendError as error:
@@ -86,9 +86,10 @@ class PageFactoryReset(Page):
                 self.display.state = DisplayState.IDLE
                 return "error"
 
-        reset_settings_result = self._reset_settings(page_wait)
-        if reset_settings_result:
-            return reset_settings_result
+        # http://www.wavsource.com/snds_2018-06-03_5106726768923853/movie_stars/schwarzenegger/erased.wav
+        page_wait.showItems(line1=_("Relax... You've been erased."))
+        self._reset_printer_settings()
+        self._reset_system_settings()
 
         # continue only in factory mode
         if not self.display.runtime_config.factory_mode:
@@ -100,10 +101,10 @@ class PageFactoryReset(Page):
 
         return self._pack_to_box(page_wait)
 
-    def _reset_settings(self, page_wait: PageWait):
-        # http://www.wavsource.com/snds_2018-06-03_5106726768923853/movie_stars/schwarzenegger/erased.wav
-        page_wait.setItems(line1=_("Relax... You've been erased."))
+    def _reset_printer_settings(self):
+        # save hwConfig
         try:
+            self.display.hwConfig.read_file()
             self.display.hwConfig.factory_reset()
             # do not display unpacking after user factory reset
             if not self.display.runtime_config.factory_mode:
@@ -111,17 +112,22 @@ class PageFactoryReset(Page):
             self.display.hwConfig.write()
         except ConfigException:
             self.logger.exception("Failed to do factory reset on config")
-            self.display.pages["error"].setParams(text=_("Cannot save factory defaults configuration"))
-            return "error"
 
         # erase MC EEPROM
-        self.display.hw.eraseEeprom()
+        try:
+            self.display.hw.eraseEeprom()
+        except MotionControllerException:
+            self.logger.exception("Failed to erase EEPROM")
 
         # set homing profiles to factory defaults
-        self.display.hw.updateMotorSensitivity(
-            self.display.hwConfig.tiltSensitivity, self.display.hwConfig.towerSensitivity
-        )
+        try:
+            self.display.hw.updateMotorSensitivity(
+                self.display.hwConfig.tiltSensitivity, self.display.hwConfig.towerSensitivity
+            )
+        except MotionControllerException:
+            self.logger.exception("Failed to set default sensitivity profiles")
 
+    def _reset_system_settings(self):
         system_bus = pydbus.SystemBus()
 
         # Reset hostname
@@ -176,8 +182,6 @@ class PageFactoryReset(Page):
             os.remove(defines.slicerProfilesFile)
         except (FileNotFoundError, PermissionError):
             self.logger.exception("Failed to remove remove downloaded slicer profiles")
-
-        return None
 
     def _pack_to_box(self, page_wait: PageWait):
         # do not do packing moves for kit
