@@ -73,7 +73,7 @@ pylint:
   script:
     - cd firmware
     - python3 -m pylint --version
-    - python3 -m pylint --persistent=n --jobs 0 --additional-builtins=_,N_,ngettext --max-line-length=120 --disable similarities,duplicate-code,fixme,missing-docstring --disable bad-continuation,bad-whitespace,invalid-name,bare-except,broad-except,line-too-long sl1fw
+    - python3 -m pylint --persistent=n --jobs 0 --additional-builtins=_,N_,ngettext --max-line-length=120 --disable similarities,duplicate-code,fixme,missing-docstring --disable bad-continuation,bad-whitespace,invalid-name,broad-except,line-too-long sl1fw
 
 i18n-complete:
   stage: i18n

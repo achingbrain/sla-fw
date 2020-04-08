@@ -39,7 +39,7 @@ class PageNetUpdate(Page):
             with open(defines.firmwareListTemp) as list_file:
                 self.firmwares = list(enumerate(json.load(list_file)))
             #endwith
-        except:
+        except Exception:
             self.logger.exception("Failed to load firmware list from the net")
         #endtry
 

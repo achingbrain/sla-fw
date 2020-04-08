@@ -67,7 +67,7 @@ class PageDisplayUsage(Page):
                 #endfor
             #endwith
             self.palette = list(paletteBytes)
-        except:
+        except Exception:
             self.logger.exception("load palette failed")
         #endtry
     #enddef
@@ -78,7 +78,7 @@ class PageDisplayUsage(Page):
             with numpy.load(defines.displayUsageData) as npzfile:
                 savedData = npzfile['display_usage']
             #endwith
-        except:
+        except Exception:
             self.logger.exception("load display usage failed")
             savedData = None
         #endtry

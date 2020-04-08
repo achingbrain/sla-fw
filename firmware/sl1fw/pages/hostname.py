@@ -33,7 +33,7 @@ class PageSetHostname(Page):
     def sethostnameButtonSubmit(self, data):
         try:
             self.display.inet.hostname = data['hostname']
-        except:
+        except Exception:
             self.logger.exception("Failed to set hostname")
             self.display.pages['error'].setParams(
                 text=_("Failed to set hostname"))

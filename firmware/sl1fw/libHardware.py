@@ -401,7 +401,7 @@ class Hardware:
                     return True
                 #endif
             #endif
-        except:
+        except Exception:
             self.logger.exception("Failed to check for failed boot")
             # Something went wrong during check, expect the worst
             return True

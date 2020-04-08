@@ -41,7 +41,7 @@ class PageFirmwareUpdate(Page):
             with open(defines.firmwareListTemp) as list_file:
                 return json.load(list_file)
             #endwith
-        except:
+        except Exception:
             self.logger.exception("Failed to load firmware list from the net")
             return []
         #endtry
@@ -63,7 +63,7 @@ class PageFirmwareUpdate(Page):
 
                 fw_files.append(fw['url'])
             #endfor
-        except:
+        except Exception:
             self.logger.exception("Failed to process net firmware list")
         #endtry
 

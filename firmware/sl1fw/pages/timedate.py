@@ -150,7 +150,7 @@ class PageSetTimezone(PageTimeDateBase):
         try:
             timezone = self.timedate.Timezone
             region, city = timezone.split('/')
-        except:
+        except Exception:
             timezone = "UTC"
             region = "Etc"
             city = "GTM"
@@ -173,7 +173,7 @@ class PageSetTimezone(PageTimeDateBase):
     def settimezoneButtonSubmit(self, data):
         try:
             timezone = "%s/%s" % (data['region'], data['city'])
-        except:
+        except Exception:
             timezone = data['timezone']
 
         self.timedate.SetTimezone(timezone, False)

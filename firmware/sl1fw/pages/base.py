@@ -229,14 +229,14 @@ class Page:
             if ret is None:
                 return True
             return ret
-        except:
+        except Exception:
             self.logger.exception("Failed to save to factory partition")
             return False
         finally:
             try:
                 self.logger.info("Remounting factory partition ro")
                 subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])
-            except:
+            except Exception:
                 self.logger.exception("Failed to remount factory partion ro")
             #endtry
         #endtry

@@ -49,7 +49,7 @@ class PageLogging(Page):
         try:
             level = logging.DEBUG if self.debugEnabled else logging.INFO
             set_log_level(level)
-        except:
+        except Exception:
             self.logger.exception("Failed to set log level")
             self.display.pages['error'].setParams(text = "Failed to set log level")
             return "error"
