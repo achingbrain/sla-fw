@@ -103,3 +103,7 @@ class Rauc:
                 },
             ),
         ]
+
+    @auto_dbus
+    def Install(self, path: str):
+        pass

@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import logging
-import subprocess
 from time import sleep
 from typing import TYPE_CHECKING, Optional
 
@@ -27,7 +26,7 @@ from sl1fw.states.exposure import ExposureState
 from sl1fw.states.examples import ExamplesState
 from sl1fw.state_actions.examples import Examples
 from sl1fw.functions import files
-from sl1fw.functions.system import shut_down
+from sl1fw.functions.system import shut_down, FactoryMountedRW
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libConfig import TomlConfig
 
@@ -234,22 +233,14 @@ class Page:
 
     def writeToFactory(self, saveFce):
         try:
-            self.logger.info("Remounting factory partition rw")
-            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", str(defines.factoryMountPoint)])
-            ret = saveFce()
-            if ret is None:
-                return True
-            return ret
+            with FactoryMountedRW():
+                ret = saveFce()
+                if ret is None:
+                    return True
+                return ret
         except Exception:
             self.logger.exception("Failed to save to factory partition")
             return False
-        finally:
-            try:
-                self.logger.info("Remounting factory partition ro")
-                subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])
-            except Exception:
-                self.logger.exception("Failed to remount factory partion ro")
-            #endtry
         #endtry
     #enddef
 

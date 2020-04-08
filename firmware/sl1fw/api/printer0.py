@@ -35,7 +35,7 @@ from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
-from sl1fw.errors.exceptions import ReprintWithoutHistory, AdminNotAvailable
+from sl1fw.errors.exceptions import ReprintWithoutHistory
 from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
@@ -686,19 +686,11 @@ class Printer0:
     @auto_dbus
     @last_error
     @state_checked([Printer0State.IDLE, Printer0State.PRINTING])
-    def enter_admin(self) -> DBusObjectPath:
+    def enter_admin(self) -> None:
         """
-        Initiate admin mode
-
-        Implemented by page transition. No admin object available, yet.
-
-        :return: Admin object path - currently only "/" string
+        Enter page based admin
         """
-        if not self.printer.runtime_config.show_admin:
-            raise AdminNotAvailable()
-
         self.printer.display.forcePage("admin")
-        return DBusObjectPath("/")
 
     @auto_dbus
     @last_error

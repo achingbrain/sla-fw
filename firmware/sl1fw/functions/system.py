@@ -18,7 +18,9 @@ from sl1fw.errors.errors import (
     MissingCalibrationData,
     MissingUVCalibrationData,
     ErrorSendingDataToMQTT,
-    FailedUpdateChannelSet, FailedUpdateChannelGet)
+    FailedUpdateChannelSet,
+    FailedUpdateChannelGet,
+)
 from sl1fw.libConfig import TomlConfig, HwConfig
 from sl1fw.libHardware import Hardware
 
@@ -101,3 +103,16 @@ def set_update_channel(channel: str):
         subprocess.check_call([defines.set_update_channel_bin, channel])
     except Exception as e:
         raise FailedUpdateChannelSet() from e
+
+
+class FactoryMountedRW:
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+
+    def __enter__(self):
+        self.logger.info("Remounting factory partition rw")
+        subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", str(defines.factoryMountPoint)])
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        self.logger.info("Remounting factory partition ro")
+        subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])

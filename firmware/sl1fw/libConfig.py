@@ -535,7 +535,12 @@ class ConfigWriter:
 
         key = self._get_attribute_name(key)
         if key in self._config.get_values():
-            self._config.get_values()[key].value_setter(self._config, value, dry_run=True)
+            config_value = self._config.get_values()[key]
+            config_value.value_setter(self._config, value, dry_run=True)
+            old = value
+            value = config_value.adapt(value)
+            if old != value:
+                self._logger.warning("Adapting config value %s from %s to %s", key, old, value)
         else:
             self._logger.debug("Writer: Skipping dry run write on non-value: %s", key)
 
@@ -592,6 +597,15 @@ class ConfigWriter:
         if key is None:
             return bool(self._changed)
         return key in self._changed
+
+    def reset(self):
+        """
+        Reset changed values to original
+
+        :return: None
+        """
+        self._changed = {}
+        self._deleted = set()
 
 
 class Config(ValueConfig):

@@ -31,6 +31,8 @@ from mock import Mock, patch
 import sl1fw.tests.mocks.mc_port
 from sl1fw import defines, test_runtime
 from sl1fw import libPrinter
+from sl1fw.admin.manager import AdminManager
+from sl1fw.api.admin0 import Admin0
 from sl1fw.api.printer0 import Printer0
 from sl1fw.api.standard0 import Standard0
 from sl1fw.tests import samples
@@ -41,6 +43,7 @@ gettext.install("sl1fw", defines.localedir, names=("ngettext",))
 builtins.N_ = lambda x: x
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
+
 
 # Display warnings only once
 warnings.simplefilter("once")
@@ -88,6 +91,9 @@ defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
 defines.loggingConfig = TEMP_DIR / "logging_config.json"
 defines.last_job = Path(defines.ramdiskPath) / "last_job"
 defines.printer_summary = Path(defines.ramdiskPath) / "printer_summary"
+defines.firmwareListTemp = str(Path(defines.ramdiskPath) / "updates.json")
+defines.slicerProfilesFile = str(Path(defines.ramdiskPath) / "slicer_profiles.toml")
+defines.firmwareTempFile = str(Path(defines.ramdiskPath) / "update.raucb")
 
 
 class Virtual:
@@ -97,6 +103,8 @@ class Virtual:
         self.glib_loop = None
         self.printer0 = None
         self.standard0 = None
+        self.admin_manager = None
+        self.admin0_dbus = None
 
     def __call__(self):
         signal.signal(signal.SIGINT, self.tear_down)
@@ -128,6 +136,8 @@ class Virtual:
             print("Publishing printer on D-Bus")
             self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
             self.standard0 = bus.publish(Standard0.__INTERFACE__, Standard0(self.printer))
+            self.admin_manager = AdminManager()
+            self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
             print("Running printer")
             self.printer.run()
 
@@ -155,7 +165,8 @@ class Virtual:
                 loop.run_in_executor(pool, self.rauc_mocks.unpublish),
                 loop.run_in_executor(pool, self.glib_loop.quit),
                 loop.run_in_executor(pool, self.printer0.unpublish),
-                loop.run_in_executor(pool, self.standard0.unpublish)
+                loop.run_in_executor(pool, self.standard0.unpublish),
+                loop.run_in_executor(pool, self.admin0_dbus.unpublish),
             ]
         await asyncio.gather(*tasks)
 

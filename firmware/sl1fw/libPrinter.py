@@ -24,7 +24,7 @@ from gi.repository import GLib
 from pydbus import SystemBus
 from prusaerrors.sl1.codes import Sl1Codes
 
-from sl1fw import defines, test_runtime
+from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.api.logs0 import Logs0
@@ -45,6 +45,7 @@ from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.wizard import WizardState
+from sl1fw import test_runtime
 
 
 class Printer:

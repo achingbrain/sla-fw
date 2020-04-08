@@ -7,7 +7,7 @@ import functools
 from dataclasses import is_dataclass, asdict
 from enum import Enum
 from time import monotonic
-from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints, Optional  # pylint: disable=unused-import
+from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints, Optional, Set  # pylint: disable=unused-import
 
 from pydbus import Variant
 from prusaerrors.sl1.codes import Sl1Codes
@@ -190,6 +190,7 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
         raise ValueError(f"Unsupported dbus mapping type: {type(obj)}")
     except Exception as exception:
         raise DBusMappingException(f"Failed to generate dbus specification for {name}") from exception
+
 
 
 def python_to_dbus_value_type(data: Any):

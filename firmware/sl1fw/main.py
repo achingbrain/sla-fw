@@ -17,8 +17,10 @@ from pydbus import SystemBus
 
 from sl1fw import defines
 from sl1fw import libPrinter
+from sl1fw.api.admin0 import Admin0
 from sl1fw.api.printer0 import Printer0
 from sl1fw.api.standard0 import Standard0
+from sl1fw.admin.manager import AdminManager
 from sl1fw.logger_config import configure_log
 
 log_from_config = configure_log()
@@ -48,4 +50,6 @@ printer = libPrinter.Printer()
 Thread(target=event_thread, daemon=True).start()
 SystemBus().publish(Printer0.__INTERFACE__, Printer0(printer))
 SystemBus().publish(Standard0.__INTERFACE__, Standard0(printer))
+admin_manager = AdminManager()
+SystemBus().publish(Admin0.__INTERFACE__, Admin0(admin_manager, printer))
 printer.run()
