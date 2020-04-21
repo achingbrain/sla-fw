@@ -444,7 +444,7 @@ class PageAdvancedSettings(Page):
                     text = _("Save changes?"))
             if self.display.doMenu("yesno"):
                 # save changes
-                sensitivity_changed = self.configwrapper.changed('towersensitivity') or self.configwrapper.changed('tiltsensitivity')
+                sensitivity_changed = self.configwrapper.changed('towerSensitivity') or self.configwrapper.changed('tiltSensitivity')
                 try:
                     self.configwrapper.commit()
                 except ConfigException:
