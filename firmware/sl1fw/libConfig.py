@@ -797,7 +797,6 @@ class Config(ValueConfig):
 
                 # Wrap possible strings in ""
                 value = self.STRING_PATTERN.sub(r'"\1"', value)
-            # endif
 
             lines.append(f"{name} = {value}")
         return "\n".join(lines)

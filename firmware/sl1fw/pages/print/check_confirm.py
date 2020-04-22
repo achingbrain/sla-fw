@@ -8,8 +8,14 @@ from __future__ import annotations
 from queue import Queue
 from typing import TYPE_CHECKING
 
-from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, ModelMismatch, \
-    ResinNotEnough
+from sl1fw.errors.warnings import (
+    AmbientTooHot,
+    AmbientTooCold,
+    PrintingDirectlyFromMedia,
+    ModelMismatch,
+    ResinNotEnough,
+    ProjectSettingsModified,
+)
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
 
@@ -31,6 +37,7 @@ class PageCheckConfirm(PagePrintBase):
         return self.warn()
 
     def warn(self):
+        # pylint: disable = too-many-return-statements
         if self.warnings_to_show.empty():
             self.display.expo.confirm_print_warnings()
         else:
@@ -102,6 +109,14 @@ class PageCheckConfirm(PagePrintBase):
                         "measured": self.display.hw.calcPercVolume(warning.measured_resin_ml),
                         "requested": self.display.hw.calcPercVolume(warning.required_resin_ml),
                     },
+                )
+                return "confirm"
+            if isinstance(warning, ProjectSettingsModified):
+                self.display.pages["confirm"].setParams(
+                    continueFce=self.warn,
+                    backFce=self.cancel_print,
+                    text=_("Project settings has been modified by printer constraints:\n %(changes)s")
+                    % {"changes": "\n".join([f"{key}: {val[1]} -> {val[0]}" for key, val in warning.changes.items()])},
                 )
                 return "confirm"
 

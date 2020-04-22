@@ -25,10 +25,9 @@ from sl1fw.api.decorators import (
     cached,
     auto_dbus,
     DBusObjectPath,
-    wrap_variant_dict,
     wrap_exception,
     last_error,
-)
+    wrap_dict_data)
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
@@ -139,15 +138,13 @@ class Printer0:
 
     @auto_dbus
     @property
-    @wrap_variant_dict
     def last_exception(self) -> Dict[str, Any]:
-        return wrap_exception(self._last_exception)
+        return wrap_dict_data(wrap_exception(self._last_exception))
 
     @auto_dbus
     @property
-    @wrap_variant_dict
     def printer_exception(self) -> Dict[str, Any]:
-        return wrap_exception(self.printer.exception)
+        return wrap_dict_data(wrap_exception(self.printer.exception))
 
     @auto_dbus
     @last_error

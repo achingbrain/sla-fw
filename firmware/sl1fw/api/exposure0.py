@@ -21,10 +21,9 @@ from sl1fw.api.decorators import (
     auto_dbus,
     state_checked,
     range_checked,
-    wrap_variant_dict,
     wrap_exception,
     last_error,
-)
+    wrap_dict_data)
 from sl1fw.errors.codes import WarningCode
 from sl1fw.errors.warnings import ExposureWarning
 from sl1fw.libExposure import Exposure
@@ -189,9 +188,8 @@ class Exposure0:
 
         :return: List of warning dictionaries
         """
-        return [self._process_warning(warning) for warning in self.exposure.warnings]
+        return [wrap_dict_data(self._process_warning(warning)) for warning in self.exposure.warnings]
 
-    @wrap_variant_dict
     def _process_warning(self, warning: ExposureWarning) -> Dict[str, Any]:  # pylint: disable=no-self-use
         if not warning:
             return {"code": WarningCode.NONE.value}
@@ -207,9 +205,8 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
-    @wrap_variant_dict
     def exposure_exception(self) -> Dict[str, Any]:
-        return wrap_exception(self.exposure.exception)
+        return wrap_dict_data(wrap_exception(self.exposure.exception))
 
     @auto_dbus
     @property

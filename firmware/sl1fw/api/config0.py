@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from pydbus.generic import signal
 
-from sl1fw.api.decorators import auto_dbus, dbus_api, wrap_variant_dict
+from sl1fw.api.decorators import auto_dbus, dbus_api, wrap_dict_data_recursive
 from sl1fw.libConfig import HwConfig, Value, NumericValue, ListValue, TextValue
 
 if TYPE_CHECKING:
@@ -114,7 +114,6 @@ class Config0:
 
     @auto_dbus
     @property
-    @wrap_variant_dict
     def constraints(self) -> Dict[str, Dict[str, Any]]:
         """
         Configuration constraints
@@ -132,11 +131,11 @@ class Config0:
         :return: Config settings constraints as dictionary
         """
         values = self.hw_config.get_values()
-        return {
+        return wrap_dict_data_recursive({
             name: self._process_value(value)
             for name, value in values.items()
             if not name.startswith("raw_") and self._process_value(value)
-        }
+        })
 
     @staticmethod
     def _process_value(value: Value):

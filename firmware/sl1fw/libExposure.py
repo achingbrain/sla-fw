@@ -34,7 +34,7 @@ from sl1fw import defines
 from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerMoveFailure, ProjectFailure, \
     TempSensorFailure, FanFailure, ResinFailure, ResinTooLow, ResinTooHigh, WarningEscalation
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
-    ModelMismatch, ResinNotEnough
+    ModelMismatch, ResinNotEnough, ProjectSettingsModified
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig, TomlConfig
 from sl1fw.libHardware import Hardware
@@ -416,16 +416,27 @@ class ExposureThread(threading.Thread):
         # collect results from libScreen
         if not self.expo.collectProjectData():
             self.logger.error("Collect project data failed")
-            self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
+            self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.FAILURE
             raise ProjectFailure(self.expo.project.state)
         #endif
 
+        # Warn if printing directly from USB
         if project_state == project_state.PRINT_DIRECTLY:
             self.expo.warnings.append(PrintingDirectlyFromMedia())
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
-        else:
+        #endif
+
+        # Warn if project settings was changed due to config constraints
+        alternated = self.expo.project.config.get_altered_values()
+        if alternated:
+            self.expo.warnings.append(ProjectSettingsModified(alternated))
+            self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
+        #endif
+
+        if self.expo.check_results[ExposureCheck.PROJECT] != ExposureCheckResult.WARNING:
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.SUCCESS
         #endif
+
     #enddef
 
 

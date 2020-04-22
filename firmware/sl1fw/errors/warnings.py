@@ -4,18 +4,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass
+from typing import Dict, Tuple, Any
 
 from sl1fw.errors.codes import WarningCode
+from sl1fw.errors.exceptions import with_code
 
 
+@with_code(WarningCode.UNKNOWN)
 @dataclass
 class PrinterWarning(Warning):
     """
     Printer warning
     """
-
-    CODE = WarningCode.UNKNOWN
-
 
 @dataclass
 class ExposureWarning(PrinterWarning):
@@ -29,31 +29,38 @@ class AmbientTemperatureOutOfRange(ExposureWarning):
     ambient_temperature: float
 
 
+@with_code(WarningCode.EXPOSURE_AMBIENT_TOO_HOT)
 class AmbientTooHot(AmbientTemperatureOutOfRange):
-    CODE = WarningCode.EXPOSURE_AMBIENT_TOO_HOT
+    pass
 
 
+@with_code(WarningCode.EXPOSURE_AMBIENT_TOO_COLD)
 class AmbientTooCold(AmbientTemperatureOutOfRange):
-    CODE = WarningCode.EXPOSURE_AMBIENT_TOO_COLD
+    pass
 
 
+@with_code(WarningCode.EXPOSURE_PRINTING_DIRECTLY)
 class PrintingDirectlyFromMedia(ExposureWarning):
-    CODE = WarningCode.EXPOSURE_PRINTING_DIRECTLY
+    pass
 
 
+@with_code(WarningCode.EXPOSURE_PRINTING_DIRECTLY)
 @dataclass
 class ModelMismatch(ExposureWarning):
-    CODE = WarningCode.EXPOSURE_PRINTING_DIRECTLY
-
     actual_model: str
     actual_variant: str
     project_model: str
     project_variant: str
 
 
+@with_code(WarningCode.EXPOSURE_RESIN_NOT_ENOUGH)
 @dataclass
 class ResinNotEnough(ExposureWarning):
-    CODE = WarningCode.EXPOSURE_RESIN_NOT_ENOUGH
-
     measured_resin_ml: float
     required_resin_ml: float
+
+
+@with_code(WarningCode.EXPOSURE_PROJECT_SETTINGS_MODIFIED)
+@dataclass
+class ProjectSettingsModified(ExposureWarning):
+    changes: Dict[str, Tuple[Any, Any]]
