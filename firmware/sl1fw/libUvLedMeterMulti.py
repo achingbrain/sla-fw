@@ -21,6 +21,7 @@ from time import sleep
 
 import numpy
 import serial
+import serial.tools.list_ports
 from PIL import Image, ImageDraw, ImageFont
 
 from sl1fw import defines
@@ -120,6 +121,16 @@ class UvLedMeterMulti:
                 self.logger.debug("UV meter response: %s", reply)
             #endwhile
 
+            devices = serial.tools.list_ports.comports()
+            if len(devices) > 1:
+                self.logger.warning("Multiple devices attached: %d", len(devices))
+            if devices[0].vid == 0x10C4 and devices[0].pid == 0xEA60: # 60p UV meter
+                self.sleepTime = 3
+            elif devices[0].vid == 0x1A86 and devices[0].pid == 0x7523: # 15p UV meter
+                self.sleepTime = 0.5
+            else:
+                self.logger.warning("Unknown device connected. VID: %x, PID: %x", devices[0].vid, devices[0].pid)
+
             self.logger.info("UV meter connected successfully")
             return True
 
@@ -174,9 +185,6 @@ class UvLedMeterMulti:
 
         self.temp = data[-1] / 10.0
         self.np = numpy.array(data[:-1])
-        if len(self.np) < 60:
-            self.sleepTime = 0.5
-        #endif
         self.datetime = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
         return True
     #enddef

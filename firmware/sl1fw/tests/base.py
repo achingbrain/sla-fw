@@ -30,6 +30,7 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s
 
 sys.modules['gpio'] = Mock()
 sys.modules['serial'] = sl1fw.tests.mocks.mc_port
+sys.modules['serial.tools.list_ports'] = Mock()
 sys.modules['evdev'] = Mock()
 
 
