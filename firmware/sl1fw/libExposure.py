@@ -458,7 +458,14 @@ class ExposureThread(threading.Thread):
         #endif
 
         self.expo.hw.setTiltProfile('homingFast')
-        self.expo.hw.tiltUpWait()
+        self.expo.hw.tiltUp()
+        while self.expo.hw.isTiltMoving():
+            sleep(0.1)
+        #endif
+        if not self.expo.hw.isTiltOnPosition():
+            self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.FAILURE
+            raise TiltFailure()
+        #endif
 
         self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.SUCCESS
     #enddef

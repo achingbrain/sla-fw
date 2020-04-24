@@ -1188,6 +1188,8 @@ class Hardware:
             while self.isTiltMoving():
                 sleep(0.1)
             #endwhile
+            if self.getTiltPositionMicroSteps() != self._tiltToPosition:
+                return False
         #endwhile
 
         return True
