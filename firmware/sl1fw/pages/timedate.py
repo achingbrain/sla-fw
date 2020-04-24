@@ -100,7 +100,13 @@ class PageSetTimeBase(PageTimeDateBase):
 
 
     def settimeButtonSubmit(self, data):
-        self.timedate.SetTime(float(data['unix_timestamp_sec']) * 1000000, False, False)
+        try:
+            self.timedate.SetTime(float(data['unix_timestamp_sec']) * 1000000, False, False)
+        except Exception:
+            self.logger.exception("Failed to set time")
+            self.display.pages['error'].setParams(
+                text = _("Cannot save configuration"))
+            return "error"
         return "_BACK_"
     #enddef
 
