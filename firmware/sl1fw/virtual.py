@@ -39,6 +39,7 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s
 sys.modules["gpio"] = Mock()
 sys.modules['evdev'] = Mock()
 sys.modules["serial"] = sl1fw.tests.mocks.mc_port
+sys.modules['serial.tools.list_ports'] = Mock()
 
 # use system locale settings for translation
 gettext.install("sl1fw", defines.localedir)
