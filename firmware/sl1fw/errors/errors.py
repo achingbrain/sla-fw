@@ -8,7 +8,7 @@ from typing import List
 
 from sl1fw.errors.codes import ErrorCode
 from sl1fw.errors.exceptions import PrinterException, with_code
-from sl1fw.project.project import ProjectState
+from sl1fw.states.project import ProjectState
 
 
 class PrinterError(PrinterException):
@@ -155,3 +155,13 @@ class DownloadFailed(PrinterError):
     url: str
     total_bytes: int
     completed_bytes: int
+
+
+@with_code(ErrorCode.GENERAL_NOT_MECHANICALLY_CALIBRATED)
+class NotMechanicallyCalibrated(PrinterError):
+    pass
+
+
+@with_code(ErrorCode.GENERAL_NOT_UV_CALIBRATED)
+class NotUVCalibrated(PrinterError):
+    pass

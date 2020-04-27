@@ -35,6 +35,7 @@ from sl1fw.errors.exceptions import ReprintWithoutHistory, AdminNotAvailable
 from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
+from sl1fw.project.functions import check_ready_to_print
 from sl1fw.state_actions.examples import Examples
 from sl1fw.states.display import DisplayState
 from sl1fw.states.examples import ExamplesState
@@ -676,6 +677,18 @@ class Printer0:
 
         self.printer.display.forcePage("admin")
         return DBusObjectPath("/")
+
+    @auto_dbus
+    @last_error
+    @state_checked(Printer0State.IDLE)
+    def check_ready(self) -> None:
+        """
+        Check printer is ready to print
+
+        This raises subset of exceptions the print raises, but does not do anything on success
+        :return: None
+        """
+        check_ready_to_print(self.printer.hwConfig, self.printer.hw)
 
     @auto_dbus
     @last_error

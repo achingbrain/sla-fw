@@ -39,7 +39,7 @@ from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig, TomlConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
-from sl1fw.project.functions import ramdisk_cleanup
+from sl1fw.project.functions import ramdisk_cleanup, check_ready_to_print
 from sl1fw.project.project import Project, ProjectState
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.utils.traceable_collections import TraceableList, TraceableDict
@@ -818,6 +818,7 @@ class Exposure:
     instance_counter = 0
 
     def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig, project: str):
+        check_ready_to_print(hwConfig, hw)
         self.change = Signal()
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig

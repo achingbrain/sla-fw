@@ -76,6 +76,12 @@ class ErrorCode(Enum):
     GENERAL_DOWNLOAD_FAILED = make_code(ErrorClass.CONNECTIVITY, 4)
     GENERAL_NOT_ENOUGH_INTERNAL_SPACE = make_code(ErrorClass.SYSTEM, 16)
     GENERAL_ADMIN_NOT_AVAILABLE = make_code(ErrorClass.SYSTEM, 17)
+    GENERAL_FILE_NOT_FOUND = make_code(ErrorClass.SYSTEM, 18)
+    GENERAL_INVALID_EXTENSION = make_code(ErrorClass.SYSTEM, 19)
+    GENERAL_FILE_ALREADY_EXISTS = make_code(ErrorClass.SYSTEM, 20)
+    GENERAL_INVALID_PROJECT = make_code(ErrorClass.SYSTEM, 21)
+    GENERAL_NOT_MECHANICALLY_CALIBRATED = make_code(ErrorClass.MECHANICAL, 13)
+    GENERAL_NOT_UV_CALIBRATED = make_code(ErrorClass.ELECTRICAL, 8)
 
     # Exposure error codes
     EXPOSURE_TILT_FAILURE = make_code(ErrorClass.MECHANICAL, 10)

@@ -1,7 +1,11 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
+from sl1fw.project.functions import check_ready_to_print
 from sl1fw.states.display import DisplayState
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -18,8 +22,6 @@ class PageHome(Page):
         self.pageUI = "home"
         # meni se i z PageFinished!
         self.readyBeep = True
-    #enddef
-
 
     def show(self):
         super(PageHome, self).show()
@@ -30,38 +32,28 @@ class PageHome(Page):
         if self.readyBeep:
             self.display.hw.beepRepeat(2)
             self.readyBeep = False
-        #endif
-    #enddef
-
 
     @staticmethod
     def controlButtonRelease():
         return "control"
-    #enddef
-
 
     @staticmethod
     def settingsButtonRelease():
         return "settings"
-    #enddef
-
 
     def printButtonRelease(self):
-# FIXME temporaily disabled until it works perfectly on all printers
-#       if self.display.hwConfig.showWizard:
-#           return PageWizardInit.Name
-        #endif
-        if self.display.hwConfig.uvPwm <= self.display.hw.getMinPwm():
+        # FIXME temporaily disabled until it works perfectly on all printers
+        #       if self.display.hwConfig.showWizard:
+        #           return PageWizardInit.Name
+
+        try:
+            check_ready_to_print(self.display.hwConfig, self.display.hw)
+        except NotUVCalibrated:
             return PageUvCalibrationStart.Name
-        #endif
-        if not self.display.hwConfig.calibrated:
+        except NotMechanicallyCalibrated:
             return PageCalibrationStart.Name
-        #endif
+
         if not self.display.doMenu("sourceselect"):
             return "_EXIT_"
-        #endif
 
         return "printpreviewswipe"
-    #enddef
-
-#endclass

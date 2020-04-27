@@ -141,6 +141,10 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
             self.assertRegex(Path(project).name, r".*\.sl1")
 
     def test_print_start(self):
+        # Fake calibration
+        self.printer.hwConfig.calibrated = True
+
+        # Test print start
         path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)
         self.assertNotEqual(path, "/")
         self.assertEqual(Printer0State.PRINTING, Printer0State(self.printer0.state))

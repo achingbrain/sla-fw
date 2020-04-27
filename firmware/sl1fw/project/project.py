@@ -11,12 +11,12 @@
 import logging
 import os
 import shutil
-from time import time
-from datetime import datetime, timezone
-from pathlib import Path
-from enum import Enum, unique
 import zipfile
+from datetime import datetime, timezone
 from io import BytesIO
+from pathlib import Path
+from time import time
+
 import numpy
 from PIL import Image
 
@@ -24,17 +24,7 @@ from sl1fw import defines
 from sl1fw.libConfig import HwConfig
 from sl1fw.project.config import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
-
-
-@unique
-class ProjectState(Enum):
-    UNINITIALIZED = -1
-    OK = 0
-    NOT_FOUND = 1
-    CANT_READ = 2
-    NOT_ENOUGH_LAYERS = 3
-    CORRUPTED = 4
-    PRINT_DIRECTLY = 5
+from sl1fw.states.project import ProjectState
 
 
 class Project:
