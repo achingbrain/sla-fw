@@ -10,6 +10,7 @@ before_script:
   - eval $(ssh-agent -s)
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
   - cat ~/.ssh/known_hosts
+  - pip3 install --upgrade git+https://gitlab.com/prusa3d/sl1/sl1-errors.git
 
 build:
   stage: build

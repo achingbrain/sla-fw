@@ -8,10 +8,11 @@ from pathlib import Path
 from time import sleep
 
 import pydbus
+from sl1codes.errors import Errors
+from sl1codes.warnings import Warnings
 
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 from sl1fw.api.exposure0 import Exposure0State
-from sl1fw.errors.codes import WarningCode, ErrorCode
 from sl1fw.project.project import ProjectState
 from sl1fw.errors.warnings import AmbientTooHot
 
@@ -62,14 +63,14 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self.assertEqual(1, len(self.exposure0.exposure_warnings))
         warning = self.exposure0.exposure_warnings[0]
         print(warning)
-        self.assertEqual(WarningCode(warning["code"]), WarningCode.EXPOSURE_AMBIENT_TOO_HOT)
+        self.assertEqual(warning["code"], Warnings.EXPOSURE_AMBIENT_TOO_HOT.value)
         self.assertAlmostEqual(warning["ambient_temperature"], 42.0)
         self.exposure0.reject_print_warnings()
         self._wait_for_state(Exposure0State.FAILURE, 30)
 
         exception = self.exposure0.exposure_exception
         self.assertIsNotNone(exception)
-        self.assertEqual(ErrorCode(exception["code"]), ErrorCode.EXPOSURE_WARNING_ESCALATION)
+        self.assertEqual(exception["code"], Errors.EXPOSURE_WARNING_ESCALATION.code)
 
     def _wait_for_state(self, state: Exposure0State, timeout_s: int):
         for _ in range(timeout_s):

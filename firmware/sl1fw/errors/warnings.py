@@ -6,11 +6,12 @@
 from dataclasses import dataclass
 from typing import Dict, Tuple, Any
 
-from sl1fw.errors.codes import WarningCode
+from sl1codes.warnings import Warnings
+
 from sl1fw.errors.exceptions import with_code
 
 
-@with_code(WarningCode.UNKNOWN)
+@with_code(Warnings.UNKNOWN)
 @dataclass
 class PrinterWarning(Warning):
     """
@@ -29,22 +30,22 @@ class AmbientTemperatureOutOfRange(ExposureWarning):
     ambient_temperature: float
 
 
-@with_code(WarningCode.EXPOSURE_AMBIENT_TOO_HOT)
+@with_code(Warnings.EXPOSURE_AMBIENT_TOO_HOT)
 class AmbientTooHot(AmbientTemperatureOutOfRange):
     pass
 
 
-@with_code(WarningCode.EXPOSURE_AMBIENT_TOO_COLD)
+@with_code(Warnings.EXPOSURE_AMBIENT_TOO_COLD)
 class AmbientTooCold(AmbientTemperatureOutOfRange):
     pass
 
 
-@with_code(WarningCode.EXPOSURE_PRINTING_DIRECTLY)
+@with_code(Warnings.EXPOSURE_PRINTING_DIRECTLY)
 class PrintingDirectlyFromMedia(ExposureWarning):
     pass
 
 
-@with_code(WarningCode.EXPOSURE_PRINTING_DIRECTLY)
+@with_code(Warnings.EXPOSURE_PRINTING_DIRECTLY)
 @dataclass
 class ModelMismatch(ExposureWarning):
     actual_model: str
@@ -53,14 +54,14 @@ class ModelMismatch(ExposureWarning):
     project_variant: str
 
 
-@with_code(WarningCode.EXPOSURE_RESIN_NOT_ENOUGH)
+@with_code(Warnings.EXPOSURE_RESIN_NOT_ENOUGH)
 @dataclass
 class ResinNotEnough(ExposureWarning):
     measured_resin_ml: float
     required_resin_ml: float
 
 
-@with_code(WarningCode.EXPOSURE_PROJECT_SETTINGS_MODIFIED)
+@with_code(Warnings.EXPOSURE_PROJECT_SETTINGS_MODIFIED)
 @dataclass
 class ProjectSettingsModified(ExposureWarning):
     changes: Dict[str, Tuple[Any, Any]]
