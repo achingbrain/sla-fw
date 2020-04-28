@@ -27,6 +27,7 @@ from sl1fw.states.exposure import ExposureState
 from sl1fw.functions import files
 from sl1fw.functions.system import shut_down
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.libConfig import TomlConfig
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -78,6 +79,10 @@ class Page:
         #endtry
     #enddef
 
+    @property
+    def httpDigest(self):
+        return TomlConfig(defines.remoteConfig).load().get('htdigest', True)
+    #enddef
 
     def prepare(self):
         pass

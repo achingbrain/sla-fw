@@ -56,6 +56,7 @@ class Exposure0State(Enum):
     TILTING_DOWN = 19
     CANCELED = 20
     CHECK_WARNING = 23
+    DONE = 24
 
     @staticmethod
     def from_exposure(state: ExposureState) -> Exposure0State:
@@ -78,6 +79,7 @@ class Exposure0State(Enum):
             ExposureState.TILTING_DOWN: Exposure0State.TILTING_DOWN,
             ExposureState.CANCELED: Exposure0State.CANCELED,
             ExposureState.CHECK_WARNING: Exposure0State.CHECK_WARNING,
+            ExposureState.DONE: Exposure0State.DONE,
         }[state]
 
 

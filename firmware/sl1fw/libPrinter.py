@@ -36,7 +36,6 @@ from sl1fw.libHardware import MotConComState
 from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
 from sl1fw.libScreen import Screen
-from sl1fw.libWebDisplay import WebDisplay
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
 from sl1fw.state_actions.manager import ActionManager
@@ -99,7 +98,7 @@ class Printer:
         if debug_display:
             devices = [debug_display]
         else:
-            devices = [QtDisplay(), WebDisplay()]
+            devices = [QtDisplay()]
         #endif
 
         self.logger.debug("Initializing libScreen")

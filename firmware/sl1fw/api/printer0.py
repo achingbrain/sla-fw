@@ -39,6 +39,7 @@ from sl1fw.state_actions.examples import Examples
 from sl1fw.states.display import DisplayState
 from sl1fw.states.examples import ExamplesState
 from sl1fw.states.printer import PrinterState
+from sl1fw.libConfig import TomlConfig
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
@@ -145,6 +146,11 @@ class Printer0:
     @property
     def printer_exception(self) -> Dict[str, Any]:
         return wrap_dict_data(wrap_exception(self.printer.exception))
+
+    @auto_dbus
+    @property
+    def http_digest(self) -> bool:
+        return TomlConfig(defines.remoteConfig).load().get('htdigest', True)
 
     @auto_dbus
     @last_error
@@ -478,6 +484,21 @@ class Printer0:
         :return: Current api key string
         """
         return self.printer.get_actual_page().octoprintAuth
+
+    @auto_dbus
+    @property
+    def static_api_key(self) -> str:
+        """
+        Get current API key when http digest is enabled
+
+        :return: Current api key string
+        """
+        try:
+            with open(defines.static_octoprintAuthFile, "r") as f:
+                return f.read()
+            #endwith
+        except IOError:
+            return None
 
     @auto_dbus
     @property

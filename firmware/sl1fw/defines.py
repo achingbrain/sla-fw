@@ -21,6 +21,7 @@ configDir = Path("/etc/sl1fw")
 hwConfigFileName = "hardware.cfg"
 hwConfigFile = configDir / hwConfigFileName
 loggingConfig = configDir / "loggerConfig.json"
+remoteConfig = configDir / "remoteConfig.toml"
 hwConfigFactoryDefaultsFile = factoryMountPoint / "hardware.toml"
 wizardDataFilename = "wizard_data.toml"
 wizardDataFile = factoryMountPoint / wizardDataFilename
@@ -68,8 +69,8 @@ cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
+htDigestCommand = os.path.join(scriptDir, "http_digest.sh")
 
-webDisplayPort = 16384
 qtDisplayPort = 32768
 templates = '/srv/http/intranet/templates'
 
@@ -80,6 +81,7 @@ wifiSetupFile = "/etc/hostapd.secrets.json"
 
 octoprintURI = ":8000"
 octoprintAuthFile = configDir / "slicer-upload-api.key"
+static_octoprintAuthFile = configDir / "static_api.key"
 
 fbFile = "/dev/fb0"
 

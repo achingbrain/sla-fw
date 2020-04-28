@@ -5,6 +5,8 @@
 
 import subprocess
 
+from sl1fw import defines
+from sl1fw.libConfig import TomlConfig
 from sl1fw.pages.base import Page
 from sl1fw.pages import page
 
@@ -21,6 +23,7 @@ class PageSetLoginCredentials(Page):
     def fillData(self):
         return {
             'api_key' : self.octoprintAuth,
+            'htdigest': self.httpDigest
         }
     #enddef
 
@@ -33,9 +36,21 @@ class PageSetLoginCredentials(Page):
 
     def saveButtonSubmit(self, data):
         apikey = data['api_key']
+        htdigest = data.get('htdigest', self.httpDigest)
 
         try:
             subprocess.check_call(["/bin/api-keygen.sh", apikey])
+            remoteConfig = TomlConfig(defines.remoteConfig)
+            newData = remoteConfig.load()
+            newData['htdigest'] = htdigest
+            if not remoteConfig.save(data=newData):
+                self.display.pages['error'].setParams(
+                text = _("Octoprint API key change failed"))
+                return "error"
+            if htdigest:
+                subprocess.check_call([defines.htDigestCommand, "enable"])
+            else:
+                subprocess.check_call([defines.htDigestCommand, "disable"])
         except subprocess.CalledProcessError:
             self.display.pages['error'].setParams(
                 text = _("Octoprint API key change failed"))

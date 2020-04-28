@@ -899,7 +899,7 @@ class Exposure:
         else:
             # Exposure thread not yet running (cancel before start)
             self.write_last_project()
-            self.state = ExposureState.CANCELED
+            self.state = ExposureState.DONE
         #endif
     #enddef
 

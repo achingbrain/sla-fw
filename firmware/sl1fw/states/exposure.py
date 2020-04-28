@@ -27,10 +27,11 @@ class ExposureState(Enum):
     RESIN_WARNING = 23
     TILTING_DOWN = 24
     CANCELED = 26
+    DONE = 27
 
     @staticmethod
     def finished_states():
-        return [ExposureState.FAILURE, ExposureState.CANCELED, ExposureState.FINISHED]
+        return [ExposureState.FAILURE, ExposureState.CANCELED, ExposureState.FINISHED, ExposureState.DONE]
 
 
 @unique
