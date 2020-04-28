@@ -200,6 +200,12 @@ def python_to_dbus_value_type(data: Any):
         items = [python_to_dbus_value_type(item) for item in data]
         return "(" + "".join(items) + ")"
 
+    if isinstance(data, list):
+        dbus_type = "v"
+        if data:
+            dbus_type = python_to_dbus_value_type(data[0])
+        return f"a{dbus_type}"
+
     raise DBusMappingException(f"Failed to get value {data} dbus type")
 
 
@@ -213,6 +219,12 @@ def wrap_value(data: Any) -> Variant:
 
     if isinstance(data, tuple):
         return Variant(python_to_dbus_value_type(data), data)
+
+    if isinstance(data, list):
+        return Variant(python_to_dbus_value_type(data), data)
+
+    if isinstance(data, Enum):
+        return wrap_value(data.value)
 
     raise DBusMappingException(f"Failed to wrap dbus value {data}")
 
