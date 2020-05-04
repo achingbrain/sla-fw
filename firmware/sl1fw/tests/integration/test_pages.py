@@ -117,9 +117,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.waitPage("advancedsettings")
 
         # Test firmware update
-        self.press("firmwareupdate")
-        self.waitPage("wait")
-        self.waitPage("firmwareupdate", timeout_sec=30)
+        self.switchPage("firmwareupdate")
         self.press("back")
         self.waitPage("advancedsettings")
 
