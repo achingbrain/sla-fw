@@ -1,6 +1,6 @@
 [Unit]
 Description=SL1 firmware
-Requires=NetworkManager.service rauc.service
+Wants=NetworkManager.service rauc.service
 After=NetworkManager.service rauc.service
 
 [Service]

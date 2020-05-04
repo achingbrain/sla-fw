@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Optional
 import pydbus
 
 from sl1fw.errors.errors import FailedUpdateChannelGet, FailedUpdateChannelSet
-from sl1fw.functions.system import save_factory_mode, get_update_channel, set_update_channel, shut_down
+from sl1fw.functions.system import save_factory_mode, get_update_channel, set_update_channel
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -71,13 +71,13 @@ class PageTools(Page):
         return "_SELF_"
 
     def button11ButtonRelease(self):
-        self._switch_channel("stable")
+        return self._switch_channel("stable")
 
     def button12ButtonRelease(self):
-        self._switch_channel("beta")
+        return self._switch_channel("beta")
 
     def button13ButtonRelease(self):
-        self._switch_channel("dev")
+        return self._switch_channel("dev")
 
     def _switch_channel(self, channel: str) -> Optional[str]:
         try:
@@ -86,8 +86,7 @@ class PageTools(Page):
             self.logger.exception("Failed to set update channel")
             self.display.pages["error"].setParams(text="Cannot set update channel")
             return "error"
-        shut_down(self.display.hw, True)
-        return None
+        return "_SELF_"
 
     def _trigger_unit(self, name: str):
         state = self.systemd.GetUnitFileState(name)
