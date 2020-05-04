@@ -23,7 +23,7 @@ class PageFirmwareUpdate(Page):
     Name = "firmwareupdate"
 
     def __init__(self, display):
-        super(PageFirmwareUpdate, self).__init__(display)
+        super().__init__(display)
         self.pageUI = "firmwareupdate"
         self.old_items = None
         self.rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
@@ -88,7 +88,8 @@ class PageFirmwareUpdate(Page):
     def show(self):
         self.net_list = self.getNetFirmwares()
         self.items.update(self.fillData())
-        super(PageFirmwareUpdate, self).show()
+        super().show()
+        self.showItems(**self.items)
     #enddef
 
 
