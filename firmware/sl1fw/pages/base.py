@@ -212,7 +212,7 @@ class Page:
         pageWait = self.display.makeWait(self.display, line1=_("Saving logs"))
         pageWait.show()
         try:
-            files.save_logs_to_usb(self.display.hw.cpuSerialNo)
+            files.save_logs_to_usb(self.display.hw)
         except FileNotFoundError:
             self.logger.exception("File not found saving logs to usb")
             self.display.pages['error'].setParams(text=_("No USB storage present"))

@@ -172,7 +172,7 @@ class Printer0:
         Save logs to first usb device
         :return: None
         """
-        files.save_logs_to_usb(self.printer.hw.cpuSerialNo)
+        files.save_logs_to_usb(self.printer.hw)
 
     @auto_dbus
     @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])
