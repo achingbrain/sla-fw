@@ -139,6 +139,11 @@ class Exposure0:
         self.exposure.change.connect(self._handle_change)
 
     @auto_dbus
+    @property
+    def last_exception(self) -> Dict[str, Any]:
+        return wrap_dict_data(wrap_exception(self._last_exception))
+
+    @auto_dbus
     @last_error
     @state_checked(Exposure0State.CONFIRM)
     def confirm_start(self) -> None:
