@@ -194,6 +194,10 @@ class Page:
         if not self.display.hwConfig.coverCheck or self.display.hw.isCoverClosed():
             return
         #endif
+        # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
+        if self.display.hw.isKit and self.display.runtime_config.factory_mode:
+            return
+        #endif
         self.display.hw.powerLed("warn")
         pageWait = self.display.makeWait(self.display,
                 line1 = _("Close the orange cover."),
@@ -550,28 +554,6 @@ class Page:
                 self.display.hw.startFans()
             #self.checkCooling = True #shouldn't this start the fan check also?
         #endif
-
-        if A64temperature < defines.maxA64Temp - 20: # 60 C
-            if any(fan.enabled for fan in self.display.hw.fans.values()) and \
-                    not (self.display.expo is None or self.display.expo.in_progress) and not self.checkCooling:
-                self.display.hw.stopFans()
-            #self.checkCooling = True #shouldn't this start the fan check also?
-        #endif
-
-        # # do not shut down the printer for now
-        # if A64temperature > defines.maxA64Temp + 10: # 90 C
-        #     self.logger.warning("Printer is shutting down due to overheat! Measured %.1f °C on A64.", A64temperature)
-        #     self.display.pages['error'].setParams(
-        #         text = _("Printers temperature is too high. Measured: %.1f °C!\n\n"
-        #             "Shutting down in 10 seconds") % A64temperature)
-        #     self.display.pages['error'].show()
-        #     for i in range(10):
-        #         self.display.hw.beepAlarm(3)
-        #         sleep(1)
-        #     #endfor
-        #     shut_down(self.display.hw)
-        #     return "error"
-        # #endif
     #enddef
 
 
