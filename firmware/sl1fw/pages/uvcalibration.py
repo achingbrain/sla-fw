@@ -191,9 +191,11 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def contButtonRelease(self):
-        if not self.display.doMenu(PageDisplayTest.Name):
-            return self._EXIT_()
-        #endif
+        # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
+        if not (self.display.hw.isKit and self.display.runtime_config.factory_mode):
+            if not self.display.doMenu(PageDisplayTest.Name):
+                return self._EXIT_()
+            #endif
 
         self.display.pages['confirm'].setParams(
             continueFce = self.prepareUvCalibration,
@@ -211,37 +213,32 @@ class PageUvCalibration(PageUvCalibrationBase):
         self.display.state = DisplayState.CALIBRATION
         self.pageWait = PageWait(self.display, line1=_("Setting start positions"), line2=_("Please wait..."))
         self.pageWait.pageTitle = N_("UV LED calibration")
-
-        # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
-        if self.display.hw.isKit and self.display.runtime_config.factory_mode:
-            # Skip setting of initial positions as the kit not fully assembled at the factory (there is no tower)
-            return
-        #endif
-
         self.pageWait.show()
 
-        self.display.hw.towerSync()
-        self.display.hw.tiltSync()
+        # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
+        if not (self.display.hw.isKit and self.display.runtime_config.factory_mode):
+            # Skip setting of initial positions as the kit not fully assembled at the factory (there is no tower)
+            self.display.hw.towerSync()
+            self.display.hw.tiltSync()
+            while self.display.hw.isTowerMoving() or self.display.hw.isTiltMoving():
+                sleep(0.25)
+            #endwhile
 
-        while self.display.hw.isTowerMoving() or self.display.hw.isTiltMoving():
-            sleep(0.25)
-        #endwhile
+            if not self.display.hw.isTowerSynced():
+                self.display.state = DisplayState.IDLE
+                self.display.pages['error'].setParams(
+                        text = _("Tower homing failed!\n\nCheck the printer's hardware."))
+                return "error"
+            #endif
 
-        if not self.display.hw.isTowerSynced():
-            self.display.state = DisplayState.IDLE
-            self.display.pages['error'].setParams(
-                    text = _("Tower homing failed!\n\nCheck the printer's hardware."))
-            return "error"
+            if not self.display.hw.isTiltSynced():
+                self.display.state = DisplayState.IDLE
+                self.display.pages['error'].setParams(
+                        text = _("Tilt homing failed!\n\nCheck the printer's hardware."))
+                return "error"
+            #endif
+            self.display.hw.tiltLayerUpWait()
         #endif
-
-        if not self.display.hw.isTiltSynced():
-            self.display.state = DisplayState.IDLE
-            self.display.pages['error'].setParams(
-                    text = _("Tilt homing failed!\n\nCheck the printer's hardware."))
-            return "error"
-        #endif
-
-        self.display.hw.tiltLayerUpWait()
 
         if not self.checkUVMeter():
             self.off()
