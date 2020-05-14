@@ -16,7 +16,7 @@ DEFAULT_CONFIG = {
     "handlers": {
         "journald": {"class": "systemd.journal.JournalHandler", "formatter": "sl1fw", "SYSLOG_IDENTIFIER": "SL1FW"}
     },
-    "root": {"level": "INFO", "handlers": ["journald"]},
+    "root": {"level": "DEBUG", "handlers": ["journald"]},
 }
 
 
