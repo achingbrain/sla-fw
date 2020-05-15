@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import sys
+import shutil
 import traceback
 import subprocess
 from datetime import datetime
@@ -202,3 +203,15 @@ def log_data_summary_config():
         text += "UV Calibration not performed yet"
 
     return text
+
+def ch_mode_owner(src):
+    """
+        change group and mode of the file or folder.
+    """
+    shutil.chown(src, group=defines.internalProjectGroup)
+    if os.path.isdir(src):
+        os.chmod(src, defines.internalProjectDirMode)
+        for name in os.listdir(src):
+            ch_mode_owner(os.path.join(src,name))
+    else:
+        os.chmod(src, defines.internalProjectMode)

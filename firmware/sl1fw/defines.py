@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import stat
 from pathlib import Path
 
 import sl1fw
@@ -125,6 +126,9 @@ firmwareTempFile = os.path.join(ramdiskPath, "update.raucb")
 firmwareListURL = "https://sl1.prusa3d.com/check-update"
 firmwareListTemp = os.path.join(ramdiskPath, "updates.json")
 internalProjectPath = os.path.join(persistentStorage, "projects")
+internalProjectGroup = "projects"
+internalProjectMode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
+internalProjectDirMode = stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH
 examplesURL = "https://sl1.prusa3d.com/examples.tar.gz"
 admincheckURL = "https://sl1.prusa3d.com/check-admin"
 admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")

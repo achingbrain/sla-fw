@@ -23,6 +23,7 @@ from deprecated import deprecated
 from sl1fw import defines
 from sl1fw.errors.errors import DownloadFailed
 from sl1fw.project.functions import ramdisk_cleanup
+from sl1fw.functions.files import ch_mode_owner
 
 
 class Network:
@@ -197,6 +198,7 @@ class Network:
         finally:
             source.close()
 
+
     @deprecated(reason="Use examples API")
     def download_examples(self, page) -> None:
 
@@ -244,6 +246,7 @@ class Network:
                         if os.path.exists(dest):
                             shutil.rmtree(dest)
                         shutil.copytree(os.path.join(temp, item), dest)
+                        ch_mode_owner(dest)
 
                     page.showItems(line1 = _("Cleaning up"))
 

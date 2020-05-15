@@ -19,6 +19,7 @@ from sl1fw.errors.errors import NotConnected, NotEnoughInternalSpace
 from sl1fw.libNetwork import Network
 from sl1fw.project.functions import ramdisk_cleanup
 from sl1fw.states.examples import ExamplesState
+from sl1fw.functions.files import ch_mode_owner
 
 
 class Examples(Thread):
@@ -132,6 +133,7 @@ class Examples(Thread):
                     if os.path.exists(destination):
                         shutil.rmtree(destination)
                     shutil.copytree(os.path.join(temp, item), destination)
+                    ch_mode_owner(destination)
                     self.copy_progress = (i + 1) / len(items)
 
                 self.state = ExamplesState.CLEANUP
