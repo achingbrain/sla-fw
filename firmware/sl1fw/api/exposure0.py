@@ -356,7 +356,7 @@ class Exposure0:
     @property
     @last_error
     @deprecated("Use position_nm")
-    def position_mm(self) -> int:
+    def position_mm(self) -> float:
         """
         Current layer position
 
