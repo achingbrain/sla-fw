@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import logging
-from enum import unique, Enum
+from enum import unique, IntEnum
 
 from PySignal import Signal
 from gi.repository.GLib import timeout_add_seconds
@@ -20,7 +20,7 @@ from sl1fw.libScreen import Screen
 
 
 @unique
-class DisplayTest0State(Enum):
+class DisplayTest0State(IntEnum):
     INIT = 0
     COVER_OPEN = 1
     DISPLAY = 2
