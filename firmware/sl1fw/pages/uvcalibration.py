@@ -171,7 +171,7 @@ class PageUvCalibration(PageUvCalibrationBase):
         minpwm, maxpwm = self.display.hw.getMeasPwms()
         text = _("Welcome to the UV LED calibration.\n"
                 "Use this function only if you have replaced the print display or experiencing issues with the prints.\n\n"
-                "1. Release the screws and remove them with the resin tank.\n"
+                "1. If the resin tank is in the printer, remove it along with the screws.\n"
                 "2. Close the orange lid, don't open it! UV radiation is harmful!")
         if self.display.runtime_config.factory_mode:
             text += _("\n\nIntensity: center %(cint)d, edge %(eint)d\n"
