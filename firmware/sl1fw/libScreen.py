@@ -197,19 +197,6 @@ class ScreenServer(multiprocessing.Process):
     #enddef
 
 
-    # FIXME not used, delete?
-    def fillAreaPerc(self, area, color):
-        self.logger.debug("area: %s", str(area))
-        areaPixels = {}
-        areaPixels['x'] = self._calcPixels(area['x'], self.width)
-        areaPixels['y'] = self._calcPixels(area['y'], self.height)
-        areaPixels['w'] = self._calcPixels(area['w'], self.width)
-        areaPixels['h'] = self._calcPixels(area['h'], self.height)
-        self.logger.debug("areaPixels: %s", str(areaPixels))
-        self.fillArea(areaPixels, color)
-    #enddef
-
-
     @staticmethod
     def _calcPixels(perc, whole):
         return int((perc * whole) / 100)
