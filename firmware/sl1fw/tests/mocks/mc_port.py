@@ -8,7 +8,7 @@ from subprocess import Popen, PIPE
 from time import monotonic_ns, sleep
 from typing import Optional
 
-from serial import SerialTimeoutException
+from serial.serialutil import SerialTimeoutException
 
 
 class Serial:
@@ -24,7 +24,7 @@ class Serial:
         self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         ready = self.process.stdout.readline()
         self.logger.debug("MC serial simulator ready = %s", ready)
-        assert ready == b'ready\n'
+        assert ready == b"ready\n"
 
     @property
     def is_open(self) -> bool:

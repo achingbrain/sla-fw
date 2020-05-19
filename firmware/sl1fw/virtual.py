@@ -11,50 +11,40 @@ integration test mocks. All in all this launches the printer (similar to the one
 a desktop computer without motion controller connected. This mode is intended for GUI testing.
 """
 
-# TODO: Fix following pylint problems
-# pylint: disable=wrong-import-position
-
-import os
 import builtins
 import gettext
 import logging
-import sys
+import os
 import tempfile
-import threading
 import warnings
 from pathlib import Path
 from shutil import copyfile
+from threading import Thread
 
 import pydbus
 from gi.repository import GLib
-from mock import Mock
+from mock import Mock, patch
 
 import sl1fw.tests.mocks.mc_port
 from sl1fw import defines
-from sl1fw.tests import samples  # pylint: disable=W0611
-from sl1fw.tests.mocks.dbus.rauc import Rauc
-from sl1fw.tests.mocks.gettext import fake_gettext
-
-fake_gettext()
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
-
-sys.modules["gpio"] = Mock()
-sys.modules['evdev'] = Mock()
-sys.modules["serial"] = sl1fw.tests.mocks.mc_port
-sys.modules['serial.tools.list_ports'] = Mock()
-
-# use system locale settings for translation
-gettext.install("sl1fw", defines.localedir)
-builtins.N_ = lambda x: x
-
 from sl1fw import libPrinter
 from sl1fw.api.printer0 import Printer0
+from sl1fw.tests import samples
+from sl1fw.tests.mocks.dbus.rauc import Rauc
+
+# use system locale settings for translation
+gettext.install("sl1fw", defines.localedir, names=("ngettext",))
+builtins.N_ = lambda x: x
+
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG
+)
 
 # Display warnings only once
 warnings.simplefilter("once")
 
 TEMP_DIR = Path(tempfile.gettempdir())
-SAMPLES_DIR = Path(sl1fw.tests.samples.__file__).parent
+SAMPLES_DIR = Path(samples.__file__).parent
 SL1FW_DIR = Path(sl1fw.__file__).parent
 HARDWARE_FILE = TEMP_DIR / "sl1fw.hardware.cfg"
 copyfile(SAMPLES_DIR / "hardware-virtual.cfg", HARDWARE_FILE)
@@ -87,21 +77,26 @@ defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
 defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
 defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
 
-event_loop = GLib.MainLoop()
+with patch(
+    "sl1fw.motion_controller.controller.serial", sl1fw.tests.mocks.mc_port
+), patch("sl1fw.motion_controller.controller.UInput", Mock()), patch(
+    "sl1fw.motion_controller.controller.gpio", Mock()
+), patch(
+    "serial.tools.list_ports", Mock()
+):
+    bus = pydbus.SystemBus()
+    rauc_mocks = bus.publish(Rauc.__OBJECT__, ("/", Rauc()))
 
-bus = pydbus.SystemBus()
-rauc_mocks = bus.publish(Rauc.__OBJECT__, ("/", Rauc()))
+    Thread(target=GLib.MainLoop().run, daemon=True).start()
 
-threading.Thread(target=event_loop.run, daemon=True).start()
+    printer = libPrinter.Printer()
 
-printer = libPrinter.Printer()
+    printer.hwConfig.calibrated = True
+    printer.hwConfig.fanCheck = False
+    printer.hwConfig.coverCheck = False
+    printer.hwConfig.resinSensor = False
 
-printer.hwConfig.calibrated = True
-printer.hwConfig.fanCheck = False
-printer.hwConfig.coverCheck = False
-printer.hwConfig.resinSensor = False
+    bus.publish(Printer0.__INTERFACE__, Printer0(printer))
+    printer.run()
 
-bus.publish(Printer0.__INTERFACE__, Printer0(printer))
-printer.run()
-
-rauc_mocks.unpublish()
+    rauc_mocks.unpublish()
