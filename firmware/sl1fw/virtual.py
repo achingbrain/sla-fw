@@ -60,6 +60,7 @@ defines.factoryConfigFile = str(SL1FW_DIR / ".." / "factory" / "factory.toml")
 defines.hwConfigFactoryDefaultsFile = str(SAMPLES_DIR / "hardware.toml")
 defines.templates = str(SL1FW_DIR / "intranet" / "templates")
 test_runtime.testing = True
+test_runtime.hard_exceptions = False
 defines.truePoweroff = False
 defines.fbFile = "/dev/null"
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
@@ -99,7 +100,7 @@ class Virtual:
             "sl1fw.libUvLedMeterMulti.serial", sl1fw.tests.mocks.mc_port
         ), patch("sl1fw.motion_controller.controller.UInput", Mock()), patch(
             "sl1fw.motion_controller.controller.gpio", Mock()
-        ):
+        ), patch("sl1fw.functions.files.get_save_path", self.fake_save_path):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
             print("Publishing Rauc mock")
@@ -133,6 +134,10 @@ class Virtual:
         print("Running virtual printer tear down")
         asyncio.run(self.async_tear_down())
         print("Virtual printer teardown finished")
+
+    @staticmethod
+    def fake_save_path():
+        return Path(TEMP_DIR)
 
     async def async_tear_down(self):
         loop = asyncio.get_running_loop()

@@ -290,7 +290,7 @@ class Printer:
         except Exception as exception:
             self.exception = exception
             self.state = PrinterState.EXCEPTION
-            if test_runtime.testing:
+            if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("Printer run() init failed")
             self.display.pages["exception"].setParams(
@@ -313,7 +313,7 @@ class Printer:
         except Exception as exception:
             self.exception = exception
             self.state = PrinterState.EXCEPTION
-            if test_runtime.testing:
+            if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("run() exception:")
             self.display.pages["exception"].setParams(

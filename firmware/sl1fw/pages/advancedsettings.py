@@ -416,13 +416,6 @@ class PageAdvancedSettings(Page):
     #enddef
 
 
-    # Logs export to usb
-    @confirm_leave
-    def exportlogstoflashdiskButtonRelease(self):
-        return self.saveLogsToUSB()
-    #enddef
-
-
     # Show wizard
     @confirm_leave
     def wizardButtonRelease(self): # pylint: disable=no-self-use

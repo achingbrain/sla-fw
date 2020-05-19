@@ -177,6 +177,16 @@ class Printer0:
         files.save_logs_to_usb(self.printer.hw)
 
     @auto_dbus
+    @last_error
+    def upload_logs(self) -> Tuple[str, str]:
+        """
+        Upload logs to log server
+
+        :return: Log URL, log ID as string, string tuple
+        """
+        return files.upload_logs(self.printer.hw)
+
+    @auto_dbus
     @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])
     @last_error
     def poweroff(self, do_shutdown: bool, reboot: bool) -> None:

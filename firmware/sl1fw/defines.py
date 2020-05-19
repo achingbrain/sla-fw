@@ -161,3 +161,5 @@ default_hostname = "prusa64-sl1"
 mqtt_prusa_host = "mqttstage.prusa"
 set_update_channel_bin = "/usr/sbin/set-update-channel.sh"
 update_channel = Path("/etc/update_channel")
+
+log_url = "http://logserver.etrimon.cz/wp-json/p3d/v1/logserver" # TODO: THIS IS TEMPORARY USE REAL LOG SERVER

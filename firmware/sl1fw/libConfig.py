@@ -1081,7 +1081,7 @@ class TomlConfig:
             self.logger.warning("File '%s' not found", self.filename)
             self.data = {}
         except Exception as exception:
-            if test_runtime.testing:
+            if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("Failed to load toml file")
             self.data = {}
@@ -1101,7 +1101,7 @@ class TomlConfig:
                 self.filename = filename
             self.save_raw()
         except Exception as exception:
-            if test_runtime.testing:
+            if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("Failed to save toml file")
             return False

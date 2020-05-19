@@ -19,3 +19,4 @@ uv_pwm = 0
 uv_on_until: Optional[datetime] = None
 screen_bw: Optional[bool] = None
 uv_error_each = 0
+hard_exceptions = False

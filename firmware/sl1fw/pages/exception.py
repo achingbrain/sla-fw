@@ -1,6 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from sl1fw.functions.system import shut_down
@@ -18,8 +19,6 @@ class PageException(Page):
         self.pageUI = "exception"
         self.pageTitle = N_("System Error")
         self.callbackPeriod = 1
-    #enddef
-
 
     def show(self) -> None:
         super().show()
@@ -27,14 +26,10 @@ class PageException(Page):
             self.display.hw.powerLed("error")
         except MotionControllerException:
             self.logger.exception("Failed to set power LED mode")
-        #endtry
-    #enddef
-
 
     def callback(self) -> None:
         if self.display.expo and self.display.expo.in_progress:
             return
-        #endif
 
         self.display.hw.uvLed(False)
         self.display.hw.stopFans()
@@ -42,25 +37,9 @@ class PageException(Page):
 
         if self.display.hw.getPowerswitchState():
             shut_down(self.display.hw)
-        #endif
-
-        super().show()
-    #enddef
-
 
     def setParams(self, **kwargs):
         self.items = kwargs
-    #enddef
-
-
-    def exportlogstoflashdiskButtonRelease(self):
-        self.saveLogsToUSB()
-        return self.Name
-    #enddef
-
 
     def backButtonRelease(self):
         return self.Name
-    #enddef
-
-#endclass
