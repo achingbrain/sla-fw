@@ -27,12 +27,14 @@ from sl1fw.tests.mocks.dbus.timedate import TimeDate
 from sl1fw.tests.mocks.gettext import fake_gettext
 
 fake_gettext()
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG
+)
 
-sys.modules['gpio'] = Mock()
-sys.modules['serial'] = sl1fw.tests.mocks.mc_port
-sys.modules['serial.tools.list_ports'] = Mock()
-sys.modules['evdev'] = Mock()
+sys.modules["gpio"] = Mock()
+sys.modules["serial"] = sl1fw.tests.mocks.mc_port
+sys.modules["serial.tools.list_ports"] = Mock()
+sys.modules["evdev"] = Mock()
 
 
 class Sl1fwTestCase(DBusTestCase):
@@ -56,7 +58,14 @@ class Sl1fwTestCase(DBusTestCase):
         bus = pydbus.SystemBus()
         nm = NetworkManager()
         cls.dbus_mocks = [
-            bus.publish(NetworkManager.__INTERFACE__, nm, ("Settings", nm), ("test1", nm), ("test2", nm), ("test3", nm)),
+            bus.publish(
+                NetworkManager.__INTERFACE__,
+                nm,
+                ("Settings", nm),
+                ("test1", nm),
+                ("test2", nm),
+                ("test3", nm),
+            ),
             bus.publish(Hostname.__INTERFACE__, Hostname()),
             bus.publish(Rauc.__OBJECT__, ("/", Rauc())),
             bus.publish(Locale.__INTERFACE__, Locale()),
@@ -74,11 +83,13 @@ class Sl1fwTestCase(DBusTestCase):
         cls.event_loop.quit()
         cls.event_thread.join()
 
-    def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg = None):
+    def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg=None):
         if a.mode != b.mode:
             a = a.convert(b.mode)
         diff = ImageChops.difference(a, b).convert(mode="L")
         thres = diff.point(lambda x: 1 if x > threshold else 0, mode="L")
         if thres.getbbox():
-            msg = self._formatMessage(msg, f"Images contain pixels different by mote than {threshold}.")
+            msg = self._formatMessage(
+                msg, f"Images contain pixels different by mote than {threshold}."
+            )
             raise self.failureException(msg)
