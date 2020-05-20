@@ -11,7 +11,7 @@ from enum import unique, Enum
 from time import time
 from typing import Any, Dict, List, Optional
 
-from deprecated import deprecated
+from deprecation import deprecated
 from pydbus.generic import signal
 from sl1codes.warnings import Warnings
 
@@ -257,7 +257,7 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
-    @deprecated(reason="Use expected_finish_timestamp", action="once")
+    @deprecated("Use expected_finish_timestamp")
     def time_remain_min(self) -> int:
         """
         Remaining print time
@@ -281,7 +281,7 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
-    @deprecated(reason="Use print_start_timestamp", action="once")
+    @deprecated("Use print_start_timestamp")
     def time_elapsed_min(self) -> int:
         """
         Return time spent printing
@@ -304,7 +304,7 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
-    @deprecated(reason="Use layer_height_first_nm", action="once")
+    @deprecated("Use layer_height_first_nm")
     def layer_height_first_mm(self) -> float:
         """
         Height of the first layer
@@ -327,7 +327,7 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
-    @deprecated(reason="Use layer_height_nm", action="once")
+    @deprecated("Use layer_height_nm")
     def layer_height_mm(self) -> float:
         """
         Height of the standard layer
@@ -350,7 +350,7 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
-    @deprecated(reason="Use position_nm", action="once")
+    @deprecated("Use position_nm")
     def position_mm(self) -> int:
         """
         Current layer position
@@ -373,7 +373,7 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
-    @deprecated(reason="Use total_nm", action="once")
+    @deprecated("Use total_nm")
     def total_mm(self) -> float:
         """
         Model height
@@ -571,7 +571,7 @@ class Exposure0:
 
     @auto_dbus
     @last_error
-    @deprecated(reason="Use cancel method instead")
+    @deprecated("Use cancel method instead")
     @state_checked(Exposure0State.PRINTING)
     def exit_print(self) -> None:
         """

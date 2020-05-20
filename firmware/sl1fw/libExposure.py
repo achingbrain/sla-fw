@@ -28,7 +28,7 @@ from typing import Optional, Any
 
 import psutil
 from PySignal import Signal
-from deprecated import deprecated
+from deprecation import deprecated
 
 from sl1fw import defines
 from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerMoveFailure, ProjectFailure, \
@@ -98,7 +98,7 @@ class ExposureThread(threading.Thread):
         whitePixels = self.expo.screen.blitImg(second = second)
 
         self.expo.exposure_end = datetime.now(tz=timezone.utc) + timedelta(seconds=etime)
-        self.logger.debug("Exposure started: %d seconds, end: %s", etime, self.expo.exposure_end)
+        self.logger.info("Exposure started: %d seconds, end: %s", etime, self.expo.exposure_end)
 
         if self.expo.hwConfig.blinkExposure:
             if calibAreas:
@@ -144,7 +144,7 @@ class ExposureThread(threading.Thread):
         #endif
 
         self.expo.screen.getImgBlack()
-        self.logger.debug("exposure done")
+        self.logger.info("exposure done")
         temperatures = self.expo.hw.getMcTemperatures()
 
         if picture is not None:
@@ -272,12 +272,12 @@ class ExposureThread(threading.Thread):
 
     def run(self):
         try:
-            self.logger.debug("Started exposure thread")
+            self.logger.info("Started exposure thread")
 
             while not self.expo.done:
                 command = self.commands.get()
                 if command == "exit":
-                    self.logger.debug("Exiting exposure thread on exit command")
+                    self.logger.info("Exiting exposure thread on exit command")
                     break
 
                 if command == "checks":
@@ -289,7 +289,7 @@ class ExposureThread(threading.Thread):
                 #endif
             #endwhile
 
-            self.logger.debug("Exiting exposure thread on state: %s", self.expo.state)
+            self.logger.info("Exiting exposure thread on state: %s", self.expo.state)
         except Exception as exception:
             self.logger.exception("Exposure thread exception")
             self.expo.exception = exception
@@ -301,7 +301,7 @@ class ExposureThread(threading.Thread):
 
     async def _run_checks(self):
         self.expo.state = ExposureState.CHECKS
-        self.logger.debug("Running pre-print checks")
+        self.logger.info("Running pre-print checks")
         self.expo.check_results.update({check: ExposureCheckResult.SCHEDULED for check in ExposureCheck})
 
         loop = asyncio.get_running_loop()
@@ -312,13 +312,17 @@ class ExposureThread(threading.Thread):
             hw = loop.run_in_executor(pool, self._check_hw_related)
         #endwith
 
+        self.logger.debug("Waiting for pre-print checks to finish")
         await asyncio.gather(
             fans, temps, project, hw
         )
 
         if not self.expo.warnings:
+            self.logger.info("No pre-print warnings -> running exposure")
             self.run_exposure()
         else:
+            self.logger.info("Pre-print warnings %s", self.expo.warnings)
+            self.logger.info("Pre-print warnings -> requiring confirmation to run exposure")
             self.expo.state = ExposureState.CHECK_WARNING
         #endif
     #enddef
@@ -326,10 +330,12 @@ class ExposureThread(threading.Thread):
 
     def _check_hw_related(self):
         if not self.expo.hwConfig.resinSensor:
+            self.logger.info("Disabling resin check")
             self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.DISABLED
         #endif
 
         if not self.expo.hwConfig.tilt:
+            self.logger.info("Disabling stirring")
             self.expo.check_results[ExposureCheck.STIRRING] = ExposureCheckResult.DISABLED
         #endif
 
@@ -348,13 +354,16 @@ class ExposureThread(threading.Thread):
     def _check_cover_closed(self):
         self.expo.check_results[ExposureCheck.COVER] = ExposureCheckResult.RUNNING
         if not self.expo.hwConfig.coverCheck:
+            self.logger.info("Disabling cover check")
             self.expo.check_results[ExposureCheck.COVER] = ExposureCheckResult.DISABLED
             return
 
+        self.logger.info("Waiting for user to close the cover")
         while True:
             if self.expo.hw.isCoverClosed():
                 self.expo.state = ExposureState.CHECKS
                 self.expo.check_results[ExposureCheck.COVER] = ExposureCheckResult.SUCCESS
+                self.logger.info("Cover closed")
                 return
             #endif
 
@@ -365,7 +374,7 @@ class ExposureThread(threading.Thread):
 
 
     def _check_temps(self):
-        self.logger.debug("Running temperature checks")
+        self.logger.info("Running temperature checks")
         self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.RUNNING
         temperatures = self.expo.hw.getMcTemperatures()
         failed = [i for i in range(2) if temperatures[i] < 0]
@@ -387,7 +396,7 @@ class ExposureThread(threading.Thread):
 
 
     def _check_project_data(self):
-        self.logger.debug("Running project checks")
+        self.logger.info("Running project checks")
         self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.RUNNING
 
         # Raise warning when model or variant does not match the printer
@@ -400,7 +409,9 @@ class ExposureThread(threading.Thread):
         #endif
 
         # Remove old projects from ramdisk
+        self.logger.debug("Running ram disk cleanup")
         ramdisk_cleanup(self.logger)
+        self.logger.debug("Running project copy and check")
         project_state = self.expo.project.copy_and_check()
 
         if project_state not in (ProjectState.OK, project_state.PRINT_DIRECTLY):
@@ -408,9 +419,10 @@ class ExposureThread(threading.Thread):
             raise ProjectFailure(project_state)
         #endif
 
-        self.logger.info(str(self.expo.project))
+        self.logger.info("Project after copy and check: %s", str(self.expo.project))
 
         # start data preparation by libScreen
+        self.logger.debug("Initiating project in libScreen")
         self.expo.startProjectLoading()
 
         # collect results from libScreen
@@ -441,15 +453,17 @@ class ExposureThread(threading.Thread):
 
 
     def _check_hardware(self):
-        self.logger.debug("Running start positions hardware checks")
+        self.logger.info("Running start positions hardware checks")
         self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.RUNNING
 
+        self.logger.info("Syncing tower")
         self.expo.hw.towerSyncWait()
         if not self.expo.hw.isTowerSynced():
             self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.FAILURE
             raise TowerFailure()
         #endif
 
+        self.logger.info("Syncing tilt")
         self.expo.hw.tiltSyncWait()
 
         if not self.expo.hw.isTiltSynced():
@@ -457,6 +471,7 @@ class ExposureThread(threading.Thread):
             raise TiltFailure()
         #endif
 
+        self.logger.info("Tilting up")
         self.expo.hw.setTiltProfile('homingFast')
         self.expo.hw.tiltUp()
         while self.expo.hw.isTiltMoving():
@@ -472,21 +487,24 @@ class ExposureThread(threading.Thread):
 
 
     def _check_fans(self):
-        self.logger.debug("Running fan checks")
+        self.logger.info("Running fan checks")
         self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.RUNNING
 
         # Warm-up fans
+        self.logger.info("Warning up fans")
         self.expo.hw.startFans()
         self.logger.debug("Waiting %.2f secs for fans", defines.fanStartStopTime)
         sleep(defines.fanStartStopTime)
 
         # Check fans
+        self.logger.info("Checking fan errors")
         fans_state = self.expo.hw.getFansError().values()
         if any(fans_state) and not defines.fan_check_override:
             failed_fans = [num for num, state in enumerate(fans_state) if state]
             self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
             raise FanFailure(failed_fans)
         #endif
+        self.logger.info("Fans OK")
 
         self.expo.runtime_config.fan_error_override = False
         self.expo.runtime_config.check_cooling_expo = True
@@ -497,7 +515,7 @@ class ExposureThread(threading.Thread):
     def _check_resin(self):
         self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.RUNNING
 
-        self.logger.debug("Running resin measurement")
+        self.logger.info("Running resin measurement")
 
         volume = self.expo.hw.getResinVolume()
         self.expo.setResinVolume(volume)
@@ -527,6 +545,7 @@ class ExposureThread(threading.Thread):
         self.logger.debug("requested: %d [ml], measured: %d [ml]", self.expo.project.usedMaterial, volume)
 
         if volume < self.expo.project.usedMaterial:
+            self.logger.info("Raising resin not enough warning")
             self.expo.warnings.append(ResinNotEnough(volume, self.expo.project.usedMaterial))
             self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.WARNING
         #endif
@@ -538,13 +557,15 @@ class ExposureThread(threading.Thread):
     def _check_start_positions(self):
         self.expo.check_results[ExposureCheck.START_POSITIONS] = ExposureCheckResult.RUNNING
 
-        self.logger.debug("Prepare tank and resin")
+        self.logger.info("Prepare tank and resin")
         if self.expo.hwConfig.tilt:
+            self.logger.info("Tilting down")
             self.expo.hw.tiltDownWait()
         #endif
 
+        self.logger.info("Tower to print start position")
         self.expo.hw.setTowerProfile('homingFast')
-        self.expo.hw.towerToPosition(0.25)
+        self.expo.hw.towerToPosition(0.25)  # TODO: Constant in code, seems important
         while not self.expo.hw.isTowerOnPosition(retries=2):
             sleep(0.25)
         #endwhile
@@ -579,7 +600,7 @@ class ExposureThread(threading.Thread):
         # TODO: Where is this supposed to be called from?
         self.expo.prepare()
 
-        self.logger.debug("Running exposure")
+        self.logger.info("Running exposure")
         self.expo.state = ExposureState.PRINTING
         self.expo.printStartTime = time()
         statsFile = TomlConfigStats(defines.statsData, self.expo.hw)
@@ -808,7 +829,7 @@ class ExposureThread(threading.Thread):
                     self.logger.error("Last project data was not saved!")
                 shut_down(self.expo.hw)
         #endif
-        self.logger.debug("Exposure ended")
+        self.logger.info("Exposure ended")
     #enddef
 
 #endclass
@@ -866,7 +887,7 @@ class Exposure:
         self.totalHeight = (self.project.totalLayers - 1) * self.hwConfig.calcMM(
             self.project.layerMicroSteps) + self.hwConfig.calcMM(self.project.layerMicroStepsFirst)
 
-        self.logger.debug("Created new exposure object id: %s", self.instance_id)
+        self.logger.info("Created new exposure object id: %s", self.instance_id)
     #enddef
 
 
@@ -877,13 +898,13 @@ class Exposure:
 
 
     def confirm_print_warnings(self):
-        self.logger.debug("User confirmed print check warnings")
+        self.logger.info("User confirmed print check warnings")
         self.doConfirmWarnings()
     #enddef
 
 
     def reject_print_warnings(self):
-        self.logger.debug("User rejected print due to warnings")
+        self.logger.info("User rejected print due to warnings")
         self.state = ExposureState.FAILURE
         self.exception = WarningEscalation()
         self.doExitPrint()
@@ -906,6 +927,14 @@ class Exposure:
 
 
     def __setattr__(self, key: str, value: Any):
+        # TODO: This is too generic
+        # Would be better to have properties for all important attributes with separate signals
+        # Or to separate important attributes to another object
+
+        if key == "state" and hasattr(self, "state"):
+            self.logger.info("State changed: %s -> %s", self.state, value)
+        #endif
+
         object.__setattr__(self, key, value)
         if not key.startswith("_"):
             self.change.emit(key, value)
@@ -945,7 +974,7 @@ class Exposure:
         #endif
     #enddef
 
-    @deprecated(reason="Should be obolete, use confirm print start instead")
+    @deprecated("Should be obolete, use confirm print start instead")
     def start(self):
         if self.expoThread:
             self.screen.cleanup()

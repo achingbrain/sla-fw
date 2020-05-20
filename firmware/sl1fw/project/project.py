@@ -67,7 +67,7 @@ class Project:
         return self.state
 
     def _read(self, project_file: str) -> ProjectState:
-        self.logger.debug("Opening project file '%s'", project_file)
+        self.logger.info("Opening project file '%s'", project_file)
         self.origin = None
         self.source = None
         self.mode_warn = True
@@ -100,7 +100,7 @@ class Project:
         self.to_print.sort()
         self._total_layers = len(self.to_print)
 
-        self.logger.debug("found %d layer(s)", self._total_layers)
+        self.logger.info("found %d layer(s)", self._total_layers)
         if not self._total_layers:
             return ProjectState.NOT_ENOUGH_LAYERS
         return ProjectState.OK
@@ -231,7 +231,7 @@ class Project:
                 try:
                     img = self.read_image(self.to_print[0])
                     self._first_layer_bbox = list(img.getbbox())
-                    self.logger.debug("first layer bbox analyze done, result: %s", str(self._first_layer_bbox))
+                    self.logger.info("first layer bbox analyze done, result: %s", str(self._first_layer_bbox))
                 except Exception as e:
                     self.logger.exception("bbox analyze exception: %s", str(e))
                     # FIXME warn user (calibration will not work)
@@ -248,7 +248,7 @@ class Project:
             if bbox:
                 self._calibrate_bbox = bbox
             else:
-                self.logger.debug("bbox analyze started")
+                self.logger.info("bbox analyze started")
                 start_time = time()
                 np_array = numpy.array([], numpy.int32)
                 new_slow_layers = 0
@@ -268,10 +268,10 @@ class Project:
                     minval = np_array.min(axis = 0)
                     maxval = np_array.max(axis = 0)
                     self._calibrate_bbox = [minval[0][0], minval[0][1], maxval[1][0], maxval[1][1]]
-                    self.logger.debug("bbox analyze done in %f secs, result: %s", time() - start_time, str(self._calibrate_bbox))
+                    self.logger.info("bbox analyze done in %f secs, result: %s", time() - start_time, str(self._calibrate_bbox))
                     self.config.layersSlow = new_slow_layers
                     self.config.layersFast = self._total_layers - new_slow_layers
-                    self.logger.debug("new layersSlow: %d, new layersFast: %s", self.config.layersSlow, self.config.layersFast)
+                    self.logger.info("new layersSlow: %d, new layersFast: %s", self.config.layersSlow, self.config.layersFast)
                 except Exception as e:
                     self.logger.exception("bbox analyze exception: %s", str(e))
                     # FIXME warn user (calibration will not work)
@@ -366,10 +366,10 @@ class Project:
         # check free space
         statvfs = os.statvfs(defines.ramdiskPath)
         ramdisk_available = statvfs.f_frsize * statvfs.f_bavail - defines.ramdiskReservedSpace
-        self.logger.debug("Ramdisk available space: %d bytes", ramdisk_available)
+        self.logger.info("Ramdisk available space: %d bytes", ramdisk_available)
         try:
             filesize = os.path.getsize(self.origin)
-            self.logger.debug("Zip file size: %d bytes", filesize)
+            self.logger.info("Zip file size: %d bytes", filesize)
         except Exception:
             self.logger.exception("filesize exception:")
             return ProjectState.CANT_READ

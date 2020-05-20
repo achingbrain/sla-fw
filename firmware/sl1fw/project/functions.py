@@ -21,7 +21,7 @@ def ramdisk_cleanup(logger: Logger) -> None:
     for ext in defines.projectExtensions:
         project_files.extend(glob.glob(defines.ramdiskPath + "/*" + ext))
     for project_file in project_files:
-        logger.debug("removing '%s'", project_file)
+        logger.info("removing '%s'", project_file)
         try:
             os.remove(project_file)
         except Exception:

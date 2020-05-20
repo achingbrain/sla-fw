@@ -20,7 +20,7 @@ from time import sleep
 from typing import TYPE_CHECKING, Optional
 
 import distro
-from deprecated import deprecated
+from deprecation import deprecated
 
 from sl1fw import defines
 from sl1fw.states.exposure import ExposureState
@@ -140,7 +140,7 @@ class Page:
     #enddef
 
 
-    @deprecated(reason = "There should be no wifi button, only network icon")
+    @deprecated("There should be no wifi button, only network icon")
     def wifiButtonRelease(self):
         return self.networkButtonRelease()
     #enddef

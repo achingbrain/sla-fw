@@ -842,7 +842,7 @@ class Config(ValueConfig):
         return obj
 
     def _write_file(self, file_path: Path, factory: bool = False):
-        self._logger.debug("Writting config to %s", file_path)
+        self._logger.info("Writting config to %s", file_path)
         if not self._is_master:
             raise ConfigException("Cannot safe config that is not master")
         try:

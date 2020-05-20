@@ -43,7 +43,8 @@ class SocketServer(multiprocessing.Process):
 
 
     def run(self):
-        self.logger.debug("Socket server process started with PID: %d", os.getpid())
+        self.logger.info("Socket server process started")
+        self.logger.debug("Socket server PID: %d", os.getpid())
         self.thread.start()
         signal.signal(signal.SIGTERM, self.signalHandler)
 
@@ -67,9 +68,9 @@ class SocketServer(multiprocessing.Process):
 
         #endwhile
 
-        self.logger.debug("shutting down server")
+        self.logger.debug("Shutting down server")
         self.server.shutdown()
-        self.logger.debug("process ended")
+        self.logger.info("Socket server process ended")
     #enddef
 
 
@@ -89,7 +90,7 @@ class SocketServer(multiprocessing.Process):
     def _onClientLeft(self, client, _server):
         try:
             if client:
-                self.logger.debug("Client [%d]:%s:%d has disconnected",
+                self.logger.info("Client [%d]:%s:%d has disconnected",
                         client['id'], client['address'][0], client['address'][1])
             #endif
         except Exception:
@@ -101,7 +102,7 @@ class SocketServer(multiprocessing.Process):
     def _onNewClient(self, client, _server):
         try:
             if client:
-                self.logger.debug("New client [%d]:%s:%d connected",
+                self.logger.info("New client [%d]:%s:%d connected",
                         client['id'], client['address'][0], client['address'][1])
                 self.server.send_message(client, json.dumps(self.formatMessage(self.newClientData)))
             #endif

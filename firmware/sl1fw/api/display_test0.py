@@ -52,7 +52,7 @@ class DisplayTest0:
     @auto_dbus
     @state_checked(DisplayTest0State.INIT)
     def start(self) -> None:
-        self.logger.debug("Starting display test")
+        self.logger.info("Starting display test")
         self._state = DisplayTest0State.COVER_OPEN
         self.change.emit()
         display_test.start(self._hw, self._screen, self._runtime_config)

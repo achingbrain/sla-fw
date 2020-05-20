@@ -15,7 +15,7 @@ from typing import List, Dict, Tuple, TYPE_CHECKING, Any, Optional
 
 import distro
 import pydbus
-from deprecated import deprecated
+from deprecation import deprecated
 from pydbus.generic import signal
 
 from sl1fw import defines
@@ -97,7 +97,7 @@ class Printer0:
 
     @auto_dbus
     @property
-    @deprecated(reason="Do not rely on current page, use state", action="once")
+    @deprecated("Do not rely on current page, use state")
     def current_page(self) -> str:
         """
         Get current page name
@@ -414,7 +414,7 @@ class Printer0:
     @property
     @last_error
     @cached(validity_s=5)
-    @deprecated(reason="Use NetworkManager", action="once")
+    @deprecated("Use NetworkManager")
     def devlist(self) -> Dict[str, str]:
         """
         Get network devices
@@ -505,7 +505,7 @@ class Printer0:
     @property
     @last_error
     @cached(validity_s=5)
-    @deprecated(reason="Use config api")
+    @deprecated("Use config api")
     def tilt_fast_time_sec(self) -> float:
         """
         Get fast tilt time
@@ -517,7 +517,7 @@ class Printer0:
     @property
     @last_error
     @cached(validity_s=5)
-    @deprecated(reason="Use config api")
+    @deprecated("Use config api")
     def tilt_slow_time_sec(self) -> float:
         """
         Get slow tilt time
@@ -756,7 +756,7 @@ class Printer0:
 
     @auto_dbus
     @last_error
-    @deprecated(reason="Use current_exposure property")
+    @deprecated("Use current_exposure property")
     def get_current_exposure(self) -> DBusObjectPath:
         return self.current_exposure
 

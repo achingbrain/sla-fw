@@ -399,7 +399,7 @@ class PageCalibration8(PageCalibrationBase):
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
-        self.logger.debug("tower position above: %d", self.display.hw.getTowerPositionMicroSteps())
+        self.logger.info("tower position above: %d", self.display.hw.getTowerPositionMicroSteps())
         if self.display.hw.getTowerPositionMicroSteps() != self.display.hw.tower_above_surface:
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
@@ -415,7 +415,7 @@ class PageCalibration8(PageCalibrationBase):
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
-        self.logger.debug("tower position min: %d", self.display.hw.getTowerPositionMicroSteps())
+        self.logger.info("tower position min: %d", self.display.hw.getTowerPositionMicroSteps())
         if self.display.hw.getTowerPositionMicroSteps() <= self.display.hw.tower_min:
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
@@ -438,7 +438,7 @@ class PageCalibration8(PageCalibrationBase):
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
-        self.logger.debug("tower position: %d", self.display.hw.getTowerPositionMicroSteps())
+        self.logger.info("tower position: %d", self.display.hw.getTowerPositionMicroSteps())
         self.display.hwConfig.towerHeight = -self.display.hw.getTowerPositionMicroSteps()
         self.display.hw.setTowerProfile('homingFast')
         self.display.hw.powerLed("normal")

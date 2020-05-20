@@ -32,15 +32,15 @@ class TestLibHardwareConnect(Sl1fwTestCase):
             os.remove(self.EEPROM_FILE)
 
     def test_mcc_connect_ok(self) -> None:
-        self.assertEqual(MotConComState.OK, self.hw.mcc.connect(MCversionCheck=False))
+        self.assertEqual(MotConComState.OK, self.hw.mcc.connect(mc_version_check=False))
 
     def test_mcc_connect_wrong_version(self) -> None:
-        self.assertEqual(MotConComState.WRONG_FIRMWARE, self.hw.mcc.connect(MCversionCheck=True))
+        self.assertEqual(MotConComState.WRONG_FIRMWARE, self.hw.mcc.connect(mc_version_check=True))
 
     def test_mcc_connect_fail(self) -> None:
         self.hw.mcc.getStateBits = lambda x: {'fatal': 1}
         self.hw.mcc.doGetInt = lambda x: 42
-        self.assertEqual(MotConComState.UNKNOWN_ERROR, self.hw.mcc.connect(MCversionCheck=False))
+        self.assertEqual(MotConComState.UNKNOWN_ERROR, self.hw.mcc.connect(mc_version_check=False))
 
 
 class TestLibHardware(Sl1fwTestCase):

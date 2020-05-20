@@ -7,6 +7,7 @@ import logging
 import sys
 import tempfile
 import threading
+import warnings
 from pathlib import Path
 
 import pydbus
@@ -46,6 +47,7 @@ class Sl1fwTestCase(DBusTestCase):
 
     @classmethod
     def setUpClass(cls):
+        warnings.simplefilter("always")
         defines.testing = True
         defines.ramdiskPath = str(cls.TEMP_DIR)
         cls.start_system_bus()

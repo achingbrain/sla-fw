@@ -64,7 +64,7 @@ class PageInfiniteTest(Page):
                 if tower_status == 0:  # tower moved to top
                     tower_counter += 1
                     page_wait.showItems(line2="Tower cycles: %d" % tower_counter)
-                    self.logger.debug("towerCounter: %d, tiltCounter: %d", tower_counter, tilt_counter)
+                    self.logger.info("towerCounter: %d, tiltCounter: %d", tower_counter, tilt_counter)
                     if (tower_counter % 100) == 0:  # save uv statistics every 100 tower cycles
                         self.display.hw.saveUvStatistics()
 

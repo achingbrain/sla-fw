@@ -131,8 +131,9 @@ class Display:
 
     def _setPage(self, page):
         if page not in self.pages:
-            self.logger.warning("There is no page named '%s'!", page)
+            self.logger.warning("There is no page named '%s'. Ignoring page change !!!", page)
         else:
+            self.logger.info("Switching to page: \"%s\"", page)
             newPage = self.pages[page]
             retc = newPage.prepare()
             if retc:

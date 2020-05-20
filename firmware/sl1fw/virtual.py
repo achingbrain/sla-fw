@@ -20,6 +20,7 @@ import logging
 import sys
 import tempfile
 import threading
+import warnings
 from pathlib import Path
 from shutil import copyfile
 
@@ -47,6 +48,9 @@ builtins.N_ = lambda x: x
 
 from sl1fw import libPrinter
 from sl1fw.api.printer0 import Printer0
+
+# Display warnings only once
+warnings.simplefilter("once")
 
 TEMP_DIR = Path(tempfile.gettempdir())
 SAMPLES_DIR = Path(sl1fw.tests.samples.__file__).parent

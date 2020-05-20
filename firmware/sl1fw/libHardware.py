@@ -377,8 +377,8 @@ class Hardware:
                 #endif
             #endfor
 
-            self.logger.debug("Slot A boot status: %s", a)
-            self.logger.debug("Slot B boot status: %s", b)
+            self.logger.info("Slot A boot status: %s", a)
+            self.logger.info("Slot B boot status: %s", b)
 
             if a == 'good' and b == 'good':
                 # Device is booting fine, remove stamp
@@ -742,7 +742,7 @@ class Hardware:
 
     def getFansBits(self, cmd, request):
         try:
-            bits = self.mcc.doGetBoolList(cmd, bitCount = 3)
+            bits = self.mcc.doGetBoolList(cmd, bit_count= 3)
             if len(bits) != 3:
                 raise ValueError(f"Fans bits count not match! {bits}")
             #endif
@@ -775,7 +775,7 @@ class Hardware:
             raise ValueError(f"TEMPs count not match! ({temps})")
         #endif
         if logTemps:
-            self.logger.debug("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
+            self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
         #endif
         return temps
     #enddef

@@ -26,19 +26,19 @@ class BackgroundNetworkCheck(ABC):
         self.logger = logging.getLogger(name)
         self.inet = inet
         self.change_trigger = True
-        self.logger.debug("Registering net change handler")
+        self.logger.info("Registering net change handler")
         self.inet.net_change.connect(self.connection_changed)
 
     def connection_changed(self, value):
         if value and self.change_trigger:
-            self.logger.debug("Starting background network check thread")
+            self.logger.info("Starting background network check thread")
             threading.Thread(target=self._check, daemon=True).start()
 
     def _check(self):
         while True:
             run_after = self.check()
             if run_after is None:
-                self.logger.debug("Check returned error, waiting for next connection change.")
+                self.logger.warning("Check returned error, waiting for next connection change.")
                 break
             self.change_trigger = False
             if not run_after:

@@ -78,7 +78,7 @@ def send_printer_data(hw: Hardware, config: HwConfig):
 
     # Send data to MQTT
     topic = "prusa/sl1/factoryConfig"
-    logger.debug("mqtt data: %s", mqtt_data)
+    logger.info("Sending mqtt data: %s", mqtt_data)
     try:
         if not defines.testing:
             mqtt.single(topic, json.dumps(mqtt_data), qos=2, retain=True, hostname=defines.mqtt_prusa_host)

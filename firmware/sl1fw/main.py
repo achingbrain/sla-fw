@@ -11,6 +11,7 @@
 import builtins
 import gettext
 import logging
+import warnings
 from threading import Thread
 
 from gi.repository import GLib
@@ -31,16 +32,17 @@ else:
 logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
 
 # use system locale settings for translation
-gettext.install('sl1fw', defines.localedir, names=("ngettext"))
+gettext.install("sl1fw", defines.localedir, names=("ngettext"))
 builtins.N_ = lambda x: x
 
 from sl1fw import libPrinter
 
+warnings.simplefilter("ignore")
 
 def event_thread():
-    logger.debug("Starting printer event loop")
+    logger.info("Starting printer event loop")
     GLib.MainLoop().run()
-    logger.debug("Printer event loop exited")
+    logger.info("Printer event loop exited")
 
 
 printer = libPrinter.Printer()

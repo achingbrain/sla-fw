@@ -60,7 +60,7 @@ class PageUvDataShow(Page):
                 text = _("No calibration data to show!"))
             return "error"
         #enddef
-        self.logger.debug("Generating picture from: %s", str(data))
+        self.logger.info("Generating picture from: %s", str(data))
         imagePath = os.path.join(defines.ramdiskPath, "uvcalib.png")
         if data['uvSensorType'] == 0:
             UvLedMeterMulti().savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)

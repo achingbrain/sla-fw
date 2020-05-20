@@ -90,6 +90,7 @@ class UvLedMeterMulti:
 
 
     def connect(self):
+        self.logger.info("Connecting to the UV meter")
         try:
             self.port = serial.Serial(port = self.uvLedMeterDevice,
                     baudrate = 115200,
@@ -103,7 +104,7 @@ class UvLedMeterMulti:
                     dsrdtr = False,
                     interCharTimeout = None)
 
-            self.logger.info("waiting for UV meter response")
+            self.logger.info("Waiting for UV meter response")
             timeout = 100
             while not self.port.inWaiting() and timeout:
                 sleep(0.1)
@@ -150,6 +151,7 @@ class UvLedMeterMulti:
 
 
     def read(self):
+        self.logger.info("Reading UV meter data")
         sleep(self.sleepTime)
         self.np = None
         try:
@@ -228,6 +230,7 @@ class UvLedMeterMulti:
 
 
     def checkPlace(self, screenOn):
+        self.logger.info("Checking UV meter placement")
         self.read()
         if self.np is None:
             return UvMeterState.ERROR_COMMUNICATION

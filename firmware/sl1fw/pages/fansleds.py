@@ -132,7 +132,7 @@ class PageFansLeds(Page):
 
 
     def reset_to_defaults(self):
-        self.logger.debug("reset to defaults called")
+        self.logger.debug("Resetting to defaults")
         del self.display.hwConfig.uvCurrent   # remove old value too
         del self.display.hwConfig.uvPwm
         del self.display.hwConfig.fan1Rpm

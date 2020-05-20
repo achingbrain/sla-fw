@@ -65,7 +65,7 @@ class Unboxing(Thread):
         self._exit()
 
     def run(self):
-        self.logger.debug("Unboxing worker started")
+        self.logger.info("Unboxing worker started")
         while self.state not in [UnboxingState.FINISHED, UnboxingState.CANCELED]:
             if self.state == UnboxingState.INIT:
                 self.hw.beepRepeat(1)
@@ -95,7 +95,7 @@ class Unboxing(Thread):
                 self.hw.powerLed("normal")
                 self.state = UnboxingState.TANK_FOAM
             sleep(0.5)
-        self.logger.debug("Unboxing worker ended")
+        self.logger.info("Unboxing worker ended")
 
     def cancel(self):
         self.state = UnboxingState.CANCELED

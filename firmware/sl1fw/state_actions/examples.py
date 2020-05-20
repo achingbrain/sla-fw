@@ -96,7 +96,7 @@ class Examples(Thread):
 
         statvfs = os.statvfs(defines.internalProjectPath)
         internal_available = statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
-        self._logger.debug("Internal storage available space: %d bytes", internal_available)
+        self._logger.info("Internal storage available space: %d bytes", internal_available)
 
         # if internal storage is full, quit immediately
         if internal_available < 0:
@@ -107,11 +107,11 @@ class Examples(Thread):
 
         with tempfile.NamedTemporaryFile() as archive:
             self.state = ExamplesState.DOWNLOADING
-            self._logger.debug("Downloading examples archive")
+            self._logger.info("Downloading examples archive")
             self._network.download_url(defines.examplesURL, archive.name, progress_callback=self._download_callback)
 
             self.state = ExamplesState.UNPACKING
-            self._logger.debug("Extracting examples archive")
+            self._logger.info("Extracting examples archive")
             with tempfile.TemporaryDirectory() as temp:
                 extracted_size = 0
                 with tarfile.open(fileobj=archive) as tar:
@@ -126,7 +126,7 @@ class Examples(Thread):
                     raise Exception("Not enough free space in the internal storage")
 
                 self.state = ExamplesState.COPYING
-                self._logger.debug("Copying examples")
+                self._logger.info("Copying examples")
                 items = os.listdir(temp)
                 for i, item in enumerate(items):
                     destination = os.path.join(defines.internalProjectPath, item)
@@ -138,7 +138,7 @@ class Examples(Thread):
 
                 self.state = ExamplesState.CLEANUP
         self.state = ExamplesState.COMPLETED
-        self._logger.debug("Examples download finished")
+        self._logger.info("Examples download finished")
 
     def _download_callback(self, progress):
         self.download_progress = progress
