@@ -362,7 +362,7 @@ class MotionController:
         try:
             self.write_port(f"{cmd_string}\n".encode("ascii"))
         except serial.SerialTimeoutException as e:
-            raise MotionControllerException(f"Timeout writing serial port", self.trace) from e
+            raise MotionControllerException("Timeout writing serial port", self.trace) from e
 
     def do_read(self, return_process: Callable) -> Any:
         """
@@ -398,17 +398,18 @@ class MotionController:
             if line.startswith("#"):
                 self.logger.warning("Garbage response received: %s", line)
             else:
-                raise MotionControllerException(f"MC command resulted in non-response line", self.trace)
+                raise MotionControllerException("MC command resulted in non-response line", self.trace)
 
     def soft_reset(self) -> None:
         with self._command_lock:
             try:
                 self._read_garbage()
                 self.trace.append_trace(LineTrace(LineMarker.RESET, b"Motion controller soft reset"))
-                self.write_port(f"!rst\n".encode("ascii"))
+                self.write_port("!rst\n".encode("ascii"))
+
                 self._ensure_ready()
             except Exception as e:
-                raise MotionControllerException(f"Reset failed", self.trace) from e
+                raise MotionControllerException("Reset failed", self.trace) from e
 
     def _ensure_ready(self) -> None:
         """
