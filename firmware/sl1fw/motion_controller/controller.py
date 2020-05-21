@@ -357,7 +357,7 @@ class MotionController:
         while self.in_waiting():
             try:
                 line = self._read_port(garbage=True)
-                self.logger.debug("Garbage pending in MC port: %s", line)
+                self.logger.warning("Garbage pending in MC port: %s", line)
             except (serial.SerialException, UnicodeError) as e:
                 raise MotionControllerException(
                     "Failed garbage read", self.trace
@@ -423,7 +423,7 @@ class MotionController:
                 )
 
             if line.startswith("#"):
-                self.logger.debug("Garbage response received: %s", line)
+                self.logger.warning("Garbage response received: %s", line)
             else:
                 raise MotionControllerException(
                     f"MC command resulted in non-response line", self.trace
