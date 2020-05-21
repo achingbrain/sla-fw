@@ -462,6 +462,7 @@ class MotionController:
             raise MotionControllerException("Ready read failed", self.trace) from e
 
     def flash(self, mc_board_version):
+        self._lock_exclusive()
         with self._raw_read_lock:
             self.reset()
 
@@ -491,6 +492,7 @@ class MotionController:
             self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
 
         self._ensure_ready()
+        self._unlock_exclusive()
 
         return MotConComState.UPDATE_FAILED if retc else MotConComState.OK
 
