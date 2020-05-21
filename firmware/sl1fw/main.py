@@ -3,10 +3,8 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
-# TODO: Fix following pylint problems
-# pylint: disable=wrong-import-position
 
 import builtins
 import gettext
@@ -18,6 +16,7 @@ from gi.repository import GLib
 from pydbus import SystemBus
 
 from sl1fw import defines
+from sl1fw import libPrinter
 from sl1fw.api.printer0 import Printer0
 from sl1fw.logger_config import configure_log
 
@@ -32,12 +31,11 @@ else:
 logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
 
 # use system locale settings for translation
-gettext.install("sl1fw", defines.localedir, names=("ngettext"))
+gettext.install("sl1fw", defines.localedir, names=("ngettext",))
 builtins.N_ = lambda x: x
 
-from sl1fw import libPrinter
-
 warnings.simplefilter("ignore")
+
 
 def event_thread():
     logger.info("Starting printer event loop")
