@@ -164,13 +164,6 @@ class MotionController:
         self._debug_thread = Thread(target=self._debug, args=(bootloader,))
         self._debug_thread.start()
 
-    def _lock_exclusive(self) -> None:
-        self._exclusive_lock.acquire()
-
-    def _unlock_exclusive(self):
-        if self._exclusive_lock.locked():
-            self._exclusive_lock.release()
-
     def _debug(self, bootloader: bool) -> None:
         """
         Debugging thread body
@@ -193,7 +186,6 @@ class MotionController:
             self._debug_sock = None
             s.close()
             self._port.baudrate = self.BAUD_RATE_NORMAL
-            self._unlock_exclusive()
             self.logger.info("Debugging session terminated")
 
             if bootloader:
@@ -205,15 +197,15 @@ class MotionController:
 
     def _debug_bootloader(self):
         self.logger.info("Starting bootloader debugging session")
-        self._lock_exclusive()
-        self._port.baudrate = self.BAUD_RATE_BOOTLOADER
-        self.reset()
+        with self._exclusive_lock:
+            self._port.baudrate = self.BAUD_RATE_BOOTLOADER
+            self.reset()
 
-        while True:
-            data = self._debug_sock.recv(1)
-            if not data:
-                break
-            self._port.write(data)
+            while True:
+                data = self._debug_sock.recv(1)
+                if not data:
+                    break
+                self._port.write(data)
 
     def _debug_user(self):
         self.logger.info("Starting normal debugging session")
@@ -230,18 +222,27 @@ class MotionController:
                     break
                 if line.startswith(b"#stop"):
                     self.logger.info("Starting exclusive debugging")
-                    self._debug_sock.sendall(
-                        b"\n\n\n>>> Now in exclusive mode type #cont to leave it <<<\n\n\n"
-                    )
-                    self._lock_exclusive()
+                    if not self._exclusive_lock.locked():
+                        self.logger.debug("Switching to exclusive debugging")
+                        self._exclusive_lock.acquire()
+                        self._debug_sock.sendall(b"\n\n\n>>> Now in exclusive mode type #cont to leave it <<<\n\n\n")
+                    else:
+                        self._debug_sock.sendall(b"\n\n\n>>> Exclusive mode already enabled <<<\n\n\n")
+
                 elif line.startswith(b"#cont"):
                     self.logger.info("Stopping exclusive debugging")
-                    self._debug_sock.sendall(b"\n\n\n>>> Now in normal mode <<<\n\n\n")
-                    self._unlock_exclusive()
+                    if self._exclusive_lock.locked():
+                        self.logger.debug("Switching to normal debugging")
+                        self._exclusive_lock.release()
+                        self._debug_sock.sendall(b"\n\n\n>>> Now in normal mode <<<\n\n\n")
+                    else:
+                        self._debug_sock.sendall(b"\n\n\n>>> Already in normal mode, do action <<<\n\n\n")
                 else:
                     with self._command_lock:
                         self.logger.debug("Passing user command: %s", line)
                         self._port.write(line)
+            if self._exclusive_lock.locked():
+                self._exclusive_lock.release()
 
     def _debug_send(self, data: bytes):
         if self._debug_sock:
@@ -462,37 +463,31 @@ class MotionController:
             raise MotionControllerException("Ready read failed", self.trace) from e
 
     def flash(self, mc_board_version):
-        self._lock_exclusive()
-        with self._raw_read_lock:
-            self.reset()
+        with self._exclusive_lock:
+            with self._raw_read_lock:
+                self.reset()
 
-            process = subprocess.Popen(
-                [
-                    defines.flashMcCommand,
-                    defines.dataPath,
-                    str(mc_board_version),
-                    defines.motionControlDevice,
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-            )
-            while True:
-                line = process.stdout.readline()
-                retc = process.poll()
-                if line == "" and retc is not None:
-                    break
-                if line:
-                    line = line.strip()
-                    if line == "":
-                        continue
-                    self.logger.info("flashMC output: '%s'", line)
+                process = subprocess.Popen(
+                    [defines.flashMcCommand, defines.dataPath, str(mc_board_version), defines.motionControlDevice],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                )
+                while True:
+                    line = process.stdout.readline()
+                    retc = process.poll()
+                    if line == "" and retc is not None:
+                        break
+                    if line:
+                        line = line.strip()
+                        if line == "":
+                            continue
+                        self.logger.info("flashMC output: '%s'", line)
 
-        if retc:
-            self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
+            if retc:
+                self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
 
-        self._ensure_ready()
-        self._unlock_exclusive()
+            self._ensure_ready()
 
         return MotConComState.UPDATE_FAILED if retc else MotConComState.OK
 
