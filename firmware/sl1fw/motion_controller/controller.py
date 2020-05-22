@@ -79,9 +79,7 @@ class MotionController:
 
         # pylint: disable=no-member
         self.u_input = UInput(
-            {ecodes.EV_KEY: [ecodes.KEY_CLOSE, ecodes.KEY_POWER]},
-            name="sl1-motioncontroller",
-            version=0x1,
+            {ecodes.EV_KEY: [ecodes.KEY_CLOSE, ecodes.KEY_POWER]}, name="sl1-motioncontroller", version=0x1,
         )
 
         self._reader_thread = Thread(target=self._port_read_thread, daemon=True)
@@ -191,9 +189,7 @@ class MotionController:
             if bootloader:
                 # A custom firmware was uploaded, lets reconnect with version check disabled
                 if self.connect(False) != MotConComState.OK:
-                    raise MotionControllerException(
-                        "Reconnect after MC debug in bootloader mode failed", self.trace
-                    )
+                    raise MotionControllerException("Reconnect after MC debug in bootloader mode failed", self.trace)
 
     def _debug_bootloader(self):
         self.logger.info("Starting bootloader debugging session")
@@ -209,9 +205,7 @@ class MotionController:
 
     def _debug_user(self):
         self.logger.info("Starting normal debugging session")
-        self._debug_sock.sendall(
-            b"\n\n\n>>> Debugging session started, command history: <<<\n\n\n"
-        )
+        self._debug_sock.sendall(b"\n\n\n>>> Debugging session started, command history: <<<\n\n\n")
         self._debug_sock.sendall(bytes(self.trace))
         self._debug_sock.sendall(b"\n\n\n>>> Type #stop for exclusive mode <<<\n\n\n")
 
@@ -266,9 +260,7 @@ class MotionController:
             bit = 0
             for val in reset_bits:
                 if val:
-                    self.logger.info(
-                        "motion controller reset flag: %s", ResetFlags(bit).name
-                    )
+                    self.logger.info("motion controller reset flag: %s", ResetFlags(bit).name)
                 bit += 1
 
         self.MCFWversion = self.do("?ver")
@@ -280,9 +272,7 @@ class MotionController:
         tmp = self.doGetIntList("?rev")
         if len(tmp) == 2 and 0 <= divmod(tmp[1], 32)[0] <= 7:
             self.MCFWrevision = tmp[0]
-            self.logger.info(
-                "motion controller firmware for board revision: %s", self.MCFWrevision
-            )
+            self.logger.info("motion controller firmware for board revision: %s", self.MCFWrevision)
 
             self.MCBoardRevision = divmod(tmp[1], 32)
             self.logger.info(
@@ -291,9 +281,7 @@ class MotionController:
                 chr(self.MCBoardRevision[0] + ord("a")),
             )
         else:
-            self.logger.warning(
-                "invalid motion controller firmware/board revision: %s", str(tmp)
-            )
+            self.logger.warning("invalid motion controller firmware/board revision: %s", str(tmp))
             self.MCFWrevision = -1
             self.MCBoardRevision = (-1, -1)
 
@@ -318,13 +306,7 @@ class MotionController:
         return self.do(*args, return_process=int)
 
     def doGetIntList(self, cmd, args=(), base=10, multiply: float = 1):
-        return self.do(
-            cmd,
-            *args,
-            return_process=lambda ret: list(
-                [int(x, base) * multiply for x in ret.split(" ")]
-            ),
-        )
+        return self.do(cmd, *args, return_process=lambda ret: list([int(x, base) * multiply for x in ret.split(" ")]),)
 
     def doGetBool(self, cmd, *args):
         return self.do(cmd, *args, return_process=lambda x: x == "1")
@@ -360,9 +342,7 @@ class MotionController:
                 line = self._read_port(garbage=True)
                 self.logger.warning("Garbage pending in MC port: %s", line)
             except (serial.SerialException, UnicodeError) as e:
-                raise MotionControllerException(
-                    "Failed garbage read", self.trace
-                ) from e
+                raise MotionControllerException("Failed garbage read", self.trace) from e
 
     def do(self, cmd, *args, return_process: Callable = lambda x: x) -> Any:
         with self._exclusive_lock, self._command_lock:
@@ -382,9 +362,7 @@ class MotionController:
         try:
             self.write_port(f"{cmd_string}\n".encode("ascii"))
         except serial.SerialTimeoutException as e:
-            raise MotionControllerException(
-                f"Timeout writing serial port", self.trace
-            ) from e
+            raise MotionControllerException(f"Timeout writing serial port", self.trace) from e
 
     def do_read(self, return_process: Callable) -> Any:
         """
@@ -396,9 +374,7 @@ class MotionController:
             try:
                 line = self.read_port_text()
             except Exception as e:
-                raise MotionControllerException(
-                    "Failed to read line from MC", self.trace
-                ) from e
+                raise MotionControllerException("Failed to read line from MC", self.trace) from e
 
             ok_match = self.commOKStr.match(line)
 
@@ -407,9 +383,7 @@ class MotionController:
                 try:
                     return return_process(response)
                 except Exception as e:
-                    raise MotionControllerException(
-                        "Failed to process MC response", self.trace
-                    ) from e
+                    raise MotionControllerException("Failed to process MC response", self.trace) from e
 
             err_match = self.commErrStr.match(line)
             if err_match is not None:
@@ -419,24 +393,18 @@ class MotionController:
                     err_code = 0
                 err = CommError(err_code).name
                 self.logger.error("error: '%s'", err)
-                raise MotionControllerException(
-                    f"MC command failed with error: {err}", self.trace
-                )
+                raise MotionControllerException(f"MC command failed with error: {err}", self.trace)
 
             if line.startswith("#"):
                 self.logger.warning("Garbage response received: %s", line)
             else:
-                raise MotionControllerException(
-                    f"MC command resulted in non-response line", self.trace
-                )
+                raise MotionControllerException(f"MC command resulted in non-response line", self.trace)
 
     def soft_reset(self) -> None:
         with self._command_lock:
             try:
                 self._read_garbage()
-                self.trace.append_trace(
-                    LineTrace(LineMarker.RESET, b"Motion controller soft reset")
-                )
+                self.trace.append_trace(LineTrace(LineMarker.RESET, b"Motion controller soft reset"))
                 self.write_port(f"!rst\n".encode("ascii"))
                 self._ensure_ready()
             except Exception as e:
@@ -448,14 +416,11 @@ class MotionController:
         This assumes portLock to be already acquired
         """
         try:
-            self.logger.debug(
-                '"MCUSR..." read resulted in: "%s"', self.read_port_text()
-            )
+            self.logger.debug('"MCUSR..." read resulted in: "%s"', self.read_port_text())
             ready = self.read_port_text()
             if ready != "ready":
                 self.logger.info(
-                    '"ready" read resulted in: "%s". Sleeping to ensure MC is ready.',
-                    ready,
+                    '"ready" read resulted in: "%s". Sleeping to ensure MC is ready.', ready,
                 )
                 sleep(1.5)
                 self._read_garbage()
@@ -497,9 +462,7 @@ class MotionController:
         Assumes portLock is already acquired
         """
         self.logger.info("Doing hard reset of the motion controller")
-        self.trace.append_trace(
-            LineTrace(LineMarker.RESET, b"Motion controller hard reset")
-        )
+        self.trace.append_trace(LineTrace(LineMarker.RESET, b"Motion controller hard reset"))
         gpio.setup(131, gpio.OUT)
         gpio.set(131, 1)
         sleep(1 / 1000000)
@@ -516,32 +479,20 @@ class MotionController:
 
         self._handle_button_updates(bits)
 
-        return {
-            name: bits[StatusBits.__members__[name.upper()].value] for name in request
-        }
+        return {name: bits[StatusBits.__members__[name.upper()].value] for name in request}
 
     def _handle_button_updates(self, state_bits: List[bool]):
         # pylint: disable=no-member
         power_idx = StatusBits.BUTTON.value
         cover_idx = StatusBits.COVER.value
 
-        if (
-            not self._old_state_bits
-            or state_bits[power_idx] != self._old_state_bits[power_idx]
-        ):
+        if not self._old_state_bits or state_bits[power_idx] != self._old_state_bits[power_idx]:
 
-            self.u_input.write(
-                ecodes.EV_KEY, ecodes.KEY_POWER, 1 if state_bits[power_idx] else 0
-            )
+            self.u_input.write(ecodes.EV_KEY, ecodes.KEY_POWER, 1 if state_bits[power_idx] else 0)
             self.u_input.syn()
 
-        if (
-            not self._old_state_bits
-            or state_bits[cover_idx] != self._old_state_bits[cover_idx]
-        ):
-            self.u_input.write(
-                ecodes.EV_KEY, ecodes.KEY_CLOSE, 1 if state_bits[cover_idx] else 0
-            )
+        if not self._old_state_bits or state_bits[cover_idx] != self._old_state_bits[cover_idx]:
+            self.u_input.write(ecodes.EV_KEY, ecodes.KEY_CLOSE, 1 if state_bits[cover_idx] else 0)
             self.u_input.syn()
 
         self._old_state_bits = state_bits
