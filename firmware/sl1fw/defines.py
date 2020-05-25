@@ -36,7 +36,12 @@ perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
 configFile = "config.ini"
 maskFilename = "mask.png"
 projectExtensions = {".dwz", ".sl1"}
-lastProjectData = os.path.join(persistentStorage, "last_project.toml")
+previousPrints = os.path.join(persistentStorage, "previous-prints")
+lastProjectData = os.path.join(previousPrints, "last_project.toml")
+lastProjectHwConfig = os.path.join(previousPrints, hwConfigFileName)
+lastProjectFactoryFile = os.path.join(previousPrints, os.path.basename(hwConfigFactoryDefaultsFile))
+lastProjectConfigFile = os.path.join(previousPrints, configFile)
+lastProjectPickler = os.path.join(previousPrints, "last_project.pck")
 statsData = os.path.join(persistentStorage, "stats.toml")
 serviceData = os.path.join(persistentStorage, "service.toml")
 

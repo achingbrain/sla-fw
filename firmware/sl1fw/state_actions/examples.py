@@ -17,7 +17,6 @@ from PySignal import Signal
 from sl1fw import defines
 from sl1fw.errors.errors import NotConnected, NotEnoughInternalSpace
 from sl1fw.libNetwork import Network
-from sl1fw.project.functions import ramdisk_cleanup
 from sl1fw.states.examples import ExamplesState
 from sl1fw.functions.files import ch_mode_owner
 
@@ -88,9 +87,6 @@ class Examples(Thread):
             raise exception
 
     def _examples(self):
-        # Remove old projects from ram disk, downloader uses another ram disk but this *may* help in some cases
-        ramdisk_cleanup(self._logger)
-
         if not self._network.ip:
             raise NotConnected()
 

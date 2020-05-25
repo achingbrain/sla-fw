@@ -22,7 +22,6 @@ from deprecation import deprecated
 
 from sl1fw import defines
 from sl1fw.errors.errors import DownloadFailed
-from sl1fw.project.functions import ramdisk_cleanup
 from sl1fw.functions.files import ch_mode_owner
 
 
@@ -218,8 +217,6 @@ class Network:
 
         # WARNING: This has been reimplemented in the examples API, change both implementations, or remove this one.
 
-        # remove old projects from ramdisk, downloader uses another ramdisk but this *may* help in some cases
-        ramdisk_cleanup(self.logger)
         failed = "."
         try:
             if not self.ip:

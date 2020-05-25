@@ -17,11 +17,16 @@
 
 from __future__ import annotations
 
+import os
+import glob
 import asyncio
 import concurrent.futures
 import logging
+import pickle
 import queue
 import threading
+from logging import Logger
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from time import sleep, time
 from typing import Optional, Any
@@ -39,11 +44,47 @@ from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig, TomlConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
-from sl1fw.project.functions import ramdisk_cleanup, check_ready_to_print
-from sl1fw.project.project import Project, ProjectState
+from sl1fw.project.functions import check_ready_to_print
+from sl1fw.project.project import Project, ProjectState, ProjectConfig
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.utils.traceable_collections import TraceableList, TraceableDict
 
+class ExposurePickler(pickle.Pickler):
+
+    def __init__(self, file):
+        super().__init__(file)
+        self.IGNORED_CLASSES = [Signal, Hardware, Screen, ExposureThread, TraceableDict, TraceableList, queue.Queue]
+
+    def persistent_id(self, obj):
+        if type(obj) in self.IGNORED_CLASSES:
+            return "ignore"
+        elif isinstance(obj, HwConfig):
+            obj.write(Path(defines.lastProjectHwConfig))
+            obj.write_factory(Path(defines.lastProjectFactoryFile))
+            return "HwConfig"
+        elif isinstance(obj, ProjectConfig):
+            obj.write(Path(defines.lastProjectConfigFile))
+            return "ProjectConfig"
+        else:
+            return None
+
+class ExposureUnpickler(pickle.Unpickler):
+
+    def persistent_load(self, pid):
+        if pid == "ignore":
+            return None
+        elif pid == "HwConfig":
+            hwConfig = HwConfig(file_path=Path(defines.lastProjectHwConfig),
+                                  factory_file_path=Path(defines.lastProjectFactoryFile),
+                                  is_master=False)
+            hwConfig.read_file()
+            return hwConfig
+        elif pid == "ProjectConfig":
+            projectConfig = ProjectConfig()
+            projectConfig.read_file(file_path= Path(defines.lastProjectConfigFile))
+            return projectConfig
+        else:
+            raise pickle.UnpicklingError(f'unsupported persistent object {str(pid)}')
 
 class ExposureThread(threading.Thread):
 
@@ -408,9 +449,10 @@ class ExposureThread(threading.Thread):
             )
         #endif
 
-        # Remove old projects from ramdisk
-        self.logger.debug("Running ram disk cleanup")
-        ramdisk_cleanup(self.logger)
+        # Remove old projects
+        self.logger.debug("Running disk cleanup")
+        Exposure.cleanup_last_data(self.logger)
+
         self.logger.debug("Running project copy and check")
         project_state = self.expo.project.copy_and_check()
 
@@ -829,7 +871,8 @@ class ExposureThread(threading.Thread):
                     self.logger.error("Last project data was not saved!")
                 shut_down(self.expo.hw)
         #endif
-        self.logger.info("Exposure ended")
+        self.expo.save()
+        self.logger.debug("Exposure ended")
     #enddef
 
 #endclass
@@ -1078,5 +1121,30 @@ class Exposure:
             'exp_time_calibrate_ms': self.project.calibrateTime * 1000,
         }
     #enddef
+
+    def save(self):
+        self.logger.debug(
+            "\nSaving Exposure \n- '%s'\n- '%s'\n- '%s'\n- '%s'",
+            defines.lastProjectHwConfig,
+            defines.lastProjectFactoryFile,
+            defines.lastProjectConfigFile,
+            defines.lastProjectPickler
+        )
+        with open(defines.lastProjectPickler, 'wb') as pickle_io:
+            ExposurePickler(pickle_io).dump(self)
+
+    @staticmethod
+    def load() -> Exposure:
+        with open(defines.lastProjectPickler, 'rb') as pickle_io:
+            return ExposureUnpickler(pickle_io).load()
+
+    @staticmethod
+    def cleanup_last_data(logger: Logger) -> None:
+        for project_file in glob.glob(defines.previousPrints + "/*"):
+            logger.debug("removing '%s'", project_file)
+            try:
+                os.remove(project_file)
+            except Exception:
+                logger.exception("cleanup_last_data() exception:")
 
 #endclass

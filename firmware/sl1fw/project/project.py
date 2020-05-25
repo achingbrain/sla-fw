@@ -364,9 +364,9 @@ class Project:
     def copy_and_check(self):
         state = ProjectState.OK
         # check free space
-        statvfs = os.statvfs(defines.ramdiskPath)
-        ramdisk_available = statvfs.f_frsize * statvfs.f_bavail - defines.ramdiskReservedSpace
-        self.logger.info("Ramdisk available space: %d bytes", ramdisk_available)
+        statvfs = os.statvfs(os.path.dirname(defines.persistentStorage))
+        size_available = statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
+        self.logger.debug("Size available space: %d bytes", size_available)
         try:
             filesize = os.path.getsize(self.origin)
             self.logger.info("Zip file size: %d bytes", filesize)
@@ -374,12 +374,16 @@ class Project:
             self.logger.exception("filesize exception:")
             return ProjectState.CANT_READ
         try:
-            if ramdisk_available < filesize:
-                raise Exception("Not enough free space in the ramdisk!")
+            if size_available < filesize:
+                raise Exception("Not enough free space!")
             (dummy, filename) = os.path.split(self.origin)
-            new_source = os.path.join(defines.ramdiskPath, filename)
-            if os.path.normpath(new_source) != os.path.normpath(self.origin):
-                shutil.copyfile(self.origin, new_source)
+            new_source = os.path.join(defines.previousPrints, filename)
+            origin_path = os.path.normpath(self.origin)
+            if os.path.normpath(new_source) != origin_path:
+                if defines.testing or origin_path.startswith(defines.mediaRootPath):
+                    shutil.copyfile(origin_path, new_source)
+                else:
+                    os.link(origin_path, new_source)
             self.source = new_source
         except Exception:
             self.logger.exception("copyfile exception:")

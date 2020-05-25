@@ -14,6 +14,7 @@ a desktop computer without motion controller connected. This mode is intended fo
 # TODO: Fix following pylint problems
 # pylint: disable=wrong-import-position
 
+import os
 import builtins
 import gettext
 import logging
@@ -57,12 +58,10 @@ SAMPLES_DIR = Path(sl1fw.tests.samples.__file__).parent
 SL1FW_DIR = Path(sl1fw.__file__).parent
 HARDWARE_FILE = TEMP_DIR / "sl1fw.hardware.cfg"
 copyfile(SAMPLES_DIR / "hardware-virtual.cfg", HARDWARE_FILE)
-LAST_PROJECT_FILE = TEMP_DIR / "last_project.toml"
 
 defines.hwConfigFile = HARDWARE_FILE
 defines.factoryConfigFile = str(SL1FW_DIR / ".." / "factory" / "factory.toml")
 defines.hwConfigFactoryDefaultsFile = str(SAMPLES_DIR / "hardware.toml")
-defines.lastProjectData = str(LAST_PROJECT_FILE)
 defines.templates = str(SL1FW_DIR / "intranet" / "templates")
 defines.testing = True
 defines.truePoweroff = False
@@ -79,6 +78,14 @@ defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
 defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
 defines.fan_check_override = True
 defines.mediaRootPath = str(SAMPLES_DIR)
+defines.temp_previousPrints = tempfile.TemporaryDirectory()
+defines.previousPrints = defines.temp_previousPrints.name
+change_dir = lambda x : os.path.join(defines.previousPrints, os.path.basename(x))
+defines.lastProjectData = change_dir(defines.lastProjectData)
+defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
+defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
+defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
+defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
 
 event_loop = GLib.MainLoop()
 

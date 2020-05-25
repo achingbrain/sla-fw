@@ -12,6 +12,7 @@ from shutil import copyfile
 from threading import Thread
 # import cProfile
 from typing import Optional
+from  tempfile import TemporaryDirectory as td
 
 from pydbus import SystemBus
 
@@ -26,7 +27,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     FB_DEV_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.fb_dev.dat"
     HARDWARE_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.hardware.cfg"
     SDL_AUDIO_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw"
-    LAST_PROJECT_FILE = Sl1fwTestCase.TEMP_DIR / "last_project.toml"
     API_KEY_FILE = Sl1fwTestCase.TEMP_DIR / "api.key"
     UV_CALIB_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.uvCalibDataFilename
     UV_CALIB_FACTORY_DATA_FILE = Sl1fwTestCase.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}"
@@ -38,6 +38,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.display = TestDisplay()
         self.printer: Optional[Printer] = None
         self.thread: Optional[Thread] = None
+        self.temp_dir_project = None
 
     def setUp(self):
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
@@ -47,7 +48,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigFile = str(self.FACTORY_CONFIG_FILE)
         defines.hwConfigFactoryDefaultsFile = str(self.SAMPLES_DIR / "hardware.toml")
-        defines.lastProjectData = str(self.LAST_PROJECT_FILE)
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigFile = self.HARDWARE_FILE
@@ -60,6 +60,15 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
         defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
         defines.fan_check_override = True
+
+        self.temp_dir_project = td()
+        change_dir = lambda x : self.temp_dir_project.name + "/" + os.path.basename(x)
+        defines.previousPrints = self.temp_dir_project.name
+        defines.lastProjectData = change_dir(defines.lastProjectData)
+        defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
+        defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
+        defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
+        defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
 
         # factory reset
         defines.apikeyFile = str(self.API_KEY_FILE)
@@ -121,7 +130,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             self.FB_DEV_FILE,
             self.HARDWARE_FILE,
             self.SDL_AUDIO_FILE,
-            self.LAST_PROJECT_FILE,
             self.API_KEY_FILE,
             self.UV_CALIB_DATA_FILE,
             self.FACTORY_CONFIG_FILE,
@@ -130,6 +138,8 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         for file in files:
             if file.exists():
                 file.unlink()
+
+        self.temp_dir_project.cleanup()
 
     def press(self, identifier, data=None):
         print("Pressing button: %s on page %s" % (identifier, self.display.page))
