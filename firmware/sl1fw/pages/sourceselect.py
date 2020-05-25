@@ -13,6 +13,7 @@ import glob
 from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
+from sl1fw.pages.home import PageHome
 
 
 class SourceDir:
@@ -265,6 +266,10 @@ class PageSrcSelect(Page):
             return "%s%s (%s)" % (ip, defines.octoprintURI, self.octoprintAuth)
         #endif
         return _("Not connected to network")
+    #enddef
+
+    def backButtonRelease(self):
+        return PageHome.Name
     #enddef
 
 #endclass
