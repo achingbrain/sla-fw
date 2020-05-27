@@ -9,7 +9,9 @@ import logging
 import os
 import re
 import sys
+import glob
 import shutil
+import hashlib
 import traceback
 import subprocess
 from datetime import datetime
@@ -38,9 +40,9 @@ def get_save_path() -> Optional[Path]:
     return usbs[0]
 
 
-def last_traceback() -> str:
+def last_traceback(error) -> str:
     exc_traceback = sys.exc_info()[2]
-    return ''.join(traceback.format_tb(exc_traceback))
+    return [error.__class__.__name__, ''.join(traceback.format_tb(exc_traceback))]
 
 
 def save_logs_to_usb(hw: Hardware) -> None:
@@ -60,23 +62,23 @@ def save_logs_to_usb(hw: Hardware) -> None:
     erros = []
     try:
         text += log_data_summary_hw(hw)
-    except Exception:
-        erros.append(last_traceback())
-        text += "Hw export to log failed"
+    except Exception as e:
+        erros.append(last_traceback(e))
+        text += "\nHw export to log failed\n"
     try:
         text += log_data_summary_system()
-    except Exception:
-        erros.append(last_traceback())
-        text += "System export to log failed"
+    except Exception as e:
+        erros.append(last_traceback(e))
+        text += "\nSystem export to log failed\n"
     try:
         text += log_data_summary_config()
-    except Exception:
-        erros.append(last_traceback())
-        text += "Config export to log failed"
+    except Exception as e:
+        erros.append(last_traceback(e))
+        text += "\nConfig export to log failed"
 
     if erros:
         text += "\n\n----WARNINGS SUMMARY----\n"
-        text += "".join([f"{i+1}.\n{error}\n" for i, error in enumerate(erros)])
+        text += "".join([f"{i+1}. {error[0]}\n{error[1]}\n" for i, error in enumerate(erros)])
 
     logger.info(text)
 
@@ -111,36 +113,8 @@ def log_data_summary_hw(hw: Hardware):
     text += "Free Space in eMMC: %s\n" % str(psutil.disk_usage('/'))
     return text
 
-def log_data_summary_system():
-    text = "\nLanguage: "
-    try:
-        text += "%s\n" % SystemBus().get('org.freedesktop.locale1').Locale[0]
-    except Exception:
-        text += "No info"
-
-    text += "\n----TIME SETTINGS----\n"
-    content = subprocess.check_output("timedatectl", universal_newlines=True)
-    if content != "":
-        text += "%s\n" % content
-    else:
-        text += "No info\n"
-
-    text += "\n----DUMP FACTORY SETTINGS----\n"
-    if os.path.isfile(defines.factoryConfigFile):
-        with open(defines.factoryConfigFile, "r") as f:
-            factory_data = toml.load(f)
-        text += "%s\n" % str(factory_data)
-    else:
-        text = "Factory settings not found"
-
-    text += "\n----UPDATE CHANNEL----\n%s\n" % get_update_channel()
-    if os.path.isfile("/etc/rauc/ca.cert.pem"):
-        with open("/etc/rauc/ca.cert.pem", "r") as f:
-            text += "%s\n" % f.read()
-    else:
-        text += "Certificate not found"
-
-    text += "\n----NETWORK INFO----\n"
+def log_data_summary_network():
+    text = "\n----NETWORK INFO----\n"
     proxy = SystemBus().get('org.freedesktop.NetworkManager')
     text += "Wireless Enabled: %s\n" % proxy.WirelessEnabled
     text += "Primary Connection Type: %s\n" % proxy.PrimaryConnectionType
@@ -167,9 +141,56 @@ def log_data_summary_system():
         if i == 0:
             text += "    MAC: %s\n" % dev.HwAddress
 
+    return text
+
+def log_data_summary_system():
+    text = "\nLanguage: "
+    try:
+        text += "%s\n" % SystemBus().get('org.freedesktop.locale1').Locale[0]
+    except Exception:
+        text += "No info"
+
+    text += "\n----TIME SETTINGS----\n"
+    content = subprocess.check_output("timedatectl", universal_newlines=True)
+    if content != "":
+        text += "%s\n" % content
+    else:
+        text += "No info\n"
+
+    text += "\n----DUMP FACTORY SETTINGS----\n"
+    if os.path.isfile(defines.factoryConfigFile):
+        with open(defines.factoryConfigFile, "r") as f:
+            factory_data = toml.load(f)
+        text += "%s\n" % str(factory_data)
+    else:
+        text = "Factory settings not found"
+
+    text += "\n----UPDATE CHANNEL----\n%s\n" % get_update_channel()
+    if os.path.isfile("/etc/rauc/ca.cert.pem"):
+        hash_md5 = hashlib.md5()
+        with open("/etc/rauc/ca.cert.pem", "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        text += "Certificate md5: %s\n" % hash_md5.hexdigest()
+    else:
+        text += "Certificate md5: not found\n"
+
+    text += log_data_summary_network()
+
     text += "\n----SLOTS INFO----\n"
     text += "%s\n" % subprocess.check_output(
         ["rauc", "status", "--detailed"], universal_newlines=True)
+    fw_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
+    if os.path.exists(defines.firmwareTempFile):
+        fw_files.append(defines.firmwareTempFile)
+    for fw_file in fw_files:
+        text += "%s\n" % subprocess.run(
+            ["rauc", "info", fw_file],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.STDOUT,
+            universal_newlines = True,
+            check=False
+        ).stdout
 
     return text
 
