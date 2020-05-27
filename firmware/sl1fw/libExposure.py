@@ -41,7 +41,7 @@ from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerM
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
     ModelMismatch, ResinNotEnough, ProjectSettingsModified
 from sl1fw.functions.system import shut_down
-from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig, TomlConfig
+from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
 from sl1fw.project.functions import check_ready_to_print
@@ -451,7 +451,7 @@ class ExposureThread(threading.Thread):
 
         # Remove old projects
         self.logger.debug("Running disk cleanup")
-        Exposure.cleanup_last_data(self.logger)
+        self.expo.check_and_clean_last_data()
 
         self.logger.debug("Running project copy and check")
         project_state = self.expo.project.copy_and_check()
@@ -860,18 +860,17 @@ class ExposureThread(threading.Thread):
         statsFile.save(data = stats)
         self.expo.screen.saveDisplayUsage()
 
-        self.expo.write_last_project()
+        self.expo.write_last_exposure()
 
         if self.expo.canceled:
             self.expo.state = ExposureState.CANCELED
         else:
             self.expo.state = ExposureState.FINISHED
             if self.expo.hwConfig.autoOff:
-                if not TomlConfig(defines.lastProjectData).save(data=self.expo.runtime_config.last_project_data):
-                    self.logger.error("Last project data was not saved!")
                 shut_down(self.expo.hw)
+            #endif
         #endif
-        self.expo.save()
+
         self.logger.debug("Exposure ended")
     #enddef
 
@@ -963,7 +962,7 @@ class Exposure:
             self.doExitPrint()
         else:
             # Exposure thread not yet running (cancel before start)
-            self.write_last_project()
+            self.write_last_exposure()
             self.state = ExposureState.DONE
         #endif
     #enddef
@@ -987,7 +986,7 @@ class Exposure:
 
     def startProjectLoading(self):
         params = {
-                'project' : self.project.source,
+                'project' : self.project.path,
                 'expTime' : self.project.expTime,
                 'expTimeFirst' : self.project.expTimeFirst,
                 'calibrateTime' : self.project.calibrateTime,
@@ -1109,17 +1108,25 @@ class Exposure:
         #endif
     #enddef
 
-    def write_last_project(self):
-        self.runtime_config.last_project_data = {
+    def last_project_data(self):
+        return {
             'name': self.project.name,
             'print_time': self.printTime,
             'layers': self.actualLayer,
             'consumed_resin': self.resinCount,
-            'project_file': self.project.origin,
+            'project_file': self.project.path,
             'exp_time_ms': self.project.expTime * 1000,
             'exp_time_first_ms': self.project.expTimeFirst * 1000,
             'exp_time_calibrate_ms': self.project.calibrateTime * 1000,
         }
+    #enddef
+
+    def write_last_exposure(self):
+        self.runtime_config.last_exposure = None
+        self.save()
+        self.runtime_config.last_exposure = Exposure.load(self.logger)
+        if self.canceled or not self.hwConfig.autoOff:
+            Exposure.cleanup_last_data(self.logger)
     #enddef
 
     def save(self):
@@ -1132,19 +1139,41 @@ class Exposure:
         )
         with open(defines.lastProjectPickler, 'wb') as pickle_io:
             ExposurePickler(pickle_io).dump(self)
+    #enddef
 
     @staticmethod
-    def load() -> Exposure:
-        with open(defines.lastProjectPickler, 'rb') as pickle_io:
-            return ExposureUnpickler(pickle_io).load()
+    def load(logger: Logger) -> Optional[Exposure]:
+        try:
+            with open(defines.lastProjectPickler, 'rb') as pickle_io:
+                return ExposureUnpickler(pickle_io).load()
+        except Exception:
+            logger.error("Last exposure data was not loaded!")
+            return None
+    #enddef
+
+    def check_and_clean_last_data(self) -> None:
+        clear_all = self.project.path and \
+            not self.project.path.startswith(defines.previousPrints)
+        Exposure.cleanup_last_data(self.logger, clear_all=clear_all)
+    #enddef
 
     @staticmethod
-    def cleanup_last_data(logger: Logger) -> None:
-        for project_file in glob.glob(defines.previousPrints + "/*"):
+    def cleanup_last_data(logger: Logger, clear_all=False) -> None:
+        if clear_all:
+            files = glob.glob(defines.previousPrints + "/*")
+        else:
+            files = [
+                defines.lastProjectHwConfig,
+                defines.lastProjectFactoryFile,
+                defines.lastProjectConfigFile,
+                defines.lastProjectPickler
+            ]
+        for project_file in files:
             logger.debug("removing '%s'", project_file)
             try:
                 os.remove(project_file)
             except Exception:
                 logger.exception("cleanup_last_data() exception:")
+    #enddef
 
 #endclass

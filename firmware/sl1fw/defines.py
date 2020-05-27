@@ -37,7 +37,6 @@ configFile = "config.ini"
 maskFilename = "mask.png"
 projectExtensions = {".dwz", ".sl1"}
 previousPrints = os.path.join(persistentStorage, "previous-prints")
-lastProjectData = os.path.join(previousPrints, "last_project.toml")
 lastProjectHwConfig = os.path.join(previousPrints, hwConfigFileName)
 lastProjectFactoryFile = os.path.join(previousPrints, os.path.basename(hwConfigFactoryDefaultsFile))
 lastProjectConfigFile = os.path.join(previousPrints, configFile)

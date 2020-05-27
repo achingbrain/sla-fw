@@ -23,7 +23,6 @@ from gi.repository import GLib
 from pydbus import SystemBus
 
 from sl1fw import defines
-from sl1fw import libConfig
 from sl1fw.api.config0 import Config0
 from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.errors.exceptions import ConfigException
@@ -36,6 +35,7 @@ from sl1fw.libHardware import MotConComState
 from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
 from sl1fw.libScreen import Screen
+from sl1fw.libExposure import Exposure
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
 from sl1fw.state_actions.manager import ActionManager
@@ -209,13 +209,10 @@ class Printer:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("calibrationstart")
 
-        last_project = libConfig.TomlConfig(defines.lastProjectData).load()
-        if last_project:
-            self.runtime_config.last_project_data = last_project
-            try:
-                os.remove(defines.lastProjectData)
-            except FileNotFoundError:
-                self.logger.exception("LastProject cleanup exception:")
+        last_exposure = Exposure.load(self.logger)
+        if last_exposure:
+            self.runtime_config.last_exposure = last_exposure
+            Exposure.cleanup_last_data(self.logger)
 
             self.display.doMenu("finished")
         else:

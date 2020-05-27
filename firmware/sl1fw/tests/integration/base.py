@@ -64,7 +64,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.temp_dir_project = td()
         change_dir = lambda x : self.temp_dir_project.name + "/" + os.path.basename(x)
         defines.previousPrints = self.temp_dir_project.name
-        defines.lastProjectData = change_dir(defines.lastProjectData)
         defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
         defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
         defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
@@ -108,7 +107,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             self.press("back")
             self.waitPage("yesno")
             self.press("yes")
-            if os.path.isfile(defines.lastProjectData):
+            if os.path.isfile(defines.lastProjectPickler):
                 self.waitPage("finished")
                 self.press("home")
             self.waitPage("home")

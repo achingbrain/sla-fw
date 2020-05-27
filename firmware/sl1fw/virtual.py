@@ -71,7 +71,6 @@ defines.mediaRootPath = str(SAMPLES_DIR)
 defines.temp_previousPrints = tempfile.TemporaryDirectory()
 defines.previousPrints = defines.temp_previousPrints.name
 change_dir = lambda x : os.path.join(defines.previousPrints, os.path.basename(x))
-defines.lastProjectData = change_dir(defines.lastProjectData)
 defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
 defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
 defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)

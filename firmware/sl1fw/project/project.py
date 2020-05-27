@@ -33,8 +33,7 @@ class Project:
         self.logger = logging.getLogger(__name__)
         self.config = ProjectConfig()
         self._hw_config = hw_config
-        self.origin = None
-        self.source = None
+        self.path = None
         self.zf = None
         self.mode_warn = True
         self.state = ProjectState.UNINITIALIZED
@@ -48,13 +47,12 @@ class Project:
         self.data_close()
 
     def __str__(self):
-        res = [f"origin: {self.origin}", f"source: {self.source}", f"to_print: {self.to_print}"]
+        res = [f"path: {self.path}", f"to_print: {self.to_print}"]
         return str(self.config) + "\n\t" + "\n\t".join(res)
 
     def as_dictionary(self):
         project_data = {
-                'origin': self.origin,
-                'source': self.source,
+                'path': self.path,
                 'to_print': self.to_print,
                 }
         for key, val in vars(self.__class__).items():
@@ -68,8 +66,7 @@ class Project:
 
     def _read(self, project_file: str) -> ProjectState:
         self.logger.info("Opening project file '%s'", project_file)
-        self.origin = None
-        self.source = None
+        self.path = None
         self.mode_warn = True
         self.to_print = []
         self._calibrate_areas = []
@@ -89,8 +86,7 @@ class Project:
             self.logger.exception("zip read exception: %s", str(e))
             return ProjectState.CANT_READ
 
-        # Set paths
-        self.origin = self.source = project_file
+        self.path = project_file
 
         for filename in namelist:
             fName, fExt = os.path.splitext(filename)
@@ -114,7 +110,7 @@ class Project:
 
         :return: Name of the project as string
         """
-        return Path(self.origin).stem
+        return Path(self.path).stem
 
     @property
     def expTime(self) -> float:
@@ -368,7 +364,7 @@ class Project:
         size_available = statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
         self.logger.debug("Size available space: %d bytes", size_available)
         try:
-            filesize = os.path.getsize(self.origin)
+            filesize = os.path.getsize(self.path)
             self.logger.info("Zip file size: %d bytes", filesize)
         except Exception:
             self.logger.exception("filesize exception:")
@@ -376,20 +372,20 @@ class Project:
         try:
             if size_available < filesize:
                 raise Exception("Not enough free space!")
-            (dummy, filename) = os.path.split(self.origin)
+            (dummy, filename) = os.path.split(self.path)
             new_source = os.path.join(defines.previousPrints, filename)
-            origin_path = os.path.normpath(self.origin)
+            origin_path = os.path.normpath(self.path)
             if os.path.normpath(new_source) != origin_path:
                 if defines.testing or origin_path.startswith(defines.mediaRootPath):
                     shutil.copyfile(origin_path, new_source)
                 else:
                     os.link(origin_path, new_source)
-            self.source = new_source
+            self.path = new_source
         except Exception:
             self.logger.exception("copyfile exception:")
             state = ProjectState.PRINT_DIRECTLY
         try:
-            zf = zipfile.ZipFile(self.source, "r")
+            zf = zipfile.ZipFile(self.path, "r")
             badfile = zf.testzip()
             zf.close()
             if badfile is not None:
@@ -403,7 +399,7 @@ class Project:
     def read_image(self, filename: str):
         ''' may raise ZipFile exception '''
         self.data_open()
-        self.logger.debug("loading '%s' from '%s'", filename, self.source)
+        self.logger.debug("loading '%s' from '%s'", filename, self.path)
         img = Image.open(BytesIO(self.zf.read(filename)))
         if img.mode != "L":
             if self.mode_warn:
@@ -417,7 +413,7 @@ class Project:
     def data_open(self):
         ''' may raise ZipFile exception '''
         if not self.zf:
-            self.zf = zipfile.ZipFile(self.source, "r")
+            self.zf = zipfile.ZipFile(self.path, "r")
 
     def data_close(self):
         if self.zf:

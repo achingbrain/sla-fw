@@ -1133,4 +1133,4 @@ class RuntimeConfig:
     fan_error_override: bool = False
     check_cooling_expo: bool = True
     factory_mode: bool = False
-    last_project_data: Optional[Dict] = None
+    last_exposure: Any = None

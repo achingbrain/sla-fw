@@ -722,19 +722,19 @@ class Printer0:
         :param auto_advance: Automatic print
         :return:  Print task object
         """
-        if not self.printer.runtime_config.last_project_data:
+        if not self.printer.runtime_config.last_exposure:
             raise ReprintWithoutHistory()
 
-        old_data = self.printer.runtime_config.last_project_data
+        last_exposure = self.printer.runtime_config.last_exposure
         expo = self.printer.action_manager.new_exposure(
             self.printer.hwConfig,
             self.printer.hw,
             self.printer.screen,
             self.printer.runtime_config,
-            self.printer.action_manager.exposure.project.origin,
-            exp_time_ms=old_data["exp_time_ms"],
-            exp_time_first_ms=old_data["exp_time_first_ms"],
-            exp_time_calibrate_ms=old_data["exp_time_calibrate_ms"],
+            last_exposure.project.path,
+            exp_time_ms=last_exposure.project.expTime * 1000,
+            exp_time_first_ms=last_exposure.project.expTimeFirst * 1000,
+            exp_time_calibrate_ms=last_exposure.project.calibrateTime * 1000,
         )
         if auto_advance:
             expo.confirm_print_start()

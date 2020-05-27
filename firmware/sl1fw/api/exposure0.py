@@ -418,7 +418,7 @@ class Exposure0:
 
         :return: Project file with path
         """
-        return self.exposure.project.source
+        return self.exposure.project.path
 
     @auto_dbus
     @property
