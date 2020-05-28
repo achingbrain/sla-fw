@@ -191,9 +191,34 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def contButtonRelease(self):
+        self.pageWait = PageWait(self.display, line1=_("Setting start positions"), line2=_("Please wait..."))
+        self.pageWait.pageTitle = N_("UV LED calibration")
+        self.pageWait.show()
+        self.display.state = DisplayState.CALIBRATION
         # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
         if not (self.display.hw.isKit and self.display.runtime_config.factory_mode):
+            # Skip setting of initial positions as the kit not fully assembled at the factory (there is no tower)
+            self.display.hw.towerSync()
+            self.display.hw.tiltSync()
+            while self.display.hw.isTowerMoving() or self.display.hw.isTiltMoving():
+                sleep(0.25)
+            #endwhile
+            if not self.display.hw.isTowerSynced():
+                self.display.state = DisplayState.IDLE
+                self.display.pages['error'].setParams(
+                        text = _("Tower homing failed!\n\nCheck the printer's hardware."))
+                return "error"
+            #endif
+            if not self.display.hw.isTiltSynced():
+                self.display.state = DisplayState.IDLE
+                self.display.pages['error'].setParams(
+                        text = _("Tilt homing failed!\n\nCheck the printer's hardware."))
+                return "error"
+            #endif
+            self.display.hw.tiltLayerUpWait()
+
             if not self.display.doMenu(PageDisplayTest.Name):
+                self.off()
                 return self._EXIT_()
             #endif
 
@@ -209,37 +234,6 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def prepareUvCalibration(self):
-        self.ensureCoverIsClosed()
-        self.display.state = DisplayState.CALIBRATION
-        self.pageWait = PageWait(self.display, line1=_("Setting start positions"), line2=_("Please wait..."))
-        self.pageWait.pageTitle = N_("UV LED calibration")
-        self.pageWait.show()
-
-        # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
-        if not (self.display.hw.isKit and self.display.runtime_config.factory_mode):
-            # Skip setting of initial positions as the kit not fully assembled at the factory (there is no tower)
-            self.display.hw.towerSync()
-            self.display.hw.tiltSync()
-            while self.display.hw.isTowerMoving() or self.display.hw.isTiltMoving():
-                sleep(0.25)
-            #endwhile
-
-            if not self.display.hw.isTowerSynced():
-                self.display.state = DisplayState.IDLE
-                self.display.pages['error'].setParams(
-                        text = _("Tower homing failed!\n\nCheck the printer's hardware."))
-                return "error"
-            #endif
-
-            if not self.display.hw.isTiltSynced():
-                self.display.state = DisplayState.IDLE
-                self.display.pages['error'].setParams(
-                        text = _("Tilt homing failed!\n\nCheck the printer's hardware."))
-                return "error"
-            #endif
-            self.display.hw.tiltLayerUpWait()
-        #endif
-
         if not self.checkUVMeter():
             self.off()
             self.display.state = DisplayState.IDLE

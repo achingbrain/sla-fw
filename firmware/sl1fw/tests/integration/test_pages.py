@@ -170,11 +170,11 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("uvcalibration")
         self.waitPage("confirm")  # Welcome to UV calibration ...
         self.press("cont")
+        self.waitPage("wait")  # Start positions
         self.waitPage("yesno")  # Display test. Can you see the logo? ...
         self.press("yes")
         self.waitPage("confirm")  # Place the UV meter in and close lid ...
         self.press("cont")
-        self.waitPage("wait")  # Start positions
         self.waitPage("wait")  # Waiting for UV meter
         self.waitPage("error")  # No UV meter connected
         self.press("ok")
