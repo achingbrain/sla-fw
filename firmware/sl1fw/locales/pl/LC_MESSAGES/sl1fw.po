@@ -2151,7 +2151,7 @@ msgstr "Asystent krok 10/10"
 
 #: ../pages/wizard.py:238
 msgid "Setup wizard step 2/10"
-msgstr "Asystent krok /210"
+msgstr "Asystent krok 2/10"
 
 #: ../pages/wizard.py:253
 msgid "Setup wizard step 3/10"
@@ -2992,7 +2992,7 @@ msgstr "Wyłączenie silników"
 
 #: ../pages/uvfanstest.py:21
 msgid "UV & Fans test"
-msgstr "Test UV i went."
+msgstr "Test UV i went"
 
 #: ../pages/display.py:49
 msgid "UV (re)calibration"
