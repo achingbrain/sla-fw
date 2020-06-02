@@ -42,7 +42,7 @@ class PageDisplay(Page):
                 'button9' : "Inverse",
                 'button10' : "UV off" if state else "UV on",
 
-                'button11' : "Infinite test",
+                'button11' : "Erase UV LED counter",
                 'button13' : "Show factory UV c.d.",
                 'button14' : "Show UV calib. data",
                 'button15' : "UV (re)calibration",
@@ -135,9 +135,39 @@ class PageDisplay(Page):
 
 
     def button11ButtonRelease(self):
-        self.display.hw.saveUvStatistics()
-        return "infinitetest"
+        seconds = self.display.hw.getUvStatistics()[0]
+        self.logger.debug("seconds %s", self.display.hw.getUvStatistics())
+        self.display.pages['confirm'].setParams(
+            continueFce = self.continueClearUvCounter,
+            pageTitle = "Erase UV LED counter",
+            text = "Do you really want to clear the UV LED counter?\n\n"
+                "UV counter: %(hours).0fh %(minutes).0fm\n"
+                "Serial number: %(sn)s\n"
+                "IP address: %(ip)s" % {
+                    "hours" : seconds / 3600,
+                    "minutes": (seconds % 3600) / 60,
+                    "sn" : self.display.hw.cpuSerialNo,
+                    "ip" : self.display.inet.ip})
+        return "confirm"
     #enddef
+
+
+    def continueClearUvCounter(self):
+        self.display.hw.clearUvStatistics()
+        seconds = self.display.hw.getUvStatistics()[0]
+        self.display.pages['confirm'].setParams(
+            pageTitle = "Erase UV LED counter",
+            text = "UV counter has been erased.\n\n"
+                "UV counter: %(hours).0fh %(minutes).0fm\n"
+                "Serial number: %(sn)s\n"
+                "IP address: %(ip)s" % {
+                    "hours" : seconds / 3600,
+                    "minutes": (seconds % 3600) / 60,
+                    "sn" : self.display.hw.cpuSerialNo,
+                    "ip" : self.display.inet.ip})
+        return "confirm"
+    #enddef
+
 
 
     @staticmethod

@@ -6,6 +6,7 @@
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
+from sl1fw.pages.infinitetest import PageInfiniteTest
 
 
 @page
@@ -25,6 +26,7 @@ class PageTests(Page):
                 'button2' : "UV & Fan test",
                 'button3' : "Tower sensitivity",
 
+                'button6' : "Infinite test",
                 'button15' : "Raise exception",
                 })
         super(PageTests, self).show()
@@ -80,6 +82,13 @@ class PageTests(Page):
     def button2ButtonRelease():
         return "uvfanstest"
     #enddef
+
+
+    def button6ButtonRelease(self):
+        self.display.hw.saveUvStatistics()
+        return PageInfiniteTest.Name
+    #enddef
+
 
     @staticmethod
     def button15ButtonRelease():
