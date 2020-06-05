@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Optional
 import pydbus
 
 from sl1fw.errors.errors import FailedUpdateChannelGet, FailedUpdateChannelSet
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.system import save_factory_mode, get_update_channel, set_update_channel
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -50,6 +51,7 @@ class PageTools(Page):
                 else "Enable Factory mode",
                 "button2": "Disable ssh" if self.ssh_enabled else "Enable ssh",
                 "button3": "Disable serial" if self.serial_enabled else "Enable serial",
+                "button5": "Fake printer setup",
                 "button11": f"Switch to stable{'*' if channel == 'stable' else ''}",
                 "button12": f"Switch to beta{'*' if channel == 'beta' else ''}",
                 "button13": f"Switch to dev{'*' if channel == 'dev' else ''}",
@@ -68,6 +70,36 @@ class PageTools(Page):
 
     def button3ButtonRelease(self):
         self._trigger_unit(self.SERIAL_SERVICE)
+        return "_SELF_"
+
+    def button5ButtonRelease(self):
+        pageWait = self.display.makeWait(self.display, line1="Downloading examples")
+        pageWait.show()
+        if not self.downloadExamlpes():
+            self.display.pages['error'].setParams(
+                text="Examples fetch failed")
+            return "error"
+        pageWait.showItems(line1="Saving dummy calibration data")
+        writer = self.display.hwConfig.get_writer()
+        writer.calibrated = True
+        writer.showWizard = False
+        writer.showUnboxing = False
+        writer.uvPwm = self.display.hw.getMinPwm()
+        self.display.hw.uvLedPwm = writer.uvPwm
+        try:
+            writer.commit()
+        except ConfigException:
+            self.logger.exception("Cannot save configuration")
+            self.display.pages['error'].setParams(
+                text="Cannot save configuration")
+            return "error"
+
+        if not self.writeToFactory(self.saveDefaultsFile):
+            self.display.pages['error'].setParams(
+                text = "!!! Failed to save factory defaults !!!")
+            return "error"
+        #else
+
         return "_SELF_"
 
     def button11ButtonRelease(self):

@@ -201,7 +201,7 @@ class Printer:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("wizardinit")
 
-            if self.display.hwConfig.uvPwm <= self.hw.getMinPwm():
+            if self.display.hwConfig.uvPwm < self.hw.getMinPwm():
                 self.hw.beepRepeat(1)
                 self.display.doMenu("uvcalibrationstart")
 

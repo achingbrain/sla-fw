@@ -119,7 +119,7 @@ class Examples(Thread):
                         tar.extract(member, temp)
 
                 if extracted_size > internal_available:
-                    raise Exception("Not enough free space in the internal storage")
+                    raise NotEnoughInternalSpace()
 
                 self.state = ExamplesState.COPYING
                 self._logger.info("Copying examples")

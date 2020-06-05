@@ -24,6 +24,8 @@ from deprecation import deprecated
 
 from sl1fw import defines
 from sl1fw.states.exposure import ExposureState
+from sl1fw.states.examples import ExamplesState
+from sl1fw.state_actions.examples import Examples
 from sl1fw.functions import files
 from sl1fw.functions.system import shut_down
 from sl1fw.errors.exceptions import ConfigException
@@ -568,6 +570,16 @@ class Page:
         self.display.hw.uvLed(False)
         self.display.hw.stopFans()
         self.display.hw.motorsRelease()
+    #enddef
+
+
+    def downloadExamlpes(self):
+        examples = Examples(self.display.inet)
+        examples.start()
+        examples.join()
+        if examples.state != ExamplesState.COMPLETED:
+            return False
+        return True
     #enddef
 
 #endclass
