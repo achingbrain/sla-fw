@@ -121,12 +121,15 @@ class Config0:
         Provides dictionary containing configuration value constraints. The dictionary is uses value names as keys and
         values are dictionaries holding constraint names as keys and constraint values as values. Example:
 
-        {
-            'stirringMoves': {'min': 1, 'max': 10},
-            'stirringDelay': {'max': 300},
-            'towerSensitivity': {'min': -2, 'max': 2},
-            ...
-        }
+        .. highlight:: python
+        .. code-block:: python
+
+            {
+                'stirringMoves': {'min': 1, 'max': 10},
+                'stirringDelay': {'max': 300},
+                'towerSensitivity': {'min': -2, 'max': 2},
+                ...
+            }
 
         :return: Config settings constraints as dictionary
         """
