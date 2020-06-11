@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from queue import Queue
+from time import sleep
 from typing import TYPE_CHECKING
 
 from sl1fw.errors.warnings import (
@@ -32,14 +33,21 @@ class PageCheckConfirm(PagePrintBase):
         self.warnings_to_show = Queue()
 
     def prepare(self):
+        self.logger.info("Displaying pre-print warnings: %s", len(self.display.expo.warnings))
         for warning in self.display.expo.warnings:
+            self.logger.debug("Adding warning: %s", warning)
             self.warnings_to_show.put(warning)
         return self.warn()
 
     def warn(self):
         # pylint: disable = too-many-return-statements
         if self.warnings_to_show.empty():
+            self.logger.debug("All warnings acknowledged, continuing print")
             self.display.expo.confirm_print_warnings()
+            # TODO: This is not nice, we need to wait for async processing of the change in exposure thread.
+            # Otherwise the page will be changed to check-confirm again. This can be removed once the print pages are
+            # completely removed. The frontend will be able to do this exactly once.
+            sleep(1)
         else:
             warning = self.warnings_to_show.get()
 

@@ -35,7 +35,7 @@ import psutil
 from PySignal import Signal
 from deprecation import deprecated
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerMoveFailure, ProjectFailure, \
     TempSensorFailure, FanFailure, ResinFailure, ResinTooLow, ResinTooHigh, WarningEscalation
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
@@ -535,8 +535,11 @@ class ExposureThread(threading.Thread):
         # Warm-up fans
         self.logger.info("Warning up fans")
         self.expo.hw.startFans()
-        self.logger.debug("Waiting %.2f secs for fans", defines.fanStartStopTime)
-        sleep(defines.fanStartStopTime)
+        if not test_runtime.testing:
+            self.logger.debug("Waiting %.2f secs for fans", defines.fanStartStopTime)
+            sleep(defines.fanStartStopTime)
+        else:
+            self.logger.debug("Not waiting for fans to start due to testing")
 
         # Check fans
         self.logger.info("Checking fan errors")
@@ -584,11 +587,12 @@ class ExposureThread(threading.Thread):
             raise
         #endtry
 
-        self.logger.debug("requested: %d [ml], measured: %d [ml]", self.expo.project.usedMaterial, volume)
+        self.logger.debug("min: %d [ml], requested: %d [ml], measured: %d [ml]",
+                          defines.resinMinVolume, self.expo.project.usedMaterial + defines.resinMinVolume, volume)
 
-        if volume < self.expo.project.usedMaterial:
+        if volume < self.expo.project.usedMaterial + defines.resinMinVolume:
             self.logger.info("Raising resin not enough warning")
-            self.expo.warnings.append(ResinNotEnough(volume, self.expo.project.usedMaterial))
+            self.expo.warnings.append(ResinNotEnough(volume, self.expo.project.usedMaterial + defines.resinMinVolume))
             self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.WARNING
         #endif
 
@@ -1016,7 +1020,7 @@ class Exposure:
         #endif
     #enddef
 
-    @deprecated("Should be obolete, use confirm print start instead")
+    @deprecated("Should be obsolete, use confirm print start instead")
     def start(self):
         if self.expoThread:
             self.screen.cleanup()
