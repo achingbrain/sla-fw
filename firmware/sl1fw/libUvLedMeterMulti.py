@@ -80,7 +80,15 @@ class UvLedMeterMulti:
         return os.path.exists(self.uvLedMeterDevice) or test_runtime.test_uvmeter_present
 
     def connect(self):
-        self.logger.info("Connecting to the UV meter")
+        try:
+            self._low_level_connect()
+        except Exception:
+            self.logger.exception("UV meter connect failed with exception")
+            return False
+        return True
+
+    def _low_level_connect(self, retries: int = 3):
+        self.logger.info("Connecting to the UV meter, retries: %d", retries)
         try:
             self.port = serial.Serial(
                 port=self.uvLedMeterDevice,
@@ -104,7 +112,7 @@ class UvLedMeterMulti:
 
             if not timeout:
                 self.logger.error("Response timeout")
-                return False
+                raise TimeoutError("Response timeout")
 
             reply = None
             while reply != "<done":
@@ -122,14 +130,19 @@ class UvLedMeterMulti:
                 else:
                     self.logger.warning("Unknown device connected. VID: %x, PID: %x", devices[0].vid, devices[0].pid)
             else:
-                self.logger.warning("SKipping UV meter device detection due to testing")
+                self.logger.warning("Skipping UV meter device detection due to testing")
 
             self.logger.info("UV meter connected successfully")
-            return True
 
-        except Exception:
+        except Exception as e:
             self.logger.exception("Connection failed:")
-            return False
+            if retries > 0:
+                self.logger.warning("Reconnecting, retries: %s", retries)
+                self.logger.debug("Waining 1 sec to reconnect")
+                sleep(1)
+                self.logger.debug("Reconnecting UV meter now")
+                return self._low_level_connect(retries - 1)
+            raise e
 
     def close(self):
         if self.port is not None:
@@ -139,22 +152,11 @@ class UvLedMeterMulti:
 
     def read(self):
         self.logger.info("Reading UV meter data")
-        sleep(self.sleepTime)
+        if not test_runtime.testing:
+            sleep(self.sleepTime)
         self.np = None
         try:
-            self.port.write(">all\n".encode())
-            self.logger.debug("UV meter command reply: %s", self.port.readline().strip().decode())
-            timeout = defines.uvLedMeterMaxWait_s * 10
-            while not self.port.inWaiting() and timeout:
-                sleep(0.1)
-                timeout -= 1
-
-            if not timeout:
-                self.logger.error("Response timeout")
-                return False
-
-            line = self.port.readline().strip().decode()
-            self.logger.debug("UV meter response: %s", line)
+            line = self._low_level_read(retries = 3)
 
             if line[0] != "<":
                 self.logger.error("Invalid response - wrong line format")
@@ -173,6 +175,32 @@ class UvLedMeterMulti:
         self.np = numpy.array(data[:-1])
         self.datetime = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
         return True
+
+    def _low_level_read(self, retries: int) -> str:
+        try:
+            self.port.write(">all\n".encode())
+            self.logger.debug("UV meter command reply: %s", self.port.readline().strip().decode())
+            timeout = defines.uvLedMeterMaxWait_s * 10
+            while not self.port.inWaiting() and timeout:
+                sleep(0.1)
+                timeout -= 1
+
+            if not timeout:
+                raise TimeoutError("UV meter response timeout")
+
+            line = self.port.readline().strip().decode()
+            self.logger.debug("UV meter response: %s", line)
+            return line
+        except (TimeoutError, IOError) as e:
+            self.logger.error("Error reading UV meter")
+            if retries > 0:
+                self.logger.warning("Reconnecting, Retrying UV meter read: %s", retries)
+                self.connect()
+                return self._low_level_read(retries - 1)
+            else:
+                self.logger.error("Too many UV meter read retries")
+                raise e
+
 
     def get_data(self):
         data = UvCalibrationData()

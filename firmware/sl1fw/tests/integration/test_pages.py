@@ -220,6 +220,29 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
             self.test_turnoff()
 
+    def test_uv_calibration_pass_with_errors(self):
+        with patch("sl1fw.test_runtime.test_fan_error_override", True), patch("sl1fw.test_runtime.uv_error_each", 3):
+            self.printer.hwConfig.coverCheck = False
+            self.switchPage("settings")
+            self.switchPage("advancedsettings")
+            self.switchPage("uvdispsettings")
+
+            self.printer.hwConfig.coverCheck = False
+            self.press("uvcalibration")
+            self.waitPage("confirm")  # Welcome to UV calibration ...
+            self.press("cont")
+            self.waitPage("wait")  # Start positions
+            self.waitPage("yesno", timeout_sec=15)  # Display test. Can you see the logo? ...
+            self.press("yes")
+            self.waitPage("confirm")  # Place the UV meter in and close lid ...
+            self.press("cont")
+            self.waitPage("wait")  # Waiting for UV meter
+            self.waitPage("yesno", timeout_sec=180)  # use new calibration
+            self.press("no")
+            self.waitPage("uvdispsettings")
+
+            self.test_turnoff()
+
     def test_factory_reset_factory_complete(self):
         self._fake_calibration()
 
@@ -381,6 +404,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.printer.hwConfig.fanCheck = False
         self.printer.hwConfig.coverCheck = False
         self.printer.hwConfig.resinSensor = False
+
 
 if __name__ == "__main__":
     unittest.main()

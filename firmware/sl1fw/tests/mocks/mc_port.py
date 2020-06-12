@@ -62,6 +62,10 @@ class Serial:
 class UVSerial:
     def __init__(self):
         self._data = Queue()
+        self._error_cnt = 0
+        self._connect()
+
+    def _connect(self):
         self._data.put("<done".encode())
 
     def open(self):
@@ -88,7 +92,18 @@ class UVSerial:
         raise NotImplementedError()
 
     def readline(self):
+        self._simulate_error()
         return self._data.get()
+
+    def _simulate_error(self):
+        if not test_runtime.uv_error_each:
+            return
+
+        self._error_cnt += 1
+        if self._error_cnt > test_runtime.uv_error_each:
+            self._error_cnt = 0
+            self._data.put("<done".encode())
+            raise IOError("Injected error")
 
     def inWaiting(self):
         return self._data.qsize()
