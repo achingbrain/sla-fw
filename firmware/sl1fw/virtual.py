@@ -29,16 +29,14 @@ import sl1fw.tests.mocks.mc_port
 from sl1fw import defines
 from sl1fw import libPrinter
 from sl1fw.api.printer0 import Printer0
-from sl1fw.tests import samples
+from sl1fw.tests import samples, test_runtime
 from sl1fw.tests.mocks.dbus.rauc import Rauc
 
 # use system locale settings for translation
 gettext.install("sl1fw", defines.localedir, names=("ngettext",))
 builtins.N_ = lambda x: x
 
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG
-)
+logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
 
 # Display warnings only once
 warnings.simplefilter("once")
@@ -53,7 +51,7 @@ defines.hwConfigFile = HARDWARE_FILE
 defines.factoryConfigFile = str(SL1FW_DIR / ".." / "factory" / "factory.toml")
 defines.hwConfigFactoryDefaultsFile = str(SAMPLES_DIR / "hardware.toml")
 defines.templates = str(SL1FW_DIR / "intranet" / "templates")
-defines.testing = True
+test_runtime.testing = True
 defines.truePoweroff = False
 defines.fbFile = "/dev/null"
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
@@ -75,9 +73,10 @@ defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
 defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
 defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
 defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
+defines.uvCalibDataPath = str(Path(defines.ramdiskPath) / defines.uvCalibDataFilename)
 
-with patch(
-    "sl1fw.motion_controller.controller.serial", sl1fw.tests.mocks.mc_port
+with patch("sl1fw.motion_controller.controller.serial", sl1fw.tests.mocks.mc_port), patch(
+    "sl1fw.libUvLedMeterMulti.serial", sl1fw.tests.mocks.mc_port
 ), patch("sl1fw.motion_controller.controller.UInput", Mock()), patch(
     "sl1fw.motion_controller.controller.gpio", Mock()
 ), patch(

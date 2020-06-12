@@ -21,10 +21,11 @@ from sl1fw.errors.errors import (
     FailedUpdateChannelSet, FailedUpdateChannelGet)
 from sl1fw.libConfig import TomlConfig, HwConfig
 from sl1fw.libHardware import Hardware
+from sl1fw.tests import test_runtime
 
 
 def shut_down(hw: Hardware, reboot=False):
-    if defines.testing:
+    if test_runtime.testing:
         print("Skipping poweroff due to testing")
         return
 
@@ -80,7 +81,7 @@ def send_printer_data(hw: Hardware, config: HwConfig):
     topic = "prusa/sl1/factoryConfig"
     logger.info("Sending mqtt data: %s", mqtt_data)
     try:
-        if not defines.testing:
+        if not test_runtime.testing:
             mqtt.single(topic, json.dumps(mqtt_data), qos=2, retain=True, hostname=defines.mqtt_prusa_host)
         else:
             logger.debug("Testing mode, not sending MQTT data")

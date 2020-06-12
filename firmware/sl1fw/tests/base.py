@@ -18,7 +18,7 @@ from mock import Mock
 
 import sl1fw.tests.mocks.mc_port
 from sl1fw import defines
-from sl1fw.tests import samples
+from sl1fw.tests import samples, test_runtime
 from sl1fw.tests.mocks.dbus.hostname import Hostname
 from sl1fw.tests.mocks.dbus.locale import Locale
 from sl1fw.tests.mocks.dbus.networkmanager import NetworkManager
@@ -50,7 +50,7 @@ class Sl1fwTestCase(DBusTestCase):
     @classmethod
     def setUpClass(cls):
         warnings.simplefilter("always")
-        defines.testing = True
+        test_runtime.testing = True
         defines.ramdiskPath = str(cls.TEMP_DIR)
         cls.start_system_bus()
         cls.dbus_con = cls.get_dbus(system_bus=True)

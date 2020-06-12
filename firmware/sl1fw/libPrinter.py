@@ -42,6 +42,7 @@ from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.unboxing import UnboxingState
+from sl1fw.tests import test_runtime
 
 
 class Printer:
@@ -287,7 +288,7 @@ class Printer:
         except Exception as exception:
             self.exception = exception
             self.state = PrinterState.EXCEPTION
-            if defines.testing:
+            if test_runtime.testing:
                 raise exception
             self.logger.exception("Printer run() init failed")
             self.display.pages["exception"].setParams(
@@ -310,7 +311,7 @@ class Printer:
         except Exception as exception:
             self.exception = exception
             self.state = PrinterState.EXCEPTION
-            if defines.testing:
+            if test_runtime.testing:
                 raise exception
             self.logger.exception("run() exception:")
             self.display.pages["exception"].setParams(

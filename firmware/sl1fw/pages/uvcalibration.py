@@ -29,6 +29,7 @@ from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
 from sl1fw.pages.displaytest import PageDisplayTest
+from sl1fw.tests import test_runtime
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -292,6 +293,10 @@ class PageUvCalibration(PageUvCalibrationBase):
             self.pageWait.showItems(line2 = ngettext("Remaining %d second",
                 "Remaining %d seconds", countdown) % countdown)
             sleep(1)
+            if test_runtime.testing:
+                self.logger.debug("Skipping UV warm-up due to testing")
+                break
+            #endif
         #endfor
 
         self.display.hw.uvLedPwm = self.display.hw.getMinPwm()

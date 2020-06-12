@@ -11,6 +11,8 @@ from time import sleep
 
 import unittest
 
+from mock import patch
+
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 
 from sl1fw.libConfig import HwConfig, TomlConfig
@@ -129,13 +131,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         self.test_turnoff()
 
-    def test_display_uv_settings(self):
+    def test_display_passing(self):
         self.printer.hwConfig.coverCheck = False
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.switchPage("uvdispsettings")
 
-        # Test display test - passing
         self.press("displaytest")
         self.waitPage("confirm")  # Please unscrew and remove ...
         self.press("cont")
@@ -145,7 +146,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("yes")
         self.waitPage("uvdispsettings")
 
-        # Test display test - failing
+    def test_display_failing(self):
+        self.printer.hwConfig.coverCheck = False
+        self.switchPage("settings")
+        self.switchPage("advancedsettings")
+        self.switchPage("uvdispsettings")
+
         self.press("displaytest")
         self.waitPage("confirm")  # Please unscrew and remove ...
         self.press("cont")
@@ -157,7 +163,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("ok")
         self.waitPage("uvdispsettings")
 
-        # Test UV calibration enter and exit
+    def uv_calibration_enter_exit(self):
+        self.printer.hwConfig.coverCheck = False
+        self.switchPage("settings")
+        self.switchPage("advancedsettings")
+        self.switchPage("uvdispsettings")
+
         self.press("uvcalibration")
         self.waitPage("confirm")  # Welcome to UV calibration ...
         self.press("back")
@@ -165,24 +176,49 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("yes")
         self.waitPage("uvdispsettings")
 
-        # Test UV calibration without UV meter
+    def test_uv_calibration_no_uvmeter(self):
         self.printer.hwConfig.coverCheck = False
-        self.press("uvcalibration")
-        self.waitPage("confirm")  # Welcome to UV calibration ...
-        self.press("cont")
-        self.waitPage("wait")  # Start positions
-        self.waitPage("yesno")  # Display test. Can you see the logo? ...
-        self.press("yes")
-        self.waitPage("confirm")  # Place the UV meter in and close lid ...
-        self.press("cont")
-        self.waitPage("wait")  # Waiting for UV meter
-        self.waitPage("error")  # No UV meter connected
-        self.press("ok")
-        self.waitPage("uvdispsettings")
+        self.switchPage("settings")
+        self.switchPage("advancedsettings")
+        self.switchPage("uvdispsettings")
 
-        #TODO simulate UV meter and run whole calibration
+        with patch("sl1fw.tests.test_runtime.test_uvmeter_present", False):
+            self.printer.hwConfig.coverCheck = False
+            self.press("uvcalibration")
+            self.waitPage("confirm")  # Welcome to UV calibration ...
+            self.press("cont")
+            self.waitPage("wait")  # Start positions
+            self.waitPage("yesno")  # Display test. Can you see the logo? ...
+            self.press("yes")
+            self.waitPage("confirm")  # Place the UV meter in and close lid ...
+            self.press("cont")
+            self.waitPage("wait")  # Waiting for UV meter
+            self.waitPage("error")  # No UV meter connected
+            self.press("ok")
+            self.waitPage("uvdispsettings")
 
-        self.test_turnoff()
+    def test_uv_calibration_pass(self):
+        with patch("sl1fw.tests.test_runtime.test_fan_error_override", True):
+            self.printer.hwConfig.coverCheck = False
+            self.switchPage("settings")
+            self.switchPage("advancedsettings")
+            self.switchPage("uvdispsettings")
+
+            self.printer.hwConfig.coverCheck = False
+            self.press("uvcalibration")
+            self.waitPage("confirm")  # Welcome to UV calibration ...
+            self.press("cont")
+            self.waitPage("wait")  # Start positions
+            self.waitPage("yesno", timeout_sec=15)  # Display test. Can you see the logo? ...
+            self.press("yes")
+            self.waitPage("confirm")  # Place the UV meter in and close lid ...
+            self.press("cont")
+            self.waitPage("wait")  # Waiting for UV meter
+            self.waitPage("yesno", timeout_sec=180)  # use new calibration
+            self.press("no")
+            self.waitPage("uvdispsettings")
+
+            self.test_turnoff()
 
     def test_factory_reset_factory_complete(self):
         self._fake_calibration()

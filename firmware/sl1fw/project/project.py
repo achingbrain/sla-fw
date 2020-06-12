@@ -25,6 +25,7 @@ from sl1fw.libConfig import HwConfig
 from sl1fw.project.config import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.states.project import ProjectState
+from sl1fw.tests import test_runtime
 
 
 class Project:
@@ -376,7 +377,7 @@ class Project:
             new_source = os.path.join(defines.previousPrints, filename)
             origin_path = os.path.normpath(self.path)
             if os.path.normpath(new_source) != origin_path:
-                if defines.testing or origin_path.startswith(defines.mediaRootPath):
+                if test_runtime.testing or origin_path.startswith(defines.mediaRootPath):
                     shutil.copyfile(origin_path, new_source)
                 else:
                     os.link(origin_path, new_source)

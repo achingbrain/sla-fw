@@ -8,6 +8,7 @@ import stat
 from pathlib import Path
 
 import sl1fw
+from sl1fw.tests import test_runtime
 
 reqMcVersion = "0.11.5"
 
@@ -81,6 +82,7 @@ templates = '/srv/http/intranet/templates'
 
 motionControlDevice = "/dev/ttyS2"
 mc_debug_port = 8192
+uv_meter_device = "/dev/uvmeter"
 
 wifiSetupFile = "/etc/hostapd.secrets.json"
 
@@ -145,7 +147,6 @@ uvLedMeasMinPwm500k = 157
 uvLedMeasMaxPwm500k = 250
 factoryConfigFile = factoryMountPoint / "factory.toml"
 logsBase = "/var/log/journal"
-testing = False
 traces = 30
 
 exposure_time_min_ms = 1000
@@ -155,7 +156,7 @@ exposure_time_first_max_ms = 120000
 exposure_time_calibrate_min_ms = 500
 exposure_time_calibrate_max_ms = 5000
 
-fan_check_override = testing
+fan_check_override = test_runtime.testing
 default_hostname = "prusa64-sl1"
 mqtt_prusa_host = "mqttstage.prusa"
 set_update_channel_bin = "/usr/sbin/set-update-channel.sh"

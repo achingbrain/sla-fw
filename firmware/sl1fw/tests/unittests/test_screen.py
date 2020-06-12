@@ -9,6 +9,7 @@ import unittest
 import numpy
 from PIL import Image
 
+from sl1fw.tests import test_runtime
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libScreen import Screen
 from sl1fw import defines
@@ -32,7 +33,7 @@ class TestScreen(Sl1fwTestCase):
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.livePreviewImage = str(self.PREVIEW_FILE)
         defines.displayUsageData = str(self.DISPLAY_USAGE)
-        defines.testing = True
+        test_runtime.testing = True
         defines.hwConfigFile = str(self.SAMPLES_DIR / "hardware.cfg")
 
         self.screen = Screen()

@@ -23,6 +23,7 @@ from readerwriterlock import rwlock
 
 from sl1fw import defines
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.tests import test_runtime
 
 
 class BaseConfig(ABC):
@@ -1081,7 +1082,7 @@ class TomlConfig:
             self.logger.warning("File '%s' not found", self.filename)
             self.data = {}
         except Exception as exception:
-            if defines.testing:
+            if test_runtime.testing:
                 raise exception
             self.logger.exception("Failed to load toml file")
             self.data = {}
@@ -1101,7 +1102,7 @@ class TomlConfig:
                 self.filename = filename
             self.save_raw()
         except Exception as exception:
-            if defines.testing:
+            if test_runtime.testing:
                 raise exception
             self.logger.exception("Failed to save toml file")
             return False

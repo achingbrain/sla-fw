@@ -30,6 +30,7 @@ from sl1fw.functions import files
 from sl1fw.functions.system import shut_down
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libConfig import TomlConfig
+from sl1fw.tests import test_runtime
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -505,7 +506,8 @@ class Page:
         #endif
 
         # fans test
-        if not self.display.hwConfig.fanCheck or self.display.runtime_config.fan_error_override:
+        if not self.display.hwConfig.fanCheck or self.display.runtime_config.fan_error_override \
+                or test_runtime.test_fan_error_override:
             return
         #endif
 

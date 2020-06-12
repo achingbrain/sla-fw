@@ -25,6 +25,7 @@ import serial.tools.list_ports
 from PIL import Image, ImageDraw, ImageFont
 
 from sl1fw import defines
+from sl1fw.tests import test_runtime
 
 
 @dataclass(init=False)
@@ -54,7 +55,7 @@ class UvMeterState(IntEnum):
 
 class UvLedMeterMulti:
 
-    uvLedMeterDevice = "/dev/uvmeter"
+    uvLedMeterDevice = defines.uv_meter_device
     uvSensorType = 0
     INTENSITY_ERROR_THRESHOLD = 1
 
@@ -85,7 +86,7 @@ class UvLedMeterMulti:
 
     @property
     def present(self):
-        return os.path.exists(self.uvLedMeterDevice)
+        return os.path.exists(self.uvLedMeterDevice) or test_runtime.test_uvmeter_present
     #enddef
 
 
@@ -122,15 +123,18 @@ class UvLedMeterMulti:
                 self.logger.debug("UV meter response: %s", reply)
             #endwhile
 
-            devices = serial.tools.list_ports.comports()
-            if len(devices) > 1:
-                self.logger.warning("Multiple devices attached: %d", len(devices))
-            if devices[0].vid == 0x10C4 and devices[0].pid == 0xEA60: # 60p UV meter
-                self.sleepTime = 3
-            elif devices[0].vid == 0x1A86 and devices[0].pid == 0x7523: # 15p UV meter
-                self.sleepTime = 0.5
+            if not test_runtime.testing:
+                devices = serial.tools.list_ports.comports()
+                if len(devices) > 1:
+                    self.logger.warning("Multiple devices attached: %d", len(devices))
+                if devices[0].vid == 0x10C4 and devices[0].pid == 0xEA60: # 60p UV meter
+                    self.sleepTime = 3
+                elif devices[0].vid == 0x1A86 and devices[0].pid == 0x7523: # 15p UV meter
+                    self.sleepTime = 0.5
+                else:
+                    self.logger.warning("Unknown device connected. VID: %x, PID: %x", devices[0].vid, devices[0].pid)
             else:
-                self.logger.warning("Unknown device connected. VID: %x, PID: %x", devices[0].vid, devices[0].pid)
+                self.logger.warning("SKipping UV meter device detection due to testing")
 
             self.logger.info("UV meter connected successfully")
             return True
@@ -174,7 +178,7 @@ class UvLedMeterMulti:
                 return False
             #endif
 
-            data = list([int(x) for x in line[1:].split(',')])
+            data = list([float(x) for x in line[1:].split(',')])
         except Exception:
             self.logger.exception("Invalid response:")
             return False

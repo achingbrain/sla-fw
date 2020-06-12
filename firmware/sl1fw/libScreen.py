@@ -26,6 +26,7 @@ from sl1fw.libConfig import HwConfig
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.project.project import Project, ProjectState
 from sl1fw.project.functions import get_white_pixels
+from sl1fw.tests import test_runtime
 
 
 class ScreenServer(multiprocessing.Process):
@@ -38,7 +39,7 @@ class ScreenServer(multiprocessing.Process):
         self.stoprequest = multiprocessing.Event()
         self.width = defines.screenWidth
         self.height = defines.screenHeight
-        if not defines.testing:
+        if not test_runtime.testing:
             subprocess.call(['/usr/sbin/fbset', '-fb', defines.fbFile, '%dx%d-0' % (self.width, self.height)])
         #endif
         self.blackImage = Image.new("L", (self.width, self.height))
@@ -468,7 +469,6 @@ class ScreenServer(multiprocessing.Process):
 
 
 class Screen:
-
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.commands = multiprocessing.Queue()
@@ -511,6 +511,7 @@ class Screen:
 
     def getImgBlack(self):
         self.commands.put({ 'fce' : "getImgBlack" })
+        test_runtime.screen_bw = False
     #enddef
 
 
@@ -559,6 +560,8 @@ class Screen:
 
     def inverse(self):
         self.commands.put({ 'fce' : "inverse" })
+        if test_runtime.screen_bw is not None:
+            test_runtime.screen_bw = not test_runtime.screen_bw
     #enddef
 
 
