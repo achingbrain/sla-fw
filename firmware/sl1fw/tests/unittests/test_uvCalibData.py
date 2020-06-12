@@ -50,7 +50,7 @@ class TestUvMeterMulti60(Sl1fwTestCase):
 
     def test_generatePNG(self):
         data = toml.load(self.DATA)
-        self.uvmeter.savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], self.OUT, data)
+        self.uvmeter.save_pic(800, 400, "PWM: %d" % data['uvFoundPwm'], self.OUT, data)
         self.assertSameImage(Image.open(self.OUT), Image.open(self.PNG), 32, "Generated PNG")
 
 

@@ -63,7 +63,7 @@ class PageUvDataShow(Page):
         self.logger.info("Generating picture from: %s", str(data))
         imagePath = os.path.join(defines.ramdiskPath, "uvcalib.png")
         if data['uvSensorType'] == 0:
-            UvLedMeterMulti().savePic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)
+            UvLedMeterMulti().save_pic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)
             self.setItems(image_path = "file://%s" % imagePath)
         else:
             self.display.pages['error'].setParams(
@@ -304,7 +304,7 @@ class PageUvCalibration(PageUvCalibrationBase):
     def checkPlacement(self):
         self.ensureCoverIsClosed()
         self.showItems(line1 = _("Checking UV meter placement on the screen"), line2 = _("Please wait..."))
-        retc = self.uvmeter.checkPlace(self.display.screen.inverse)
+        retc = self.uvmeter.check_place(self.display.screen.inverse)
         if retc:
             errors = {
                     UvMeterState.ERROR_COMMUNICATION : _("Communication with the UV LED meter has failed.\n\n"
@@ -453,7 +453,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
         for iteration in range(0, self.TUNNING_ITERATIONS):
             self.display.hw.uvLedPwm = self.pwm
             # Read new intensity value
-            data = self.uvmeter.readData()
+            data = self.uvmeter.read_data()
             if data is None:
                 return self.ERROR_READ_FAILED, None
             else:
@@ -523,7 +523,7 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
         while self.pwm <= maxpwm:
             self.display.hw.uvLedPwm = self.pwm
             # Read new intensity value
-            data = self.uvmeter.readData()
+            data = self.uvmeter.read_data()
             if data is None:
                 return self.ERROR_READ_FAILED, None
             else:

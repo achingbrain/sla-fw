@@ -37,7 +37,7 @@ elif not uvmeter.connect():
 elif not uvmeter.read():
     print("Read data from UV meter failed")
 else:
-    data = uvmeter.getData()
+    data = uvmeter.get_data()
     data.uvFoundPwm = 256
     print("Arithmetic mean: %.1f" % data.uvMean)
     print("Standard deviation: %.1f" % data.uvStdDev)
@@ -46,5 +46,5 @@ else:
     print("MinValue: %d" % data.uvMinValue)
     print("MaxValue: %d" % data.uvMaxValue)
     print("Differences: %s" % data.uvPercDiff)
-    uvmeter.savePic(800, 400, "PWM: %d" % data.uvFoundPwm, "test.png", asdict(data))
+    uvmeter.save_pic(800, 400, "PWM: %d" % data.uvFoundPwm, "test.png", asdict(data))
 #endif
