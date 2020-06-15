@@ -36,6 +36,7 @@ from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
 from sl1fw.libScreen import Screen
 from sl1fw.libExposure import Exposure
+from sl1fw.logger_config import set_log_level
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
 from sl1fw.state_actions.manager import ActionManager
@@ -74,6 +75,8 @@ class Printer:
         self.runtime_config.factory_mode = (
             TomlConfig(defines.factoryConfigFile).load().get("factoryMode", False)
         )
+        if self.runtime_config.factory_mode:
+            set_log_level(logging.DEBUG)
         self.runtime_config.show_admin = self.runtime_config.factory_mode
         try:
             self.hwConfig.read_file()

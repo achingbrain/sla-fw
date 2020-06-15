@@ -60,6 +60,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
         defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
         defines.fan_check_override = True
+        defines.loggingConfig = self.TEMP_DIR / "logger_config.json"
 
         self.temp_dir_project = td()
         change_dir = lambda x : self.temp_dir_project.name + "/" + os.path.basename(x)

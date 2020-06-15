@@ -16,6 +16,7 @@ from sl1fw import defines
 from sl1fw.libConfig import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
+from sl1fw.logger_config import set_log_level
 from sl1fw.slicer.profile_downloader import ProfileDownloader
 from sl1fw.slicer.profile_parser import ProfileParser
 from sl1fw.slicer.slicer_profile import SlicerProfile
@@ -74,6 +75,7 @@ class AdminCheck(BackgroundNetworkCheck):
                 return None
             elif result:
                 self.config.show_admin = True
+                set_log_level(logging.DEBUG)
                 self.logger.info("Admin enabled")
             else:
                 self.logger.info("Admin not enabled")

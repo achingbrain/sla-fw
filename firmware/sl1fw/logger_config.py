@@ -16,7 +16,7 @@ DEFAULT_CONFIG = {
     "handlers": {
         "journald": {"class": "systemd.journal.JournalHandler", "formatter": "sl1fw", "SYSLOG_IDENTIFIER": "SL1FW"}
     },
-    "root": {"level": "DEBUG", "handlers": ["journald"]},
+    "root": {"level": "INFO", "handlers": ["journald"]},
 }
 
 
@@ -55,7 +55,8 @@ def get_log_level() -> int:
 
 def _set_config(config: Dict, level: int):
     config["root"]["level"] = logging.getLevelName(level)
-    dictConfig(config)
+    # Setting level to root logger changes all loggers (in the same process)
+    logging.getLogger().setLevel(level)
     with defines.loggingConfig.open("w") as f:
         json.dump(config, f)
 
