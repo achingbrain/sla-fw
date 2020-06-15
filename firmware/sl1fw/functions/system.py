@@ -12,7 +12,7 @@ import subprocess
 import distro
 import paho.mqtt.publish as mqtt
 
-from sl1fw import defines, libConfig
+from sl1fw import defines, libConfig, test_runtime
 from sl1fw.errors.errors import (
     MissingWizardData,
     MissingCalibrationData,
@@ -21,7 +21,6 @@ from sl1fw.errors.errors import (
     FailedUpdateChannelSet, FailedUpdateChannelGet)
 from sl1fw.libConfig import TomlConfig, HwConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.tests import test_runtime
 
 
 def shut_down(hw: Hardware, reboot=False):

@@ -20,12 +20,11 @@ from time import time
 import numpy
 from PIL import Image
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.libConfig import HwConfig
 from sl1fw.project.config import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.states.project import ProjectState
-from sl1fw.tests import test_runtime
 
 
 class Project:

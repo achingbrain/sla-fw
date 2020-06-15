@@ -14,8 +14,7 @@ from typing import Optional
 
 from serial.serialutil import SerialTimeoutException
 
-from sl1fw import defines
-from sl1fw.tests import test_runtime
+from sl1fw import defines, test_runtime
 
 
 class Serial:

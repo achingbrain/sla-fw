@@ -9,10 +9,9 @@ import unittest
 import numpy
 from PIL import Image
 
-from sl1fw.tests import test_runtime
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libScreen import Screen
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 
 
 class TestScreen(Sl1fwTestCase):

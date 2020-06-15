@@ -21,9 +21,8 @@ from queue import Queue
 import toml
 from readerwriterlock import rwlock
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.errors.exceptions import ConfigException
-from sl1fw.tests import test_runtime
 
 
 class BaseConfig(ABC):

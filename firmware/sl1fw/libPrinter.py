@@ -22,7 +22,7 @@ from PySignal import Signal
 from gi.repository import GLib
 from pydbus import SystemBus
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.api.config0 import Config0
 from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.errors.exceptions import ConfigException
@@ -42,7 +42,6 @@ from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.unboxing import UnboxingState
-from sl1fw.tests import test_runtime
 
 
 class Printer:

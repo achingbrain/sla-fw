@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Optional
 
 import distro
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.libConfig import TomlConfig
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.states.display import DisplayState
@@ -29,7 +29,6 @@ from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
 from sl1fw.pages.displaytest import PageDisplayTest
-from sl1fw.tests import test_runtime
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display

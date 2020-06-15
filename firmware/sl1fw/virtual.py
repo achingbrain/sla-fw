@@ -26,10 +26,10 @@ from gi.repository import GLib
 from mock import Mock, patch
 
 import sl1fw.tests.mocks.mc_port
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw import libPrinter
 from sl1fw.api.printer0 import Printer0
-from sl1fw.tests import samples, test_runtime
+from sl1fw.tests import samples
 from sl1fw.tests.mocks.dbus.rauc import Rauc
 
 # use system locale settings for translation

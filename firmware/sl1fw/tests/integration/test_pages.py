@@ -182,7 +182,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.switchPage("advancedsettings")
         self.switchPage("uvdispsettings")
 
-        with patch("sl1fw.tests.test_runtime.test_uvmeter_present", False):
+        with patch("sl1fw.test_runtime.test_uvmeter_present", False):
             self.printer.hwConfig.coverCheck = False
             self.press("uvcalibration")
             self.waitPage("confirm")  # Welcome to UV calibration ...
@@ -198,7 +198,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("uvdispsettings")
 
     def test_uv_calibration_pass(self):
-        with patch("sl1fw.tests.test_runtime.test_fan_error_override", True):
+        with patch("sl1fw.test_runtime.test_fan_error_override", True):
             self.printer.hwConfig.coverCheck = False
             self.switchPage("settings")
             self.switchPage("advancedsettings")

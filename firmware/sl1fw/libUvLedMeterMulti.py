@@ -24,8 +24,7 @@ import serial
 import serial.tools.list_ports
 from PIL import Image, ImageDraw, ImageFont
 
-from sl1fw import defines
-from sl1fw.tests import test_runtime
+from sl1fw import defines, test_runtime
 
 
 @dataclass(init=False)

@@ -17,8 +17,8 @@ from gi.repository import GLib
 from mock import Mock
 
 import sl1fw.tests.mocks.mc_port
-from sl1fw import defines
-from sl1fw.tests import samples, test_runtime
+from sl1fw import defines, test_runtime
+from sl1fw.tests import samples
 from sl1fw.tests.mocks.dbus.hostname import Hostname
 from sl1fw.tests.mocks.dbus.locale import Locale
 from sl1fw.tests.mocks.dbus.networkmanager import NetworkManager

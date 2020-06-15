@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Optional
 import distro
 from deprecation import deprecated
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.states.exposure import ExposureState
 from sl1fw.states.examples import ExamplesState
 from sl1fw.state_actions.examples import Examples
@@ -30,7 +30,6 @@ from sl1fw.functions import files
 from sl1fw.functions.system import shut_down
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libConfig import TomlConfig
-from sl1fw.tests import test_runtime
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display

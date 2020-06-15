@@ -8,7 +8,7 @@ import stat
 from pathlib import Path
 
 import sl1fw
-from sl1fw.tests import test_runtime
+from sl1fw import test_runtime
 
 reqMcVersion = "0.11.5"
 
