@@ -47,6 +47,11 @@ SL1FW_DIR = Path(sl1fw.__file__).parent
 HARDWARE_FILE = TEMP_DIR / "sl1fw.hardware.cfg"
 copyfile(SAMPLES_DIR / "hardware-virtual.cfg", HARDWARE_FILE)
 
+
+def change_dir(path):
+    return os.path.join(defines.previousPrints, os.path.basename(path))
+
+
 defines.hwConfigFile = HARDWARE_FILE
 defines.factoryConfigFile = str(SL1FW_DIR / ".." / "factory" / "factory.toml")
 defines.hwConfigFactoryDefaultsFile = str(SAMPLES_DIR / "hardware.toml")
@@ -66,14 +71,13 @@ defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
 defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
 defines.fan_check_override = True
 defines.mediaRootPath = str(SAMPLES_DIR)
-defines.temp_previousPrints = tempfile.TemporaryDirectory()
-defines.previousPrints = defines.temp_previousPrints.name
-change_dir = lambda x : os.path.join(defines.previousPrints, os.path.basename(x))
+defines.previousPrints = str(TEMP_DIR)
 defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
 defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
 defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
 defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
 defines.uvCalibDataPath = str(Path(defines.ramdiskPath) / defines.uvCalibDataFilename)
+defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
 
 with patch("sl1fw.motion_controller.controller.serial", sl1fw.tests.mocks.mc_port), patch(
     "sl1fw.libUvLedMeterMulti.serial", sl1fw.tests.mocks.mc_port
