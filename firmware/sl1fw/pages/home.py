@@ -42,7 +42,7 @@ class PageHome(Page):
         return "settings"
 
     def printButtonRelease(self):
-        # FIXME temporaily disabled until it works perfectly on all printers
+        # FIXME temporary disabled until it works perfectly on all printers
         #       if self.display.hwConfig.showWizard:
         #           return PageWizardInit.Name
 

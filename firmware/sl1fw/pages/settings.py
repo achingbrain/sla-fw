@@ -6,7 +6,7 @@
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.advancedsettings import PageAdvancedSettings
-from sl1fw.pages.calibration import PageCalibrationStart
+from sl1fw.pages.calibration import PageCalibration1
 
 
 @page
@@ -26,7 +26,7 @@ class PageSettings(Page):
 
     @staticmethod
     def recalibrationButtonRelease():
-        return PageCalibrationStart.Name
+        return PageCalibration1.Name
     #enddef
 
 
