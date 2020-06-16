@@ -1055,7 +1055,7 @@ class Hardware:
     # 70 % - 100 % : 0.9 mm = 12.5 ml
 
     @safe_call(0, MotionControllerException)
-    def getResinVolume(self):
+    def get_precise_resin_volume_ml(self):
         self.setTowerProfile('homingFast')
         self.towerMoveAbsoluteWait(self._towerResinStartPos)  # move quickly to safe distance
         self.resinSensor(True)
@@ -1076,9 +1076,12 @@ class Hardware:
             else:
                 volume = posMM * 0.9 * 12.5
             #endif
-            return int(round(volume / 10.0) * 10)
+            return volume
         #endif
     #enddef
+
+    def getResinVolume(self):
+        return int(round(self.get_precise_resin_volume_ml() / 10.0) * 10)
 
     @staticmethod
     def calcPercVolume(volume_ml):

@@ -61,7 +61,7 @@ class PageTests(Page):
         self.display.hw.tiltUpWait()
 
         pageWait.showItems(line1 = "Measuring", line2 = "Do NOT TOUCH the printer")
-        volume = self.display.hw.getResinVolume()
+        volume = self.display.hw.get_precise_resin_volume_ml()
         self.display.hw.powerLed("normal")
         if not volume:
             self.display.pages['error'].setParams(
