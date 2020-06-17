@@ -560,9 +560,9 @@ class Page:
     #enddef
 
 
-    def exitPrint(self):
+    def exitPrint(self, retValue = "_BACK_"):
         self.display.expo.cancel()
-        return "_SELF_"
+        return retValue
     #enddef
 
 

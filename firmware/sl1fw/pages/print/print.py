@@ -111,12 +111,11 @@ class PagePrint(PagePrintBase):
     def turnoffButtonRelease(self, hw_button=False):
         if hw_button:
             self.display.pages["yesno"].setParams(
-                yesFce=self.exitPrint, text=_(
-                    "Do you really want to cancel the current job?")
-            )
+                yesFce=self.exitPrint,
+                text=_("Do you really want to cancel the current job?"))
             return "yesno"
 
-        return self.exitPrint()
+        return self.exitPrint("_SELF_")
 
     def adminButtonRelease(self):
         if self.display.runtime_config.show_admin:
