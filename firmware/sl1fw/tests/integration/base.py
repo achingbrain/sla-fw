@@ -10,9 +10,10 @@ from pathlib import Path
 from queue import Empty
 from shutil import copyfile
 from threading import Thread
+
 # import cProfile
 from typing import Optional
-from  tempfile import TemporaryDirectory as td
+from tempfile import TemporaryDirectory
 
 from pydbus import SystemBus
 
@@ -43,6 +44,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     def setUp(self):
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
         copyfile(self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.FACTORY_CONFIG_FILE)
+        self.temp_dir_project = TemporaryDirectory()
 
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
@@ -62,13 +64,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.fan_check_override = True
         defines.loggingConfig = self.TEMP_DIR / "logger_config.json"
 
-        self.temp_dir_project = td()
-        change_dir = lambda x : self.temp_dir_project.name + "/" + os.path.basename(x)
         defines.previousPrints = self.temp_dir_project.name
-        defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
-        defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
-        defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
-        defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
+        defines.lastProjectHwConfig = self._change_dir(defines.lastProjectHwConfig)
+        defines.lastProjectFactoryFile = self._change_dir(defines.lastProjectFactoryFile)
+        defines.lastProjectConfigFile = self._change_dir(defines.lastProjectConfigFile)
+        defines.lastProjectPickler = self._change_dir(defines.lastProjectPickler)
 
         # factory reset
         defines.apikeyFile = str(self.API_KEY_FILE)
@@ -80,18 +80,21 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         shutil.copy(self.SAMPLES_DIR / "wizard_data.toml", Path(self.WIZARD_DATA_FILE))
         shutil.copy(self.SAMPLES_DIR / "uvcalib_data-60.toml", Path(self.UV_CALIB_FACTORY_DATA_FILE))
 
-        os.environ['SDL_AUDIODRIVER'] = "disk"
-        os.environ['SDL_DISKAUDIOFILE'] = str(self.SDL_AUDIO_FILE)
+        os.environ["SDL_AUDIODRIVER"] = "disk"
+        os.environ["SDL_DISKAUDIOFILE"] = str(self.SDL_AUDIO_FILE)
 
         self.printer = Printer(debug_display=self.display)
 
         # overide writeToFactory function
-        self.printer.display.pages['factoryreset'].writeToFactory = self.call
+        self.printer.display.pages["factoryreset"].writeToFactory = self.call
 
         self.printer0_dbus = SystemBus().publish(Printer0.__INTERFACE__, Printer0(self.printer))
         self.thread = Thread(target=self.printer_thread)
 
         self.tryStartPrinter()
+
+    def _change_dir(self, path) -> str:
+        return self.temp_dir_project.name + "/" + os.path.basename(path)
 
     def tryStartPrinter(self):
         try:
@@ -150,7 +153,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         try:
             self.assertEqual(page, self.display.read_page(timeout_sec=timeout_sec))
         except Empty as exception:
-            raise Exception(f"Wait timeout for page \"{page}\" ({timeout_sec} seconds)") from exception
+            raise Exception(f'Wait timeout for page "{page}" ({timeout_sec} seconds)') from exception
         print("Wait done for: %s" % page)
 
     def readItems(self):
