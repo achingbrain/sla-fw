@@ -30,12 +30,11 @@ class PagePrint(PagePrintBase):
         self.last_expo_end = None
 
     def prepare(self):
+        self.lastLayer = 0
         if self.display.expo.in_progress:
             return
 
         self.display.expo.prepare()
-        self.lastLayer = 0
-
         self.display.pages["finished"].data = None
 
     def callback(self):
