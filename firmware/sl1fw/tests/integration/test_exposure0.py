@@ -6,10 +6,12 @@
 import unittest
 from pathlib import Path
 from time import sleep
+from unittest.mock import patch
 
 import pydbus
 from prusaerrors.sl1.codes import Sl1Codes
 
+from sl1fw.libExposure import ExposureThread
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 from sl1fw.api.exposure0 import Exposure0State
 from sl1fw.project.project import ProjectState
@@ -54,10 +56,15 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self.exposure0.cancel()
         self._wait_for_state(Exposure0State.CANCELED, 45)
 
+    @staticmethod
+    def _raise_test_warning(exposure_thread: ExposureThread):
+        # pylint: disable=protected-access
+        exposure_thread._raise_preprint_warning(AmbientTooHot(ambient_temperature=42.0))
+
     def test_print_warning(self):
-        self.printer.action_manager.exposure.warnings.append(AmbientTooHot(ambient_temperature=42.0))
-        self.exposure0.confirm_start()
-        self._wait_for_state(Exposure0State.CHECK_WARNING, 30)
+        with patch("sl1fw.libExposure.ExposureThread._check_cover_closed", self._raise_test_warning):
+            self.exposure0.confirm_start()
+            self._wait_for_state(Exposure0State.CHECK_WARNING, 30)
 
         self.assertEqual(1, len(self.exposure0.exposure_warnings))
         warning = self.exposure0.exposure_warnings[0]

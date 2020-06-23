@@ -30,6 +30,7 @@ from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from time import sleep, time
 from typing import Optional, Any
+from threading import Event
 
 import psutil
 from PySignal import Signal
@@ -94,6 +95,9 @@ class ExposureThread(threading.Thread):
         self.logger = logging.getLogger(__name__)
         self.commands = commands
         self.expo = expo
+        self.warning_dismissed = Event()
+        self.warning_result = Optional[Exception]
+        self._pending_warning = threading.Lock()
     #enddef
 
 
@@ -324,8 +328,6 @@ class ExposureThread(threading.Thread):
 
                 if command == "checks":
                     asyncio.run(self._run_checks())
-                elif command == "confirm_warnings":
-                    self.run_exposure()
                 else:
                     self.logger.error("Undefined command: \"%s\" ignored", command)
                 #endif
@@ -340,6 +342,22 @@ class ExposureThread(threading.Thread):
         #endtry
     #enddef
 
+    def _raise_preprint_warning(self, warning: Warning):
+        self.logger.warning("Warning being raised in pre-print: %s", warning)
+        with self._pending_warning:
+            self.expo.warnings.append(warning)
+            old_state = self.expo.state
+            self.expo.state = ExposureState.CHECK_WARNING
+            self.warning_dismissed.clear()
+            self.logger.debug("Waiting for warning resolution")
+            self.warning_dismissed.wait()
+            self.logger.debug("Warnings resolved")
+            self.expo.warnings.clear()  # TODO: Most probably only one warning in the list
+            self.expo.state = old_state
+            if self.warning_result:
+                raise self.warning_result
+            #endif
+    #enddef
 
     async def _run_checks(self):
         self.expo.state = ExposureState.CHECKS
@@ -359,14 +377,7 @@ class ExposureThread(threading.Thread):
             fans, temps, project, hw
         )
 
-        if not self.expo.warnings:
-            self.logger.info("No pre-print warnings -> running exposure")
-            self.run_exposure()
-        else:
-            self.logger.info("Pre-print warnings %s", self.expo.warnings)
-            self.logger.info("Pre-print warnings -> requiring confirmation to run exposure")
-            self.expo.state = ExposureState.CHECK_WARNING
-        #endif
+        self.run_exposure()
     #enddef
 
 
@@ -917,6 +928,7 @@ class Exposure:
         self.warnings = TraceableList()
         self.warnings.changed.connect(lambda: self.change.emit("warnings", self.warnings))
         self.exception: Optional[ExposureError] = None
+        self.warning: Optional[Warning] = None
         self.canceled = False
         self.expoCommands = queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self)
@@ -946,15 +958,14 @@ class Exposure:
 
     def confirm_print_warnings(self):
         self.logger.info("User confirmed print check warnings")
-        self.doConfirmWarnings()
+        self.expoThread.warning_dismissed.set()
     #enddef
 
 
     def reject_print_warnings(self):
         self.logger.info("User rejected print due to warnings")
-        self.state = ExposureState.FAILURE
-        self.exception = WarningEscalation()
-        self.doExitPrint()
+        self.expoThread.warning_result = WarningEscalation()
+        self.expoThread.warning_dismissed.set()
     #enddef
 
 
@@ -1102,10 +1113,6 @@ class Exposure:
         self.expoCommands.put("back")
     #enddef
 
-
-    def doConfirmWarnings(self):
-        self.expoCommands.put("confirm_warnings")
-    #enddef
 
     def setResinVolume(self, volume):
         if volume is None:
