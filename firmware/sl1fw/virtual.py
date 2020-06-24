@@ -11,10 +11,13 @@ integration test mocks. All in all this launches the printer (similar to the one
 a desktop computer without motion controller connected. This mode is intended for GUI testing.
 """
 
+import asyncio
 import builtins
+import concurrent
 import gettext
 import logging
 import os
+import signal
 import tempfile
 import warnings
 from pathlib import Path
@@ -78,27 +81,65 @@ defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
 defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
 defines.uvCalibDataPath = str(Path(defines.ramdiskPath) / defines.uvCalibDataFilename)
 defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
+defines.loggingConfig = TEMP_DIR / "logging_config.json"
 
-with patch("sl1fw.motion_controller.controller.serial", sl1fw.tests.mocks.mc_port), patch(
-    "sl1fw.libUvLedMeterMulti.serial", sl1fw.tests.mocks.mc_port
-), patch("sl1fw.motion_controller.controller.UInput", Mock()), patch(
-    "sl1fw.motion_controller.controller.gpio", Mock()
-), patch(
-    "serial.tools.list_ports", Mock()
-):
-    bus = pydbus.SystemBus()
-    rauc_mocks = bus.publish(Rauc.__OBJECT__, ("/", Rauc()))
 
-    Thread(target=GLib.MainLoop().run, daemon=True).start()
+class Virtual:
+    def __init__(self):
+        self.printer = None
+        self.rauc_mocks = None
+        self.glib_loop = None
+        self.printer0 = None
 
-    printer = libPrinter.Printer()
+    def run(self):
+        signal.signal(signal.SIGINT, self.tear_down)
+        signal.signal(signal.SIGTERM, self.tear_down)
 
-    printer.hwConfig.calibrated = True
-    printer.hwConfig.fanCheck = False
-    printer.hwConfig.coverCheck = False
-    printer.hwConfig.resinSensor = False
+        with patch("sl1fw.motion_controller.controller.serial", sl1fw.tests.mocks.mc_port), patch(
+            "sl1fw.libUvLedMeterMulti.serial", sl1fw.tests.mocks.mc_port
+        ), patch("sl1fw.motion_controller.controller.UInput", Mock()), patch(
+            "sl1fw.motion_controller.controller.gpio", Mock()
+        ), patch(
+            "serial.tools.list_ports", Mock()
+        ):
+            bus = pydbus.SystemBus()
+            self.rauc_mocks = bus.publish(Rauc.__OBJECT__, ("/", Rauc()))
 
-    bus.publish(Printer0.__INTERFACE__, Printer0(printer))
-    printer.run()
+            self.glib_loop = GLib.MainLoop()
+            Thread(target=self.glib_loop.run, daemon=True).start()
 
-    rauc_mocks.unpublish()
+            self.printer = libPrinter.Printer()
+
+            self.printer.hwConfig.calibrated = True
+            self.printer.hwConfig.fanCheck = False
+            self.printer.hwConfig.coverCheck = False
+            self.printer.hwConfig.resinSensor = False
+
+            self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
+            self.printer.run()
+
+            self.rauc_mocks.unpublish()
+
+    def tear_down(self, signum, _):
+        if signum != signal.SIGTERM:
+            return
+
+        print("Running virtual printer tear down")
+        asyncio.run(self.async_tear_down())
+        print("Virtual printer teardown finished")
+
+    async def async_tear_down(self):
+        loop = asyncio.get_running_loop()
+        # Run all teardown parts in parallel. Some may block or fail
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            tasks = [
+                loop.run_in_executor(pool, self.printer.exit),
+                loop.run_in_executor(pool, self.rauc_mocks.unpublish),
+                loop.run_in_executor(pool, self.glib_loop.quit),
+                loop.run_in_executor(pool, self.printer0.unpublish),
+            ]
+        await asyncio.gather(*tasks)
+
+
+if __name__ == "__main__":
+    Virtual().run()
