@@ -391,16 +391,20 @@ class PageCalibration8(PageCalibrationBase):
         pageWait = PageWait(self.display,
             line1 = _("Platform calibration"))
         pageWait.show()
+        self.logger.info("Starting platform calibration")
         self.display.hw.setTiltProfile('homingFast')
         self.display.hw.setTiltCurrent(defines.tiltCalibCurrent)
         self.display.hw.setTowerPosition(0)
         self.display.hw.setTowerProfile('homingFast')
+        self.logger.info("Moving platform to above position")
         self.display.hw.towerMoveAbsolute(self.display.hw.tower_above_surface)
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
         self.logger.info("tower position above: %d", self.display.hw.getTowerPositionMicroSteps())
         if self.display.hw.getTowerPositionMicroSteps() != self.display.hw.tower_above_surface:
+            self.logger.error("Platform calibration [above] failed %s != %s",
+                              self.display.hw.getTowerPositionMicroSteps(), self.display.hw.tower_above_surface)
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
             self.display.pages['confirm'].setParams(
@@ -410,6 +414,7 @@ class PageCalibration8(PageCalibrationBase):
                     "Press 'Continue' and read the instructions carefully."))
             return "confirm"
         #endif
+        self.logger.info("Moving platform to min position")
         self.display.hw.setTowerProfile('homingSlow')
         self.display.hw.towerToMin()
         while self.display.hw.isTowerMoving():
@@ -417,6 +422,8 @@ class PageCalibration8(PageCalibrationBase):
         #endwhile
         self.logger.info("tower position min: %d", self.display.hw.getTowerPositionMicroSteps())
         if self.display.hw.getTowerPositionMicroSteps() <= self.display.hw.tower_min:
+            self.logger.error("Platform calibration [min] failed %s != %s",
+                              self.display.hw.getTowerPositionMicroSteps(), self.display.hw.tower_above_surface)
             self.display.hw.beepAlarm(3)
             self.display.hw.towerSyncWait()
             self.display.pages['confirm'].setParams(
@@ -426,14 +433,17 @@ class PageCalibration8(PageCalibrationBase):
                     "Press 'Continue' and read the instructions carefully."))
             return "confirm"
         #endif
+        self.logger.debug("Moving tower to calib position x3")
         self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw.tower_calib_pos * 3)
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
+        self.logger.debug("Moving tower to min")
         self.display.hw.towerToMin()
         while self.display.hw.isTowerMoving():
             sleep(0.25)
         #endwhile
+        self.logger.debug("Moving tower to calib position")
         self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw.tower_calib_pos)
         while self.display.hw.isTowerMoving():
             sleep(0.25)
@@ -505,24 +515,34 @@ class PageCalibration10(PageCalibrationBase):
     def contButtonRelease(self):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Measuring tilt times"))
+        self.logger.info("Measuring tilt times")
         pageWait.show()
+        self.logger.debug("Setting tower to initial position")
         self.display.hw.towerSync()
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
         #endwhile
+        self.logger.debug("Setting tilt to initial position")
         self.display.hw.tiltSyncWait(2) # FIXME MC cant properly home tilt while tower is moving
+        self.logger.info("Measuring slow tilt times")
         tiltSlowTime = self.getTiltTime(pageWait, slowMove = True)
+        self.logger.info("Measuring fast tilt times")
         tiltFastTime = self.getTiltTime(pageWait, slowMove = False)
+        self.logger.debug("Resetting tower profile")
         self.display.hw.setTowerProfile('homingFast')
+        self.logger.debug("Resetting tilt profile")
         self.display.hw.setTiltProfile('homingFast')
+        self.logger.debug("Resetting tilt")
         self.display.hw.tiltUpWait()
+        self.logger.debug("Setting calibration data")
         writer = self.display.hwConfig.get_writer()
-        writer.towerHeight = self.display.hwConfig.towerHeight
-        writer.tiltHeight = self.display.hwConfig.tiltHeight
+        writer.towerHeight = self.display.hwConfig.towerHeight  # TODO: This seems to just copy default to value
+        writer.tiltHeight = self.display.hwConfig.tiltHeight  # TODO: This seems to just copy default to value
         writer.tiltFastTime = tiltFastTime
         writer.tiltSlowTime = tiltSlowTime
         writer.calibrated = True
         try:
+            self.logger.debug("Saving calibration data")
             writer.commit()
         except ConfigException:
             self.logger.exception("Cannot save configuration")
@@ -540,10 +560,12 @@ class PageCalibration10(PageCalibrationBase):
         total = self.display.hwConfig.measuringMoves
         for i in range(total):
             pageWait.showItems(line2 = (_("Slow move %(count)d/%(total)d") if slowMove else _("Fast move %(count)d/%(total)d")) % { 'count' : i+1, 'total' : total })
+            self.logger.debug("Measuring tilt time - start")
             tiltStartTime = time()
             self.display.hw.tiltLayerUpWait()
             self.display.hw.tiltLayerDownWait(slowMove)
             tiltTime += time() - tiltStartTime
+            self.logger.debug("Measuring tilt time - end")
         #endfor
         return round(tiltTime / total, 1)
     #enddef
@@ -563,8 +585,10 @@ class PageCalibrationEnd(Page):
 
 
     def prepare(self):
+        self.logger.debug("Setting calibrated to True")
         self.display.hwConfig.calibrated = True
         try:
+            self.logger.debug("Setting configuration")
             self.display.hwConfig.write()
         except ConfigException:
             self.logger.exception("Cannot save configuration")
