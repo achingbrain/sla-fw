@@ -9,6 +9,7 @@
 import os
 import logging
 import glob
+import subprocess
 
 from sl1fw import defines
 from sl1fw.pages import page
@@ -249,6 +250,7 @@ class PageSrcSelect(Page):
         #endif
 
         try:
+            subprocess.check_call(["usbremount", item["fullpath"]])
             os.remove(item['fullpath'])
         except OSError:
             self.logger.error("Failed to remove project file")

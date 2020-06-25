@@ -9,6 +9,7 @@
 
 import os
 from pathlib import Path
+import subprocess
 
 from sl1fw import defines
 from sl1fw.errors.exceptions import ConfigException
@@ -57,6 +58,7 @@ class PageSetup(Page):
         config_file = Path(savepath) / defines.hwConfigFileName
 
         try:
+            subprocess.check_call(["usbremount", config_file])
             self.display.hwConfig.write(file_path=config_file)
         except ConfigException:
             self.logger.exception("Cannot save configuration")

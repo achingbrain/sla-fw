@@ -20,7 +20,7 @@ else
 fi;
 
 echo "${LOG_PATH}"
-
+usbremount "${LOG_PATH}"
 (
         for i in $(journalctl --list-boots | awk '{print $1}'); do
                 echo "########## REBOOT: ${i} ##########";

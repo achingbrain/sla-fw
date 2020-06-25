@@ -12,6 +12,7 @@
 
 import os
 import json
+import subprocess
 from copy import deepcopy
 
 from sl1fw import defines
@@ -98,6 +99,7 @@ class ProfilesPage(Page):
         profile_file = os.path.join(savepath, self.profilesFilename)
 
         try:
+            subprocess.check_call(["usbremount", profile_file])
             with open(profile_file, "w") as f:
                 f.write(json.dumps(self.profiles, sort_keys=True, indent=4, separators=(',', ': ')))
             #endwith
