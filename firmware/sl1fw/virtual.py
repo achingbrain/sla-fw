@@ -91,7 +91,7 @@ class Virtual:
         self.glib_loop = None
         self.printer0 = None
 
-    def run(self):
+    def __call__(self):
         signal.signal(signal.SIGINT, self.tear_down)
         signal.signal(signal.SIGTERM, self.tear_down)
 
@@ -99,25 +99,31 @@ class Virtual:
             "sl1fw.libUvLedMeterMulti.serial", sl1fw.tests.mocks.mc_port
         ), patch("sl1fw.motion_controller.controller.UInput", Mock()), patch(
             "sl1fw.motion_controller.controller.gpio", Mock()
-        ), patch(
-            "serial.tools.list_ports", Mock()
         ):
+            print("Resolving system bus")
             bus = pydbus.SystemBus()
+            print("Publishing Rauc mock")
             self.rauc_mocks = bus.publish(Rauc.__OBJECT__, ("/", Rauc()))
 
+            print("Running glib mainloop")
             self.glib_loop = GLib.MainLoop()
             Thread(target=self.glib_loop.run, daemon=True).start()
 
+            print("Initializing printer")
             self.printer = libPrinter.Printer()
 
+            print("Overriding printer settings")
             self.printer.hwConfig.calibrated = True
             self.printer.hwConfig.fanCheck = False
             self.printer.hwConfig.coverCheck = False
             self.printer.hwConfig.resinSensor = False
 
+            print("Publishing printer on D-Bus")
             self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
+            print("Running printer")
             self.printer.run()
 
+            print("Unpublishing Rauc mock")
             self.rauc_mocks.unpublish()
 
     def tear_down(self, signum, _):
@@ -141,5 +147,9 @@ class Virtual:
         await asyncio.gather(*tasks)
 
 
+def run_virtual():
+    Virtual()()
+
+
 if __name__ == "__main__":
-    Virtual().run()
+    run_virtual()

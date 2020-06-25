@@ -82,6 +82,9 @@ class Sl1fwTestCase(DBusTestCase):
 
         cls.event_loop.quit()
         cls.event_thread.join()
+        # TODO: Would be nice to properly terminate fake dbus bus and start new one next time
+        #       Unfortunately this does not work out of the box.
+        # DBusTestCase.tearDownClass()
 
     def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg=None):
         if a.mode != b.mode:

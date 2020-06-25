@@ -121,7 +121,7 @@ class MCSerial:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.pwm_re = re.compile(b"!upwm ([0-9][0-9]*)\n")
-        self.uled_re = re.compile(b'!uled ([01]) ([0-9][0-9]*)\n')
+        self.uled_re = re.compile(b"!uled ([01]) ([0-9][0-9]*)\n")
         self.process: Optional[Popen] = None
 
     def open(self):
@@ -186,7 +186,6 @@ class MCSerial:
                     test_runtime.uv_on_until = None
             except (IndexError, UnicodeDecodeError, ValueError):
                 self.logger.exception("Failed to decode UV LED state from MC data")
-
 
     def read(self):
         """

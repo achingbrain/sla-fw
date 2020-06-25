@@ -67,6 +67,7 @@ integration:
     - export PATH="${PATH}:$(pwd)"
     - cd firmware
     - python3 -m unittest discover --failfast --verbose sl1fw.tests.integration
+    - python3 -m unittest discover --failfast --verbose sl1fw.tests.virtual
 
 pylint:
   stage: test

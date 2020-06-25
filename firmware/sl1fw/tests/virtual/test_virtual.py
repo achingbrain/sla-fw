@@ -2,32 +2,64 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import threading
 import unittest
 from multiprocessing import Process
 from threading import Thread
 from time import sleep
-from unittest import TestCase
 
 import psutil
 import pydbus
+from dbusmock import DBusTestCase
 from gi.repository import GLib
 from psutil import NoSuchProcess
 
 from sl1fw.api.printer0 import Printer0State
-from sl1fw.virtual import Virtual
+from sl1fw.tests.mocks.dbus.hostname import Hostname
+from sl1fw.tests.mocks.dbus.locale import Locale
+from sl1fw.tests.mocks.dbus.networkmanager import NetworkManager
+from sl1fw.tests.mocks.dbus.timedate import TimeDate
+from sl1fw.virtual import run_virtual
 
 
-class TestVirtualPrinter(TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class TestVirtualPrinter(DBusTestCase):
+    dbus_mocks = []
+    event_loop = GLib.MainLoop()
+    event_thread: threading.Thread = None
+
+    def setUp(self) -> None:
         self.started_ok = False
+        self.dbus_mocks = []
+
+    @classmethod
+    def setUpClass(cls):
+        cls.start_system_bus()
+        cls.dbus_con = cls.get_dbus(system_bus=True)
+
+    def tearDown(self):
+        for dbus_mock in self.dbus_mocks:
+            dbus_mock.unpublish()
+
+    def run_virtual_without_system(self):
+        # Setup common system services
+        bus = pydbus.SystemBus()
+        nm = NetworkManager()
+        self.dbus_mocks = [
+            bus.publish(
+                NetworkManager.__INTERFACE__, nm, ("Settings", nm), ("test1", nm), ("test2", nm), ("test3", nm),
+            ),
+            bus.publish(Hostname.__INTERFACE__, Hostname()),
+            bus.publish(Locale.__INTERFACE__, Locale()),
+            bus.publish(TimeDate.__INTERFACE__, TimeDate()),
+        ]
+        run_virtual()
 
     def test_virtual(self):
-        virtual = Process(target=Virtual().run)
+        virtual = Process(target=self.run_virtual_without_system)
         virtual.start()
 
         # Wait for virtual printer to start
-        for i in range(5):
+        for i in range(30):
             print(f"Attempt {i} to verify virtual printer is running")
             sleep(1)
             # Run checks in threads as the calls might block
@@ -66,8 +98,8 @@ class TestVirtualPrinter(TestCase):
                 print("Printer is up and running")
                 self.started_ok = True
 
-        except GLib.Error:
-            print("Attempt to obtain virtual printer state ended up with exception")
+        except GLib.Error as e:
+            print("Attempt to obtain virtual printer state ended up with exception: %s", e)
 
 
 if __name__ == "__main__":
