@@ -8,6 +8,7 @@
 # pylint: disable=too-many-public-methods
 
 import os
+from pathlib import Path
 
 from sl1fw import defines
 from sl1fw.errors.exceptions import ConfigException
@@ -53,7 +54,7 @@ class PageSetup(Page):
             return "error"
         #endif
 
-        config_file = os.path.join(savepath, defines.hwConfigFileName)
+        config_file = Path(savepath) / defines.hwConfigFileName
 
         try:
             self.display.hwConfig.write(file_path=config_file)
@@ -75,7 +76,7 @@ class PageSetup(Page):
             return "error"
         #endif
 
-        config_file = os.path.join(savepath, defines.hwConfigFileName)
+        config_file = Path(savepath) / defines.hwConfigFileName
 
         if not os.path.isfile(config_file):
             self.display.pages['error'].setParams(
@@ -84,9 +85,7 @@ class PageSetup(Page):
         #endif
 
         try:
-            with open(config_file, "r") as f:
-                self.display.hwConfig.parseText(f.read())
-            #endwith
+            self.display.hwConfig.read_file(config_file)
         except Exception:
             self.logger.exception("import exception:")
             self.display.pages['error'].setParams(
