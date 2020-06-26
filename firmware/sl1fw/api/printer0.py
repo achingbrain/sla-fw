@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import select
 from enum import unique, Enum
 from pathlib import Path
 from typing import List, Dict, Tuple, TYPE_CHECKING, Any, Optional
@@ -32,6 +33,7 @@ from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.errors.exceptions import ReprintWithoutHistory, AdminNotAvailable
+from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
@@ -494,12 +496,9 @@ class Printer0:
 
         :return: Current api key string
         """
-        try:
-            with open(defines.static_octoprintAuthFile, "r") as f:
-                return f.read()
-            #endwith
-        except IOError:
-            return None
+        with open(defines.static_octoprintAuthFile, "r") as f:
+            return f.read()
+        #endwith
 
     @auto_dbus
     @property
@@ -868,3 +867,41 @@ class Printer0:
         :return: True if admin enabled, false otherwise
         """
         return self.printer.runtime_config.show_admin
+
+    @auto_dbus
+    def add_usb(self) -> None:
+        with open("/proc/mounts", "r") as file:
+            try:
+                select.select([], [], [file], 5.0)
+                path = get_save_path()
+                if path:
+                    projects = path.glob('**/*.sl1')
+                    newest_proj = sorted(projects, key=lambda proj : proj.stat().st_mtime).pop()
+                    last_exposure = self.printer.action_manager.exposure
+                    if last_exposure:
+                        last_exposure.try_cancel()
+                    self.print(newest_proj, False)
+            except NotUVCalibrated:
+                self.printer.display.forcePage("uvcalibrationstart")
+            except NotMechanicallyCalibrated:
+                self.printer.display.forcePage("calibrationstart")
+            except Exception:
+                return None
+        return None
+
+    @auto_dbus
+    def remove_usb(self) -> None:
+        try:
+            expo = self.printer.action_manager.exposure
+            if expo and str(expo.project.path.parents[1]) == defines.mediaRootPath:
+                expo.try_cancel()
+        except Exception:
+            return
+
+    @auto_dbus
+    @last_error
+    def try_open_project(self, project_path:str) -> DBusObjectPath:
+        last_exposure = self.printer.action_manager.exposure
+        if last_exposure:
+            last_exposure.try_cancel()
+        return self.print(project_path, False)

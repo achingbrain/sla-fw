@@ -33,6 +33,11 @@ class ExposureState(Enum):
     def finished_states():
         return [ExposureState.FAILURE, ExposureState.CANCELED, ExposureState.FINISHED, ExposureState.DONE]
 
+    @staticmethod
+    def cancelable_states():
+        cancelable_states = ExposureState.finished_states()
+        cancelable_states.append(ExposureState.CONFIRM)
+        return cancelable_states
 
 @unique
 class ExposureCheck(Enum):

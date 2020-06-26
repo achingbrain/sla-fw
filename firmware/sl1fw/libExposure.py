@@ -40,6 +40,7 @@ from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerM
     TempSensorFailure, FanFailure, ResinFailure, ResinTooLow, ResinTooHigh, WarningEscalation
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
     ModelMismatch, ResinNotEnough, ProjectSettingsModified
+from sl1fw.errors.exceptions import NotAvailableInState
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
 from sl1fw.libHardware import Hardware
@@ -971,6 +972,17 @@ class Exposure:
         #endif
     #enddef
 
+    def try_cancel(self):
+        self.logger.info("Trying cancel exposure")
+        cancelable_states = ExposureState.cancelable_states()
+        if self.state in cancelable_states:
+            self.canceled = True
+            self.state = ExposureState.DONE
+        else:
+            raise NotAvailableInState(self.state, cancelable_states)
+        return True
+        #endif
+    #enddef
 
     def __setattr__(self, key: str, value: Any):
         # TODO: This is too generic
@@ -1157,7 +1169,7 @@ class Exposure:
 
     def check_and_clean_last_data(self) -> None:
         clear_all = self.project.path and \
-            not self.project.path.startswith(defines.previousPrints)
+            not str(self.project.path).startswith(defines.previousPrints)
         Exposure.cleanup_last_data(self.logger, clear_all=clear_all)
     #enddef
 
