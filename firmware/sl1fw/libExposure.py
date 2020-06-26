@@ -96,7 +96,7 @@ class ExposureThread(threading.Thread):
         self.commands = commands
         self.expo = expo
         self.warning_dismissed = Event()
-        self.warning_result = Optional[Exception]
+        self.warning_result: Optional[Exception] = None
         self._pending_warning = threading.Lock()
     #enddef
 
@@ -345,14 +345,15 @@ class ExposureThread(threading.Thread):
     def _raise_preprint_warning(self, warning: Warning):
         self.logger.warning("Warning being raised in pre-print: %s", warning)
         with self._pending_warning:
-            self.expo.warnings.append(warning)
+            self.warning_result = None
+            self.expo.warning = warning
             old_state = self.expo.state
             self.expo.state = ExposureState.CHECK_WARNING
             self.warning_dismissed.clear()
             self.logger.debug("Waiting for warning resolution")
             self.warning_dismissed.wait()
             self.logger.debug("Warnings resolved")
-            self.expo.warnings.clear()  # TODO: Most probably only one warning in the list
+            self.expo.warning = None
             self.expo.state = old_state
             if self.warning_result:
                 raise self.warning_result
@@ -382,6 +383,10 @@ class ExposureThread(threading.Thread):
 
 
     def _check_hw_related(self):
+        if test_runtime.injected_preprint_warning:
+            self._raise_preprint_warning(test_runtime.injected_preprint_warning)
+        #endif
+
         if not self.expo.hwConfig.resinSensor:
             self.logger.info("Disabling resin check")
             self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.DISABLED
@@ -437,10 +442,10 @@ class ExposureThread(threading.Thread):
         #endif
 
         if temperatures[1] < defines.minAmbientTemp:
-            self.expo.warnings.append(AmbientTooCold(temperatures[1]))
+            self._raise_preprint_warning(AmbientTooCold(temperatures[1]))
             self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.WARNING
         elif temperatures[1] > defines.maxAmbientTemp:
-            self.expo.warnings.append(AmbientTooHot(temperatures[1]))
+            self._raise_preprint_warning(AmbientTooHot(temperatures[1]))
             self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.WARNING
         else:
             self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.SUCCESS
@@ -455,7 +460,7 @@ class ExposureThread(threading.Thread):
         # Raise warning when model or variant does not match the printer
         if self.expo.project.printerModel != defines.slicerPrinterModel or\
                 self.expo.project.printerVariant != defines.slicerPrinterVariant:
-            self.expo.warnings.append(
+            self._raise_preprint_warning(
                 ModelMismatch(defines.slicerPrinterModel, defines.slicerPrinterVariant,
                               self.expo.project.printerModel, self.expo.project.printerVariant)
             )
@@ -488,14 +493,14 @@ class ExposureThread(threading.Thread):
 
         # Warn if printing directly from USB
         if project_state == project_state.PRINT_DIRECTLY:
-            self.expo.warnings.append(PrintingDirectlyFromMedia())
+            self._raise_preprint_warning(PrintingDirectlyFromMedia())
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
         #endif
 
         # Warn if project settings was changed due to config constraints
         alternated = self.expo.project.config.get_altered_values()
         if alternated:
-            self.expo.warnings.append(ProjectSettingsModified(alternated))
+            self._raise_preprint_warning(ProjectSettingsModified(alternated))
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
         #endif
 
@@ -604,7 +609,8 @@ class ExposureThread(threading.Thread):
 
         if volume < self.expo.project.usedMaterial + defines.resinMinVolume:
             self.logger.info("Raising resin not enough warning")
-            self.expo.warnings.append(ResinNotEnough(volume, self.expo.project.usedMaterial + defines.resinMinVolume))
+            self._raise_preprint_warning(
+                ResinNotEnough(volume, self.expo.project.usedMaterial + defines.resinMinVolume))
             self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.WARNING
         #endif
 
@@ -925,8 +931,6 @@ class Exposure:
         Exposure.instance_counter += 1
         self.check_results = TraceableDict()
         self.check_results.changed.connect(lambda: self.change.emit("check_results", self.check_results))
-        self.warnings = TraceableList()
-        self.warnings.changed.connect(lambda: self.change.emit("warnings", self.warnings))
         self.exception: Optional[ExposureError] = None
         self.warning: Optional[Warning] = None
         self.canceled = False
@@ -956,15 +960,15 @@ class Exposure:
     #enddef
 
 
-    def confirm_print_warnings(self):
+    def confirm_print_warning(self):
         self.logger.info("User confirmed print check warnings")
         self.expoThread.warning_dismissed.set()
     #enddef
 
 
-    def reject_print_warnings(self):
+    def reject_print_warning(self):
         self.logger.info("User rejected print due to warnings")
-        self.expoThread.warning_result = WarningEscalation()
+        self.expoThread.warning_result = WarningEscalation(self.warning)
         self.expoThread.warning_dismissed.set()
     #enddef
 

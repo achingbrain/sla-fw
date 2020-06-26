@@ -4,16 +4,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+from time import sleep
 from typing import Optional
 
 from mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
-from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow
+from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
+from sl1fw.states.exposure import ExposureState
 
 
 class TestExposure(Sl1fwTestCase):
@@ -25,7 +27,7 @@ class TestExposure(Sl1fwTestCase):
 
     def setUp(self):
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
-        defines.statsData = str(Sl1fwTestCase.TEMP_DIR / "stats.toml")
+        defines.statsData = str(self.TEMP_DIR / "stats.toml")
 
         self.hw_config = HwConfig()
         self.runtime_config = RuntimeConfig()
@@ -49,19 +51,20 @@ class TestExposure(Sl1fwTestCase):
 
     def test_exposure_start_stop(self):
         exposure = self._run_exposure(self._get_hw_mock())
-        self.assertListEqual([PrintingDirectlyFromMedia], [type(warning) for warning in exposure.warnings])
+        self.assertIsNone(exposure.warning)
 
     def test_resin_enough(self):
         hw = self._get_hw_mock()
         hw.getResinVolume.return_value = defines.resinMaxVolume
         exposure = self._run_exposure(hw)
-        self.assertNotIn(ResinNotEnough, [type(warning) for warning in exposure.warnings])
+        self.assertIsNone(exposure.warning)
 
     def test_resin_warning(self):
         hw = self._get_hw_mock()
         hw.getResinVolume.return_value = defines.resinMinVolume + 0.1
         exposure = self._run_exposure(hw)
-        self.assertIn(ResinNotEnough, [type(warning) for warning in exposure.warnings])
+        self.assertIsInstance(exposure.exception, WarningEscalation)
+        self.assertIsInstance(exposure.exception.warning, ResinNotEnough)
 
     def test_resin_error(self):
         hw = self._get_hw_mock()
@@ -74,9 +77,22 @@ class TestExposure(Sl1fwTestCase):
         exposure = Exposure(self.hw_config, hw, self.screen, self.runtime_config, TestExposure.PROJECT)
         exposure.startProjectLoading()
         exposure.collectProjectData()
-
         exposure.confirm_print_start()
-        exposure.doExitPrint()
+
+        for i in range(30):
+            print(f"Waiting for exposure {i}")
+            if exposure.state == ExposureState.CHECK_WARNING:
+                print(exposure.warning)
+                if isinstance(exposure.warning, PrintingDirectlyFromMedia):
+                    exposure.confirm_print_warning()
+                else:
+                    exposure.reject_print_warning()
+            if exposure.state in ExposureState.finished_states():
+                break
+            sleep(1)
+
+        if exposure.state not in ExposureState.finished_states():
+            exposure.doExitPrint()
         exposure.waitDone()
         return exposure
 

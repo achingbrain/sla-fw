@@ -9,6 +9,7 @@ from gi.repository.GLib import Variant
 
 from sl1fw.api.decorators import wrap_dict_data, wrap_exception
 from sl1fw.errors import errors, exceptions, warnings
+from sl1fw.errors.warnings import AmbientTooHot
 from sl1fw.motion_controller.trace import Trace
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.project import ProjectState
@@ -42,6 +43,7 @@ class TestExceptions(unittest.TestCase):
         "changes: Dict[str, Tuple[Any, Any]]": {"exposure": (10, 20)},
         "measured_resin_ml: float": 12.3,
         "required_resin_ml: float": 23.4,
+        "warning: Warning": AmbientTooHot(ambient_temperature=42.0)
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}

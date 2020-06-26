@@ -91,7 +91,7 @@ class ResinTooHigh(ResinFailure):
 
 @with_code(Sl1Codes.EXPOSURE_WARNING_ESCALATION)
 class WarningEscalation(ExposureError):
-    pass
+    warning: Warning
 
 
 class PrinterDataSendError(PrinterError):

@@ -24,7 +24,8 @@ from sl1fw.api.decorators import (
     range_checked,
     wrap_exception,
     last_error,
-    wrap_dict_data)
+    wrap_dict_data,
+)
 from sl1fw.errors.warnings import ExposureWarning
 from sl1fw.libExposure import Exposure
 from sl1fw.project.project import ProjectState
@@ -156,29 +157,44 @@ class Exposure0:
 
     @auto_dbus
     @last_error
+    @deprecated("Use ")
     @state_checked(Exposure0State.CHECK_WARNING)
     def confirm_print_warnings(self) -> None:
+        self.confirm_print_warning()
+
+    @auto_dbus
+    @last_error
+    @state_checked(Exposure0State.CHECK_WARNING)
+    def confirm_print_warning(self) -> None:
         """
         Confirm print continue despite of warnings
 
         :return: None
         """
-        self.exposure.confirm_print_warnings()
+        self.exposure.confirm_print_warning()
+
+    @auto_dbus
+    @last_error
+    @deprecated("Use reject_print_warning")
+    @state_checked(Exposure0State.CHECK_WARNING)
+    def reject_print_warnings(self) -> None:
+        self.reject_print_warning()
 
     @auto_dbus
     @last_error
     @state_checked(Exposure0State.CHECK_WARNING)
-    def reject_print_warnings(self) -> None:
+    def reject_print_warning(self) -> None:
         """
         Escalate warning to error and cancel print
 
         :return: None
         """
-        self.exposure.reject_print_warnings()
+        self.exposure.reject_print_warning()
 
     @auto_dbus
     @property
     @last_error
+    @deprecated("Use warning, now only single warning is raised at the time")
     def exposure_warnings(self) -> List[Dict[str, Any]]:
         """
         Get current list of exposure warnings.
@@ -195,9 +211,15 @@ class Exposure0:
 
         :return: List of warning dictionaries
         """
-        return [wrap_dict_data(self._process_warning(warning)) for warning in self.exposure.warnings]
+        return [wrap_dict_data(self._process_warning(self.exposure.warning))]
 
-    def _process_warning(self, warning: ExposureWarning) -> Dict[str, Any]:  # pylint: disable=no-self-use
+    @auto_dbus
+    @property
+    @last_error
+    def exposure_warning(self) -> Dict[str, Any]:
+        return wrap_dict_data(self._process_warning(self.exposure.warning))
+
+    def _process_warning(self, warning: Optional[Warning]) -> Dict[str, Any]:  # pylint: disable=no-self-use
         if not warning:
             return {"code": Sl1Codes.NONE.code}
 
@@ -698,7 +720,7 @@ class Exposure0:
         "low_resin": {"resin_low"},
         "remaining_wait_sec": {"remaining_wait_sec"},
         "exposure_end": {"exposure_end"},
-        "warnings": {"exposure_warnings"},
+        "warning": {"exposure_warnings", "exposure_warning"},
         "check_results": {"checks_state"},
     }
 
