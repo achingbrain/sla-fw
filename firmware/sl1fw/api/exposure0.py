@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from deprecation import deprecated
 from pydbus.generic import signal
-from sl1codes.warnings import Warnings
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
 from sl1fw.api.decorators import (
@@ -199,15 +199,15 @@ class Exposure0:
 
     def _process_warning(self, warning: ExposureWarning) -> Dict[str, Any]:  # pylint: disable=no-self-use
         if not warning:
-            return {"code": Warnings.NONE.value}
+            return {"code": Sl1Codes.NONE.code}
 
         if isinstance(warning, ExposureWarning):
-            ret = {"code": warning.CODE.value}
+            ret = {"code": warning.CODE.code}
             if is_dataclass(warning):
                 ret.update(asdict(warning))
             return ret
 
-        return {"code": Warnings.UNKNOWN.value}
+        return {"code": Sl1Codes.UNKNOWN.code}
 
     @auto_dbus
     @property

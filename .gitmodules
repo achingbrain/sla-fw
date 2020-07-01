@@ -1,0 +1,3 @@
+[submodule "firmware/Prusa-Error-Codes"]
+	path = Prusa-Error-Codes
+	url = https://github.com/prusa3d/Prusa-Error-Codes.git

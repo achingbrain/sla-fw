@@ -10,7 +10,7 @@ from time import monotonic
 from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints  # pylint: disable=unused-import
 
 from pydbus import Variant
-from sl1codes.errors import Errors
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.errors.exceptions import NotAvailableInState, DBusMappingException, PrinterException
 
@@ -272,7 +272,7 @@ def wrap_exception(e: Exception) -> Dict[str, Any]:
     :return: Exception dictionary
     """
     if not e:
-        return {"code": Errors.NONE.code}
+        return {"code": Sl1Codes.NONE.code}
 
     if isinstance(e, PrinterException):
         ret = {"code": e.CODE.code, "name": type(e).__name__, "text": str(e)}
@@ -280,4 +280,4 @@ def wrap_exception(e: Exception) -> Dict[str, Any]:
             ret.update(asdict(e))
         return ret
 
-    return {"code": Errors.UNKNOWN.code, "name": type(e).__name__, "text": str(e)}
+    return {"code": Sl1Codes.UNKNOWN.code, "name": type(e).__name__, "text": str(e)}
