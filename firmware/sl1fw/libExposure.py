@@ -370,19 +370,19 @@ class ExposureThread(threading.Thread):
             fans = loop.run_in_executor(pool, self._check_fans)
             temps = loop.run_in_executor(pool, self._check_temps)
             project = loop.run_in_executor(pool, self._check_project_data)
-            hw = loop.run_in_executor(pool, self._check_hw_related)
-        #endwith
+            hw = asyncio.create_task(self._check_hw_related())
 
-        self.logger.debug("Waiting for pre-print checks to finish")
-        await asyncio.gather(
-            fans, temps, project, hw
-        )
+            self.logger.debug("Waiting for pre-print checks to finish")
+            await asyncio.gather(
+                fans, temps, project, hw
+            )
+        #endwith
 
         self.run_exposure()
     #enddef
 
 
-    def _check_hw_related(self):
+    async def _check_hw_related(self):
         if test_runtime.injected_preprint_warning:
             self._raise_preprint_warning(test_runtime.injected_preprint_warning)
         #endif
@@ -397,15 +397,16 @@ class ExposureThread(threading.Thread):
             self.expo.check_results[ExposureCheck.STIRRING] = ExposureCheckResult.DISABLED
         #endif
 
-        self._check_cover_closed()
-        self._check_hardware()
-
-        if self.expo.hwConfig.resinSensor:
-            self._check_resin()
-        #endif
-
-        self._check_start_positions()
-        self._check_resin_stirring()
+        loop = asyncio.get_running_loop()
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            await loop.run_in_executor(pool, self._check_cover_closed)
+            await loop.run_in_executor(pool, self._check_hardware)
+            if self.expo.hwConfig.resinSensor:
+                await loop.run_in_executor(pool, self._check_resin)
+            #endif
+            await loop.run_in_executor(pool, self._check_start_positions)
+            await loop.run_in_executor(pool, self._check_resin_stirring)
+        #endwith
     #enddef
 
 

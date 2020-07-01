@@ -6,26 +6,26 @@
 
 from __future__ import annotations
 
+import glob
+import hashlib
 import json
 import logging
 import os
 import re
-import glob
 import shutil
-import hashlib
 import subprocess
 import sys
-from tempfile import TemporaryDirectory
 import traceback
 from datetime import datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Optional
 
 import psutil
-import requests
 import toml
 from gi.repository import GLib
 from pydbus import SystemBus
+import requests
 
 from sl1fw import defines
 from sl1fw.errors.exceptions import ConfigException

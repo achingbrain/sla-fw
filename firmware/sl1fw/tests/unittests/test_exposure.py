@@ -4,12 +4,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+from pathlib import Path
 from time import sleep
 from typing import Optional
 
 from mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
+from sl1fw.libHardware import Hardware
+from sl1fw.libScreen import Screen
 from sl1fw import defines
 from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
@@ -25,13 +28,24 @@ class TestExposure(Sl1fwTestCase):
         super().__init__(*args, **kwargs)
         self.exposure: Optional[Exposure] = None
 
+    @staticmethod
+    def _change_dir(path: str):
+        return Path(defines.previousPrints) / Path(path).name
+
     def setUp(self):
         defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.statsData = str(self.TEMP_DIR / "stats.toml")
+        defines.previousPrints = str(self.TEMP_DIR)
+        defines.lastProjectHwConfig = self._change_dir(defines.lastProjectHwConfig)
+        defines.lastProjectFactoryFile = self._change_dir(defines.lastProjectFactoryFile)
+        defines.lastProjectConfigFile = self._change_dir(defines.lastProjectConfigFile)
+        defines.lastProjectPickler = self._change_dir(defines.lastProjectPickler)
 
         self.hw_config = HwConfig()
         self.runtime_config = RuntimeConfig()
         self.screen = Mock()
+        self.screen.__class__ = Screen
+        self.screen.__reduce__ = lambda self: (Mock, ())
         self.screen.blitImg.return_value = 100
         self.screen.projectStatus.return_value = True, False
 
@@ -80,7 +94,7 @@ class TestExposure(Sl1fwTestCase):
         exposure.confirm_print_start()
 
         for i in range(30):
-            print(f"Waiting for exposure {i}")
+            print(f"Waiting for exposure {i}, state: ", exposure.state)
             if exposure.state == ExposureState.CHECK_WARNING:
                 print(exposure.warning)
                 if isinstance(exposure.warning, PrintingDirectlyFromMedia):
@@ -88,9 +102,14 @@ class TestExposure(Sl1fwTestCase):
                 else:
                     exposure.reject_print_warning()
             if exposure.state in ExposureState.finished_states():
-                break
+                return self._exposure_check(exposure)
             sleep(1)
 
+        raise TimeoutError("Waiting for exposure failed")
+
+    @staticmethod
+    def _exposure_check(exposure: Exposure):
+        print("Running exposure check")
         if exposure.state not in ExposureState.finished_states():
             exposure.doExitPrint()
         exposure.waitDone()
@@ -99,6 +118,8 @@ class TestExposure(Sl1fwTestCase):
     @staticmethod
     def _get_hw_mock():
         hw = Mock()
+        hw.__class__ = Hardware
+        hw.__reduce__ = lambda self: (Mock, ())
         hw.getMinPwm.return_value = defines.uvLedMeasMinPwm500k
         hw.getUvLedState.return_value = (False, 0)
         hw.getUvStatistics.return_value = (6912,)
