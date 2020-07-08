@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import subprocess
 from shutil import copyfile
 from time import sleep
 
@@ -143,6 +144,18 @@ class PageFactoryReset(Page):
             os.remove(defines.apikeyFile)
         except FileNotFoundError:
             self.logger.exception("Failed to remove api.key")
+
+        # Reset remote config (will be regenerated on next boot)
+        try:
+            os.remove(defines.remoteConfig)
+        except FileNotFoundError:
+            self.logger.exception("Failed to remove remoteConfig.toml")
+
+        # Reset http_digest
+        try:
+            subprocess.check_call([defines.htDigestCommand, "enable"])
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            self.logger.exception("Failed to reset http digest config")
 
         # Reset wifi
         try:

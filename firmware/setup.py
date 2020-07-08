@@ -23,7 +23,6 @@ data_files = [
     ('/etc/sl1fw', ['sl1fw/loggerConfig.json']),
     ('/usr/lib/systemd/system', ['systemd/sl1fw.service']),
     ('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']),
-    ('/etc/nginx/sites-available',  glob('nginx/*')),
     ('/usr/share/factory/defaults', ['factory/factory.toml']),
     ('/usr/share/dbus-1/system.d', glob('dbus/*'))
 ]
