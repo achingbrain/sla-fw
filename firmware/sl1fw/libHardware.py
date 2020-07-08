@@ -624,7 +624,7 @@ class Hardware:
     @safe_call([0], (MotionControllerException, ValueError))
     def getUvStatistics(self):
         uvData = self.mcc.doGetIntList("?usta")  # time counter [s] #TODO add uv average current, uv average temperature
-        if len(uvData) != 1:
+        if len(uvData) != 2:
             raise ValueError(f"UV statistics data count not match! ({uvData})")
         #endif
         return uvData
@@ -639,6 +639,12 @@ class Hardware:
     def clearUvStatistics(self):    # call if UV led was replaced
         self.mcc.do("!usta", 1)
     #enddef
+
+
+    def clearDisplayStatistics(self): # call if print display was replaced
+        self.mcc.do("!usta", 2)
+    #enddef
+
 
     @safe_call([0, 0, 0, 0], (ValueError, MotionControllerException))
     def getVoltages(self):

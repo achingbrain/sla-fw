@@ -48,7 +48,8 @@ class PageUvDispSettings(Page):
     def uvcalibrationButtonRelease(self):
         self.display.pages['uvcalibrationconfirm'].setParams(
             writeDataToFactory = False,
-            resetLedCounter = False)
+            resetLedCounter = False,
+            resetDisplayCounter = False)
         return "uvcalibration"
     #enddef
 
@@ -63,7 +64,9 @@ class PageUvDispSettings(Page):
     #enddef
 
     def newDisplayContinue(self):
-        self.display.pages['uvcalibrationconfirm'].setParams(writeDataToFactory = True)
+        self.display.pages['uvcalibrationconfirm'].setParams(
+            writeDataToFactory = True,
+            resetDisplayCounter = True)
         return "uvcalibration"
 
     def newledsetButtonRelease(self):

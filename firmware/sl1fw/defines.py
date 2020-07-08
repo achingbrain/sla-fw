@@ -10,7 +10,7 @@ from pathlib import Path
 import sl1fw
 from sl1fw import test_runtime
 
-reqMcVersion = "0.11.6"
+reqMcVersion = "0.12.0"
 
 factoryMountPoint = Path("/usr/share/factory/defaults")
 persistentStorage = "/var/sl1fw"

@@ -43,6 +43,7 @@ class PageDisplay(Page):
                 'button10' : "UV off" if state else "UV on",
 
                 'button11' : "Erase UV LED counter",
+                'button12' : "Erase Display counter",
                 'button13' : "Show factory UV c.d.",
                 'button14' : "Show UV calib. data",
                 'button15' : "UV (re)calibration",
@@ -159,6 +160,41 @@ class PageDisplay(Page):
             pageTitle = "Erase UV LED counter",
             text = "UV counter has been erased.\n\n"
                 "UV counter: %(hours).0fh %(minutes).0fm\n"
+                "Serial number: %(sn)s\n"
+                "IP address: %(ip)s" % {
+                    "hours" : seconds / 3600,
+                    "minutes": (seconds % 3600) / 60,
+                    "sn" : self.display.hw.cpuSerialNo,
+                    "ip" : self.display.inet.ip})
+        return "confirm"
+    #enddef
+
+
+    def button12ButtonRelease(self):
+        seconds = self.display.hw.getUvStatistics()[1]
+        self.logger.debug("display seconds %s", self.display.hw.getUvStatistics())
+        self.display.pages['confirm'].setParams(
+            continueFce = self.continueClearDisplayCounter,
+            pageTitle = "Erase Display counter",
+            text = "Do you really want to clear the Display counter?\n\n"
+                "Display counter: %(hours).0fh %(minutes).0fm\n"
+                "Serial number: %(sn)s\n"
+                "IP address: %(ip)s" % {
+                    "hours" : seconds / 3600,
+                    "minutes": (seconds % 3600) / 60,
+                    "sn" : self.display.hw.cpuSerialNo,
+                    "ip" : self.display.inet.ip})
+        return "confirm"
+    #enddef
+
+
+    def continueClearDisplayCounter(self):
+        self.display.hw.clearDisplayStatistics()
+        seconds = self.display.hw.getUvStatistics()[1]
+        self.display.pages['confirm'].setParams(
+            pageTitle = "Erase Display counter",
+            text = "Display counter has been erased.\n\n"
+                "Display counter: %(hours).0fh %(minutes).0fm\n"
                 "Serial number: %(sn)s\n"
                 "IP address: %(ip)s" % {
                     "hours" : seconds / 3600,

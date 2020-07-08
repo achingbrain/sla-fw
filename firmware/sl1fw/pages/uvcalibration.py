@@ -569,6 +569,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         self.checkPowerbutton = False
         self.writeDataToFactory = False
         self.resetLedCounter = False
+        self.resetDisplayCounter = False
     #enddef
 
 
@@ -649,6 +650,11 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
             self.display.hw.clearUvStatistics()
         #endif
 
+        # reset Display counter in MC
+        if self.resetDisplayCounter:
+            self.display.hw.clearDisplayStatistics()
+        #endif
+
         return "_EXIT_"
     #enddef
 
@@ -668,6 +674,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
     def setParams(self, **kwargs):
         self.writeDataToFactory = kwargs.pop("writeDataToFactory", False)
         self.resetLedCounter = kwargs.pop("resetLedCounter", False)
+        self.resetDisplayCounter = kwargs.pop("resetDisplayCounter", False)
         self.items = kwargs
     #enddef
 

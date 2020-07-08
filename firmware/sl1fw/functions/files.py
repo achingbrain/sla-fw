@@ -132,6 +132,7 @@ def save_logs_to_file(hw: Hardware, log_file) -> None:
 def log_data_summary_hw(hw: Hardware):
     text = "\n----CURRENT STATE----:\n"
     text += "UV LED Time Counter [h]: %s\n" % str(hw.getUvStatistics()[0] / 3600)
+    text += "Print Display Time Counter [h]: %s\n" % str(hw.getUvStatistics()[1] / 3600)
     text += "Resin Sensor State: %s\n" % str(hw.getResinSensorState())
     text += "Cover State: Closed\n" if hw.isCoverClosed() else "Cover State: Opened\n"
     text += "Power Switch State: Pressed\n" if hw.getPowerswitchState() else "Power Switch State: Released\n"
