@@ -63,7 +63,7 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
             self.assertTrue(self.exposure0.exposure_warning)
             warning = self.exposure0.exposure_warning
             print(warning)
-            self.assertEqual(warning["code"], Warnings.EXPOSURE_AMBIENT_TOO_HOT.value)
+            self.assertEqual(warning["code"], Sl1Codes.EXPOSURE_AMBIENT_TOO_HOT_WARNING.code)
             self.assertAlmostEqual(warning["ambient_temperature"], 42.0)
             print(self.exposure0.state)
             self.exposure0.reject_print_warning()
@@ -71,7 +71,7 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
 
             exception = self.exposure0.exposure_exception
             self.assertIsNotNone(exception)
-            self.assertEqual(exception["code"], Errors.EXPOSURE_WARNING_ESCALATION.code)
+            self.assertEqual(exception["code"], Sl1Codes.EXPOSURE_WARNING_ESCALATION.code)
 
     def _wait_for_state(self, state: Exposure0State, timeout_s: int):
         for _ in range(timeout_s):
