@@ -90,6 +90,7 @@ class ResinTooHigh(ResinFailure):
 
 
 @with_code(Sl1Codes.EXPOSURE_WARNING_ESCALATION)
+@dataclass
 class WarningEscalation(ExposureError):
     warning: Warning
 
