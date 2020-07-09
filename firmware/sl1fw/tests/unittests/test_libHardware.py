@@ -163,9 +163,10 @@ class TestLibHardware(Sl1fwTestCase):
     def test_uv_statistics(self):
         # TODO: getUvStatistics simulator seems to return random garbage 4294967295
         # self.assertEqual([0], self.hw.getUvStatistics())
-        self.hw.saveUvStatistics()
+        # clear any garbage
         self.hw.clearUvStatistics()
-        self.assertEqual([0], self.hw.getUvStatistics())
+        self.hw.clearDisplayStatistics()
+        self.assertEqual([0, 0], self.hw.getUvStatistics())
 
     def test_voltages(self):
         voltages = self.hw.getVoltages()
