@@ -360,6 +360,7 @@ class ExposureThread(threading.Thread):
             if self.warning_result:
                 raise self.warning_result
             #endif
+        #endwith
     #enddef
 
     async def _run_checks(self):
@@ -420,17 +421,19 @@ class ExposureThread(threading.Thread):
             return
 
         self.logger.info("Waiting for user to close the cover")
-        while True:
-            if self.expo.hw.isCoverClosed():
-                self.expo.state = ExposureState.CHECKS
-                self.expo.check_results[ExposureCheck.COVER] = ExposureCheckResult.SUCCESS
-                self.logger.info("Cover closed")
-                return
-            #endif
+        with self._pending_warning:
+            while True:
+                if self.expo.hw.isCoverClosed():
+                    self.expo.state = ExposureState.CHECKS
+                    self.expo.check_results[ExposureCheck.COVER] = ExposureCheckResult.SUCCESS
+                    self.logger.info("Cover closed")
+                    return
+                #endif
 
-            self.expo.state = ExposureState.COVER_OPEN
-            sleep(0.1)
-        #endwhile
+                self.expo.state = ExposureState.COVER_OPEN
+                sleep(0.1)
+            #endwhile
+        #endwith
     #enddef
 
 
@@ -445,11 +448,11 @@ class ExposureThread(threading.Thread):
         #endif
 
         if temperatures[1] < defines.minAmbientTemp:
+            self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.WARNING
             self._raise_preprint_warning(AmbientTooCold(temperatures[1]))
-            self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.WARNING
         elif temperatures[1] > defines.maxAmbientTemp:
-            self._raise_preprint_warning(AmbientTooHot(temperatures[1]))
             self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.WARNING
+            self._raise_preprint_warning(AmbientTooHot(temperatures[1]))
         else:
             self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.SUCCESS
         #endif

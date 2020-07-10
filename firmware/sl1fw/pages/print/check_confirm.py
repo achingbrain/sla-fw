@@ -5,10 +5,6 @@
 
 from __future__ import annotations
 
-from queue import Queue
-from time import sleep
-from typing import TYPE_CHECKING
-
 from sl1fw.errors.warnings import (
     AmbientTooHot,
     AmbientTooCold,
@@ -20,17 +16,10 @@ from sl1fw.errors.warnings import (
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
 
-if TYPE_CHECKING:
-    from sl1fw.libDisplay import Display
-
 
 @page
 class PageCheckConfirm(PagePrintBase):
     Name = "checkconfirm"
-
-    def __init__(self, display: Display):
-        super().__init__(display)
-        self.warnings_to_show = Queue()
 
     def prepare(self):
         # pylint: disable = too-many-return-statements
@@ -119,10 +108,7 @@ class PageCheckConfirm(PagePrintBase):
 
     def confirm_print(self):
         self.display.expo.confirm_print_warning()
-        # TODO: This is not nice, we need to wait for async processing of the change in exposure thread.
-        # Otherwise the page will be changed to check-confirm again. This can be removed once the print pages are
-        # completely removed. The frontend will be able to do this exactly once.
-        sleep(1)
+        return "checks"
 
     def cancel_print(self):
         self.display.expo.reject_print_warning()
