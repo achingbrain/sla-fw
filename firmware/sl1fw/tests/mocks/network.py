@@ -6,16 +6,23 @@
 # pylint: disable=too-few-public-methods
 
 from PySignal import Signal
+from mock import Mock
 
 
 class Network:
     def __init__(self):
         self.ip = "1.2.3.4"
-        self.devices = {
-            'eth0': "1.2.3.4"
-        }
+        self.devices = {"eth0": "1.2.3.4"}
         self.hostname = "test_hostname"
         self.net_change = Signal()
 
     def start_net_monitor(self):
         pass
+
+
+def fake_network_system_bus():
+    mock = Mock()
+    get_mock = Mock()
+    get_mock.AddressData = [{"address": "1.2.3.4"}]
+    mock.get.return_value = get_mock
+    return mock

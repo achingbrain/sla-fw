@@ -31,7 +31,7 @@ class Network:
     NM_STATE_CONNECTED_GLOBAL = 70
     REPORT_INTERVAL_S = 0.25
 
-    def __init__(self, cpu_serial_no):
+    def __init__(self, cpu_serial_no: str):
         self.logger = logging.getLogger(__name__)
         self.version_id = distro.version()
         self.cpu_serial_no = cpu_serial_no
