@@ -21,6 +21,7 @@ import pydbus
 from PySignal import Signal
 from gi.repository import GLib
 from pydbus import SystemBus
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines, test_runtime
 from sl1fw.api.config0 import Config0
@@ -72,9 +73,7 @@ class Printer:
             is_master=True,
         )
         self.runtime_config = RuntimeConfig()
-        self.runtime_config.factory_mode = (
-            TomlConfig(defines.factoryConfigPath).load().get("factoryMode", False)
-        )
+        self.runtime_config.factory_mode = TomlConfig(defines.factoryConfigPath).load().get("factoryMode", False)
         if self.runtime_config.factory_mode:
             set_log_level(logging.DEBUG)
         self.runtime_config.show_admin = self.runtime_config.factory_mode
@@ -111,19 +110,11 @@ class Printer:
 
         self.logger.info("Registering config D-Bus services")
         self.system_bus = SystemBus()
-        self.config0_dbus = self.system_bus.publish(
-            Config0.__INTERFACE__, Config0(self.hwConfig, self.hw)
-        )
+        self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hwConfig, self.hw))
 
         self.logger.info("Initializing libDisplay")
         self.display = Display(
-            self.hwConfig,
-            devices,
-            self.hw,
-            self.inet,
-            self.screen,
-            self.runtime_config,
-            self.action_manager,
+            self.hwConfig, devices, self.hw, self.inet, self.screen, self.runtime_config, self.action_manager,
         )
 
         self.logger.info("SL1 firmware initialized in %.03f", monotonic() - init_time)
@@ -174,14 +165,10 @@ class Printer:
                 self.logger.exception("Failed to obtain current locale.")
 
             if not self.hwConfig.is_factory_read() and not self.hw.isKit:
-                self.display.pages["error"].setParams(
-                    text=_("Failed to load fans and LEDs factory calibration.")
-                )
+                self.display.pages["error"].setParams(text=_("Failed to load fans and LEDs factory calibration."))
                 self.display.doMenu("error")
 
-            if self.runtime_config.factory_mode and not list(
-                Path(defines.internalProjectPath).rglob("*.sl1")
-            ):
+            if self.runtime_config.factory_mode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
                 self.display.pages["error"].setParams(
                     text=_("Examples (any projects) are missing in the user storage.")
                 )
@@ -236,28 +223,20 @@ class Printer:
         try:
             self.logger.info("Registering event handlers")
             self.inet.register_events()
-            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(
-                self._locale_changed
-            )
-            self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(
-                self._rauc_changed
-            )
+            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(self._locale_changed)
+            self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
 
             self.logger.info("Connecting motion controller")
             state = self.hw.connectMC()
             if state != MotConComState.OK:
-                self.logger.info(
-                    "Failed first motion controller connect attempt, state: %s", state
-                )
+                self.logger.info("Failed first motion controller connect attempt, state: %s", state)
                 wait_page = PageWait(self.display)
                 wait_page.fill(line1=_("Updating motion controller firmware"))
                 wait_page.show()
                 state = self.hw.connectMC(force_flash=True)
 
             if state != MotConComState.OK:
-                raise Exception(
-                    f"Failed motion controller update attempt, state: {state}"
-                )
+                raise Exception(f"Failed motion controller update attempt, state: {state}")
 
             PageStart(self.display).show()
             self.logger.info("Starting libScreen")
@@ -276,26 +255,24 @@ class Printer:
 
             if self.slicer_profile.vendor:
                 self.logger.info("Starting slicer profiles updater")
-                self.slicer_profile_updater = SlicerProfileUpdater(
-                    self.inet, self.slicer_profile
-                )
+                self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile)
 
             # Force update network state (in case we missed network going online)
             # All network state handler should be already registered
             self.inet.force_refresh_state()
 
-            self.logger.info(
-                "SL1 firmware started in %.03f seconds", monotonic() - self.start_time
-            )
+            self.logger.info("SL1 firmware started in %.03f seconds", monotonic() - self.start_time)
         except Exception as exception:
             self.exception = exception
             self.state = PrinterState.EXCEPTION
             if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("Printer run() init failed")
+            code = getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN.code
             self.display.pages["exception"].setParams(
-                text=_(
-                    "An unexpected error has occured :-(.\n\n"
+                text=_("Error code: %s\n\n") % code
+                + _(
+                    "An unexpected error has occurred :-(.\n\n"
                     "You can turn the printer off by pressing the front power button.\n\n"
                     "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
                     "Please send the log to us and help us improve the printer.\n\n"
@@ -316,9 +293,11 @@ class Printer:
             if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("run() exception:")
+            code = getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN.code
             self.display.pages["exception"].setParams(
-                text=_(
-                    "An unexpected error has occured :-(.\n\n"
+                text=_("Error code: %s\n\n") % code
+                + _(
+                    "An unexpected error has occurred :-(.\n\n"
                     "The SL1 will finish the print if you are currently printing.\n\n"
                     "You can turn the printer off by pressing the front power button.\n\n"
                     "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
@@ -341,9 +320,7 @@ class Printer:
 
         try:
             self.logger.debug("Obtaining translation: %s", lang)
-            translation = gettext.translation(
-                "sl1fw", localedir=defines.localedir, languages=[lang], fallback=True
-            )
+            translation = gettext.translation("sl1fw", localedir=defines.localedir, languages=[lang], fallback=True)
             self.logger.info("Installing translation: %s", lang)
             translation.install(names="ngettext")
         except (IOError, OSError):
