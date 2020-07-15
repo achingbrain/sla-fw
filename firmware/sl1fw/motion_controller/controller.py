@@ -58,6 +58,7 @@ class MotionController:
         self._raw_read_lock = Lock()
         self._command_lock = Lock()
         self._exclusive_lock = Lock()
+        self._flash_lock = Lock()
 
         self.u_input: Optional[UInput] = None
         self._old_state_bits: Optional[List[bool]] = None
@@ -346,9 +347,15 @@ class MotionController:
 
     def do(self, cmd, *args, return_process: Callable = lambda x: x) -> Any:
         with self._exclusive_lock, self._command_lock:
-            self._read_garbage()
-            self.do_write(cmd, *args)
-            return self.do_read(return_process=return_process)
+            if self._flash_lock.acquire(blocking=False):
+                try:
+                    self._read_garbage()
+                    self.do_write(cmd, *args)
+                    return self.do_read(return_process=return_process)
+                finally:
+                    self._flash_lock.release()
+            else:
+                raise MotionControllerException("MC flash in progress", self.trace)
 
     def do_write(self, cmd, *args) -> None:
         """
@@ -429,7 +436,7 @@ class MotionController:
             raise MotionControllerException("Ready read failed", self.trace) from e
 
     def flash(self, mc_board_version):
-        with self._exclusive_lock:
+        with self._flash_lock:
             with self._raw_read_lock:
                 self.reset()
 
@@ -450,8 +457,8 @@ class MotionController:
                             continue
                         self.logger.info("flashMC output: '%s'", line)
 
-            if retc:
-                self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
+                if retc:
+                    self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
 
             self._ensure_ready()
 
