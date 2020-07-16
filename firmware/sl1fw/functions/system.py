@@ -46,14 +46,14 @@ def save_factory_mode(enable: bool):
     :param enable: Required factory mode state
     :return: True if successful, false otherwise
     """
-    return libConfig.TomlConfig(defines.factoryConfigFile).save(data={"factoryMode": enable})
+    return libConfig.TomlConfig(defines.factoryConfigPath).save(data={"factoryMode": enable})
 
 
 def send_printer_data(hw: Hardware, config: HwConfig):
     logger = logging.getLogger(__name__)
 
     # Get wizard data
-    wizard_dict = TomlConfig(defines.wizardDataFile).load()
+    wizard_dict = TomlConfig(defines.wizardDataPathFactory).load()
     if not wizard_dict and not hw.isKit:
         raise MissingWizardData()
 

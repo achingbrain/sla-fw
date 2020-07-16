@@ -425,33 +425,36 @@ class PageWizardResinSensor(PageWizardBase):
             return "error"
         #endif
 
-        wizardConfig = TomlConfig(defines.wizardDataFile)
-        savedData = wizardConfig.load()
+        self.display.wizardData.osVersion = distro.version()
+        self.display.wizardData.a64SerialNo = self.display.hw.cpuSerialNo
+        self.display.wizardData.mcSerialNo = self.display.hw.mcSerialNo
+        self.display.wizardData.mcFwVersion = self.display.hw.mcFwVersion
+        self.display.wizardData.mcBoardRev = self.display.hw.mcBoardRevision
+        self.display.wizardData.towerHeight = self.display.hwConfig.towerHeight
+        self.display.wizardData.tiltHeight = self.display.hwConfig.tiltHeight
+        self.display.wizardData.uvPwm = self.display.hwConfig.uvPwm
 
-        # store data only in factory mode or not saved before
+        wizardConfig = TomlConfig(defines.wizardDataPath)
+        wizardConfigFactory = TomlConfig(defines.wizardDataPathFactory)
+        savedData = wizardConfig.load()
+        try:
+            wizardConfigFactory.data = asdict(self.display.wizardData)
+            wizardConfig.data = wizardConfigFactory.data
+        except AttributeError:
+            self.logger.exception("wizardData is not completely filled")
+            self.display.pages['error'].setParams(
+                text = _("!!! Failed to serialize wizard data !!!"))
+            return "error"
+        #endtry
+        wizardConfig.save_raw()
+
+        # store data in factory partition if in factory mode or not saved before (when user runs wizard on KIT for first time)
         if self.display.runtime_config.factory_mode or not savedData:
-            self.display.wizardData.osVersion = distro.version()
-            self.display.wizardData.a64SerialNo = self.display.hw.cpuSerialNo
-            self.display.wizardData.mcSerialNo = self.display.hw.mcSerialNo
-            self.display.wizardData.mcFwVersion = self.display.hw.mcFwVersion
-            self.display.wizardData.mcBoardRev = self.display.hw.mcBoardRevision
-            self.display.wizardData.towerHeight = self.display.hwConfig.towerHeight
-            self.display.wizardData.tiltHeight = self.display.hwConfig.tiltHeight
-            self.display.wizardData.uvPwm = self.display.hwConfig.uvPwm
-            try:
-                wizardConfig.data = asdict(self.display.wizardData)
-            except AttributeError:
-                self.logger.exception("wizardData is not completely filled")
-                self.display.pages['error'].setParams(
-                    text = _("!!! Failed to serialize wizard data !!!"))
-                return "error"
-            #endtry
-            if not self.writeToFactory(wizardConfig.save_raw):
+            if not self.writeToFactory(wizardConfigFactory.save_raw):
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save wizard data !!!"))
                 return "error"
             #endif
-        #endif
 
         self.allOff()
         return "wizardtimezone"

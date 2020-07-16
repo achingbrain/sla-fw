@@ -20,16 +20,22 @@ dataPath = os.path.join(swPath, "data")
 ramdiskPath = "/run/sl1fw"
 mediaRootPath = "/run/media/root"
 configDir = Path("/etc/sl1fw")
-hwConfigFileName = "hardware.cfg"
-hwConfigFile = configDir / hwConfigFileName
 loggingConfig = configDir / "loggerConfig.json"
 remoteConfig = configDir / "remoteConfig.toml"
-hwConfigFactoryDefaultsFile = factoryMountPoint / "hardware.toml"
+
+hwConfigFileName = "hardware.cfg"
+hwConfigPath = configDir / hwConfigFileName
+hwConfigPathFactory = factoryMountPoint / "hardware.toml"
+factoryConfigPath = factoryMountPoint / "factory.toml"
+
 wizardDataFilename = "wizard_data.toml"
-wizardDataFile = factoryMountPoint / wizardDataFilename
+wizardDataPath = configDir / wizardDataFilename
+wizardDataPathFactory = factoryMountPoint / wizardDataFilename
+
 uvCalibDataFilename = "uvcalib_data.toml"
-uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename
 uvCalibDataPath = configDir / uvCalibDataFilename
+uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename
+
 uvCalibDuration = 60 # 1 minute countdown
 
 perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
@@ -39,7 +45,7 @@ maskFilename = "mask.png"
 projectExtensions = {".dwz", ".sl1"}
 previousPrints = os.path.join(persistentStorage, "previous-prints")
 lastProjectHwConfig = os.path.join(previousPrints, hwConfigFileName)
-lastProjectFactoryFile = os.path.join(previousPrints, os.path.basename(hwConfigFactoryDefaultsFile))
+lastProjectFactoryFile = os.path.join(previousPrints, os.path.basename(hwConfigPathFactory))
 lastProjectConfigFile = os.path.join(previousPrints, configFile)
 lastProjectPickler = os.path.join(previousPrints, "last_project.pck")
 statsData = os.path.join(persistentStorage, "stats.toml")
@@ -145,7 +151,6 @@ uvLedMeasMinPwm = 125
 uvLedMeasMaxPwm = 218
 uvLedMeasMinPwm500k = 150
 uvLedMeasMaxPwm500k = 250
-factoryConfigFile = factoryMountPoint / "factory.toml"
 logsBase = "/var/log/journal"
 traces = 30
 

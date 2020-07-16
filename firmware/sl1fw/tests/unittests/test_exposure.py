@@ -33,7 +33,7 @@ class TestExposure(Sl1fwTestCase):
         return Path(defines.previousPrints) / Path(path).name
 
     def setUp(self):
-        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
+        defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.statsData = str(self.TEMP_DIR / "stats.toml")
         defines.previousPrints = str(self.TEMP_DIR)
         defines.lastProjectHwConfig = self._change_dir(defines.lastProjectHwConfig)

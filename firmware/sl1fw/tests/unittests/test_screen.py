@@ -29,11 +29,11 @@ class TestScreen(Sl1fwTestCase):
     def setUp(self):
         super().setUp()
         defines.fbFile = str(self.FB_DEV)
-        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
+        defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.livePreviewImage = str(self.PREVIEW_FILE)
         defines.displayUsageData = str(self.DISPLAY_USAGE)
         test_runtime.testing = True
-        defines.hwConfigFile = str(self.SAMPLES_DIR / "hardware.cfg")
+        defines.hwConfigPath = str(self.SAMPLES_DIR / "hardware.cfg")
 
         self.screen = Screen()
         self.screen.start()

@@ -48,11 +48,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.factoryConfigFile = str(self.FACTORY_CONFIG_FILE)
-        defines.hwConfigFactoryDefaultsFile = str(self.SAMPLES_DIR / "hardware.toml")
+        defines.factoryConfigPath = str(self.FACTORY_CONFIG_FILE)
+        defines.hwConfigPathFactory = str(self.SAMPLES_DIR / "hardware.toml")
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
-        defines.hwConfigFile = self.HARDWARE_FILE
+        defines.hwConfigPath = self.HARDWARE_FILE
         defines.fbFile = str(self.FB_DEV_FILE)
         defines.truePoweroff = False
         defines.internalProjectPath = str(self.SAMPLES_DIR)
@@ -74,7 +74,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.apikeyFile = str(self.API_KEY_FILE)
         defines.uvCalibDataPath = str(self.UV_CALIB_DATA_FILE)
         defines.uvCalibDataPathFactory = str(self.UV_CALIB_FACTORY_DATA_FILE)
-        defines.wizardDataFile = str(self.WIZARD_DATA_FILE)
+        defines.wizardDataPathFactory = str(self.WIZARD_DATA_FILE)
         Path(self.API_KEY_FILE).touch()
         Path(self.UV_CALIB_DATA_FILE).touch()
         shutil.copy(self.SAMPLES_DIR / "wizard_data.toml", Path(self.WIZARD_DATA_FILE))

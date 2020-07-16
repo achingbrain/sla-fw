@@ -67,13 +67,13 @@ class Printer:
 
         self.logger.info("Initializing hwconfig")
         self.hwConfig = HwConfig(
-            file_path=Path(defines.hwConfigFile),
-            factory_file_path=Path(defines.hwConfigFactoryDefaultsFile),
+            file_path=Path(defines.hwConfigPath),
+            factory_file_path=Path(defines.hwConfigPathFactory),
             is_master=True,
         )
         self.runtime_config = RuntimeConfig()
         self.runtime_config.factory_mode = (
-            TomlConfig(defines.factoryConfigFile).load().get("factoryMode", False)
+            TomlConfig(defines.factoryConfigPath).load().get("factoryMode", False)
         )
         if self.runtime_config.factory_mode:
             set_log_level(logging.DEBUG)

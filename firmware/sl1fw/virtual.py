@@ -55,9 +55,9 @@ def change_dir(path):
     return os.path.join(defines.previousPrints, os.path.basename(path))
 
 
-defines.hwConfigFile = HARDWARE_FILE
-defines.factoryConfigFile = str(SL1FW_DIR / ".." / "factory" / "factory.toml")
-defines.hwConfigFactoryDefaultsFile = str(SAMPLES_DIR / "hardware.toml")
+defines.hwConfigPath = HARDWARE_FILE
+defines.factoryConfigPath = str(SL1FW_DIR / ".." / "factory" / "factory.toml")
+defines.hwConfigPathFactory = str(SAMPLES_DIR / "hardware.toml")
 defines.templates = str(SL1FW_DIR / "intranet" / "templates")
 test_runtime.testing = True
 test_runtime.hard_exceptions = False

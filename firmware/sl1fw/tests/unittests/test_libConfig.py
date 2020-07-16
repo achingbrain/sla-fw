@@ -192,10 +192,10 @@ class TestHardwareConfig(Sl1fwTestCase):
         super().__init__(*args, **kwargs)
 
     def setUp(self):
-        defines.factoryConfigFile = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
-        defines.hwConfigFactoryDefaultsFile = str(self.SAMPLES_DIR / "hardware.toml")
-        defines.hwConfigFile = str(self.SAMPLES_DIR / "hardware-toml.cfg")
-        copyfile(defines.hwConfigFile, "hwconfig.test")
+        defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
+        defines.hwConfigPathFactory = str(self.SAMPLES_DIR / "hardware.toml")
+        defines.hwConfigPath = str(self.SAMPLES_DIR / "hardware-toml.cfg")
+        copyfile(defines.hwConfigPath, "hwconfig.test")
 
     def tearDown(self):
         for path in [self.test_config_path, self.writetest_config_path]:
@@ -203,7 +203,7 @@ class TestHardwareConfig(Sl1fwTestCase):
                 path.unlink()
 
     def test_read(self):
-        hw_config = HwConfig(Path(defines.hwConfigFile))
+        hw_config = HwConfig(Path(defines.hwConfigPath))
         print(hw_config)
 
         self.assertTrue(hw_config.coverCheck, "Test cover check read")

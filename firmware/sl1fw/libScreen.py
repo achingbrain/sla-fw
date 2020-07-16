@@ -131,7 +131,7 @@ class ScreenServer(multiprocessing.Process):
         self.nextImage2 = None
         self.pasteData = None
         self.usage = numpy.zeros((defines.displayUsageSize[0], defines.displayUsageSize[2]))
-        hwConfig = HwConfig(file_path=Path(defines.hwConfigFile), factory_file_path=Path(defines.hwConfigFactoryDefaultsFile))
+        hwConfig = HwConfig(file_path=Path(defines.hwConfigPath), factory_file_path=Path(defines.hwConfigPathFactory))
         try:
             hwConfig.read_file()
         except ConfigException:
