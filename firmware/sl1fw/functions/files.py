@@ -111,18 +111,15 @@ def save_logs_to_file(hw: Hardware, log_file) -> None:
         except Exception as exception:
             data[name] = {"exception": repr(exception)}
 
+    bash_call = ["export_logs.bash", log_file]
     try:
         with open(defines.ramdiskPath + "/printer_summary", "w") as summary_file:
             summary_file.write(json.dumps(data, indent=2, sort_keys=True))
+            bash_call.append(summary_file.name)
     except Exception:
         logger.exception("Printer summary failed to assemble")
 
-    summary_file.close()
-
-    try:
-        subprocess.check_call(["export_logs.bash", log_file, summary_file.name])
-    except Exception as exception:
-        raise Exception(N_("Saving logs failed")) from exception
+    subprocess.check_call(bash_call)
 
 
 def log_hw(hw: Hardware) -> None:

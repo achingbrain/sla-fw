@@ -223,9 +223,9 @@ class Page:
             self.logger.exception("File not found saving logs to usb")
             self.display.pages['error'].setParams(text=_("No USB storage present"))
             return "error"
-        except Exception as exception:
+        except Exception:
             self.logger.exception("Failed to save logs to usb")
-            self.display.pages['error'].setParams(text=_(str(exception)))
+            self.display.pages['error'].setParams(text=_("Saving logs failed"))
             return "error"
 
         return "_BACK_"
