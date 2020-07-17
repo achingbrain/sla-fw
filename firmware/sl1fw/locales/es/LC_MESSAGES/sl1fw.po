@@ -5,7 +5,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.2.4\n"
+"X-Generator: Poedit 2.3.1\n"
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
 "PO-Revision-Date: \n"
@@ -22,10 +22,10 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Intensidad:  centro %(cint)d, borde %(eint)d\n"
+"Intensidad: centro %(cint)d, borde %(eint)d\n"
 "Calentamiento: %(time)d s, PWM: <%(minp)d,%(maxp)d>"
 
-#: ../pages/uvcalibration.py:590
+#: ../pages/uvcalibration.py:585
 #, python-format
 msgid ""
 "\n"
@@ -38,28 +38,27 @@ msgstr ""
 "Pwm:  %(pwm)d, Intensidad: %(int).1f \n"
 "Valor min: %(min)d, %(dev)s"
 
-#: ../libPages.py:79
+#: ../pages/base.py:98
 msgid " (factory mode)"
 msgstr " (modo fábrica)"
 
-#: ../pages/uvcalibration.py:347 ../pages/wizard.py:506
-#: ../pages/fansleds.py:107 ../pages/netupdate.py:98
+#: ../pages/uvcalibration.py:638
 msgid "!!! Failed to save factory defaults !!!"
 msgstr "!!! Fallo al guardar los valores de fábrica !!!"
 
-#: ../pages/wizard.py:522
+#: ../pages/wizard.py:451
 msgid "!!! Failed to save wizard data !!!"
 msgstr "!!! Fallo al guardar los datos del asistente !!!"
 
-#: ../pages/uvcalibration.py:749
+#: ../pages/uvcalibration.py:627
 msgid "!!! Failed to serialize calibration data !!!"
 msgstr "!!! Fallo al serializar los datos de calibración !!!"
 
-#: ../pages/wizard.py:517
+#: ../pages/wizard.py:446
 msgid "!!! Failed to serialize wizard data !!!"
 msgstr "!!! Fallo al serializar los datos del asistente !!!"
 
-#: ../pages/wizard.py:196
+#: ../pages/wizard.py:218
 #, python-format
 msgid ""
 "%(sensor)s not in range!\n"
@@ -75,7 +74,7 @@ msgstr ""
 "Mantén la impresora alejada de la luz directa del sol, en una habitación a "
 "una temperatura entre 18 y 32 °C."
 
-#: ../libExposure.py:355
+#: ../pages/print/feedme.py:36
 #, python-format
 msgid ""
 "%s\n"
@@ -92,7 +91,7 @@ msgstr ""
 "Si no quieres rellenar, por favor pulsa el botón Atrás en la parte superior "
 "de la pantalla."
 
-#: ../pages/wizard.py:188 ../pages/printstart.py:79
+#: ../pages/wizard.py:207 ../pages/print/base.py:107
 #, python-format
 msgid ""
 "%s cannot be read.\n"
@@ -103,26 +102,7 @@ msgstr ""
 "\n"
 "Por favor comprueba si los sensores térmicos están conectados correctamente."
 
-#: ../pages/fantest.py:35
-msgid "(fans are running)"
-msgstr "(ventiladores en marcha)"
-
-#: ../pages/uvcalibration.py:428
-#, python-format
-msgid ", deviation: %.1f"
-msgstr ", desviación: %.1f"
-
-#: ../pages/uvcalibration.py:422
-#, python-format
-msgid ", intensity: %.1f"
-msgstr ", intensidad: %.1f"
-
-#: ../pages/uvcalibration.py:425
-#, python-format
-msgid ", min. int.: %d"
-msgstr ", min. int.: %d"
-
-#: ../pages/uvcalibration.py:203
+#: ../pages/uvcalibration.py:230
 msgid ""
 "1. Place the UV meter on the print display and connect it to the front USB.\n"
 "2. Close the orange lid, don't open it! UV radiation is harmful!"
@@ -131,27 +111,23 @@ msgstr ""
 "delantero.\n"
 "2. ¡Cierra la tapa naranja, no la abras! ¡La radiación UV es perjudicial!"
 
-#: ../libNetwork.py:178
+#: ../libNetwork.py:192
 msgid ": Not connected to network!"
 msgstr ": ¡Sin conexión a la red!"
 
-#: ../libNetwork.py:186 ../libNetwork.py:209
+#: ../libNetwork.py:200 ../libNetwork.py:220
 msgid ": Not enough free space in the internal storage!"
 msgstr ": ¡No hay espacio suficiente en el almacenamiento interno!"
 
-#: ../libHardware.py:493
+#: ../libHardware.py:159
 msgid "<reserved1>"
 msgstr "<reserved1>"
 
-#: ../libHardware.py:494
+#: ../libHardware.py:160
 msgid "<reserved2>"
 msgstr "<reserved2>"
 
-#: ../pages/wizard.py:165
-msgid "A64 temperature check"
-msgstr "Comprobación temperatura A64"
-
-#: ../pages/wizard.py:169
+#: ../pages/wizard.py:192
 #, python-format
 msgid ""
 "A64 temperature is too high. Measured: %.1f °C!\n"
@@ -162,11 +138,15 @@ msgstr ""
 "\n"
 "Apagando en 10 segundos..."
 
-#: ../pages/about.py:19
-msgid "About"
-msgstr "Acerca de"
+#: ../pages/print/action.py:24
+msgid "Action pending"
+msgstr "Acción pendiente"
 
-#: ../pages/calibration.py:467
+#: ../pages/print/action.py:27
+msgid "Action will be executed after layer finish"
+msgstr "La acción se ejecutará después del final de la capa"
+
+#: ../pages/calibration.py:471
 msgid ""
 "Adjust the platform so it's aligned with the exposition display.\n"
 "\n"
@@ -176,18 +156,6 @@ msgstr ""
 "\n"
 "Los extremos delanteros de la plataforma y la pantalla tienen que estar "
 "paralelos."
-
-#: ../pages/admin.py:21
-msgid "Admin Home"
-msgstr "Admin Home"
-
-#: ../pages/about.py:44
-msgid "Admin not accessible"
-msgstr "Admin no accesible"
-
-#: ../pages/advancedsettings.py:69
-msgid "Advanced Settings"
-msgstr "Ajustes Avanzados"
 
 #: ../pages/calibration.py:580
 #, python-format
@@ -208,11 +176,11 @@ msgstr ""
 "Tiempo lento de inclinación: %(slow).1f s\n"
 "Área de relleno: %(area)d %%"
 
-#: ../libHardware.py:492
+#: ../libHardware.py:158
 msgid "Ambient temperature"
 msgstr "Temperatura ambiente"
 
-#: ../pages/printstart.py:99
+#: ../pages/print/check_confirm.py:76
 msgid ""
 "Ambient temperature is over recommended value.\n"
 "\n"
@@ -226,21 +194,7 @@ msgstr ""
 "\n"
 "¿Quieres continuar?"
 
-#: ../pages/printstart.py:154
-msgid ""
-"Ambient temperature is over recommended value.\n"
-"\n"
-"You should move the printer to cooler place.\n"
-"\n"
-"Do you want to continue?"
-msgstr ""
-"¡La temperatura ambiente es superior a la recomendada!\n"
-"\n"
-"Deberías trasladar la impresora a un lugar más fresco.\n"
-"\n"
-"¿Quieres continuar?"
-
-#: ../pages/printstart.py:144
+#: ../pages/print/check_confirm.py:64
 msgid ""
 "Ambient temperature is under recommended value.\n"
 "\n"
@@ -254,7 +208,7 @@ msgstr ""
 "\n"
 "¿Quieres continuar?"
 
-#: ../libPrinter.py:244
+#: ../libPrinter.py:305
 msgid ""
 "An unexpected error has occured :-(.\n"
 "\n"
@@ -280,7 +234,7 @@ msgstr ""
 "\n"
 "¡Gracias!"
 
-#: ../libPrinter.py:227
+#: ../libPrinter.py:285
 msgid ""
 "An unexpected error has occured :-(.\n"
 "\n"
@@ -302,165 +256,78 @@ msgstr ""
 "\n"
 "¡Gracias!"
 
-#: ../libHardware.py:111
-msgid "An unknown issue has occured"
-msgstr "Ha ocurrido un problema desconocido"
-
-#: ../libHardware.py:50
-msgid "Application flash checksum has failed"
-msgstr ""
-"Ha fallado la comprobación del programa almacenado en la memoria flash."
-
-#: ../pages/uvcalibration.py:318
+#: ../pages/uvcalibration.py:563
 msgid "Apply calibration?"
 msgstr "¿Aplicar calibración?"
 
-#: ../pages/yesno.py:16 ../pages/yesno.py:28 ../pages/factoryreset.py:22
+#: ../pages/yesno.py:37 ../pages/factoryreset.py:41
 msgid "Are you sure?"
 msgstr "¿Estás seguro?"
 
-#: ../pages/setup.py:128
-msgid "Auto power off"
-msgstr "Apagado automático"
-
-#: ../pages/fansleds.py:45
-msgid "Back"
-msgstr "Atrás"
-
-#: ../pages/admin.py:150
-#, python-format
-msgid ""
-"Baudrate is %(br)d.\n"
-"\n"
-"Serial line is redirected to %(ip)s:%(port)d.\n"
-"\n"
-"Press 'Continue' when done."
-msgstr ""
-"La velocidad de transmisión es %(br)d.\n"
-"\n"
-"El puerto serial se redirige a %(ip)s: %(port)d.\n"
-"\n"
-"Presiona 'Continuar' cuando acabes."
-
-#: ../pages/display.py:39
-msgid "Black"
-msgstr "Negro"
-
-#: ../pages/setup.py:299
-msgid "Blink exposure"
-msgstr "Parpadeo de exposición"
-
-#: ../pages/fansleds.py:30
-msgid "Blower fan"
-msgstr "Ventilador radial"
-
-#: ../pages/fansleds.py:36
-msgid "Blower fan RPM"
-msgstr "RPM ventilador radial"
-
-#: ../libHardware.py:54
-msgid "Boot-section lock has failed"
-msgstr "Ha fallado el bloqueo de Boot-section"
-
-#: ../libHardware.py:51
-msgid "Bootloader flash checksum has failed"
-msgstr "Ha fallado la comprobación del gestor de arranque de la memoria flash"
-
-#: ../pages/calibration.py:592
-msgid "Calibrate UV?"
-msgstr "¿Calibrar UV?"
-
-#: ../pages/home.py:53
-msgid "Calibrate now?"
-msgstr "¿Calibrar ahora?"
-
-#: ../pages/settings.py:29
-msgid "Calibrate printer now?"
-msgstr "¿Calibrar la impresora ahora?"
-
-#: ../pages/uvcalibration.py:397
-msgid "Calibrating UV LED power"
-msgstr "Calibración de la potencia del LED UV"
-
-#: ../pages/uvcalibration.py:364
+#: ../pages/uvcalibration.py:359
 msgid "Calibrating UV LED power in the center of the print display"
 msgstr ""
-"Calibrando la potencia de LEDs UV en el centro de la pantalla de impresión "
+"Calibrando la potencia de LEDs UV en el centro de la pantalla de impresión"
 
-#: ../pages/uvcalibration.py:373
+#: ../pages/uvcalibration.py:368
 msgid "Calibrating UV LED power on the edges of the print display"
 msgstr ""
 "Calibrando la potencia de los LEDs UV en los bordes de la pantalla de "
-"impresión "
+"impresión"
 
-#: ../pages/calibration.py:574
+#: ../pages/calibration.py:561
 msgid "Calibration done"
 msgstr "Calibración finalizada"
 
-#: ../pages/calibration.py:21
+#: ../pages/calibration.py:83
 msgid "Calibration step 1/11"
 msgstr "Paso 1/11 de la calibración"
 
-#: ../pages/calibration.py:460
+#: ../pages/calibration.py:464
 msgid "Calibration step 10/11"
 msgstr "Paso 10/11 de la calibración"
 
-#: ../pages/calibration.py:497
+#: ../pages/calibration.py:492
 msgid "Calibration step 11/11"
 msgstr "Paso 11/11 de la calibración"
 
-#: ../pages/calibration.py:72
+#: ../pages/calibration.py:129
 msgid "Calibration step 2/11"
 msgstr "Paso 2/11 de la calibración"
 
-#: ../pages/calibration.py:109
+#: ../pages/calibration.py:157
 msgid "Calibration step 3/11"
 msgstr "Paso 3/11 de la calibración"
 
-#: ../pages/calibration.py:155
+#: ../pages/calibration.py:193
 msgid "Calibration step 4/11"
 msgstr "Paso 4/11 de la calibración"
 
-#: ../pages/calibration.py:191
+#: ../pages/calibration.py:220
 msgid "Calibration step 5/11"
 msgstr "Paso 5/11 de la calibración"
 
-#: ../pages/calibration.py:267
+#: ../pages/calibration.py:308
 msgid "Calibration step 6/11"
 msgstr "Paso 6/11 de la calibración"
 
-#: ../pages/calibration.py:304
+#: ../pages/calibration.py:336
 msgid "Calibration step 7/11"
 msgstr "Paso 7/11 de la calibración"
 
-#: ../pages/calibration.py:345
+#: ../pages/calibration.py:363
 msgid "Calibration step 8/11"
 msgstr "Paso 8/11 de la calibración"
 
-#: ../pages/calibration.py:362
+#: ../pages/calibration.py:380
 msgid "Calibration step 9/11"
 msgstr "Paso 9/11 de la calibración"
 
-#: ../pages/wizard.py:585
+#: ../pages/wizard.py:511
 msgid "Can you hear the music?"
 msgstr "¿Puedes escuchar la música?"
 
-#: ../pages/displaytest.py:33
-msgid ""
-"Can you see company logo on the exposure display through the orange cover?\n"
-"\n"
-"Tip: The logo is best seen when you look from above.\n"
-"\n"
-"DO NOT open the cover!"
-msgstr ""
-"¿Puedes ver el logo de la compañía en la pantalla de exposición a través de "
-"la cubierta naranja?\n"
-"\n"
-"Sugerencia: el logotipo se ve mejor cuando se mira desde arriba. \n"
-"\n"
-"¡NO abras la cubierta!"
-
-#: ../pages/displaytest.py:34
+#: ../pages/displaytest.py:36
 msgid ""
 "Can you see the company logo on the exposure display through the orange "
 "cover?\n"
@@ -476,70 +343,21 @@ msgstr ""
 "\n"
 "¡NO abras la cubierta!"
 
-#: ../libExposure.py:186
-msgid "Can't get tower position"
-msgstr "No se puede conseguir la posición de la torre."
-
-#: ../pages/wizard.py:185 ../pages/printstart.py:134
-#, python-format
-msgid ""
-"Can't read %s\n"
-"\n"
-"Please check if temperature sensors are connected correctly."
-msgstr ""
-"No se puede leer %s\n"
-"\n"
-"Comprueba si los sensores de temperatura están conectados correctamente."
-
-#: ../pages/printstart.py:307
-msgid ""
-"Can't read data of your project.\n"
-"\n"
-"Re-export it and try again."
-msgstr ""
-"No se puede leer los datos de tu proyecto.\n"
-"\n"
-"Reexportalos e intenta de nuevo."
-
-#: ../pages/printstart.py:312
-msgid ""
-"Can't read data of your project.\n"
-"\n"
-"Regenerate it and try again."
-msgstr ""
-"No se puede leer los datos de tu proyecto.\n"
-"\n"
-"Regeneralos e intenta de nuevo."
-
-#: ../pages/printstart.py:85
-msgid ""
-"Can't read from the USB drive.\n"
-"\n"
-"Check it and try again."
-msgstr ""
-"No se puede leer desde la unidad USB.\n"
-"\n"
-" Verifica e intenta nuevamente."
-
-#: ../libConfig.py:536
-msgid "Can't read project data."
-msgstr "No se puede leer los datos del proyecto."
-
-#: ../pages/printstart.py:118
+#: ../pages/print/base.py:86
 msgid ""
 "Can't read project data.\n"
 "\n"
-"Re-export the file and try again."
+"Re-export the project and try again."
 msgstr ""
-"No se puede leer los datos del proyecto.\n"
+"No se pueden leer los datos del proyecto.\n"
 "\n"
-"Reexporta el archivo e intenta de nuevo."
+"Vuelve a exportar el proyecto e intenta nuevamente."
 
-#: ../pages/calibration.py:611
+#: ../pages/uvcalibration.py:679 ../pages/calibration.py:609
 msgid "Cancel calibration?"
 msgstr "¿Cancelar calibración?"
 
-#: ../pages/uvcalibration.py:278 ../pages/uvcalibration.py:673
+#: ../pages/uvcalibration.py:274
 msgid ""
 "Cannot connect to the UV LED meter.\n"
 "\n"
@@ -549,57 +367,13 @@ msgstr ""
 " \n"
 "Comprueba la conexión e intenta nuevamente."
 
-#: ../pages/display.py:96
-msgid "Cannot display the test image"
-msgstr "No se puede mostrar la imagen de prueba"
-
 #: ../pages/factoryreset.py:55
 msgid "Cannot do factory config UV PWM is not set !!!"
 msgstr ""
 "¡¡¡No se puede usar la configurar de fábrica que no ha fijado el PWM del "
 "UV!!!"
 
-#: ../pages/profiles.py:98
-msgid "Cannot export profile"
-msgstr "No es posible exportar perfil"
-
-#: ../pages/setup.py:73
-msgid "Cannot find configuration to import"
-msgstr "No es posible buscar la configuración para importar"
-
-#: ../pages/profiles.py:117
-msgid "Cannot find profile to import"
-msgstr "No es posible buscar perfil para importar"
-
-#: ../pages/uvcalibration.py:288
-msgid ""
-"Cannot find the correct settings for the specified intensity.\n"
-"\n"
-"Verify the UV LED meter position and calibration or change the values, then "
-"try again."
-msgstr ""
-"No es posible buscar los ajustes correctos para la intensidad especificada.\n"
-"\n"
-"Comprueba la posición y calibración del medidor de los LED UV o cambia los "
-"valores, después inténtalo de nuevo."
-
-#: ../pages/display.py:86
-msgid "Cannot find the test image"
-msgstr "No es posible buscar la imagen de prueba"
-
-#: ../pages/setup.py:84
-msgid "Cannot import configuration"
-msgstr "No es posible importar configuración"
-
-#: ../pages/profiles.py:130
-msgid "Cannot import profile"
-msgstr "No es posible importar perfil"
-
-#: ../pages/profiles.py:146
-msgid "Cannot load default profile"
-msgstr "No es posible cargar perfil por defecto"
-
-#: ../pages/uvcalibration.py:185 ../pages/uvcalibration.py:232
+#: ../pages/uvcalibration.py:402
 msgid ""
 "Cannot read data from the UV LED meter.\n"
 "\n"
@@ -609,51 +383,25 @@ msgstr ""
 " \n"
 "Comprueba la conexión e intenta nuevamente."
 
-#: ../pages/uvcalibration.py:342 ../pages/fansleds.py:134
-#: ../pages/fansleds.py:154 ../pages/profiles.py:444 ../pages/setup.py:54
-#: ../pages/setup.py:104 ../pages/move.py:255 ../pages/advancedsettings.py:440
-#: ../pages/unboxing.py:182 ../pages/unboxing.py:266
-#: ../pages/calibration.py:533
+#: ../pages/uvcalibration.py:613 ../pages/tower_offset.py:68
+#: ../pages/advancedsettings.py:453 ../pages/timedate.py:108
+#: ../pages/calibration.py:530 ../pages/calibration.py:572
 msgid "Cannot save configuration"
 msgstr "No es posible guardar la configuración"
 
-#: ../pages/factoryreset.py:45
-msgid "Cannot save factory defaults configuration"
-msgstr "No es posible guardar configuración de fábrica"
-
-#: ../pages/setup.py:91
-msgid "Cannot save imported configuration"
-msgstr "No es posible guardar configuración importada"
-
-#: ../pages/language.py:65
-msgid "Cannot save language configuration"
-msgstr "No se puede guardar la configuración del idioma"
-
-#: ../pages/wizard.py:160 ../pages/wizard.py:497 ../pages/wizard.py:675
+#: ../pages/wizard.py:424 ../pages/wizard.py:588
+#: ../pages/towersensitivity.py:78
 msgid "Cannot save wizard configuration"
 msgstr "No es posible guardadr la configuración del asistente"
 
-#: ../pages/netupdate.py:109
-msgid "Cannot send factory config!"
-msgstr "¡No es posible enviar la configuración de fábrica!"
-
-#: ../pages/unboxing.py:173
-msgid ""
-"Carefully peel off the orange protective foil from the exposition display."
-msgstr "Retira con cuidado el protector naranja de la pantalla de exposición."
-
-#: ../pages/unboxing.py:176
+#: ../pages/unboxing.py:172
 msgid ""
 "Carefully peel off the orange protective sticker from the exposition display."
 msgstr ""
 "Retira con cuidado el adhesivo protector naranja de la pantalla de "
 "exposición."
 
-#: ../pages/exposure.py:16
-msgid "Change Exposure Times"
-msgstr "Cambiar Tiempos de Exposición"
-
-#: ../pages/calibration.py:352
+#: ../pages/calibration.py:370
 msgid ""
 "Check whether the platform is properly secured with the black knob (hold it "
 "in place and tighten the knob if needed).\n"
@@ -665,47 +413,23 @@ msgstr ""
 "\n"
 "No gires la plataforma. Debe colocarse de acuerdo con la imagen."
 
-#: ../pages/uvcalibration.py:164
+#: ../pages/uvcalibration.py:302
 msgid "Checking UV meter placement on the screen"
 msgstr "Comprobando colocación del medidor UV en la pantalla"
 
-#: ../pages/about.py:33
-msgid "Checking admin access"
-msgstr "Comprobando acceso admin"
-
-#: ../pages/printstart.py:168
-msgid "Checking fans..."
-msgstr "Comprobando ventiladores..."
-
-#: ../pages/printstart.py:166
-msgid "Checking project data..."
-msgstr "Comprobando datos del proyecto..."
-
-#: ../pages/printstart.py:127
-msgid "Checking temperatures"
-msgstr "Comprobando temperaturas"
-
-#: ../pages/display.py:28
-msgid "Chess 16"
-msgstr "Ajedrez 16"
-
-#: ../pages/display.py:27
-msgid "Chess 8"
-msgstr "Ajedrez 8"
-
-#: ../pages/netupdate.py:169
+#: ../libNetwork.py:230
 msgid "Cleaning up"
 msgstr "Limpiando"
 
-#: ../libExposure.py:208
+#: ../pages/print/cover.py:27
 msgid "Close the cover to continue"
 msgstr "Cierra la cubierta para continuar"
 
-#: ../libPages.py:238 ../libPages.py:509
+#: ../pages/base.py:198 ../pages/base.py:431
 msgid "Close the orange cover."
 msgstr "Cerrar la cubierta naranja."
 
-#: ../pages/uvcalibration.py:170
+#: ../pages/uvcalibration.py:306
 msgid ""
 "Communication with the UV LED meter has failed.\n"
 "\n"
@@ -715,91 +439,31 @@ msgstr ""
 "\n"
 "Verifica la conexión e intenta nuevamente."
 
-#: ../libHardware.py:106
-msgid "Communication with the motion controller has failed"
-msgstr "Ha fallado la comunicación con el controlador de movimiento"
-
-#: ../pages/confirm.py:16 ../pages/confirm.py:27 ../pages/printstart.py:280
+#: ../pages/confirm.py:21 ../pages/confirm.py:37
 msgid "Confirm"
 msgstr "Confirmar"
 
-#: ../pages/uvcalibration.py:69
-msgid "Connect the UV LED meter and wait few seconds."
-msgstr "Conecta el medidor UV y espera unos segundos."
-
-#: ../pages/uvcalibration.py:226
-#, python-format
-msgid ""
-"Connect the UV meter to the USB port.\n"
-"\n"
-"Calibration parameters:\n"
-"Center intensity: %(cint)d\n"
-"Minimal edge intensity: %(eint)d\n"
-"Warm-up time: %(time)d seconds\n"
-msgstr ""
-"Conecta el medidor UV al puerto USB.\n"
-"\n"
-"Parámetros de calibración:\n"
-"Intensidad central: %(cint)d\n"
-"Intensidad mínima en el borde: %(eint)d\n"
-"Tiempo de calentamiento: %(time)d segundos\n"
-
-#: ../pages/network.py:117
-msgid "Connecting"
-msgstr "Conectando"
-
-#: ../pages/uvcalibration.py:275
-msgid "Connecting to UV meter"
-msgstr "Conectando al medidor UV"
-
-#: ../pages/uvcalibration.py:173
-msgid "Connecting to the UV LED meter"
-msgstr "Conectando al medidor de luz UV"
-
-#: ../pages/uvcalibration.py:297
+#: ../pages/uvcalibration.py:271
 msgid "Connecting to the UV meter"
 msgstr "Conectando al medidor de luz UV"
 
-#: ../pages/network.py:132
-msgid "Connection failed!"
-msgstr "¡La conexión falló!"
-
-#: ../pages/printstart.py:142 ../pages/printstart.py:152
+#: ../pages/print/check_confirm.py:60 ../pages/print/check_confirm.py:72
 msgid "Continue?"
 msgstr "Continuar?"
 
-#: ../pages/control.py:16
-msgid "Control"
-msgstr "Control"
-
-#: ../libPages.py:561
+#: ../pages/base.py:485
 msgid "Cooling down"
 msgstr "Enfriando"
 
-#: ../pages/printstart.py:113
-msgid ""
-"Corrupted data detected.\n"
-"\n"
-"Re-export the file and try again."
-msgstr ""
-"Se detectaron datos corruptos.\n"
-"\n"
-" Vuelve a exportar el archivo y vuelve a intentarlo."
+#: ../pages/print/cover.py:24
+msgid "Cover open"
+msgstr "Tapa abierta"
 
-#: ../pages/setup.py:125
-msgid "Cover check"
-msgstr "Comprobación de la tapa"
-
-#: ../libPages.py:538
+#: ../pages/base.py:460
 msgid "Current job will be canceled."
 msgstr "El trabajo actual se cancelará."
 
-#: ../pages/uvcalibration.py:63
-#, python-format
-msgid "Current temperature: %.1f °C"
-msgstr "Temperatura actual %.1f °C"
-
-#: ../pages/wizard.py:472
+#: ../pages/wizard.py:396
 msgid "DO NOT touch the printer"
 msgstr "NO TOQUES la impresora"
 
@@ -807,31 +471,7 @@ msgstr "NO TOQUES la impresora"
 msgid "Data is from unknown UV LED sensor!"
 msgstr "¡Datos de un sensor UV desconocido!"
 
-#: ../pages/logs.py:29
-msgid "Debug"
-msgstr "Depurar"
-
-#: ../pages/netupdate.py:149
-msgid "Decompressing examples"
-msgstr "Descomprimir ejemplos"
-
-#: ../pages/fansleds.py:43 ../pages/profiles.py:296 ../pages/profiles.py:364
-msgid "Defaults"
-msgstr "Predeterminados"
-
-#: ../pages/setup.py:306
-msgid "Delay after expos. [s]"
-msgstr "Retraso después de exposición. [s]"
-
-#: ../pages/setup.py:135
-msgid "Delay after stirring [s]"
-msgstr "Retardo después de agitación [s]"
-
-#: ../pages/setup.py:305
-msgid "Delay before expos. [s]"
-msgstr "Retraso antes de exposición. [s]"
-
-#: ../pages/advancedsettings.py:343
+#: ../pages/advancedsettings.py:336
 msgid ""
 "Disable the cover sensor?\n"
 "\n"
@@ -843,7 +483,7 @@ msgstr ""
 "PRECAUCIÓN: Esto puede provocar una exposición no deseada a la luz "
 "ultravioleta. ¡Esta acción no es recomendable!"
 
-#: ../pages/advancedsettings.py:371
+#: ../pages/advancedsettings.py:364
 msgid ""
 "Disable the resin sensor?\n"
 "\n"
@@ -855,32 +495,12 @@ msgstr ""
 "PRECAUCIÓN: ¡Esto puede crear fallos en impresiones o que el tanque se "
 "desborde! ¡No se recomienda esta acción!"
 
-#: ../pages/admin.py:28 ../pages/display.py:19
-msgid "Display"
-msgstr "Pantalla"
-
-#: ../pages/displaytest.py:19 ../pages/advancedsettings.py:301
-#: ../pages/advancedsettings.py:311
+#: ../pages/uvdispsettings.py:25 ../pages/uvdispsettings.py:35
+#: ../pages/displaytest.py:22
 msgid "Display test"
 msgstr "Test de la pantalla"
 
-#: ../pages/service.py:35 ../pages/service.py:56
-msgid "Display usage heatmap"
-msgstr "Mapa de calor del uso de la pantalla"
-
-#: ../pages/admin.py:192 ../pages/printstart.py:322
-msgid "Do NOT TOUCH the printer"
-msgstr "NO TOQUES la impresora"
-
-#: ../pages/printstart.py:318
-msgid "Do not open the orange cover!"
-msgstr "¡No abrir la cubierta naranja!"
-
-#: ../pages/print.py:133
-msgid "Do you really want add the resin to the tank?"
-msgstr "¿Realmente quieres añadir la resina al tanque?"
-
-#: ../pages/print.py:149
+#: ../pages/print/print.py:98
 msgid ""
 "Do you really want the platform to go up and down?\n"
 "\n"
@@ -890,25 +510,11 @@ msgstr ""
 "\n"
 "¡Puede afectar el objeto impreso!"
 
-#: ../pages/print.py:119
+#: ../pages/print/print.py:87
 msgid "Do you really want to add resin into the tank?"
 msgstr "¿Seguro que quieres añadir resina al tanque?"
 
-#: ../pages/calibration.py:618
-msgid ""
-"Do you really want to cancel calibration?\n"
-"\n"
-"Machine will not work without going through it."
-msgstr ""
-"¿Realmente quieres cancelar la calibración?\n"
-"\n"
-"La máquina no funcionará sin pasar por ella."
-
-#: ../pages/print.py:158
-msgid "Do you really want to cancel the actual job?"
-msgstr "¿Realmente quieres cancelar el trabajo actual?"
-
-#: ../pages/calibration.py:650
+#: ../pages/uvcalibration.py:686 ../pages/calibration.py:616
 msgid ""
 "Do you really want to cancel the calibration?\n"
 "\n"
@@ -918,31 +524,11 @@ msgstr ""
 "\n"
 "La máquina no funcionará sin pasar por ella."
 
-#: ../pages/print.py:170
+#: ../pages/print/print.py:114
 msgid "Do you really want to cancel the current job?"
 msgstr "¿Realmente quieres cancelar el trabajo actual?"
 
-#: ../pages/about.py:50
-msgid ""
-"Do you really want to enable the admin menu?\n"
-"\n"
-"Wrong settings will damage your printer!"
-msgstr ""
-"¿Realmente deseas habilitar el menú de admin? \n"
-"\n"
-"¡Una configuración incorrecta dañará tu impresora!"
-
-#: ../pages/factoryreset.py:29
-msgid ""
-"Do you really want to perform the factory reset?\n"
-"\n"
-"All settings will be deleted!"
-msgstr ""
-"¿Realmente deseas restablecer de fábrica? \n"
-"\n"
-"¡Todos los valores serán borrados!"
-
-#: ../pages/factoryreset.py:29
+#: ../pages/factoryreset.py:46
 msgid ""
 "Do you really want to perform the factory reset?\n"
 "\n"
@@ -952,27 +538,7 @@ msgstr ""
 "\n"
 "¡Todos los ajustes serán borrados!"
 
-#: ../pages/network.py:68
-msgid ""
-"Do you really want to set the Wi-fi to AP mode?\n"
-"\n"
-"It may disconnect the web client."
-msgstr ""
-"¿Estás seguro que quieres poner el Wi-fi en modo AP?\n"
-"\n"
-"Podría desconectarse el cliente web."
-
-#: ../pages/network.py:58
-msgid ""
-"Do you really want to set the Wi-fi to client mode?\n"
-"\n"
-"It may disconnect the web client."
-msgstr ""
-"¿Realmente quieres configurar el Wi-fi en modo cliente?\n"
-"\n"
-"Podría desconectarse el cliente web al hacerlo."
-
-#: ../pages/unboxing.py:255
+#: ../pages/unboxing.py:215
 msgid ""
 "Do you really want to skip the unboxing wizard?\n"
 "\n"
@@ -984,19 +550,7 @@ msgstr ""
 "Presiona 'Sí' solo en caso de que ya hayas pasado por este asistente antes y "
 "tu impresora está desempaquetada."
 
-#: ../pages/unboxing.py:255
-msgid ""
-"Do you really want to skip the unboxing wizard?\n"
-"\n"
-"Press 'Yes' only in case you've assembled the printer as a kit, or you went "
-"through this wizard previously and the printer is unpacked."
-msgstr ""
-"¿Realmente desea omitir el asistente de desempaquetado? \n"
-"\n"
-"Presiona 'Sí' solo en caso de que haya ensamblado la impresora como un kit, "
-"o ya usastes el asistente anteriormente y la impresora está desempaquetada."
-
-#: ../pages/wizard.py:664
+#: ../pages/wizard.py:574
 msgid ""
 "Do you really want to skip the wizard?\n"
 "\n"
@@ -1007,69 +561,31 @@ msgstr ""
 "Es posible que la máquina no funcione correctamente sin finalizar esta "
 "comprobación."
 
-#: ../pages/network.py:77
-msgid ""
-"Do you really want to turn off the Wi-fi?\n"
-"\n"
-"It may disconnect the web client."
-msgstr ""
-"¿Estás seguro que quieres apagar el Wi-fi ?\n"
-"\n"
-"Podría desconectarse el cliente web."
-
-#: ../libPages.py:132
+#: ../pages/base.py:158
 msgid "Do you really want to turn off the printer?"
 msgstr "¿Realmente quieres apagar la impresora?"
 
-#: ../pages/firmwareupdate.py:108
+#: ../pages/firmwareupdate.py:116
 msgid "Do you really want to update the firmware?"
 msgstr "¿Realmente quieres actualizar el firmware?"
 
-#: ../pages/wizard.py:541
+#: ../pages/wizard.py:475
 msgid "Do you want to setup a timezone?"
 msgstr "¿Quieres definir un huso horario?"
 
-#: ../pages/profiles.py:417
-msgid "Down fast"
-msgstr "Bajar rápido"
-
-#: ../pages/profiles.py:416
-msgid "Down slow"
-msgstr "Bajar lento"
-
-#: ../pages/netupdate.py:33
-msgid "Download examples"
-msgstr "Descargar ejemplos"
-
-#: ../pages/firmwareupdate.py:33 ../pages/netupdate.py:38
+#: ../pages/firmwareupdate.py:37
 msgid "Downloading firmware list"
 msgstr "Descargando lista de firmware"
 
-#: ../pages/admin.py:34
-msgid "Erase MC EEPROM"
-msgstr "Borrar MC EEPROM"
-
-#: ../libHardware.py:547 ../pages/admin.py:98
-msgid "Erasing EEPROM"
-msgstr "Borrando EEPROM"
-
-#: ../pages/error.py:16
+#: ../pages/error.py:20
 msgid "Error"
 msgstr "Error"
 
-#: ../pages/netinfo.py:40
-msgid "Error reading Wi-fi setup!"
-msgstr "¡Error leyendo la configuración wifi!"
-
-#: ../libPrinter.py:141
+#: ../libPrinter.py:175
 msgid "Examples (any projects) are missing in the user storage."
 msgstr "Los ejemplos (cualquier proyecto) faltan en la memoria del usuario."
 
-#: ../pages/netupdate.py:179
-msgid "Examples fetch failed"
-msgstr "Falló la búsqueda de ejemplos"
-
-#: ../libPages.py:594
+#: ../pages/base.py:519
 msgid ""
 "Expect overheating, but the print may continue.\n"
 "\n"
@@ -1081,35 +597,11 @@ msgstr ""
 "Si no deseas continuar, presiona el botón Atrás en la parte superior de la "
 "pantalla y se cancelará el trabajo actual."
 
-#: ../pages/profiles.py:39 ../pages/setup.py:33
-msgid "Export"
-msgstr "Exportar"
-
-#: ../pages/logs.py:31
-msgid "Export to USB"
-msgstr "Exportar a USB"
-
-#: ../pages/setup.py:293
-msgid "Exposure Setup"
-msgstr "Ajustes de Exposición"
-
-#: ../pages/admin.py:31
-msgid "Exposure setup"
-msgstr "Ajustes de exposición"
-
-#: ../pages/netupdate.py:151
+#: ../libNetwork.py:209
 msgid "Extracting examples"
 msgstr "Extrayendo ejemplos"
 
-#: ../pages/netupdate.py:115
-msgid "Factory config was successfully sent."
-msgstr "La configuración de fábrica se envió con éxito."
-
-#: ../libPrinter.py:123
-msgid "Failed to load fans and LEDS factory calibration."
-msgstr "Error al cargar la calibración de fábrica de ventiladores y  de LEDS."
-
-#: ../libPrinter.py:135
+#: ../libPrinter.py:169
 msgid "Failed to load fans and LEDs factory calibration."
 msgstr ""
 "Falló la carga de la calibración de fábrica de ventiladores y  de LEDS."
@@ -1118,11 +610,7 @@ msgstr ""
 msgid "Failed to set hostname"
 msgstr "Fallo al establecer nombre de host"
 
-#: ../pages/logs.py:54
-msgid "Failed to set log level"
-msgstr "Fallo al establecer el nivel de registro"
-
-#: ../libPages.py:605
+#: ../pages/base.py:530
 #, python-format
 msgid ""
 "Failed: %(what)s\n"
@@ -1137,7 +625,7 @@ msgstr ""
 "\n"
 "%(addText)s"
 
-#: ../pages/fantest.py:68 ../pages/printstart.py:225
+#: ../pages/print/base.py:123
 #, python-format
 msgid ""
 "Failed: %s\n"
@@ -1149,118 +637,46 @@ msgstr ""
 "Comprueba si los ventiladores están bien conectados y se pueden girar sin "
 "ofrecer resistencia."
 
-#: ../pages/setup.py:124
-msgid "Fan check"
-msgstr "Comprobación de ventilador"
-
-#: ../pages/fantest.py:22 ../pages/admin.py:42
-msgid "Fan test"
-msgstr "Test de ventiladores"
-
-#: ../pages/admin.py:29 ../pages/fansleds.py:17
-msgid "Fans & UV LED"
-msgstr "Ventiladores & LED UV"
-
-#: ../pages/printstart.py:230
-msgid "Fans OK"
-msgstr "Ventiladores OK"
-
-#: ../pages/fantest.py:35
+#: ../pages/uvfanstest.py:84
 msgid "Fans check"
 msgstr "Comprobación de ventiladores"
 
-#: ../pages/calibration.py:555
+#: ../pages/calibration.py:542
 #, python-format
 msgid "Fast move %(count)d/%(total)d"
 msgstr "Movimiento rápido %(count)d/%(total)d"
 
-#: ../libHardware.py:573
-msgid "Fatal error"
-msgstr "Error fatal"
-
-#: ../pages/feedme.py:17
-msgid "Feed me"
-msgstr "Alimentame"
-
-#: ../libPages.py:170
-msgid "Fetching"
-msgstr "Obteniendo"
-
-#: ../pages/netupdate.py:147
+#: ../libNetwork.py:207
 msgid "Fetching examples"
 msgstr "Obteniendo ejemplos"
 
-#: ../pages/firmwareupdate.py:115
+#: ../pages/firmwareupdate.py:123
 msgid "Fetching firmware"
 msgstr "Obteniendo firmware"
 
-#: ../pages/netupdate.py:113
+#: ../pages/advancedsettings.py:397
 msgid "Fetching of samples failed"
 msgstr "La recogida de muestras falló"
 
-#: ../pages/finished.py:24
-msgid "Finished"
-msgstr "Finalizado"
-
-#: ../pages/firmwareupdate.py:23
-msgid "Firmware Update"
-msgstr "Actualización de Firmware"
-
-#: ../pages/firmwareupdate.py:120
+#: ../pages/firmwareupdate.py:129
 msgid "Firmware fetch failed!"
 msgstr "¡Falló la búsqueda de firmware!"
 
-#: ../pages/admin.py:33
-msgid "Flash MC"
-msgstr "Flashear MC"
+#: ../pages/print/going.py:50
+msgid "Going down"
+msgstr "Bajando"
 
-#: ../libHardware.py:584
-msgid "Forced update of the motion controller firmware"
-msgstr "Actualización obligatoria del firmware del controlador de movimiento"
+#: ../pages/print/tilting.py:33 ../pages/print/going.py:34
+msgid "Going up"
+msgstr "Subiendo"
 
-#: ../libHardware.py:53
-msgid "Fuse bit settings have failed"
-msgstr "Ha fallado el ajuste de los bits de los fusibles."
-
-#: ../libHardware.py:55
-msgid "GPIO SPI has failed"
-msgstr "Ha fallado el GPIO SPI"
-
-#: ../libExposure.py:219
-msgid "Going back"
-msgstr "Volver atrás"
-
-#: ../libExposure.py:191
-msgid "Going to the top position"
-msgstr "Subiendo a la posición superior"
-
-#: ../pages/display.py:30
-msgid "Grid 16"
-msgstr "Rejilla 16"
-
-#: ../pages/display.py:29
-msgid "Grid 8"
-msgstr "Rejilla 8"
-
-#: ../pages/setup.py:118
-msgid "Hardware Setup"
-msgstr "Ajustes de Hardware"
-
-#: ../pages/admin.py:30
-msgid "Hardware setup"
-msgstr "Ajustes del hardware"
-
-#: ../pages/home.py:16
-msgid "Home"
-msgstr "Home"
-
-#: ../libPages.py:239
+#: ../pages/base.py:199
 msgid ""
 "If the cover is closed, please check the connection of the cover switch."
 msgstr ""
 "Si la tapa está cerrada, verifica la conexión del interruptor de la tapa."
 
-#: ../pages/calibration.py:28
+#: ../pages/calibration.py:91
 msgid ""
 "If the platform is not yet inserted, insert it according to the picture at "
 "0° angle and secure it with the black knob."
@@ -1268,15 +684,11 @@ msgstr ""
 "Si la plataforma no está todavía colocada, insértala como en la imagen a un "
 "ángulo de 0° y fíjala con el pomo negro."
 
-#: ../pages/media.py:50
+#: ../pages/media.py:51
 msgid "Image"
 msgstr "Imagen"
 
-#: ../pages/profiles.py:40 ../pages/setup.py:34
-msgid "Import"
-msgstr "Importar"
-
-#: ../pages/calibration.py:162
+#: ../pages/calibration.py:200
 msgid ""
 "In the next step, move the tilt up/down until the tilt frame is in direct "
 "contact with the resin tank. The tilt frame and tank have to be aligned in a "
@@ -1286,16 +698,11 @@ msgstr ""
 "marco de inclinación esté en contacto directo con el tanque de resina. El "
 "marco de inclinación y el tanque tienen que estar alineados perfectamente."
 
-#: ../pages/infinitetest.py:20 ../pages/infinitetest.py:46
-#: ../pages/display.py:37
-msgid "Infinite test"
-msgstr "Test infinito"
-
-#: ../pages/factoryreset.py:120
+#: ../pages/factoryreset.py:211
 msgid "Insert protective foam"
 msgstr "Introduce la espuma protectora"
 
-#: ../pages/wizard.py:450
+#: ../pages/wizard.py:374
 msgid ""
 "Insert the platform at a 60-degree angle, exactly like in the picture. The "
 "platform must hit the edges of the tank on its way down."
@@ -1307,56 +714,7 @@ msgstr ""
 msgid "Invalid firmware source!"
 msgstr "¡Fuente de firmware desconocida!"
 
-#: ../pages/display.py:40
-msgid "Inverse"
-msgstr "Inversa"
-
-#: ../pages/admin.py:168
-msgid ""
-"Is there the correct amount of resin in the tank?\n"
-"\n"
-"Is the tank secured with both screws?"
-msgstr ""
-"¿Hay la cantidad correcta de resina en el tanque? \n"
-"\n"
-"¿Está el tanque asegurado con los dos tornillos?"
-
-#: ../pages/infinitetest.py:29
-msgid ""
-"It is strongly recommended to NOT run this test. This is an infinite routine "
-"which tests durability of expostition display and mechanical parts."
-msgstr ""
-"Se recomienda encarecidamente NO ejecutar esta rutina. Se trata de una "
-"rutina de duración ilimitada de comprobación del desgaste a la exposición UV "
-"de la pantalla LCD y otras piezas mecánicas."
-
-#: ../pages/infinitetest.py:27
-msgid ""
-"It is strongly recommended to NOT run this test.This is infinite routine "
-"which tests durability of expostition display and printers mechanical parts."
-msgstr ""
-"Se recomienda encarecidamente NO ejecutar esta prueba. Esta es una rutina "
-"infinita que prueba la durabilidad de la pantalla de exposición y las piezas "
-"mecánicas de la impresora."
-
-#: ../libPages.py:648
-msgid "Job will be canceled after layer finish"
-msgstr "El trabajo se cancelará después de finalizar la capa"
-
-#: ../pages/setup.py:304
-msgid "Layer tower hop [mm]"
-msgstr "Salto de capa de la torre [mm]"
-
-#: ../pages/setup.py:303
-msgid "Layer trigger [s]"
-msgstr "Trigger capa [s]"
-
-#: ../pages/service.py:33
-#, python-format
-msgid "Layers: %d"
-msgstr "Capas: %d"
-
-#: ../pages/printstart.py:100
+#: ../pages/print/check_confirm.py:52
 msgid ""
 "Loading the file into the printer's memory failed.\n"
 "\n"
@@ -1370,23 +728,11 @@ msgstr ""
 "\n"
 "¡NO retires el dispositivo USB!"
 
-#: ../libPages.py:275
-msgid "Log save failed"
-msgstr "Falló el guardado de registros"
-
-#: ../pages/admin.py:40 ../pages/logs.py:16
-msgid "Logging"
-msgstr "Registrando"
-
-#: ../pages/setlogincredentials.py:17
-msgid "Login Credentials"
-msgstr "Credenciales de acceso"
-
-#: ../pages/wizard.py:255
+#: ../pages/wizard.py:259
 msgid "Loosen the black knob and remove the platform."
 msgstr "Afloja el pomo negro  y retira la plataforma."
 
-#: ../pages/calibration.py:79
+#: ../pages/calibration.py:136
 msgid ""
 "Loosen the small screw on the cantilever with an allen key. Be careful not "
 "to unscrew it completely.\n"
@@ -1400,50 +746,13 @@ msgstr ""
 "Algunas impresoras SL1 pueden tener dos tornillos - consulta el manual para "
 "obtener más información."
 
-#: ../pages/setup.py:138
-msgid "MC board version"
-msgstr "Versión de la tarjeta MC"
-
-#: ../pages/setup.py:126
-msgid "MC version check"
-msgstr "Comprobación versión MC"
-
-#: ../pages/admin.py:35
-msgid "MC2Net (bootloader)"
-msgstr "MC2Net (bootloader)"
-
-#: ../pages/admin.py:36
-msgid "MC2Net (firmware)"
-msgstr "MC2Net (firmware)"
-
-#: ../pages/fantest.py:30
-msgid "Make sure all fan air vens are clean and not blocked."
-msgstr ""
-"Asegúrate de que las entradas de los ventiladores están limpias y no "
-"bloqueadas."
-
-#: ../pages/fantest.py:29
-msgid "Make sure all fan air vens are clean and not covered up."
-msgstr "Asegúrate de que todas las salidas de aire estén limpias y sin tapar."
-
-#: ../pages/fantest.py:29
+#: ../pages/uvfanstest.py:34
 msgid "Make sure all fan air vents are clean and not blocked."
 msgstr ""
 "Asegúrate de que las entradas para los ventiladores están limpios y no están "
-"bloqueados"
+"bloqueados."
 
-#: ../pages/calibration.py:274
-msgid ""
-"Make sure the platform, tank and tilt are PERFECTLY clean.\n"
-"\n"
-"The image is for illustation only."
-msgstr ""
-"Asegúrate de que la plataforma, el tanque y el mecanismo de inclinación "
-"están escrupulosamente limpios.\n"
-"\n"
-"La imagen es solo ilustrativa."
-
-#: ../pages/calibration.py:290
+#: ../pages/calibration.py:315
 msgid ""
 "Make sure the platform, tank and tilt are PERFECTLY clean.\n"
 "\n"
@@ -1454,160 +763,84 @@ msgstr ""
 "\n"
 "La imagen es solo ilustrativa."
 
-#: ../pages/manual.py:17
-msgid "Manual"
-msgstr "Manual"
-
-#: ../libExposure.py:352
+#: ../pages/print/feedme.py:32
 msgid "Manual resin refill"
 msgstr "Relleno manual de resina"
 
-#: ../pages/display.py:31
-msgid "Maze"
-msgstr "Maze"
-
-#: ../pages/printstart.py:356
-#, python-format
-msgid "Measured resin volume is approx. %d %%"
-msgstr "El volumen medido de resina es aprox. %d %%"
-
-#: ../pages/admin.py:205
-#, python-format
-msgid "Measured resin volume: %d ml"
-msgstr "Volumen medido de resina: %d ml"
-
-#: ../pages/admin.py:192
-msgid "Measuring"
-msgstr "Midiendo"
-
-#: ../pages/setup.py:133
-msgid "Measuring moves count"
-msgstr "Contador de movimientos de medida"
-
-#: ../pages/printstart.py:322
-msgid "Measuring resin volume"
-msgstr "Midiendo volumen de resina"
-
-#: ../pages/calibration.py:512
+#: ../pages/calibration.py:507
 msgid "Measuring tilt times"
 msgstr "Midiendo el tiempo de inclinación"
 
-#: ../pages/admin.py:29 ../pages/motioncontroller.py:23
-msgid "Motion Controller"
-msgstr "Controlador de movimiento"
-
-#: ../libHardware.py:538
-msgid "Motion controller update has failed!"
-msgstr "¡Ha fallado la actualización del controlador de movimiento!"
-
-#: ../pages/printstart.py:389
-msgid "Moving platform down"
-msgstr "Moviendo la plataforma hacia abajo"
-
-#: ../libExposure.py:471 ../pages/admin.py:177 ../pages/control.py:28
-#: ../pages/tilttower.py:105 ../pages/tilttower.py:120
+#: ../pages/control.py:23
 msgid "Moving platform to the top"
 msgstr "Moviendo la plataforma hasta arriba"
 
-#: ../pages/tilttower.py:126
-msgid "Moving platform to zero"
-msgstr "Moviendo la plataforma al cero"
-
-#: ../pages/printstart.py:341 ../pages/printstart.py:396
+#: ../pages/print/going.py:40
 msgid "Moving platform up"
 msgstr "Moviendo la plataforma hacia arriba"
 
-#: ../pages/printstart.py:385
-msgid "Moving tank down"
-msgstr "Bajando tanque"
+#: ../pages/print/tilting.py:49
+msgid "Moving tilt down"
+msgstr "Bajando inclinación"
 
-#: ../pages/setup.py:129
-msgid "Mute (no beeps)"
-msgstr "Silenciar (sin beeps)"
+#: ../pages/print/tilting.py:36
+msgid "Moving tilt up"
+msgstr "Subiendo inclinación"
 
-#: ../pages/netupdate.py:24
-msgid "Net Update"
-msgstr "Actualización a través de la red"
+#: ../pages/print/going.py:53
+msgid "Moving tower down"
+msgstr "Bajando torre"
 
-#: ../pages/admin.py:39
-msgid "Net update"
-msgstr "Actualización a través de la red"
+#: ../pages/print/going.py:37
+msgid "Moving tower to the top position"
+msgstr "Moviendo torre a la posición superior"
 
-#: ../pages/network.py:19
-msgid "Network"
-msgstr "Red"
-
-#: ../pages/netinfo.py:18
-msgid "Network Information"
-msgstr "Información de red"
-
-#: ../libPages.py:253 ../pages/profiles.py:85 ../pages/profiles.py:109
-#: ../pages/setup.py:46 ../pages/setup.py:65 ../pages/display.py:78
+#: ../pages/base.py:217
 msgid "No USB storage present"
 msgstr "Almac. USB no presente"
 
-#: ../pages/uvcalibration.py:53
+#: ../pages/uvcalibration.py:60
 msgid "No calibration data to show!"
 msgstr "No hay datos de calibración para mostrar!"
 
-#: ../pages/service.py:83
-msgid "No data to show!"
-msgstr "No hay datos para mostrar!"
-
-#: ../libConfig.py:615
-msgid "No data was read."
-msgstr "No se han leído datos."
-
-#: ../pages/admin.py:128 ../pages/sourceselect.py:267 ../pages/netinfo.py:53
+#: ../pages/sourceselect.py:268
 msgid "Not connected to network"
 msgstr "No conectada a la red"
 
-#: ../libConfig.py:573
-msgid "Not enough layers."
-msgstr "No hay suficientes capas."
+#: ../pages/print/base.py:88
+msgid ""
+"Not enough layers.\n"
+"\n"
+"Re-export the project and try again."
+msgstr ""
+"No hay suficientes capas.\n"
+"\n"
+"Vuelva a exportar el proyecto e intenta nuevamente."
 
 #: ../pages/setlogincredentials.py:41
 msgid "Octoprint API key change failed"
 msgstr "Ha fallado el cambio de la clave del API de Octoprint"
 
-#: ../pages/uvcalibration.py:236
-#, python-format
-msgid "PWM range: <%(minp)d, %(maxp)d>"
-msgstr "Rango PWM: <%(minp)d, %(maxp)d>"
-
-#: ../pages/uvcalibration.py:420
-#, python-format
-msgid "PWM: %d"
-msgstr "Valor PWM: %d"
-
-#: ../libExposure.py:207
+#: ../pages/print/cover.py:27
 msgid "Paused"
 msgstr "Pausada"
 
-#: ../pages/setup.py:300
-msgid "Per-Partes expos."
-msgstr "Expos. Por-Partes"
-
-#: ../pages/calibration.py:374
+#: ../pages/calibration.py:392
 msgid "Platform calibration"
 msgstr "Calibración de la plataforma"
 
-#: ../pages/wizard.py:266 ../pages/wizard.py:383 ../pages/wizard.py:461
-#: ../pages/advancedsettings.py:313 ../pages/calibration.py:364
+#: ../pages/wizard.py:270 ../pages/wizard.py:316 ../pages/wizard.py:385
+#: ../pages/uvdispsettings.py:37 ../pages/calibration.py:382
 msgid "Please close the orange lid."
 msgstr "Por favor cierra la cubierta naranja."
 
-#: ../libHardware.py:575
-msgid "Please contact tech support!"
-msgstr "¡Por favor contacta con el soporte técnico!"
-
-#: ../pages/printstart.py:291
+#: ../pages/print/preview.py:31
 #, python-format
 msgid "Please fill the resin tank to at least %d %% and close the cover."
 msgstr ""
 "Por favor llena el tanque de resina hasta el %d %% y cierra la cubierta."
 
-#: ../pages/printstart.py:295
+#: ../pages/print/preview.py:34
 msgid ""
 "Please fill the resin tank to the 100 % mark and close the cover.\n"
 "\n"
@@ -1617,73 +850,37 @@ msgstr ""
 "\n"
 "Deberá añadir resina durante este trabajo de impresión."
 
-#: ../pages/unboxing.py:37
+#: ../pages/unboxing.py:96
 msgid "Please remove the safety sticker and open the orange cover."
 msgstr "Retira la etiqueta de seguridad y abre la cubierta naranja."
 
-#: ../pages/unboxing.py:25
+#: ../pages/unboxing.py:76
 msgid ""
 "Please remove the safety sticker on the right and open the orange cover."
 msgstr ""
 "Retira la etiqueta de seguridad de la derecha y abre la cubierta naranja."
 
-#: ../pages/unboxing.py:24
-msgid ""
-"Please remove the safety sticker on the right and open the orange cover.\n"
-"\n"
-"In case you assembled your printer, you can skip this wizard by hitting the "
-"Back button."
-msgstr ""
-"Retira la etiqueta de seguridad de la derecha y abre la cubierta naranja. \n"
-"\n"
-"En caso de que hayas montado tu impresora, puede saltar este asistente "
-"presionando el botón Atrás."
-
-#: ../pages/wizard.py:245 ../pages/advancedsettings.py:303
+#: ../pages/wizard.py:249 ../pages/uvdispsettings.py:27
 msgid "Please unscrew and remove the resin tank."
 msgstr "Por favor desatornilla y retira el tanque de resina."
 
-#: ../libPages.py:713
+#: ../pages/unboxing.py:92 ../pages/unboxing.py:108 ../pages/wait.py:15
+#: ../pages/print/waiting.py:24
 msgid "Please wait"
 msgstr "Por favor espere"
 
-#: ../pages/uvcalibration.py:211 ../pages/uvcalibration.py:278
-#: ../pages/uvcalibration.py:307 ../pages/uvcalibration.py:373
+#: ../pages/uvcalibration.py:194 ../pages/uvcalibration.py:271
+#: ../pages/uvcalibration.py:302 ../pages/uvcalibration.py:368
+#: ../pages/uvfanstest.py:44
 msgid "Please wait..."
 msgstr "Espera por favor..."
 
-#: ../pages/setup.py:136
-msgid "Power LED intensity"
-msgstr "Potencia de intensidad LED"
-
-#: ../pages/print.py:19
-msgid "Print"
-msgstr "Imprimir"
-
-#: ../libExposure.py:475
+#: ../pages/print/base.py:146
 msgid ""
 "Print failed due to an unexpected error\n"
 "\n"
 "Please follow the instructions in Chapter 3.1 in the handbook to learn how "
 "to save a log file. Please send the log to us and help us improve the  "
-"printer.\n"
-"\n"
-"Thank you!"
-msgstr ""
-"La impresora falló debido a un error inesperado\n"
-"\n"
-"Por favor sigue las instrucciones en el Capítulo 3.1 en el manual para "
-"aprender a como guardar el archivo de registro. Por favor envíanos el "
-"registro y ayudanos a mejorar la impresora.\n"
-"\n"
-"¡Gracias!"
-
-#: ../libExposure.py:476
-msgid ""
-"Print failed due to an unexpected error\n"
-"\n"
-"Please follow the instructions in Chapter 3.1 in the handbook to learn how "
-"to save a log file. Please send the log to us and help us improve the "
 "printer.\n"
 "\n"
 "Thank you!"
@@ -1696,37 +893,15 @@ msgstr ""
 "\n"
 "¡Gracias!"
 
-#: ../libExposure.py:475
-msgid ""
-"Print failed due to an unexpected error :-(\n"
-"\n"
-"Please follow the instructions in Chapter 3.1 in the handbook to learn how "
-"to save a log file. Please send the log to us and help us improve the "
-"printer.\n"
-"\n"
-"Thank you!"
-msgstr ""
-" La impresión falló debido a un error inesperado :-(\n"
-"\n"
-"Sigue las instrucciones del Capítulo 3.1 en el manual para aprender cómo "
-"guardar un archivo de registro. Envíanos el registro y ayúdanos a mejorar la "
-"impresora.\n"
-"\n"
-"¡Gracias!"
-
 #: ../pages/calibration.py:50
 msgid "Printer calibration"
-msgstr "Calibración de la impresora "
+msgstr "Calibración de la impresora"
 
-#: ../pages/calibration.py:35
-msgid "Printer homing"
-msgstr "Posicionamiento inicial de la impresora"
-
-#: ../pages/factoryreset.py:97 ../pages/factoryreset.py:126
+#: ../pages/factoryreset.py:192 ../pages/factoryreset.py:216
 msgid "Printer is being set to packing positions"
 msgstr "La impresora se está colocando en la posición de transporte"
 
-#: ../pages/home.py:55
+#: ../pages/calibration.py:56
 msgid ""
 "Printer is not calibrated!\n"
 "\n"
@@ -1736,42 +911,55 @@ msgstr ""
 "\n"
 "¿Calibrar ahora?"
 
-#: ../libExposure.py:203
+#: ../pages/print/stuck.py:24
+msgid "Printer stuck"
+msgstr "Impresora atascada"
+
+#: ../pages/print/waiting.py:29
 #, python-format
 msgid "Printing will continue in %d second"
 msgid_plural "Printing will continue in %d seconds"
 msgstr[0] "La impresión continuará en %d segundo"
 msgstr[1] "La impresión continuará en %d segundos"
 
-#: ../pages/printstart.py:62
-msgid "Project"
-msgstr "Proyecto"
+#: ../pages/print/base.py:87
+msgid ""
+"Project data is corrupted.\n"
+"\n"
+"Re-export the project and try again."
+msgstr ""
+"Los datos del proyecto están dañados.\n"
+"\n"
+"Vuelve a exportar el proyecto e intenta nuevamente."
 
-#: ../pages/printstart.py:189
-msgid "Project data OK"
-msgstr "Datos de proyecto OK"
+#: ../pages/print/base.py:85
+msgid ""
+"Project file not found.\n"
+"\n"
+"Check it and try again."
+msgstr ""
+"Archivo de proyecto no encontrado.\n"
+"\n"
+"Compruébalo e inténtalo de nuevo."
 
-#: ../libConfig.py:531
-msgid "Project file not found."
-msgstr "Archivo de proyecto no encontrado."
+#: ../pages/print/check_confirm.py:88
+#, python-format
+msgid ""
+"Project is for different printer model.\n"
+"\n"
+"Actual printer: %(amodel)s/%(avariant)s\n"
+"Project printer: %(pmodel)s/%(pvariant)s\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+"El proyecto es para diferentes modelos de impresoras.\n"
+"\n"
+"Impresora actual: %(amodel)s/%(avariant)s\n"
+"Impresora del proyecto: %(pmodel)s/%(pvariant)s\n"
+"\n"
+"¿Deseas continuar?"
 
-#: ../pages/sourceselect.py:117
-msgid "Projects"
-msgstr "Proyectos"
-
-#: ../pages/service.py:32
-msgid "Projects: %d"
-msgstr "Proyectos: %d"
-
-#: ../pages/display.py:34
-msgid "Prusa logo"
-msgstr "Logo Prusa"
-
-#: ../pages/qrcode.py:16
-msgid "QR Code"
-msgstr "Código QR"
-
-#: ../pages/uvfanstest.py:122
+#: ../pages/uvfanstest.py:128
 #, python-format
 msgid ""
 "RPM of %(fan)s not in range!\n"
@@ -1790,30 +978,7 @@ msgstr ""
 "Media: %(avg)s\n"
 "Fan error: %(fanError)s"
 
-#: ../pages/fantest.py:81
-#, python-format
-msgid ""
-"RPM of %(fan)s not in range!\n"
-"\n"
-"Please check if the fan is connected correctly.\n"
-"\n"
-"RPM data: %(rpm)s avg: %(avg)d"
-msgstr ""
-"¡RPM de %(fan)s no dentro del rango!\n"
-"\n"
-"Comprueba si el ventilador está conectado correctamente.\n"
-"\n"
-"Datos RPM: %(rpm)s promedio: %(avg)d"
-
-#: ../pages/admin.py:43
-msgid "Raise exception"
-msgstr "Elevar excepción"
-
-#: ../pages/uvcalibration.py:183
-msgid "Reading data"
-msgstr "Leyendo datos"
-
-#: ../libPages.py:547
+#: ../pages/base.py:470
 #, python-format
 msgid ""
 "Reading of UV LED temperature has failed!\n"
@@ -1833,101 +998,39 @@ msgstr ""
 "\n"
 "%s"
 
-#: ../libPages.py:654
+#: ../pages/print/reading.py:27
 msgid "Reading project data"
 msgstr "Leyendo datos del proyecto"
 
-#: ../pages/fansleds.py:31
-msgid "Rear fan"
-msgstr "Ventilador trasero"
-
-#: ../pages/fansleds.py:37
-msgid "Rear fan RPM"
-msgstr "RPM ventilador trasero"
-
-#: ../pages/uvcalibration.py:147
-msgid "Recalibrate?"
-msgstr "¿Recalibrar?"
-
-#: ../pages/factoryreset.py:37
+#: ../pages/factoryreset.py:90
 msgid "Relax... You've been erased."
 msgstr "Relájate... Has sido borrado."
 
-#: ../pages/fantest.py:55 ../pages/wizard.py:318
+#: ../pages/uvcalibration.py:257 ../pages/uvcalibration.py:292
+#: ../pages/uvcalibration.py:363 ../pages/uvfanstest.py:94
 #, python-format
 msgid "Remaining %d second"
 msgid_plural "Remaining %d seconds"
-msgstr[0] "Faltan %d segundos"
-msgstr[1] "Faltan %d segundos"
+msgstr[0] "Faltan: %d segundo"
+msgstr[1] "Faltan: %d segundos"
 
-#: ../pages/unboxing.py:86
+#: ../pages/unboxing.py:128
 msgid "Remove the black foam from both sides of the platform."
 msgstr "Retira la espuma negra de ambos lados de la plataforma."
 
-#: ../pages/uvcalibration.py:300
-msgid ""
-"Replace the tank with the UV meter.\n"
-"\n"
-"Do NOT remove the UV meter during measurement. Doing so may expose your eyes "
-"to harmful UV radiation."
-msgstr ""
-"Reemplaza el tanque con el medidor UV.\n"
-"\n"
-"NO retires el medidor UV durante la medición. Hacerlo puede exponer tus ojos "
-"a la radiación UV dañina."
-
-#: ../pages/uvcalibration.py:304
-msgid ""
-"Replace the tank with the plate with cut out slots for UV meter.\n"
-"\n"
-"During measurement, place the UV meter on the required slots, if you do not, "
-"your eyes may be exposed to harmful UV radiation."
-msgstr ""
-"Reemplaza el tanque con la placa con ranuras cortadas para el medidor UV.\n"
-"\n"
-"Durante la medición, coloca el medidor UV en las ranuras requeridas; si no "
-"lo haces, tus ojos pueden estar expuestos a la radiación UV dañina."
-
-#: ../pages/uvcalibration.py:455
+#: ../pages/uvcalibration.py:406
 msgid "Requested intensity cannot be reached by max. allowed PWM"
 msgstr "Intensidad solicitada no puede alcanzar el PWM max. permitido"
 
-#: ../pages/uvcalibration.py:197
-msgid ""
-"Requested intensity cannot be reached by max. allowed PWM (weak UV LED?).\n"
-"\n"
-"Change the values and try again."
-msgstr ""
-"Intensidad solicitada no puede alcanzar el PWM max. permitido (¿LED UV "
-"débil?).\n"
-"\n"
-"Cambia los valores e inténtalo de nuevo."
-
-#: ../pages/uvcalibration.py:453
+#: ../pages/uvcalibration.py:404
 msgid "Requested intensity cannot be reached by min. allowed PWM"
 msgstr "Intensidad solicitada no puede alcanzar el PWM min. permitido"
 
-#: ../pages/uvcalibration.py:255
-msgid ""
-"Requested intensity cannot be reached by min. allowed PWM (jammed UV "
-"meter?).\n"
-"\n"
-"Change the values and try again."
-msgstr ""
-"Intensidad solicitada no puede alcanzar el PWM min. permitido (¿lector UV "
-"atascado?).\n"
-"\n"
-"Cambia los valores e inténtalo de nuevo."
-
-#: ../pages/fansleds.py:118
-msgid "Reset to factory defaults?"
-msgstr "¿Reiniciar a valores de fábrica?"
-
-#: ../libExposure.py:349
+#: ../pages/print/feedme.py:30
 msgid "Resin level low!"
 msgstr "¡El nivel de resina es bajo!"
 
-#: ../pages/admin.py:197 ../pages/printstart.py:327
+#: ../pages/print/base.py:114
 msgid ""
 "Resin measuring failed!\n"
 "\n"
@@ -1941,11 +1044,11 @@ msgstr ""
 "\n"
 "¿Está el tanque asegurado con los dos tornillos?"
 
-#: ../pages/wizard.py:471
+#: ../pages/wizard.py:395
 msgid "Resin sensor check"
 msgstr "Comprobación sensor de resina"
 
-#: ../pages/wizard.py:480
+#: ../pages/wizard.py:404
 #, python-format
 msgid ""
 "Resin sensor not working!\n"
@@ -1962,15 +1065,7 @@ msgstr ""
 "\n"
 "Medido %d ml."
 
-#: ../pages/admin.py:37
-msgid "Resin sensor test"
-msgstr "Espera por favor"
-
-#: ../pages/printstart.py:410
-msgid "Resin stirring"
-msgstr "Agitado de resina"
-
-#: ../pages/printstart.py:334
+#: ../pages/print/base.py:140
 msgid ""
 "Resin volume is too high!\n"
 "\n"
@@ -1980,7 +1075,7 @@ msgstr ""
 "\n"
 "Retira un poco de resina del tanque e inténtalo de nuevo."
 
-#: ../pages/printstart.py:331
+#: ../pages/print/base.py:132
 #, python-format
 msgid ""
 "Resin volume is too low!\n"
@@ -1991,11 +1086,7 @@ msgstr ""
 "\n"
 "Añade suficiente resina hasta la marca %d %%  e inténtalo de nuevo."
 
-#: ../pages/printstart.py:370
-msgid "Resin volume measurement is turned off"
-msgstr "Se ha desactivado la medida del nivel de resina"
-
-#: ../pages/calibration.py:311
+#: ../pages/calibration.py:343
 msgid ""
 "Return the tank to the original position and secure it with tank screws. "
 "Make sure you tighten both screws evenly and with the same amount of force."
@@ -2004,47 +1095,23 @@ msgstr ""
 "tornillos. Asegúrate de apretar ambos tornillos de manera uniforme y con la "
 "misma fuerza."
 
-#: ../libDebug.py:42 ../libWebDisplay.py:69
+#: ../libWebDisplay.py:54
 msgid "SERVER ERROR!"
 msgstr "¡ERROR DE SERVIDOR!"
 
-#: ../pages/fansleds.py:44 ../pages/profiles.py:41 ../pages/setup.py:35
-msgid "Save"
-msgstr "Guardar"
-
-#: ../pages/advancedsettings.py:433 ../pages/advancedsettings.py:434
+#: ../pages/advancedsettings.py:443 ../pages/advancedsettings.py:444
 msgid "Save changes?"
 msgstr "¿Guardar los cambios?"
 
-#: ../pages/fansleds.py:97
-msgid "Save current values as factory defaults?"
-msgstr "¿Guardar valores actuales como valores de fábrica?"
-
-#: ../pages/fansleds.py:42
-msgid "Save defaults"
-msgstr "Guardar por defecto"
-
-#: ../pages/logs.py:22
-msgid "Save logs to USB"
-msgstr "Guardar los registros en USB"
-
-#: ../pages/logs.py:32
-msgid "Save settings"
-msgstr "Guardar ajustes"
-
-#: ../libPages.py:257
+#: ../pages/base.py:211
 msgid "Saving logs"
 msgstr "Almacenando registros"
 
-#: ../actions.py:44
+#: ../pages/base.py:221
 msgid "Saving logs failed"
 msgstr "No se pudieron guardar los registros"
 
-#: ../pages/setup.py:131
-msgid "Screw (mm/rot)"
-msgstr "Tornillo (mm/rot)"
-
-#: ../pages/wizard.py:371
+#: ../pages/wizard.py:304
 msgid ""
 "Secure the resin tank with resin tank screws.\n"
 "\n"
@@ -2053,16 +1120,6 @@ msgstr ""
 "Asegura el tanque de resina con tornillos para el tanque de resina.\n"
 "\n"
 "Asegúrate de que el tanque está vacío y limpio."
-
-#: ../pages/wizard.py:625
-msgid ""
-"Selftest OK.\n"
-"\n"
-"Continue to calibration?"
-msgstr ""
-"Selftest OK.\n"
-"\n"
-"¿Continuar con la calibración?"
 
 #: ../pages/wizard.py:546
 msgid ""
@@ -2074,19 +1131,11 @@ msgstr ""
 "\n"
 "Impresora lista para calibración."
 
-#: ../pages/netupdate.py:32
-msgid "Send factory config"
-msgstr "Enviar la configuración de fábrica"
-
 #: ../pages/factoryreset.py:64
 msgid "Sending printer data"
 msgstr "Enviando datos de la impresora"
 
-#: ../libHardware.py:52
-msgid "Serial number check has failed"
-msgstr "Ha fallado la comprobación del número de serie"
-
-#: ../pages/wizard.py:43
+#: ../pages/wizard.py:104
 #, python-format
 msgid ""
 "Serial numbers in wrong format!\n"
@@ -2101,128 +1150,76 @@ msgstr ""
 "MC: %(mc)s\n"
 "¡Por favor contacta con el soporte técnico!"
 
-#: ../pages/admin.py:31 ../pages/service.py:22
-msgid "Service"
-msgstr "Servicio"
-
-#: ../pages/timedate.py:137
-msgid "Set Date"
-msgstr "Ajustar Fecha"
-
-#: ../pages/hostname.py:16
-msgid "Set Hostname"
-msgstr "Nombre del equipo"
-
-#: ../pages/language.py:18
-msgid "Set Language"
-msgstr "Ajustar Idioma"
-
-#: ../pages/timedate.py:124
-msgid "Set Time"
-msgstr "Ajustar Hora"
-
-#: ../pages/timedate.py:151
-msgid "Set Timezone"
-msgstr "Ajustar Huso horario"
-
-#: ../pages/network.py:107 ../pages/network.py:138
-msgid "Setting interface parameters"
-msgstr "Parámetros de configuración de la interfaz"
-
-#: ../pages/calibration.py:122
+#: ../pages/calibration.py:170
 msgid "Setting start position"
 msgstr "Fijando posición inicial"
 
-#: ../libExposure.py:276
+#: ../pages/uvcalibration.py:194 ../pages/print/stuck.py:54
 msgid "Setting start positions"
 msgstr "Fijando las posiciones iniciales"
 
-#: ../pages/printstart.py:167
-msgid "Setting start positions..."
-msgstr "Fijando las posiciones iniciales..."
-
-#: ../pages/settings.py:17
-msgid "Settings"
-msgstr "Ajutes"
-
-#: ../pages/wizard.py:619
+#: ../pages/wizard.py:539
 msgid "Setup wizard done"
 msgstr "Asistente de configuración finalizado"
 
-#: ../pages/wizard.py:24
+#: ../pages/wizard.py:84
 msgid "Setup wizard step 1/10"
 msgstr "Paso 1/10 del asistente de configuración"
 
-#: ../pages/wizard.py:576
+#: ../pages/wizard.py:505
 msgid "Setup wizard step 10/10"
 msgstr "Paso 10/10 del asistente de configuración"
 
-#: ../pages/wizard.py:238
+#: ../pages/wizard.py:242
 msgid "Setup wizard step 2/10"
 msgstr "Paso 2/10 del asistente de configuración"
 
-#: ../pages/wizard.py:253
+#: ../pages/wizard.py:257
 msgid "Setup wizard step 3/10"
 msgstr "Paso 3/10 del asistente de configuración"
 
-#: ../pages/wizard.py:264
+#: ../pages/wizard.py:268
 msgid "Setup wizard step 4/10"
 msgstr "Paso 4/10 del asistente de configuración"
 
-#: ../pages/wizard.py:364
+#: ../pages/wizard.py:297
 msgid "Setup wizard step 5/10"
 msgstr "Paso 5/10 del asistente de configuración"
 
-#: ../pages/wizard.py:381
+#: ../pages/wizard.py:314
 msgid "Setup wizard step 6/10"
 msgstr "Paso 6/10 del asistente de configuración"
 
-#: ../pages/wizard.py:443
+#: ../pages/wizard.py:367
 msgid "Setup wizard step 7/10"
 msgstr "Paso 7/10 del asistente de configuración"
 
-#: ../pages/wizard.py:459
+#: ../pages/wizard.py:383
 msgid "Setup wizard step 8/10"
 msgstr "Paso 8/10 del asistente de configuración"
 
-#: ../pages/wizard.py:535
+#: ../pages/wizard.py:469
 msgid "Setup wizard step 9/10"
 msgstr "Paso 9/10 del asistente de configuración"
 
-#: ../pages/display.py:48
-msgid "Show UV calib. data"
-msgstr "Mostrar datos calibración UV"
-
-#: ../pages/display.py:47
-msgid "Show factory UV c.d."
-msgstr "Mostrar datos calibración UV"
-
-#: ../pages/firmwareupdate.py:154
+#: ../pages/firmwareupdate.py:162
 msgid "Shutting down"
 msgstr "Apagando"
 
-#: ../pages/unboxing.py:248
+#: ../pages/unboxing.py:208
 msgid "Skip unboxing?"
 msgstr "¿Saltar desempaquetado?"
 
-#: ../pages/wizard.py:657
+#: ../pages/wizard.py:567
 msgid "Skip wizard?"
 msgstr "¿Saltar asistente?"
 
-#: ../pages/calibration.py:555
+#: ../pages/calibration.py:542
 #, python-format
 msgid "Slow move %(count)d/%(total)d"
 msgstr "Movimiento lento %(count)d/%(total)d"
 
-#: ../pages/wizard.py:599
-msgid ""
-"Speaker not working.\n"
-"Please check propper connection and wiring of the speaker."
-msgstr ""
-"El altavoz no funciona. \n"
-"Compruebe la conexión adecuada y el cableado del altavoz."
-
-#: ../pages/wizard.py:613
+#: ../pages/wizard.py:525
 msgid ""
 "Speaker not working.\n"
 "Please check the wiring of the speaker."
@@ -2230,81 +1227,36 @@ msgstr ""
 "El altavoz no funciona.\n"
 "Verifica el cableado del altavoz."
 
-#: ../pages/uvcalibration.py:709
-#, python-format
-msgid "Standard deviation: %.1f\n"
-msgstr "Desviación estándar: %.1f\n"
-
-#: ../pages/printstart.py:207
-msgid "Start positions OK"
-msgstr "Posiciones de inicio OK"
-
-#: ../pages/network.py:159
-msgid "Starting AP failed!"
-msgstr "¡Falló al arrancar el Punto de Aceso!"
-
-#: ../pages/network.py:148
-msgid "Starting Access Point"
-msgstr "Comenzando Punto de Acceso"
-
-#: ../pages/uvcalibration.py:583
+#: ../pages/uvcalibration.py:578
 #, python-format
 msgid "Std dev: %.1f\n"
 msgstr "Desv. Est: %.1f\n"
 
-#: ../pages/setup.py:134
-msgid "Stirring moves count"
-msgstr "Contador de movimientos de remover"
+#: ../pages/print/stirring.py:24
+msgid "Stirring"
+msgstr "Agitando"
 
-#: ../libExposure.py:216 ../libExposure.py:292 ../libExposure.py:364
+#: ../pages/print/stirring.py:27
 msgid "Stirring the resin"
 msgstr "Agitando la resina"
 
-#: ../pages/netupdate.py:160
+#: ../libNetwork.py:223
 msgid "Storing examples"
 msgstr "Almacenando ejemplos"
 
-#: ../pages/support.py:16
-msgid "Support"
-msgstr "Soporte"
+#: ../pages/print/stuck.py:51
+msgid "Stuck recovery"
+msgstr "Recuperación atascada"
 
-#: ../pages/motioncontroller.py:127
-msgid "Switching back to real MC"
-msgstr "Cambiando a MC real"
-
-#: ../pages/exception.py:16
+#: ../pages/exception.py:19
 msgid "System Error"
 msgstr "Error del Sistema"
 
-#: ../pages/sysinfo.py:17 ../pages/admin.py:41
-msgid "System Information"
-msgstr "Info del Sistema"
-
-#: ../libHardware.py:56
-msgid "TMC SPI has failed"
-msgstr "Ha fallado el puerto SPI del TMC."
-
-#: ../libHardware.py:57
-msgid "TMC wiring/communication has failed"
-msgstr "Ha fallado la comunicación/cableado del TMC"
-
-#: ../pages/service.py:30
-msgid "TODO"
-msgstr "A REALIZAR"
-
-#: ../libUvLedMeterSingle.py:44
-msgid "TODO: Place the meter to the hole in center"
-msgstr "A REALIZAR: Coloca el medidor en el agujero del medio"
-
-#: ../libUvLedMeterSingle.py:56
-msgid "TODO: Place the meter to the hole on odge"
-msgstr "A REALIZAR: Coloca el medidor en el agujero del borde"
-
-#: ../pages/wizard.py:129
+#: ../pages/wizard.py:147
 msgid "Tank axis check"
 msgstr "Comprobación eje del tanque"
 
-#: ../pages/calibration.py:38
+#: ../pages/calibration.py:98
 msgid "Tank axis homing"
 msgstr "Homing del eje de la torre"
 
@@ -2312,7 +1264,7 @@ msgstr "Homing del eje de la torre"
 msgid "Tank home check"
 msgstr "Comprobación de la posición inicial del tanque"
 
-#: ../pages/control.py:43
+#: ../pages/control.py:42
 msgid ""
 "Tank homing failed!\n"
 "\n"
@@ -2322,38 +1274,16 @@ msgstr ""
 "\n"
 "Comprueba el hardware de la impresora."
 
-#: ../pages/control.py:39
+#: ../pages/control.py:36
 msgid "Tank reset"
 msgstr "Reinicio del tanque"
 
-#: ../libPages.py:565
+#: ../pages/base.py:489
 #, python-format
 msgid "Temperature is %.1f C"
 msgstr "La temperatura es %.1fC"
 
-#: ../pages/profiles.py:295 ../pages/profiles.py:363
-msgid "Test"
-msgstr "Prueba"
-
-#: ../pages/admin.py:30 ../pages/tests.py:18
-msgid "Tests"
-msgstr "Pruebas"
-
-#: ../libHardware.py:58
-msgid "The UV LED has failed"
-msgstr "Los LED UV han fallado"
-
-#: ../pages/uvcalibration.py:148
-msgid ""
-"The UV LED is already calibrated.\n"
-"\n"
-"Would you like to recalibrate?"
-msgstr ""
-"El LED UV ya está calibrado.\n"
-"\n"
-"¿Quieres recalibrar?"
-
-#: ../pages/uvcalibration.py:192
+#: ../pages/uvcalibration.py:308
 msgid ""
 "The UV LED meter detected some light on a dark display. This means there is "
 "a light 'leak' under the UV meter, or your display does not block the UV "
@@ -2369,39 +1299,7 @@ msgstr ""
 "Verifica la ubicación del medidor UV en la pantalla o reemplaza la pantalla "
 "de exposición."
 
-#: ../pages/uvcalibration.py:191
-msgid ""
-"The UV LED meter detected some light on a dark display.This means there is a "
-"light 'leak' under the UV meter, or your display does not block the UV light "
-"enough.\n"
-"\n"
-"Please check the UV meter placement on the screen or replace the exposure "
-"display."
-msgstr ""
-"El medidor UV LED detectó algo de luz en la pantalla oscura. Esto significa "
-"que hay alguna 'fuga' de luz debajo del medidor UV o tu pantalla no bloquea "
-"la luz UV lo suficiente.\n"
-"\n"
-"Verifica la ubicación del medidor UV en la pantalla o reemplaza la pantalla "
-"de exposición."
-
-#: ../pages/uvcalibration.py:172
-msgid ""
-"The UV LED meter detects some light on darken display. That mean there are "
-"some light 'leak' under the UV meter or your display do not block the UV "
-"light enough.\n"
-"\n"
-"Please check the UV meter placement on the screen or replace the exposure "
-"display."
-msgstr ""
-"El medidor UV LED detecta algo de luz en la pantalla oscura. Esto significa "
-"que hay alguna 'fuga' de luz debajo del medidor UV o tu pantalla no bloquea "
-"la luz UV lo suficiente.\n"
-"\n"
-"Verifica la ubicación del medidor UV en la pantalla o reemplaza la pantalla "
-"de exposición."
-
-#: ../pages/uvcalibration.py:198
+#: ../pages/uvcalibration.py:313
 msgid ""
 "The UV LED meter failed to read expected UV light intensity.\n"
 "\n"
@@ -2411,17 +1309,7 @@ msgstr ""
 "\n"
 "Verifica la ubicación del medidor UV en la pantalla."
 
-#: ../pages/uvcalibration.py:177
-msgid ""
-"The UV LED meter failed to read meaningful UV light intensity.\n"
-"\n"
-"Please check the UV meter placement on the screen."
-msgstr ""
-"El medidor LED UV no pudo leer la intensidad de luz UV significativa.\n"
-"\n"
-"Verifica la ubicación del medidor UV en la pantalla."
-
-#: ../pages/uvcalibration.py:177
+#: ../pages/uvcalibration.py:268
 msgid ""
 "The UV LED meter is not detected.\n"
 "\n"
@@ -2431,23 +1319,8 @@ msgstr ""
 "\n"
 "Verifica la conexión e intenta nuevamente."
 
-#: ../pages/display.py:171
-msgid "The automatic UV LED calibration did not finish successfully!"
-msgstr "¡La calibración automática de UV LED no terminó con éxito!"
-
-#: ../pages/netupdate.py:82
-msgid "The automatic UV LED calibration was not finished successfully!"
-msgstr "¡La calibración automática de UV LED no terminó con éxito!"
-
-#: ../pages/display.py:163
-msgid "The calibration did not finish successfully!"
-msgstr "¡La calibración no finalizó con éxito!"
-
-#: ../pages/netupdate.py:74
-msgid "The calibration was not finished successfully!"
-msgstr "¡La calibración no terminó con éxito!"
-
-#: ../pages/uvcalibration.py:457
+#: ../pages/uvcalibration.py:408
+#, python-format
 msgid ""
 "The correct settings was found but standard deviation (%(found).1f) is "
 "greater than allowed value (%(allow).1f).\n"
@@ -2460,32 +1333,11 @@ msgstr ""
 "Verifica la posición del medidor LED UV y la calibración, luego intenta de "
 "nuevo."
 
-#: ../pages/uvcalibration.py:269
-#, python-format
-msgid ""
-"The correct settings was found but standard deviation (%.1f) is greater than "
-"allowed value (20.0).\n"
-"\n"
-"Verify the UV LED meter position and calibration, then try again."
-msgstr ""
-"Se encontró la configuración correcta pero la desviación estándar (%.1f) es "
-"mayor que el valor permitido (20.0).\n"
-"\n"
-"Verifica la posición del medidor LED UV y la calibración, luego intenta de "
-"nuevo."
-
-#: ../pages/unboxing.py:36
+#: ../pages/unboxing.py:96
 msgid "The cover is closed!"
 msgstr "¡La cubierta está cerrada!"
 
-#: ../pages/uvcalibration.py:247
-msgid ""
-"The exposure display do not block the UV light enough. Replace it please."
-msgstr ""
-"La pantalla de exposición no bloquea suficiente luz UV. Reemplázala, por "
-"favor."
-
-#: ../pages/printstart.py:289
+#: ../pages/print/base.py:99
 msgid ""
 "The platform has failed to move to the correct position!\n"
 "\n"
@@ -2502,25 +1354,7 @@ msgstr ""
 "Si todo está limpio, la impresora necesita ser reparada. Por favor contacta "
 "con el servicio  técnico."
 
-#: ../pages/printstart.py:403
-msgid ""
-"The platform has failed to move to the desired position!\n"
-"\n"
-"Please clean any cured resin remains or other pieces that can block the "
-"move.\n"
-"\n"
-"If everything is clean, the printer needs service. Please contact tech "
-"support."
-msgstr ""
-"¡La plataforma no se ha podido mover a la posición deseada!\n"
-"\n"
-"Limpia cualquier posible resto de resina curada o cualquier otro elemento "
-"que bloquee el  movimiento.\n"
-"\n"
-"Si todo está limpio, la impresora necesita ser reparada. Por favor contacta "
-"con el servicio  técnico."
-
-#: ../libExposure.py:265
+#: ../pages/print/stuck.py:29
 msgid ""
 "The printer got stuck and needs user assistance.\n"
 "\n"
@@ -2536,7 +1370,7 @@ msgstr ""
 "Si no quieres continuar, pulsa el botón Atrás en la parte superior de la "
 "pantalla y se cancelará el trabajo actual."
 
-#: ../pages/uvcalibration.py:587
+#: ../pages/uvcalibration.py:582
 msgid ""
 "The printer has been successfully calibrated! You can now open the lid and "
 "remove the UV meter.\n"
@@ -2569,138 +1403,19 @@ msgstr ""
 "debido a un fallo en el hardware. Los ajustes de la impresora se podrían "
 "haber perdido."
 
-#: ../libPrinter.py:114
-msgid ""
-"The printer has booted from an alternative slot due to failed boot attempts "
-"using the primary slot.\n"
-"\n"
-"Update the printer with up-to-date firmware ASAP to recover the primary "
-"slot.\n"
-"\n"
-"This usually happens after a failed update, or due to a hardware failure. "
-"Printer settings may have been reset."
-msgstr ""
-"La impresora se ha iniciado desde una ranura alternativa debido a intentos "
-"fallidos de inicio utilizando la ranura primaria.\n"
-"\n"
-"Actualiza la impresora con el firmware actualizado lo antes posible para "
-"recuperar la ranura principal.\n"
-"\n"
-"Esto generalmente ocurre después de una actualización fallida o debido a una "
-"fallo de hardware. La configuración de la impresora puede haberse "
-"restablecido."
-
-#: ../pages/unboxing.py:219
+#: ../pages/unboxing.py:192
 msgid "The printer is fully unboxed and ready for the selftest."
 msgstr "La impresora está totalmente desempaquetada y lista para el selftest."
 
-#: ../pages/unboxing.py:43 ../pages/unboxing.py:93
+#: ../pages/unboxing.py:111
 msgid "The printer is moving to allow for easier manipulation"
 msgstr "La impresora se mueve para permitir una manipulación más fácil"
 
-#: ../pages/uvcalibration.py:714
-msgid ""
-"The result of calibration\n"
-"PWM: %(pwm)d\n"
-"Intensity: %(int).1f\n"
-"Minimal value: %(min)d\n"
-"%(dev)s\n"
-"Would you like to apply the calibration?"
-msgstr ""
-"El resultado de la calibración \n"
-"Valor PWM: %(pwm)d\n"
-"Intensidad %(int).1f\n"
-"Valor mímimo: %(min)d\n"
-"%(dev)s\n"
-"¿Te gustaría aplicar esta calibración?"
-
-#: ../pages/uvcalibration.py:326
-#, python-format
-msgid ""
-"The result of calibration\n"
-"PWM: %(pwm)d\n"
-"Intensity: %(int).1f\n"
-"Standard deviation: %(dev).1f\n"
-"\n"
-"Would you like to apply the calibration?"
-msgstr ""
-"El resultado de la calibración \n"
-"PWM: %(pwm)d\n"
-"Intensidad %(int).1f\n"
-"Desviación estándar: %(dev).1f\n"
-"\n"
-"¿Te gustaría aplicar esta calibración?"
-
-#: ../pages/logs.py:60
-msgid "The setting become active after the printer's restart."
-msgstr "La configuración se activará después del reinicio de la impresora."
-
-#: ../pages/display.py:156
-msgid "The wizard did not finish successfully!"
-msgstr "¡El asistente no terminó con éxito!"
-
-#: ../pages/netupdate.py:67
-msgid "The wizard was not finished successfully!"
-msgstr "¡El asistente no terminó con éxito!"
-
-#: ../pages/printstart.py:396
+#: ../pages/print/going.py:40
 msgid "There is a problem with platform position"
 msgstr "Hay un problema con la posición de la plataforma"
 
-#: ../pages/printstart.py:341
-msgid "There is a problem with resin volume"
-msgstr "Hay un problema con el nivel de resina"
-
-#: ../pages/wizard.py:180
-msgid "Thermistors temperature check"
-msgstr "Comprobación de la temperatura de los termistores"
-
-#: ../pages/admin.py:77
-msgid "This overwrites the motion controller with the selected firmware."
-msgstr ""
-"Esto sobrescribe el controlador de movimiento con el firmware seleccionado."
-
-#: ../pages/uvcalibration.py:30
-#, python-format
-msgid ""
-"This will calibrate the UV LED (intensity %(int)d, temperature %(temp)d °C, "
-"range <%(minp)d, %(maxp)d>).\n"
-"\n"
-"Calibrated UV LED meter connected to the USB port will be required after "
-"warm up."
-msgstr ""
-"Esto ajustará los LEDs UV (intensidad %(int)d, temperatura %(temp)d °C, "
-"rango<%(minp)d, %(maxp)d>)."
-
-#: ../pages/admin.py:110
-msgid "This will disable the GUI and connect the MC bootloader to TCP port."
-msgstr "Esto deshabilitará la GUI y conectará el bootloader MC al puerto TCP."
-
-#: ../pages/motioncontroller.py:77
-msgid "This will disable the GUI and connect the MC bootloader to a TCP port."
-msgstr "Esto deshabilitará la GUI y conectará el bootloader MC al puerto TCP."
-
-#: ../pages/admin.py:119
-msgid ""
-"This will disable the GUI and connect the motion controller to TCP port."
-msgstr ""
-"Esto deshabilitará la GUI y conectará el controlador de movimiento al puerto "
-"TCP."
-
-#: ../pages/motioncontroller.py:86
-msgid ""
-"This will disable the GUI and connect the motion controller to a TCP port."
-msgstr ""
-"Esto deshabilitará la GUI y conectará el controlador de movimiento al puerto "
-"TCP."
-
-#: ../pages/admin.py:92
-msgid "This will erase all profiles and other motion controller settings."
-msgstr ""
-"Esto borrará todos los perfiles y otras configuraciones del controlador de "
-"movimiento."
-
-#: ../pages/calibration.py:504
+#: ../pages/calibration.py:499
 msgid ""
 "Tighten the small screw on the cantilever with an allen key.\n"
 "\n"
@@ -2712,27 +1427,7 @@ msgstr ""
 "Algunas impresoras SL1 podrían tener dos tornillos - apriétalos por igual, "
 "poco a poco. Mira el manual para más información."
 
-#: ../pages/admin.py:27 ../pages/tilttower.py:18
-msgid "Tilt & Tower"
-msgstr "Inclinación & Torre"
-
-#: ../pages/move.py:143
-msgid "Tilt Move"
-msgstr "Movimiento de inclinación"
-
-#: ../pages/profiles.py:272
-msgid "Tilt Profiles"
-msgstr "Perfiles de inclinación"
-
-#: ../pages/profiles.py:408
-msgid "Tilt Tune"
-msgstr "Ajuste de inclinación"
-
-#: ../pages/wizard.py:88
-msgid "Tilt axis check"
-msgstr "Comprobación eje Inclinación"
-
-#: ../pages/wizard.py:106
+#: ../pages/wizard.py:165
 #, python-format
 msgid ""
 "Tilt axis check failed!\n"
@@ -2748,16 +1443,7 @@ msgstr ""
 "Comprueba si el mecanismo de inclinación puede moverse suavemente en todo su "
 "rango."
 
-#: ../pages/infinitetest.py:48 ../pages/infinitetest.py:97
-#, python-format
-msgid "Tilt cycles: %d"
-msgstr "Ciclos Inclinación: %d"
-
-#: ../pages/tilttower.py:75
-msgid "Tilt down"
-msgstr "Inclinar hacia abajo"
-
-#: ../pages/wizard.py:70
+#: ../pages/wizard.py:129
 msgid ""
 "Tilt endstop not reached!\n"
 "\n"
@@ -2768,23 +1454,7 @@ msgstr ""
 "Comprueba si el motor de inclinación y el sensor óptico están conectados "
 "correctamente."
 
-#: ../pages/admin.py:183 ../pages/tilttower.py:24 ../pages/tilttower.py:48
-msgid "Tilt home"
-msgstr "Home de inclinación"
-
-#: ../pages/tilttower.py:28
-msgid "Tilt home calib."
-msgstr "Calib. home de inclinación"
-
-#: ../pages/tilttower.py:94
-msgid "Tilt home calibration"
-msgstr "Calibración del home de la inclinación"
-
-#: ../pages/wizard.py:60
-msgid "Tilt home check"
-msgstr "Comprobación inclinación torre"
-
-#: ../pages/wizard.py:81
+#: ../pages/wizard.py:140
 msgid ""
 "Tilt home check failed!\n"
 "\n"
@@ -2798,7 +1468,7 @@ msgstr ""
 "\n"
 "Los perfiles de inclinación necesitan ser cambiados."
 
-#: ../libPages.py:380 ../pages/printstart.py:200
+#: ../pages/uvcalibration.py:215 ../pages/base.py:313
 msgid ""
 "Tilt homing failed!\n"
 "\n"
@@ -2808,7 +1478,7 @@ msgstr ""
 "\n"
 "Comprueba el mecanismo de la impresora."
 
-#: ../libExposure.py:282
+#: ../pages/print/base.py:79
 msgid ""
 "Tilt homing failed!\n"
 "\n"
@@ -2822,56 +1492,15 @@ msgstr ""
 "\n"
 "Se ha cancelado la impresión."
 
-#: ../pages/tilttower.py:25
-msgid "Tilt move"
-msgstr "Movimiento de inclinación"
+#: ../pages/print/tilting.py:46
+msgid "Tilting down"
+msgstr "Inclinando abajo"
 
-#: ../pages/setup.py:132
-msgid "Tilt msteps"
-msgstr "Mpasos de inclinación"
-
-#: ../pages/tilttower.py:27
-msgid "Tilt profiles"
-msgstr "Perfiles de inclinación"
-
-#: ../pages/tilttower.py:63
-msgid "Tilt sync"
-msgstr "Sincronización de inclinación"
-
-#: ../pages/tilttower.py:26
-msgid "Tilt test"
-msgstr "Test de inclinación"
-
-#: ../pages/tilttower.py:71 ../pages/tilttower.py:79
-msgid "Tilt up"
-msgstr "Inclinar hacia arriba"
-
-#: ../pages/timedate.py:40
-msgid "Time Settings"
-msgstr "Ajustes de hora"
-
-#: ../pages/service.py:34
-#, python-format
-msgid "Total time: %(hour)dh%(minute)02dm"
-msgstr "Tiempo total: %(hour)dh%(minute)02dm"
-
-#: ../pages/move.py:78
-msgid "Tower Move"
-msgstr "Mover torre"
-
-#: ../pages/move.py:208
-msgid "Tower Offset"
-msgstr "Offset de la torre"
-
-#: ../pages/profiles.py:340
-msgid "Tower Profiles"
-msgstr "Perfiles de torre"
-
-#: ../pages/wizard.py:391
+#: ../pages/wizard.py:324
 msgid "Tower axis check"
 msgstr "Comprobación eje Torre"
 
-#: ../pages/wizard.py:414
+#: ../pages/wizard.py:349
 #, python-format
 msgid ""
 "Tower axis check failed!\n"
@@ -2886,15 +1515,15 @@ msgstr ""
 "\n"
 "Comprueba si el husillo de bolas puede moverse suavemente en todo su rango."
 
-#: ../pages/calibration.py:44
+#: ../pages/calibration.py:104
 msgid "Tower axis homing check"
 msgstr "Comprobación homing eje de la torre"
 
-#: ../pages/towersensitivity.py:32
+#: ../pages/towersensitivity.py:35
 msgid "Tower axis sensitivity adjust"
 msgstr "Ajuste de sensibilidad del eje de la torre"
 
-#: ../pages/towersensitivity.py:25
+#: ../pages/towersensitivity.py:28
 msgid ""
 "Tower axis sensitivity needs to be adjusted for realiable homing. This value "
 "will be saved in advanced settings."
@@ -2902,12 +1531,7 @@ msgstr ""
 "La sensibilidad del eje de la torre necesita ser ajustada para un homing "
 "fiable. Este valor se guardará en la configuración avanzada."
 
-#: ../pages/infinitetest.py:47 ../pages/infinitetest.py:59
-#, python-format
-msgid "Tower cycles: %d"
-msgstr "Ciclos Torre: %d"
-
-#: ../pages/wizard.py:134
+#: ../pages/towersensitivity.py:45
 msgid ""
 "Tower endstop not reached!\n"
 "\n"
@@ -2917,23 +1541,11 @@ msgstr ""
 "\n"
 "Comprueba si el motor de la torre está conectado correctamente."
 
-#: ../pages/tilttower.py:30
-msgid "Tower home"
-msgstr "Home de torre"
-
-#: ../pages/tilttower.py:34
-msgid "Tower home calib."
-msgstr "Calib. home de torre"
-
-#: ../pages/tilttower.py:144
-msgid "Tower home calibration"
-msgstr "Calibración del home de la torre"
-
-#: ../pages/wizard.py:118
+#: ../pages/wizard.py:177
 msgid "Tower home check"
 msgstr "Comprobación home torre"
 
-#: ../pages/wizard.py:142
+#: ../pages/towersensitivity.py:53
 msgid ""
 "Tower home check failed!\n"
 "\n"
@@ -2947,7 +1559,8 @@ msgstr ""
 "\n"
 "Los perfiles de la torre necesitan ser cambiados."
 
-#: ../libPages.py:369 ../pages/printstart.py:193
+#: ../pages/uvcalibration.py:209 ../pages/control.py:29 ../pages/base.py:302
+#: ../pages/print/base.py:94
 msgid ""
 "Tower homing failed!\n"
 "\n"
@@ -2957,11 +1570,7 @@ msgstr ""
 "\n"
 "Comprueba el mecanismo de la impresora."
 
-#: ../pages/tilttower.py:31
-msgid "Tower move"
-msgstr "Mover torre"
-
-#: ../pages/calibration.py:390 ../pages/calibration.py:406
+#: ../pages/calibration.py:408 ../pages/calibration.py:424
 msgid ""
 "Tower not at the expected position.\n"
 "\n"
@@ -2975,75 +1584,37 @@ msgstr ""
 "\n"
 "Presiona 'Continuar' y lee las instrucciones cuidadosamente."
 
-#: ../pages/tilttower.py:39
-msgid "Tower offset"
-msgstr "Offset de la torre"
-
-#: ../pages/tilttower.py:33
-msgid "Tower profiles"
-msgstr "Perfiles de torre"
-
-#: ../pages/towersensitivity.py:19
+#: ../pages/towersensitivity.py:22
 msgid "Tower sensitivity"
 msgstr "Sensibilidad de la torre"
 
-#: ../pages/tilttower.py:32
-msgid "Tower test"
-msgstr "Test de torre"
-
-#: ../pages/fansleds.py:33
-msgid "Trigger"
-msgstr "Trigger"
-
-#: ../pages/tilttower.py:37
-msgid "Tune tilt"
-msgstr "Ajustar inclinación"
-
-#: ../pages/tilttower.py:36
-msgid "Turn motors off"
-msgstr "Apagar motores"
-
-#: ../pages/uvfanstest.py:21
+#: ../pages/uvfanstest.py:26
 msgid "UV & Fans test"
 msgstr "Test ventiladores y UV"
 
-#: ../pages/display.py:49
-msgid "UV (re)calibration"
-msgstr "(Re)calibración UV"
-
-#: ../pages/fansleds.py:32
-msgid "UV LED"
-msgstr "LED UV"
-
-#: ../libPages.py:561
+#: ../pages/base.py:485
 msgid "UV LED OVERHEAT!"
 msgstr "¡SOBRECALENTAMIENTO DE LOS LED UV!"
 
-#: ../pages/fansleds.py:38
-msgid "UV LED PWM"
-msgstr "PWM LED UV"
-
-#: ../pages/uvcalibration.py:22 ../pages/uvcalibration.py:106
+#: ../pages/uvcalibration.py:102 ../pages/uvcalibration.py:142
+#: ../pages/uvcalibration.py:195 ../pages/uvcalibration.py:228
+#: ../pages/uvcalibration.py:336
 msgid "UV LED calibration"
 msgstr "Calibración de los LED UV"
 
-#: ../pages/wizard.py:275
+#: ../pages/uvfanstest.py:44
 msgid "UV LED check"
 msgstr "Comprobación LED UV"
 
-#: ../libHardware.py:473 ../pages/fansleds.py:29
+#: ../libHardware.py:151
 msgid "UV LED fan"
 msgstr "Ventilador LED UV"
 
-#: ../pages/fansleds.py:35
-msgid "UV LED fan RPM"
-msgstr "RPM ventilador LED UV"
-
-#: ../libHardware.py:491
+#: ../libHardware.py:157
 msgid "UV LED temperature"
 msgstr "Temeperatura LED UV"
 
-#: ../pages/wizard.py:325
+#: ../pages/uvfanstest.py:145
 #, python-format
 msgid ""
 "UV LED too hot!\n"
@@ -3058,7 +1629,7 @@ msgstr ""
 "\n"
 "Datos de temperatura: %s"
 
-#: ../pages/wizard.py:300
+#: ../pages/uvfanstest.py:69
 #, python-format
 msgid ""
 "UV LED voltages differ too much!\n"
@@ -3073,32 +1644,11 @@ msgstr ""
 "\n"
 "Datos: %(pwm)d, %(value)s V"
 
-#: ../pages/wizard.py:315
-msgid "UV LED warmup check"
-msgstr "Comprobación calentamiento LED UV"
-
-#: ../pages/fansleds.py:43
-msgid "UV cal. min. int. edge"
-msgstr "Calib. intensidad mínima UV borde"
-
-#: ../pages/fansleds.py:40
-msgid "UV calib. intensity"
-msgstr "Calib. intensidad UV"
-
-#: ../pages/fansleds.py:39
-msgid "UV calib. temperature"
-msgstr "Temperatura calib. UV"
-
-#: ../pages/fansleds.py:41
-msgid "UV calib. warm-up [s]"
-msgstr "Calentamiento calib. UV [s]"
-
-#: ../pages/uvcalibration.py:44 ../pages/uvcalibration.py:172
-#: ../pages/display.py:43
+#: ../pages/uvdispsettings.py:59 ../pages/uvdispsettings.py:72
 msgid "UV calibration"
 msgstr "Calibración UV"
 
-#: ../pages/uvcalibration.py:45
+#: ../pages/uvcalibration.py:44
 msgid "UV calibration data"
 msgstr "Datos de calibración UV"
 
@@ -3112,31 +1662,19 @@ msgstr ""
 "\n"
 "¿Calibrar ahora?"
 
-#: ../pages/display.py:42 ../pages/display.py:126
-msgid "UV off"
-msgstr "UV apagado"
-
-#: ../pages/display.py:42 ../pages/display.py:126
-msgid "UV on"
-msgstr "UV encendido"
-
-#: ../pages/unboxing.py:213
+#: ../pages/unboxing.py:188
 msgid "Unboxing done"
 msgstr "Desempaquetado finalizado"
 
-#: ../libPrinter.py:131
-msgid "Unboxing step 1/1"
-msgstr "Paso 1/1 del desempaquetado"
-
-#: ../pages/unboxing.py:18
+#: ../pages/unboxing.py:70
 msgid "Unboxing step 1/4"
 msgstr "Paso 1/4 del desempaquetado"
 
-#: ../pages/unboxing.py:79
+#: ../pages/unboxing.py:122
 msgid "Unboxing step 2/4"
 msgstr "Paso 2/4 del desempaquetado"
 
-#: ../pages/unboxing.py:125
+#: ../pages/unboxing.py:144
 msgid "Unboxing step 3/4"
 msgstr "Paso 3/4 del desempaquetado"
 
@@ -3144,23 +1682,34 @@ msgstr "Paso 3/4 del desempaquetado"
 msgid "Unboxing step 4/4"
 msgstr "Paso 4/4 del desempaquetado"
 
-#: ../pages/uvcalibration.py:180
+#: ../pages/uvcalibration.py:316
 #, python-format
 msgid "Unknown UV LED meter error code: %d"
 msgstr "Código de error del medidor LED UV desconocido: %d"
 
-#: ../pages/uvcalibration.py:465
+#: ../pages/uvcalibration.py:416
+#, python-format
 msgid "Unknown UV calibration error: %s"
 msgstr "Error desconocido de calibración UV: %s"
 
-#: ../pages/unboxing.py:132
+#: ../pages/print/base.py:83
+msgid ""
+"Unknown project error.\n"
+"\n"
+"Check the project and try again."
+msgstr ""
+"Error desconocido del proyecto.\n"
+"\n"
+"Verifica el proyecto e intente nuevamente."
+
+#: ../pages/unboxing.py:150
 msgid ""
 "Unscrew and remove the resin tank and remove the black foam underneath it."
 msgstr ""
 "Desatornilla y retira el tanque de resina y retira la espuma negra que se "
 "encuentra debajo."
 
-#: ../pages/calibration.py:116
+#: ../pages/calibration.py:164
 msgid ""
 "Unscrew the tank, rotate it by 90 degrees and place it flat across the tilt "
 "bed. Remove the tank screws completely!"
@@ -3169,86 +1718,25 @@ msgstr ""
 "sobre la plataforma de inclinación. Retira los tornillos del tanque "
 "completamente!"
 
-#: ../pages/profiles.py:418
-msgid "Up"
-msgstr "Arriba"
-
-#: ../pages/print.py:157
-msgid "Up and down will be executed after layer finish"
-msgstr "Arriba y Abajo se ejecutará tras el fin de la capa"
-
-#: ../pages/setup.py:312
-msgid "Up&down UV on"
-msgstr "Subir&bajar encendido"
-
-#: ../pages/setup.py:320
-msgid "Up&down Z offset [mm]"
-msgstr "Offset Subir&bajarZ [mm]"
-
-#: ../pages/setup.py:308
-msgid "Up&down every n-th l."
-msgstr "Arriba&abajo cada enésimo l."
-
-#: ../pages/setup.py:321
-msgid "Up&down expo comp [s]"
-msgstr "Subir&bajar expo comp [s]"
-
-#: ../pages/setup.py:307
-msgid "Up&down wait [s]"
-msgstr "Espera Arriba&abajo [s]"
-
-#: ../pages/firmwareupdate.py:153
+#: ../pages/firmwareupdate.py:161
 msgid "Update done"
 msgstr "Actualización finalizada"
 
-#: ../pages/firmwareupdate.py:172
+#: ../pages/firmwareupdate.py:180
 msgid "Update failed!"
 msgstr "¡Actualización fallida!"
 
-#: ../libHardware.py:534
+#: ../libPrinter.py:245
 msgid "Updating motion controller firmware"
 msgstr "Actualizando firmware de controlador de movimiento"
 
-#: ../pages/firmwareupdate.py:137
+#: ../pages/firmwareupdate.py:146
 msgid "Updating the firmware"
 msgstr "Actualizando el firmware"
 
-#: ../pages/netupdate.py:194
-#, python-format
-msgid ""
-"Updating to %s.\n"
-"\n"
-"Proceed update?"
-msgstr ""
-"Actualizando a %s.\n"
-"\n"
-"¿Continuar con la actualización?"
-
-#: ../pages/netupdate.py:128
-msgid ""
-"Updating to %s.\n"
-"\n"
-"Proceed with the update?"
-msgstr ""
-"Actualización a %s.\n"
-"\n"
-"¿Proceder con la actualización?"
-
-#: ../pages/setup.py:127
-msgid "Use resin sensor"
-msgstr "Usar sensor de resina"
-
-#: ../pages/setup.py:301
-msgid "Use tilt"
-msgstr "Usar inclinación"
-
-#: ../pages/media.py:64
+#: ../pages/media.py:65
 msgid "Video"
 msgstr "Video"
-
-#: ../pages/videos.py:17
-msgid "Videos"
-msgstr "Videos"
 
 #: ../pages/uvdispsettings.py:73
 msgid ""
@@ -3257,9 +1745,10 @@ msgid ""
 "\n"
 "Do you want to proceed?"
 msgstr ""
-"¡CUIDADO! Este procedimiento reescribirá la calibración de fábrica.\n"
+"¡CUIDADO! Este procedimiento reescribirá la calibración de fábrica. Continúa "
+"SOLO si has instalado un nuevo conjunto de LEDs.\n"
 "\n"
-"Continúa SOLO si has instalado un nuevo conjunto de LEDs."
+"¿Quieres continuar?"
 
 #: ../pages/uvdispsettings.py:60
 msgid ""
@@ -3273,22 +1762,17 @@ msgstr ""
 "\n"
 "¿Quieres continuar?"
 
-#: ../pages/print.py:90 ../pages/print.py:141
-msgid "Wait until layer finish"
-msgstr "Espera hasta que termine la capa"
+#: ../pages/print/reading.py:24
+msgid "Wait"
+msgstr "Espera"
 
-#: ../pages/uvcalibration.py:259
+#: ../pages/uvcalibration.py:254
 msgid "Waiting for UV meter"
 msgstr "Esperando al medidor UV"
 
-#: ../pages/uvcalibration.py:315
+#: ../pages/uvcalibration.py:284
 msgid "Warming up"
 msgstr "Calentando"
-
-#: ../pages/uvcalibration.py:45
-#, python-format
-msgid "Warming up to %d °C"
-msgstr "Calentando hasta %d °C"
 
 #: ../pages/uvcalibration.py:172
 msgid ""
@@ -3299,14 +1783,15 @@ msgid ""
 "1. If the resin tank is in the printer, remove it along with the screws.\n"
 "2. Close the orange lid, don't open it! UV radiation is harmful!"
 msgstr ""
-"Bienvenido a la calibración de los LEDs UV.\n"
-"Usa esta función solo si has cambiado la pantalla de impresión  o si tienes "
-"problemas de impresión.\n"
+"Bienvenido a la calibración de LED UV.\n"
+"Usa esta función solo si has cambiado la pantalla de impresión o si tienes "
+"problemas con las impresiones.\n"
 "\n"
-"1. Si el tanque de resina está en la impresora, retíralo junto con los tornillos.\n"
-"2. Cierra la tapa naranja, ¡no la abras! ¡La luz UV es perjudicial!"
+"1. Si el tanque de resina está en la impresora, retíralo junto con los "
+"tornillos.\n"
+"2. Cierra la tapa naranja, ¡No la abras! ¡La radiación UV es perjudicial!"
 
-#: ../pages/wizard.py:30
+#: ../pages/wizard.py:90
 msgid ""
 "Welcome to the setup wizard.\n"
 "\n"
@@ -3316,23 +1801,9 @@ msgstr ""
 "\n"
 "Este procedimiento es obligatorio y te ayudará a ajustar tu impresora."
 
-#: ../pages/service.py:89
-msgid "Wrong data format!"
-msgstr "Formato de datos erróneo!"
-
-#: ../libHardware.py:128
-msgid "Wrong motion controller firmware version"
-msgstr "Versión incorrecta del controlador de movimiento"
-
-#: ../pages/displaytest.py:52
-msgid ""
-"Your display is probably broken.\n"
-"\n"
-"Please contact tech support!"
-msgstr ""
-"Tu pantalla probablemente esté rota.\n"
-"\n"
-" ¡Por favor contacta con nuestro soporte técnico!"
+#: ../pages/print/check_confirm.py:84
+msgid "Wrong project printer"
+msgstr "Impresora incorrecta para el proyecto"
 
 #: ../pages/displaytest.py:54
 msgid ""
@@ -3346,18 +1817,8 @@ msgstr ""
 "Por favor, comprueba las conexiones lo primero. ¡Contacta con el servicio "
 "técnico en caso de problemas!"
 
-#: ../libPages.py:661
+#: ../pages/print/check_confirm.py:106
 #, python-format
-msgid ""
-"Your project has a problem: %s\n"
-"\n"
-"Re-export it and try again."
-msgstr ""
-"Tu proyecto tiene un problema: %s\n"
-"\n"
-"Reexporta el archivo e intenta de nuevo."
-
-#: ../pages/printstart.py:248
 msgid ""
 "Your resin volume is approx %(measured)d %%\n"
 "\n"
@@ -3369,96 +1830,18 @@ msgstr ""
 "Para tu proyecto, se necesita un %(requested)d %%. Puede que necesites "
 "rellenar durante la impresión."
 
-#: ../pages/printstart.py:364
-#, python-format
-msgid ""
-"Your tank fill is approx %(measured)d %%\n"
-"\n"
-"For your project, %(requested)d %% is needed. A refill may be required "
-"during printing."
-msgstr ""
-"Tu nivel de resina está a un %(measured)d %% aprox.\n"
-"\n"
-"Para tu proyecto, se necesita un %(requested)d %%. Puede que necesites "
-"rellenar durante la impresión."
-
-#: ../pages/profiles.py:289 ../pages/profiles.py:357
-msgid "acceleration"
-msgstr "aceleración"
-
-#: ../libHardware.py:474
+#: ../libHardware.py:152
 msgid "blower fan"
 msgstr "ventilador radial"
 
-#: ../pages/profiles.py:293 ../pages/profiles.py:361
-msgid "coolstep threshold"
-msgstr "umbral del coolstep"
-
-#: ../pages/profiles.py:291 ../pages/profiles.py:359
-msgid "current"
-msgstr "actual"
-
-#: ../pages/profiles.py:290 ../pages/profiles.py:358
-msgid "deceleration"
-msgstr "deceleración"
-
-#: ../pages/profiles.py:423
-msgid "finish profile"
-msgstr "perfil de acabado"
-
-#: ../pages/profiles.py:427
-msgid "homing cycles"
-msgstr "ciclos de homing"
-
-#: ../pages/profiles.py:426
-msgid "homing tolerance"
-msgstr "tolerancia del homing"
-
-#: ../pages/profiles.py:420
-msgid "init profile"
-msgstr "iniciar perfil"
-
-#: ../pages/profiles.py:288 ../pages/profiles.py:356
-msgid "maximum steprate"
-msgstr "pasos máximos"
-
-#: ../pages/profiles.py:422
-msgid "offset delay [ms]"
-msgstr "delay offset [ms]"
-
-#: ../pages/profiles.py:421
-msgid "offset steps"
-msgstr "pasos de offset"
-
-#: ../libHardware.py:475
+#: ../libHardware.py:153
 msgid "rear fan"
 msgstr "ventilador trasero"
 
-#: ../pages/profiles.py:292 ../pages/profiles.py:360
-msgid "stallguard threshold"
-msgstr "umbral del stallguard"
-
-#: ../pages/profiles.py:287 ../pages/profiles.py:355
-msgid "starting steprate"
-msgstr "pasos al comienzo"
-
-#: ../pages/profiles.py:424
-msgid "tilt cycles"
-msgstr "ciclos de inclinación"
-
-#: ../pages/profiles.py:425
-msgid "tilt delay [ms]"
-msgstr "retardo inclinación [ms]"
-
-#: ../libDisplay.py:111 ../libConfig.py:436 ../libConfig.py:437
-#: ../libConfig.py:438
+#: ../libDisplay.py:172
 msgid "unknown"
 msgstr "desconocido"
 
-#: ../libHardware.py:1120
-msgid "unknown fan"
-msgstr "ventilador desconocido"
-
-#: ../libHardware.py:1142
+#: ../libHardware.py:793
 msgid "unknown sensor"
 msgstr "sensor desconocido"
