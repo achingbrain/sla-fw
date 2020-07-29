@@ -20,6 +20,7 @@ class StatusBits(Enum):
 
 @unique
 class MotConComState(Enum):
+    WRONG_BOARD_REVISION = -4
     UPDATE_FAILED = -3
     COMMUNICATION_FAILED = -2
     WRONG_FIRMWARE = -1

@@ -27,15 +27,20 @@ from sl1fw.motion_controller.states import (
     CommError,
     StatusBits,
 )
-from sl1fw.errors.exceptions import MotionControllerException
+from sl1fw.errors.exceptions import MotionControllerException, MotionControllerWrongRevision
 from sl1fw.motion_controller.trace import LineTrace, LineMarker, Trace
 
 
 class MotionController:
-    MCFWversion = ""
-    MCFWrevision = -1
-    MCBoardRevision = (-1, -1)
-    MCserial = ""
+    fw = { 
+        "version": "",
+        "revision": -1
+    }
+    board = {
+        "revision": -1,
+        "subRevision": "",
+        "serial": ""
+    }
 
     BAUD_RATE_NORMAL = 115200
     BAUD_RATE_BOOTLOADER = 19200
@@ -264,42 +269,37 @@ class MotionController:
                     self.logger.info("motion controller reset flag: %s", ResetFlags(bit).name)
                 bit += 1
 
-        self.MCFWversion = self.do("?ver")
-        if mc_version_check and self.MCFWversion != defines.reqMcVersion:
+        tmp = self.doGetIntList("?rev")
+        self.fw['revision'] = tmp[0]
+        self.board['revision'] = divmod(tmp[1], 32)[1]
+        self.board['subRevision'] = chr(divmod(tmp[1], 32)[0] + ord("a"))
+        self.logger.info(
+            "motion controller board revision: %d%s",
+            self.board['revision'],
+            self.board['subRevision'],
+        )
+        if self.board['revision'] != 6:
+            raise MotionControllerWrongRevision()
+
+        if self.fw['revision'] != self.board['revision']:
+            self.logger.warning(
+                "Board and firmware revisions differ! Firmware: %d, board: %d!",
+                self.fw['revision'],
+                self.board['revision'],
+            )
             return MotConComState.WRONG_FIRMWARE
 
-        self.logger.info("motion controller firmware version: %s", self.MCFWversion)
+        self.fw['version'] = self.do("?ver")
+        if mc_version_check and self.fw['version'] != defines.reqMcVersion:
+            return MotConComState.WRONG_FIRMWARE
+        self.logger.info("motion controller firmware version: %s", self.fw['version'])
 
-        tmp = self.doGetIntList("?rev")
-        if len(tmp) == 2 and 0 <= divmod(tmp[1], 32)[0] <= 7:
-            self.MCFWrevision = tmp[0]
-            self.logger.info("motion controller firmware for board revision: %s", self.MCFWrevision)
-
-            self.MCBoardRevision = divmod(tmp[1], 32)
-            self.logger.info(
-                "motion controller board revision: %d%s",
-                self.MCBoardRevision[1],
-                chr(self.MCBoardRevision[0] + ord("a")),
-            )
-        else:
-            self.logger.warning("invalid motion controller firmware/board revision: %s", str(tmp))
-            self.MCFWrevision = -1
-            self.MCBoardRevision = (-1, -1)
-
-        if self.MCFWrevision != self.MCBoardRevision[1]:
-            self.logger.warning(
-                "motion controller firmware for board revision (%d) not"
-                " match motion controller board revision (%d)!",
-                self.MCFWrevision,
-                self.MCBoardRevision[1],
-            )
-
-        self.MCserial = self.do("?ser")
-        if self.MCserial:
-            self.logger.info("motion controller serial number: %s", self.MCserial)
+        self.board['serial'] = self.do("?ser")
+        if self.board['serial']:
+            self.logger.info("motion controller serial number: %s", self.board['serial'])
         else:
             self.logger.warning("motion controller serial number is invalid")
-            self.MCserial = "*INVALID*"
+            self.board.serial = "*INVALID*"
 
         return MotConComState.OK
 

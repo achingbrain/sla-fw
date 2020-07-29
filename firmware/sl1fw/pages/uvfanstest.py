@@ -57,10 +57,7 @@ class PageUvFansTest(Page):
         row3 = list()
         for i in range(3):
             self.display.hw.uvLedPwm = uvPwms[i]
-            if self.display.hw.mcFwRevision < 6:
-                sleep(10)   # wait to refresh all voltages (board rev. 0.5)
-            else:
-                sleep(5)    # wait to refresh all voltages (board rev. 0.6+)
+            sleep(5)    # wait to refresh all voltages (board rev. 0.6+)
             volts = self.display.hw.getVoltages()
             del volts[-1]   # delete power supply voltage
             if max(volts) - min(volts) > diff:

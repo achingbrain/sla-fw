@@ -143,7 +143,7 @@ def log_hw(hw: Hardware) -> None:
             "Rear fan [rpm]" : fans_rpm[2],
             "A64 Controller SN" : hw.cpuSerialNo,
             "MC FW version" : hw.mcFwVersion,
-            "MC HW Reversion" : hw.mcFwRevision,
+            "MC HW Reversion" : hw.mcBoardRevision,
             "MC Serial number" : hw.mcSerialNo,
             "UV LED Line 1 Voltage" : voltages[0],
             "UV LED Line 2 Voltage" : voltages[1],

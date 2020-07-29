@@ -482,13 +482,6 @@ class Printer0:
     @auto_dbus
     @property
     @last_error
-    @cached()
-    def controller_revision_bin(self) -> Tuple[int, int]:
-        return self.printer.hw.mcBoardRevisionBin
-
-    @auto_dbus
-    @property
-    @last_error
     @cached(validity_s=5)
     def api_key(self) -> str:
         """

@@ -264,35 +264,29 @@ class Hardware:
 
     @property
     def mcFwVersion(self):
-        return self.mcc.MCFWversion
+        return self.mcc.fw['version']
     #enddef
 
 
     @property
     def mcFwRevision(self):
-        return self.mcc.MCFWrevision
-    #enddef
-
-
-    @property
-    def mcBoardRevisionBin(self):
-        return self.mcc.MCBoardRevision[1], self.mcc.MCBoardRevision[0]
+        return self.mcc.fw['revision']
     #enddef
 
 
     @property
     def mcBoardRevision(self):
-        if self.mcc.MCBoardRevision[1] > -1 and self.mcc.MCBoardRevision[0] > -1:
-            return "%d%s" % (self.mcc.MCBoardRevision[1], chr(self.mcc.MCBoardRevision[0] + ord('a')))
+        if self.mcc.board['revision'] > -1 and self.mcc.board['subRevision'] != "":
+            return "%d%s" % (self.mcc.board['revision'], self.mcc.board['subRevision'] )
         else:
-            return "unk"
+            return "*INVALID*"
         #endif
     #enddef
 
 
     @property
     def mcSerialNo(self):
-        return self.mcc.MCserial
+        return self.mcc.board['serial']
     #enddef
 
 
@@ -310,8 +304,7 @@ class Hardware:
 
     @property
     def is500khz(self):
-        br = self.mcBoardRevisionBin
-        return br[0] >= 6 and br[1] >= 2
+        return self.mcc.board['revision'] >= 6 and self.mcc.board['subRevision'] == 'c'
     #enddef
 
 
