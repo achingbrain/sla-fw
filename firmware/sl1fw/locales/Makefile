@@ -1,7 +1,7 @@
 TEMPLATE = sl1fw.pot
 LANGS=cs de en es fr it pl
 
-SOURCES = $(wildcard ../*.py ../pages/*.py ../pages/print/*.py)
+SOURCES = $(wildcard ../*.py ../pages/*.py ../pages/print/*.py ../../prusaerrors/sl1/codes.py)
 
 IN = $(wildcard */LC_MESSAGES/*.po)
 

@@ -22,6 +22,7 @@ def with_code(code: str):
 
     def decor(cls):
         cls.CODE = code
+        cls.MESSAGE = code.message
         if not isinstance(code, Code):
             raise ValueError(f"with_code requires valid error code string i.e \"#10108\", got: \"{code}\"")
         cls.__name__ = f"e{code.raw_code}.{cls.__name__}"
@@ -43,6 +44,13 @@ class PrinterException(Exception):
 class ConfigException(PrinterException):
     """
     Exception used to signal problems with configuration
+    """
+
+
+@with_code(Sl1Codes.MOTION_CONTROLLER_WRONG_REVISION)
+class MotionControllerWrongRevision(PrinterException):
+    """
+    Used when MC does not have correct revision
     """
 
 

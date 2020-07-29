@@ -269,16 +269,9 @@ class Printer:
                 raise exception
             self.logger.exception("Printer run() init failed")
             code = getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN.code
+            message = getattr(exception, "MESSAGE") if hasattr(exception, "MESSAGE") else Sl1Codes.UNKNOWN.message
             self.display.pages["exception"].setParams(
-                text=_("Error code: %s\n\n") % code
-                + _(
-                    "An unexpected error has occurred :-(.\n\n"
-                    "You can turn the printer off by pressing the front power button.\n\n"
-                    "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
-                    "Please send the log to us and help us improve the printer.\n\n"
-                    "Thank you!"
-                )
-            )
+                text=_("Error code: %(code)s\n\n%(message)s") % {'code': code, 'message': message})
             self.display.doMenu("exception")
 
         try:
@@ -294,17 +287,9 @@ class Printer:
                 raise exception
             self.logger.exception("run() exception:")
             code = getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN.code
+            message = getattr(exception, "MESSAGE") if hasattr(exception, "MESSAGE") else Sl1Codes.UNKNOWN.message
             self.display.pages["exception"].setParams(
-                text=_("Error code: %s\n\n") % code
-                + _(
-                    "An unexpected error has occurred :-(.\n\n"
-                    "The SL1 will finish the print if you are currently printing.\n\n"
-                    "You can turn the printer off by pressing the front power button.\n\n"
-                    "Please follow the instructions in Chapter 3.1 in the handbook to learn how to save a log file. "
-                    "Please send the log to us and help us improve the printer.\n\n"
-                    "Thank you!"
-                )
-            )
+                text=_("Error code: %(code)s\n\n%(message)s") % {'code': code, 'message': message})
             self.display.doMenu("exception")
 
         if self.action_manager.exposure and self.action_manager.exposure.in_progress:
