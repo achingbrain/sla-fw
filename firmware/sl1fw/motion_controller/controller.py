@@ -32,7 +32,7 @@ from sl1fw.motion_controller.trace import LineTrace, LineMarker, Trace
 
 
 class MotionController:
-    fw = { 
+    fw = {
         "version": "",
         "revision": -1
     }

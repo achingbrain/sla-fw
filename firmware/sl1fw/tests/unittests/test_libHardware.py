@@ -82,8 +82,7 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertRegex(self.hw.mcFwVersion, r"^\d+\.\d+\.\d+[a-zA-Z0-9-+.]*$")
         self.assertEqual("CZPX0619X678XC12345", self.hw.mcSerialNo)
         self.assertEqual(6, self.hw.mcFwRevision)
-        self.assertEqual((4, 0), self.hw.mcBoardRevisionBin)
-        self.assertEqual("4a", self.hw.mcBoardRevision)
+        self.assertEqual("6c", self.hw.mcBoardRevision)
 
     def test_uv_led(self):
         # Default state
