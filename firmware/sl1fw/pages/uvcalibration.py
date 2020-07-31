@@ -95,6 +95,10 @@ class PageUvCalibrationBase(Page):
 
     # one object to rule them all
     uvmeter = UvLedMeterMulti()
+    skipAsking = False
+    writeDataToFactory = False
+    resetLedCounter = False
+    resetDisplayCounter = False
 
     def __init__(self, display):
         super(PageUvCalibrationBase, self).__init__(display)
@@ -139,11 +143,11 @@ class PageUvCalibrationStart(PageUvCalibrationBase):
     def __init__(self, display):
         super(PageUvCalibrationStart, self).__init__(display)
         self.pageUI = "confirm"
-        self.pageTitle = N_("UV LED calibration")
     #enddef
 
 
     def show(self):
+        PageUvCalibrationBase.skipAsking = True
         self.items.update({
             'text' : _("UV intensity not set!\n\n"
                 "Calibrate now?")})
@@ -168,9 +172,11 @@ class PageUvCalibration(PageUvCalibrationBase):
 
 
     def show(self):
+        PageUvCalibrationBase.writeDataToFactory = False
+        PageUvCalibrationBase.resetDisplayCounter = False
+        PageUvCalibrationBase.resetLedCounter = False
         minpwm, maxpwm = self.display.hw.getMeasPwms()
-        text = _("Welcome to the UV LED calibration.\n"
-                "Use this function only if you have replaced the print display or experiencing issues with the prints.\n\n"
+        text = _("Welcome to the UV LED calibration.\n\n"
                 "1. If the resin tank is in the printer, remove it along with the screws.\n"
                 "2. Close the orange lid, don't open it! UV radiation is harmful!")
         if self.display.runtime_config.factory_mode:
@@ -190,7 +196,104 @@ class PageUvCalibration(PageUvCalibrationBase):
     #enddef
 
 
-    def contButtonRelease(self):
+    @staticmethod
+    def contButtonRelease():
+        if PageUvCalibrationBase.skipAsking is True:
+            PageUvCalibrationBase.skipAsking = False
+            return PageUvCalibrationResolve.Name
+        return PageUvCalibrationDisplay.Name
+
+
+@page
+class PageUvCalibrationDisplay(PageUvCalibrationBase):
+    Name = "uvcalibrationdisplay"
+
+    def __init__(self, display):
+        super(PageUvCalibrationDisplay, self).__init__(display)
+        self.pageUI = "yesno"
+
+
+    def show(self):
+        self.items.update({
+            'pageTitle' : N_("New display?"),
+            'text' : _("Did you replaced the\n"
+                "EXPOSITION DISPLAY\n"
+                "for new one?")})
+        super(PageUvCalibrationDisplay, self).show()
+
+
+    @staticmethod
+    def yesButtonRelease():
+        PageUvCalibrationBase.writeDataToFactory = True
+        PageUvCalibrationBase.resetDisplayCounter = True
+        return PageUvCalibrationLedSet.Name
+
+
+    @staticmethod
+    def noButtonRelease():
+        return PageUvCalibrationLedSet.Name
+
+
+@page
+class PageUvCalibrationLedSet(PageUvCalibrationBase):
+    Name = "uvcalibrationledset"
+
+    def __init__(self, display):
+        super(PageUvCalibrationLedSet, self).__init__(display)
+        self.pageUI = "yesno"
+
+
+    def show(self):
+        self.items.update({
+            'pageTitle' : N_("New UV led set?"),
+            'text' : _("Did you replaced the\n"
+                "UV LED SET\n"
+                "for new one?")})
+        super(PageUvCalibrationLedSet, self).show()
+
+
+    @staticmethod
+    def yesButtonRelease():
+        PageUvCalibrationBase.writeDataToFactory = True
+        PageUvCalibrationBase.resetLedCounter = True
+        return PageUvCalibrationResolve.Name
+
+
+    @staticmethod
+    def noButtonRelease():
+        return PageUvCalibrationResolve.Name
+
+
+@page
+class PageUvCalibrationResolve(PageUvCalibrationBase):
+    Name = "uvcalibrationresolve"
+
+    def prepare(self):
+        if PageUvCalibrationBase.writeDataToFactory is not True: # if neither the display nor the led set was replaced, do not show the warning page
+            return PageUvCalibrationPrepare.Name
+
+
+    def show(self):
+        self.items.update({
+            'text' : _("WARNING! Since you have replaced the exposition display or the UV LED set,\n"
+                "this procedure will rewrite the factory calibration data.")})
+        super(PageUvCalibrationResolve, self).show()
+
+    @staticmethod
+    def contButtonRelease():
+        return PageUvCalibrationPrepare.Name
+
+
+@page
+class PageUvCalibrationPrepare(PageUvCalibrationBase):
+    Name = "uvcalibrationprepare"
+
+    def __init__(self, display):
+        super(PageUvCalibrationPrepare, self).__init__(display)
+        self.pageWait = None
+
+
+    def prepare(self):
         self.pageWait = PageWait(self.display, line1=_("Setting start positions"), line2=_("Please wait..."))
         self.pageWait.pageTitle = N_("UV LED calibration")
         self.pageWait.show()
@@ -222,18 +325,16 @@ class PageUvCalibration(PageUvCalibrationBase):
                 return self._EXIT_()
             #endif
 
-        self.display.pages['confirm'].setParams(
-            continueFce = self.prepareUvCalibration,
-            backFce = self.backButtonRelease,
-            pageTitle = N_("UV LED calibration"),
-            imageName = "uvcalibration_insert_meter.jpg",
-            text = _("1. Place the UV meter on the print display and connect it to the front USB.\n"
-                "2. Close the orange lid, don't open it! UV radiation is harmful!"))
-        return "confirm"
-    #enddef
+
+    def show(self):
+        self.items.update({
+            'imageName' : "uvcalibration_insert_meter.jpg",
+            'text' : _("1. Place the UV meter on the print display and connect it to the front USB.\n"
+                "2. Close the orange lid, don't open it! UV radiation is harmful!")})
+        super(PageUvCalibrationPrepare, self).show()
 
 
-    def prepareUvCalibration(self):
+    def contButtonRelease(self):
         if not self.checkUVMeter():
             self.off()
             self.display.state = DisplayState.IDLE
@@ -300,6 +401,7 @@ class PageUvCalibration(PageUvCalibrationBase):
 
         self.display.hw.uvLedPwm = self.display.hw.getMinPwm()
     #enddef
+
 
     def checkPlacement(self):
         self.ensureCoverIsClosed()
@@ -635,7 +737,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         uvcalibConfig.save_raw()
 
         # save to factory partition if needed
-        if self.display.runtime_config.factory_mode or self.writeDataToFactory:
+        if self.display.runtime_config.factory_mode or PageUvCalibrationBase.writeDataToFactory:
             uvcalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
             uvcalibConfigFactory.data = uvcalibConfig.data
             if not self.writeToFactory(functools.partial(self.writeAllDefaults, uvcalibConfigFactory)):
@@ -646,12 +748,12 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         #endif
 
         # reset UV led counter in MC
-        if self.resetLedCounter:
+        if PageUvCalibrationBase.resetLedCounter:
             self.display.hw.clearUvStatistics()
         #endif
 
         # reset Display counter in MC
-        if self.resetDisplayCounter:
+        if PageUvCalibrationBase.resetDisplayCounter:
             self.display.hw.clearDisplayStatistics()
         #endif
 
@@ -668,14 +770,6 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
     def noButtonRelease(self):
         self.display.state = DisplayState.IDLE
         return "_EXIT_"
-    #enddef
-
-
-    def setParams(self, **kwargs):
-        self.writeDataToFactory = kwargs.pop("writeDataToFactory", False)
-        self.resetLedCounter = kwargs.pop("resetLedCounter", False)
-        self.resetDisplayCounter = kwargs.pop("resetDisplayCounter", False)
-        self.items = kwargs
     #enddef
 
 #endclass

@@ -44,44 +44,8 @@ class PageUvDispSettings(Page):
         return "displaytest"
     #endif
 
-
-    def uvcalibrationButtonRelease(self):
-        self.display.pages['uvcalibrationconfirm'].setParams(
-            writeDataToFactory = False,
-            resetLedCounter = False,
-            resetDisplayCounter = False)
+    @staticmethod
+    def uvcalibrationButtonRelease():
         return "uvcalibration"
     #enddef
-
-
-    def newdisplayButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.newDisplayContinue,
-            pageTitle = _("UV calibration"),
-            text = _("WARNING! This procedure will rewrite the factory calibration data. Continue ONLY if you installed new print display.\n\n"
-                "Do you want to proceed?"))
-        return "confirm"
-    #enddef
-
-    def newDisplayContinue(self):
-        self.display.pages['uvcalibrationconfirm'].setParams(
-            writeDataToFactory = True,
-            resetDisplayCounter = True)
-        return "uvcalibration"
-
-    def newledsetButtonRelease(self):
-        self.display.pages['confirm'].setParams(
-            continueFce = self.newLedSetContinue,
-            pageTitle = _("UV calibration"),
-            text = _("WARNING! This procedure will rewrite the factory calibration data. Continue ONLY if you installed new UV LED set.\n\n"
-                "Do you want to proceed?"))
-        return "confirm"
-    #enddef
-
-    def newLedSetContinue(self):
-        self.display.pages['uvcalibrationconfirm'].setParams(
-            writeDataToFactory = True,
-            resetLedCounter = True)
-        return "uvcalibration"
-
 #endclass

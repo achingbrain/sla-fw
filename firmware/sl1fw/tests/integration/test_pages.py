@@ -187,6 +187,10 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("uvcalibration")
             self.waitPage("confirm")  # Welcome to UV calibration ...
             self.press("cont")
+            self.waitPage("yesno")  # New expo display? ...
+            self.press("no")
+            self.waitPage("yesno")  # New uv led set? ...
+            self.press("no")
             self.waitPage("wait")  # Start positions
             self.waitPage("yesno")  # Display test. Can you see the logo? ...
             self.press("yes")
@@ -207,6 +211,41 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.printer.hwConfig.coverCheck = False
             self.press("uvcalibration")
             self.waitPage("confirm")  # Welcome to UV calibration ...
+            self.press("cont")
+            self.waitPage("yesno")  # New expo display? ...
+            self.press("yes")
+            self.waitPage("yesno")  # New uv led set? ...
+            self.press("no")
+            self.waitPage("confirm")  # Warning abour reseting counters and write to factory
+            self.press("cont")
+            self.waitPage("wait")  # Start positions
+            self.waitPage("yesno", timeout_sec=15)  # Display test. Can you see the logo? ...
+            self.press("yes")
+            self.waitPage("confirm")  # Place the UV meter in and close lid ...
+            self.press("cont")
+            self.waitPage("wait")  # Waiting for UV meter
+            self.waitPage("yesno", timeout_sec=180)  # use new calibration
+            self.press("no")
+            self.waitPage("uvdispsettings")
+
+            self.test_turnoff()
+
+    def test_uv_calibration_pass_factory(self):
+        with patch("sl1fw.test_runtime.test_fan_error_override", True):
+            self.printer.hwConfig.coverCheck = False
+            self.switchPage("settings")
+            self.switchPage("advancedsettings")
+            self.switchPage("uvdispsettings")
+
+            self.printer.hwConfig.coverCheck = False
+            self.press("uvcalibration")
+            self.waitPage("confirm")  # Welcome to UV calibration ...
+            self.press("cont")
+            self.waitPage("yesno")  # New expo display? ...
+            self.press("no")
+            self.waitPage("yesno")  # New uv led set? ...
+            self.press("yes")
+            self.waitPage("confirm")  # Warning abour reseting counters and write to factory
             self.press("cont")
             self.waitPage("wait")  # Start positions
             self.waitPage("yesno", timeout_sec=15)  # Display test. Can you see the logo? ...
@@ -231,6 +270,10 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("uvcalibration")
             self.waitPage("confirm")  # Welcome to UV calibration ...
             self.press("cont")
+            self.waitPage("yesno")  # New expo display? ...
+            self.press("no")
+            self.waitPage("yesno")  # New uv led set? ...
+            self.press("no")
             self.waitPage("wait")  # Start positions
             self.waitPage("yesno", timeout_sec=15)  # Display test. Can you see the logo? ...
             self.press("yes")
