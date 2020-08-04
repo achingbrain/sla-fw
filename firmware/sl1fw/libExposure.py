@@ -735,6 +735,10 @@ class ExposureThread(threading.Thread):
                 self.expo.state = ExposureState.FEED_ME
                 self.doWait(self.expo.low_resin)
 
+                # Force user to close the cover
+                self._wait_cover_close()
+
+                # Stir resin before resuming print
                 if self.expo.hwConfig.tilt:
                     self.expo.state = ExposureState.STIRRING
                     self.expo.hw.setTiltProfile('homingFast')
@@ -742,8 +746,18 @@ class ExposureThread(threading.Thread):
                     self.expo.hw.stirResin()
                 #endif
                 wasStirring = True
+
+                # Resume print
                 self.expo.hw.powerLed("normal")
                 self.expo.state = ExposureState.PRINTING
+            #endif
+
+            if self._wait_cover_close():
+                self.logger.info("Stirring resin after pre layer cover closed wait")
+                self.expo.state = ExposureState.STIRRING
+                self.expo.hw.stirResin()
+                self.expo.state = ExposureState.PRINTING
+                wasStirring = True
             #endif
 
             if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
@@ -900,6 +914,30 @@ class ExposureThread(threading.Thread):
         #endif
 
         self.logger.debug("Exposure ended")
+    #enddef
+
+    def _wait_cover_close(self) -> bool:
+        """
+        Waits for cover close
+
+        :return: True if was waiting false otherwise
+        """
+        if not self.expo.hwConfig.coverCheck:
+            return False
+
+        if self.expo.hw.isCoverClosed():
+            self.logger.info("Cover already closed skipping close wait")
+            return False
+
+        self.logger.info("Waiting for user to close the cover")
+        old_state = self.expo.state
+        while not self.expo.hw.isCoverClosed():
+            self.expo.state = ExposureState.COVER_OPEN
+            sleep(0.1)
+        #endwhile
+        self.expo.state = old_state
+        self.logger.info("Cover closed now")
+        return True
     #enddef
 
 #endclass
