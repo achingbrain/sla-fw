@@ -23,9 +23,7 @@ build:
 mcsim:
   stage: build
   script:
-    - git clone --single-branch --branch master --depth 1 git@gitlab.com:prusa3d/sl1/mc-fw.git
-    - BOARD=6 SIMULATION=1 make -C mc-fw/SLA-control-01 -j5
-    - mv mc-fw/SLA-control-01/SLA-control_rev06.elf ./SLA-control-01.elf
+    - sh build_sim.sh
   artifacts:
     paths:
       - SLA-control-01.elf
@@ -56,28 +54,20 @@ unittest:
   dependencies:
     - mcsim
   script:
-    - export PATH="${PATH}:$(pwd)"
-    - cd firmware
-    - python3-coverage run -m unittest discover --failfast --verbose sl1fw.tests.unittests
-    - python3-coverage report --include "sl1fw*"
+    - sh unittest.sh
 
 integration:
   stage: test
   dependencies:
     - mcsim
   script:
-    - export PATH="${PATH}:$(pwd)"
-    - cd firmware
-    - python3 -m unittest discover --failfast --verbose sl1fw.tests.integration
-    - python3 -m unittest discover --failfast --verbose sl1fw.tests.virtual
+    - sh integrationtest.sh
 
 pylint:
   stage: test
   dependencies: []
   script:
-    - cd firmware
-    - python3 -m pylint --version
-    - python3 -m pylint --persistent=n --jobs 0 --additional-builtins=_,N_,ngettext --max-line-length=120 --disable similarities,duplicate-code,fixme,missing-docstring --disable bad-continuation,bad-whitespace,invalid-name,broad-except,line-too-long,unbalanced-tuple-unpacking,isinstance-second-argument-not-valid-type,invalid-bytes-returned sl1fw
+    - sh pylint.sh
 
 i18n-complete:
   stage: i18n
