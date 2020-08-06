@@ -28,21 +28,22 @@ from sl1fw.api.decorators import (
     DBusObjectPath,
     wrap_exception,
     last_error,
-    wrap_dict_data)
+    wrap_dict_data,
+)
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
-from sl1fw.errors.exceptions import ReprintWithoutHistory, AdminNotAvailable
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
+from sl1fw.errors.exceptions import ReprintWithoutHistory, AdminNotAvailable
 from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
+from sl1fw.libConfig import TomlConfig
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.state_actions.examples import Examples
 from sl1fw.states.display import DisplayState
 from sl1fw.states.examples import ExamplesState
 from sl1fw.states.printer import PrinterState
-from sl1fw.libConfig import TomlConfig
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
@@ -153,7 +154,7 @@ class Printer0:
     @auto_dbus
     @property
     def http_digest(self) -> bool:
-        return TomlConfig(defines.remoteConfig).load().get('htdigest', True)
+        return TomlConfig(defines.remoteConfig).load().get("htdigest", True)
 
     @auto_dbus
     @last_error
@@ -501,7 +502,6 @@ class Printer0:
         """
         with open(defines.static_octoprintAuthFile, "r") as f:
             return f.read()
-        #endwith
 
     @auto_dbus
     @property
@@ -878,32 +878,26 @@ class Printer0:
                 select.select([], [], [file], 5.0)
                 path = get_save_path()
                 if path:
-                    projects = path.glob('**/*.sl1')
-                    newest_proj = sorted(projects, key=lambda proj : proj.stat().st_mtime).pop()
+                    projects = path.glob("**/*.sl1")
+                    newest_proj = sorted(projects, key=lambda proj: proj.stat().st_mtime).pop()
                     last_exposure = self.printer.action_manager.exposure
                     if last_exposure:
                         last_exposure.try_cancel()
-                    self.print(newest_proj, False)
+                    self.print(str(newest_proj), False)
             except NotUVCalibrated:
                 self.printer.display.forcePage("uvcalibrationstart")
             except NotMechanicallyCalibrated:
                 self.printer.display.forcePage("calibrationstart")
-            except Exception:
-                return None
-        return None
 
     @auto_dbus
     def remove_usb(self) -> None:
-        try:
-            expo = self.printer.action_manager.exposure
-            if expo and str(expo.project.path.parents[1]) == defines.mediaRootPath:
-                expo.try_cancel()
-        except Exception:
-            return
+        expo = self.printer.action_manager.exposure
+        if expo and Path(defines.mediaRootPath) in Path(expo.project.path).parents:
+            expo.try_cancel()
 
     @auto_dbus
     @last_error
-    def try_open_project(self, project_path:str) -> DBusObjectPath:
+    def try_open_project(self, project_path: str) -> DBusObjectPath:
         last_exposure = self.printer.action_manager.exposure
         if last_exposure:
             last_exposure.try_cancel()
