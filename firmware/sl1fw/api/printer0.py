@@ -127,6 +127,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def state(self) -> int:
         """
         Get global printer state
@@ -152,6 +153,7 @@ class Printer0:
         return wrap_dict_data(wrap_exception(self.printer.exception))
 
     @auto_dbus
+    @last_error
     @property
     def http_digest(self) -> bool:
         return TomlConfig(defines.remoteConfig).load().get("htdigest", True)
@@ -188,8 +190,8 @@ class Printer0:
         return files.upload_logs(self.printer.hw)
 
     @auto_dbus
-    @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])
     @last_error
+    @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])
     def poweroff(self, do_shutdown: bool, reboot: bool) -> None:
         """
         Shut down the printer
@@ -206,8 +208,8 @@ class Printer0:
             self.printer.display.forcedPage("start")
 
     @auto_dbus
-    @state_checked(Printer0State.IDLE)
     @last_error
+    @state_checked(Printer0State.IDLE)
     def tower_home(self) -> None:
         """
         Home tower axis
@@ -225,9 +227,9 @@ class Printer0:
         """
         self.printer.hw.tilt_home()
 
-    @state_checked(Printer0State.IDLE)
     @auto_dbus
     @last_error
+    @state_checked(Printer0State.IDLE)
     def disable_motors(self) -> None:
         """
         Disable motors
@@ -238,9 +240,9 @@ class Printer0:
         """
         self.printer.hw.motorsRelease()
 
-    @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
     @auto_dbus
     @last_error
+    @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
     def tower_move(self, speed: int) -> bool:
         """
         Start / stop tower movement
@@ -259,9 +261,9 @@ class Printer0:
         """
         return self.printer.hw.tower_move(speed)
 
-    @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
     @auto_dbus
     @last_error
+    @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
     def tilt_move(self, speed: int) -> bool:
         """
         Start / stop tilt movement
@@ -290,8 +292,8 @@ class Printer0:
 
     @auto_dbus
     @tower_position_nm.setter
-    @state_checked(Printer0State.IDLE)
     @last_error
+    @state_checked(Printer0State.IDLE)
     def tower_position_nm(self, position_nm: int) -> None:
         self.printer.hw.tower_position_nm = position_nm
 
@@ -305,8 +307,8 @@ class Printer0:
 
     @auto_dbus
     @tilt_position.setter
-    @state_checked(Printer0State.IDLE)
     @last_error
+    @state_checked(Printer0State.IDLE)
     def tilt_position(self, micro_steps: int):
         self.printer.hw.tilt_position = micro_steps
 
@@ -494,6 +496,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @last_error
     def static_api_key(self) -> str:
         """
         Get current API key when http digest is enabled
@@ -587,6 +590,7 @@ class Printer0:
         return self.printer.runtime_config.factory_mode
 
     @auto_dbus
+    @last_error
     @state_checked([Printer0State.IDLE, Printer0State.DISPLAY_TEST])
     def display_test(self) -> DBusObjectPath:
         """

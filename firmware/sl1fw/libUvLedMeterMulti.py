@@ -125,8 +125,10 @@ class UvLedMeterMulti:
                 if len(devices) > 1:
                     self.logger.warning("Multiple devices attached: %d", len(devices))
                 if devices[0].vid == 0x10C4 and devices[0].pid == 0xEA60:  # 60p UV meter
+                    self.logger.info("60p UV meter is present")
                     self.sleepTime = 3
                 elif devices[0].vid == 0x1A86 and devices[0].pid == 0x7523:  # 15p UV meter
+                    self.logger.info("15p UV meter is present")
                     self.sleepTime = 0.5
                     self.wavelength_response_bug = True
                 else:
@@ -202,7 +204,6 @@ class UvLedMeterMulti:
             else:
                 self.logger.error("Too many UV meter read retries")
                 raise e
-
 
     def get_data(self):
         data = UvCalibrationData()

@@ -157,7 +157,7 @@ class Exposure0:
 
     @auto_dbus
     @last_error
-    @deprecated("Use ")
+    @deprecated("Use confirm_print_warning")
     @state_checked(Exposure0State.CHECK_WARNING)
     def confirm_print_warnings(self) -> None:
         self.confirm_print_warning()
