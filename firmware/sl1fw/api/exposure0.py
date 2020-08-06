@@ -138,6 +138,8 @@ class Exposure0:
         self._last_exception: Optional[Exception] = None
         self.exposure = exposure
         self.exposure.change.connect(self._handle_change)
+        self.exposure.hw.cover_state_changed.connect(self._handle_cover_change)
+        self.exposure.hwConfig.add_onchange_handler(self._handle_config_change)
 
     @auto_dbus
     @property
@@ -586,6 +588,12 @@ class Exposure0:
         return Exposure0State.from_exposure(self.exposure.state).value
 
     @auto_dbus
+    @property
+    @last_error
+    def close_cover_warning(self) -> bool:
+        return self.exposure.hwConfig.coverCheck and not self.exposure.hw.isCoverClosed()
+
+    @auto_dbus
     @last_error
     @state_checked(Exposure0State.PRINTING)
     def up_and_down(self) -> None:
@@ -728,3 +736,10 @@ class Exposure0:
         if key in self._CHANGE_MAP:
             for changed in self._CHANGE_MAP[key]:
                 self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self, changed)}, [])
+
+    def _handle_cover_change(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"close_cover_warning": self.close_cover_warning}, [])
+
+    def _handle_config_change(self, name: str, _: Any):
+        if name == "coverCheck":
+            self._handle_cover_change()

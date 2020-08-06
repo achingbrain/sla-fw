@@ -90,16 +90,16 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         self.assertEqual(type(self.printer0.system_name), str)
         self.assertEqual(type(self.printer0.system_version), str)
         self.assertEqual(
-            self.printer0.fans,
             {
                 "fan0": {"rpm": 0, "error": False},
                 "fan1": {"rpm": 0, "error": False},
                 "fan2": {"rpm": 0, "error": False},
             },
+            self.printer0.fans
         )
         self.assertEqual(
-            self.printer0.temps,
             {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 26.1, "temp3_celsius": 26.1},
+            self.printer0.temps
         )
         self.assertEqual(type(self.printer0.cpu_temp), float)
         self.assertEqual(

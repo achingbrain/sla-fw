@@ -10,16 +10,19 @@
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-public-methods
+# pylint: disable=too-many-statements
 
-
+import functools
 import logging
 import os
 import re
 from math import ceil
+from threading import Thread
 from time import sleep
 
 import bitstring
 import pydbus
+from PySignal import Signal
 
 from sl1fw import defines
 from sl1fw.errors.errors import TiltHomeFailure, TowerHomeFailure
@@ -27,6 +30,7 @@ from sl1fw.libConfig import HwConfig
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.motion_controller.states import MotConComState
 from sl1fw.errors.exceptions import MotionControllerException
+from sl1fw.utils.value_checker import ValueChecker
 
 
 def safe_call(default_value, exceptions):
@@ -178,15 +182,39 @@ class Hardware:
         self._tower_moving = False
         self._tilt_moving = False
         self._towerPositionRetries = None
+
+        self._value_refresh_run = True
+        self._value_refresh_thread = Thread(daemon=True, target=self._value_refresh_body)
+
+        self.fans_changed = Signal()
+        self.mc_temps_changed = Signal()
+        self.cpu_temp_changed = Signal()
+        self.led_voltages_changed = Signal()
+        self.resin_sensor_state_changed = Signal()
+        self.cover_state_changed = Signal()
+        self.power_button_state_changed = Signal()
+        self.mc_sw_version_changed = Signal()
+        self.uv_statistics_changed = Signal()
+        self.tower_position_changed = Signal()
+        self.tilt_position_changed = Signal()
+
+        self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
+        self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
+        self.mcc.fans_state_changed.connect(lambda x: self.fans_changed.emit())
+        self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
+        self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
     #enddef
 
 
     def start(self):
         self.mcc.start()
+        self._value_refresh_thread.start()
     #enddef
 
 
     def exit(self):
+        self._value_refresh_run = False
+        self._value_refresh_thread.join()
         self.mcc.exit()
     #enddef
 
@@ -212,7 +240,28 @@ class Hardware:
 
         self.initDefaults()
 
+        self.mc_sw_version_changed.emit()
+
         return state
+    #enddef
+
+
+    def _value_refresh_body(self):
+        checkers = [
+            ValueChecker(self.getFansRpm, self.fans_changed, False),
+            ValueChecker(functools.partial(self.getMcTemperatures, False), self.mc_temps_changed),
+            ValueChecker(self.getCpuTemperature, self.cpu_temp_changed),
+            ValueChecker(self.getVoltages, self.led_voltages_changed),
+            ValueChecker(self.getResinSensorState, self.resin_sensor_state_changed),
+            ValueChecker(self.getUvStatistics, self.uv_statistics_changed),
+        ]
+
+        while self._value_refresh_run:
+            for checker in checkers:
+                checker.check()
+                sleep(0.5)
+            #endfor
+        #endwhile
     #enddef
 
 
@@ -730,7 +779,7 @@ class Hardware:
 
     @safe_call({ 0: False, 1: False, 2: False }, (MotionControllerException, ValueError))
     def getFansError(self):
-        state = self.mcc.getStateBits(['fans'])
+        state = self.mcc.getStateBits(['fans'], check_for_updates=False)
         if 'fans' not in state:
             raise ValueError(f"'fans' not in state: {state}")
         #endif

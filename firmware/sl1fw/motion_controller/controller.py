@@ -17,6 +17,7 @@ from typing import Optional, Callable, List, Any
 
 import gpio
 import serial
+from PySignal import Signal
 from evdev import UInput, ecodes
 
 from sl1fw import defines
@@ -67,6 +68,15 @@ class MotionController:
 
         self.u_input: Optional[UInput] = None
         self._old_state_bits: Optional[List[bool]] = None
+
+        self.tower_status_changed = Signal()
+        self.tilt_status_changed = Signal()
+        self.power_button_changed = Signal()
+        self.cover_state_changed = Signal()
+        self.fans_state_changed = Signal()
+
+        self.power_button_changed.connect(self._power_button_handler)
+        self.cover_state_changed.connect(self._cover_state_handler)
 
     def start(self):
         self._port = serial.Serial()
@@ -476,7 +486,7 @@ class MotionController:
         sleep(1 / 1000000)
         gpio.set(131, 0)
 
-    def getStateBits(self, request: List[str] = None):
+    def getStateBits(self, request: List[str] = None, check_for_updates: bool = True):
         if not request:
             request = StatusBits.__members__.keys()
 
@@ -485,22 +495,37 @@ class MotionController:
         if len(bits) != 16:
             raise ValueError(f"State bits count not match! ({bits})")
 
-        self._handle_button_updates(bits)
+        if check_for_updates:
+            self._handle_updates(bits)
 
         return {name: bits[StatusBits.__members__[name.upper()].value] for name in request}
 
-    def _handle_button_updates(self, state_bits: List[bool]):
+    def _handle_updates(self, state_bits: List[bool]):
         # pylint: disable=no-member
+        tower_idx = StatusBits.TOWER.value
+        if not self._old_state_bits or state_bits[tower_idx] != self._old_state_bits[tower_idx]:
+            self.tower_status_changed.emit(state_bits[tower_idx])
+        tilt_idx = StatusBits.TILT.value
+        if not self._old_state_bits or state_bits[tilt_idx] != self._old_state_bits[tilt_idx]:
+            self.tilt_status_changed.emit(state_bits[tilt_idx])
         power_idx = StatusBits.BUTTON.value
-        cover_idx = StatusBits.COVER.value
-
         if not self._old_state_bits or state_bits[power_idx] != self._old_state_bits[power_idx]:
-
-            self.u_input.write(ecodes.EV_KEY, ecodes.KEY_POWER, 1 if state_bits[power_idx] else 0)
-            self.u_input.syn()
-
+            self.power_button_changed.emit(state_bits[power_idx])
+        cover_idx = StatusBits.COVER.value
         if not self._old_state_bits or state_bits[cover_idx] != self._old_state_bits[cover_idx]:
-            self.u_input.write(ecodes.EV_KEY, ecodes.KEY_CLOSE, 1 if state_bits[cover_idx] else 0)
-            self.u_input.syn()
+            self.cover_state_changed.emit(state_bits[cover_idx])
+        fans_ids = StatusBits.FANS.value
+        if not self._old_state_bits or state_bits[fans_ids] != self._old_state_bits[fans_ids]:
+            self.fans_state_changed.emit(state_bits[fans_ids])
 
         self._old_state_bits = state_bits
+
+    def _power_button_handler(self, state: bool):
+        # pylint: disable=no-member
+        self.u_input.write(ecodes.EV_KEY, ecodes.KEY_POWER, 1 if state else 0)
+        self.u_input.syn()
+
+    def _cover_state_handler(self, state: bool):
+        # pylint: disable=no-member
+        self.u_input.write(ecodes.EV_KEY, ecodes.KEY_CLOSE, 1 if state else 0)
+        self.u_input.syn()

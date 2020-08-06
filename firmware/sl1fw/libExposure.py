@@ -752,14 +752,6 @@ class ExposureThread(threading.Thread):
                 self.expo.state = ExposureState.PRINTING
             #endif
 
-            if self._wait_cover_close():
-                self.logger.info("Stirring resin after pre layer cover closed wait")
-                self.expo.state = ExposureState.STIRRING
-                self.expo.hw.stirResin()
-                self.expo.state = ExposureState.PRINTING
-                wasStirring = True
-            #endif
-
             if self.expo.hwConfig.upAndDownEveryLayer and self.expo.actualLayer and not self.expo.actualLayer % self.expo.hwConfig.upAndDownEveryLayer:
                 self.doUpAndDown()
                 wasStirring = True

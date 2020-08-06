@@ -6,19 +6,18 @@
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-lines
 # pylint: disable=too-many-arguments
-# pylint: disable=too-many-arguments
 # pylint: disable=too-few-public-methods
 
 import functools
 import logging
 import re
 from abc import abstractmethod, ABC
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, List, Dict, Type, Union, Any, Callable, Set, Tuple
 from queue import Queue
 
 import toml
+from PySignal import Signal
 from readerwriterlock import rwlock
 
 from sl1fw import defines, test_runtime
@@ -1123,14 +1122,36 @@ class TomlConfigStats(TomlConfig):
         return data
 
 
-@dataclass
 class RuntimeConfig:
     """
     Runtime printer configuration
     """
 
-    show_admin: bool = False
-    fan_error_override: bool = False
-    check_cooling_expo: bool = True
-    factory_mode: bool = False
-    last_exposure: Any = None
+    def __init__(self):
+        self.show_admin_changed = Signal()
+        self._show_admin: bool = False
+        self.fan_error_override: bool = False
+        self.check_cooling_expo: bool = True
+        self.factory_mode_changed = Signal()
+        self._factory_mode: bool = False
+        self.last_exposure: Any = None
+
+    @property
+    def show_admin(self) -> bool:
+        return self._show_admin
+
+    @show_admin.setter
+    def show_admin(self, value: bool):
+        if self._show_admin != value:
+            self._show_admin = value
+            self.show_admin_changed.emit(value)
+
+    @property
+    def factory_mode(self) -> bool:
+        return self._factory_mode
+
+    @factory_mode.setter
+    def factory_mode(self, value: bool):
+        if self._factory_mode != value:
+            self._factory_mode = value
+            self.factory_mode_changed.emit(value)

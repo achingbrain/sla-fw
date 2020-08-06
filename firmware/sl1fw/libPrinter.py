@@ -50,7 +50,8 @@ class Printer:
     def __init__(self, debug_display=None):
         self.logger = logging.getLogger(__name__)
         init_time = monotonic()
-        self.exception: Optional[Exception] = None
+        self._exception: Optional[Exception] = None
+        self.exception_changed = Signal()
         self.start_time = None
         self.admin_check = None
         self.slicer_profile = None
@@ -128,7 +129,16 @@ class Printer:
         if self._state != value:
             self.logger.info("Printer state changed: %s -> %s", self._state, value)
             self._state = value
-            self.state_changed.emit(value)
+            self.state_changed.emit()
+
+    @property
+    def exception(self) -> Exception:
+        return self._exception
+
+    @exception.setter
+    def exception(self, value: Exception):
+        self._exception = value
+        self.exception_changed.emit()
 
     def exit(self):
         self.state = PrinterState.EXIT

@@ -16,6 +16,7 @@ from typing import List, Dict, Tuple, TYPE_CHECKING, Any, Optional
 
 import distro
 import pydbus
+from PySignal import Signal
 from deprecation import deprecated
 from pydbus.generic import signal
 
@@ -105,12 +106,14 @@ class Printer0:
         """
         Get current page name
 
+        Does not provide changed signal as this property is deprecated.
+
         :return: Current page name
         """
         return self.printer.get_actual_page().Name
 
     def __init__(self, printer: Printer):
-        self._last_exception: Optional[Exception] = None
+        self._last_exception_data: Optional[Exception] = None
         self.printer = printer
         self._examples: Optional[Examples] = None
         self._examples0: Optional[Examples0] = None
@@ -119,11 +122,39 @@ class Printer0:
         self._wizard = None
         self._calibration = None
         self._prints = []
-        self.printer.display.state_changed.connect(lambda x: self._state_update())
-        self.printer.state_changed.connect(lambda x: self._state_update())
 
-    def _state_update(self):
-        self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
+        self._connect_property(self.printer.display.state_changed, "state")
+        self._connect_property(self.printer.state_changed, "state")
+        self._connect_property(self.printer.exception_changed, "printer_exception")
+        self._connect_property(self.printer.hw.fans_changed, "fans")
+        self.printer.hw.mc_temps_changed.connect(
+            lambda value: self.PropertiesChanged(self.__INTERFACE__, {"temps": self._format_temps(value)}, [])
+        )
+        self._connect_property_value(self.printer.hw.cpu_temp_changed, "cpu_temp")
+        self.printer.hw.led_voltages_changed.connect(
+            lambda value: self.PropertiesChanged(self.__INTERFACE__, {"leds": self._format_leds(value)}, [])
+        )
+        self._connect_property_value(self.printer.hw.resin_sensor_state_changed, "resin_sensor_state")
+        self._connect_property_value(self.printer.hw.cover_state_changed, "cover_state")
+        self._connect_property_value(self.printer.hw.power_button_state_changed, "power_switch_state")
+        self._connect_property(self.printer.action_manager.exposure_change, "current_exposure")
+        self._connect_property(self.printer.hw.mc_sw_version_changed, "controller_sw_version")
+        self.printer.hw.uv_statistics_changed.connect(
+            lambda value: self.PropertiesChanged(
+                self.__INTERFACE__, {"uv_statistics": self._format_uv_statistics(value)}, []
+            )
+        )
+        self._connect_property_value(self.printer.runtime_config.factory_mode_changed, "factory_mode")
+        self._connect_property_value(self.printer.runtime_config.show_admin_changed, "admin_enabled")
+
+        self._connect_property(self.printer.hw.tower_position_changed, "tower_position_nm")
+        self._connect_property(self.printer.hw.tilt_position_changed, "tilt_position")
+
+    def _connect_property(self, sig: Signal, prop: str):
+        sig.connect(lambda: self.PropertiesChanged(self.__INTERFACE__, {prop: getattr(self, prop)}, []))
+
+    def _connect_property_value(self, sig: Signal, prop: str):
+        sig.connect(lambda value: self.PropertiesChanged(self.__INTERFACE__, {prop: value}, []))
 
     @auto_dbus
     @property
@@ -146,6 +177,15 @@ class Printer0:
     @property
     def last_exception(self) -> Dict[str, Any]:
         return wrap_dict_data(wrap_exception(self._last_exception))
+
+    @property
+    def _last_exception(self) -> Exception:
+        return self._last_exception_data
+
+    @_last_exception.setter
+    def _last_exception(self, value: Exception):
+        self._last_exception_data = value
+        self.PropertiesChanged(self.__INTERFACE__, {"last_exception": self.last_exception}, [])
 
     @auto_dbus
     @property
@@ -382,12 +422,11 @@ class Printer0:
 
         :return: Dictionary mapping from fan names to RPMs and errors
         """
-        result = {}
-        rpms = self.printer.hw.getFansRpm()
-        errors = self.printer.hw.getFansError()
-        for i in range(len(self.printer.hw.getFansRpm())):
-            result["fan%d" % i] = {"rpm": rpms[i], "error": errors[i]}
-        return result
+        return self._format_fans(self.printer.hw.getFansRpm(), self.printer.hw.getFansError())
+
+    @staticmethod
+    def _format_fans(rpms, errors):
+        return {f"fan{i}": {"rpm": rpm, "error": error} for i, (rpm, error) in enumerate(zip(rpms, errors.values()))}
 
     @auto_dbus
     @property
@@ -399,7 +438,11 @@ class Printer0:
 
         :return: Dictionary mapping from temp sensor name to temperature in celsius
         """
-        return {"temp%d_celsius" % i: v for i, v in enumerate(self.printer.hw.getMcTemperatures())}
+        return self._format_temps(self.printer.hw.getMcTemperatures(False))
+
+    @staticmethod
+    def _format_temps(temps):
+        return {"temp%d_celsius" % i: v for i, v in enumerate(temps)}
 
     @auto_dbus
     @property
@@ -423,7 +466,11 @@ class Printer0:
 
         :return: Dictionary mapping from LED channel name to voltage value
         """
-        return {"led%d_voltage_volt" % i: v for i, v in enumerate(self.printer.hw.getVoltages())}
+        return self._format_leds(self.printer.hw.getVoltages())
+
+    @staticmethod
+    def _format_leds(leds):
+        return {"led%d_voltage_volt" % i: v for i, v in enumerate(leds)}
 
     @auto_dbus
     @property
@@ -433,6 +480,8 @@ class Printer0:
     def devlist(self) -> Dict[str, str]:
         """
         Get network devices
+
+        No changed events are send for this item
 
         :return: Dictionary mapping from interface names to IP address strings
         """
@@ -448,7 +497,11 @@ class Printer0:
 
         :return: Dictionary mapping from statistics name to integer value
         """
-        return {"uv_stat%d" % i: v for i, v in enumerate(self.printer.hw.getUvStatistics())}
+        return self._format_uv_statistics(self.printer.hw.getUvStatistics())
+
+    @staticmethod
+    def _format_uv_statistics(statistics):
+        return {"uv_stat%d" % i: v for i, v in enumerate(statistics)}
         # uv_stats0 - time counter [s] # TODO: add uv average current,
 
     @auto_dbus
@@ -492,6 +545,7 @@ class Printer0:
 
         :return: Current api key string
         """
+        # TODO: emit changes
         return self.printer.get_actual_page().octoprintAuth
 
     @auto_dbus
@@ -880,6 +934,7 @@ class Printer0:
         with open("/proc/mounts", "r") as file:
             try:
                 select.select([], [], [file], 5.0)
+                self.PropertiesChanged(self.__INTERFACE__, {"usb_path": self.usb_path}, [])
                 path = get_save_path()
                 if path:
                     projects = path.glob("**/*.sl1")
