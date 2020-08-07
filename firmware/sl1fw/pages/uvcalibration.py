@@ -346,6 +346,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
             self.display.state = DisplayState.IDLE
             return "error"
         #endif
+        self.display.pages[PageUVCalibrateCenter.Name].boostResults = False
         return PageUVCalibrateCenter.Name
     #enddef
 
@@ -447,6 +448,9 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
         self.result = None
         self.thread: Optional[Thread] = None
+        self.boostResults = False
+        self.boostMultiplier = 1.2
+        self.secondPassThreshold = 240
     #enddef
 
 
@@ -497,9 +501,18 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
             return
         #endif
 
+        if (self.pwm > self.secondPassThreshold or self.result == self.ERROR_TOO_DIMM) and not self.boostResults:
+            # Possibly the UV sensor does not match UV LED wavelength, lets try with corrected readings
+            self.boostResults = True
+            self.logger.info("Requested intensity cannot be reached by max. allowed PWM, run second iteration with boostResults on (PWM=%d)", self.pwm)
+            self.display.hw.beepAlarm(2)
+            return PageUVCalibrateCenter.Name
+        #endif
+
         self.display.screen.getImgBlack()
 
         if self.result == self.ERROR_DONE:
+            self.display.pages[self.continuePage].boostResults = self.boostResults
             return self.continuePage
         #endif
 
@@ -559,7 +572,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
             if data is None:
                 return self.ERROR_READ_FAILED, None
             else:
-                self.intensity = data.uvMean
+                self.intensity = data.uvMean if not self.boostResults else data.uvMean * self.boostMultiplier
                 self.deviation = data.uvStdDev
                 data.uvFoundPwm = -1    # for debug log
                 self.logger.info("New UV sensor data %s", str(data))
@@ -629,7 +642,7 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
             if data is None:
                 return self.ERROR_READ_FAILED, None
             else:
-                self.minValue = data.uvMinValue
+                self.minValue = data.uvMinValue if not self.boostResults else data.uvMinValue * self.boostMultiplier
                 self.deviation = data.uvStdDev
                 data.uvFoundPwm = -1    # for debug log
                 self.logger.info("New UV sensor data %s", str(data))
