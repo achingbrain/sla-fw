@@ -48,7 +48,8 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s
 # Display warnings only once
 warnings.simplefilter("once")
 
-TEMP_DIR = Path(tempfile.gettempdir())
+temp_dir_obj = tempfile.TemporaryDirectory()
+TEMP_DIR = Path(temp_dir_obj.name)
 SAMPLES_DIR = Path(samples.__file__).parent
 SL1FW_DIR = Path(sl1fw.__file__).parent
 HARDWARE_FILE = TEMP_DIR / "sl1fw.hardware.cfg"
@@ -71,7 +72,7 @@ defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
 defines.cpuTempFile = str(SAMPLES_DIR / "cputemp")
 defines.multimediaRootPath = str(SL1FW_DIR / "multimedia")
 defines.internalProjectPath = str(SAMPLES_DIR)
-defines.ramdiskPath = tempfile.gettempdir()
+defines.ramdiskPath = str(TEMP_DIR)
 defines.octoprintAuthFile = str(SAMPLES_DIR / "slicer-upload-api.key")
 defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
 defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")

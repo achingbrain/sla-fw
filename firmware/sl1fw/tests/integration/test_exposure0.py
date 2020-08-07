@@ -13,7 +13,7 @@ from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 from sl1fw.api.exposure0 import Exposure0State
-from sl1fw.project.project import ProjectState
+from sl1fw.project.project import ProjectErrors
 from sl1fw.errors.warnings import AmbientTooHot
 
 
@@ -39,14 +39,14 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self.assertEqual("numbers", self.exposure0.project_name)
         self.assertEqual(0, self.exposure0.current_layer)
         self.assertEqual(0, self.exposure0.calibration_regions)
-        self.assertAlmostEqual(87.792032, self.exposure0.total_resin_required_ml, 1)
+        self.assertAlmostEqual(87.792032, self.exposure0.total_resin_required_ml, delta=0.1)
         self.assertAlmostEqual(50, self.exposure0.total_resin_required_percent, 1)
 
     def test_print(self):
         self.exposure0.confirm_start()
         self._wait_for_state(Exposure0State.CHECKS, 5)
         self._wait_for_state(Exposure0State.PRINTING, 30)
-        self.assertEqual(ProjectState.OK, ProjectState(self.exposure0.project_state))
+        self.assertEqual(ProjectErrors.NONE, ProjectErrors(self.exposure0.project_state))
         self._wait_for_state(Exposure0State.FINISHED, 30)
         self.assertEqual(100, self.exposure0.progress)
 

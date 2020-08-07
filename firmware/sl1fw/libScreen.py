@@ -3,573 +3,413 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# TODO: Fix following pylint problems
-# pylint: disable=too-many-instance-attributes
-# pylint: disable=too-many-branches
-# pylint: disable=too-many-locals
-# pylint: disable=too-many-statements
-
 import logging
-import multiprocessing
+from multiprocessing import Process, shared_memory, Value, Lock
 import os
-import signal
-from pathlib import Path
-from queue import Empty
 from time import time
+from typing import Optional
 
+from ctypes import c_uint32
 import numpy
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-from sl1fw import defines, test_runtime
-from sl1fw.libConfig import HwConfig
-from sl1fw.errors.exceptions import ConfigException
-from sl1fw.project.project import Project, ProjectState
+from sl1fw import defines
+from sl1fw.errors.errors import PreloadFailed
+from sl1fw.project.project import Project
+from sl1fw.states.project import ProjectErrors, ProjectWarnings, LayerCalibrationType
 from sl1fw.project.functions import get_white_pixels
+from sl1fw.utils.bounding_box import BBox
 
 
-class ScreenServer(multiprocessing.Process):
+class Area(BBox):
+    # pylint: disable=unused-argument
+    def __init__(self, coords=None):
+        super().__init__(coords)
+        self._copy_position = 0, 0
 
-    def __init__(self, commands, results):
-        super(ScreenServer, self).__init__()
-        self.logger = logging.getLogger(__name__)
-        self.commands = commands
-        self.results = results
-        self.stoprequest = multiprocessing.Event()
-        self.width = defines.screenWidth
-        self.height = defines.screenHeight
-        self.blackImage = Image.new("L", (self.width, self.height))
-        self.whiteImage = Image.new("L", (self.width, self.height), 255)
-        self.overlays = dict()
-        self.project = None
-        self.perPartes = False
-        self.nextImage1 = None
-        self.nextImage2 = None
-        self.pasteData = None
-        self.usage = None
-        self.screen = None
-        self.whitePixels = None
-    #enddef
+    def set_copy_position(self, bbox: BBox):
+        self._copy_position = self.x1, self.y1
 
+    def set_label_text(self, font, text, text_padding, label_size):
+        pass
 
-    def signalHandler(self, _signum, _frame):
-        self.logger.debug("signal received")
-        self.stoprequest.set()
-    #enddef
+    def set_label_position(self, label_size, project: Project):
+        pass
 
+    def paste(self, image: Image, source: Image, calibration_type: LayerCalibrationType):
+        image.paste(source, box=self._copy_position)
 
-    def join(self, timeout = None):
-        self.stoprequest.set()
-        super(ScreenServer, self).join(timeout)
-    #enddef
+class AreaWithLabel(Area):
+    def __init__(self, coords=None):
+        super().__init__(coords)
+        self._text_layer: Optional[Image] = None
+        self._pad_layer: Optional[Image] = None
+        self._label_position = 0, 0
 
+    def _transpose(self, image: Image):
+        # pylint: disable=no-self-use
+        return image.transpose(Image.FLIP_LEFT_RIGHT)
 
-    def run(self):
-        self.logger.info("Screen server process started")
-        self.logger.debug("Screen server PID: %d", os.getpid())
-        signal.signal(signal.SIGTERM, self.signalHandler)
+    def set_copy_position(self, bbox: BBox):
+        bbox_size = bbox.size
+        self_size = self.size
+        self._copy_position = self.x1 + (self_size[0] - bbox_size[0]) // 2, self.y1 + (self_size[1] - bbox_size[1]) // 2
+        self._logger.debug("copy position: %s", str(self._copy_position))
 
-        while not self.stoprequest.is_set():
-            result = False
-            try:
-                commandData = self.commands.get(timeout = 0.1)
-                fce = commandData.pop("fce", None)
-                if fce:
-                    method = getattr(self, fce, None)
-                    if method:
-                        result = method(**commandData)
-                    else:
-                        self.logger.error("There is no fce '%s'", fce)
-                    #endif
-                else:
-                    self.logger.error("Message with no 'fce' field")
-                #endif
-            except Empty:
-                continue
-            except Exception:
-                self.logger.exception("ScreenServer exception")
-                continue
-            #endtry
-            if result is not None:
-                self.results.put(result)
-            #enddef
-        #endwhile
+    def set_label_text(self, font, text, text_padding, label_size):
+        self._logger.debug("calib. label size: %s  text padding: %s", str(label_size), str(text_padding))
+        tmp = Image.new("L", label_size)
+        tmp_draw = ImageDraw.Draw(tmp)
+        tmp_draw.text(text_padding, text, fill=255, font=font, spacing=0)
+        self._text_layer = self._transpose(tmp)
+        self._pad_layer = self._transpose(Image.new("L", label_size, 255))
 
-        self.logger.debug("Screen server process ended")
-    #enddef
+    def set_label_position(self, label_size, project: Project):
+        first_padding = project.bbox - project.layers[0].bbox
+        label_x = self.x1 + (self.size[0] - label_size[0]) // 2
+        label_y = self._copy_position[1] + first_padding[1] - label_size[1] + project.calibrate_penetration_px
+        if label_y < self.y1:
+            label_y = self.y1
+        self._label_position = label_x, label_y
+        self._logger.debug("label position: %s", str(self._label_position))
 
+    def paste(self, image: Image, source: Image, calibration_type: LayerCalibrationType):
+        image.paste(source, box=self._copy_position)
+        if calibration_type == LayerCalibrationType.LABEL_TEXT:
+            image.paste(self._pad_layer, box=self._label_position, mask=self._text_layer)
+        elif calibration_type == LayerCalibrationType.LABEL_PAD:
+            image.paste(self._pad_layer, box=self._label_position)
+
+class AreaWithLabelStripe(AreaWithLabel):
+    def _transpose(self, image: Image):
+        return image.transpose(Image.ROTATE_270).transpose(Image.FLIP_LEFT_RIGHT)
+
+    def set_copy_position(self, bbox: BBox):
+        bbox_size = bbox.size
+        self_size = self.size
+        self._copy_position = 0, self.y1 + (self_size[1] - bbox_size[1]) // 2
+        self._logger.debug("copy position: %s", str(self._copy_position))
+
+    def set_label_position(self, label_size, project: Project):
+        first_size = project.layers[0].bbox.size
+        label_x = first_size[0] - project.calibrate_penetration_px
+        label_y = self.y1 + (self.size[1] - label_size[0]) // 2 # text is 90 degree rotated
+        if label_y < 0:
+            label_y = 0
+        self._label_position = label_x, label_y
+        self._logger.debug("label position: %s", str(self._label_position))
+
+class Calibration:
+    def __init__(self):
+        self.areas = []
+        self._logger = logging.getLogger(__name__)
+
+    def new_project(self, project: Project):
+        if project.calibrate_regions:
+            project.analyze()
+            if project.error == ProjectErrors.NONE:
+                bbox = project.bbox if project.calibrate_compact else None
+                if not self.create_areas(project.calibrate_regions, bbox):
+                    project.error = ProjectErrors.CALIBRATION_INVALID
+                    return
+                self.create_overlays(project)
+
+    def create_areas(self, regions, bbox: BBox):
+        areaMap = {
+                2 : (2, 1),
+                4 : (2, 2),
+                6 : (3, 2),
+                8 : (4, 2),
+                9 : (3, 3),
+                10 : (10, 1),
+                }
+        if regions not in areaMap:
+            self._logger.error("bad value regions (%d)", regions)
+            return False
+        divide = areaMap[regions]
+        if defines.screenWidth > defines.screenHeight:
+            x = 0
+            y = 1
+        else:
+            x = 1
+            y = 0
+        if bbox:
+            size = list(bbox.size)
+            if size[0] * divide[x] > defines.screenWidth:
+                size[0] = defines.screenWidth // divide[x]
+            if size[1] * divide[y] > defines.screenHeight:
+                size[1] = defines.screenHeight // divide[y]
+            self._areas_loop(
+                    ((defines.screenWidth - divide[x] * size[0]) // 2, (defines.screenHeight - divide[y] * size[1]) // 2),
+                    (size[0], size[1]),
+                    (divide[x], divide[y]),
+                    Area)
+        else:
+            self._areas_loop(
+                    (0, 0),
+                    (defines.screenWidth // divide[x], defines.screenHeight // divide[y]),
+                    (divide[x], divide[y]),
+                    AreaWithLabelStripe if regions == 10 else AreaWithLabel)
+        return True
+
+    def _areas_loop(self, begin, step, rnge, area_type):
+        for i in range(rnge[0]):
+            for j in range(rnge[1]):
+                x = i * step[0] + begin[0]
+                y = j * step[1] + begin[1]
+                area = area_type((x, y, x + step[0], y + step[1]))
+                self._logger.debug("%d-%d: %s", i, j, area)
+                self.areas.append(area)
+
+    def _check_project_size(self, project: Project):
+        orig_size = project.bbox.size
+        self._logger.debug("project bbox: %s  project size: %dx%d", str(project.bbox), orig_size[0], orig_size[1])
+        area_size = self.areas[0].size
+        project.bbox.shrink(area_size)
+        new_size = project.bbox.size
+        if new_size != orig_size:
+            self._logger.warning("project size %dx%d was reduced to %dx%d to fit area size %dx%d",
+                    orig_size[0], orig_size[1], new_size[0], new_size[1], area_size[0], area_size[1])
+            project.warnings.add(ProjectWarnings.TRUNCATED)
+            first_layer_bbox = project.layers[0].bbox
+            orig_size = first_layer_bbox.size
+            first_layer_bbox.crop(project.bbox)
+            new_size = first_layer_bbox.size
+            if new_size != orig_size:
+                self._logger.warning("project first layer bbox %s was cropped to project bbox %s",
+                        str(first_layer_bbox), str(project.bbox))
+
+    def create_overlays(self, project: Project):
+        self._check_project_size(project)
+        times = project.layers[-1].times_ms
+        if len(times) != len(self.areas):
+            self._logger.error("times != areas (%d, %d)", len(times), len(self.areas))
+            project.error = ProjectErrors.CALIBRATION_INVALID
+            return
+        font = ImageFont.truetype(defines.fontFile, project.calibrate_text_size_px)
+        actual_time_ms = 0
+        for area, time_ms in zip(self.areas, times):
+            area.set_copy_position(project.bbox)
+            actual_time_ms += time_ms
+            text = "%.1f" % (actual_time_ms / 1000)
+            self._logger.debug("calib. text: '%s'", text)
+            text_size = font.getsize(text)
+            text_offset = font.getoffset(text)
+            self._logger.debug("text_size: %s  text_offset: %s", str(text_size), str(text_offset))
+            label_size = (text_size[0] + 2 * project.calibrate_pad_spacing_px - text_offset[0],
+                    text_size[1] + 2 * project.calibrate_pad_spacing_px - text_offset[1])
+            text_padding = ((label_size[0] - text_size[0] - text_offset[0]) // 2,
+                    (label_size[1] - text_size[1] - text_offset[1]) // 2)
+            area.set_label_text(font, text, text_padding, label_size)
+            area.set_label_position(label_size, project)
+
+class Screen:
+    # pylint: disable=too-many-instance-attributes
+    def __init__(self):
+        self._logger = logging.getLogger(__name__)
+        self._project: Optional[Project] = None
+        self._black_image = Image.new("L", defines.screen_size)
+        self._overlays = {}
+        self._calibration: Optional[Calibration] = None
+        self._screen = None
+        self._preloader: Optional[Process] = None
+        self._last_preload_index: Optional[int] = None
+        self._preloader_lock = Lock()
+        self._next_image_1_shm = shared_memory.SharedMemory(create=True, size=defines.screenWidth * defines.screenHeight)
+        self._next_image_2_shm = shared_memory.SharedMemory(create=True, size=defines.screenWidth * defines.screenHeight)
+        temp_usage = numpy.zeros(defines.display_usage_size, dtype=numpy.float64, order='C')
+        self._usage_shm = shared_memory.SharedMemory(create=True, size=temp_usage.nbytes)
+        self._white_pixels = Value(c_uint32, 0)
+        self.blank_screen()
+
+    def __del__(self):
+        self._next_image_1_shm.close()
+        self._next_image_1_shm.unlink()
+        self._next_image_2_shm.close()
+        self._next_image_2_shm.unlink()
+        self._usage_shm.close()
+        self._usage_shm.unlink()
 
     def _writefb(self):
         # open fbFile for write without truncation (conv=notrunc equivalent in dd)
         with os.fdopen(os.open(defines.fbFile, os.O_RDWR), 'rb+') as fb:
-            fb.write(self.screen.convert("RGBX").tobytes())
-        #endwith
-#        self.screen.show()
-    #enddef
+            fb.write(self._screen.convert("RGBX").tobytes())
 
-
-    def _openImage(self, filename):
-        self.logger.debug("loading '%s'", filename)
+    def _open_image(self, filename):
+        self._logger.debug("loading '%s'", filename)
         img = Image.open(filename)
         if img.mode != "L":
-            self.logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha)."
+            self._logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha)."
                                 " Losing time in conversion.",
                                 filename, img.mode)
             img = img.convert("L")
-        #endif
         return img
-    #enddef
 
-
-    def startProject(self, params):
-        self.overlays = dict()
-        self.perPartes = False
-        self.nextImage1 = None
-        self.nextImage2 = None
-        self.pasteData = None
-        self.usage = numpy.zeros((defines.displayUsageSize[0], defines.displayUsageSize[2]))
-        hwConfig = HwConfig(file_path=Path(defines.hwConfigPath), factory_file_path=Path(defines.hwConfigPathFactory))
-        try:
-            hwConfig.read_file()
-        except ConfigException:
-            self.logger.warning("Failed to read configuration file", exc_info=True)
-        #endtry
-        self.project = Project(hwConfig)
-        if self.project.read(params['project']) != ProjectState.OK:
-            self.project = None
-            return
-        #endif
-
-        # "patch" project with possibly changed values
-        self.project.expTime = params['expTime']
-        self.project.expTimeFirst = params['expTimeFirst']
-        self.project.calibrateTime = params['calibrateTime']
-
-        # for unitttests only
-        overlay = params.get('overlayName', "calibPad")
-        per_partes_forced = params.get('perPartes', False)
-
-        if hwConfig.perPartes or per_partes_forced:
-            try:
-                self.overlays['ppm1'] = self._openImage(defines.perPartesMask)
-                self.overlays['ppm2'] = ImageOps.invert(self.overlays['ppm1'])
-                self.perPartes = True
-            except Exception:
-                self.logger.exception("per partes masks exception")
-            #endtry
-        #endif
-
-        try:
-            img = self.project.read_image(defines.maskFilename)
-            self.overlays['mask'] = ImageOps.invert(img)
-        except KeyError:
-            self.logger.info("No mask picture in the project")
-        except Exception:
-            self.logger.exception("project mask exception")
-        #endtry
-
-        if self.project.calibrateAreas:
-            self.createCalibrationOverlays()
-        #endif
-
-        self.preloadImg(self.project.to_print[0], overlay, hwConfig.whitePixelsThd)
-    #enddef
-
-
-    def projectStatus(self):
-        return self.project is not None, self.perPartes
-    #enddef
-
-
-    def getImgBlack(self):
-        self.screen = self.blackImage.copy()
-        self._writefb()
-    #enddef
-
-
-    def fillArea(self, area, color = 0):
-        surf = ImageDraw.Draw(self.screen)
-        surf.rectangle((area['x'], area['y'], area['x'] + area['w'], area['y'] + area['h']), color)
-        self._writefb()
-    #enddef
-
-
-    @staticmethod
-    def _calcPixels(perc, whole):
-        return int((perc * whole) / 100)
-    #enddef
-
-
-    def getImg(self, filename):
-        self.logger.debug("view of %s started", filename)
-        startTime = time()
-        self.screen = self._openImage(filename)
-        self._writefb()
-        self.logger.debug("view of %s done in %f secs", filename, time() - startTime)
-    #enddef
-
-
-    def preloadImg(self, filename, overlayName, whitePixelsThd):
-        if self.nextImage2:
-            self.logger.debug("second part of image exist - no preloading")
-            return
-        #endif
-
-        try:
-            self.logger.debug("preload of %s started", filename)
-
-            startTimeFirst = time()
-            temp = self.project.read_image(filename)
-            self.logger.debug("load of '%s' done in %f secs", filename, time() - startTimeFirst)
-
-            if self.pasteData:
-                startTime = time()
-                crop = temp.crop(self.pasteData['src'])
-                self.nextImage1 = self.blackImage.copy()
-                for area in self.pasteData['dest']:
-                    self.nextImage1.paste(crop, area)
-                #endfor
-                self.logger.debug("multiplying done in %f secs", time() - startTime)
-            else:
-                self.nextImage1 = temp
-            #endif
-
-            overlay = self.overlays.get(overlayName, None)
-            if overlay:
-                self.nextImage1.paste(self.whiteImage, overlay)
-            #endif
-            overlay = self.overlays.get('mask', None)
-            if overlay:
-                self.nextImage1.paste(self.blackImage, overlay)
-            #endif
-
-            startTime = time()
-            pixels = numpy.array(self.nextImage1)
-            # 1500 layers on 0.1 mm layer height <0:255> -> <0.0:1.0>
-            self.usage += numpy.reshape(pixels, defines.displayUsageSize).mean(axis=3).mean(axis=1) / 382500
-            self.whitePixels = get_white_pixels(self.nextImage1)
-            self.logger.debug("pixels manipulations done in %f secs, whitePixels: %d", time() - startTime, self.whitePixels)
-
-            if self.perPartes and self.whitePixels > whitePixelsThd:
-                self.nextImage2 = self.nextImage1.copy()
-                self.nextImage1.paste(self.blackImage, self.overlays['ppm1'])
-                self.nextImage2.paste(self.blackImage, self.overlays['ppm2'])
-            else:
-                self.nextImage2 = None
-            #endif
-
-            self.logger.debug("preload of %s done in %f secs", filename, time() - startTimeFirst)
-        except Exception:
-            self.logger.exception("preload exception:")
-        #endtry
-    #enddef
-
-
-    def blitImg(self, second = False):
-        startTime = time()
-        self.logger.debug("blit started")
-        if second:
-            self.screen = self.nextImage2
-            self.nextImage2 = None
-        else:
-            self.screen = self.nextImage1
-            self.nextImage1 = None
-        #endif
-        self._writefb()
-        self.logger.debug("blit done in %f secs", time() - startTime)
-        return self.whitePixels
-    #enddef
-
-
-    def screenshot(self, second):
-        image = self.nextImage2 if second else self.nextImage1
-        if image:
-            try:
-                startTime = time()
-                preview = image.resize(defines.livePreviewSize, Image.BICUBIC)
-                self.logger.debug("resize done in %f secs", time() - startTime)
-                startTime = time()
-                preview.save(defines.livePreviewImage + "-tmp.png")
-                self.logger.debug("screenshot done in %f secs", time() - startTime)
-            except Exception:
-                self.logger.exception("screenshot exception:")
-            #endtry
-        else:
-            self.logger.warning("try to shot epmty image %d", 2 if second else 1)
-        #endif
-    #enddef
-
-
-    def screenshotRename(self):
-        startTime = time()
-        try:
-            os.rename(defines.livePreviewImage + "-tmp.png", defines.livePreviewImage)
-        except Exception:
-            self.logger.exception("screenshotRename exception:")
-        #endtry
-        self.logger.debug("rename done in %f secs", time() - startTime)
-    #enddef
-
-
-    def inverse(self):
-        self.logger.debug("inverse started")
-        startTime = time()
-        self.screen = ImageOps.invert(self.screen)
-        self._writefb()
-        self.logger.debug("inverse done in %f secs", time() - startTime)
-    #enddef
-
-
-    def createCalibrationOverlays(self):
-        calib = Image.new("L", (self.width, self.height))
-        calibPad = Image.new("L", (self.width, self.height))
-        calibPadDraw = ImageDraw.Draw(calibPad)
-        penetration = self.project.calibratePenetration
-        calibAreas = self.project.calibrateAreas
-        firstbbox = self.project.firsLayerBBox
-        maxbbox = self.project.calibrateBBox
-        spacing = 2 * self.project.calibratePadSpacing
-        font = ImageFont.truetype(defines.fontFile, self.project.calibrateTextSize)
-        projSize = list((maxbbox[2] - maxbbox[0], maxbbox[3] - maxbbox[1]))
-        self.logger.debug("max bbox: %s  project size: %s", maxbbox, projSize)
-        firstPadding = list((firstbbox[0] - maxbbox[0], firstbbox[1] - maxbbox[1], maxbbox[2] - firstbbox[2], maxbbox[3] - firstbbox[3]))
-        self.logger.debug("first bbox: %s  padding: %s", firstbbox, firstPadding)
-        areaSize = calibAreas[0]['rect']
-
-        if areaSize['w'] < projSize[0]:
-            shrink = (projSize[0] - areaSize['w']) // 2
-            self.logger.debug("shrink l: %d", shrink)
-            maxbbox[0] += shrink
-            maxbbox[2] -= shrink
-            firstPadding[0] -= shrink
-            firstPadding[2] -= shrink
-            if firstPadding[0] < 0:
-                firstbbox[0] -= firstPadding[0]
-                firstPadding[0] = 0
-            #endif
-            if firstPadding[2] < 0:
-                firstbbox[2] += firstPadding[2]
-                firstPadding[2] = 0
-            #endif
-        #endif
-
-        if areaSize['h'] < projSize[1]:
-            shrink = (projSize[1] - areaSize['h']) // 2
-            self.logger.debug("shrink w: %d", shrink)
-            maxbbox[1] += shrink
-            maxbbox[3] -= shrink
-            firstPadding[1] -= shrink
-            firstPadding[3] -= shrink
-            if firstPadding[1] < 0:
-                firstbbox[1] -= firstPadding[1]
-                firstPadding[1] = 0
-            #endif
-            if firstPadding[3] < 0:
-                firstbbox[3] += firstPadding[3]
-                firstPadding[3] = 0
-            #endif
-        #endif
-
-        if projSize[0] != maxbbox[2] - maxbbox[0] or projSize[1] != maxbbox[3] - maxbbox[1]:
-            self.logger.warning("project size %dx%d was reduced to %dx%d to fit area size %dx%d",
-                    projSize[0], projSize[1],
-                    maxbbox[2] - maxbbox[0], maxbbox[3] - maxbbox[1],
-                    areaSize['w'], areaSize['h'])
-            projSize = list((maxbbox[2] - maxbbox[0], maxbbox[3] - maxbbox[1]))
-            self.logger.debug("max bbox: %s  project size: %s", maxbbox, projSize)
-            self.logger.debug("first bbox: %s  padding: %s", firstbbox, firstPadding)
-        #endif
-        self.pasteData = { 'src' : maxbbox, 'dest' : list() }
-
-        for area in calibAreas:
-            text = "%.1f" % area['time']
-            self.logger.debug("text: '%s'", text)
-            textSize = font.getsize(text)
-            textOffset = font.getoffset(text)
-            self.logger.debug("textWidth: %d (offset %d)  textHeight: %d (offset %d)",
-                    textSize[0], textOffset[0], textSize[1], textOffset[1])
-
-            padX = textSize[0] + spacing - textOffset[0]
-            padY = textSize[1] + spacing - textOffset[1]
-            self.logger.debug("padX: %d  padY: %d", padX, padY)
-
-            ofsetX = (padX - textSize[0] - textOffset[0]) // 2
-            ofsetY = (padY - textSize[1] - textOffset[1]) // 2
-            self.logger.debug("ofsetX: %d  ofsetY: %d", ofsetX, ofsetY)
-
-            areaRect = area['rect']
-            if area['stripe']:
-                place = 0, areaRect['y'] + (areaRect['h'] - projSize[1]) // 2
-            else:
-                place = areaRect['x'] + (areaRect['w'] - projSize[0]) // 2, areaRect['y'] + (areaRect['h'] - projSize[1]) // 2
-            #endif
-            self.logger.debug("placeX: %d  placeY: %d", place[0], place[1])
-            self.pasteData['dest'].append(list(place))
-
-            firstSizeX = maxbbox[2] - firstPadding[2] - maxbbox[0] - firstPadding[0]
-            if area['stripe']:
-                firstSizeY = maxbbox[3] - firstPadding[3] - maxbbox[1] - firstPadding[1]
-                startX = firstSizeX - penetration
-                startY = areaRect['y'] + (firstSizeY - padX) // 2 + (areaRect['h'] - firstSizeY) // 2
-                if startY < 0:
-                    startY = 0
-                #endif
-            else:
-                startX = areaRect['x'] + (firstSizeX - padX) // 2 + (areaRect['w'] - firstSizeX) // 2
-                startY = place[1] + firstPadding[1] - padY + penetration
-                if startY < areaRect['y']:
-                    startY = areaRect['y']
-                #endif
-            #endif
-            self.logger.debug("startX: %d  startY: %d", startX, startY)
-
-            tmp = Image.new("L", (padX, padY))  # should be "LA"?
-            tmpDraw = ImageDraw.Draw(tmp)
-            tmpDraw.text((ofsetX, ofsetY), text, fill = 255, font = font, spacing = 0)
-            if area['stripe']:
-                tmp = tmp.transpose(Image.ROTATE_270)
-                padX, padY = padY, padX
-            #endif
-            calib.paste(tmp.transpose(Image.FLIP_LEFT_RIGHT), (startX, startY))
-            calibPadDraw.rectangle(((startX, startY, startX + padX, startY + padY)), 255)
-        #endfor
-        self.overlays['calib'] = calib
-        self.overlays['calibPad'] = calibPad
-    #enddef
-
-
-    def saveDisplayUsage(self):
-        try:
-            with numpy.load(defines.displayUsageData) as npzfile:
-                savedData = npzfile['display_usage']
-                if savedData.shape != ((defines.displayUsageSize[0], defines.displayUsageSize[2])):
-                    self.logger.warning("Wrong saved data shape: %s", savedData.shape)
-                else:
-                    self.usage += savedData
-                #endif
-            #endwith
-        except FileNotFoundError:
-            self.logger.warning("File '%s' not found", defines.displayUsageData)
-        except Exception:
-            self.logger.exception("Load display usage failed")
-        #endtry
-        numpy.savez_compressed(defines.displayUsageData, display_usage = self.usage)
-    #enddef
-
-    @staticmethod
-    def ping():
-        return "pong"
-    #enddef
-
-#endclass
-
-
-class Screen:
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        self.commands = multiprocessing.Queue()
-        self.results = multiprocessing.Queue()
-        self.server = ScreenServer(self.commands, self.results)
-    #enddef
-
-
-    def start(self):
-        self.server.start()
-    #enddef
-
-    @staticmethod
-    def cleanup():
+    def new_project(self, project: Project):
         # Remove live preview from last run
         if os.path.exists(defines.livePreviewImage):
             os.remove(defines.livePreviewImage)
-        #endif
-    #enddef
+        self._project = project
+        self._overlays = {}
+        self._calibration = None
+        usage = numpy.ndarray(defines.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
+        usage.fill(0.0)
+        if self._project.per_partes:
+            try:
+                self._overlays['ppm1'] = self._open_image(defines.perPartesMask)
+                self._overlays['ppm2'] = ImageOps.invert(self._overlays['ppm1'])
+            except Exception:
+                self._logger.exception("per partes masks exception")
+                self._project.warnings.add(ProjectWarnings.PER_PARTES_NOAVAIL)
+                self._project.per_partes = False
+        try:
+            img = self._project.read_image(defines.maskFilename)
+            self._overlays['mask'] = ImageOps.invert(img)
+        except KeyError:
+            self._logger.info("No mask picture in the project")
+        except Exception:
+            self._logger.exception("project mask exception")
+            self._project.warnings.add(ProjectWarnings.MASK_NOAVAIL)
+        self._calibration = Calibration()
+        self._calibration.new_project(self._project)
+        if self._project.error == ProjectErrors.NONE:
+            self.preload_image(0)
 
+    def blank_screen(self):
+        self._screen = self._black_image.copy()
+        self._writefb()
 
-    def exit(self):
-        if self.server.is_alive():
-            self.server.join()
-        #endif
-    #enddef
+    def fill_area(self, area_index, color=0):
+        if self._calibration and area_index < len(self._calibration.areas):
+            self._logger.debug("fill area %d", area_index)
+            self._screen.paste(color, self._calibration.areas[area_index].coords)
+            self._writefb()
+            self._logger.debug("fill area end")
 
+    def show_image(self, filename):
+        self._logger.debug("show of %s started", filename)
+        start_time = time()
+        self._screen = self._open_image(filename)
+        self._writefb()
+        self._logger.debug("show of %s done in %f secs", filename, time() - start_time)
 
-    def startProject(self, **kwargs):
-        kwargs['fce'] = 'startProject'
-        self.commands.put(kwargs)
-    #enddef
+    def preload_image(self, layer_index: int, second=False):
+        if second:
+            self._logger.debug("second part of image - no preloading")
+            return
+        if layer_index >= self._project.total_layers:
+            self._logger.debug("layer_index is beyond the layers count - no preloading")
+            return
+        self._last_preload_index = layer_index
+        if not self._preloader_lock.acquire(timeout=5):
+            # TODO this shouldn't happen, need better handling if yes
+            raise PreloadFailed()
+        self._preloader = Process(target=self.preloader, args=(layer_index,))
+        self._preloader.start()
 
+    def preloader(self, layer_index: int):
+        try:
+            layer = self._project.layers[layer_index]
+            self._logger.debug("preload of %s started", layer.image)
+            startTimeFirst = time()
+            input_image = self._project.read_image(layer.image)
+            self._logger.debug("load of '%s' done in %f secs", layer.image, time() - startTimeFirst)
+            output_image = Image.frombuffer("L", defines.screen_size, self._next_image_1_shm.buf, "raw", "L", 0, 1)
+            output_image.readonly = False
+            if self._calibration.areas:
+                start_time = time()
+                crop = input_image.crop(self._project.bbox.coords)
+                output_image.paste(self._black_image)
+                for area in self._calibration.areas:
+                    area.paste(output_image, crop, layer.calibration_type)
+                self._logger.debug("multiplying done in %f secs", time() - start_time)
+            else:
+                output_image.paste(input_image)
+            overlay = self._overlays.get('mask', None)
+            if overlay:
+                output_image.paste(self._black_image, mask=overlay)
+            start_time = time()
+            pixels = numpy.array(output_image)
+            usage = numpy.ndarray(defines.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
+            # 1500 layers on 0.1 mm layer height <0:255> -> <0.0:1.0>
+            usage += numpy.reshape(pixels, defines.display_usage_shape).mean(axis=3).mean(axis=1) / 382500
+            white_pixels = get_white_pixels(output_image)
+            self._logger.debug("pixels manipulations done in %f secs, white pixels: %d",
+                    time() - start_time, white_pixels)
+            if self._project.per_partes and white_pixels > self._project.white_pixels_threshold:
+                output_image_second = Image.frombuffer("L", defines.screen_size, self._next_image_2_shm.buf, "raw", "L", 0, 1)
+                output_image_second.readonly = False
+                output_image_second.paste(output_image)
+                output_image.paste(self._black_image, mask=self._overlays['ppm1'])
+                output_image_second.paste(self._black_image, mask=self._overlays['ppm2'])
+                self._screenshot(output_image_second, "2")
+            self._screenshot(output_image, "1")
+            self._white_pixels.value = white_pixels
+            self._logger.debug("preload of %s done in %f secs", layer.image, time() - startTimeFirst)
+        finally:
+            self._preloader_lock.release()
 
-    def projectStatus(self):
-        self.commands.put({ 'fce' : "projectStatus" })
-        return self.results.get()
-    #enddef
+    def _screenshot(self, image: Image, number: str):
+        try:
+            start_time = time()
+            preview = image.resize(defines.livePreviewSize, Image.BICUBIC)
+            self._logger.debug("resize done in %f secs", time() - start_time)
+            start_time = time()
+            preview.save(defines.livePreviewImage + "-tmp%s.png" % number)
+            self._logger.debug("screenshot done in %f secs", time() - start_time)
+        except Exception:
+            self._logger.exception("Screenshot exception:")
 
+    def _sync_preloader(self):
+        self._logger.debug("sync preloader started")
+        self._preloader.join(5)
+        if self._preloader.exitcode != 0:
+            self._logger.error("Preloader exit code: %s", str(self._preloader.exitcode))
+            # TODO this shouldn't happen, need better handling if yes
+            raise PreloadFailed()
 
-    def getImgBlack(self):
-        self.commands.put({ 'fce' : "getImgBlack" })
-        test_runtime.screen_bw = False
-    #enddef
+    def blit_image(self, second=False):
+        self._sync_preloader()
+        start_time = time()
+        self._logger.debug("blit started")
+        source_shm = self._next_image_2_shm if second else self._next_image_1_shm
+        self._screen = Image.frombuffer("L", defines.screen_size, source_shm.buf, "raw", "L", 0, 1).copy()
+        self._writefb()
+        self._logger.debug("get result and blit done in %f secs", time() - start_time)
+        return self._white_pixels.value
 
-
-    def fillArea(self, **kwargs):
-        kwargs['fce'] = 'fillArea'
-        self.commands.put(kwargs)
-    #enddef
-
-
-    # FIXME not used, delete?
-    def fillAreaPerc(self, **kwargs):
-        kwargs['fce'] = 'fillAreaPerc'
-        self.commands.put(kwargs)
-    #enddef
-
-
-    def getImg(self, **kwargs):
-        kwargs['fce'] = 'getImg'
-        self.commands.put(kwargs)
-    #enddef
-
-
-    def preloadImg(self, **kwargs):
-        kwargs['fce'] = 'preloadImg'
-        self.commands.put(kwargs)
-    #enddef
-
-
-    def blitImg(self, **kwargs):
-        kwargs['fce'] = 'blitImg'
-        self.commands.put(kwargs)
-        return self.results.get()
-    #enddef
-
-
-    def screenshot(self, **kwargs):
-        kwargs['fce'] = 'screenshot'
-        self.commands.put(kwargs)
-    #enddef
-
-
-    def screenshotRename(self):
-        self.commands.put({ 'fce' : "screenshotRename" })
-    #enddef
-
+    def screenshot_rename(self, second=False):
+        self._sync_preloader()
+        start_time = time()
+        try:
+            os.rename(defines.livePreviewImage + "-tmp%s.png" % ("2" if second else "1"), defines.livePreviewImage)
+        except Exception:
+            self._logger.exception("Screenshot rename exception:")
+        self._logger.debug("rename done in %f secs", time() - start_time)
 
     def inverse(self):
-        self.commands.put({ 'fce' : "inverse" })
-        if test_runtime.screen_bw is not None:
-            test_runtime.screen_bw = not test_runtime.screen_bw
-    #enddef
+        self._logger.debug("inverse started")
+        start_time = time()
+        self._screen = ImageOps.invert(self._screen)
+        self._writefb()
+        self._logger.debug("inverse done in %f secs", time() - start_time)
 
+    def save_display_usage(self):
+        self._sync_preloader()
+        usage = numpy.ndarray(defines.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
+        try:
+            with numpy.load(defines.displayUsageData) as npzfile:
+                saved_data = npzfile['display_usage']
+                if saved_data.shape != defines.display_usage_size:
+                    self._logger.warning("Wrong saved data shape: %s", saved_data.shape)
+                else:
+                    usage += saved_data
+        except FileNotFoundError:
+            self._logger.warning("File '%s' not found", defines.displayUsageData)
+        except Exception:
+            self._logger.exception("Load display usage failed")
+        numpy.savez_compressed(defines.displayUsageData, display_usage=usage)
 
-    def saveDisplayUsage(self):
-        self.commands.put({ 'fce' : "saveDisplayUsage" })
-    #enddef
-
-
-    # for testing
-    def ping(self, **kwargs):
-        kwargs['fce'] = 'ping'
-        self.commands.put(kwargs)
-        return self.results.get()
-    #enddef
-
-#endclass
+    @property
+    def is_screen_blank(self) -> bool:
+        return get_white_pixels(self._screen) == 0

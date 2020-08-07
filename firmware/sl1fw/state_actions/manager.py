@@ -99,11 +99,11 @@ class ActionManager:
     ):
         exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config, project)
         if exp_time_ms:
-            exposure.project.expTime = exp_time_ms / 1000
+            exposure.project.exposure_time_ms = exp_time_ms
         if exp_time_first_ms:
-            exposure.project.expTimeFirst = exp_time_first_ms / 1000
+            exposure.project.exposure_time_first_ms = exp_time_first_ms
         if exp_time_calibrate_ms:
-            exposure.project.calibrateTime = exp_time_calibrate_ms / 1000
+            exposure.project.calibrate_time_ms = exp_time_calibrate_ms
 
         return exposure
 

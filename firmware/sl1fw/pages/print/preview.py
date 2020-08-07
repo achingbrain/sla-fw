@@ -26,7 +26,7 @@ class PagePrintPreviewSwipe(PagePrintBase):
     def fillData(self):
         project = self.display.expo.project
 
-        percReq = self.display.hw.calcPercVolume(project.usedMaterial + defines.resinMinVolume)
+        percReq = self.display.hw.calcPercVolume(project.used_material + defines.resinMinVolume)
         if percReq <= 100:
             resinVolumeText = _("Please fill the resin tank to at least %d %% and close the cover.") % percReq
         else:
@@ -37,14 +37,14 @@ class PagePrintPreviewSwipe(PagePrintBase):
 
         return {
             "name": project.name,
-            "calibrationRegions": project.calibrateRegions,
-            "date": project.modificationTime,
-            "layers": project.totalLayers,
-            "layer_height_first_mm": self.display.hwConfig.calcMM(project.layerMicroStepsFirst),
-            "layer_height_mm": self.display.hwConfig.calcMM(project.layerMicroSteps),
-            "exposure_time_first_sec": project.expTimeFirst,
-            "exposure_time_sec": project.expTime,
-            "calibrate_time_sec": project.calibrateTime,
+            "calibrationRegions": project.calibrate_regions,
+            "date": project.modification_time,
+            "layers": project.total_layers,
+            "layer_height_first_mm": project.layer_height_first_nm / 1e6,
+            "layer_height_mm": project.layer_height_nm / 1e6,
+            "exposure_time_first_sec": project.exposure_time_first_ms / 1e3,
+            "exposure_time_sec": project.exposure_time_ms / 1e3,
+            "calibrate_time_sec": project.calibrate_time_ms / 1e3,
             "print_time_min": self.display.expo.countRemainTime(),
             "text": resinVolumeText,
         }

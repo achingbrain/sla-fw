@@ -91,7 +91,7 @@ class PageDisplayUsage(Page):
             return "error"
         #endif
 
-        if savedData.shape != ((defines.displayUsageSize[0], defines.displayUsageSize[2])):
+        if savedData.shape != defines.display_usage_size:
             self.logger.warning("Wrong saved data shape: %s", savedData.shape)
             self.display.pages['error'].setParams(text = "Wrong data format!")
             return "error"

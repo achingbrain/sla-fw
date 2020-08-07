@@ -161,7 +161,6 @@ class PageSetupHw(PageSetup):
         self.temp = {}
         self.temp['screwmm'] = self.display.hwConfig.screwMm
         self.temp['tiltheight'] = self.display.hwConfig.tiltHeight
-        self.temp['calibtoweroffset'] = self.display.hwConfig.calibTowerOffset
         self.temp['measuringmoves'] = self.display.hwConfig.measuringMoves
         self.temp['stirringmoves'] = self.display.hwConfig.stirringMoves
         self.temp['stirringdelay'] = self.display.hwConfig.stirringDelay

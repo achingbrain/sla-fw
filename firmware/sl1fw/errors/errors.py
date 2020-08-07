@@ -9,7 +9,7 @@ from typing import List, Dict, Optional
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.errors.exceptions import PrinterException, with_code
-from sl1fw.states.project import ProjectState
+from sl1fw.states.project import ProjectErrors
 
 
 class PrinterError(PrinterException):
@@ -136,10 +136,15 @@ class TowerMoveFailed(ExposureError):
     pass
 
 
+@with_code(Sl1Codes.PRELOAD_FAILED)
+class PreloadFailed(ExposureError):
+    pass
+
+
 @with_code(Sl1Codes.PROJECT_FAILED)
 @dataclass
 class ProjectFailed(ExposureError):
-    project_state: ProjectState
+    project_error: ProjectErrors
 
 
 @with_code(Sl1Codes.TEMP_SENSOR_FAILED)

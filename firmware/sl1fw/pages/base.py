@@ -558,7 +558,7 @@ class Page:
 
 
     def allOff(self):
-        self.display.screen.getImgBlack()
+        self.display.screen.blank_screen()
         self.display.hw.uvLed(False)
         self.display.hw.stopFans()
         self.display.hw.motorsRelease()

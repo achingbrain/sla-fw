@@ -40,7 +40,8 @@ sys.modules["evdev"] = Mock()
 class Sl1fwTestCase(DBusTestCase):
     SL1FW_DIR = Path(sl1fw.__file__).parent
     SAMPLES_DIR = Path(samples.__file__).parent
-    TEMP_DIR = Path(tempfile.gettempdir())
+    temp_dir_obj = tempfile.TemporaryDirectory()
+    TEMP_DIR = Path(temp_dir_obj.name)
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
 
     dbus_mocks = []

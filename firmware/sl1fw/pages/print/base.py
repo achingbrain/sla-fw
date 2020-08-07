@@ -26,7 +26,7 @@ from sl1fw.errors.errors import (
 )
 from sl1fw.states.exposure import ExposureState
 from sl1fw.pages.base import Page
-from sl1fw.project.project import ProjectState
+from sl1fw.states.project import ProjectErrors
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -101,10 +101,12 @@ class PagePrintBase(Page):
             message = defaultdict(
                 lambda: _("Unknown project error.\n\nCheck the project and try again."),
                 {
-                    ProjectState.NOT_FOUND: _("Project file not found.\n\nCheck it and try again."),
-                    ProjectState.CANT_READ: _("Can't read project data.\n\nRe-export the project and try again."),
-                    ProjectState.CORRUPTED: _("Project data is corrupted.\n\nRe-export the project and try again."),
-                    ProjectState.NOT_ENOUGH_LAYERS: _("Not enough layers.\n\nRe-export the project and try again."),
+                    ProjectErrors.NOT_FOUND: _("Project file not found.\n\nCheck it and try again."),
+                    ProjectErrors.CANT_READ: _("Can't read project data.\n\nRe-export the project and try again."),
+                    ProjectErrors.NOT_ENOUGH_LAYERS: _("Not enough layers.\n\nRe-export the project and try again."),
+                    ProjectErrors.CORRUPTED: _("Project data is corrupted.\n\nRe-export the project and try again."),
+                    ProjectErrors.ANALYSIS_FAILED: _("Project analysis failed.\n\nRe-export the project and try again."),
+                    ProjectErrors.CALIBRATION_INVALID: _("Calibration definition is invalid.\n\nRe-export the project and try again."),
                 },
             )[self.display.expo.project.state]
             self.display.pages["error"].setParams(

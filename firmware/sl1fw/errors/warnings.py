@@ -46,6 +46,21 @@ class PrintingDirectlyFromMedia(ExposureWarning):
     pass
 
 
+@with_code(Sl1Codes.PERPARTES_NOAVAIL_WARNING)
+class PerPartesPrintNotAvaiable(ExposureWarning):
+    pass
+
+
+@with_code(Sl1Codes.MASK_NOAVAIL_WARNING)
+class PrintMaskNotAvaiable(ExposureWarning):
+    pass
+
+
+@with_code(Sl1Codes.OBJECT_TRUNCATED_WARNING)
+class PrintedObjectWasTruncated(ExposureWarning):
+    pass
+
+
 @with_code(Sl1Codes.PRINTER_MODEL_MISMATCH_WARNING)
 @dataclass
 class ModelMismatch(ExposureWarning):

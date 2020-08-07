@@ -165,6 +165,7 @@ class Hardware:
             3: N_("<reserved2>"),
         }
 
+        # FIXME why here and not in defines.py?
         self._tiltMin = -12800  # whole turn
         self._tiltEnd = 6016  # top deadlock
         self._tiltMax = self._tiltEnd

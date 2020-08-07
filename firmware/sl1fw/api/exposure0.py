@@ -25,7 +25,7 @@ from sl1fw.api.decorators import (
     wrap_warning,
 )
 from sl1fw.libExposure import Exposure
-from sl1fw.project.project import ProjectState
+from sl1fw.project.project import ProjectErrors
 from sl1fw.states.exposure import ExposureState
 
 
@@ -94,17 +94,19 @@ class Exposure0ProjectState(Enum):
     NOT_ENOUGH_LAYERS = 3
     CORRUPTED = 4
     PRINT_DIRECTLY = 5
+    ANALYSIS_FAILED = 6
+    CALIBRATION_INVALID = 7
 
     @staticmethod
-    def from_project(state: ProjectState) -> Exposure0ProjectState:
+    def from_project(state: ProjectErrors) -> Exposure0ProjectState:
         return {
-            ProjectState.UNINITIALIZED: Exposure0ProjectState.UNINITIALIZED,
-            ProjectState.OK: Exposure0ProjectState.OK,
-            ProjectState.NOT_FOUND: Exposure0ProjectState.NOT_FOUND,
-            ProjectState.CANT_READ: Exposure0ProjectState.CANT_READ,
-            ProjectState.NOT_ENOUGH_LAYERS: Exposure0ProjectState.NOT_ENOUGH_LAYERS,
-            ProjectState.CORRUPTED: Exposure0ProjectState.CORRUPTED,
-            ProjectState.PRINT_DIRECTLY: Exposure0ProjectState.PRINT_DIRECTLY,
+            ProjectErrors.NONE: Exposure0ProjectState.OK,
+            ProjectErrors.NOT_FOUND: Exposure0ProjectState.NOT_FOUND,
+            ProjectErrors.CANT_READ: Exposure0ProjectState.CANT_READ,
+            ProjectErrors.NOT_ENOUGH_LAYERS: Exposure0ProjectState.NOT_ENOUGH_LAYERS,
+            ProjectErrors.CORRUPTED: Exposure0ProjectState.CORRUPTED,
+            ProjectErrors.ANALYSIS_FAILED: Exposure0ProjectState.ANALYSIS_FAILED,
+            ProjectErrors.CALIBRATION_INVALID: Exposure0ProjectState.CALIBRATION_INVALID,
         }[state]
 
 
@@ -250,7 +252,7 @@ class Exposure0:
 
         :return: Exposure0ProjectState as integer
         """
-        return Exposure0ProjectState.from_project(self.exposure.project.state).value
+        return Exposure0ProjectState.from_project(self.exposure.project.error).value
 
     @auto_dbus
     @property
@@ -261,7 +263,7 @@ class Exposure0:
 
         :return: Layer number
         """
-        return self.exposure.actualLayer
+        return self.exposure.actual_layer
 
     @auto_dbus
     @property
@@ -272,7 +274,7 @@ class Exposure0:
 
         :return:
         """
-        return self.exposure.project.totalLayers
+        return self.exposure.project.total_layers
 
     @auto_dbus
     @property
@@ -342,7 +344,7 @@ class Exposure0:
 
         :return: Height in millimeters
         """
-        return self.exposure.hwConfig.calcMM(self.exposure.project.layerMicroStepsFirst)
+        return self.exposure.project.layer_height_first_nm / 1e6
 
     @auto_dbus
     @property
@@ -353,7 +355,7 @@ class Exposure0:
 
         :return: Height in nanometers
         """
-        return self.exposure.hwConfig.tower_microsteps_to_nm(self.exposure.project.layerMicroStepsFirst)
+        return self.exposure.project.layer_height_first_nm
 
     @auto_dbus
     @property
@@ -365,7 +367,7 @@ class Exposure0:
 
         :return: Height in millimeters
         """
-        return self.exposure.hwConfig.calcMM(self.exposure.project.layerMicroSteps)
+        return self.exposure.project.layer_height_nm / 1e6
 
     @auto_dbus
     @property
@@ -376,7 +378,7 @@ class Exposure0:
 
         :return: Height in nanometers
         """
-        return self.exposure.hwConfig.tower_microsteps_to_nm(self.exposure.project.layerMicroSteps)
+        return self.exposure.project.layer_height_nm
 
     @auto_dbus
     @property
@@ -388,7 +390,7 @@ class Exposure0:
 
         :return: Layer position in millimeters
         """
-        return self.exposure.hwConfig.calcMM(self.exposure.position)
+        return self.exposure.tower_position_nm / 1e6
 
     @auto_dbus
     @property
@@ -399,7 +401,7 @@ class Exposure0:
 
         :return: Layer position in nanometers
         """
-        return self.exposure.hwConfig.tower_microsteps_to_nm(self.exposure.position)
+        return self.exposure.tower_position_nm
 
     @auto_dbus
     @property
@@ -411,7 +413,7 @@ class Exposure0:
 
         :return: Height in millimeters
         """
-        return self.exposure.totalHeight
+        return self.exposure.project.total_height_nm / 1e6
 
     @auto_dbus
     @property
@@ -422,7 +424,7 @@ class Exposure0:
 
         :return: Height in nanometers
         """
-        return self.exposure.totalHeight * 1000 * 1000
+        return self.exposure.project.total_height_nm
 
     @auto_dbus
     @property
@@ -467,7 +469,7 @@ class Exposure0:
 
         :return: Volume in milliliters
         """
-        return self.exposure.resinCount
+        return self.exposure.resin_count
 
     @auto_dbus
     @property
@@ -491,8 +493,8 @@ class Exposure0:
 
         :return: Resin volume in milliliters, or -1 if not measured yet
         """
-        if self.exposure.resinVolume:
-            return self.exposure.resinVolume
+        if self.exposure.resin_volume:
+            return self.exposure.resin_volume
         return -1
 
     @auto_dbus
@@ -506,7 +508,7 @@ class Exposure0:
 
         :return: Required resin in milliliters
         """
-        return self.exposure.project.usedMaterial + defines.resinMinVolume
+        return self.exposure.project.used_material_nl / 1e6 + defines.resinMinVolume
 
     @auto_dbus
     @property
@@ -519,7 +521,7 @@ class Exposure0:
 
         :return: Required resin in tank percents
         """
-        return self.exposure.hw.calcPercVolume(self.exposure.project.usedMaterial + defines.resinMinVolume)
+        return self.exposure.hw.calcPercVolume(self.exposure.project.used_material_nl / 1e6 + defines.resinMinVolume)
 
     @auto_dbus
     @property
@@ -679,42 +681,42 @@ class Exposure0:
     @property
     @last_error
     def exposure_time_ms(self) -> int:
-        return int(self.exposure.project.expTime * 1000)
+        return self.exposure.project.exposure_time_ms
 
     @auto_dbus
     @exposure_time_ms.setter
     @last_error
     @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
     def exposure_time_ms(self, value: int) -> None:
-        self.exposure.project.expTime = value / 1000
+        self.exposure.project.exposure_time_ms = value
         # TODO: this is temporary until we can report all changes to exposure time
         self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_ms": self.exposure_time_ms}, [])
 
     @property
     @last_error
     def exposure_time_first_ms(self) -> int:
-        return int(self.exposure.project.expTimeFirst * 1000)
+        return self.exposure.project.exposure_time_first_ms
 
     @auto_dbus
     @exposure_time_first_ms.setter
     @last_error
     @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
     def exposure_time_first_ms(self, value: int) -> None:
-        self.exposure.project.expTimeFirst = value / 1000
+        self.exposure.project.exposure_time_first_ms = value
         # TODO: this is temporary until we can report all changes to exposure time
         self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_first_ms": self.exposure_time_first_ms}, [])
 
     @property
     @last_error
     def exposure_time_calibrate_ms(self) -> int:
-        return int(self.exposure.project.calibrateTime * 1000)
+        return self.exposure.project.calibrate_time_ms
 
     @auto_dbus
     @exposure_time_calibrate_ms.setter
     @last_error
     # @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     def exposure_time_calibrate_ms(self, value: int) -> None:
-        self.exposure.project.calibrateTime = value / 1000
+        self.exposure.project.calibrate_time_ms = value
         # TODO: this is temporary until we can report all changes to exposure time
         self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_calibrate_ms": self.exposure_time_calibrate_ms}, [])
 
@@ -729,11 +731,11 @@ class Exposure0:
 
         :return: Number of calibration regions
         """
-        return self.exposure.project.calibrateRegions
+        return self.exposure.project.calibrate_regions
 
     _CHANGE_MAP = {
         "state": {"state"},
-        "actualLayer": {
+        "actual_layer": {
             "current_layer",
             "progress",
             "time_remain_min",
@@ -742,7 +744,7 @@ class Exposure0:
             "position_nm",
             "expected_finish_timestamp",
         },
-        "resinCount": {"resin_used_ml"},
+        "resin_count": {"resin_used_ml"},
         "remain_resin_ml": {"resin_remaining_ml"},
         "warn_resin": {"resin_warn"},
         "low_resin": {"resin_low"},

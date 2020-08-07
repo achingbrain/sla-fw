@@ -747,9 +747,9 @@ class Printer0:
             self.printer.screen,
             self.printer.runtime_config,
             last_exposure.project.path,
-            exp_time_ms=last_exposure.project.expTime * 1000,
-            exp_time_first_ms=last_exposure.project.expTimeFirst * 1000,
-            exp_time_calibrate_ms=last_exposure.project.calibrateTime * 1000,
+            exp_time_ms=last_exposure.project.exposure_time_ms,
+            exp_time_first_ms=last_exposure.project.exposure_time_first_ms,
+            exp_time_calibrate_ms=last_exposure.project.calibrate_time_ms,
         )
         if auto_advance:
             expo.confirm_print_start()

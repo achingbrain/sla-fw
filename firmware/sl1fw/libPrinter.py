@@ -154,7 +154,6 @@ class Printer:
         self.state = PrinterState.EXIT
         self.display.exit()
         self.exited.wait(timeout=60)
-        self.screen.exit()
         self.hw.exit()
         self.action_manager.exit()
         self.config0_dbus.unpublish()
@@ -248,8 +247,6 @@ class Printer:
             if state != MotConComState.OK:
                 raise Exception(f"Failed motion controller update attempt, state: {state}")
 
-            self.logger.info("Starting libScreen")
-            self.screen.start()
             if not self.runtime_config.factory_mode:
                 self.logger.info("Starting admin checker")
                 self.admin_check = AdminCheck(self.runtime_config, self.hw, self.inet)

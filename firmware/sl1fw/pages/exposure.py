@@ -31,10 +31,10 @@ class PageExposure(Page):
 
     def show(self):
         project = self.display.expo.project
-        self.expTime = project.expTime
-        self.expTimeFirst = project.expTimeFirst
-        if project.calibrateRegions:
-            self.expTimeCalibrate = project.calibrateTime
+        self.expTime = project.exposure_time_ms / 1e3
+        self.expTimeFirst = project.exposure_time_first_ms / 1e3
+        if project.calibrate_regions:
+            self.expTimeCalibrate = project.calibrate_time_ms / 1e3
         else:
             self.expTimeCalibrate = None
         #endif
@@ -49,10 +49,10 @@ class PageExposure(Page):
 
     def backButtonRelease(self):
         project = self.display.expo.project
-        project.expTime = self.expTime
-        project.expTimeFirst = self.expTimeFirst
+        project.exposure_time_ms = int(self.expTime * 1e3)
+        project.exposure_time_first_ms = int(self.expTimeFirst * 1e3)
         if self.expTimeCalibrate:
-            project.calibrateTime = self.expTimeCalibrate
+            project.calibrate_time_ms = int(self.expTimeCalibrate * 1e3)
         #endif
         return super(PageExposure, self).backButtonRelease()
     #endif

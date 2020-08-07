@@ -18,7 +18,7 @@ from tempfile import TemporaryDirectory
 from pydbus import SystemBus
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libPrinter import Printer
 from sl1fw.tests.mocks.display import TestDisplay
@@ -90,6 +90,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         os.environ["SDL_DISKAUDIOFILE"] = str(self.SDL_AUDIO_FILE)
 
         self.printer = Printer(debug_display=self.display)
+        test_runtime.screen = self.printer.screen
 
         # overide writeToFactory function
         self.printer.display.pages["factoryreset"].writeToFactory = self.call

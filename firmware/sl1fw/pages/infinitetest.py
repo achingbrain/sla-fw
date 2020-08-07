@@ -54,7 +54,7 @@ class PageInfiniteTest(Page):
             line3="Tilt cycles: %d" % tilt_counter,
         )
         page_wait.show()
-        self.display.screen.getImg(filename=os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
+        self.display.screen.show_image(os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
         self.display.hw.startFans()
         self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
         self.display.hw.uvLed(True)

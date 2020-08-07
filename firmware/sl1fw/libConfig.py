@@ -934,14 +934,23 @@ class HwConfig(Config):
         """
         return round(float(microSteps) / self.microStepsMM, 3)
 
-    def tower_microsteps_to_nm(self, microsteps: int):
+    def tower_microsteps_to_nm(self, microsteps: int) -> int:
         """
         Covert microsteps to nanometers using the current tower pitch
 
-        :param microsteps:
+        :param microsteps: Tower position in microsteps
         :return: Tower position in nanometers
         """
         return self.tower_microstep_size_nm * microsteps
+
+    def nm_to_tower_microsteps(self, nanometers: int) -> int:
+        """
+        Covert nanometers to microsteps using the current tower pitch
+
+        :param nanometers: Tower position in nanometers
+        :return: Tower position in microsteps
+        """
+        return nanometers // self.tower_microstep_size_nm
 
     fanCheck = BoolValue(True, doc="Check fan function if set to True.")
     coverCheck = BoolValue(True, doc="Check for closed cover during printer movements and exposure if set to True.")

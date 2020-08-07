@@ -19,6 +19,7 @@ from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.states.exposure import ExposureState
+from sl1fw.states.project import ProjectErrors
 
 
 class TestExposure(Sl1fwTestCase):
@@ -46,8 +47,8 @@ class TestExposure(Sl1fwTestCase):
         self.screen = Mock()
         self.screen.__class__ = Screen
         self.screen.__reduce__ = lambda x: (Mock, ())
-        self.screen.blitImg.return_value = 100
-        self.screen.projectStatus.return_value = True, False
+        self.screen.blit_image.return_value = 100
+        self.screen.new_project.return_value = ProjectErrors.NONE, set(), False
 
     def test_exposure_init_not_calibrated(self):
         with self.assertRaises(NotUVCalibrated):
@@ -62,17 +63,18 @@ class TestExposure(Sl1fwTestCase):
         exposure = Exposure(
             0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT
         )
-        exposure.startProjectLoading()
-        exposure.collectProjectData()
+        exposure.startProject()
 
     def test_exposure_start_stop(self):
         exposure = self._run_exposure(self._get_hw_mock())
+        self.assertNotEqual(exposure.state, ExposureState.FAILURE)
         self.assertIsNone(exposure.warning)
 
     def test_resin_enough(self):
         hw = self._get_hw_mock()
         hw.getResinVolume.return_value = defines.resinMaxVolume
         exposure = self._run_exposure(hw)
+        self.assertNotEqual(exposure.state, ExposureState.FAILURE)
         self.assertIsNone(exposure.warning)
 
     def test_resin_warning(self):
@@ -91,8 +93,7 @@ class TestExposure(Sl1fwTestCase):
     def _run_exposure(self, hw) -> Exposure:
         self._fake_calibration()
         exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config, TestExposure.PROJECT)
-        exposure.startProjectLoading()
-        exposure.collectProjectData()
+        exposure.startProject()
         exposure.confirm_print_start()
 
         for i in range(30):

@@ -81,7 +81,7 @@ class UVSerial:
     def write(self, data):
         if data == b">all\n":
             self._data.put(data)
-            if test_runtime.uv_on_until and test_runtime.uv_on_until > datetime.now() and test_runtime.screen_bw:
+            if test_runtime.uv_on_until and test_runtime.uv_on_until > datetime.now() and not test_runtime.screen.is_screen_blank:
                 intensity = self._intensity_response(test_runtime.uv_pwm)
             else:
                 intensity = 0

@@ -5,10 +5,27 @@
 
 import unittest
 
-from sl1fw import defines
 from sl1fw.libConfig import HwConfig
-from sl1fw.project.project import Project, ProjectState
+from sl1fw.states.project import ProjectErrors, LayerCalibrationType
+from sl1fw.project.project import Project, ProjectLayer
 from sl1fw.tests.base import Sl1fwTestCase
+from sl1fw.utils.bounding_box import BBox
+
+def _layer_generator(name, count, height_nm, times_ms, layer_times_ms):
+    layers = []
+    for i in range(count):
+        layer = ProjectLayer('%s%05d.png' % (name, i), height_nm)
+        if i >= len(layer_times_ms):
+            times_ms[0] = layer_times_ms[-1]
+        else:
+            times_ms[0] = layer_times_ms[i]
+        layer.times_ms = times_ms.copy()
+        if i < 10:
+            layer.calibration_type = LayerCalibrationType.LABEL_PAD
+        else:
+            layer.calibration_type = LayerCalibrationType.LABEL_TEXT
+        layers.append(layer)
+    return layers
 
 
 class TestProject(Sl1fwTestCase):
@@ -17,107 +34,65 @@ class TestProject(Sl1fwTestCase):
         self.hwConfig = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
 
     def test_read(self):
-        project = Project(self.hwConfig)
-        self.assertEqual(ProjectState.NOT_FOUND, project.read("bad_file"), "Bad file test")
+        project = Project(self.hwConfig, "bad_file")
+        self.assertEqual(ProjectErrors.NOT_FOUND, project.error, "Bad file test")
 
-        self.assertEqual(ProjectState.OK, project.read(str(self.SAMPLES_DIR / "numbers.sl1")), "No read errors test")
+        project = Project(self.hwConfig, str(self.SAMPLES_DIR / "numbers.sl1"))
+        self.assertEqual(ProjectErrors.NONE, project.error, "Base project read test")
         print(project)
 
         self.assertEqual(project.name, "numbers", "Check project name")
-        self.assertEqual(project.totalLayers, 2, "Check total layers count")
-        self.assertAlmostEqual(project.modificationTime, 1569863651.0, msg="Check modification time")
+        self.assertEqual(project.total_layers, 2, "Check total layers count")
+        self.assertEqual(project.total_height_nm, 1e5, "Total height calculation")
+        self.assertAlmostEqual(project.modification_time, 1569863651.0, msg="Check modification time")
 
-        print(project.config.as_dictionary())
-        project.expTime = 5.0
-        self.assertAlmostEqual(project.expTime, 5.0, msg="Check expTime value")
-        self.assertEqual(project.calibrateAreas, [], "calibrateAreas")
+        result = _layer_generator('numbers', 2, 50000, [1000], [1000])
+        self.assertEqual(project.layers, result, "Base layers")
+        #consumed_resin_slicer = project.used_material_nl / 1e6
+        project.analyze()
+        print(project)
+        result[0].bbox = BBox((605, 735, 835, 1825))
+        result[1].bbox = BBox((605, 735, 835, 1825))
+        result[0].consumed_resin_nl = 25664
+        result[1].consumed_resin_nl = 20819
+        self.assertEqual(project.layers, result, "Analyzed base layers")
+        # FIXME project usedMaterial is wrong (modified project)
+        #self.assertAlmostEqual(consumed_resin_slicer, project.used_material_nl / 1e6, delta=0.1, msg="Resin count")
+
+    def test_read_calibration(self):
+        project = Project(self.hwConfig, str(self.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"))
+        self.assertEqual(ProjectErrors.NONE, project.error, "Calibration project read test")
+        print(project)
+
+        self.assertEqual(project.total_layers, 20, "Check total layers count")
+        self.assertEqual(project.total_height_nm, 1e6, "Total height calculation")
+        self.assertEqual(project.count_remain_time(), 8, "Total time calculation")
+        self.assertEqual(project.count_remain_time(layers_done = 10), 3, "Half time calculation")
+
+        result = _layer_generator('sl1_linear_calibration_pattern',
+                20,
+                50000,
+                [7500, 500, 500, 500, 500, 500, 500, 500, 500, 500],
+                [35000, 35000, 35000, 28125, 21250, 14375, 7500])
+        self.assertEqual(project.layers, result, "Calibration layers")
+        consumed_resin_slicer = project.used_material_nl / 1e6
+        project.analyze()
+        print(project)
+        project.analyze()
+        self.assertAlmostEqual(consumed_resin_slicer, project.used_material_nl / 1e6, delta=0.1, msg="Resin count")
+        # TODO analyze check
+
+        # TODO check project preview/icon image
+
+
+#    def test_project_modification(self):
+        # BIG TODO!
+
+#        project.expTime = 5.0
+#        self.assertAlmostEqual(project.expTime, 5.0, msg="Check expTime value")
+#        self.assertEqual(project.calibrateAreas, [], "calibrateAreas")
 
         # project.config.write("projectconfig.txt")
-
-    def test_calibration_areas(self):
-        project = Project(self.hwConfig)
-        self.assertEqual(ProjectState.OK, project.read(str(self.SAMPLES_DIR / "numbers.sl1")), "No read errors test")
-
-        project.config.calibrateRegions = 1
-        project.expTime = 1.0
-        result = []
-        self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 1")
-
-        project.config.calibrateRegions = 2
-        project.expTime = 2.0
-        result = [
-                {'stripe': False, 'time': 2.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth, 'h': defines.screenHeight // 2}},
-                {'stripe': False, 'time': 3.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth, 'h': defines.screenHeight // 2}},
-                ]
-        self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 2")
-
-        project.config.calibrateRegions = 4
-        project.expTime = 4.0
-        result = [
-                {'stripe': False, 'time': 4.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
-                {'stripe': False, 'time': 5.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
-                {'stripe': False, 'time': 6.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
-                {'stripe': False, 'time': 7.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 2}},
-                ]
-        self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 4")
-
-        project.config.calibrateRegions = 6
-        project.expTime = 6.0
-        result = [
-                {'stripe': False, 'time': 6.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 7.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 8.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 9.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 10.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 11.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 3}},
-                ]
-        self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 6")
-
-        project.config.calibrateRegions = 8
-        project.expTime = 8.0
-        result = [
-                {'stripe': False, 'time': 8.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'stripe': False, 'time': 9.0, 'rect': {'x': 0, 'y': defines.screenHeight // 4, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'stripe': False, 'time': 10.0, 'rect': {'x': 0, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'stripe': False, 'time': 11.0, 'rect': {'x': 0, 'y': defines.screenHeight // 4 * 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'stripe': False, 'time': 12.0, 'rect': {'x': defines.screenWidth // 2, 'y': 0, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'stripe': False, 'time': 13.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 4, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'stripe': False, 'time': 14.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 2, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                {'stripe': False, 'time': 15.0, 'rect': {'x': defines.screenWidth // 2, 'y': defines.screenHeight // 4 * 3, 'w': defines.screenWidth // 2, 'h': defines.screenHeight // 4}},
-                ]
-        self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 8")
-
-        project.config.calibrateRegions = 9
-        project.expTime = 9.0
-        result = [
-                {'stripe': False, 'time': 9.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 10.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 11.0, 'rect': {'x': 0, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 12.0, 'rect': {'x': defines.screenWidth // 3, 'y': 0, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 13.0, 'rect': {'x': defines.screenWidth // 3, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 14.0, 'rect': {'x': defines.screenWidth // 3, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 15.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': 0, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 16.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': defines.screenHeight // 3, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                {'stripe': False, 'time': 17.0, 'rect': {'x': defines.screenWidth // 3 * 2, 'y': defines.screenHeight // 3 * 2, 'w': defines.screenWidth // 3, 'h': defines.screenHeight // 3}},
-                ]
-        self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 9")
-
-        project.config.calibrateRegions = 10
-        project.expTime = 10.0
-        stripe = defines.screenHeight // 10
-        result = [
-                {'stripe': True, 'time': 10.0, 'rect': {'x': 0, 'y': 0, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 11.0, 'rect': {'x': 0, 'y': 1 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 12.0, 'rect': {'x': 0, 'y': 2 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 13.0, 'rect': {'x': 0, 'y': 3 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 14.0, 'rect': {'x': 0, 'y': 4 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 15.0, 'rect': {'x': 0, 'y': 5 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 16.0, 'rect': {'x': 0, 'y': 6 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 17.0, 'rect': {'x': 0, 'y': 7 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 18.0, 'rect': {'x': 0, 'y': 8 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                {'stripe': True, 'time': 19.0, 'rect': {'x': 0, 'y': 9 * stripe, 'w': defines.screenWidth, 'h': stripe}},
-                ]
-        self.assertEqual(project.calibrateAreas, result, "calibrateAreas = 10")
 
 if __name__ == '__main__':
     unittest.main()

@@ -12,7 +12,7 @@ from sl1fw.errors import errors, exceptions, warnings
 from sl1fw.errors.warnings import AmbientTooHot
 from sl1fw.motion_controller.trace import Trace
 from sl1fw.states.printer import PrinterState
-from sl1fw.states.project import ProjectState
+from sl1fw.states.project import ProjectErrors
 
 
 class TestExceptions(unittest.TestCase):
@@ -28,7 +28,7 @@ class TestExceptions(unittest.TestCase):
         "total_bytes: int": 0,
         "completed_bytes: int": 0,
         "failed_fans: List[int]": [1],
-        "project_state: sl1fw.states.project.ProjectState": ProjectState.CANT_READ,
+        "project_error: sl1fw.states.project.ProjectErrors": ProjectErrors.CANT_READ,
         "volume: float": 12.3,
         "volume_ml: float": 12.3,
         "failed_sensors: List[int]": [2],

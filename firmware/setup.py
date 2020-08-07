@@ -29,7 +29,7 @@ data_files = [
 
 setup(
     name="sl1fw",
-    version="2019.12.10",
+    version="2020.09.25",
     packages=find_packages(exclude=["sl1fw.tests"]),
     scripts=['sl1fw/main.py', 'sl1fw/scripts/export_logs.bash'],
     package_data={'sl1fw': ['data/*', 'locales/*/LC_MESSAGES/*.mo']},

@@ -24,7 +24,6 @@ class PagePrint(PagePrintBase):
     def __init__(self, display: Display):
         super().__init__(display)
         self.pageUI = "print"
-        self.totalHeight = None
         self.lastLayer = None
         self.last_expo_end = None
 
@@ -43,13 +42,13 @@ class PagePrint(PagePrintBase):
             self.showItems(exposure=diff.seconds + diff.microseconds / 1000000)
             self.last_expo_end = self.display.expo.exposure_end
 
-        if self.lastLayer != self.display.expo.actualLayer:
+        if self.lastLayer != self.display.expo.actual_layer:
             self._layer_update(self.display.expo)
 
         return super().callback()
 
     def _layer_update(self, expo: Exposure):
-        self.lastLayer = expo.actualLayer
+        self.lastLayer = expo.actual_layer
         project = self.display.expo.project
 
         time_remain_min = expo.countRemainTime()
@@ -63,10 +62,10 @@ class PagePrint(PagePrintBase):
             time_remain_min=time_remain_min,
             time_elapsed_min=time_elapsed_min,
             current_layer=self.lastLayer,
-            total_layers=project.totalLayers,
+            total_layers=project.total_layers,
             project_name=project.name,
             progress=percent,
-            resin_used_ml=expo.resinCount,
+            resin_used_ml=expo.resin_count,
             resin_remaining_ml=expo.remain_resin_ml,
             temp_cpu=self.display.hw.getCpuTemperature(),
             temp_led=self.display.hw.getUvLedTemperature(),

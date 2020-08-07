@@ -55,7 +55,8 @@ last_job = Path(persistentStorage) / "last_job"
 
 screenWidth = 1440
 screenHeight = 2560
-screenPixelSize = 0.046875
+screen_size = (screenWidth, screenHeight)
+screen_pixel_size_nm = 46875
 thumbnailFactor = 5
 thumbnailWidth = screenWidth // thumbnailFactor
 thumbnailHeight = screenHeight // thumbnailFactor
@@ -65,7 +66,8 @@ livePreviewSize = (thumbnailWidth, thumbnailHeight)
 livePreviewImage = os.path.join(ramdiskPath, "live.png")
 
 # numpy uses reversed axis indexing
-displayUsageSize = (thumbnailHeight, thumbnailFactor, thumbnailWidth, thumbnailFactor)
+display_usage_size = (thumbnailHeight, thumbnailWidth)
+display_usage_shape = (thumbnailHeight, thumbnailFactor, thumbnailWidth, thumbnailFactor)
 displayUsageData = os.path.join(persistentStorage, "display_usage.npz")
 displayUsagePalette = os.path.join(dataPath, "heatmap_palette.txt")
 
@@ -74,7 +76,7 @@ slicerProfilesFallback = Path(dataPath) / profilesFile
 slicerProfilesFile = Path(persistentStorage) / profilesFile
 slicerPrinterModel = "SL1"
 slicerPrinterVariant = "default"
-slicerMinVersion = "2.1.1-beta0"
+slicerMinVersion = "2.2.0-alpha3"
 slicerProfilesCheckProblem = 14400   # every four hours
 slicerProfilesCheckOK = 86400   # once per day
 
@@ -126,8 +128,7 @@ maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some to
 maxA64Temp = 80.0     # maximal temperature of A64 is 125 C according to datasheet
 maxUVTemp = 55.0
 
-# keep at least 10 MB / 110 MB of free space when copying project to ramdisk / extracting examples
-ramdiskReservedSpace = 10 * 1024 * 1024
+# keep at least 110 MB of free space when copying project to internal storage or extracting examples
 internalReservedSpace = 110 * 1024 * 1024
 
 localedir = os.path.join(swPath, "locales")
@@ -162,6 +163,7 @@ exposure_time_first_min_ms = 10000
 exposure_time_first_max_ms = 120000
 exposure_time_calibrate_min_ms = 500
 exposure_time_calibrate_max_ms = 5000
+exposure_time_first_extra_layers = 2    # first layer always have exposure_time_first
 
 fan_check_override = test_runtime.testing
 default_hostname = "prusa64-sl1"

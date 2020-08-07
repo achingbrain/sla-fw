@@ -395,7 +395,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
 
         self.display.hw.startFans()
         self.display.hw.uvLedPwm = self.display.hw.getMaxPwm()
-        self.display.screen.getImgBlack()
+        self.display.screen.blank_screen()
         self.display.hw.uvLed(True)
 
         for countdown in range(self.display.hwConfig.uvWarmUpTime, 0, -1):
@@ -530,7 +530,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
             self.display.hw.beepAlarm(2)
             return PageUVCalibrateCenter.Name
 
-        self.display.screen.getImgBlack()
+        self.display.screen.blank_screen()
 
         if self.result == self.ERROR_DONE:
             self.display.pages[self.continuePage].boostResults = self.boostResults
@@ -651,7 +651,7 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
 
 
     def calibrate(self):
-        self.display.screen.getImgBlack()
+        self.display.screen.blank_screen()
         self.display.screen.inverse()
         maxpwm = self.display.hw.getMaxPwm()
         # check PWM value from previous step

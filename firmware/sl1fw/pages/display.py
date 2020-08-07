@@ -53,27 +53,27 @@ class PageDisplay(Page):
 
 
     def button1ButtonRelease(self):
-        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice8_1440x2560.png"))
+        self.display.screen.show_image(os.path.join(defines.dataPath, "sachovnice8_1440x2560.png"))
     #enddef
 
 
     def button2ButtonRelease(self):
-        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
+        self.display.screen.show_image(os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
     #enddef
 
 
     def button3ButtonRelease(self):
-        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "mrizka8_1440x2560.png"))
+        self.display.screen.show_image(os.path.join(defines.dataPath, "mrizka8_1440x2560.png"))
     #enddef
 
 
     def button4ButtonRelease(self):
-        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "mrizka16_1440x2560.png"))
+        self.display.screen.show_image(os.path.join(defines.dataPath, "mrizka16_1440x2560.png"))
     #enddef
 
 
     def button5ButtonRelease(self):
-        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "bludiste_1440x2560.png"))
+        self.display.screen.show_image(os.path.join(defines.dataPath, "bludiste_1440x2560.png"))
     #enddef
 
 
@@ -94,7 +94,7 @@ class PageDisplay(Page):
         #endif
 
         try:
-            self.display.screen.getImg(filename = test_file)
+            self.display.screen.show_image(test_file)
         except Exception:
             # TODO: This is not reached. Exceptions from screen do not propagate here
             self.logger.exception("Error displaying test image")
@@ -107,12 +107,12 @@ class PageDisplay(Page):
 
 
     def button7ButtonRelease(self):
-        self.display.screen.getImg(filename = os.path.join(defines.dataPath, "logo_1440x2560.png"))
+        self.display.screen.show_image(os.path.join(defines.dataPath, "logo_1440x2560.png"))
     #enddef
 
 
     def button8ButtonRelease(self):
-        self.display.screen.getImgBlack()
+        self.display.screen.blank_screen()
     #enddef
 
 

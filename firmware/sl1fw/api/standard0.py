@@ -249,10 +249,10 @@ class Standard0:
         """
         exposure = self._current_expo
         data = {
-                "current_layer": exposure.actualLayer,
-                "total_layers": exposure.project.totalLayers,
+                "current_layer": exposure.actual_layer,
+                "total_layers": exposure.project.total_layers,
                 "remaining_material" : exposure.remain_resin_ml if exposure.remain_resin_ml else -1,
-                "consumed_material": exposure.resinCount,
+                "consumed_material": exposure.resin_count,
                 "progress": 100 * exposure.progress,
                 "remaining_time": exposure.countRemainTime() * 60000
         }
@@ -324,8 +324,8 @@ class Standard0:
         {
             "exposure_time_ms": 1000,
             "exposure_time_first_ms": 1000,
-            "calibration_regions": 1,
-            "exposure_time_calibrate_ms": 1000,
+            "calibrate_regions": 1,
+            "calibrate_time_ms": 1000,
         }
 
         """
@@ -351,7 +351,7 @@ class Standard0:
         properties_set({
             "exposure_time_ms": 1000,
             "exposure_time_first_ms": 1000,
-            "exposure_time_calibrate_ms": 1000
+            "calibrate_time_ms": 1000
         })
 
         Raises:
@@ -387,10 +387,10 @@ class Standard0:
                 "exposure_times": "{0:.3g}/{1:.3g}/{2:.3g} s".format(
                     exposure.project.exposure_time_first_ms / 1000,
                     exposure.project.exposure_time_ms / 1000,
-                    exposure.project.exposure_time_calibrate_ms / 1000
+                    exposure.project.calibrate_time_ms / 1000
                 ),
-                "last_modified": exposure.project.modificationTime * 1000,
-                "total_layers": exposure.project.totalLayers
+                "last_modified": exposure.project.modification_time * 1000,
+                "total_layers": exposure.project.total_layers
             }
         )
 

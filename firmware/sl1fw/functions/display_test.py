@@ -16,14 +16,14 @@ from sl1fw.libScreen import Screen
 def start(hw: Hardware, screen : Screen, runtime_config: RuntimeConfig):
     hw.startFans()
     runtime_config.fan_error_override = True
-    screen.getImg(filename=str(Path(defines.dataPath) / "logo_1440x2560.png"))
+    screen.show_image(filename=str(Path(defines.dataPath) / "logo_1440x2560.png"))
 
 
 def end(hw: Hardware, screen : Screen, runtime_config: RuntimeConfig):
     runtime_config.fan_error_override = False
     hw.saveUvStatistics()
     # can't call allOff(), motorsRelease() is harmful for the wizard
-    screen.getImgBlack()
+    screen.blank_screen()
     hw.uvLed(False)
     hw.stopFans()
 
