@@ -88,6 +88,7 @@ defines.uvCalibDataPath = str(Path(defines.ramdiskPath) / defines.uvCalibDataFil
 defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
 defines.loggingConfig = TEMP_DIR / "logging_config.json"
 defines.last_job = Path(defines.ramdiskPath) / "last_job"
+defines.printer_summary = Path(defines.ramdiskPath) / "printer_summary"
 
 
 class Virtual:

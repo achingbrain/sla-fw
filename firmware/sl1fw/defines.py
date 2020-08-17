@@ -155,6 +155,7 @@ uvLedMeasMinPwm500k = 150
 uvLedMeasMaxPwm500k = 250
 logsBase = "/var/log/journal"
 traces = 30
+printer_summary = Path(ramdiskPath) / "printer_summary"
 
 exposure_time_min_ms = 1000
 exposure_time_max_ms = 60000

@@ -184,6 +184,7 @@ class Printer0:
 
     @auto_dbus
     @last_error
+    @deprecated("Use logs0 API instead")
     def save_logs_to_usb(self) -> None:
         """
         Save logs to first usb device
@@ -193,6 +194,7 @@ class Printer0:
 
     @auto_dbus
     @last_error
+    @deprecated("Use logs0 API instead")
     def upload_logs(self) -> Tuple[str, str]:
         """
         Upload logs to log server

@@ -17,3 +17,4 @@ psutil
 setuptools
 deprecation
 requests
+aiohttp

@@ -7,7 +7,7 @@ import functools
 from dataclasses import is_dataclass, asdict
 from enum import Enum
 from time import monotonic
-from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints  # pylint: disable=unused-import
+from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints, Optional  # pylint: disable=unused-import
 
 from pydbus import Variant
 from prusaerrors.sl1.codes import Sl1Codes
@@ -271,7 +271,7 @@ def last_error(method):
     return wrap
 
 
-def wrap_exception(e: Exception) -> Dict[str, Any]:
+def wrap_exception(e: Optional[Exception]) -> Dict[str, Any]:
     """
     Wrap exception in dictionary
 

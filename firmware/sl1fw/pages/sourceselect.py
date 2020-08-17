@@ -9,9 +9,9 @@
 import os
 import logging
 import glob
-import subprocess
 
 from sl1fw import defines
+from sl1fw.functions.files import usb_remount
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.home import PageHome
@@ -250,7 +250,7 @@ class PageSrcSelect(Page):
         #endif
 
         try:
-            subprocess.check_call(["usbremount", item["fullpath"]])
+            usb_remount(item["fullpath"])
             os.remove(item['fullpath'])
         except OSError:
             self.logger.error("Failed to remove project file")

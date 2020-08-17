@@ -27,6 +27,7 @@ from prusaerrors.sl1.codes import Sl1Codes
 from sl1fw import defines, test_runtime
 from sl1fw.api.config0 import Config0
 from sl1fw.api.display_test0 import DisplayTest0State
+from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
 from sl1fw.libAsync import AdminCheck
@@ -114,6 +115,9 @@ class Printer:
         self.system_bus = SystemBus()
         self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hwConfig, self.hw))
 
+        self.logger.info("registering log0 dbus interface")
+        self.logs0_dbus = self.system_bus.publish(Logs0.__INTERFACE__, Logs0(self.hw))
+
         self.logger.info("Initializing libDisplay")
         self.display = Display(
             self.hwConfig, devices, self.hw, self.inet, self.screen, self.runtime_config, self.action_manager,
@@ -153,6 +157,7 @@ class Printer:
         self.hw.exit()
         self.action_manager.exit()
         self.config0_dbus.unpublish()
+        self.logs0_dbus.unpublish()
 
     def printer_run(self):
         self.hw.uvLed(False)

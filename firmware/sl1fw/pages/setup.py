@@ -9,10 +9,10 @@
 
 import os
 from pathlib import Path
-import subprocess
 
 from sl1fw import defines
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.functions.files import usb_remount
 from sl1fw.pages.base import Page
 from sl1fw.pages import page
 
@@ -58,7 +58,7 @@ class PageSetup(Page):
         config_file = Path(savepath) / defines.hwConfigFileName
 
         try:
-            subprocess.check_call(["usbremount", config_file])
+            usb_remount(config_file)
             self.display.hwConfig.write(file_path=config_file)
         except ConfigException:
             self.logger.exception("Cannot save configuration")

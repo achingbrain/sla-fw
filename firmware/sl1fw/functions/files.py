@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -27,7 +28,7 @@ import toml
 from pydbus import SystemBus
 import requests
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.functions.system import get_update_channel
 from sl1fw.libHardware import Hardware
 from sl1fw.libConfig import TomlConfig, TomlConfigStats
@@ -39,6 +40,9 @@ def get_save_path() -> Optional[Path]:
 
     :return: First usb device path or None
     """
+    if test_runtime.testing:
+        return Path(tempfile.tempdir)
+
     usbs = [p for p in Path(defines.mediaRootPath).glob("*") if p.is_mount()]
     if not usbs:
         return None
@@ -63,12 +67,19 @@ def upload_logs(hw: Hardware) -> (str, str):
     with TemporaryDirectory() as temp:
         path = Path(temp) / log_file_name
         save_logs_to_file(hw, path)
-        with path.open("rb") as file:
-            response = requests.post(
-                defines.log_url,
-                data={"token": 12345, "serial": hw.cpuSerialNo},
-                files={"logfile": (log_file_name, file, "application/x-xz")},
-            )
+        return do_upload(path, hw, log_file_name, logger)
+
+
+def do_upload(path: Path, hw: Hardware, log_file_name: str, logger: logging.Logger):
+    # TODO: This is going to be replaced by Logs API aiohttp based upload. Please update also the new method in case
+    #       you need to modify this one.
+    with path.open("rb") as file:
+        response = requests.post(
+            defines.log_url,
+            data={"token": 12345, "serial": hw.cpuSerialNo},
+            files={"logfile": (log_file_name, file, "application/x-xz")},
+            headers={"user-agent": "OriginalPrusa3DPrinter"},
+        )
     logger.debug("Log upload response: %s", response)
     logger.debug("Log upload response text: %s", response.text)
     response_data = json.loads(response.text)
@@ -98,13 +109,22 @@ def get_log_file_name(hw: Hardware) -> str:
 def save_logs_to_file(hw: Hardware, log_file) -> None:
     logger = logging.getLogger(__name__)
 
+    bash_call = ["export_logs.bash", log_file]
+    summary = create_summary(hw, logger)
+    if summary:
+        bash_call.append(summary)
+
+    subprocess.check_call(bash_call)
+
+
+def create_summary(hw: Hardware, logger: logging.Logger):
     data_template = {
-        "hardware" : functools.partial(log_hw, hw),
-        "system" : log_system,
-        "network" : log_network,
-        "configs" : log_configs,
+        "hardware": functools.partial(log_hw, hw),
+        "system": log_system,
+        "network": log_network,
+        "configs": log_configs,
         "statistics": functools.partial(log_statistics, hw),
-        "counters": log_counters
+        "counters": log_counters,
     }
 
     data = {}
@@ -114,48 +134,45 @@ def save_logs_to_file(hw: Hardware, log_file) -> None:
         except Exception as exception:
             data[name] = {"exception": repr(exception)}
 
-    bash_call = ["export_logs.bash", log_file]
     try:
-        with open(defines.ramdiskPath + "/printer_summary", "w") as summary_file:
+        with defines.printer_summary.open("w") as summary_file:
             summary_file.write(json.dumps(data, indent=2, sort_keys=True))
-            bash_call.append(summary_file.name)
+            return summary_file.name
     except Exception:
         logger.exception("Printer summary failed to assemble")
-
-    subprocess.check_call(bash_call)
 
 
 def log_hw(hw: Hardware) -> None:
     fans_rpm = hw.getFansRpm()
     voltages = hw.getVoltages()
     try:
-        locales = SystemBus().get('org.freedesktop.locale1').Locale[0]
+        locales = SystemBus().get("org.freedesktop.locale1").Locale[0]
     except Exception:
         locales = "No info"
 
     data = {
-            "Resin Sensor State" : hw.getResinSensorState(),
-            "Cover State" : hw.isCoverClosed(),
-            "Power Switch State" : hw.getPowerswitchState(),
-            "UV LED Temperature" : hw.getUvLedTemperature(),
-            "Ambient Temperature" : hw.getAmbientTemperature(),
-            "CPU Temperature" : hw.getCpuTemperature(),
-            "UV LED fan [rpm]" : fans_rpm[0],
-            "Blower fan [rpm]" : fans_rpm[1],
-            "Rear fan [rpm]" : fans_rpm[2],
-            "A64 Controller SN" : hw.cpuSerialNo,
-            "MC FW version" : hw.mcFwVersion,
-            "MC HW Reversion" : hw.mcBoardRevision,
-            "MC Serial number" : hw.mcSerialNo,
-            "UV LED Line 1 Voltage" : voltages[0],
-            "UV LED Line 2 Voltage" : voltages[1],
-            "UV LED Line 3 Voltage" : voltages[2],
-            "Power Supply Voltage" : voltages[3],
-            "Free Space in eMMC" : psutil.disk_usage('/'),
-            "RAM statistics" : psutil.virtual_memory(),
-            "CPU usage per core" : psutil.cpu_percent(percpu=True),
-            "CPU times" : psutil.cpu_times(),
-            "Language" : locales
+        "Resin Sensor State": hw.getResinSensorState(),
+        "Cover State": hw.isCoverClosed(),
+        "Power Switch State": hw.getPowerswitchState(),
+        "UV LED Temperature": hw.getUvLedTemperature(),
+        "Ambient Temperature": hw.getAmbientTemperature(),
+        "CPU Temperature": hw.getCpuTemperature(),
+        "UV LED fan [rpm]": fans_rpm[0],
+        "Blower fan [rpm]": fans_rpm[1],
+        "Rear fan [rpm]": fans_rpm[2],
+        "A64 Controller SN": hw.cpuSerialNo,
+        "MC FW version": hw.mcFwVersion,
+        "MC HW Reversion": hw.mcBoardRevision,
+        "MC Serial number": hw.mcSerialNo,
+        "UV LED Line 1 Voltage": voltages[0],
+        "UV LED Line 2 Voltage": voltages[1],
+        "UV LED Line 3 Voltage": voltages[2],
+        "Power Supply Voltage": voltages[3],
+        "Free Space in eMMC": psutil.disk_usage("/"),
+        "RAM statistics": psutil.virtual_memory(),
+        "CPU usage per core": psutil.cpu_percent(percpu=True),
+        "CPU times": psutil.cpu_times(),
+        "Language": locales,
     }
     return data
 
@@ -177,13 +194,11 @@ def log_system():
     with open("/etc/rauc/ca.cert.pem", "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
-        data["update channel"] = {
-            "channel" : get_update_channel(),
-            "certificate_md5" : hash_md5.hexdigest()
-        }
+        data["update channel"] = {"channel": get_update_channel(), "certificate_md5": hash_md5.hexdigest()}
 
-    data["slots info"] = json.loads(subprocess.check_output(
-        ["rauc", "status", "--detailed", "--output-format=json"], universal_newlines=True))
+    data["slots info"] = json.loads(
+        subprocess.check_output(["rauc", "status", "--detailed", "--output-format=json"], universal_newlines=True)
+    )
 
     fw_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
     if os.path.exists(defines.firmwareTempFile):
@@ -193,7 +208,8 @@ def log_system():
         data["raucb updates"][key] = {}
         try:
             data["raucb updates"][key] = json.loads(
-                subprocess.check_output(["rauc", "info", "--output-format=json", fw_file], universal_newlines = True))
+                subprocess.check_output(["rauc", "info", "--output-format=json", fw_file], universal_newlines=True)
+            )
         except subprocess.CalledProcessError:
             data["raucb updates"][key] = "Error getting info from " + fw_file
 
@@ -201,25 +217,15 @@ def log_system():
 
 
 def log_network():
-    proxy = SystemBus().get('org.freedesktop.NetworkManager')
-    data = {
-        "wifi_enabled" : proxy.WirelessEnabled,
-        "primary_conn_type" : proxy.PrimaryConnectionType
-    }
+    proxy = SystemBus().get("org.freedesktop.NetworkManager")
+    data = {"wifi_enabled": proxy.WirelessEnabled, "primary_conn_type": proxy.PrimaryConnectionType}
     for devPath in proxy.Devices:
-        dev = SystemBus().get('org.freedesktop.NetworkManager', devPath)
-        data[dev.Interface] = {
-            "state" : dev.State,
-            "mac" : dev.HwAddress
-        }
-        if dev.State > 40: # is connected to something
-            devIp = SystemBus().get('org.freedesktop.NetworkManager', dev.Ip4Config)
-            data[dev.Interface] = {
-                "address" : devIp.AddressData,
-                "gateway" : devIp.Gateway,
-                "dns" : devIp.NameserverData
-            }
-            if SystemBus().get('org.freedesktop.NetworkManager', dev.Dhcp4Config):
+        dev = SystemBus().get("org.freedesktop.NetworkManager", devPath)
+        data[dev.Interface] = {"state": dev.State, "mac": dev.HwAddress}
+        if dev.State > 40:  # is connected to something
+            devIp = SystemBus().get("org.freedesktop.NetworkManager", dev.Ip4Config)
+            data[dev.Interface] = {"address": devIp.AddressData, "gateway": devIp.Gateway, "dns": devIp.NameserverData}
+            if SystemBus().get("org.freedesktop.NetworkManager", dev.Dhcp4Config):
                 data[dev.Interface]["dhcp"] = True
             else:
                 data[dev.Interface]["dhcp"] = False
@@ -229,8 +235,8 @@ def log_network():
 
 def log_configs():
     data = {
-        "user" : { "hardware": {}, "uvcalib_data" : {}, "wizard_data" : {}},
-        "factory" : { "factory" : {}, "hardware": {}, "uvcalib_data" : {}, "wizard_data" : {}}
+        "user": {"hardware": {}, "uvcalib_data": {}, "wizard_data": {}},
+        "factory": {"factory": {}, "hardware": {}, "uvcalib_data": {}, "wizard_data": {}},
     }
     for category, values in data.items():
         for name in values:
@@ -266,12 +272,22 @@ def ch_mode_owner(src):
     else:
         os.chmod(src, defines.internalProjectMode)
 
+
 def log_statistics(hw: Hardware):
     data = TomlConfigStats(defines.statsData, None).load()
     data["UV LED Time Counter [h]"] = hw.getUvStatistics()[0] / 3600
     data["Display Time Counter [h]"] = hw.getUvStatistics()[1] / 3600
     return data
 
+
 def log_counters():
     data = TomlConfig(defines.counterLog).load()
     return data
+
+
+def usb_remount(path: str):
+    if test_runtime.testing:
+        print("Skipping usb remount due to testing")
+        return
+
+    subprocess.check_call(["usbremount", path])

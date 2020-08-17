@@ -12,11 +12,11 @@
 
 import os
 import json
-import subprocess
 from copy import deepcopy
 
 from sl1fw import defines
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.functions.files import usb_remount
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -99,7 +99,7 @@ class ProfilesPage(Page):
         profile_file = os.path.join(savepath, self.profilesFilename)
 
         try:
-            subprocess.check_call(["usbremount", profile_file])
+            usb_remount(profile_file)
             with open(profile_file, "w") as f:
                 f.write(json.dumps(self.profiles, sort_keys=True, indent=4, separators=(',', ': ')))
             #endwith

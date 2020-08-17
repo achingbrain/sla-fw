@@ -131,9 +131,6 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         # self.printer0.factory_reset()
         # self.printer0.print()
 
-    def test_save_logs(self):
-        self.assertRaises(Exception, self.printer0.save_logs_to_usb)
-
     def test_project_list_raw(self):
         project_list = self.printer0.list_projects_raw()
         self.assertTrue(project_list)
