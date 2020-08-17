@@ -74,6 +74,7 @@ class UvLedMeterMulti:
         self.temp = None
         self.datetime = None
         self.sleepTime = 3
+        self.wavelength_response_bug = False
 
     @property
     def present(self):
@@ -127,6 +128,7 @@ class UvLedMeterMulti:
                     self.sleepTime = 3
                 elif devices[0].vid == 0x1A86 and devices[0].pid == 0x7523:  # 15p UV meter
                     self.sleepTime = 0.5
+                    self.wavelength_response_bug = True
                 else:
                     self.logger.warning("Unknown device connected. VID: %x, PID: %x", devices[0].vid, devices[0].pid)
             else:

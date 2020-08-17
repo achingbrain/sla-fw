@@ -460,7 +460,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
         self.display.uvcalibData = None
 
-        # TODO Concurent.futures would allow us to pass errors as exceptions
+        # TODO Concurrent.futures would allow us to pass errors as exceptions
         self.result = None
         self.thread = Thread(target = self.calibrate_thread)
         self.thread.start()
@@ -501,10 +501,13 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
             return
         #endif
 
-        if (self.pwm > self.secondPassThreshold or self.result == self.ERROR_TOO_DIMM) and not self.boostResults:
+        if ((self.pwm > self.secondPassThreshold or self.result == self.ERROR_TOO_DIMM) and
+                not self.boostResults and self.uvmeter.wavelength_response_bug):
             # Possibly the UV sensor does not match UV LED wavelength, lets try with corrected readings
             self.boostResults = True
-            self.logger.info("Requested intensity cannot be reached by max. allowed PWM, run second iteration with boostResults on (PWM=%d)", self.pwm)
+            self.logger.info(
+                "Requested intensity cannot be reached by max. allowed PWM, run second iteration with boostResults on (PWM=%d)",
+                self.pwm)
             self.display.hw.beepAlarm(2)
             return PageUVCalibrateCenter.Name
         #endif
