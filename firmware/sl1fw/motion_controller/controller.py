@@ -76,7 +76,7 @@ class MotionController:
         self._port.parity = "N"
         self._port.stopbits = 1
         self._port.timeout = self.TIMEOUT_SEC
-        self._port.writeTimeout = 1.0
+        self._port.writeTimeout = self.TIMEOUT_SEC
         self._port.xonxoff = False
         self._port.rtscts = False
         self._port.dsrdtr = False
@@ -369,7 +369,7 @@ class MotionController:
         try:
             self.write_port(f"{cmd_string}\n".encode("ascii"))
         except serial.SerialTimeoutException as e:
-            raise MotionControllerException("Timeout writing serial port", self.trace) from e
+            raise MotionControllerException(f"Timeout writing serial port: {cmd_string}", self.trace) from e
 
     def do_read(self, return_process: Callable) -> Any:
         """
