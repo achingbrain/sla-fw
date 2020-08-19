@@ -62,4 +62,4 @@ class PagePrintPreviewSwipe(PagePrintBase):
 
     def backButtonRelease(self):
         self.display.expo.cancel()
-        self.display.forcePage("home")
+        return "_BACK_"
