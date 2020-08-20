@@ -35,7 +35,8 @@ class PageService(Page):
                 'button6' : "Projects: %d" % stats['projects'],
                 'button7' : "Layers: %d" % stats['layers'],
                 'button8' : "Total time: %(hour)dh%(minute)02dm" % {'hour' : minutes // 60, 'minute' : minutes % 60},
-                'button9' : "Display usage heatmap",
+                'button9' : "Total resin: %.3fml" % stats['total_resin'],
+                'button10' : "Display usage heatmap",
 
                 })
         super(PageService, self).show()
@@ -43,7 +44,7 @@ class PageService(Page):
 
 
     @staticmethod
-    def button9ButtonRelease():
+    def button10ButtonRelease():
         return "displayusage"
     #enddef
 

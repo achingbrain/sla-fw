@@ -891,6 +891,7 @@ class ExposureThread(threading.Thread):
         stats['projects'] += 1
         stats['layers'] += self.expo.actualLayer
         stats['total_seconds'] += seconds
+        stats['total_resin'] += self.expo.resinCount
         statsFile.save(data = stats)
         self.expo.screen.saveDisplayUsage()
 

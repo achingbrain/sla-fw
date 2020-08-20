@@ -132,9 +132,9 @@ class Value(property, ABC):
         else:
             doc_default = "<Computed>"
         return f"""{self.default_doc}
-        
+
             :type: {" ".join([t.__name__ for t in self.type])}
-        
+
             :default: {str(doc_default).lower()}
             :key: {self.key}
         """
@@ -1119,6 +1119,8 @@ class TomlConfigStats(TomlConfig):
             data["layers"] = 0
             # this is not so accurate but better than nothing
             data["total_seconds"] = self.hw.getUvStatistics()[0]
+        if "total_resin" not in data:
+            data["total_resin"] = 0.0
         return data
 
 
