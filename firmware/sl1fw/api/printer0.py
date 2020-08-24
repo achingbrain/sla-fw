@@ -193,7 +193,6 @@ class Printer0:
         return wrap_dict_data(wrap_exception(self.printer.exception))
 
     @auto_dbus
-    @last_error
     @property
     def http_digest(self) -> bool:
         return TomlConfig(defines.remoteConfig).load().get("htdigest", True)
