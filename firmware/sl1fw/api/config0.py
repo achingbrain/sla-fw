@@ -57,6 +57,7 @@ def wrap_property(func_name=None):
         else:
             name = func_name
         f = getattr(HwConfig, name)
+        assert isinstance(f, property)
 
         @functools.wraps(f.fget)
         def getter(self):
@@ -65,11 +66,14 @@ def wrap_property(func_name=None):
         getter.__name__ = func.__name__
         getter.__doc__ = f.__doc__
 
-        @functools.wraps(f.fset)
-        def setter(self, value):
-            setattr(self.hw_config, name, value)
+        if f.fset:
+            @functools.wraps(f.fset)
+            def setter(self, value):
+                setattr(self.hw_config, name, value)
 
-        return property(fget=getter, fset=setter)
+            return property(fget=getter, fset=setter)
+
+        return property(fget=getter)
 
     return decor
 
