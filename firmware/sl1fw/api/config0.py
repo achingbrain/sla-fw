@@ -161,7 +161,7 @@ class Config0:
     def _on_change(self, key: str, _: Any):
         if key in self.CHANGED_MAP:
             for changed in self.CHANGED_MAP[key]:
-                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.hw_config, key)}, [])
+                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.hw_config, changed)}, [])
 
     CHANGED_MAP = {
         "screwMm": {"microStepsMM"},
