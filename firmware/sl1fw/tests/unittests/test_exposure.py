@@ -45,21 +45,23 @@ class TestExposure(Sl1fwTestCase):
         self.runtime_config = RuntimeConfig()
         self.screen = Mock()
         self.screen.__class__ = Screen
-        self.screen.__reduce__ = lambda self: (Mock, ())
+        self.screen.__reduce__ = lambda x: (Mock, ())
         self.screen.blitImg.return_value = 100
         self.screen.projectStatus.return_value = True, False
 
     def test_exposure_init_not_calibrated(self):
         with self.assertRaises(NotUVCalibrated):
-            Exposure(self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT)
+            Exposure(0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT)
 
     def test_exposure_init(self):
         self._fake_calibration()
-        Exposure(self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT)
+        Exposure(0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT)
 
     def test_exposure_load(self):
         self._fake_calibration()
-        exposure = Exposure(self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT)
+        exposure = Exposure(
+            0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT
+        )
         exposure.startProjectLoading()
         exposure.collectProjectData()
 
@@ -88,7 +90,7 @@ class TestExposure(Sl1fwTestCase):
 
     def _run_exposure(self, hw) -> Exposure:
         self._fake_calibration()
-        exposure = Exposure(self.hw_config, hw, self.screen, self.runtime_config, TestExposure.PROJECT)
+        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config, TestExposure.PROJECT)
         exposure.startProjectLoading()
         exposure.collectProjectData()
         exposure.confirm_print_start()

@@ -83,6 +83,7 @@ defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
 defines.uvCalibDataPath = str(Path(defines.ramdiskPath) / defines.uvCalibDataFilename)
 defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
 defines.loggingConfig = TEMP_DIR / "logging_config.json"
+defines.last_job = Path(defines.ramdiskPath) / "last_job"
 
 
 class Virtual:

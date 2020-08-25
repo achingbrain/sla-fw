@@ -70,6 +70,8 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.lastProjectConfigFile = self._change_dir(defines.lastProjectConfigFile)
         defines.lastProjectPickler = self._change_dir(defines.lastProjectPickler)
 
+        defines.last_job = Path(defines.ramdiskPath) / "last_job"
+
         # factory reset
         defines.apikeyFile = str(self.API_KEY_FILE)
         defines.uvCalibDataPath = str(self.UV_CALIB_DATA_FILE)

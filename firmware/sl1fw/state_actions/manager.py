@@ -15,6 +15,7 @@ from typing import Optional
 from PySignal import Signal
 from pydbus import SystemBus
 
+from sl1fw import defines
 from sl1fw.api.display_test0 import DisplayTest0, DisplayTest0State
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.unboxing0 import Unboxing0
@@ -85,8 +86,8 @@ class ActionManager:
         self.exposure_change.emit()
         return last_exposure
 
-    @staticmethod
     def _create_exposure(
+        self,
         config: HwConfig,
         hw: Hardware,
         screen: Screen,
@@ -96,7 +97,7 @@ class ActionManager:
         exp_time_first_ms: Optional[int] = None,
         exp_time_calibrate_ms: Optional[int] = None,
     ):
-        exposure = Exposure(config, hw, screen, runtime_config, project)
+        exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config, project)
         if exp_time_ms:
             exposure.project.expTime = exp_time_ms / 1000
         if exp_time_first_ms:
@@ -105,6 +106,17 @@ class ActionManager:
             exposure.project.calibrateTime = exp_time_calibrate_ms / 1000
 
         return exposure
+
+    def _get_job_id(self) -> int:
+        try:
+            with defines.last_job.open("r") as f:
+                job_id = int(f.read()) + 1
+        except (ValueError, FileNotFoundError):
+            self.logger.info("Failed to load last exposure id, starting from 0")
+            job_id = 0
+        with defines.last_job.open("w") as f:
+            f.write(str(job_id))
+        return job_id
 
     def _register_exposure(self, exposure: Exposure) -> str:
         """

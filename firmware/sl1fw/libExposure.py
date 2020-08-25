@@ -942,9 +942,8 @@ class ExposureThread(threading.Thread):
 
 
 class Exposure:
-    instance_counter = 0
-
-    def __init__(self, hwConfig: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig, project: str):
+    def __init__(self, job_id: int, hwConfig: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig,
+                 project: str):
         check_ready_to_print(hwConfig, hw)
         self.change = Signal()
         self.logger = logging.getLogger(__name__)
@@ -969,8 +968,7 @@ class Exposure:
         self.warn_resin = False
         self.remain_resin_ml: Optional[float] = None
         self.exposure_end: Optional[datetime] = None
-        self.instance_id = Exposure.instance_counter
-        Exposure.instance_counter += 1
+        self.instance_id = job_id
         self.check_results = TraceableDict()
         self.check_results.changed.connect(lambda: self.change.emit("check_results", self.check_results))
         self.exception: Optional[ExposureError] = None
