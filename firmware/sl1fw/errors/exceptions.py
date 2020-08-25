@@ -40,7 +40,7 @@ class PrinterException(Exception):
     CODE = Sl1Codes.UNKNOWN
 
 
-@with_code(Sl1Codes.GENERAL_CONFIG_EXCEPTION)
+@with_code(Sl1Codes.CONFIG_EXCEPTION)
 class ConfigException(PrinterException):
     """
     Exception used to signal problems with configuration
@@ -54,29 +54,29 @@ class MotionControllerWrongRevision(PrinterException):
     """
 
 
-@with_code(Sl1Codes.GENERAL_MOTION_CONTROLLER_EXCEPTION)
+@with_code(Sl1Codes.MOTION_CONTROLLER_EXCEPTION)
 class MotionControllerException(PrinterException):
     def __init__(self, message: str, trace: Trace):
         self.__trace = trace
         super().__init__(f"{message}, trace: {trace}")
 
 
-@with_code(Sl1Codes.GENERAL_NOT_AVAILABLE_IN_STATE)
+@with_code(Sl1Codes.NOT_AVAILABLE_IN_STATE)
 class NotAvailableInState(PrinterException):
     def __init__(self, current_state: Enum, allowed_states: List[Enum]):
         super().__init__(f"Only available in {allowed_states}, currently in {current_state}")
 
 
-@with_code(Sl1Codes.GENERAL_DBUS_MAPPING_EXCEPTION)
+@with_code(Sl1Codes.DBUS_MAPPING_ERROR)
 class DBusMappingException(PrinterException):
     pass
 
 
-@with_code(Sl1Codes.GENERAL_REPRINT_WITHOUT_HISTORY)
+@with_code(Sl1Codes.REPRINT_WITHOUT_HISTORY)
 class ReprintWithoutHistory(PrinterException):
     pass
 
 
-@with_code(Sl1Codes.GENERAL_ADMIN_NOT_AVAILABLE)
+@with_code(Sl1Codes.ADMIN_NOT_AVAILABLE)
 class AdminNotAvailable(PrinterException):
     pass

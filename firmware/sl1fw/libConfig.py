@@ -1154,6 +1154,7 @@ class TomlConfigStats(TomlConfig):
 
 
 class RuntimeConfig:
+    # pylint: disable=too-many-instance-attributes
     """
     Runtime printer configuration
     """

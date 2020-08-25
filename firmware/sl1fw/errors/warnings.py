@@ -31,22 +31,22 @@ class AmbientTemperatureOutOfRange(ExposureWarning):
     ambient_temperature: float
 
 
-@with_code(Sl1Codes.EXPOSURE_AMBIENT_TOO_HOT_WARNING)
+@with_code(Sl1Codes.AMBIENT_TOO_HOT_WARNING)
 class AmbientTooHot(AmbientTemperatureOutOfRange):
     pass
 
 
-@with_code(Sl1Codes.EXPOSURE_AMBIENT_TOO_COLD_WARNING)
+@with_code(Sl1Codes.AMBIENT_TOO_COLD_WARNING)
 class AmbientTooCold(AmbientTemperatureOutOfRange):
     pass
 
 
-@with_code(Sl1Codes.EXPOSURE_PRINTING_DIRECTLY_WARNING)
+@with_code(Sl1Codes.PRINTING_DIRECTLY_WARNING)
 class PrintingDirectlyFromMedia(ExposureWarning):
     pass
 
 
-@with_code(Sl1Codes.EXPOSURE_PRINTER_MODEL_MISMATCH_WARNING)
+@with_code(Sl1Codes.PRINTER_MODEL_MISMATCH_WARNING)
 @dataclass
 class ModelMismatch(ExposureWarning):
     actual_model: str
@@ -55,14 +55,14 @@ class ModelMismatch(ExposureWarning):
     project_variant: str
 
 
-@with_code(Sl1Codes.EXPOSURE_RESIN_NOT_ENOUGH_WARNING)
+@with_code(Sl1Codes.RESIN_NOT_ENOUGH_WARNING)
 @dataclass
 class ResinNotEnough(ExposureWarning):
     measured_resin_ml: float
     required_resin_ml: float
 
 
-@with_code(Sl1Codes.EXPOSURE_PROJECT_SETTINGS_MODIFIED_WARNING)
+@with_code(Sl1Codes.PROJECT_SETTINGS_MODIFIED_WARNING)
 @dataclass
 class ProjectSettingsModified(ExposureWarning):
     changes: Dict[str, Tuple[Any, Any]]
