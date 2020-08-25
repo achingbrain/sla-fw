@@ -1102,6 +1102,9 @@ class Exposure:
 
     @property
     def in_progress(self):
+        if not self.expoThread:
+            return False
+
         return self.expoThread.is_alive()
     #enddef
 

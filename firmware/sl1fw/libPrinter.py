@@ -36,7 +36,6 @@ from sl1fw.libHardware import MotConComState
 from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
 from sl1fw.libScreen import Screen
-from sl1fw.libExposure import Exposure
 from sl1fw.logger_config import set_log_level
 from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
@@ -209,11 +208,8 @@ class Printer:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("calibrationstart")
 
-        last_exposure = Exposure.load(self.logger)
+        last_exposure = self.action_manager.load_exposure(self.runtime_config)
         if last_exposure:
-            self.runtime_config.last_exposure = last_exposure
-            Exposure.cleanup_last_data(self.logger)
-
             self.display.doMenu("finished")
         else:
             self.display.doMenu("home")

@@ -137,9 +137,12 @@ class Exposure0:
     def __init__(self, exposure: Exposure):
         self._last_exception: Optional[Exception] = None
         self.exposure = exposure
-        self.exposure.change.connect(self._handle_change)
-        self.exposure.hw.cover_state_changed.connect(self._handle_cover_change)
-        self.exposure.hwConfig.add_onchange_handler(self._handle_config_change)
+        if self.exposure.change:
+            self.exposure.change.connect(self._handle_change)
+        if self.exposure.hw:
+            self.exposure.hw.cover_state_changed.connect(self._handle_cover_change)
+        if self.exposure.hwConfig:
+            self.exposure.hwConfig.add_onchange_handler(self._handle_config_change)
 
     @auto_dbus
     @property
