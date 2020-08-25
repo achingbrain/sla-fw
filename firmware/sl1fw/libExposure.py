@@ -895,12 +895,17 @@ class ExposureThread(threading.Thread):
         statsFile.save(data = stats)
         self.expo.screen.saveDisplayUsage()
 
-        self.expo.write_last_exposure()
+        self.expo.runtime_config.last_exposure = self.expo
 
         if self.expo.canceled:
             self.expo.state = ExposureState.CANCELED
         else:
             self.expo.state = ExposureState.FINISHED
+        #endif
+
+        self.expo.write_last_exposure()
+
+        if not self.expo.canceled:
             if self.expo.hwConfig.autoOff:
                 shut_down(self.expo.hw)
             #endif
@@ -1019,8 +1024,9 @@ class Exposure:
             self.doExitPrint()
         else:
             # Exposure thread not yet running (cancel before start)
-            self.write_last_exposure()
+            self.runtime_config.last_exposure = self
             self.state = ExposureState.DONE
+            self.write_last_exposure()
         #endif
     #enddef
 
@@ -1186,9 +1192,7 @@ class Exposure:
     #enddef
 
     def write_last_exposure(self):
-        self.runtime_config.last_exposure = None
         self.save()
-        self.runtime_config.last_exposure = Exposure.load(self.logger)
         if self.canceled or not self.hwConfig.autoOff:
             Exposure.cleanup_last_data(self.logger)
     #enddef
