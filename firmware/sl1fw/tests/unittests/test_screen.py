@@ -35,6 +35,9 @@ class TestScreen(Sl1fwTestCase):
         test_runtime.testing = True
         defines.hwConfigPath = str(self.SAMPLES_DIR / "hardware.cfg")
 
+        with open(self.FB_DEV, 'wb') as fb:
+            fb.truncate(4 * defines.screenWidth * defines.screenHeight)
+
         self.screen = Screen()
         self.screen.start()
         self.params = {

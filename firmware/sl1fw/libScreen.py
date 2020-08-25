@@ -13,7 +13,6 @@ import logging
 import multiprocessing
 import os
 import signal
-import subprocess
 from pathlib import Path
 from queue import Empty
 from time import time
@@ -38,12 +37,8 @@ class ScreenServer(multiprocessing.Process):
         self.stoprequest = multiprocessing.Event()
         self.width = defines.screenWidth
         self.height = defines.screenHeight
-        if not test_runtime.testing:
-            subprocess.call(['/usr/sbin/fbset', '-fb', defines.fbFile, '%dx%d-0' % (self.width, self.height)])
-        #endif
         self.blackImage = Image.new("L", (self.width, self.height))
         self.whiteImage = Image.new("L", (self.width, self.height), 255)
-        self.getImgBlack()
         self.overlays = dict()
         self.project = None
         self.perPartes = False
@@ -104,7 +99,8 @@ class ScreenServer(multiprocessing.Process):
 
 
     def _writefb(self):
-        with open(defines.fbFile, 'wb') as fb:
+        # open fbFile for write without truncation (conv=notrunc equivalent in dd)
+        with os.fdopen(os.open(defines.fbFile, os.O_RDWR), 'rb+') as fb:
             fb.write(self.screen.convert("RGBX").tobytes())
         #endwith
 #        self.screen.show()

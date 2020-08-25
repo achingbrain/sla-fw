@@ -47,6 +47,9 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         copyfile(self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.FACTORY_CONFIG_FILE)
         self.temp_dir_project = TemporaryDirectory()
 
+        with open(self.FB_DEV_FILE, 'wb') as fb:
+            fb.truncate(4 * defines.screenWidth * defines.screenHeight)
+
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigPath = str(self.FACTORY_CONFIG_FILE)
