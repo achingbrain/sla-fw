@@ -632,6 +632,18 @@ class Exposure0:
 
     @auto_dbus
     @last_error
+    @state_checked([Exposure0State.FINISHED, Exposure0State.CANCELED, ExposureState.FAILURE])
+    def stats_seen(self) -> None:
+        """
+        Mark completed exposure as seen by user. This is supposed to be called after user has dismissed after
+        print stats.
+
+        :return: None
+        """
+        self.exposure.stats_seen()
+
+    @auto_dbus
+    @last_error
     @state_checked(Exposure0State.PRINTING)
     def feed_me(self) -> None:
         """

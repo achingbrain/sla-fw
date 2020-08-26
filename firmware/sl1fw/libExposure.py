@@ -1245,4 +1245,8 @@ class Exposure:
                 logger.exception("cleanup_last_data() exception:")
     #enddef
 
+    def stats_seen(self):
+        self.state = ExposureState.DONE
+
+
 #endclass
