@@ -1136,7 +1136,6 @@ class RuntimeConfig:
         self.check_cooling_expo: bool = True
         self.factory_mode_changed = Signal()
         self._factory_mode: bool = False
-        self.last_exposure: Any = None
 
     @property
     def show_admin(self) -> bool:

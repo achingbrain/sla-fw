@@ -781,10 +781,10 @@ class Printer0:
         :param auto_advance: Automatic print
         :return:  Print task object
         """
-        if not self.printer.runtime_config.last_exposure:
+        if not self.printer.action_manager.exposure:
             raise ReprintWithoutHistory()
 
-        last_exposure = self.printer.runtime_config.last_exposure
+        last_exposure = self.printer.action_manager.exposure
         expo = self.printer.action_manager.new_exposure(
             self.printer.hwConfig,
             self.printer.hw,

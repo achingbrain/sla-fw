@@ -72,13 +72,12 @@ class ActionManager:
         self.exposure_change.emit()
         return exposure
 
-    def load_exposure(self, runtime_config: RuntimeConfig) -> Optional[Exposure]:
+    def load_exposure(self) -> Optional[Exposure]:
         last_exposure = Exposure.load(self.logger)
         if not last_exposure:
             return None
 
         self.logger.info("Loaded pickled exposure id: %s", last_exposure.instance_id)
-        runtime_config.last_exposure = last_exposure
         Exposure.cleanup_last_data(self.logger)
         self._register_exposure(last_exposure)
 

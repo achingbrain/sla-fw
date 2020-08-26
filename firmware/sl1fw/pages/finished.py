@@ -21,10 +21,10 @@ class PageFinished(Page):
         self.readyBeep = True
 
     def show(self):
-        if not self.display.runtime_config.last_exposure:
+        if not self.display.action_manager.exposure:
             raise AttributeError("Page finished shown without data set.")
 
-        self.items.update(self.display.runtime_config.last_exposure.last_project_data())
+        self.items.update(self.display.action_manager.exposure.last_project_data())
         super().show()
         if self.readyBeep:
             self.display.hw.beepRepeat(3)
@@ -39,10 +39,10 @@ class PageFinished(Page):
         return PageSrcSelect.Name
 
     def reprintButtonRelease(self):
-        if not self.display.runtime_config.last_exposure:
+        if not self.display.action_manager.exposure:
             raise AttributeError("Page finished reprint without data set.")
 
-        last_exposure = self.display.runtime_config.last_exposure
+        last_exposure = self.display.action_manager.exposure
         self.display.action_manager.new_exposure(
             self.display.hwConfig,
             self.display.hw,
