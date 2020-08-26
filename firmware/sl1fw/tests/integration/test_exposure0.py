@@ -60,8 +60,8 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
             self.exposure0.confirm_start()
             self._wait_for_state(Exposure0State.CHECK_WARNING, 30)
 
-            self.assertTrue(self.exposure0.warning)
-            warning = self.exposure0.warning
+            self.assertTrue(self.exposure0.exposure_warning)
+            warning = self.exposure0.exposure_warning
             print(warning)
             self.assertEqual(warning["code"], Sl1Codes.AMBIENT_TOO_HOT_WARNING.code)
             self.assertAlmostEqual(warning["ambient_temperature"], 42.0)
@@ -69,7 +69,7 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
             self.exposure0.reject_print_warning()
             self._wait_for_state(Exposure0State.FAILURE, 30)
 
-            exception = self.exposure0.exception
+            exception = self.exposure0.exposure_exception
             self.assertIsNotNone(exception)
             self.assertEqual(exception["code"], Sl1Codes.WARNING_ESCALATION.code)
 
