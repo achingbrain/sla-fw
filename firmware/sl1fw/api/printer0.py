@@ -39,7 +39,7 @@ from sl1fw.errors.exceptions import ReprintWithoutHistory, AdminNotAvailable
 from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
-from sl1fw.libConfig import TomlConfig
+from sl1fw.libConfig import TomlConfig, TomlConfigStats
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.state_actions.examples import Examples
 from sl1fw.states.display import DisplayState
@@ -48,7 +48,6 @@ from sl1fw.states.printer import PrinterState
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
-
 
 @unique
 class Printer0State(Enum):
@@ -960,3 +959,15 @@ class Printer0:
         if last_exposure:
             last_exposure.try_cancel()
         return self.print(project_path, False)
+
+    @auto_dbus
+    @property
+    @last_error
+    @cached(validity_s=5)
+    def statistics(self) -> Dict[str, Any]:
+        """
+        Get statistics
+
+        :return: Dictionary mapping from statistics name to value
+        """
+        return wrap_dict_data(TomlConfigStats(defines.statsData, self.printer.hw).load())

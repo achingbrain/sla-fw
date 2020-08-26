@@ -7,10 +7,12 @@
 # pylint: disable=too-many-lines
 # pylint: disable=too-many-arguments
 # pylint: disable=too-few-public-methods
+# pylint: disable=too-many-instance-attributes
 
 import functools
 import logging
 import re
+import subprocess
 from abc import abstractmethod, ABC
 from pathlib import Path
 from typing import Optional, List, Dict, Type, Union, Any, Callable, Set, Tuple
@@ -1113,15 +1115,42 @@ class TomlConfigStats(TomlConfig):
         self.hw = hw
 
     def load(self):
-        data = super(TomlConfigStats, self).load()
-        if not data:
-            data["projects"] = 0
-            data["layers"] = 0
-            # this is not so accurate but better than nothing
-            data["total_seconds"] = self.hw.getUvStatistics()[0]
-        if "total_resin" not in data:
-            data["total_resin"] = 0.0
-        return data
+        super(TomlConfigStats, self).load()
+        if "projects" in self.data:
+            self.data["started_projects"] = self.data.get("started_projects", self.data.get("projects", 0))
+            self.data["finished_projects"] = self.data.get("finished_projects", self.data.get("projects", 0))
+            del self.data["projects"]
+        return self.data
+
+    def update_reboot_counter(self):
+        result = subprocess.run(["uptime", "-s"], capture_output=True, check=True)
+        system_up_since = result.stdout.decode("ascii").strip()
+        self.load()
+        if self['last_reboot'] != system_up_since:
+            self['last_reboot'] = system_up_since
+            self["reboot_counter"] += 1
+            self.save_raw()
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+    def __delitem__(self, key):
+        if key in self.data:
+            del self.data[key]
+            return
+        raise KeyError(key)
+
+    def __getitem__(self, key):
+        if key in self.data:
+            return self.data[key]
+
+        if key == "total_seconds":
+            return self.hw.getUvStatistics()[0]
+
+        if key in ["started_projects", "finished_projects"]:
+            return self.data.get("projects", 0)
+
+        return 0
 
 
 class RuntimeConfig:

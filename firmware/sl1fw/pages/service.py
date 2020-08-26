@@ -27,16 +27,18 @@ class PageService(Page):
 
 
     def show(self):
-        stats = TomlConfigStats(defines.statsData, self.display.hw).load()
+        stats = TomlConfigStats(defines.statsData, self.display.hw)
+        stats.load()
         minutes = stats['total_seconds'] // 60
         self.items.update({
                 'button1' : "TODO",
 
-                'button6' : "Projects: %d" % stats['projects'],
+                'button6' : "Started projects: %d" % stats['started_projects'],
                 'button7' : "Layers: %d" % stats['layers'],
                 'button8' : "Total time: %(hour)dh%(minute)02dm" % {'hour' : minutes // 60, 'minute' : minutes % 60},
                 'button9' : "Total resin: %.3fml" % stats['total_resin'],
                 'button10' : "Display usage heatmap",
+                'button11' :"Finished projects: %d" % stats['finished_projects'],
 
                 })
         super(PageService, self).show()

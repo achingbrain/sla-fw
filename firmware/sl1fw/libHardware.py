@@ -592,7 +592,8 @@ class Hardware:
         self.mcc.do("!usta", 2)
 
     def appendUvCounterToLog(self, reset_type="undefined"):
-        stats = TomlConfigStats(defines.statsData, self).load()
+        stats = TomlConfigStats(defines.statsData, self)
+        stats.load()
         uv_stats = self.getUvStatistics()
         factory_mode = TomlConfig(defines.factoryConfigPath).load().get("factoryMode", False)
 
@@ -601,7 +602,8 @@ class Hardware:
             now.isoformat(): {
                 "timestamp": round(now.timestamp()),
                 "date": now.isoformat(),
-                "total_projects": stats["projects"],
+                "started_projects": stats["started_projects"],
+                "finished_projects": stats["finished_projects"],
                 "total_layers": stats["layers"],
                 "total_seconds": stats["total_seconds"],
                 "total_resin": stats["total_resin"],

@@ -29,7 +29,7 @@ from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
-from sl1fw.libConfig import HwConfig, TomlConfig, RuntimeConfig
+from sl1fw.libConfig import HwConfig, TomlConfig, RuntimeConfig, TomlConfigStats
 from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libHardware import MotConComState
@@ -116,6 +116,10 @@ class Printer:
         self.display = Display(
             self.hwConfig, devices, self.hw, self.inet, self.screen, self.runtime_config, self.action_manager,
         )
+        try:
+            TomlConfigStats(defines.statsData, self.hw).update_reboot_counter()
+        except Exception:
+            self.logger.error("Error when update 'system_up_since' statistics.")
 
         self.logger.info("SL1 firmware initialized in %.03f", monotonic() - init_time)
 

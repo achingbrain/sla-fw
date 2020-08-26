@@ -30,6 +30,7 @@ import requests
 from sl1fw import defines
 from sl1fw.functions.system import get_update_channel
 from sl1fw.libHardware import Hardware
+from sl1fw.libConfig import TomlConfigStats
 
 
 def get_save_path() -> Optional[Path]:
@@ -101,7 +102,8 @@ def save_logs_to_file(hw: Hardware, log_file) -> None:
         "hardware" : functools.partial(log_hw, hw),
         "system" : log_system,
         "network" : log_network,
-        "configs" : log_configs
+        "configs" : log_configs,
+        "statistics": functools.partial(log_statistics, hw)
     }
 
     data = {}
@@ -131,7 +133,6 @@ def log_hw(hw: Hardware) -> None:
         locales = "No info"
 
     data = {
-            "UV LED Time Counter [h]" : hw.getUvStatistics()[0] / 3600,
             "Resin Sensor State" : hw.getResinSensorState(),
             "Cover State" : hw.isCoverClosed(),
             "Power Switch State" : hw.getPowerswitchState(),
@@ -263,3 +264,9 @@ def ch_mode_owner(src):
             ch_mode_owner(os.path.join(src, name))
     else:
         os.chmod(src, defines.internalProjectMode)
+
+def log_statistics(hw: Hardware):
+    data = TomlConfigStats(defines.statsData, None).load()
+    data["UV LED Time Counter [h]"] = hw.getUvStatistics()[0] / 3600
+    data["Display Time Counter [h]"] = hw.getUvStatistics()[1] / 3600
+    return data

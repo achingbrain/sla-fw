@@ -673,8 +673,10 @@ class ExposureThread(threading.Thread):
         self.logger.info("Running exposure")
         self.expo.state = ExposureState.PRINTING
         self.expo.printStartTime = time()
-        statsFile = TomlConfigStats(defines.statsData, self.expo.hw)
-        stats = statsFile.load()
+        statistics = TomlConfigStats(defines.statsData, self.expo.hw)
+        statistics.load()
+        statistics['started_projects'] += 1
+        statistics.save_raw()
         seconds = 0
 
         project = self.expo.project
@@ -888,11 +890,12 @@ class ExposureThread(threading.Thread):
 
         self.logger.info("Job finished - real printing time is %s minutes", self.expo.printTime)
 
-        stats['projects'] += 1
-        stats['layers'] += self.expo.actualLayer
-        stats['total_seconds'] += seconds
-        stats['total_resin'] += self.expo.resinCount
-        statsFile.save(data = stats)
+        if not self.expo.canceled:
+            statistics['finished_projects'] += 1
+        statistics['layers'] += self.expo.actualLayer
+        statistics['total_seconds'] += seconds
+        statistics['total_resin'] += self.expo.resinCount
+        statistics.save_raw()
         self.expo.screen.saveDisplayUsage()
 
         if self.expo.canceled:
