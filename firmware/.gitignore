@@ -4,3 +4,4 @@ dist
 *.mo
 .coverage
 EEPROM.dat
+.vscode/

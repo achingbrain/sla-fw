@@ -1,8 +1,20 @@
 #!/bin/sh
 
+# usage:
+# all tests: ./integrationtest.sh
+# one test: ./integrationtest.sh test_pages.TestIntegrationPages.test_factory_reset_factory_kit
+
 set -x
 
+if [ -z "$1" ]
+then
+    ARGS=""
+else
+    ARGS="sl1fw.tests.integration.$1"
+fi
+
 export PATH="${PATH}:$(pwd)"
+export PYTHONPATH="$(pwd)$(find ./dependencies/ -maxdepth 1 -type d -printf ':.%p')"
 
 if ! command -v SLA-control-01.elf
 then
@@ -11,5 +23,5 @@ then
 fi
 
 cd firmware &&
-python3 -m unittest discover --failfast --verbose sl1fw.tests.integration &&
+python3 -m unittest discover --failfast --verbose sl1fw.tests.integration $ARGS &&
 python3 -m unittest discover --failfast --verbose sl1fw.tests.virtual

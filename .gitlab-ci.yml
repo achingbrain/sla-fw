@@ -1,8 +1,5 @@
 image: prusa/sl1fw
 
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-
 stages:
   - build
   - test
@@ -12,7 +9,8 @@ stages:
 before_script:
   - eval $(ssh-agent -s)
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
-  - cat ~/.ssh/known_hosts
+  - ssh-keyscan github.com >> ~/.ssh/known_hosts
+  - git submodule update --init --recursive
 
 build:
   stage: build

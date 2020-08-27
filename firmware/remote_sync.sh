@@ -12,7 +12,6 @@ if [ -z ${SL1} ]; then
 	exit -1;
 fi;
 
-rsync -av nginx/sl1fw ${SL1}:/etc/nginx/sites-available/ &&
 rsync -av systemd/sl1fw.service ${SL1}:/lib/systemd/system/sl1fw.service &&
 rsync -av systemd/sl1fw-tmpfiles.conf ${SL1}:/lib/tmpfiles.d/sl1fw-tmpfiles.conf &&
 rsync -av sl1fw/intranet/ ${SL1}:/srv/http/intranet/ &&

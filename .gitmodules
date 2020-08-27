@@ -1,6 +1,6 @@
-[submodule "firmware/Prusa-Error-Codes"]
-	path = Prusa-Error-Codes
+[submodule "dependencies/Prusa-Error-Codes"]
+	path = dependencies/Prusa-Error-Codes
 	url = https://github.com/prusa3d/Prusa-Error-Codes.git
-[submodule "mc-fw"]
-	path = mc-fw
+[submodule "dependencies/mc-fw"]
+	path = dependencies/mc-fw
 	url = https://gitlab.com/prusa3d/sl1/mc-fw.git
