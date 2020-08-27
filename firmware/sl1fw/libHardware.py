@@ -13,6 +13,7 @@
 
 import functools
 import logging
+import subprocess
 import os
 import re
 from math import ceil
@@ -591,7 +592,7 @@ class Hardware:
         self.appendUvCounterToLog(reset_type="display")
         self.mcc.do("!usta", 2)
 
-    def appendUvCounterToLog(self, reset_type="undefined"):
+    def _appendUvCounterToLog(self, reset_type="undefined"):
         stats = TomlConfigStats(defines.statsData, self)
         stats.load()
         uv_stats = self.getUvStatistics()
@@ -616,6 +617,23 @@ class Hardware:
 
         with open(defines.counterLog, "a") as f:
             toml.dump(data, f)
+
+
+    def appendUvCounterToLog(self, reset_type="undefined"):
+        try:
+            self.logger.info("Remounting factory partition rw")
+            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", str(defines.factoryMountPoint)])
+            return self._appendUvCounterToLog(reset_type)
+        except Exception:
+            self.logger.exception("Failed to save to factory partition")
+            return False
+        finally:
+            try:
+                self.logger.info("Remounting factory partition ro")
+                subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])
+            except Exception:
+                self.logger.exception("Failed to remount factory partion ro")
+
 
     @safe_call([0, 0, 0, 0], (ValueError, MotionControllerException))
     def getVoltages(self):
