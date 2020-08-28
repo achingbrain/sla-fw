@@ -13,22 +13,19 @@
 
 import functools
 import logging
-import subprocess
 import os
 import re
 from math import ceil
 from time import sleep
-from datetime import datetime
 from threading import Thread
 
 import bitstring
 import pydbus
-import toml
 from PySignal import Signal
 
 from sl1fw import defines
 from sl1fw.errors.errors import TiltHomeFailure, TowerHomeFailure
-from sl1fw.libConfig import HwConfig, TomlConfig, TomlConfigStats
+from sl1fw.libConfig import HwConfig
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.motion_controller.states import MotConComState
 from sl1fw.errors.exceptions import MotionControllerException
@@ -585,55 +582,10 @@ class Hardware:
         self.mcc.do("!usta", 0)
 
     def clearUvStatistics(self):  # call if UV led was replaced
-        self.appendUvCounterToLog(reset_type="uvLed")
         self.mcc.do("!usta", 1)
 
     def clearDisplayStatistics(self):  # call if print display was replaced
-        self.appendUvCounterToLog(reset_type="display")
         self.mcc.do("!usta", 2)
-
-    def _appendUvCounterToLog(self, reset_type="undefined"):
-        stats = TomlConfigStats(defines.statsData, self)
-        stats.load()
-        uv_stats = self.getUvStatistics()
-        factory_mode = TomlConfig(defines.factoryConfigPath).load().get("factoryMode", False)
-
-        now = datetime.utcnow()
-        data = {
-            now.isoformat(): {
-                "timestamp": round(now.timestamp()),
-                "date": now.isoformat(),
-                "started_projects": stats["started_projects"],
-                "finished_projects": stats["finished_projects"],
-                "total_layers": stats["layers"],
-                "total_seconds": stats["total_seconds"],
-                "total_resin": stats["total_resin"],
-                "uvLed_seconds": uv_stats[0],
-                "display_seconds": uv_stats[1],
-                "factoryMode": factory_mode,
-                "resetType": reset_type,
-            }
-        }
-
-        with open(defines.counterLog, "a") as f:
-            toml.dump(data, f)
-
-
-    def appendUvCounterToLog(self, reset_type="undefined"):
-        try:
-            self.logger.info("Remounting factory partition rw")
-            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", str(defines.factoryMountPoint)])
-            return self._appendUvCounterToLog(reset_type)
-        except Exception:
-            self.logger.exception("Failed to save to factory partition")
-            return False
-        finally:
-            try:
-                self.logger.info("Remounting factory partition ro")
-                subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])
-            except Exception:
-                self.logger.exception("Failed to remount factory partion ro")
-
 
     @safe_call([0, 0, 0, 0], (ValueError, MotionControllerException))
     def getVoltages(self):

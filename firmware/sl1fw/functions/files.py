@@ -30,7 +30,7 @@ import requests
 from sl1fw import defines
 from sl1fw.functions.system import get_update_channel
 from sl1fw.libHardware import Hardware
-from sl1fw.libConfig import TomlConfigStats
+from sl1fw.libConfig import TomlConfig, TomlConfigStats
 
 
 def get_save_path() -> Optional[Path]:
@@ -103,7 +103,8 @@ def save_logs_to_file(hw: Hardware, log_file) -> None:
         "system" : log_system,
         "network" : log_network,
         "configs" : log_configs,
-        "statistics": functools.partial(log_statistics, hw)
+        "statistics": functools.partial(log_statistics, hw),
+        "counters": log_counters
     }
 
     data = {}
@@ -269,4 +270,8 @@ def log_statistics(hw: Hardware):
     data = TomlConfigStats(defines.statsData, None).load()
     data["UV LED Time Counter [h]"] = hw.getUvStatistics()[0] / 3600
     data["Display Time Counter [h]"] = hw.getUvStatistics()[1] / 3600
+    return data
+
+def log_counters():
+    data = TomlConfig(defines.counterLog).load()
     return data

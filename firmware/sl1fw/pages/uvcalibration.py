@@ -17,11 +17,13 @@ from threading import Thread
 from time import sleep
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Optional
+from datetime import datetime
+import toml
 
 import distro
 
 from sl1fw import defines, test_runtime
-from sl1fw.libConfig import TomlConfig
+from sl1fw.libConfig import TomlConfig, TomlConfigStats
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.states.display import DisplayState
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState
@@ -688,6 +690,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         self.writeDataToFactory = False
         self.resetLedCounter = False
         self.resetDisplayCounter = False
+        self.previousUvPwm = 0
     #enddef
 
 
@@ -725,6 +728,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         self.display.state = DisplayState.IDLE
 
         # save hwConfig
+        self.previousUvPwm = self.display.hwConfig.uvPwm
         self.display.hwConfig.uvPwm = self.display.uvcalibData.uvFoundPwm
         self.display.hw.uvLedPwm = self.display.uvcalibData.uvFoundPwm
         del self.display.hwConfig.uvCurrent   # remove old value too
@@ -763,6 +767,36 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
             #endif
         #endif
 
+        # save counters log
+        if PageUvCalibrationBase.resetLedCounter or PageUvCalibrationBase.resetDisplayCounter:
+            stats = TomlConfigStats(defines.statsData, self)
+            stats.load()
+            self.logger.info("stats: %s", stats)
+            uv_stats = self.display.hw.getUvStatistics()
+            countersData = {
+                datetime.utcnow().isoformat(): {
+                    "started_projects": stats["started_projects"],
+                    "finished_projects": stats["finished_projects"],
+                    "total_layers": stats["layers"],
+                    "total_seconds": stats["total_seconds"],
+                    "total_resin": stats["total_resin"],
+                    "uvLed_seconds": uv_stats[0],
+                    "display_seconds": uv_stats[1],
+                    "factoryMode": self.display.runtime_config.factory_mode,
+                    "resetDisplayCounter": PageUvCalibrationBase.resetDisplayCounter,
+                    "resetUvLedCounter": PageUvCalibrationBase.resetLedCounter,
+                    "previousUvPwm": self.previousUvPwm,
+                    "newUvPwm": self.display.hwConfig.uvPwm
+                }
+            }
+            self.logger.info("counter data: %s", countersData)
+            if not self.writeToFactory(functools.partial(self.appendToFile, defines.counterLog, countersData)):
+                self.display.pages['error'].setParams(
+                    text = _("!!! Failed to save factory defaults !!!"))
+                return "error"
+            #endif
+        #endif
+
         # reset UV led counter in MC
         if PageUvCalibrationBase.resetLedCounter:
             self.display.hw.clearUvStatistics()
@@ -780,6 +814,13 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
     def writeAllDefaults(self, uvcalibConfigFactory):
         self.saveDefaultsFile()
         uvcalibConfigFactory.save_raw()
+    #enddef
+
+
+    @staticmethod
+    def appendToFile(file, data):
+        with open(file, "a") as f:
+            toml.dump(data, f)
     #enddef
 
 
