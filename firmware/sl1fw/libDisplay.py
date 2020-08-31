@@ -186,6 +186,7 @@ class Display:
         autorepeatDelayNext = 1
         callbackTime = 0.0  # call the callback immediately
         updateDataTime = callbackTime
+
         while self.running:
             if self._leave_menu:
                 self._leave_menu = False

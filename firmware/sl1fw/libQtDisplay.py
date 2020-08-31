@@ -14,8 +14,6 @@ class QtDisplayServer(SocketServer):
     def __init__(self, port, commands, events):
         super(QtDisplayServer, self).__init__(port, commands, events)
         self.logger = logging.getLogger(__name__)
-        self.newClientData['command'] = "showPage"
-        self.newClientData['page'] = "home"
     #enddef
 
 

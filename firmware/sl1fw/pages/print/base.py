@@ -13,13 +13,13 @@ from prusaerrors.sl1.codes import Sl1Codes
 from sl1fw import defines
 from sl1fw.errors.errors import (
     ExposureError,
-    TiltFailure,
-    TowerFailure,
-    TowerMoveFailure,
-    ProjectFailure,
-    TempSensorFailure,
-    FanFailure,
-    ResinFailure,
+    TiltFailed,
+    TowerFailed,
+    TowerMoveFailed,
+    ProjectFailed,
+    TempSensorFailed,
+    FanFailed,
+    ResinFailed,
     ResinTooLow,
     ResinTooHigh,
     WarningEscalation,
@@ -87,7 +87,7 @@ class PagePrintBase(Page):
             self.display.forcePage("home")
             return
 
-        if isinstance(exception, TiltFailure):
+        if isinstance(exception, TiltFailed):
             self.display.pages["error"].setParams(
                 backFce=lambda: "home",
                 text=_(
@@ -97,7 +97,7 @@ class PagePrintBase(Page):
                     "The print job was canceled."
                 ),
             )
-        elif isinstance(exception, ProjectFailure):
+        elif isinstance(exception, ProjectFailed):
             message = defaultdict(
                 lambda: _("Unknown project error.\n\nCheck the project and try again."),
                 {
@@ -110,13 +110,13 @@ class PagePrintBase(Page):
             self.display.pages["error"].setParams(
                 backFce=lambda: "home", text=_("Error code: %s\n\n") % exception.CODE + message
             )
-        elif isinstance(exception, TowerFailure):
+        elif isinstance(exception, TowerFailed):
             self.display.pages["error"].setParams(
                 backFce=lambda: "home",
                 text=_("Error code: %s\n\n") % exception.CODE
                 + _("Tower homing failed!\n\n" "Check the printer's hardware."),
             )
-        elif isinstance(exception, TowerMoveFailure):
+        elif isinstance(exception, TowerMoveFailed):
             self.display.pages["error"].setParams(
                 text=_("Error code: %s\n\n") % exception.CODE
                 + _(
@@ -125,14 +125,14 @@ class PagePrintBase(Page):
                     "If everything is clean, the printer needs service. Please contact tech support."
                 )
             )
-        elif isinstance(exception, TempSensorFailure):
+        elif isinstance(exception, TempSensorFailed):
             self.display.pages["error"].setParams(
                 backFce=lambda: "home",
                 text=_("Error code: %s\n\n") % exception.CODE
                 + _("%s cannot be read.\n\n" "Please check if temperature sensors are connected correctly.")
                 % str([self.display.hw.getSensorName(i) for i in exception.failed_sensors]),
             )
-        elif isinstance(exception, ResinFailure):
+        elif isinstance(exception, ResinFailed):
             self.display.pages["error"].setParams(
                 backFce=lambda: "home",
                 text=_("Error code: %s\n\n") % exception.CODE
@@ -142,7 +142,7 @@ class PagePrintBase(Page):
                     "Is the tank secured with both screws?"
                 ),
             )
-        elif isinstance(exception, FanFailure):
+        elif isinstance(exception, FanFailed):
             self.display.pages["error"].setParams(
                 backFce=lambda: "home",
                 text=_("Error code: %s\n\n") % exception.CODE

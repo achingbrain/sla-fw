@@ -37,8 +37,8 @@ from PySignal import Signal
 from deprecation import deprecated
 
 from sl1fw import defines, test_runtime
-from sl1fw.errors.errors import ExposureError, TiltFailure, TowerFailure, TowerMoveFailure, ProjectFailure, \
-    TempSensorFailure, FanFailure, ResinFailure, ResinTooLow, ResinTooHigh, WarningEscalation
+from sl1fw.errors.errors import ExposureError, TiltFailed, TowerFailed, TowerMoveFailed, ProjectFailed, \
+    TempSensorFailed, FanFailed, ResinFailed, ResinTooLow, ResinTooHigh, WarningEscalation
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
     ModelMismatch, ResinNotEnough, ProjectSettingsModified
 from sl1fw.errors.exceptions import NotAvailableInState
@@ -58,6 +58,7 @@ class ExposurePickler(pickle.Pickler):
         self.IGNORED_CLASSES = [Signal, Hardware, Screen, ExposureThread, TraceableDict, TraceableList, queue.Queue]
 
     def persistent_id(self, obj):
+        # pylint: disable = unidiomatic-typecheck
         if type(obj) in self.IGNORED_CLASSES:
             return "ignore"
         elif isinstance(obj, HwConfig):
@@ -298,7 +299,7 @@ class ExposureThread(threading.Thread):
         self.expo.hw.powerLed("error")
         self.expo.hw.towerHoldTiltRelease()
         if self.doWait(True) == "back":
-            raise TiltFailure()
+            raise TiltFailed()
         #endif
 
         self.expo.hw.powerLed("warn")
@@ -306,7 +307,7 @@ class ExposureThread(threading.Thread):
 
         if not self.expo.hw.tiltSyncWait(retries = 1):
             self.logger.error("Stuck release failed")
-            raise TiltFailure()
+            raise TiltFailed()
         #endif
 
         self.expo.state = ExposureState.STIRRING
@@ -444,7 +445,7 @@ class ExposureThread(threading.Thread):
         failed = [i for i in range(2) if temperatures[i] < 0]
         if failed:
             self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.FAILURE
-            raise TempSensorFailure(failed)
+            raise TempSensorFailed(failed)
         #endif
 
         if temperatures[1] < defines.minAmbientTemp:
@@ -481,7 +482,7 @@ class ExposureThread(threading.Thread):
 
         if project_state not in (ProjectState.OK, project_state.PRINT_DIRECTLY):
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.FAILURE
-            raise ProjectFailure(project_state)
+            raise ProjectFailed(project_state)
         #endif
 
         self.logger.info("Project after copy and check: %s", str(self.expo.project))
@@ -494,7 +495,7 @@ class ExposureThread(threading.Thread):
         if not self.expo.collectProjectData():
             self.logger.error("Collect project data failed")
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.FAILURE
-            raise ProjectFailure(self.expo.project.state)
+            raise ProjectFailed(self.expo.project.state)
         #endif
 
         # Warn if printing directly from USB
@@ -525,7 +526,7 @@ class ExposureThread(threading.Thread):
         self.expo.hw.towerSyncWait()
         if not self.expo.hw.isTowerSynced():
             self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.FAILURE
-            raise TowerFailure()
+            raise TowerFailed()
         #endif
 
         self.logger.info("Syncing tilt")
@@ -533,7 +534,7 @@ class ExposureThread(threading.Thread):
 
         if not self.expo.hw.isTiltSynced():
             self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.FAILURE
-            raise TiltFailure()
+            raise TiltFailed()
         #endif
 
         self.logger.info("Tilting up")
@@ -544,7 +545,7 @@ class ExposureThread(threading.Thread):
         #endif
         if not self.expo.hw.isTiltOnPosition():
             self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.FAILURE
-            raise TiltFailure()
+            raise TiltFailed()
         #endif
 
         self.expo.check_results[ExposureCheck.HARDWARE] = ExposureCheckResult.SUCCESS
@@ -570,7 +571,7 @@ class ExposureThread(threading.Thread):
         if any(fans_state) and not defines.fan_check_override:
             failed_fans = [num for num, state in enumerate(fans_state) if state]
             self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
-            raise FanFailure(failed_fans)
+            raise FanFailed(failed_fans)
         #endif
         self.logger.info("Fans OK")
 
@@ -590,7 +591,7 @@ class ExposureThread(threading.Thread):
 
         try:
             if not volume:
-                raise ResinFailure(volume)
+                raise ResinFailed(volume)
             #endif
 
             if volume < defines.resinMinVolume:
@@ -600,7 +601,7 @@ class ExposureThread(threading.Thread):
             if volume > defines.resinMaxVolume:
                 raise ResinTooHigh(volume)
             #endif
-        except ResinFailure:
+        except ResinFailed:
             self.expo.check_results[ExposureCheck.RESIN] = ExposureCheckResult.FAILURE
             self.expo.hw.setTowerProfile('homingFast')
             self.expo.hw.towerToTop()
@@ -642,7 +643,7 @@ class ExposureThread(threading.Thread):
 
         if self.expo.hw.towerPositonFailed():
             self.expo.check_results[ExposureCheck.START_POSITIONS] = ExposureCheckResult.FAILURE
-            exception = TowerMoveFailure()
+            exception = TowerMoveFailed()
             self.expo.exception = exception
             self.expo.hw.setTowerProfile('homingFast')
             self.expo.hw.towerToTop()
@@ -984,7 +985,7 @@ class Exposure:
         if result in [ProjectState.OK, ProjectState.PRINT_DIRECTLY]:
             self.state = ExposureState.CONFIRM
         else:
-            raise ProjectFailure(result)
+            raise ProjectFailed(result)
         #endif
 
         # FIXME spatne se spocita pri zlomech (layerMicroSteps 2 a 3)

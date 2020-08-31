@@ -6,6 +6,7 @@
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-lines
 
 from __future__ import annotations
 
@@ -39,7 +40,14 @@ from sl1fw.errors.exceptions import ReprintWithoutHistory, AdminNotAvailable
 from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
-from sl1fw.libConfig import TomlConfig, TomlConfigStats
+from sl1fw.libConfig import TomlConfigStats, TomlConfig
+from sl1fw.functions.wizards import (
+    displaytest_wizard,
+    unboxing_wizard,
+    kit_unboxing_wizard,
+    the_wizard,
+    calibration_wizard,
+)
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.state_actions.examples import Examples
 from sl1fw.states.display import DisplayState
@@ -49,6 +57,7 @@ from sl1fw.states.printer import PrinterState
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
 
+
 @unique
 class Printer0State(Enum):
     """
@@ -57,7 +66,7 @@ class Printer0State(Enum):
 
     INITIALIZING = 0
     IDLE = 1
-    UNBOXING = 2
+    # Replaced by wizard, UNBOXING = 2
     WIZARD = 3
     CALIBRATION = 4
     DISPLAY_TEST = 5
@@ -84,8 +93,8 @@ class Printer0:
         PrinterState.EXCEPTION: Printer0State.EXCEPTION,
         PrinterState.UPDATING: Printer0State.UPDATE,
         PrinterState.PRINTING: Printer0State.PRINTING,
-        PrinterState.UNBOXING: Printer0State.UNBOXING,
         PrinterState.DISPLAY_TEST: Printer0State.DISPLAY_TEST,
+        PrinterState.WIZARD: Printer0State.WIZARD,
     }
 
     DISPLAY_STATE_TO_STATE = {
@@ -697,7 +706,6 @@ class Printer0:
         self.printer.display.forcePage("wizardinit")
         return DBusObjectPath("/")
 
-    # pylint: disable=no-self-use
     @auto_dbus
     @last_error
     @state_checked(Printer0State.IDLE)
@@ -707,6 +715,7 @@ class Printer0:
 
         Pass-through to Rauc install. Only works when printer in idle state.
         """
+        # pylint: disable=no-self-use
         pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"].Install(fw_file)
 
     @auto_dbus
@@ -928,6 +937,7 @@ class Printer0:
         return self.printer.runtime_config.show_admin
 
     @auto_dbus
+
     def add_usb(self) -> None:
         with open("/proc/mounts", "r") as file:
             try:
@@ -971,3 +981,39 @@ class Printer0:
         :return: Dictionary mapping from statistics name to value
         """
         return wrap_dict_data(TomlConfigStats(defines.statsData, self.printer.hw).load())
+
+    @last_error
+    def run_displaytest_wizard(self) -> None:
+        displaytest_wizard(
+            self.printer.action_manager,
+            self.printer.hw,
+            self.printer.hwConfig,
+            self.printer.screen,
+            self.printer.runtime_config,
+        )
+
+    @auto_dbus
+    @last_error
+    def run_unboxing_wizard(self) -> None:
+        unboxing_wizard(self.printer.action_manager, self.printer.hw, self.printer.hwConfig)
+
+    @auto_dbus
+    @last_error
+    def run_kit_unboxing_wizard(self) -> None:
+        kit_unboxing_wizard(self.printer.action_manager, self.printer.hw, self.printer.hwConfig)
+
+    @auto_dbus
+    @last_error
+    def run_the_wizard(self) -> None:
+        the_wizard(
+            self.printer.action_manager,
+            self.printer.hw,
+            self.printer.hwConfig,
+            self.printer.screen,
+            self.printer.runtime_config,
+        )
+
+    @auto_dbus
+    @last_error
+    def run_calibration_wizard(self) -> None:
+        calibration_wizard(self.printer.action_manager, self.printer.hw, self.printer.hwConfig)

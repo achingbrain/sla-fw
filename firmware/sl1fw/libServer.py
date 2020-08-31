@@ -104,7 +104,8 @@ class SocketServer(multiprocessing.Process):
             if client:
                 self.logger.info("New client [%d]:%s:%d connected",
                         client['id'], client['address'][0], client['address'][1])
-                self.server.send_message(client, json.dumps(self.formatMessage(self.newClientData)))
+                if self.newClientData:
+                    self.server.send_message(client, json.dumps(self.formatMessage(self.newClientData)))
             #endif
         except Exception:
             self.logger.exception("_onNewClient() exception")

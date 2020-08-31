@@ -13,6 +13,7 @@ from pydbus import Variant
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.errors.exceptions import NotAvailableInState, DBusMappingException, PrinterException
+from sl1fw.errors.warnings import PrinterWarning
 
 
 class DBusObjectPath(str):
@@ -215,7 +216,7 @@ def wrap_value(data: Any) -> Variant:
         return Variant(PYTHON_TO_DBUS_TYPE[type(data)], data)
 
     if isinstance(data, dict):
-        return Variant("a{sv}", {key: wrap_value(val) for key, val in data.items()})
+        return wrap_dict_value(data)
 
     if isinstance(data, tuple):
         return Variant(python_to_dbus_value_type(data), data)
@@ -227,6 +228,19 @@ def wrap_value(data: Any) -> Variant:
         return wrap_value(data.value)
 
     raise DBusMappingException(f"Failed to wrap dbus value {data}")
+
+
+def wrap_dict_value(data):
+    if data:
+        first_key, _ = list(data.items())[0]
+        if isinstance(first_key, int):
+            signature = "a{iv}"
+        else:
+            signature = "a{sv}"
+    else:
+        signature = "a{iv}"
+
+    return Variant(signature, {key: wrap_value(val) for key, val in data.items()})
 
 
 def wrap_dict_data(data: Dict[str, Any]):
@@ -263,7 +277,7 @@ def wrap_exception(e: Exception) -> Dict[str, Any]:
 
     Exception is represented as dictionary str -> variant
     {
-        "code": code , see ExposureExceptionCode
+        "code": error code
         "code_specific_feature1": value1
         "code_specific_feature2": value2
         ...
@@ -281,3 +295,30 @@ def wrap_exception(e: Exception) -> Dict[str, Any]:
         return ret
 
     return {"code": Sl1Codes.UNKNOWN.code, "name": type(e).__name__, "text": str(e)}
+
+
+def wrap_warning(warning: Warning) -> Dict[str, Any]:
+    """
+    Wrap warning in dictionary
+
+    Warning is represented as dictionary str -> variant
+    {
+        "code": warning code
+        "code_specific_feature1": value1
+        "code_specific_feature2": value2
+        ...
+    }
+
+    :param warning: Warning to wrap
+    :return: Warning dictionary
+    """
+    if not warning:
+        return {"code": Sl1Codes.NONE_WARNING.code}
+
+    if isinstance(warning, PrinterWarning):
+        ret = {"code": warning.CODE.code, "name": type(warning).__name__, "text": str(warning)}
+        if is_dataclass(warning):
+            ret.update(asdict(warning))
+        return ret
+
+    return {"code": Sl1Codes.UNKNOWN_WARNING.code, "name": type(warning).__name__, "text": str(warning)}

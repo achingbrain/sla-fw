@@ -14,5 +14,6 @@ class PrinterState(Enum):
     UPDATING = 3
     EXIT = 4
     EXCEPTION = 5
-    UNBOXING = 6
+    # Used to be "UNBOXING = 6", now unboxing is wizard
     DISPLAY_TEST = 7
+    WIZARD = 8

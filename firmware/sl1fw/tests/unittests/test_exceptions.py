@@ -30,6 +30,7 @@ class TestExceptions(unittest.TestCase):
         "failed_fans: List[int]": [1],
         "project_state: sl1fw.states.project.ProjectState": ProjectState.CANT_READ,
         "volume: float": 12.3,
+        "volume_ml: float": 12.3,
         "failed_sensors: List[int]": [2],
         "message: str": "Error occurred",
         "trace: sl1fw.motion_controller.trace.Trace": Trace(10),
@@ -43,7 +44,17 @@ class TestExceptions(unittest.TestCase):
         "changes: Dict[str, Tuple[Any, Any]]": {"exposure": (10, 20)},
         "measured_resin_ml: float": 12.3,
         "required_resin_ml: float": 23.4,
-        "warning: Warning": AmbientTooHot(ambient_temperature=42.0)
+        "warning: Warning": AmbientTooHot(ambient_temperature=42.0),
+        "name: str": "fan1",
+        "rpm: Union[int, NoneType]": 1234,
+        "avg: Union[int, NoneType]": 1234,
+        "fanError: Dict[int, bool]": {0: False, 1: True, 2: False},
+        "uv_temp_deg_c: float": 42.42,
+        "position_nm: int": 123450,
+        "position: int": 12345,
+        "tilt_position: Union[int, NoneType]": 5000,
+        "tower_position_nm: int": 100000000,
+        "sn: str": "123456789",
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}
@@ -72,9 +83,10 @@ class TestExceptions(unittest.TestCase):
 
             instance = cls(*args)
 
-            wrapped = wrap_dict_data(wrap_exception(instance))
-            self.assertIsInstance(wrapped, dict)
-            for key, value in wrapped.items():
+            wrapped_exception = wrap_exception(instance)
+            wrapped_dict = wrap_dict_data(wrapped_exception)
+            self.assertIsInstance(wrapped_dict, dict)
+            for key, value in wrapped_dict.items():
                 self.assertIsInstance(key, str)
                 self.assertIsInstance(value, Variant)
 

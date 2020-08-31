@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta, timezone
 from enum import unique, Enum
 from time import time
@@ -13,7 +12,6 @@ from typing import Any, Dict, List, Optional
 
 from deprecation import deprecated
 from pydbus.generic import signal
-from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
 from sl1fw.api.decorators import (
@@ -25,8 +23,8 @@ from sl1fw.api.decorators import (
     wrap_exception,
     last_error,
     wrap_dict_data,
+    wrap_warning,
 )
-from sl1fw.errors.warnings import ExposureWarning
 from sl1fw.libExposure import Exposure
 from sl1fw.project.project import ProjectState
 from sl1fw.states.exposure import ExposureState
@@ -216,25 +214,13 @@ class Exposure0:
 
         :return: List of warning dictionaries
         """
-        return [wrap_dict_data(self._process_warning(self.exposure.warning))]
+        return [self.exposure_warning]
 
     @auto_dbus
     @property
     @last_error
     def exposure_warning(self) -> Dict[str, Any]:
-        return wrap_dict_data(self._process_warning(self.exposure.warning))
-
-    def _process_warning(self, warning: Optional[Warning]) -> Dict[str, Any]:  # pylint: disable=no-self-use
-        if not warning:
-            return {"code": Sl1Codes.NONE.code}
-
-        if isinstance(warning, ExposureWarning):
-            ret = {"code": warning.CODE.code}
-            if is_dataclass(warning):
-                ret.update(asdict(warning))
-            return ret
-
-        return {"code": Sl1Codes.UNKNOWN.code}
+        return wrap_dict_data(wrap_warning(self.exposure.warning))
 
     @auto_dbus
     @property

@@ -20,7 +20,7 @@ import pydbus
 from PySignal import Signal
 from deprecation import deprecated
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.errors.errors import DownloadFailed
 from sl1fw.functions.files import ch_mode_owner
 
@@ -86,6 +86,9 @@ class Network:
 
         :return: {interface_name: ip_address}
         """
+        if test_runtime.testing:
+            return {}
+
         return {
             dev.Interface: self._get_ipv4(dev.Ip4Config)
             for dev in [

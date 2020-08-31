@@ -17,7 +17,9 @@ from time import sleep
 import distro
 
 from sl1fw import defines
+from sl1fw.errors.errors import ResinFailed, TowerAxisCheckFailed
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.functions.checks import resin_sensor, tower_axis
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages import page
@@ -323,34 +325,16 @@ class PageWizardTowerAxis(PageWizardBase):
         self.display.hw.powerLed("warn")
         pageWait = PageWait(self.display, line1 = _("Tower axis check"))
         pageWait.show()
-        self.display.hw.towerSyncWait()
-        self.display.hw.setTowerPosition(self.display.hw.tower_end)
-        self.display.hw.setTowerProfile("homingFast")
-        self.display.hw.towerMoveAbsolute(0)
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        if self.display.hw.getTowerPositionMicroSteps() == 0:
-            #stop 10 mm before endstop to change sensitive profile
-            self.display.hw.towerMoveAbsolute(self.display.hw.tower_end - 8000)
-            while self.display.hw.isTowerMoving():
-                sleep(0.25)
-            #endwhile
-            self.display.hw.setTowerProfile("homingSlow")
-            self.display.hw.towerMoveAbsolute(self.display.hw.tower_max)
-            while self.display.hw.isTowerMoving():
-                sleep(0.25)
-            #endwhile
-        #endif
-        position = self.display.hw.getTowerPositionMicroSteps()
-        #MC moves tower by 1024 steps forward in last step of !twho
-        if position < self.display.hw.tower_end or position > self.display.hw.tower_end + 1024 + 127: #add tolerance half fullstep
+
+        try:
+            tower_axis(self.display.hw, self.display.hwConfig)
+        except TowerAxisCheckFailed as e:
             self.display.pages['error'].setParams(
-                text = _("Tower axis check failed!\n\n"
-                    "Current position: %d\n\n"
-                    "Please check if the ballscrew can move smoothly in its entire range.") % position)
+                text=_("Tower axis check failed!\n\n"
+                       "Current position: %d nm\n\n"
+                       "Please check if the ballscrew can move smoothly in its entire range.") % e.position_nm)
             return "error"
-        #endif
+
         return "wizardresinsensor"
     #enddef
 
@@ -395,25 +379,15 @@ class PageWizardResinSensor(PageWizardBase):
             line1 = _("Resin sensor check"),
             line2 = _("DO NOT touch the printer"))
         pageWait.show()
-        self.display.hw.towerSyncWait()
-        self.display.hw.setTowerPosition(self.display.hwConfig.calcMicroSteps(defines.defaultTowerHeight))
-        volume = self.display.hw.getResinVolume()
-        self.logger.debug("resin volume: %s", volume)
-        if not defines.resinWizardMinVolume <= volume <= defines.resinWizardMaxVolume:    #to work properly even with loosen rocker brearing
+
+        try:
+            self.display.wizardData = resin_sensor(self.display.hw, self.display.hwConfig, self.logger)
+        except ResinFailed as e:
             self.display.pages['error'].setParams(
-                text = _("Resin sensor not working!\n\n"
-                    "Please check if the sensor is connected properly and tank is screwed down by both bolts.\n\n"
-                    "Measured %d ml.") % volume)
+                text=_("Resin sensor not working!\n\n"
+                       "Please check if the sensor is connected properly and tank is screwed down by both bolts.\n\n"
+                       "Measured %d ml.") % e.volume_ml)
             return "error"
-        #endif
-        self.display.wizardData.wizardResinVolume = volume
-        self.display.hw.towerSync()
-        self.display.hw.tiltSyncWait()
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        self.display.hw.motorsRelease()
-        self.display.hw.stopFans()
 
         self.display.hwConfig.showWizard = False
         try:

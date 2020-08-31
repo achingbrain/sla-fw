@@ -8,13 +8,14 @@
 
 from time import time, sleep
 
-from sl1fw import defines
+from sl1fw.errors.errors import TowerBelowSurface
 from sl1fw.errors.exceptions import ConfigException
-from sl1fw.states.display import DisplayState
+from sl1fw.functions.checks import tilt_calib_start, tower_calibrate
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.move import MovePage
 from sl1fw.pages.wait import PageWait
+from sl1fw.states.display import DisplayState
 
 
 @page
@@ -171,11 +172,7 @@ class PageCalibration3(PageCalibrationBase):
         pageWait.show()
 
         self.display.hw.powerLed("warn")
-        self.display.hw.setTiltProfile('homingFast')
-        self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_calib_start)
-        while self.display.hw.isTiltMoving():
-            sleep(0.25)
-        #endwhile
+        tilt_calib_start(self.display.hw)
         self.display.hw.powerLed("normal")
         return "calibration4"
     #endif
@@ -386,71 +383,18 @@ class PageCalibration8(PageCalibrationBase):
 
     def continuePlatformCalib(self):
         self.ensureCoverIsClosed()
-
         self.display.hw.powerLed("warn")
-        pageWait = PageWait(self.display,
-            line1 = _("Platform calibration"))
+        pageWait = PageWait(self.display, line1=_("Platform calibration"))
         pageWait.show()
-        self.logger.info("Starting platform calibration")
-        self.display.hw.setTiltProfile('homingFast')
-        self.display.hw.setTiltCurrent(defines.tiltCalibCurrent)
-        self.display.hw.setTowerPosition(0)
-        self.display.hw.setTowerProfile('homingFast')
-        self.logger.info("Moving platform to above position")
-        self.display.hw.towerMoveAbsolute(self.display.hw.tower_above_surface)
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        self.logger.info("tower position above: %d", self.display.hw.getTowerPositionMicroSteps())
-        if self.display.hw.getTowerPositionMicroSteps() != self.display.hw.tower_above_surface:
-            self.logger.error("Platform calibration [above] failed %s != %s",
-                              self.display.hw.getTowerPositionMicroSteps(), self.display.hw.tower_above_surface)
-            self.display.hw.beepAlarm(3)
-            self.display.hw.towerSyncWait()
+        try:
+            tower_calibrate(self.display.hw, self.display.hwConfig, self.logger)
+        except TowerBelowSurface:
             self.display.pages['confirm'].setParams(
-                continueFce = self.positionFailed,
-                text = _("Tower not at the expected position.\n\n"
-                    "Is the platform and tank secured in correct position?\n\n"
-                    "Press 'Continue' and read the instructions carefully."))
+                continueFce=self.positionFailed,
+                text=_("Tower not at the expected position.\n\n"
+                       "Is the platform and tank secured in correct position?\n\n"
+                       "Press 'Continue' and read the instructions carefully."))
             return "confirm"
-        #endif
-        self.logger.info("Moving platform to min position")
-        self.display.hw.setTowerProfile('homingSlow')
-        self.display.hw.towerToMin()
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        self.logger.info("tower position min: %d", self.display.hw.getTowerPositionMicroSteps())
-        if self.display.hw.getTowerPositionMicroSteps() <= self.display.hw.tower_min:
-            self.logger.error("Platform calibration [min] failed %s != %s",
-                              self.display.hw.getTowerPositionMicroSteps(), self.display.hw.tower_above_surface)
-            self.display.hw.beepAlarm(3)
-            self.display.hw.towerSyncWait()
-            self.display.pages['confirm'].setParams(
-                continueFce = self.positionFailed,
-                text = _("Tower not at the expected position.\n\n"
-                    "Is the platform and tank secured in correct position?\n\n"
-                    "Press 'Continue' and read the instructions carefully."))
-            return "confirm"
-        #endif
-        self.logger.debug("Moving tower to calib position x3")
-        self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw.tower_calib_pos * 3)
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        self.logger.debug("Moving tower to min")
-        self.display.hw.towerToMin()
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        self.logger.debug("Moving tower to calib position")
-        self.display.hw.towerMoveAbsolute(self.display.hw.getTowerPositionMicroSteps() + self.display.hw.tower_calib_pos)
-        while self.display.hw.isTowerMoving():
-            sleep(0.25)
-        #endwhile
-        self.logger.info("tower position: %d", self.display.hw.getTowerPositionMicroSteps())
-        self.display.hwConfig.towerHeight = -self.display.hw.getTowerPositionMicroSteps()
-        self.display.hw.setTowerProfile('homingFast')
         self.display.hw.powerLed("normal")
         return "calibration9"
     #endif

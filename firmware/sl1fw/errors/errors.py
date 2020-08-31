@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Dict, Optional
 
 from deprecation import deprecated
 
@@ -27,12 +27,91 @@ class GeneralError(PrinterError):
 
 
 @with_code(Sl1Codes.TILT_HOME_FAILED)
-class TiltHomeFailure(GeneralError):
+class TiltHomeFailed(GeneralError):
+    pass
+
+
+@with_code(Sl1Codes.TOWER_HOME_FAILED)
+class TowerHomeFailed(GeneralError):
+    pass
+
+
+@with_code(Sl1Codes.TOWER_ENDSTOP_NOT_REACHED)
+class TowerEndstopNotReached(GeneralError):
+    pass
+
+
+@with_code(Sl1Codes.TILT_ENDSTOP_NOT_REACHED)
+class TiltEndstopNotReached(GeneralError):
+    pass
+
+
+@with_code(Sl1Codes.TOWER_HOME_FAILED)
+class TowerHomeCheckFailed(GeneralError):
     pass
 
 
 @with_code(Sl1Codes.TILT_HOME_FAILED)
-class TowerHomeFailure(GeneralError):
+class TiltHomeCheckFailed(GeneralError):
+    pass
+
+
+@with_code(Sl1Codes.TOWER_AXIS_CHECK_FAILED)
+@dataclass()
+class TowerAxisCheckFailed(GeneralError):
+    position_nm: int
+
+
+@with_code(Sl1Codes.TILT_AXIS_CHECK_FAILED)
+@dataclass()
+class TiltAxisCheckFailed(GeneralError):
+    position: int
+
+
+@with_code(Sl1Codes.UVLED_VOLTAGE_DIFFER_TOO_MUCH)
+class UVLEDsVoltagesDifferTooMuch(GeneralError):
+    pass
+
+
+@with_code(Sl1Codes.DISPLAY_TEST_FAILED)
+class DisplayTestFailed(GeneralError):
+    pass
+
+
+@with_code(Sl1Codes.UVLED_HEAT_SINK_FAILED)
+@dataclass()
+class UVLEDHeatsinkFailed(GeneralError):
+    uv_temp_deg_c: float
+
+
+@with_code(Sl1Codes.INVALID_TILT_ALIGN_POSITION)
+@dataclass()
+class InvalidTiltAlignPosition(GeneralError):
+    tilt_position: Optional[int]
+
+
+@with_code(Sl1Codes.FAN_RPM_OUT_OF_TEST_RANGE)
+@dataclass()
+class FanRPMOutOfTestRange(GeneralError):
+    name: str
+    rpm: Optional[int]
+    avg: Optional[int]
+    fanError: Dict[int, bool]
+
+
+@with_code(Sl1Codes.WIZARD_NOT_CANCELABLE)
+class WizardNotCancelable(GeneralError):
+    pass
+
+
+@with_code(Sl1Codes.TOWER_BELOW_SURFACE)
+@dataclass()
+class TowerBelowSurface(GeneralError):
+    tower_position_nm: int
+
+
+@with_code(Sl1Codes.SOUND_TEST_FAILED)
+class SoundTestFailed(GeneralError):
     pass
 
 
@@ -44,52 +123,52 @@ class ExposureError(PrinterError):
 
 @deprecated("Use TiltHomeFailed")
 @with_code(Sl1Codes.TILT_HOME_FAILED)
-class TiltFailure(ExposureError):
+class TiltFailed(ExposureError):
     pass
 
 
 @deprecated("Use TowerHomeFailed")
 @with_code(Sl1Codes.TOWER_HOME_FAILED)
-class TowerFailure(ExposureError):
+class TowerFailed(ExposureError):
     pass
 
 
 @with_code(Sl1Codes.TOWER_MOVE_FAILED)
-class TowerMoveFailure(ExposureError):
+class TowerMoveFailed(ExposureError):
     pass
 
 
 @with_code(Sl1Codes.PROJECT_FAILED)
 @dataclass
-class ProjectFailure(ExposureError):
+class ProjectFailed(ExposureError):
     project_state: ProjectState
 
 
 @with_code(Sl1Codes.TEMP_SENSOR_FAILED)
 @dataclass
-class TempSensorFailure(ExposureError):
+class TempSensorFailed(ExposureError):
     failed_sensors: List[int]
 
 
 @with_code(Sl1Codes.FAN_FAILED)
 @dataclass
-class FanFailure(ExposureError):
+class FanFailed(ExposureError):
     failed_fans: List[int]
 
 
 @with_code(Sl1Codes.RESIN_SENSOR_FAILED)
 @dataclass
-class ResinFailure(ExposureError):
-    volume: float
+class ResinFailed(ExposureError):
+    volume_ml: float
 
 
 @with_code(Sl1Codes.RESIN_TOO_LOW)
-class ResinTooLow(ResinFailure):
+class ResinTooLow(ResinFailed):
     pass
 
 
 @with_code(Sl1Codes.RESIN_TOO_HIGH)
-class ResinTooHigh(ResinFailure):
+class ResinTooHigh(ResinFailed):
     pass
 
 

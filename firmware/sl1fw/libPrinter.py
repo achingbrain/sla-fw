@@ -6,6 +6,7 @@
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-statements
 # pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-branches
 
 import gettext
 import logging
@@ -27,6 +28,7 @@ from sl1fw import defines, test_runtime
 from sl1fw.api.config0 import Config0
 from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, TomlConfig, RuntimeConfig, TomlConfigStats
@@ -37,12 +39,11 @@ from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
 from sl1fw.libScreen import Screen
 from sl1fw.logger_config import set_log_level
-from sl1fw.pages.start import PageStart
 from sl1fw.pages.wait import PageWait
 from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.states.printer import PrinterState
-from sl1fw.states.unboxing import UnboxingState
+from sl1fw.states.wizard import WizardState
 
 
 class Printer:
@@ -60,8 +61,8 @@ class Printer:
         self.firstRun = True
         self.action_manager = ActionManager()
         self.action_manager.exposure_change.connect(self._exposure_changed)
-        self.action_manager.unboxing_change.connect(self._unboxing_changed)
         self.action_manager.display_test_change.connect(self._display_test_changed)
+        self.action_manager.wizard_changed.connect(self._wizard_changed)
         self.exited = threading.Event()
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
@@ -173,7 +174,6 @@ class Printer:
                 if locale.Locale == ["LANG=C"]:
                     self.hw.beepRepeat(1)
                     self.display.doMenu("setlanguage")
-
             except GLib.GError:
                 self.logger.exception("Failed to obtain current locale.")
 
@@ -188,18 +188,14 @@ class Printer:
                 self.display.doMenu("error")
 
             if not self.runtime_config.factory_mode and self.hwConfig.showUnboxing:
-                self.action_manager.start_unboxing(self.hw, self.hwConfig)
-                self.display.doMenu("unboxing")
-                self.action_manager.cleanup_unboxing()
-                self.enter_menu(True)
-            else:
-                self.enter_menu(True)
+                if self.hw.isKit:
+                    unboxing = kit_unboxing_wizard(self.action_manager, self.hw, self.hwConfig)
+                else:
+                    unboxing = unboxing_wizard(self.action_manager, self.hw, self.hwConfig)
+                self.logger.info("Running unboxing wizard")
+                unboxing.join()
+                self.logger.info("Unboxing finished")
 
-        else:
-            self.enter_menu(False)
-
-    def enter_menu(self, first_run: bool) -> None:
-        if first_run:
             if self.hwConfig.showWizard:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("wizardinit")
@@ -248,7 +244,6 @@ class Printer:
             if state != MotConComState.OK:
                 raise Exception(f"Failed motion controller update attempt, state: {state}")
 
-            PageStart(self.display).show()
             self.logger.info("Starting libScreen")
             self.screen.start()
             if not self.runtime_config.factory_mode:
@@ -342,22 +337,6 @@ class Printer:
             if self.action_manager.exposure and not self.action_manager.exposure.done:
                 self.state = PrinterState.PRINTING
 
-    def _unboxing_changed(self):
-        unboxing = self.action_manager.unboxing
-        if self.state == PrinterState.UNBOXING:
-            if not unboxing or unboxing.state in [
-                UnboxingState.FINISHED,
-                UnboxingState.CANCELED,
-            ]:
-                self.state = PrinterState.RUNNING
-
-        else:
-            if unboxing and unboxing.state not in [
-                UnboxingState.FINISHED,
-                UnboxingState.CANCELED,
-            ]:
-                self.state = PrinterState.UNBOXING
-
     def _display_test_changed(self):
         display_test = self.action_manager.display_test
         if self.state == PrinterState.DISPLAY_TEST:
@@ -367,3 +346,13 @@ class Printer:
         else:
             if display_test and display_test.state != DisplayTest0State.FINISHED:
                 self.state = PrinterState.DISPLAY_TEST
+
+    def _wizard_changed(self):
+        self.logger.debug("Wizard changed")
+        wizard = self.action_manager.wizard
+        if self.state == PrinterState.WIZARD:
+            if not wizard or wizard.state in WizardState.finished_states():
+                self.state = PrinterState.RUNNING
+        else:
+            if wizard and wizard.state not in WizardState.finished_states():
+                self.state = PrinterState.WIZARD

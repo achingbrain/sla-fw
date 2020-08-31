@@ -66,3 +66,15 @@ class ResinNotEnough(ExposureWarning):
 @dataclass
 class ProjectSettingsModified(ExposureWarning):
     changes: Dict[str, Tuple[Any, Any]]
+
+
+# TODO: Add code
+@dataclass
+class WrongA64SerialFormat(PrinterWarning):
+    sn: str
+
+
+# TODO: Add code
+@dataclass
+class WrongMCSerialFormat(PrinterWarning):
+    sn: str

@@ -107,7 +107,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     def tryStartPrinter(self):
         try:
             self.thread.start()
-            self.waitPage("splash")
 
             # Skip wizard
             self.waitPage("confirm")

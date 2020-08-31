@@ -10,25 +10,27 @@
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-statements
+# pylint: disable=too-many-branches
 
 import functools
 import logging
 import os
 import re
 from math import ceil
-from time import sleep
 from threading import Thread
+from time import sleep
+from typing import Optional
 
 import bitstring
 import pydbus
 from PySignal import Signal
 
 from sl1fw import defines
-from sl1fw.errors.errors import TiltHomeFailure, TowerHomeFailure
+from sl1fw.errors.errors import TiltHomeFailed, TowerHomeFailed, TowerEndstopNotReached, TowerHomeCheckFailed
+from sl1fw.errors.exceptions import MotionControllerException
 from sl1fw.libConfig import HwConfig
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.motion_controller.states import MotConComState
-from sl1fw.errors.exceptions import MotionControllerException
 from sl1fw.utils.value_checker import ValueChecker
 
 
@@ -180,6 +182,7 @@ class Hardware:
 
         self._tower_moving = False
         self._tilt_moving = False
+        self._tilt_move_last_position: Optional[int] = None
         self._towerPositionRetries = None
 
         self._value_refresh_run = True
@@ -1202,7 +1205,7 @@ class Hardware:
         """
         self.powerLed("warn")
         if not self.towerSyncWait():
-            raise TowerHomeFailure()
+            raise TowerHomeFailed()
         self.powerLed("normal")
 
     def tilt_home(self) -> None:
@@ -1214,7 +1217,7 @@ class Hardware:
         self.setTiltPosition(self.tilt_end)
         self.tiltLayerDownWait(True)
         if not self.tiltSyncWait():
-            raise TiltHomeFailure()
+            raise TiltHomeFailed()
         self.setTiltProfile("moveFast")
         self.tiltLayerUpWait()
         self.powerLed("normal")
@@ -1259,7 +1262,7 @@ class Hardware:
         self._tower_moving = False
         return True
 
-    def tilt_move(self, speed: int, set_profiles: bool = True) -> bool:
+    def tilt_move(self, speed: int, set_profiles: bool = True, fullstep=False) -> bool:
         """
         Start / stop tilt movement
 
@@ -1276,6 +1279,9 @@ class Hardware:
         """
         if not self._tilt_moving and set_profiles:
             self.setTiltProfile("moveSlow" if abs(speed) < 2 else "homingFast")
+
+        if speed != 0:
+            self._tilt_move_last_position = self.tilt_position
 
         if speed > 0:
             if self._tilt_moving:
@@ -1296,6 +1302,12 @@ class Hardware:
             return True
 
         self.tiltStop()
+        if fullstep:
+            if self._tilt_move_last_position < self.tilt_position:
+                self.tiltGotoFullstep(goUp=1)
+            elif self._tilt_move_last_position > self.tilt_position:
+                self.tiltGotoFullstep(goUp=0)
+        self._tilt_move_last_position = None
         self._tilt_moving = False
         return True
 
@@ -1337,3 +1349,32 @@ class Hardware:
 
     def getMaxPwm(self):
         return self.getMeasPwms()[1]
+
+    def get_tower_sensitivity(self) -> int:
+        """
+        Obtain tower sensitivity
+
+        :return: Sensitivity value
+        """
+
+        tower_sensitivity = 0  # use default sensitivity first
+        self.updateMotorSensitivity(self.hwConfig.tiltSensitivity, tower_sensitivity)
+        tries = 3
+        while tries > 0:
+            self.towerSyncWait()
+            home_status = self.towerHomingStatus
+            if home_status == -2:
+                raise TowerEndstopNotReached()
+            if home_status == -3:
+                # if homing failed try different tower homing profiles (only positive values of motor sensitivity)
+                tower_sensitivity += 1  # try next motor sensitivity
+                tries = 3  # start over with new sensitivity
+                if tower_sensitivity >= len(self.towerAdjust["homingFast"]) - 2:
+                    raise TowerHomeCheckFailed()
+
+                self.updateMotorSensitivity(self.hwConfig.tiltSensitivity, tower_sensitivity)
+
+                continue
+            tries -= 1
+
+        return tower_sensitivity
