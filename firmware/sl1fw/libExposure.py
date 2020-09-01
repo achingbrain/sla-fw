@@ -28,7 +28,7 @@ import threading
 from logging import Logger
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
-from time import sleep, time
+from time import sleep
 from typing import Optional, Any
 from threading import Event
 
@@ -673,7 +673,7 @@ class ExposureThread(threading.Thread):
 
         self.logger.info("Running exposure")
         self.expo.state = ExposureState.PRINTING
-        self.expo.printStartTime = time()
+        self.expo.printStartTime = datetime.now(tz=timezone.utc)
         statistics = TomlConfigStats(defines.statsData, self.expo.hw)
         statistics.load()
         statistics['started_projects'] += 1
@@ -807,7 +807,7 @@ class ExposureThread(threading.Thread):
                 step,
                 self.expo.hwConfig.calcMM(self.expo.position),
                 self.expo.totalHeight,
-                int(round((time() - self.expo.printStartTime) / 60)),
+                int(round((datetime.now(tz=timezone.utc) - self.expo.printStartTime).total_seconds() / 60)),
                 self.expo.countRemainTime(),
                 self.expo.resinCount,
                 self.expo.remain_resin_ml if self.expo.remain_resin_ml else -1,
@@ -863,7 +863,7 @@ class ExposureThread(threading.Thread):
             self.expo.resinCount += float(whitePixels * defines.screenPixelSize ** 2 * self.expo.hwConfig.calcMM(step) / 1000.0)
             self.logger.debug("resinCount: %f", self.expo.resinCount)
 
-            seconds = time() - self.expo.printStartTime
+            seconds = (datetime.now(tz=timezone.utc) - self.expo.printStartTime).total_seconds()
             self.expo.printTime = int(seconds / 60)
 
             if self.expo.hwConfig.trigger:
@@ -889,6 +889,7 @@ class ExposureThread(threading.Thread):
         self.expo.hw.stopFans()
         self.expo.hw.motorsRelease()
 
+        self.expo.printEndTime = datetime.now(tz=timezone.utc)
         self.logger.info("Job finished - real printing time is %s minutes", self.expo.printTime)
 
         if not self.expo.canceled:
@@ -962,7 +963,8 @@ class Exposure:
         self.position = 0
         self.actualLayer = 0
         self.slowLayersDone = 0
-        self.printStartTime = 0
+        self.printStartTime = datetime.fromtimestamp(0, tz=timezone.utc)
+        self.printEndTime = datetime.fromtimestamp(0, tz=timezone.utc)
         self.printTime = 0
         self.state = ExposureState.READING_DATA
         self.remaining_wait_sec = 0

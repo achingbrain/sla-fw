@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from time import time
 from typing import TYPE_CHECKING
 
 from sl1fw.libExposure import Exposure
@@ -55,7 +54,7 @@ class PagePrint(PagePrintBase):
         project = self.display.expo.project
 
         time_remain_min = expo.countRemainTime()
-        time_elapsed_min = int(round((time() - expo.printStartTime) / 60))
+        time_elapsed_min = int(round((datetime.now(tz=timezone.utc) - expo.printStartTime).total_seconds() / 60))
         percent = int(100 * self.display.expo.progress)
 
         if expo.warn_resin:

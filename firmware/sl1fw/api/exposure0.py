@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from enum import unique, Enum
-from time import time
 from typing import Any, Dict, List, Optional
 
 from deprecation import deprecated
@@ -306,18 +305,29 @@ class Exposure0:
 
         :return: Time spent printing in minutes
         """
-        return int(round((time() - self.exposure.printStartTime) / 60))
+        return int(round((datetime.now(tz=timezone.utc) - self.exposure.printStartTime).total_seconds() / 60))
 
     @auto_dbus
     @property
     @last_error
     def print_start_timestamp(self) -> float:
         """
-        Get print start time
+        Get print start timestamp
 
         :return: Timestamp
         """
-        return self.exposure.printStartTime
+        return self.exposure.printStartTime.timestamp()
+
+    @auto_dbus
+    @property
+    @last_error
+    def print_end_timestamp(self) -> float:
+        """
+        Get print end timestamp
+
+        :return: Timestamp
+        """
+        return self.exposure.printEndTime.timestamp()
 
     @auto_dbus
     @property
