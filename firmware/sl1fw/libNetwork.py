@@ -272,4 +272,4 @@ class Network:
 
         except Exception as e:
             self.logger.exception("Examples download failed: %s", str(e))
-            raise Exception(failed)
+            raise Exception(failed) from e
