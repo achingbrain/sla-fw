@@ -52,7 +52,9 @@ class PageFactoryReset(Page):
         return self._do_factory_reset()
 
     def _do_factory_reset(self):
+        self.logger.info("Starting factory reset with factory mode: %s", self.display.runtime_config.factory_mode)
         if self.display.runtime_config.factory_mode and self.display.hwConfig.uvPwm == 0:
+            self.logger.error("Cannot do factory reset UV PWM not set (== 0)")
             self.display.pages["error"].setParams(text=_("Cannot do factory config UV PWM is not set !!!"))
             return "error"
 
@@ -66,6 +68,7 @@ class PageFactoryReset(Page):
             try:
                 send_printer_data(self.display.hw, self.display.hwConfig)
             except PrinterDataSendError as error:
+                self.logger.exception("Failed to send printer data to mqtt")
                 if isinstance(error, MissingWizardData):
                     self.display.pages["error"].setParams(
                         backFce=lambda: "wizardinit", text="The wizard did not finish successfully!"
