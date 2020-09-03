@@ -25,6 +25,7 @@ from sl1fw.libConfig import HwConfig
 from sl1fw.project.config import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.states.project import ProjectState
+from sl1fw.api.decorators import range_checked
 
 
 class Project:
@@ -465,3 +466,37 @@ class Project:
                 + self._hw_config.delayAfterExposure)
         self.logger.debug("time_remain: %f", time_remain)
         return int(round(time_remain / 60))
+
+    @property
+    def exposure_time_ms(self) -> int:
+        return int(self.expTime * 1000)
+
+    @exposure_time_ms.setter
+    @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
+    def exposure_time_ms(self, value: int) -> None:
+        self.expTime = value / 1000
+
+    @property
+    def exposure_time_first_ms(self) -> int:
+        return int(self.expTimeFirst * 1000)
+
+    @exposure_time_first_ms.setter
+    @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
+    def exposure_time_first_ms(self, value: int) -> None:
+        self.expTimeFirst = value / 1000
+
+    @property
+    def exposure_time_calibrate_ms(self) -> int:
+        return int(self.calibrateTime * 1000)
+
+    @exposure_time_calibrate_ms.setter
+    @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
+    def exposure_time_calibrate_ms(self, value: int) -> None:
+        self.calibrateTime = value / 1000
+
+    @property
+    def calibration_regions(self) -> int:
+        """
+        Alias to calibrateRegions
+        """
+        return self.calibrateRegions

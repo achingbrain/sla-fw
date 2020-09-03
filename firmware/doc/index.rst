@@ -27,6 +27,7 @@ API
    printer0
    config0
    exposure0
+   standard0
 
 Error handling
 ==============

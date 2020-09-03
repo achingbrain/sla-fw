@@ -7,6 +7,23 @@ from enum import unique, Enum
 
 
 @unique
+class Printer0State(Enum):
+    """
+    General printer state enumeration
+    """
+
+    INITIALIZING = 0
+    IDLE = 1
+    # Replaced by wizard, UNBOXING = 2
+    WIZARD = 3
+    CALIBRATION = 4
+    DISPLAY_TEST = 5
+    PRINTING = 6
+    UPDATE = 7
+    ADMIN = 8
+    EXCEPTION = 9
+
+@unique
 class PrinterState(Enum):
     INIT = 0
     RUNNING = 1
@@ -17,3 +34,20 @@ class PrinterState(Enum):
     # Used to be "UNBOXING = 6", now unboxing is wizard
     DISPLAY_TEST = 7
     WIZARD = 8
+
+    def to_state0(self):
+        state = None
+        if self == self.INIT:
+            state = Printer0State.INITIALIZING
+        elif self == self.EXCEPTION:
+            state = Printer0State.EXCEPTION
+        elif self == self.UPDATING:
+            state = Printer0State.UPDATE
+        elif self == self.PRINTING:
+            state = Printer0State.PRINTING
+        elif self == self.WIZARD:
+            state = Printer0State.WIZARD
+        elif self == self.DISPLAY_TEST:
+            state = Printer0State.DISPLAY_TEST
+
+        return state

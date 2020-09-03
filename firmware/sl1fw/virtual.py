@@ -32,6 +32,7 @@ import sl1fw.tests.mocks.mc_port
 from sl1fw import defines, test_runtime
 from sl1fw import libPrinter
 from sl1fw.api.printer0 import Printer0
+from sl1fw.api.standard0 import Standard0
 from sl1fw.tests import samples
 from sl1fw.tests.mocks.dbus.rauc import Rauc
 
@@ -95,6 +96,7 @@ class Virtual:
         self.rauc_mocks = None
         self.glib_loop = None
         self.printer0 = None
+        self.standard0 = None
 
     def __call__(self):
         signal.signal(signal.SIGINT, self.tear_down)
@@ -125,6 +127,7 @@ class Virtual:
 
             print("Publishing printer on D-Bus")
             self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
+            self.standard0 = bus.publish(Standard0.__INTERFACE__, Standard0(self.printer))
             print("Running printer")
             self.printer.run()
 
@@ -152,6 +155,7 @@ class Virtual:
                 loop.run_in_executor(pool, self.rauc_mocks.unpublish),
                 loop.run_in_executor(pool, self.glib_loop.quit),
                 loop.run_in_executor(pool, self.printer0.unpublish),
+                loop.run_in_executor(pool, self.standard0.unpublish)
             ]
         await asyncio.gather(*tasks)
 

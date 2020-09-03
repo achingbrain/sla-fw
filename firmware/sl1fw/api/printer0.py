@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import select
-from enum import unique, Enum
 from pathlib import Path
 from typing import List, Dict, Tuple, TYPE_CHECKING, Any, Optional
 
@@ -50,30 +49,11 @@ from sl1fw.functions.wizards import (
 )
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.state_actions.examples import Examples
-from sl1fw.states.display import DisplayState
 from sl1fw.states.examples import ExamplesState
-from sl1fw.states.printer import PrinterState
+from sl1fw.states.printer import Printer0State
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
-
-
-@unique
-class Printer0State(Enum):
-    """
-    General printer state enumeration
-    """
-
-    INITIALIZING = 0
-    IDLE = 1
-    # Replaced by wizard, UNBOXING = 2
-    WIZARD = 3
-    CALIBRATION = 4
-    DISPLAY_TEST = 5
-    PRINTING = 6
-    UPDATE = 7
-    ADMIN = 8
-    EXCEPTION = 9
 
 
 @dbus_api
@@ -87,23 +67,6 @@ class Printer0:
     """
 
     __INTERFACE__ = "cz.prusa3d.sl1.printer0"
-
-    PRINTER_STATE_TO_STATE = {
-        PrinterState.INIT: Printer0State.INITIALIZING,
-        PrinterState.EXCEPTION: Printer0State.EXCEPTION,
-        PrinterState.UPDATING: Printer0State.UPDATE,
-        PrinterState.PRINTING: Printer0State.PRINTING,
-        PrinterState.DISPLAY_TEST: Printer0State.DISPLAY_TEST,
-        PrinterState.WIZARD: Printer0State.WIZARD,
-    }
-
-    DISPLAY_STATE_TO_STATE = {
-        DisplayState.CALIBRATION: Printer0State.CALIBRATION,
-        DisplayState.WIZARD: Printer0State.WIZARD,
-        DisplayState.FACTORY_RESET: Printer0State.INITIALIZING,
-        DisplayState.ADMIN: Printer0State.ADMIN,
-        DisplayState.DISPLAY_TEST: Printer0State.DISPLAY_TEST,
-    }
 
     PropertiesChanged = signal()
 
@@ -173,11 +136,13 @@ class Printer0:
 
         :return: Global printer state
         """
-        if self.printer.state in self.PRINTER_STATE_TO_STATE:
-            return self.PRINTER_STATE_TO_STATE[self.printer.state].value
+        state = self.printer.state.to_state0()
+        if state:
+            return state.value
 
-        if self.printer.display.state in self.DISPLAY_STATE_TO_STATE:
-            return self.DISPLAY_STATE_TO_STATE[self.printer.display.state].value
+        state = self.printer.display.state.to_state0()
+        if state:
+            return state.value
 
         return Printer0State.IDLE.value
 

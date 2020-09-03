@@ -1378,3 +1378,19 @@ class Hardware:
             tries -= 1
 
         return tower_sensitivity
+
+    def getFansRpmDict(self):
+        rpms = self.getFansRpm()
+        return {
+            "uv_led": rpms[0],
+            "blower": rpms[1],
+            "rear": rpms[2]
+        }
+
+    def getTemperaturesDict(self):
+        temps = self.getMcTemperatures(logTemps = False)
+        return {
+            'temp_led': temps[self._ledTempIdx],
+            'temp_amb': temps[self._ambientTempIdx],
+            'cpu_temp': self.getCpuTemperature()
+        }
