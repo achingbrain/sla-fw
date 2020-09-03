@@ -154,7 +154,7 @@ class PageSetupHw(PageSetup):
                 'label2g4' : "Stirring moves count",
                 'label2g5' : "Delay after stirring [s]",
                 'label2g6' : "Power LED intensity",
-
+                'label2g7' : "UV cal. boost toler.",
                 'label2g8' : "MC board version",
                 })
         self.changed = {}
@@ -166,6 +166,7 @@ class PageSetupHw(PageSetup):
         self.temp['stirringmoves'] = self.display.hwConfig.stirringMoves
         self.temp['stirringdelay'] = self.display.hwConfig.stirringDelay
         self.temp['pwrledpwm'] = self.display.hwConfig.pwrLedPwm
+        self.temp['uvcalibboosttolerance'] = self.display.hwConfig.uvCalibBoostTolerance
         self.temp['mcboardversion'] = self.display.hwConfig.MCBoardVersion
 
         self.items['value2g1'] = str(self.temp['screwmm'])
@@ -174,6 +175,7 @@ class PageSetupHw(PageSetup):
         self.items['value2g4'] = str(self.temp['stirringmoves'])
         self.items['value2g5'] = self._strTenth(self.temp['stirringdelay'])
         self.items['value2g6'] = str(self.temp['pwrledpwm'])
+        self.items['value2g7'] = str(self.temp['uvcalibboosttolerance'])
         self.items['value2g8'] = str(self.temp['mcboardversion'])
 
         self.temp['fancheck'] = self.display.hwConfig.fanCheck
@@ -283,6 +285,16 @@ class PageSetupHw(PageSetup):
     def plus2g6Button(self):
         self._value(self.temp, self.changed, 5, 'pwrledpwm', 0, 100, 5)
         self.display.hw.powerLedPwm = self.temp['pwrledpwm']
+    #enddef
+
+
+    def minus2g7Button(self):
+        self._value(self.temp, self.changed, 6, 'uvcalibboosttolerance', 0, 100, -1)
+    #enddef
+
+
+    def plus2g7Button(self):
+        self._value(self.temp, self.changed, 6, 'uvcalibboosttolerance', 0, 100, 1)
     #enddef
 
 

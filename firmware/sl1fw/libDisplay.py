@@ -46,7 +46,7 @@ class Display:
         self.screen = screen
         self.runtime_config = runtime_config
         self.wizardData = None
-        self.uvcalibData = None
+        self.uvCalibData = None
         self.action_manager = action_manager
         self.running = False
         self._state = DisplayState.IDLE

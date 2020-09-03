@@ -101,12 +101,18 @@ class PageUvCalibrationBase(Page):
     writeDataToFactory = False
     resetLedCounter = False
     resetDisplayCounter = False
+    factoryUvPwm = None
 
     def __init__(self, display):
         super(PageUvCalibrationBase, self).__init__(display)
         self.pageUI = "confirm"
         self.pageTitle = N_("UV LED calibration")
         self.checkCooling = True
+        try:
+            self.factoryUvPwm = TomlConfig(defines.uvCalibDataPathFactory).load()["uvFoundPwm"]
+            self.logger.info("factoryUvPwm %s", self.factoryUvPwm)
+        except KeyError:
+            self.logger.error("not found factoryUvPwm")
     #enddef
 
     def off(self):
@@ -453,14 +459,18 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         self.boostResults = False
         self.boostMultiplier = 1.2
         self.secondPassThreshold = 240
-    #enddef
 
 
     def show(self):
         self.intensity = None
         self.minValue = None
         self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
-        self.display.uvcalibData = None
+        self.display.uvCalibData = None
+
+        if PageUvCalibrationBase.resetLedCounter or PageUvCalibrationBase.resetDisplayCounter or PageUvCalibrationBase.factoryUvPwm is None:   # if user replaced HW component allow UV PWM up to 240 without boost
+            PageUvCalibrationBase.factoryUvPwm = 200
+            PageUvCalibrationBase.writeDataToFactory = True  # only scenario when this will change the value False->True is with new KIT
+            self.logger.info("using temporary default factoryUvPwm %s", PageUvCalibrationBase.factoryUvPwm)
 
         # TODO Concurrent.futures would allow us to pass errors as exceptions
         self.result = None
@@ -483,7 +493,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
 
 
     def calibrate_thread(self):
-        self.result, self.display.uvcalibData = self.calibrate()
+        self.result, self.display.uvCalibData = self.calibrate()
     #enddef
 
 
@@ -503,16 +513,22 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
             return
         #endif
 
-        if ((self.pwm > self.secondPassThreshold or self.result == self.ERROR_TOO_DIMM) and
-                not self.boostResults and self.uvmeter.wavelength_response_bug):
+        if ((self.pwm > self.secondPassThreshold or
+                self.pwm > (PageUvCalibrationBase.factoryUvPwm / 100) * (100 + self.display.hwConfig.uvCalibBoostTolerance) or
+                self.result == self.ERROR_TOO_DIMM) and
+                not self.boostResults and
+                not self.uvmeter.sixty_points):
             # Possibly the UV sensor does not match UV LED wavelength, lets try with corrected readings
             self.boostResults = True
             self.logger.info(
                 "Requested intensity cannot be reached by max. allowed PWM, run second iteration with boostResults on (PWM=%d)",
                 self.pwm)
+            self.logger.info("Boosted results applied due to bigger tolerance. Factory: %d, max: %f, tolerance: %d",
+                PageUvCalibrationBase.factoryUvPwm,
+                (PageUvCalibrationBase.factoryUvPwm / 100)  * (100 + self.display.hwConfig.uvCalibBoostTolerance),
+                self.display.hwConfig.uvCalibBoostTolerance)
             self.display.hw.beepAlarm(2)
             return PageUVCalibrateCenter.Name
-        #endif
 
         self.display.screen.getImgBlack()
 
@@ -687,9 +703,6 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         self.pageTitle = N_("Apply calibration?")
         self.checkCooling = True
         self.checkPowerbutton = False
-        self.writeDataToFactory = False
-        self.resetLedCounter = False
-        self.resetDisplayCounter = False
         self.previousUvPwm = 0
     #enddef
 
@@ -700,8 +713,8 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
 
 
     def show(self):
-        if self.display.uvcalibData.uvStdDev > 0.0:
-            dev = _("Std dev: %.1f\n") % self.display.uvcalibData.uvStdDev
+        if self.display.uvCalibData.uvStdDev > 0.0:
+            dev = _("Std dev: %.1f\n") % self.display.uvCalibData.uvStdDev
         else:
             dev = ""
         #endif
@@ -711,9 +724,9 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
             text += _("\nThe result of calibration\n"
                 "PWM: %(pwm)d, Intensity: %(int).1f\n"
                 "Min value: %(min)d, %(dev)s") \
-            % { 'pwm' : self.display.uvcalibData.uvFoundPwm,
-                'int' : self.display.uvcalibData.uvMean,
-                'min' : self.display.uvcalibData.uvMinValue,
+            % { 'pwm' : self.display.uvCalibData.uvFoundPwm,
+                'int' : self.display.uvCalibData.uvMean,
+                'min' : self.display.uvCalibData.uvMinValue,
                 'dev' : dev,
                 }
         self.items.update({
@@ -729,8 +742,8 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
 
         # save hwConfig
         self.previousUvPwm = self.display.hwConfig.uvPwm
-        self.display.hwConfig.uvPwm = self.display.uvcalibData.uvFoundPwm
-        self.display.hw.uvLedPwm = self.display.uvcalibData.uvFoundPwm
+        self.display.hwConfig.uvPwm = self.display.uvCalibData.uvFoundPwm
+        self.display.hw.uvLedPwm = self.display.uvCalibData.uvFoundPwm
         del self.display.hwConfig.uvCurrent   # remove old value too
         try:
             self.display.hwConfig.write()
@@ -742,25 +755,25 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         #endtry
 
         # save UV calibration data
-        uvcalibConfig = TomlConfig(defines.uvCalibDataPath)
+        uvCalibConfig = TomlConfig(defines.uvCalibDataPath)
         try:
-            uvcalibConfig.data = asdict(self.display.uvcalibData)
-            uvcalibConfig.data["uvOsVersion"] = distro.version()
-            uvcalibConfig.data["uvMcBoardRev"] = self.display.hw.mcBoardRevision
-            uvcalibConfig.data["uvLedCounter"] =  self.display.hw.getUvStatistics()
+            uvCalibConfig.data = asdict(self.display.uvCalibData)
+            uvCalibConfig.data["uvOsVersion"] = distro.version()
+            uvCalibConfig.data["uvMcBoardRev"] = self.display.hw.mcBoardRevision
+            uvCalibConfig.data["uvLedCounter"] =  self.display.hw.getUvStatistics()
         except AttributeError:
-            self.logger.exception("uvcalibData is not completely filled")
+            self.logger.exception("uvCalibData is not completely filled")
             self.display.pages['error'].setParams(
                 text = _("!!! Failed to serialize calibration data !!!"))
             return "error"
         #endtry
-        uvcalibConfig.save_raw()
+        uvCalibConfig.save_raw()
 
         # save to factory partition if needed
         if self.display.runtime_config.factory_mode or PageUvCalibrationBase.writeDataToFactory:
-            uvcalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
-            uvcalibConfigFactory.data = uvcalibConfig.data
-            if not self.writeToFactory(functools.partial(self.writeAllDefaults, uvcalibConfigFactory)):
+            uvCalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
+            uvCalibConfigFactory.data = uvCalibConfig.data
+            if not self.writeToFactory(functools.partial(self.writeAllDefaults, uvCalibConfigFactory)):
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save factory defaults !!!"))
                 return "error"
@@ -811,9 +824,9 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
     #enddef
 
 
-    def writeAllDefaults(self, uvcalibConfigFactory):
+    def writeAllDefaults(self, uvCalibConfigFactory):
         self.saveDefaultsFile()
-        uvcalibConfigFactory.save_raw()
+        uvCalibConfigFactory.save_raw()
     #enddef
 
 
