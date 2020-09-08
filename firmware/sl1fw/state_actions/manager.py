@@ -73,8 +73,8 @@ class ActionManager:
         self.exposure_change.emit()
         return exposure
 
-    def load_exposure(self) -> Optional[Exposure]:
-        last_exposure = Exposure.load(self.logger)
+    def load_exposure(self, hw: Hardware) -> Optional[Exposure]:
+        last_exposure = Exposure.load(self.logger, hw)
         if not last_exposure:
             return None
 

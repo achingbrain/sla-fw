@@ -214,7 +214,7 @@ class Printer:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("calibrationstart")
 
-        last_exposure = self.action_manager.load_exposure()
+        last_exposure = self.action_manager.load_exposure(self.hw)
         if last_exposure:
             self.display.doMenu("finished")
         else:

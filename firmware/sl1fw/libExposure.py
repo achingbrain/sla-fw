@@ -1214,12 +1214,18 @@ class Exposure:
     #enddef
 
     @staticmethod
-    def load(logger: Logger) -> Optional[Exposure]:
+    def load(logger: Logger, hw: Hardware) -> Optional[Exposure]:
         try:
             with open(defines.lastProjectPickler, 'rb') as pickle_io:
-                return ExposureUnpickler(pickle_io).load()
+                exposure = ExposureUnpickler(pickle_io).load()
+                # Fix missing (and still required attributes of exposure)
+                exposure.change = Signal()
+                exposure.hw = hw
+                return exposure
+        except FileNotFoundError:
+            logger.info("Last exposure data not present")
         except Exception:
-            logger.error("Last exposure data was not loaded!")
+            logger.exception("Last exposure data failed to load!")
             return None
     #enddef
 

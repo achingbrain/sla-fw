@@ -236,6 +236,9 @@ class Exposure0:
 
         :return: Dictionary mapping from check id to state id
         """
+        if not self.exposure.check_results:
+            return {}
+
         return {check.value: state.value for check, state in self.exposure.check_results.items()}
 
     @auto_dbus
@@ -684,6 +687,8 @@ class Exposure0:
     @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
     def exposure_time_ms(self, value: int) -> None:
         self.exposure.project.expTime = value / 1000
+        # TODO: this is temporary until we can report all changes to exposure time
+        self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_ms": self.exposure_time_ms}, [])
 
     @property
     @last_error
@@ -696,6 +701,8 @@ class Exposure0:
     @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
     def exposure_time_first_ms(self, value: int) -> None:
         self.exposure.project.expTimeFirst = value / 1000
+        # TODO: this is temporary until we can report all changes to exposure time
+        self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_first_ms": self.exposure_time_first_ms}, [])
 
     @property
     @last_error
@@ -708,6 +715,8 @@ class Exposure0:
     # @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     def exposure_time_calibrate_ms(self, value: int) -> None:
         self.exposure.project.calibrateTime = value / 1000
+        # TODO: this is temporary until we can report all changes to exposure time
+        self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_calibrate_ms": self.exposure_time_calibrate_ms}, [])
 
     @auto_dbus
     @property
@@ -741,6 +750,7 @@ class Exposure0:
         "exposure_end": {"exposure_end"},
         "warning": {"exposure_warnings", "exposure_warning"},
         "check_results": {"checks_state"},
+        "project": {"exposure_time_ms", "exposure_time_first_ms", "exposure_time_calibrate_ms"}
     }
 
     def _handle_change(self, key: str, _: Any):
