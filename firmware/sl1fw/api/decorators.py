@@ -203,8 +203,16 @@ def python_to_dbus_value_type(data: Any):
 
     if isinstance(data, list):
         dbus_type = "v"
-        if data:
-            dbus_type = python_to_dbus_value_type(data[0])
+        try:
+            if data:
+                childType = python_to_dbus_value_type(data[0])
+                allEqual = True
+                for child in data:
+                    allEqual = allEqual and (childType == python_to_dbus_value_type(child))
+                if allEqual:
+                    dbus_type = childType
+        except Exception:
+            pass
         return f"a{dbus_type}"
 
     raise DBusMappingException(f"Failed to get value {data} dbus type")
@@ -222,7 +230,12 @@ def wrap_value(data: Any) -> Variant:
         return Variant(python_to_dbus_value_type(data), data)
 
     if isinstance(data, list):
-        return Variant(python_to_dbus_value_type(data), data)
+        dbus_type = python_to_dbus_value_type(data)
+        if dbus_type[1] == 'v':
+            dbus_value = Variant(dbus_type, [wrap_value(d) for d in data])
+        else:
+            dbus_value = Variant(dbus_type, data)
+        return dbus_value
 
     if isinstance(data, Enum):
         return wrap_value(data.value)
