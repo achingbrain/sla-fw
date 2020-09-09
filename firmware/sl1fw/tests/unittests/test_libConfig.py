@@ -204,8 +204,9 @@ class TestHardwareConfig(Sl1fwTestCase):
 
     def test_read(self):
         hw_config = HwConfig(Path(defines.hwConfigPath))
-        print(hw_config)
+        hw_config.read_file()
 
+        self.assertFalse(hw_config.showUnboxing, "Test show unboxing read")
         self.assertTrue(hw_config.coverCheck, "Test cover check read")
         self.assertTrue(hw_config.coverCheck, "Test cover check read")
         self.assertFalse(hw_config.calibrated, "Test calibrated read")
