@@ -29,7 +29,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     HARDWARE_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.hardware.cfg"
     SDL_AUDIO_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw"
     API_KEY_FILE = Sl1fwTestCase.TEMP_DIR / "api.key"
-    STATIC_API_KEY_FILE = Sl1fwTestCase.TEMP_DIR / "static_api.key"
     UV_CALIB_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.uvCalibDataFilename
     UV_CALIB_FACTORY_DATA_FILE = Sl1fwTestCase.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}"
     WIZARD_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.wizardDataFilename
@@ -59,7 +58,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.truePoweroff = False
         defines.internalProjectPath = str(self.SAMPLES_DIR)
         defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
-        defines.static_octoprintAuthFile = str(self.SAMPLES_DIR / "static_api.key")
         defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
         defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")
         defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
@@ -77,13 +75,10 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         # factory reset
         defines.apikeyFile = str(self.API_KEY_FILE)
-        defines.static_octoprintAuthFile = str(self.STATIC_API_KEY_FILE)
         defines.uvCalibDataPath = str(self.UV_CALIB_DATA_FILE)
         defines.uvCalibDataPathFactory = str(self.UV_CALIB_FACTORY_DATA_FILE)
         defines.wizardDataPathFactory = str(self.WIZARD_DATA_FILE)
         Path(self.API_KEY_FILE).touch()
-        with open(str(self.STATIC_API_KEY_FILE), "w") as f:
-            f.write('NXa9FL23')
         Path(self.UV_CALIB_DATA_FILE).touch()
         shutil.copy(self.SAMPLES_DIR / "wizard_data.toml", Path(self.WIZARD_DATA_FILE))
         shutil.copy(self.SAMPLES_DIR / "uvcalib_data-60.toml", Path(self.UV_CALIB_FACTORY_DATA_FILE))
@@ -138,7 +133,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             self.HARDWARE_FILE,
             self.SDL_AUDIO_FILE,
             self.API_KEY_FILE,
-            self.STATIC_API_KEY_FILE,
             self.UV_CALIB_DATA_FILE,
             self.FACTORY_CONFIG_FILE,
         ]

@@ -169,7 +169,7 @@ class Standard0:
             elif dev.Interface == 'wlan0':
                 mac_wlan0 = dev.HwAddress
 
-        uuid_hash = hashlib.blake2b(digest_size=20)
+        uuid_hash = hashlib.blake2b(digest_size=16)
         uuid_hash.update(mac_eth0.encode())
         uuid_hash.update(self._printer.hw.cpuSerialNo.encode())
         uuid_hash.update(mac_wlan0.encode())
@@ -521,20 +521,17 @@ class Standard0:
             "options": { "api_key": "samebigstring" }
         }
         """
-        is_htdigest = TomlConfig(defines.remoteConfig).load().get('htdigest', True)
-        if is_htdigest:
-            with open(defines.static_octoprintAuthFile, "r") as f:
-                return wrap_dict_data({
-                    "type": "digest",
-                    "options": { "api_key": f.read() }
-                })
+        if TomlConfig(defines.remoteConfig).load().get('htdigest', True):
+            data = {
+                "type": "digest" ,
+                "password": self._printer.get_actual_page().octoprintAuth
+            }
         else:
-            return wrap_dict_data(
-                {
-                    "type": "api_key",
-                    "options": { "api_key": self._printer.get_actual_page().octoprintAuth }
-                }
-            )
+            data = {
+                "type": "api_key",
+                "api_key": self._printer.get_actual_page().octoprintAuth
+            }
+        return wrap_dict_data(data)
 
     ## SYSTEM ##
 

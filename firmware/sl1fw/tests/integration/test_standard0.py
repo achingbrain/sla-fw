@@ -55,7 +55,7 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
         self.assertKeysIn(['temp_led', 'temp_amb', 'cpu_temp'], self.standard0.hw_temperatures)
         self.assertDictEqual({'uv_led': 0, 'blower': 0, 'rear': 0}, self.standard0.hw_fans)
         self.assertKeysIn(['cover_closed', 'temperatures', 'fans', 'state'], self.standard0.hw_telemetry)
-        self.assertKeysIn(['type', 'options'], self.standard0.net_authorization)
+        self.assertDictEqual({'type': 'digest', 'password': '32LF9aXN'}, self.standard0.net_authorization)
 
         # it needs Hostname and NetworkManager dbus
         # self.assertEqual(str, type(self.standard0.net_hostname))

@@ -115,7 +115,6 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         self.assertEqual(self.printer0.controller_revision, "6c")
         self.assertEqual(self.printer0.http_digest, True)
         self.assertEqual(self.printer0.api_key, "32LF9aXN")
-        self.assertEqual(self.printer0.static_api_key, "NXa9FL23")
         self.assertEqual(self.printer0.tilt_fast_time_sec, 5.5)
         self.assertEqual(self.printer0.tilt_slow_time_sec, 8.0)
         self.printer0.enable_resin_sensor(True)

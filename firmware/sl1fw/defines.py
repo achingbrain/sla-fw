@@ -96,7 +96,6 @@ wifiSetupFile = "/etc/hostapd.secrets.json"
 
 octoprintURI = ":8000"
 octoprintAuthFile = configDir / "slicer-upload-api.key"
-static_octoprintAuthFile = configDir / "static_api.key"
 
 fbFile = "/dev/fb0"
 

@@ -525,18 +525,6 @@ class Printer0:
     @auto_dbus
     @property
     @last_error
-    def static_api_key(self) -> str:
-        """
-        Get current API key when http digest is enabled
-
-        :return: Current api key string
-        """
-        with open(defines.static_octoprintAuthFile, "r") as f:
-            return f.read()
-
-    @auto_dbus
-    @property
-    @last_error
     @cached(validity_s=5)
     @deprecated("Use config api")
     def tilt_fast_time_sec(self) -> float:
