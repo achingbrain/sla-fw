@@ -24,6 +24,7 @@ class PageFirmwareUpdate(Page):
         super().__init__(display)
         self.pageUI = "firmwareupdate"
         self.old_items = None
+        self.pageTitle = "Firmware update"
         self.rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
         self.updateDataPeriod = 1
 

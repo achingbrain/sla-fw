@@ -782,7 +782,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
 
         # save counters log
         if PageUvCalibrationBase.resetLedCounter or PageUvCalibrationBase.resetDisplayCounter:
-            stats = TomlConfigStats(defines.statsData, self)
+            stats = TomlConfigStats(defines.statsData, self.display.hw)
             stats.load()
             self.logger.info("stats: %s", stats)
             uv_stats = self.display.hw.getUvStatistics()

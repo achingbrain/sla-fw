@@ -250,7 +250,8 @@ class PageSrcSelect(Page):
         #endif
 
         try:
-            usb_remount(item["fullpath"])
+            if item['source'] == "usb":
+                usb_remount(item["fullpath"])
             os.remove(item['fullpath'])
         except OSError:
             self.logger.error("Failed to remove project file")

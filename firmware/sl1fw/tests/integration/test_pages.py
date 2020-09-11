@@ -68,30 +68,6 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("back")
             self.waitPage("advancedsettings")
 
-        # Test time settings
-        self.switchPage("timesettings")
-
-        self.press("ntpdisable")
-        self.press("ntpenable")
-
-        self.switchPage("settime")
-        # TODO: Try changing time
-        self.press("back")
-        self.waitPage("timesettings")
-
-        self.switchPage("settimezone")
-        # TODO: Try changing timezone
-        self.press("back")
-        self.waitPage("timesettings")
-
-        self.switchPage("setdate")
-        # TODO: Try changing date
-        self.press("back")
-        self.waitPage("timesettings")
-
-        self.press("back")
-        self.waitPage("advancedsettings")
-
         # Test language settings
         self.switchPage("setlanguage")
         # TODO: Implement and try changing language

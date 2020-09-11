@@ -381,7 +381,7 @@ class PageWizardResinSensor(PageWizardBase):
         pageWait.show()
 
         try:
-            self.display.wizardData = resin_sensor(self.display.hw, self.display.hwConfig, self.logger)
+            self.display.wizardData.wizardResinVolume = resin_sensor(self.display.hw, self.display.hwConfig, self.logger)
         except ResinFailed as e:
             self.display.pages['error'].setParams(
                 text=_("Resin sensor not working!\n\n"
