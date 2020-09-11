@@ -118,9 +118,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             self.press("back")
             self.waitPage("yesno")
             self.press("yes")
-            if os.path.isfile(defines.lastProjectPickler):
-                self.waitPage("finished")
-                self.press("home")
             self.waitPage("home")
         except Exception as exception:
             self.tearDown()

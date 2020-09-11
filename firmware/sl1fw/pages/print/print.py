@@ -34,7 +34,6 @@ class PagePrint(PagePrintBase):
             return
 
         self.display.expo.prepare()
-        self.display.pages["finished"].data = None
 
     def callback(self):
         # Update exposure end
