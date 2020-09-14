@@ -14,7 +14,7 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libHardware import Hardware
 from sl1fw.libScreen import Screen
 from sl1fw import defines
-from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation
+from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation, ProjectFailed
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
@@ -24,6 +24,7 @@ from sl1fw.states.project import ProjectErrors
 
 class TestExposure(Sl1fwTestCase):
     PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1")
+    BROKEN_EMPTY_PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "empty_file.sl1")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,6 +83,7 @@ class TestExposure(Sl1fwTestCase):
         hw.getResinVolume.return_value = defines.resinMinVolume + 0.1
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.exception, WarningEscalation)
+        # pylint: disable=no-member
         self.assertIsInstance(exposure.exception.warning, ResinNotEnough)
 
     def test_resin_error(self):
@@ -89,6 +91,12 @@ class TestExposure(Sl1fwTestCase):
         hw.getResinVolume.return_value = defines.resinMinVolume - 0.1
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.exception, ResinTooLow)
+
+    def test_broken_empty_project(self):
+        hw = self._get_hw_mock()
+        self._fake_calibration()
+        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config, self.BROKEN_EMPTY_PROJECT)
+        self.assertIsInstance(exposure.exception, ProjectFailed)
 
     def _run_exposure(self, hw) -> Exposure:
         self._fake_calibration()

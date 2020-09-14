@@ -809,14 +809,25 @@ class Exposure:
         self.expoCommands = queue.Queue()
         self.expoThread = ExposureThread(self.expoCommands, self)
 
-        # Read project
-        self.project = Project(self.hwConfig, project_file)
-        if self.project.error != ProjectErrors.NONE:
-            raise ProjectFailed(self.project.error)
-        self.state = ExposureState.CONFIRM
+        try:
+            # Read project
+            self.project = Project(self.hwConfig, project_file)
+            if self.project.error != ProjectErrors.NONE:
+                raise ProjectFailed(self.project.error)
+            self.state = ExposureState.CONFIRM
+        except Exception as exception:
+            # TODO: It is not nice to handle this in the constructor, but still better than let the constructor raise
+            # TODO: an exception and kill the whole printer logic.
+            # TODO: Solution would be to move this to exposure thread, but we realy on project being loaded right after
+            # TODO: the Exposure object is created.
+            self.logger.exception("Exposure init exception")
+            self.exception = exception
+            self.state = ExposureState.FAILURE
+            self.hw.uvLed(False)
+            self.hw.stopFans()
+            self.hw.motorsRelease()
 
         self.logger.info("Created new exposure object id: %s", self.instance_id)
-
 
     def confirm_print_start(self):
         self.expoThread.start()
