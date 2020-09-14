@@ -6,8 +6,6 @@
 from dataclasses import dataclass
 from typing import List, Dict, Optional
 
-from deprecation import deprecated
-
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.errors.exceptions import PrinterException, with_code
@@ -121,13 +119,13 @@ class ExposureError(PrinterError):
     """
 
 
-@deprecated("Use TiltHomeFailed")
+# TODO: deprecated("Use TiltHomeFailed")
 @with_code(Sl1Codes.TILT_HOME_FAILED)
 class TiltFailed(ExposureError):
     pass
 
 
-@deprecated("Use TowerHomeFailed")
+# TODO: deprecated("Use TowerHomeFailed")
 @with_code(Sl1Codes.TOWER_HOME_FAILED)
 class TowerFailed(ExposureError):
     pass
