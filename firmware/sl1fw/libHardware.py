@@ -623,15 +623,15 @@ class Hardware:
         return self.mcc.doGetBool("?rsst")
 
     @safe_call(False, MotionControllerException)
-    def isCoverClosed(self):
-        return self.checkState("cover")
+    def isCoverClosed(self, check_for_updates: bool = True):
+        return self.checkState("cover", check_for_updates)
 
     def getPowerswitchState(self):
         return self.checkState("button")
 
     @safe_call(False, MotionControllerException)
-    def checkState(self, name):
-        state = self.mcc.getStateBits((name,))
+    def checkState(self, name, check_for_updates: bool = True):
+        state = self.mcc.getStateBits([name], check_for_updates)
         return state[name]
 
     def startFans(self):

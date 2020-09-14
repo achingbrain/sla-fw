@@ -137,7 +137,7 @@ class Exposure0:
         if self.exposure.change:
             self.exposure.change.connect(self._handle_change)
         if self.exposure.hw:
-            self.exposure.hw.cover_state_changed.connect(self._handle_cover_change)
+            self.exposure.hw.cover_state_changed.connect(lambda x: self._handle_cover_change())
         if self.exposure.hwConfig:
             self.exposure.hwConfig.add_onchange_handler(self._handle_config_change)
 
@@ -593,7 +593,7 @@ class Exposure0:
     @property
     @last_error
     def close_cover_warning(self) -> bool:
-        return self.exposure.hwConfig.coverCheck and not self.exposure.hw.isCoverClosed()
+        return self.exposure.hwConfig.coverCheck and not self.exposure.hw.isCoverClosed(False)
 
     @auto_dbus
     @last_error
