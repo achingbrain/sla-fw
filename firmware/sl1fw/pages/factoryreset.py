@@ -131,6 +131,18 @@ class PageFactoryReset(Page):
         except MotionControllerException:
             self.logger.exception("Failed to set default sensitivity profiles")
 
+        # Reset user UV calibration data
+        try:
+            os.remove(defines.uvCalibDataPath)
+        except (FileNotFoundError, PermissionError):
+            self.logger.exception("Failed to remove user UV calibration data")
+
+        # Remove downloaded slicer profiles
+        try:
+            os.remove(defines.slicerProfilesFile)
+        except (FileNotFoundError, PermissionError):
+            self.logger.exception("Failed to remove remove downloaded slicer profiles")
+
     def _reset_system_settings(self):
         system_bus = pydbus.SystemBus()
 
@@ -181,23 +193,17 @@ class PageFactoryReset(Page):
         except (OSError, FileNotFoundError, PermissionError):
             self.logger.exception("Failed to reset timezone")
 
+        # Reset NTP
+        try:
+            system_bus.get("org.freedesktop.timedate1").SetNTP(True, False)
+        except GLib.GError:
+            self.logger.exception("Failed to set NTP to factory default")
+
         # Reset locale
         try:
             system_bus.get("org.freedesktop.locale1").SetLocale(["C"], False)
         except GLib.GError:
             self.logger.exception("Setting locale failed")
-
-        # Reset user UV calibration data
-        try:
-            os.remove(defines.uvCalibDataPath)
-        except (FileNotFoundError, PermissionError):
-            self.logger.exception("Failed to remove user UV calibration data")
-
-        # Remove downloaded slicer profiles
-        try:
-            os.remove(defines.slicerProfilesFile)
-        except (FileNotFoundError, PermissionError):
-            self.logger.exception("Failed to remove remove downloaded slicer profiles")
 
     def _pack_to_box(self, page_wait: PageWait):
         # do not do packing moves for kit

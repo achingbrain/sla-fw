@@ -331,6 +331,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         # TODO check D-BUS wifi reset
         # TODO check D-BUS timezone reset
         # TODO check D-BUS locale reset
+        # TODO check D-Bus NTP reset
 
     def test_print_not_calibrated(self):
         # Try to print
