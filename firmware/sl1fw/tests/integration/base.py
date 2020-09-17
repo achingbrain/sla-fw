@@ -107,7 +107,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             self.thread.start()
 
             # Skip wizard
-            self.waitPage("confirm")
+            self.waitPage("confirm", timeout_sec=10)
             self.press("back")
             self.waitPage("yesno")
             self.press("yes")
