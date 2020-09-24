@@ -30,6 +30,7 @@ from sl1fw.api.decorators import (
     wrap_exception,
     last_error,
     wrap_dict_data,
+    manual_dbus,
 )
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
@@ -461,7 +462,7 @@ class Printer0:
         """
         return self.printer.inet.devices
 
-    @auto_dbus
+    @manual_dbus("<property name='uv_statistics' type='a{sx}' access='read'></property>")
     @property
     @last_error
     @cached(validity_s=5)
@@ -884,7 +885,6 @@ class Printer0:
         return self.printer.runtime_config.show_admin
 
     @auto_dbus
-
     def add_usb(self) -> None:
         with open("/proc/mounts", "r") as file:
             try:
