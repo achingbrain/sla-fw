@@ -23,10 +23,10 @@ import warnings
 from pathlib import Path
 from shutil import copyfile
 from threading import Thread
+from unittest.mock import patch, Mock
 
 import pydbus
 from gi.repository import GLib
-from mock import Mock, patch
 
 import sl1fw.tests.mocks.mc_port
 from sl1fw import defines, test_runtime

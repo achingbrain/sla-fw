@@ -150,6 +150,7 @@ class LogsExport(ABC, Thread):
 
         self._logger.debug("Waiting for log export to finish")
         # TODO: This is not nice, lets hope Python 3.8 will include working asyncio.process implementation
+        # TODO: In python 3.8 asyncio.subprocess_shell workd, but is not cancelable.
         while process.returncode is None:
             try:
                 await asyncio.sleep(0.1)
