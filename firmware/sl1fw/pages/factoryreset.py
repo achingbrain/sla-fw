@@ -160,11 +160,12 @@ class PageFactoryReset(Page):
         except FileNotFoundError:
             self.logger.exception("Failed to remove api.key")
 
-        # Reset remote config (will be regenerated on next boot)
+        # Reset remote config (don't delete it)
         try:
-            os.remove(defines.remoteConfig)
+            with open(defines.remoteConfig, 'w') as fp:
+                fp.truncate(0)
         except FileNotFoundError:
-            self.logger.exception("Failed to remove remoteConfig.toml")
+            self.logger.exception("Failed to clean remoteConfig.toml")
 
         # Reset http_digest
         try:
