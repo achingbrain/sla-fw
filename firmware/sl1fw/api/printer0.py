@@ -915,7 +915,14 @@ class Printer0:
         last_exposure = self.printer.action_manager.exposure
         if last_exposure:
             last_exposure.try_cancel()
-        return self.print(project_path, False)
+        try:
+            return self.print(project_path, False)
+        except NotUVCalibrated:
+            self.printer.display.forcePage("uvcalibrationstart")
+            raise
+        except NotMechanicallyCalibrated:
+            self.printer.display.forcePage("calibrationstart")
+            raise
 
     @auto_dbus
     @property
