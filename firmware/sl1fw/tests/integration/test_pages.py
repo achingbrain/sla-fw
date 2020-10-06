@@ -285,8 +285,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
-        # confirm
-        self.waitPage("yesno")
+        self.waitPage("yesno") # confirm
         self.press("yes")
         self.waitPage("wait")  # Relax...
         sleep(5)
@@ -298,8 +297,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
-        # confirm
-        self.waitPage("yesno")
+        self.waitPage("yesno") # erase projects?
+        self.press("no")
+        self.waitPage("yesno") # confirm
         self.press("yes")
         self.waitPage("wait")  # Relax...
         sleep(5)
@@ -311,8 +311,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.switchPage("settings")
         self.switchPage("advancedsettings")
         self.press("factoryreset")
-        # confirm
-        self.waitPage("yesno")
+        self.waitPage("yesno") # erase projects?
+        self.press("no")
+        self.waitPage("yesno") # confirm
         self.press("yes")
         self.waitPage("wait")  # Relax...
         sleep(5)

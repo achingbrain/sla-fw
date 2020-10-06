@@ -4,9 +4,12 @@
 # Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
+
 import os
 import subprocess
-from shutil import copyfile
+from shutil import copyfile, rmtree
 from time import sleep
 
 import pydbus
@@ -22,6 +25,7 @@ from sl1fw.errors.errors import (
 )
 from sl1fw.errors.exceptions import ConfigException, MotionControllerException
 from sl1fw.functions.system import shut_down, save_factory_mode, send_printer_data
+from sl1fw.functions.files import ch_mode_owner
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.calibration import PageCalibrationStart
@@ -41,10 +45,11 @@ class PageFactoryReset(Page):
         self.pageUI = "yesno"
         self.pageTitle = N_("Are you sure?")
         self.checkPowerbutton = False
+        self.eraseProjects = False
 
     def show(self):
         self.items.update(
-            {"text": _("Do you really want to perform the factory reset?\n\n" "All settings will be erased!")}
+            {"text": _("Do you really want to perform the factory reset?\n\n" "All settings will be erased!\n" + ("All projects on Interenal storage will be removed!" if self.eraseProjects else "Projects will stay untouched."))}
         )
         super().show()
 
@@ -94,6 +99,7 @@ class PageFactoryReset(Page):
         page_wait.showItems(line1=_("Relax... You've been erased."))
         self._reset_printer_settings()
         self._reset_system_settings()
+        self._erase_projects()
 
         # continue only in factory mode
         if not self.display.runtime_config.factory_mode:
@@ -205,6 +211,28 @@ class PageFactoryReset(Page):
             system_bus.get("org.freedesktop.locale1").SetLocale(["C"], False)
         except GLib.GError:
             self.logger.exception("Setting locale failed")
+
+        # Reset user UV calibration data
+        try:
+            os.remove(defines.uvCalibDataPath)
+        except (FileNotFoundError, PermissionError):
+            self.logger.exception("Failed to remove user UV calibration data")
+
+        # Remove downloaded slicer profiles
+        try:
+            os.remove(defines.slicerProfilesFile)
+        except (FileNotFoundError, PermissionError):
+            self.logger.exception("Failed to remove downloaded slicer profiles")
+
+    def _erase_projects(self, force = False):
+        if self.eraseProjects or force:
+            try:
+                rmtree(defines.internalProjectPath)
+                if not os.path.exists(defines.internalProjectPath):
+                    os.makedirs(defines.internalProjectPath)
+                    ch_mode_owner(defines.internalProjectPath)
+            except (OSError, FileNotFoundError, PermissionError):
+                self.logger.exception("Failed to erase projects from Internal storage")
 
     def _pack_to_box(self, page_wait: PageWait):
         # do not do packing moves for kit

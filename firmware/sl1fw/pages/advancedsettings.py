@@ -400,10 +400,25 @@ class PageAdvancedSettings(Page):
     #enddef
 
 
+    def _eraseProjectsYes(self):
+        self.display.pages["factoryreset"].eraseProjects = True
+        return "factoryreset"
+
+    def _eraseProjectsNo(self):
+        self.display.pages["factoryreset"].eraseProjects = False
+        return "factoryreset"
+
+
     # Factory reset
     @confirm_leave
     def factoryresetButtonRelease(self): # pylint: disable=no-self-use
-        return "factoryreset"
+        if self.display.runtime_config.factory_mode:
+            return self._eraseProjectsNo()
+        self.display.pages["yesno"].setParams(pageTitle=_("Erase projects?"),
+            text=_("Do you want to erase all projects on Internal storage?\nProjects will be erased during the Factory reset."),
+            yesFce=self._eraseProjectsYes,
+            noFce=self._eraseProjectsNo)
+        return "yesno"
     #enddef
 
 
