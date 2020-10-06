@@ -94,6 +94,7 @@ class Project:
         self._layers_slow = 0
         self._layers_fast = 0
         self._calibrate_time_ms = 0
+        self._calibrate_time_ms_exact = []
         self._calibrate_regions = 0
         self._build_layers_description(self._read_toml_config())
 
@@ -121,6 +122,7 @@ class Project:
             'calibrate_penetration_px': self.calibrate_penetration_px,
             'calibrate_compact': self.calibrate_compact,
             'calibrate_time_ms': self._calibrate_time_ms,
+            'calibrate_time_ms_exact': self._calibrate_time_ms_exact,
             'calibrate_regions': self._calibrate_regions,
             }
         pp = pprint.PrettyPrinter(width=200)
@@ -163,6 +165,7 @@ class Project:
             self.layer_height_nm = self._hw_config.tower_microsteps_to_nm(self._config.stepnum // (self._hw_config.screwMm / 4))
         self.layer_height_first_nm = int(self._config.layerHeightFirst * 1e6)
         self._calibrate_time_ms = int(self._config.calibrateTime * 1e3)
+        self._calibrate_time_ms_exact = [int(x * 1e3) for x in self._config.calibrateTimeExact]
         self._calibrate_regions = self._config.calibrateRegions
         self.calibrate_text_size_px = int(self._config.calibrateTextSize * 1e6 // defines.screen_pixel_size_nm)
         self.calibrate_pad_spacing_px = int(self._config.calibratePadSpacing * 1e6 // defines.screen_pixel_size_nm)
@@ -172,6 +175,10 @@ class Project:
         if self._calibrate_regions:
             # labels and pads consumption is ignored
             self.used_material_nl *= self._calibrate_regions
+        if self._calibrate_time_ms_exact and len(self._calibrate_time_ms_exact) != self._calibrate_regions:
+            self.logger.error("lenght of calibrate_time_ms_exact (%d) not match calibrate_regions (%d)",
+                    len(self._calibrate_time_ms_exact), self.calibrate_regions)
+            self.error = ProjectErrors.CALIBRATION_INVALID
         if self._config.raw_modification_time:
             try:
                 date_time = datetime.strptime(self._config.raw_modification_time, '%Y-%m-%d at %H:%M:%S %Z').replace(tzinfo=timezone.utc)
@@ -223,7 +230,10 @@ class Project:
             else:
                 times = [self._exposure_time_ms]
             if self._calibrate_regions:
-                times.extend([self._calibrate_time_ms] * (self._calibrate_regions - 1))
+                if self._calibrate_time_ms_exact:
+                    times = self._calibrate_time_ms_exact
+                else:
+                    times.extend([self._calibrate_time_ms] * (self._calibrate_regions - 1))
             self.layers[i].times_ms = times
 
     def analyze(self, force: bool = False ):

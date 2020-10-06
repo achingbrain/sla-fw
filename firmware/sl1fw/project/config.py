@@ -6,7 +6,7 @@
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-instance-attributes
 
-from sl1fw.libConfig import Config, FloatValue, IntValue, TextValue, BoolValue
+from sl1fw.libConfig import Config, FloatValue, IntValue, TextValue, BoolValue, FloatListValue
 from sl1fw import defines
 
 
@@ -42,6 +42,9 @@ class ProjectConfig(Config):
     calibrateRegions = IntValue(0, doc="Number of calibration regions (2, 4, 6, 8, 9, 10), 0 = off")
     calibrateTime = FloatValue(
         1.0, doc="Time added to exposure per calibration region. [seconds]"
+    )
+    calibrateTimeExact = FloatListValue(
+        [], doc="Force calibration times with these values, for all layers!"
     )
     calibrateCompact = BoolValue(
         False, doc="Do not generate labels and group regions in the center of the display if set to True."
