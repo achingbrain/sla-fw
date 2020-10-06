@@ -31,6 +31,7 @@ class PageAdmin(Page):
                 'button7' : "Tests",
                 'button8' : "Service",
                 'button9' : "Wizards",
+                'button10': "Display Color Test",
 
                 'button11' : "Net update",
                 'button12' : "Logging",
