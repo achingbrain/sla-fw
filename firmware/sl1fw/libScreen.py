@@ -5,6 +5,7 @@
 
 import logging
 from multiprocessing import Process, shared_memory, Value, Lock
+from threading import Event
 import os
 from time import time
 from typing import Optional
@@ -12,8 +13,9 @@ from typing import Optional
 from ctypes import c_uint32
 import numpy
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+from pydbus import SystemBus
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.errors.errors import PreloadFailed
 from sl1fw.project.project import Project
 from sl1fw.states.project import ProjectErrors, ProjectWarnings, LayerCalibrationType
@@ -220,6 +222,15 @@ class Screen:
         temp_usage = numpy.zeros(defines.display_usage_size, dtype=numpy.float64, order='C')
         self._usage_shm = shared_memory.SharedMemory(create=True, size=temp_usage.nbytes)
         self._white_pixels = Value(c_uint32, 0)
+        if not test_runtime.testing:
+            self._logger.debug("event")
+            self._video_sync_event = Event()
+            self._logger.debug("connect")
+            SystemBus().subscribe(
+                    iface='cz.prusa3d.framebuffer1.Frame',
+                    signal='Ready',
+                    object='/cz/prusa3d/framebuffer1',
+                    signal_fired=self._dbus_signal_handler)
         self.blank_screen()
 
     def __del__(self):
@@ -230,10 +241,23 @@ class Screen:
         self._usage_shm.close()
         self._usage_shm.unlink()
 
+    def _dbus_signal_handler(self, *args):
+        # pylint: disable=unused-argument
+        self._video_sync_event.set()
+
     def _writefb(self):
         # open fbFile for write without truncation (conv=notrunc equivalent in dd)
         with os.fdopen(os.open(defines.fbFile, os.O_RDWR), 'rb+') as fb:
             fb.write(self._screen.convert("RGBX").tobytes())
+        if not test_runtime.testing:
+            self._logger.debug("waiting for video sync event")
+            start_time = time()
+            if not self._video_sync_event.wait(timeout=2):
+                self._logger.error("video sync event timeout")
+                # TODO this shouldn't happen, need better handling if yes
+                raise PreloadFailed()
+            self._video_sync_event.clear()
+            self._logger.debug("video sync done in %f secs", time() - start_time)
 
     def _open_image(self, filename):
         self._logger.debug("loading '%s'", filename)
@@ -302,6 +326,7 @@ class Screen:
             return
         self._last_preload_index = layer_index
         if not self._preloader_lock.acquire(timeout=5):
+            self._logger.error("preloader lock timeout")
             # TODO this shouldn't happen, need better handling if yes
             raise PreloadFailed()
         self._preloader = Process(target=self.preloader, args=(layer_index,))

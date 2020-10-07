@@ -46,8 +46,8 @@ def event_thread():
     logger.info("Printer event loop exited")
 
 
-printer = libPrinter.Printer()
 Thread(target=event_thread, daemon=True).start()
+printer = libPrinter.Printer()
 SystemBus().publish(Printer0.__INTERFACE__, Printer0(printer))
 SystemBus().publish(Standard0.__INTERFACE__, Standard0(printer))
 admin_manager = AdminManager()
