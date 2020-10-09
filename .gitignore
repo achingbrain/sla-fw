@@ -1,3 +1,8 @@
 SLA-control-01.elf
 EEPROM.dat
 .vscode/
+build
+dist
+*.egg-info
+*.mo
+.coverage

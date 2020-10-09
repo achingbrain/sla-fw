@@ -14,7 +14,7 @@ else
 fi
 
 export PATH="${PATH}:$(pwd)"
-export PYTHONPATH="$(pwd)$(find ./dependencies/ -maxdepth 1 -type d -printf ':.%p')"
+export PYTHONPATH="$(pwd)$(find ./dependencies/ -maxdepth 1 -type d -printf ':%p')"
 
 if ! command -v SLA-control-01.elf
 then
@@ -22,6 +22,5 @@ then
     exit 2
 fi
 
-cd firmware &&
 python3 -m unittest discover --failfast --verbose sl1fw.tests.integration $ARGS &&
 python3 -m unittest discover --failfast --verbose sl1fw.tests.virtual

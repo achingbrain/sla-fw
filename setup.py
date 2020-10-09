@@ -3,11 +3,11 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from setuptools import setup, find_packages
-import setuptools.command.build_py
-from glob import glob
-from os import walk, path
 import subprocess
+from glob import glob
+
+import setuptools.command.build_py
+from setuptools import setup, find_packages
 
 
 class BuildPyWithLocalesCommand(setuptools.command.build_py.build_py):

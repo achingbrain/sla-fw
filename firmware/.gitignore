@@ -1,7 +1,0 @@
-build
-dist
-*.egg-info
-*.mo
-.coverage
-EEPROM.dat
-.vscode/

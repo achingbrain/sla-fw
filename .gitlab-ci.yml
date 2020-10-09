@@ -15,7 +15,6 @@ before_script:
 build:
   stage: build
   script:
-    - cd firmware
     - python3 setup.py build
 
 mcsim:
@@ -29,8 +28,8 @@ mcsim:
 pot:
   stage: build
   script:
-    - make -C firmware/sl1fw/locales extract
-    - cp firmware/sl1fw/locales/sl1fw.pot ./
+    - make -C sl1fw/locales extract
+    - cp sl1fw/locales/sl1fw.pot ./
   artifacts:
     paths:
       - sl1fw.pot
@@ -44,8 +43,8 @@ sphinx:
     paths:
       - documentation/*
   script:
-    - sphinx-build -b html firmware/doc/ firmware/doc/build
-    - mv firmware/doc/build documentation
+    - sphinx-build -b html doc/ doc/build
+    - mv doc/build documentation
 
 unittest:
   stage: test
@@ -72,7 +71,7 @@ i18n-complete:
   dependencies:
     - pot
   script:
-    - make --keep-going -C firmware/sl1fw/locales check
+    - make --keep-going -C sl1fw/locales check
   allow_failure: true
 
 pot-deploy:
