@@ -29,8 +29,7 @@ from sl1fw.api.decorators import (
     DBusObjectPath,
     wrap_exception,
     last_error,
-    wrap_dict_data,
-    manual_dbus,
+    wrap_dict_data
 )
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
@@ -440,7 +439,7 @@ class Printer0:
         """
         return self.printer.inet.devices
 
-    @manual_dbus("<property name='uv_statistics' type='a{sx}' access='read'></property>")
+    @auto_dbus
     @property
     @last_error
     @cached(validity_s=5)
@@ -454,7 +453,9 @@ class Printer0:
 
     @staticmethod
     def _format_uv_statistics(statistics):
-        return {"uv_stat%d" % i: v for i, v in enumerate(statistics)}
+        # Saturate the value at max 32bit signed int due to DBus and UI
+        # DBus can handle more if we pass
+        return {"uv_stat%d" % i: min(v, 0x7fffffff) for i, v in enumerate(statistics)}
         # uv_stats0 - time counter [s] # TODO: add uv average current,
 
     @auto_dbus
