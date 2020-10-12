@@ -12,6 +12,7 @@ from sl1fw.errors.warnings import (
     ModelMismatch,
     ResinNotEnough,
     ProjectSettingsModified,
+    PerPartesPrintNotAvaiable,
 )
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
@@ -103,8 +104,19 @@ class PageCheckConfirm(PagePrintBase):
             )
             return "confirm"
 
-        self.logger.error("Unknown exposure warning: %s", warning)
-        return "checks"
+        if isinstance(warning, PerPartesPrintNotAvaiable):
+            self.display.pages["confirm"].setParams(
+                continueFce=self.confirm_print, backFce=self.cancel_print, text=_("Per partes print not available"),
+            )
+            return "confirm"
+
+        self.logger.error(
+            "Unknown exposure warning: %(type)s (%(message)s)", {"type": type(warning), "message": warning}
+        )
+        self.display.pages["confirm"].setParams(
+            continueFce=self.confirm_print, backFce=self.cancel_print, text=_("Unknown exposure warning: %s") % warning
+        )
+        return "confirm"
 
     def confirm_print(self):
         self.display.expo.confirm_print_warning()

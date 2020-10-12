@@ -278,7 +278,7 @@ class ExposureThread(threading.Thread):
             self.expo.hw.motorsRelease()
 
     def _raise_preprint_warning(self, warning: Warning):
-        self.logger.warning("Warning being raised in pre-print: %s", warning)
+        self.logger.warning("Warning being raised in pre-print: %s", type(warning))
         with self._pending_warning:
             self.warning_result = None
             self.expo.warning = warning
