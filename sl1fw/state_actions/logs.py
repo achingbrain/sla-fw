@@ -38,8 +38,10 @@ class LogsExport(ABC, Thread):
         self._exception: Optional[Exception] = None
         self.exception_changed = Signal()
         self._hw = hw
-        self._log_upload_identifier = None
-        self.log_upload_identifier_changed = Signal()
+        self._uploaded_log_identifier = None
+        self.uploaded_log_identifier_changed = Signal()
+        self._uploaded_log_url = None
+        self.uploaded_log_url_changed = Signal()
 
     @property
     def state(self) -> LogsState:
@@ -78,13 +80,23 @@ class LogsExport(ABC, Thread):
 
     @property
     def log_upload_identifier(self) -> str:
-        return self._log_upload_identifier
+        return self._uploaded_log_identifier
 
     @log_upload_identifier.setter
     def log_upload_identifier(self, value: str) -> None:
-        if self._log_upload_identifier != value:
-            self._log_upload_identifier = value
-            self.log_upload_identifier_changed.emit(value)
+        if self._uploaded_log_identifier != value:
+            self._uploaded_log_identifier = value
+            self.uploaded_log_identifier_changed.emit(value)
+
+    @property
+    def log_upload_url(self) -> str:
+        return self._uploaded_log_url
+
+    @log_upload_url.setter
+    def log_upload_url(self, value :str) -> None:
+        if self._uploaded_log_url != value:
+            self._uploaded_log_url = value
+            self.uploaded_log_url_changed.emit(value)
 
     @property
     def exception(self) -> Optional[Exception]:
@@ -150,7 +162,7 @@ class LogsExport(ABC, Thread):
 
         self._logger.debug("Waiting for log export to finish")
         # TODO: This is not nice, lets hope Python 3.8 will include working asyncio.process implementation
-        # TODO: In python 3.8 asyncio.subprocess_shell workd, but is not cancelable.
+        # TODO: In python 3.8 asyncio.subprocess_shell works, but it is not cancelable.
         while process.returncode is None:
             try:
                 await asyncio.sleep(0.1)
@@ -245,6 +257,7 @@ class ServerUpload(LogsExport):
                     self._logger.debug("Log upload response: %s", response)
                     response_data = json.loads(response)
                     self.log_upload_identifier = response_data["id"] if "id" in response_data else response_data["url"]
+                    self.log_upload_url = response_data["url"]
 
     @property
     def type(self) -> StoreType:

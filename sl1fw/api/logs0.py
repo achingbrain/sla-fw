@@ -55,8 +55,11 @@ class Logs0:
         exporter.store_progress_changed.connect(
             lambda value: self.PropertiesChanged(self.__INTERFACE__, {"store_progress": value}, [])
         )
-        exporter.log_upload_identifier_changed.connect(
+        exporter.uploaded_log_identifier_changed.connect(
             lambda value: self.PropertiesChanged(self.__INTERFACE__, {"log_upload_identifier": value}, [])
+        )
+        exporter.uploaded_log_url_changed.connect(
+            lambda value: self.PropertiesChanged(self.__INTERFACE__, {"log_upload_url": value}, [])
         )
         exporter.exception_changed.connect(
             lambda _: self.PropertiesChanged(self.__INTERFACE__, {"exception": self.exception}, [])
@@ -127,3 +130,11 @@ class Logs0:
             return ""
 
         return self._exporter.log_upload_identifier
+
+    @auto_dbus
+    @property
+    def log_upload_url(self) -> str:
+        if not self._exporter or not self._exporter.log_upload_url:
+            return ""
+
+        return self._exporter.log_upload_url
