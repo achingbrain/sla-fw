@@ -118,7 +118,7 @@ class Value(property, ABC):
         self.logger = logging.getLogger(__name__)
         self.name = None
         self.key = key
-        self.type = value_type
+        self.type: List[Type] = value_type
         self.default = default
         self.factory = factory
         self.default_doc = doc
@@ -207,7 +207,7 @@ class Value(property, ABC):
         config.data_factory_values[self.name] = value
 
     def get_default_value(self, config: BaseConfig) -> Any:
-        if not any(isinstance(self.default, t) for t in self.type) and isinstance(self.default, Callable) and config:
+        if not any(isinstance(self.default, t) for t in self.type) and callable(self.default) and config:
             return self.default(config)
         return self.default
 

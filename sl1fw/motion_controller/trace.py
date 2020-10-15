@@ -18,7 +18,9 @@ class LineMarker(Enum):
     def __str__(self) -> str:
         return str(self.value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
+        # pylint: disable=invalid-bytes-returned
+        # pylint bug: https://github.com/PyCQA/pylint/issues/3599
         return self.__str__().encode("ascii")
 
 

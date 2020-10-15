@@ -8,6 +8,8 @@
 import sys
 import bitstring
 
+# pylint: disable = unbalanced-tuple-unpacking
+# pylint does not understand tuples passed by bitstring
 
 if len(sys.argv) != 2:
     print("Usage: %s nvram_file" % sys.argv[0])

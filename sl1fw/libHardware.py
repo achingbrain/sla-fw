@@ -333,6 +333,8 @@ class Hardware:
             with open(defines.cpuSNFile, "rb") as nvmem:
                 s = bitstring.BitArray(bytes=nvmem.read())
 
+            # pylint: disable = unbalanced-tuple-unpacking
+            # pylint does not understand tuples passed by bitstring
             mac, mcs1, mcs2, snbe = s.unpack("pad:192, bits:48, uint:8, uint:8, pad:224, uintbe:64")
             mcsc = mac.count(1)
             if mcsc != mcs1 or mcsc ^ 255 != mcs2:
@@ -342,6 +344,8 @@ class Hardware:
                 self.logger.info("MAC: %s (checksum %02x:%02x)", mac_hex, mcs1, mcs2)
 
                 # byte order change
+                # pylint: disable = unbalanced-tuple-unpacking
+                # pylint does not understand tuples passed by bitstring
                 sn = bitstring.BitArray(length=64, uintle=snbe)
 
                 scs2, scs1, snnew = sn.unpack("uint:8, uint:8, bits:48")

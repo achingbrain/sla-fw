@@ -5,7 +5,7 @@
 import logging
 from collections import OrderedDict
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable
+from typing import Any, Dict, Iterable
 
 from PySignal import Signal
 
@@ -119,7 +119,7 @@ class AdminMenu(AdminMenuBase):
                 obj = property(obj.fget, self.wrap_setter(obj.fset, value), obj.fdel, obj.__doc__)
                 setattr(type(self), item, obj)
 
-            if isinstance(obj, Callable):
+            if callable(obj):
                 if not hasattr(obj, "__admin_type__"):
                     continue
 

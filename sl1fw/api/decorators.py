@@ -7,7 +7,7 @@ import functools
 from dataclasses import is_dataclass, asdict
 from enum import Enum
 from time import monotonic
-from typing import Union, List, Callable, Any, Dict, Tuple, get_type_hints, Optional, Set  # pylint: disable=unused-import
+from typing import Union, List, Any, Dict, Tuple, get_type_hints, Optional, Set  # pylint: disable=unused-import
 
 from pydbus import Variant
 from prusaerrors.sl1.codes import Sl1Codes
@@ -179,7 +179,7 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
             if obj.fset:
                 access = "readwrite"
             return f'<property name="{name}" type="{get_type}" access="{access}"></property>'
-        if isinstance(obj, Callable):
+        if callable(obj):
             args = []
             for n, t in get_type_hints(obj).items():
                 if t == type(None):
@@ -258,13 +258,13 @@ def wrap_dict_value(data):
 
 
 def wrap_dict_data(data: Dict[str, Any]):
-    if isinstance(data, Dict):
+    if isinstance(data, dict):
         return {key: wrap_value(val) for key, val in data.items()}
     return wrap_value(data)
 
 
 def wrap_dict_data_recursive(data: Dict[str, Any]):
-    if isinstance(data, Dict):
+    if isinstance(data, dict):
         return {key: wrap_dict_data(val) for key, val in data.items()}
     return wrap_value(data)
 
