@@ -43,7 +43,7 @@ sphinx:
     paths:
       - documentation/*
   script:
-    - sphinx-build -b html doc/ doc/build
+    - sh builddoc.sh
     - mv doc/build documentation
 
 unittest:

@@ -1,7 +1,7 @@
 Errors, exception, warnings
 ===========================
 
-.. automodule:: sl1fw.errors.codes
+.. automodule:: prusaerrors.sl1.codes
    :members:
    :undoc-members:
 
