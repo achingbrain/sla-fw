@@ -30,6 +30,7 @@ from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
+from sl1fw.functions.files import save_all_remain_wizard_history
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, TomlConfig, RuntimeConfig, TomlConfigStats
@@ -213,6 +214,8 @@ class Printer:
             if not self.hwConfig.calibrated:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("calibrationstart")
+
+            save_all_remain_wizard_history()
 
         self.action_manager.load_exposure(self.hw)
         self.display.doMenu("home")

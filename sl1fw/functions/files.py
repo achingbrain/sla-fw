@@ -6,32 +6,15 @@
 
 from __future__ import annotations
 
-import functools
-import glob
-import hashlib
-import json
-import logging
 import os
-import re
 import shutil
 import subprocess
-import sys
 import tempfile
-import traceback
 from datetime import datetime
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Optional
 
-import psutil
-import toml
-from pydbus import SystemBus
-import requests
-
 from sl1fw import defines, test_runtime
-from sl1fw.functions.system import get_update_channel
-from sl1fw.libHardware import Hardware
-from sl1fw.libConfig import TomlConfig, TomlConfigStats
 
 
 def get_save_path() -> Optional[Path]:
@@ -48,217 +31,43 @@ def get_save_path() -> Optional[Path]:
         return None
     return usbs[0]
 
-
-def last_traceback(error) -> str:
-    exc_traceback = sys.exc_info()[2]
-    return [error.__class__.__name__, "".join(traceback.format_tb(exc_traceback))]
-
-
-def upload_logs(hw: Hardware) -> (str, str):
-    """
-    Upload logs to log server
-
-    :param hw: Hardware instance used to obtain additional data
-    :return: Log URL, Log identifier
-    """
-    logger = logging.getLogger(__name__)
-    logger.info("Uploading logs to server")
-    log_file_name = get_log_file_name(hw)
-    with TemporaryDirectory() as temp:
-        path = Path(temp) / log_file_name
-        save_logs_to_file(hw, path)
-        return do_upload(path, hw, log_file_name, logger)
-
-
-def do_upload(path: Path, hw: Hardware, log_file_name: str, logger: logging.Logger):
-    # TODO: This is going to be replaced by Logs API aiohttp based upload. Please update also the new method in case
-    #       you need to modify this one.
-    with path.open("rb") as file:
-        response = requests.post(
-            defines.log_url,
-            data={"token": 12345, "serial": hw.cpuSerialNo},
-            files={"logfile": (log_file_name, file, "application/x-xz")},
-            headers={"user-agent": "OriginalPrusa3DPrinter"},
-        )
-    logger.debug("Log upload response: %s", response)
-    logger.debug("Log upload response text: %s", response.text)
-    response_data = json.loads(response.text)
-    logger.info("Log upload response data: %s", response_data)
-    log_url = response_data["url"]
-    log_id = response_data["id"] if "id" in response_data else log_url
-    return log_url, log_id
-
-
-def save_logs_to_usb(hw: Hardware) -> None:
-    """
-    Save logs to USB Flash drive
-    """
-    save_path = get_save_path()
-    if save_path is None or not save_path.parent.exists():
-        raise FileNotFoundError(save_path)
-
-    return save_logs_to_file(hw, save_path / get_log_file_name(hw))
-
-
-def get_log_file_name(hw: Hardware) -> str:
+def save_wizard_history(path: Path):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    serial = re.sub("[^a-zA-Z0-9]", "_", hw.cpuSerialNo)
-    return f"log.{serial}.{timestamp}.txt.xz"
+    if path.parent == defines.factoryMountPoint:
+        mode = "factory_data"
+    else:
+        mode =  "user_data"
 
+    wizard_history = Path(defines.wizardHistoryPath) / mode / f"{path.stem}.{timestamp}{path.suffix}"
+    wizard_history.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(path, wizard_history)
 
-def save_logs_to_file(hw: Hardware, log_file) -> None:
-    logger = logging.getLogger(__name__)
+def _save_wizard_history_bach(files: dict, src:Path, dest:Path):
+    saved_files = set()
+    for file_name in dest.glob("**/*"):
+        elem = file_name.name[:file_name.name.index(".")]
+        saved_files.add(elem)
+    for prefix, names in files.items():
+        for name in names:
+            if name not in saved_files:
+                path = src / (name + prefix)
+                if path.is_file():
+                    save_wizard_history(path)
 
-    bash_call = ["export_logs.bash", log_file]
-    summary = create_summary(hw, logger)
-    if summary:
-        bash_call.append(summary)
+def save_all_remain_wizard_history():
+    wizard_history_path = Path(defines.wizardHistoryPath)
 
-    subprocess.check_call(bash_call)
-
-
-def create_summary(hw: Hardware, logger: logging.Logger):
-    data_template = {
-        "hardware": functools.partial(log_hw, hw),
-        "system": log_system,
-        "network": log_network,
-        "configs": log_configs,
-        "statistics": functools.partial(log_statistics, hw),
-        "counters": log_counters,
-    }
-
-    data = {}
-    for name, function in data_template.items():
-        try:
-            data[name] = function()
-        except Exception as exception:
-            data[name] = {"exception": repr(exception)}
-
-    try:
-        with defines.printer_summary.open("w") as summary_file:
-            summary_file.write(json.dumps(data, indent=2, sort_keys=True))
-            return summary_file.name
-    except Exception:
-        logger.exception("Printer summary failed to assemble")
-
-
-def log_hw(hw: Hardware) -> None:
-    fans_rpm = hw.getFansRpm()
-    voltages = hw.getVoltages()
-    try:
-        locales = SystemBus().get("org.freedesktop.locale1").Locale[0]
-    except Exception:
-        locales = "No info"
-
-    data = {
-        "Resin Sensor State": hw.getResinSensorState(),
-        "Cover State": hw.isCoverClosed(),
-        "Power Switch State": hw.getPowerswitchState(),
-        "UV LED Temperature": hw.getUvLedTemperature(),
-        "Ambient Temperature": hw.getAmbientTemperature(),
-        "CPU Temperature": hw.getCpuTemperature(),
-        "UV LED fan [rpm]": fans_rpm[0],
-        "Blower fan [rpm]": fans_rpm[1],
-        "Rear fan [rpm]": fans_rpm[2],
-        "A64 Controller SN": hw.cpuSerialNo,
-        "MC FW version": hw.mcFwVersion,
-        "MC HW Reversion": hw.mcBoardRevision,
-        "MC Serial number": hw.mcSerialNo,
-        "UV LED Line 1 Voltage": voltages[0],
-        "UV LED Line 2 Voltage": voltages[1],
-        "UV LED Line 3 Voltage": voltages[2],
-        "Power Supply Voltage": voltages[3],
-        "Free Space in eMMC": psutil.disk_usage("/"),
-        "RAM statistics": psutil.virtual_memory(),
-        "CPU usage per core": psutil.cpu_percent(percpu=True),
-        "CPU times": psutil.cpu_times(),
-        "Language": locales,
-    }
-    return data
-
-
-def log_system():
-    data = {
-        "time settings": {},
-        "update channel": {},
-        "slots info": {},
-        "raucb updates": {},
-    }
-    time = SystemBus().get("org.freedesktop.timedate1")
-    time_data = time.GetAll("org.freedesktop.timedate1")
-    time_data["UniversalTime"] = str(datetime.fromtimestamp(time_data["TimeUSec"] // 1000000))
-    time_data["RtcTime"] = str(datetime.fromtimestamp(time_data["RTCTimeUSec"] // 1000000))
-    data["time settings"] = time_data
-
-    hash_md5 = hashlib.md5()
-    with open("/etc/rauc/ca.cert.pem", "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-        data["update channel"] = {"channel": get_update_channel(), "certificate_md5": hash_md5.hexdigest()}
-
-    data["slots info"] = json.loads(
-        subprocess.check_output(["rauc", "status", "--detailed", "--output-format=json"], universal_newlines=True)
+    _save_wizard_history_bach(
+        {".toml": ["factory", "hardware", "uvcalib_data", "wizard_data"]},
+        defines.factoryMountPoint,
+        wizard_history_path / "factory_data"
     )
 
-    fw_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
-    if os.path.exists(defines.firmwareTempFile):
-        fw_files.append(defines.firmwareTempFile)
-
-    for key, fw_file in enumerate(fw_files):
-        data["raucb updates"][key] = {}
-        try:
-            data["raucb updates"][key] = json.loads(
-                subprocess.check_output(["rauc", "info", "--output-format=json", fw_file], universal_newlines=True)
-            )
-        except subprocess.CalledProcessError:
-            data["raucb updates"][key] = "Error getting info from " + fw_file
-
-    return data
-
-
-def log_network():
-    proxy = SystemBus().get("org.freedesktop.NetworkManager")
-    data = {"wifi_enabled": proxy.WirelessEnabled, "primary_conn_type": proxy.PrimaryConnectionType}
-    for devPath in proxy.Devices:
-        dev = SystemBus().get("org.freedesktop.NetworkManager", devPath)
-        data[dev.Interface] = {"state": dev.State, "mac": dev.HwAddress}
-        if dev.State > 40:  # is connected to something
-            devIp = SystemBus().get("org.freedesktop.NetworkManager", dev.Ip4Config)
-            data[dev.Interface] = {"address": devIp.AddressData, "gateway": devIp.Gateway, "dns": devIp.NameserverData}
-            if SystemBus().get("org.freedesktop.NetworkManager", dev.Dhcp4Config):
-                data[dev.Interface]["dhcp"] = True
-            else:
-                data[dev.Interface]["dhcp"] = False
-
-    return data
-
-
-def log_configs():
-    data = {
-        "user": {"hardware": {}, "uvcalib_data": {}, "wizard_data": {}},
-        "factory": {"factory": {}, "hardware": {}, "uvcalib_data": {}, "wizard_data": {}},
-    }
-    for category, values in data.items():
-        for name in values:
-            path_prefix = defines.factoryMountPoint
-            extension = ".toml"
-            if category == "user":
-                path_prefix = defines.configDir
-                if name == "hardware":
-                    extension = ".cfg"
-
-            try:
-                file_path = path_prefix / (name + "" + extension)
-                with file_path.open("r") as f:
-                    data[category][name] = toml.load(f)
-                data[category][name]["last_modified"] = str(datetime.fromtimestamp(file_path.stat().st_mtime))
-            except FileNotFoundError:
-                data[category][name] = {"exception": "File not found"}
-            except Exception as exception:
-                data[category][name] = {"exception": repr(exception)}
-
-    return data
-
+    _save_wizard_history_bach(
+        {".toml": ["uvcalib_data", "wizard_data"], ".cfg": ["hardware"]},
+        defines.configDir,
+        wizard_history_path / "user_data"
+    )
 
 def ch_mode_owner(src):
     """
@@ -271,18 +80,6 @@ def ch_mode_owner(src):
             ch_mode_owner(os.path.join(src, name))
     else:
         os.chmod(src, defines.internalProjectMode)
-
-
-def log_statistics(hw: Hardware):
-    data = TomlConfigStats(defines.statsData, None).load()
-    data["UV LED Time Counter [h]"] = hw.getUvStatistics()[0] / 3600
-    data["Display Time Counter [h]"] = hw.getUvStatistics()[1] / 3600
-    return data
-
-
-def log_counters():
-    data = TomlConfig(defines.counterLog).load()
-    return data
 
 
 def usb_remount(path: str):

@@ -16,6 +16,8 @@ from sl1fw.pages.base import Page
 from sl1fw.pages.move import MovePage
 from sl1fw.pages.wait import PageWait
 from sl1fw.states.display import DisplayState
+from sl1fw.functions.files import save_wizard_history
+from sl1fw import defines
 
 
 @page
@@ -488,6 +490,7 @@ class PageCalibration10(PageCalibrationBase):
         try:
             self.logger.debug("Saving calibration data")
             writer.commit()
+            save_wizard_history(defines.hwConfigPath)
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(

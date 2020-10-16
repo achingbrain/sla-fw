@@ -120,6 +120,7 @@ class PageFactoryReset(Page):
             if not self.display.runtime_config.factory_mode:
                 self.display.hwConfig.showUnboxing = False
             self.display.hwConfig.write()
+            rmtree(defines.wizardHistoryPath, ignore_errors=True)
         except ConfigException:
             self.logger.exception("Failed to do factory reset on config")
 

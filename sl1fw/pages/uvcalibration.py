@@ -27,6 +27,7 @@ from sl1fw.libConfig import TomlConfig, TomlConfigStats
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.states.display import DisplayState
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState
+from sl1fw.functions.files import save_wizard_history
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
@@ -768,12 +769,15 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
             return "error"
         #endtry
         uvCalibConfig.save_raw()
+        save_wizard_history(defines.uvCalibDataPath)
 
         # save to factory partition if needed
         if self.display.runtime_config.factory_mode or PageUvCalibrationBase.writeDataToFactory:
             uvCalibConfigFactory = TomlConfig(defines.uvCalibDataPathFactory)
             uvCalibConfigFactory.data = uvCalibConfig.data
-            if not self.writeToFactory(functools.partial(self.writeAllDefaults, uvCalibConfigFactory)):
+            if self.writeToFactory(functools.partial(self.writeAllDefaults, uvCalibConfigFactory)):
+                save_wizard_history(defines.uvCalibDataPathFactory)
+            else:
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save factory defaults !!!"))
                 return "error"
@@ -803,7 +807,9 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
                 }
             }
             self.logger.info("counter data: %s", countersData)
-            if not self.writeToFactory(functools.partial(self.appendToFile, defines.counterLog, countersData)):
+            if self.writeToFactory(functools.partial(self.appendToFile, defines.counterLog, countersData)):
+                save_wizard_history(defines.counterLog)
+            else:
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save factory defaults !!!"))
                 return "error"

@@ -2,11 +2,13 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import re
+import shutil
 import asyncio
 import json
 import logging
-import subprocess
 import tempfile
+from datetime import datetime
 from abc import ABC, abstractmethod
 from asyncio import CancelledError
 from io import BufferedReader
@@ -18,9 +20,24 @@ import aiohttp
 from PySignal import Signal
 
 from sl1fw import defines
-from sl1fw.functions.files import get_save_path, get_log_file_name, create_summary, usb_remount
+from sl1fw.functions.files import get_save_path, usb_remount
 from sl1fw.libHardware import Hardware
 from sl1fw.states.logs import LogsState, StoreType
+from sl1fw.state_actions.logs.summary import create_summary
+
+def get_logs_file_name(hw: Hardware) -> str:
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    serial = re.sub("[^a-zA-Z0-9]", "_", hw.cpuSerialNo)
+    return f"logs.{serial}.{timestamp}.tar.xz"
+
+
+def export_configs(temp_dir: Path):
+    wizard_history_path = Path(defines.wizardHistoryPath)
+    for category in ["factory_data", "user_data"]:
+        src = wizard_history_path / category
+        dest = temp_dir / category
+        if src.is_dir():
+            shutil.copytree(src, dest)
 
 
 class LogsExport(ABC, Thread):
@@ -42,6 +59,7 @@ class LogsExport(ABC, Thread):
         self.uploaded_log_identifier_changed = Signal()
         self._uploaded_log_url = None
         self.uploaded_log_url_changed = Signal()
+        self.proc = None
 
     @property
     def state(self) -> LogsState:
@@ -113,6 +131,12 @@ class LogsExport(ABC, Thread):
             self._logger.warning("Attempt to cancel log export, but no export in progress")
             return
 
+        try:
+            if self.proc:
+                self.proc.kill()
+        except ProcessLookupError:
+            pass
+
         self._task.cancel()
 
     def run(self):
@@ -133,46 +157,66 @@ class LogsExport(ABC, Thread):
 
     async def run_export(self):
         self.state = LogsState.EXPORTING
-        with tempfile.NamedTemporaryFile() as temp:
-            temp_path = Path(temp.name)
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            tmpdir_path = Path(tmpdirname)
+
             self._logger.debug("Exporting log data to a temporary file")
             self.export_progress = 0
-            await self._do_export(temp_path)
+            log_tar_file = await self._do_export(tmpdir_path)
             self.export_progress = 1
 
             self._logger.debug("Running store log method")
             self.state = LogsState.SAVING
             self.store_progress = 0
-            await self.store_log(temp_path)
+            await self.store_log(log_tar_file)
             self.store_progress = 1
 
-    async def _do_export(self, log_file: Path):
-        self._logger.info("Creating log export summary")
-        summary = create_summary(self._hw, self._logger)
+    async def _do_export(self, tmpdir_path: Path):
+        logs_dir = tmpdir_path / "logs"
+        logs_dir.mkdir()
+        log_file = logs_dir / "log.txt"
+        summary_file = logs_dir / "summary.json"
 
-        bash_call = ["export_logs.bash", log_file]
+        self._logger.info("Creating log export summary")
+        summary = create_summary(self._hw, self._logger, summary_path = summary_file)
         if summary:
             self._logger.debug("Log export summary created")
-            bash_call.append(summary)
         else:
             self._logger.error("Log export summary failed to create")
 
         self._logger.debug("Running log export script")
-        process = subprocess.Popen(bash_call)
+        self.proc = await asyncio.create_subprocess_shell(
+            'export_logs.bash "{0}"'.format(str(log_file)),
+            stderr=asyncio.subprocess.PIPE
+        )
 
         self._logger.debug("Waiting for log export to finish")
-        # TODO: This is not nice, lets hope Python 3.8 will include working asyncio.process implementation
-        # TODO: In python 3.8 asyncio.subprocess_shell works, but it is not cancelable.
-        while process.returncode is None:
-            try:
-                await asyncio.sleep(0.1)
-                process.wait(0.1)
-            except subprocess.TimeoutExpired:
-                pass
-            except CancelledError:
-                self._logger.debug("Killing log export due to being canceled")
-                process.kill()
-                raise
+        _, stderr = await self.proc.communicate()
+        if self.proc.returncode != 0:
+            error = "Log export jounalctl failed to create"
+            if stderr:
+                error += f" - {stderr.decode()}"
+            self._logger.error(error)
+
+        self._logger.debug("Waiting for configs export to finish")
+        export_configs(logs_dir)
+
+        log_tar_file = tmpdir_path / get_logs_file_name(self._hw)
+        self.proc = await asyncio.create_subprocess_shell(
+            'tar -cf - -C "{0}" "{1}" | xz -T0 -0 > "{2}"'.format(str(tmpdir_path), logs_dir.name, str(log_tar_file)),
+            stderr=asyncio.subprocess.PIPE
+        )
+        _, stderr = await self.proc.communicate()
+        if self.proc.returncode != 0:
+            error = "Log compression failed"
+            if stderr:
+                error += f" - {stderr.decode()}"
+            self._logger.error(error)
+
+        self.proc = None
+
+        if log_tar_file.is_file():
+            return log_tar_file
 
     @abstractmethod
     async def store_log(self, src: Path):
@@ -187,8 +231,7 @@ class UsbExport(LogsExport):
             raise FileNotFoundError(save_path)
 
         self._logger.debug("Copying temporary log file to usb")
-        log_file_name = get_log_file_name(self._hw)
-        await self._copy_with_progress(src, save_path / log_file_name)
+        await self._copy_with_progress(src, save_path / src.name)
 
     async def _copy_with_progress(self, src: Path, dst: Path):
         usb_remount(str(dst))
@@ -234,7 +277,6 @@ class FileReader(BufferedReader):
 class ServerUpload(LogsExport):
     async def store_log(self, src: Path):
 
-        log_file_name = get_log_file_name(self._hw)
         self._logger.info("Uploading temporary log file to the server")
 
         async with aiohttp.ClientSession(headers={"user-agent": "OriginalPrusa3DPrinter"}) as session:
@@ -245,7 +287,7 @@ class ServerUpload(LogsExport):
                 data.add_field(
                     "logfile",
                     FileReader(file, callback=self._callback),
-                    filename=log_file_name,
+                    filename=src.name,
                     content_type="application/x-xz",
                 )
                 data.add_field("token", "12345")

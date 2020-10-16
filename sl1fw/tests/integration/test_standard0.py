@@ -93,7 +93,7 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
 
     def test_cmds_print_pause_cont(self):
         self.standard0.cmd_confirm()
-        self._wait_for_state(const.State.BUSY, 5)
+        self._wait_for_state(const.State.BUSY, 10)
         self._wait_for_state(const.State.PRINTING, 30)
         self.standard0.cmd_pause("feed_me")
         self._wait_for_state(const.State.ATTENTION, 30)

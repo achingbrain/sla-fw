@@ -23,6 +23,8 @@ configDir = Path("/etc/sl1fw")
 loggingConfig = configDir / "loggerConfig.json"
 remoteConfig = configDir / "remoteConfig.toml"
 
+wizardHistoryPath = os.path.join(persistentStorage, "wizard_history")
+
 hwConfigFileName = "hardware.cfg"
 hwConfigPath = configDir / hwConfigFileName
 hwConfigPathFactory = factoryMountPoint / "hardware.toml"

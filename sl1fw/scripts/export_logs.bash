@@ -8,25 +8,14 @@
 if [ -n "${1}" ]; then
         LOG_PATH=$1
 else
-        PATTERN="/run/media/root/*"
-        USBS=( ${PATTERN} )
-        LOG_PATH=${USBS[0]}/log.emergency.txt.xz
-fi;
-
-if [ -n "${2}" ]; then
-        SUMMARY_PATH=$2
-else
-        SUMMARY_PATH="/dev/null"
+        exit 1
 fi;
 
 echo "${LOG_PATH}"
-usbremount "${LOG_PATH}"
 (
         for i in $(journalctl --list-boots | awk '{print $1}'); do
                 echo "########## REBOOT: ${i} ##########";
                 journalctl --no-pager --boot "${i}";
         done;
-        echo "########## PRINTER SUMMARY ##########";
-        cat ${SUMMARY_PATH};
-) | xz -T0 -0 > "${LOG_PATH}"
+) > "${LOG_PATH}"
 sync "${LOG_PATH}"

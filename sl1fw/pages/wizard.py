@@ -21,6 +21,7 @@ from sl1fw.errors.errors import ResinFailed, TowerAxisCheckFailed
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.checks import resin_sensor, tower_axis
 from sl1fw.functions.system import shut_down
+from sl1fw.functions.files import save_wizard_history
 from sl1fw.libConfig import TomlConfig
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -421,10 +422,13 @@ class PageWizardResinSensor(PageWizardBase):
             return "error"
         #endtry
         wizardConfig.save_raw()
+        save_wizard_history(defines.wizardDataPath)
 
         # store data in factory partition if in factory mode or not saved before (when user runs wizard on KIT for first time)
         if self.display.runtime_config.factory_mode or not savedData:
-            if not self.writeToFactory(wizardConfigFactory.save_raw):
+            if self.writeToFactory(wizardConfigFactory.save_raw):
+                save_wizard_history(defines.wizardDataPathFactory)
+            else:
                 self.display.pages['error'].setParams(
                     text = _("!!! Failed to save wizard data !!!"))
                 return "error"

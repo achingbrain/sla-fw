@@ -24,6 +24,7 @@ import logging
 import pickle
 import queue
 import threading
+from hashlib import md5
 from logging import Logger
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
@@ -568,6 +569,7 @@ class ExposureThread(threading.Thread):
         seconds = 0
 
         project = self.expo.project
+        project_hash = md5(project.name.encode()).hexdigest()[:8] + "_"
         prev_white_pixels = 0
         stuck = False
         was_stirring = True
@@ -637,11 +639,11 @@ class ExposureThread(threading.Thread):
             self.expo.tower_position_nm += layer.height_nm
 
             self.logger.info(
-                "Layer: %04d/%04d (%s), exposure [ms]: %s, slow_layers_done: %d, height [mm]: %.3f/%.3f,"
-                " elapsed [min]: %d, remain [min]: %d, used [ml]: %d, remaining [ml]: %d, RAM: %.1f%%, CPU: %.1f%%",
+                "Layer started » { 'layer': '%04d/%04d (%s)', 'exposure [ms]': %s, 'slow_layers_done': %d, 'height [mm]': '%.3f/%.3f', "
+                "'elapsed [min]': %d, 'remain [min]': %d, 'used [ml]': %d, 'remaining [ml]': %d, 'RAM': '%.1f%%', 'CPU': '%.1f%%' }",
                 self.expo.actual_layer + 1,
                 project.total_layers,
-                layer.image,
+                layer.image.replace(project.name, project_hash),
                 str(layer.times_ms),
                 self.expo.slow_layers_done,
                 self.expo.tower_position_nm / 1e6,
@@ -703,14 +705,36 @@ class ExposureThread(threading.Thread):
         self.expo.hw.motorsRelease()
 
         self.expo.printEndTime = datetime.now(tz=timezone.utc)
-        self.logger.info("Job finished - real printing time is %s minutes", self.expo.printTime)
 
-        if not self.expo.canceled:
+        is_finished = not self.expo.canceled
+        if is_finished:
             statistics['finished_projects'] += 1
         statistics['layers'] += self.expo.actual_layer
         statistics['total_seconds'] += seconds
         statistics['total_resin'] += self.expo.resin_count
         statistics.save_raw()
+        exposure_times = "{0:d}/{1:d}/{2:d} s".format(
+            project.exposure_time_first_ms,
+            project.exposure_time_ms,
+            project.exposure_time_calibrate_ms
+        )
+        self.logger.info(
+            "Job finished » { 'job': %d, 'project': '%s', 'finished': %s, "
+            "'autoOff': %s, 'Layers': '%d/%d', 'printTime [s]': %d, "
+            "'used [ml]': %g, 'remaining [ml]': %g, 'exposure [s]': '%s', 'height [mm]': %g, }",
+            statistics['started_projects'],
+            project_hash[:-1],
+            is_finished,
+            self.expo.hwConfig.autoOff,
+            self.expo.actual_layer,
+            project.total_layers,
+            seconds,
+            self.expo.resin_count,
+            self.expo.remain_resin_ml if self.expo.remain_resin_ml else -1,
+            exposure_times,
+            self.expo.tower_position_nm / 1e6
+        )
+
         self.expo.screen.save_display_usage()
 
         if self.expo.canceled:
@@ -942,13 +966,7 @@ class Exposure:
             Exposure.cleanup_last_data(self.logger)
 
     def save(self):
-        self.logger.debug(
-            "\nSaving Exposure \n- '%s'\n- '%s'\n- '%s'\n- '%s'",
-            defines.lastProjectHwConfig,
-            defines.lastProjectFactoryFile,
-            defines.lastProjectConfigFile,
-            defines.lastProjectPickler
-        )
+        self.logger.debug("Storing Exposure data")
         with open(defines.lastProjectPickler, 'wb') as pickle_io:
             ExposurePickler(pickle_io).dump(self)
 

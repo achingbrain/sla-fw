@@ -213,24 +213,6 @@ class Page:
     #enddef
 
 
-    def saveLogsToUSB(self):
-        pageWait = self.display.makeWait(self.display, line1=_("Saving logs"))
-        pageWait.show()
-        try:
-            files.save_logs_to_usb(self.display.hw)
-        except FileNotFoundError:
-            self.logger.exception("File not found saving logs to usb")
-            self.display.pages['error'].setParams(text=_("No USB storage present"))
-            return "error"
-        except Exception:
-            self.logger.exception("Failed to save logs to usb")
-            self.display.pages['error'].setParams(text=_("Saving logs failed"))
-            return "error"
-
-        return "_BACK_"
-    #enddef
-
-
     def writeToFactory(self, saveFce):
         try:
             with FactoryMountedRW():

@@ -46,10 +46,12 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
         copyfile(self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.FACTORY_CONFIG_FILE)
         self.temp_dir_project = TemporaryDirectory()
+        self.temp_dir_wizard_history = TemporaryDirectory()
 
         with open(self.FB_DEV_FILE, 'wb') as fb:
             fb.truncate(4 * defines.screenWidth * defines.screenHeight)
 
+        defines.wizardHistoryPath = self.temp_dir_wizard_history.name
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigPath = str(self.FACTORY_CONFIG_FILE)
@@ -146,6 +148,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
                 file.unlink()
 
         self.temp_dir_project.cleanup()
+        self.temp_dir_wizard_history.cleanup()
         print(f'<<<<<===== {self.id()} =====>>>>>')
 
     def press(self, identifier, data=None):

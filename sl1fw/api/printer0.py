@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import select
 from pathlib import Path
-from typing import List, Dict, Tuple, TYPE_CHECKING, Any, Optional
+from typing import List, Dict, TYPE_CHECKING, Any, Optional
 
 import distro
 import pydbus
@@ -37,7 +37,6 @@ from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.errors.exceptions import ReprintWithoutHistory
-from sl1fw.functions import files
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import TomlConfigStats, TomlConfig
@@ -182,27 +181,6 @@ class Printer0:
         :return: None
         """
         self.printer.hw.beep(frequency_hz, length_ms / 1000)
-
-    @auto_dbus
-    @last_error
-    @deprecated("Use logs0 API instead")
-    def save_logs_to_usb(self) -> None:
-        """
-        Save logs to first usb device
-        :return: None
-        """
-        files.save_logs_to_usb(self.printer.hw)
-
-    @auto_dbus
-    @last_error
-    @deprecated("Use logs0 API instead")
-    def upload_logs(self) -> Tuple[str, str]:
-        """
-        Upload logs to log server
-
-        :return: Log URL, log ID as string, string tuple
-        """
-        return files.upload_logs(self.printer.hw)
 
     @auto_dbus
     @last_error
