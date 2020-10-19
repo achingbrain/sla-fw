@@ -24,6 +24,7 @@ from readerwriterlock import rwlock
 
 from sl1fw import defines, test_runtime
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.logger_config import set_log_level
 
 
 class BaseConfig(ABC):
@@ -1184,6 +1185,7 @@ class RuntimeConfig:
     """
 
     def __init__(self):
+        self._logger = logging.getLogger(__name__)
         self.show_admin_changed = Signal()
         self._show_admin: bool = False
         self.fan_error_override: bool = False
@@ -1200,6 +1202,9 @@ class RuntimeConfig:
         if self._show_admin != value:
             self._show_admin = value
             self.show_admin_changed.emit(value)
+        if value:
+            self._logger.info("Setting loglevel to DEBUG (transient)")
+            set_log_level(logging.DEBUG, persistent=False)
 
     @property
     def factory_mode(self) -> bool:

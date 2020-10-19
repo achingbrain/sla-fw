@@ -53,15 +53,17 @@ def get_log_level() -> int:
     return logging.getLevelName(raw_level)
 
 
-def _set_config(config: Dict, level: int):
+def _set_config(config: Dict, level: int, persistent: bool):
     config["root"]["level"] = logging.getLevelName(level)
     # Setting level to root logger changes all loggers (in the same process)
     logging.getLogger().setLevel(level)
-    with defines.loggingConfig.open("w") as f:
-        json.dump(config, f)
+
+    if persistent:
+        with defines.loggingConfig.open("w") as f:
+            json.dump(config, f)
 
 
-def set_log_level(level: int) -> bool:
+def set_log_level(level: int, persistent=True) -> bool:
     """
     Set log level to configuration file and runtime
 
@@ -70,9 +72,9 @@ def set_log_level(level: int) -> bool:
     """
     try:
         config = _get_config()
-        _set_config(config, level)
+        _set_config(config, level, persistent)
         return True
     except Exception:
         config = DEFAULT_CONFIG
-        _set_config(config, level)
+        _set_config(config, level, persistent)
         return False
