@@ -12,7 +12,7 @@ case $1 in
         systemctl reload nginx
     ;;
     "enable")
-        sed -i 's/# include\s*\/etc\/nginx/include \/etc\/nginx/' $FILE
+        sed -i 's/.*include\s*\/etc\/nginx/\tinclude \/etc\/nginx/' $FILE
         systemctl reload nginx
     ;;
 esac
