@@ -4,6 +4,8 @@ Wants=NetworkManager.service rauc.service
 After=NetworkManager.service rauc.service
 
 [Service]
+Type=dbus
+BusName=cz.prusa3d.sl1.printer0
 ExecStartPre=/usr/bin/sh -c "/usr/bin/echo 0 > /sys/class/vtconsole/vtcon1/bind"
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/main.py
