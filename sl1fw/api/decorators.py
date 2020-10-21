@@ -8,7 +8,7 @@ import logging
 from dataclasses import is_dataclass, asdict
 from enum import Enum
 from time import monotonic
-from typing import Union, List, Any, Dict, Tuple, get_type_hints, Optional, Set  # pylint: disable=unused-import
+from typing import Union, List, Any, Dict, get_type_hints, Optional
 
 from pydbus import Variant
 from prusaerrors.sl1.codes import Sl1Codes
