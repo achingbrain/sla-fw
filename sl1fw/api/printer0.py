@@ -719,20 +719,13 @@ class Printer0:
             raise ReprintWithoutHistory()
 
         last_exposure = self.printer.action_manager.exposure
-        expo = self.printer.action_manager.new_exposure(
-            self.printer.hwConfig,
-            self.printer.hw,
-            self.printer.screen,
-            self.printer.runtime_config,
-            last_exposure.project.path,
-            exp_time_ms=last_exposure.project.exposure_time_ms,
-            exp_time_first_ms=last_exposure.project.exposure_time_first_ms,
-            exp_time_calibrate_ms=last_exposure.project.calibrate_time_ms,
+        exposure = self.printer.action_manager.reprint_exposure(
+            last_exposure, self.printer.hwConfig, self.printer.hw, self.printer.screen, self.printer.runtime_config
         )
         if auto_advance:
-            expo.confirm_print_start()
+            exposure.confirm_print_start()
 
-        return Exposure0.dbus_path(expo.instance_id)
+        return Exposure0.dbus_path(exposure.instance_id)
 
     @auto_dbus
     @property

@@ -7,6 +7,8 @@
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-statements
 
+from __future__ import annotations
+
 import logging
 import os
 import shutil
@@ -444,3 +446,14 @@ class Project:
                 + self._hw_config.delayAfterExposure * 100)
         self.logger.debug("time_remain_ms: %f", time_remain_ms)
         return int(round(time_remain_ms / 60 / 1000))
+
+    def set_timings_reference(self, project: Project):
+        """
+        Set times from existing project without range checks
+
+        Used for reprint. As we load times from projects without checking there needs to be a way how to reprint using
+        the same settings.
+        """
+        self._exposure_time_ms = project.exposure_time_ms
+        self._exposure_time_first_ms = project.exposure_time_first_ms
+        self._calibrate_time_ms = project.calibrate_time_ms

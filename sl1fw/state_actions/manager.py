@@ -46,65 +46,45 @@ class ActionManager:
         self._wizard_registration = None
 
     def new_exposure(
-        self,
-        config: HwConfig,
-        hw: Hardware,
-        screen: Screen,
-        runtime_config: RuntimeConfig,
-        project: str,
-        exp_time_ms: Optional[int] = None,
-        exp_time_first_ms: Optional[int] = None,
-        exp_time_calibrate_ms: Optional[int] = None,
+        self, config: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig, project: str
     ) -> Exposure:
         # Create new exposure object and apply passed settings
-        exposure = self._create_exposure(
-            config, hw, screen, runtime_config, project, exp_time_ms, exp_time_first_ms, exp_time_calibrate_ms
-        )
-
-        path = self._register_exposure(exposure)
+        exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config, project)
+        self.logger.info("Created new exposure id: %s", exposure.instance_id)
 
         # Register properties changed signal of the new exposure as current exposure signal source
-        if self._current_exposure_change_registration:
-            self._current_exposure_change_registration.unsubscribe()
-        exposure_dbus = self._system_bus.get(Exposure0.__INTERFACE__, path)
-        self._current_exposure_change_registration = exposure_dbus.PropertiesChanged.connect(self._on_exposure_change)
+        path = self._register_exposure(exposure)
+        self._register_exposure_signal(path)
 
         self._current_exposure = exposure
         self.exposure_change.emit()
         return exposure
 
     def load_exposure(self, hw: Hardware) -> Optional[Exposure]:
-        last_exposure = Exposure.load(self.logger, hw)
-        if not last_exposure:
+        exposure = Exposure.load(self.logger, hw)
+        if not exposure:
             return None
 
-        self.logger.info("Loaded pickled exposure id: %s", last_exposure.instance_id)
+        self.logger.info("Loaded pickled exposure id: %s", exposure.instance_id)
         Exposure.cleanup_last_data(self.logger)
-        self._register_exposure(last_exposure)
+        self._register_exposure(exposure)
 
-        self._current_exposure = last_exposure
+        self._current_exposure = exposure
         self.exposure_change.emit()
-        return last_exposure
+        return exposure
 
-    def _create_exposure(
-        self,
-        config: HwConfig,
-        hw: Hardware,
-        screen: Screen,
-        runtime_config: RuntimeConfig,
-        project: str,
-        exp_time_ms: Optional[int] = None,
-        exp_time_first_ms: Optional[int] = None,
-        exp_time_calibrate_ms: Optional[int] = None,
+    def reprint_exposure(
+        self, reference: Exposure, config: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig
     ):
-        exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config, project)
-        if exp_time_ms:
-            exposure.project.exposure_time_ms = exp_time_ms
-        if exp_time_first_ms:
-            exposure.project.exposure_time_first_ms = exp_time_first_ms
-        if exp_time_calibrate_ms:
-            exposure.project.calibrate_time_ms = exp_time_calibrate_ms
+        exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config, reference.project.path)
+        exposure.project.set_timings_reference(reference.project)
+        self.logger.info("Created reprint exposure id: %s", exposure.instance_id)
 
+        path = self._register_exposure(exposure)
+        self._register_exposure_signal(path)
+
+        self._current_exposure = exposure
+        self.exposure_change.emit()
         return exposure
 
     def _get_job_id(self) -> int:
@@ -117,6 +97,12 @@ class ActionManager:
         with defines.last_job.open("w") as f:
             f.write(str(job_id))
         return job_id
+
+    def _register_exposure_signal(self, path: str):
+        if self._current_exposure_change_registration:
+            self._current_exposure_change_registration.unsubscribe()
+        exposure_dbus = self._system_bus.get(Exposure0.__INTERFACE__, path)
+        self._current_exposure_change_registration = exposure_dbus.PropertiesChanged.connect(self._on_exposure_change)
 
     def _register_exposure(self, exposure: Exposure) -> str:
         """
