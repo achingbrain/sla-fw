@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
+import logging
 from dataclasses import is_dataclass, asdict
 from enum import Enum
 from time import monotonic
@@ -52,21 +53,32 @@ def state_checked(allowed_state: Union[Enum, List[Enum]]):
 
 def range_checked(minimum, maximum):
     """
-    Raises value error if the only method param is not in [min, max] range
+    Force value within range
+
+    Raises ValueError if the only method param is not in [min, max] range. In case the value is changed towards
+    the range only a warning is issued. This allows the user to adjust bad value.
 
     :param minimum: Minimal allowed value
     :param maximum: Maximal allowed value
-    :return: Decorated method
+    :return: Decorated property
     """
+    def decor(prop: property):
+        assert isinstance(prop, property)
+        logger = logging.getLogger(__name__)
 
-    def decor(func):
-        @functools.wraps(func)
-        def wrap(self, value):
-            if value < minimum or value > maximum:
-                raise ValueError(f"Value: {value} out of range: [{minimum}, {maximum}]")
-            return func(self, value)
+        @functools.wraps(prop.fset)
+        def fset(self, value):
+            if value < minimum:
+                if value < prop.fget(self):
+                    raise ValueError(f"Value: {value} out of range: [{minimum}, {maximum}]")
+                logger.warning("Value %s out of range: [%s, %s]", value, minimum, maximum)
+            if value > maximum:
+                if value > prop.fget(self):
+                    raise ValueError(f"Value: {value} out of range: [{minimum}, {maximum}]")
+                logger.warning("Value %s out of range: [%s, %s]", value, minimum, maximum)
+            return prop.fset(self, value)
 
-        return wrap
+        return property(prop.fget, fset, prop.fdel, prop.__doc__)
 
     return decor
 
@@ -192,7 +204,6 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
         raise DBusMappingException(f"Failed to generate dbus specification for {name}") from exception
 
 
-
 def python_to_dbus_value_type(data: Any):
     # pylint: disable = unidiomatic-typecheck
     if type(data) in PYTHON_TO_DBUS_TYPE:
@@ -232,7 +243,7 @@ def wrap_value(data: Any) -> Variant:
 
     if isinstance(data, list):
         dbus_type = python_to_dbus_value_type(data)
-        if dbus_type[1] == 'v':
+        if dbus_type[1] == "v":
             dbus_value = Variant(dbus_type, [wrap_value(d) for d in data])
         else:
             dbus_value = Variant(dbus_type, data)

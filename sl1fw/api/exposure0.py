@@ -684,9 +684,9 @@ class Exposure0:
         return self.exposure.project.exposure_time_ms
 
     @auto_dbus
+    @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
     @exposure_time_ms.setter
     @last_error
-    @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
     def exposure_time_ms(self, value: int) -> None:
         self.exposure.project.exposure_time_ms = value
         # TODO: this is temporary until we can report all changes to exposure time
@@ -698,9 +698,9 @@ class Exposure0:
         return self.exposure.project.exposure_time_first_ms
 
     @auto_dbus
+    @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
     @exposure_time_first_ms.setter
     @last_error
-    @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
     def exposure_time_first_ms(self, value: int) -> None:
         self.exposure.project.exposure_time_first_ms = value
         # TODO: this is temporary until we can report all changes to exposure time
@@ -712,9 +712,9 @@ class Exposure0:
         return self.exposure.project.calibrate_time_ms
 
     @auto_dbus
+    @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     @exposure_time_calibrate_ms.setter
     @last_error
-    # @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     def exposure_time_calibrate_ms(self, value: int) -> None:
         self.exposure.project.calibrate_time_ms = value
         # TODO: this is temporary until we can report all changes to exposure time

@@ -300,8 +300,8 @@ class Project:
     def exposure_time_ms(self) -> int:
         return self._exposure_time_ms
 
-    @exposure_time_ms.setter
     @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
+    @exposure_time_ms.setter
     def exposure_time_ms(self, value: int) -> None:
         self._exposure_time_ms = value
         self._fill_layers_times()
@@ -310,8 +310,8 @@ class Project:
     def exposure_time_first_ms(self) -> int:
         return self._exposure_time_first_ms
 
-    @exposure_time_first_ms.setter
     @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
+    @exposure_time_first_ms.setter
     def exposure_time_first_ms(self, value: int) -> None:
         self._exposure_time_first_ms = value
         self._fill_layers_times()
@@ -325,8 +325,8 @@ class Project:
     def calibrate_time_ms(self) -> int:
         return self._calibrate_time_ms
 
-    @calibrate_time_ms.setter
     @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
+    @calibrate_time_ms.setter
     def calibrate_time_ms(self, value: int) -> None:
         self._calibrate_time_ms = value
         self._fill_layers_times()
