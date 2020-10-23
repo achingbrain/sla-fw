@@ -78,6 +78,7 @@ class Display:
     @state.setter
     def state(self, value: DisplayState):
         if self._state != value:
+            self.logger.info("Display(pages) state changed: %s -> %s", self._state, value)
             self._state = value
             self.state_changed.emit()
         #endif
