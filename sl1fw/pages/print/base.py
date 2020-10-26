@@ -108,7 +108,7 @@ class PagePrintBase(Page):
                     ProjectErrors.ANALYSIS_FAILED: _("Project analysis failed.\n\nRe-export the project and try again."),
                     ProjectErrors.CALIBRATION_INVALID: _("Calibration definition is invalid.\n\nRe-export the project and try again."),
                 },
-            )[self.display.expo.project.state]
+            )[self.display.expo.project.error]
             self.display.pages["error"].setParams(
                 backFce=lambda: "home", text=_("Error code: %s\n\n") % exception.CODE + message
             )

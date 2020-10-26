@@ -13,6 +13,8 @@ from sl1fw.errors.warnings import (
     ResinNotEnough,
     ProjectSettingsModified,
     PerPartesPrintNotAvaiable,
+    PrintMaskNotAvaiable,
+    PrintedObjectWasTruncated,
 )
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
@@ -107,6 +109,18 @@ class PageCheckConfirm(PagePrintBase):
         if isinstance(warning, PerPartesPrintNotAvaiable):
             self.display.pages["confirm"].setParams(
                 continueFce=self.confirm_print, backFce=self.cancel_print, text=_("Per partes print not available"),
+            )
+            return "confirm"
+
+        if isinstance(warning, PrintMaskNotAvaiable):
+            self.display.pages["confirm"].setParams(
+                continueFce=self.confirm_print, backFce=self.cancel_print, text=_("Failed to load mask"),
+            )
+            return "confirm"
+
+        if isinstance(warning, PrintedObjectWasTruncated):
+            self.display.pages["confirm"].setParams(
+                continueFce=self.confirm_print, backFce=self.cancel_print, text=_("Printed object was truncated"),
             )
             return "confirm"
 

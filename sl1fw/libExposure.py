@@ -461,7 +461,7 @@ class ExposureThread(threading.Thread):
         self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.RUNNING
 
         # Warm-up fans
-        self.logger.info("Warning up fans")
+        self.logger.info("Warming up fans")
         self.expo.hw.startFans()
         if not test_runtime.testing:
             self.logger.debug("Waiting %.2f secs for fans", defines.fanStartStopTime)
@@ -818,7 +818,7 @@ class Exposure:
         except Exception as exception:
             # TODO: It is not nice to handle this in the constructor, but still better than let the constructor raise
             # TODO: an exception and kill the whole printer logic.
-            # TODO: Solution would be to move this to exposure thread, but we realy on project being loaded right after
+            # TODO: Solution would be to move this to exposure thread, but we rely on project being loaded right after
             # TODO: the Exposure object is created.
             self.logger.exception("Exposure init exception")
             self.exception = exception
