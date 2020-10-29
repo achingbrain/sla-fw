@@ -29,6 +29,7 @@ hwConfigFileName = "hardware.cfg"
 hwConfigPath = configDir / hwConfigFileName
 hwConfigPathFactory = factoryMountPoint / "hardware.toml"
 factoryConfigPath = factoryMountPoint / "factory.toml"
+factory_enable = factoryMountPoint / "factory_mode_enabled"
 
 wizardDataFilename = "wizard_data.toml"
 wizardDataPath = configDir / wizardDataFilename

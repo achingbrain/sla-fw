@@ -76,7 +76,8 @@ class Printer:
             is_master=True,
         )
         self.runtime_config = RuntimeConfig()
-        self.runtime_config.factory_mode = TomlConfig(defines.factoryConfigPath).load().get("factoryMode", False)
+        self.runtime_config.factory_mode = defines.factory_enable.exists() or \
+            TomlConfig(defines.factoryConfigPath).load().get("factoryMode", False)  # Single value TOML now deprecated
         self.logger.info("Factory mode: %s", self.runtime_config.factory_mode)
         self.runtime_config.show_admin = self.runtime_config.factory_mode
         try:
