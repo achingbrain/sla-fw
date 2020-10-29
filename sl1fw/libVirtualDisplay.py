@@ -73,20 +73,6 @@ class VirtualDisplay:
     #enddef
 
 
-    def assignNetActive(self, value):
-        if self.netActive != value:
-            self.netActive = value
-            try:
-                self.commands.put_nowait({'command' : "showItems", 'net' : value })
-            except Exception:
-                self.logger.exception("put netActive exception")
-            #endtry
-        else:
-            self.logger.debug("Net active update skipped, value has not changed")
-        #endif
-    #enddef
-
-
     def getEventNoWait(self):
         try:
             return self.events.get_nowait()

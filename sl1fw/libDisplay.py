@@ -65,9 +65,6 @@ class Display:
         self.waitPageItems = None
         self.forcedPage = None
         self._leave_menu = False
-
-        self.inet.net_change.connect(self.assignNetActive)
-        self.assignNetActive(self.inet.online)
     #enddef
 
     @property
@@ -145,14 +142,6 @@ class Display:
             #endif
         #endif
         return self.actualPage
-    #enddef
-
-
-    def assignNetActive(self, value):
-        for device in self.devices:
-            device.assignNetActive(value)
-        #endfor
-        self.actualPage.netChange()
     #enddef
 
 
