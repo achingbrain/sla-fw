@@ -129,7 +129,7 @@ def manual_dbus(dbus: str):
     def decor(func):
         if func.__doc__ is None:
             func.__doc__ = ""
-        func.__doc__ += "\nD-Bus interface:: \n\n\t" + "\n\t".join(dbus.splitlines())
+        func.__doc__ += "\n\nD-Bus interface:: \n\n\t" + "\n\t".join(dbus.splitlines())
         if isinstance(func, property):
             func.fget.__dbus__ = dbus
         else:

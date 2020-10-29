@@ -204,13 +204,17 @@ class Standard0:
     def hw_temperatures(self) -> Dict[str, float]:
         """
         :return: Return a python dict with the temperatures.
-        unit: Graus Celsius
-        sl1:
-        {
-            'temp_led': 29.2,
-            'temp_amb': 27.7,
-            'cpu_temp': 40.0
-        }
+
+        unit: Grade Celsius
+
+        .. code-block:: python
+
+            sl1:
+            {
+                'temp_led': 29.2,
+                'temp_amb': 27.7,
+                'cpu_temp': 40.0
+            }
         """
         return self._printer.hw.getTemperaturesDict()
 
@@ -218,14 +222,18 @@ class Standard0:
     @property
     def hw_fans(self) -> Dict[str, int]:
         """
-        :return: Return a python dict with the fans measures.
-        unit: RPM
-        sl1:
-        {
-            "uv_led": 1000,
-            "blower": 1000,
-            "rear": 1000,
-        }
+        :return: Return a python dict with the fans measures
+
+        .. code-block:: python
+
+            unit: RPM
+            sl1:
+            {
+                "uv_led": 1000,
+                "blower": 1000,
+                "rear": 1000,
+            }
+
         """
         return self._printer.hw.getFansRpmDict()
 
@@ -236,16 +244,18 @@ class Standard0:
         """
         Printing progress.
 
-        sl1:
-        {
-            "current_layer": 10,
-            "total_layers": 20,
-            "remaining_material" : 200.0,     # ml
-            "consumed_material": 200.0,       # ml
-            "progress": 50,                   # 1-100
-            "time_elapsed": 131321322123000,  # ms
-            "remaining_time": 131321322123000 # ms
-        }
+        .. code-block:: python
+
+            sl1:
+            {
+                "current_layer": 10,
+                "total_layers": 20,
+                "remaining_material" : 200.0,     # ml
+                "consumed_material": 200.0,       # ml
+                "progress": 50,                   # 1-100
+                "time_elapsed": 131321322123000,  # ms
+                "remaining_time": 131321322123000 # ms
+            }
         """
         exposure = self._current_expo
         data = {
@@ -269,25 +279,27 @@ class Standard0:
         """
         Printer telemetry
 
-        sl1:
-        {
-            "cover_closed": true, # bool
-            "temperatures": {
-                uv_led: 11,
-                ambient: 22,
-                cpu_a64: 33
-            },
-            "fans" : {
-                "blower": 1000,
-                "uv_led": 1000,
-                "rear": 1000,
-            },
-            "state": {
-                "state": 1,
-                "substate": 1,
-                "error_code": 500
-            },
-        }
+        .. code-block:: python
+
+            sl1:
+            {
+                "cover_closed": true, # bool
+                "temperatures": {
+                    uv_led: 11,
+                    ambient: 22,
+                    cpu_a64: 33
+                },
+                "fans" : {
+                    "blower": 1000,
+                    "uv_led": 1000,
+                    "rear": 1000,
+                },
+                "state": {
+                    "state": 1,
+                    "substate": 1,
+                    "error_code": 500
+                },
+            }
         """
         return wrap_dict_data({
             "cover_closed": self._printer.hw.isCoverClosed(),
@@ -320,13 +332,15 @@ class Standard0:
         Given a list of project properties, return a python dict with their values.
         It's possible a group of values like all the exposure times: "exposure_times".
 
-        sl1: properties_get(["exposure_times"])
-        {
-            "exposure_time_ms": 1000,
-            "exposure_time_first_ms": 1000,
-            "calibrate_regions": 1,
-            "calibrate_time_ms": 1000,
-        }
+        .. code-block:: python
+
+            sl1: properties_get(["exposure_times"])
+            {
+                "exposure_time_ms": 1000,
+                "exposure_time_first_ms": 1000,
+                "calibrate_regions": 1,
+                "calibrate_time_ms": 1000,
+            }
 
         """
         exposure = self._current_expo
@@ -347,15 +361,16 @@ class Standard0:
         """
         Change project properties passing by a python dict with their values.
 
-        sl1:
-        properties_set({
-            "exposure_time_ms": 1000,
-            "exposure_time_first_ms": 1000,
-            "calibrate_time_ms": 1000
-        })
+        .. code-block:: python
 
-        Raises:
-            KeyError
+            sl1:
+            properties_set({
+                "exposure_time_ms": 1000,
+                "exposure_time_first_ms": 1000,
+                "calibrate_time_ms": 1000
+            })
+
+        :raises KeyError: If the property does not exists.
         """
         exposure = self._current_expo
         for p, v in properties_dict.items():
@@ -371,14 +386,15 @@ class Standard0:
         """
         return a dictionary to show on confirming screen
 
-        sl1:
-        {
-            "path": "path/to/project.sl1",
-            "exposure_times": "1.5/1.5/1.5 s",
-            "last_modified": 123132132132,       # ms
-            "total_layers": 20
-        }
+        .. code-block:: python
 
+            sl1:
+            {
+                "path": "path/to/project.sl1",
+                "exposure_times": "1.5/1.5/1.5 s",
+                "last_modified": 123132132132,       # ms
+                "total_layers": 20
+            }
         """
         exposure = self._current_expo
         return wrap_dict_data(
@@ -515,11 +531,13 @@ class Standard0:
         type: one of ["digest","api_key","tls", ...]
         options: Optional extra info
 
-        sl1
-        {
-            "type": "digest",
-            "options": { "api_key": "samebigstring" }
-        }
+        .. code-block:: python
+
+            sl1
+            {
+                "type": "digest",
+                "options": { "api_key": "samebigstring" }
+            }
         """
         if TomlConfig(defines.remoteConfig).load().get('htdigest', True):
             data = {
@@ -540,14 +558,17 @@ class Standard0:
     def info(self) -> Dict[str, str]:
         """
         Printer info
-        sl1
-        {
-            'name': 'Original Prusa Sl1',
-            'firmware': '1.5.0',
-            'sn': 'CZPX1234X000XK0001',
-            'mac': '10:00:10:00:10:00',
-            'uuid': '2a2db92796ac6379dc981c2e0d6f2cff541eddf2'
-        }
+
+        .. code-block:: python
+
+            sl1
+            {
+                'name': 'Original Prusa Sl1',
+                'firmware': '1.5.0',
+                'sn': 'CZPX1234X000XK0001',
+                'mac': '10:00:10:00:10:00',
+                'uuid': '2a2db92796ac6379dc981c2e0d6f2cff541eddf2'
+            }
         """
         return {
             "name": "Original Prusa Sl1",
