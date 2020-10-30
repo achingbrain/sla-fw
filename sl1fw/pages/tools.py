@@ -5,13 +5,15 @@
 from __future__ import annotations
 
 import functools
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import pydbus
 
+from sl1fw import defines
 from sl1fw.errors.errors import FailedUpdateChannelGet, FailedUpdateChannelSet
 from sl1fw.errors.exceptions import ConfigException
-from sl1fw.functions.system import save_factory_mode, get_update_channel, set_update_channel
+from sl1fw.functions.system import save_factory_mode, get_update_channel, set_update_channel, FactoryMountedRW
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -24,8 +26,6 @@ class PageTools(Page):
     Name = "tools"
 
     SYSTEMD_DBUS = ".systemd1"
-    SSH_SERVICE = "sshd.socket"
-    SERIAL_SERVICE = "serial-getty@ttyS0.service"
 
     def __init__(self, display: Display):
         super().__init__(display)
@@ -36,8 +36,8 @@ class PageTools(Page):
 
     def show(self):
         self.systemd = pydbus.SystemBus().get(self.SYSTEMD_DBUS)
-        self.ssh_enabled = self.systemd.GetUnitFileState(self.SSH_SERVICE) == "enabled"
-        self.serial_enabled = self.systemd.GetUnitFileState(self.SERIAL_SERVICE) == "enabled"
+        self.ssh_enabled = defines.ssh_service_enabled.exists()
+        self.serial_enabled = defines.serial_service_enabled.exists()
 
         try:
             channel = get_update_channel()
@@ -49,8 +49,8 @@ class PageTools(Page):
                 "button1": "Disable factory mode"
                 if self.display.runtime_config.factory_mode
                 else "Enable Factory mode",
-                "button2": "Disable ssh" if self.ssh_enabled else "Enable ssh",
-                "button3": "Disable serial" if self.serial_enabled else "Enable serial",
+                "button2": self._ssh_text,
+                "button3": self._serial_text,
                 "button5": "Fake printer setup",
                 "button11": f"Switch to stable{'*' if channel == 'stable' else ''}",
                 "button12": f"Switch to beta{'*' if channel == 'beta' else ''}",
@@ -59,17 +59,52 @@ class PageTools(Page):
         )
         super().show()
 
+    @property
+    def _ssh_text(self) -> str:
+        if self.display.runtime_config.factory_mode:
+            return "#Factory on#"
+        if self.ssh_enabled:
+            return "Disable ssh"
+        return "Enable ssh"
+
+    @property
+    def _serial_text(self) -> str:
+        if self.display.runtime_config.factory_mode:
+            return "#Factory on#"
+        if self.serial_enabled:
+            return "Disable serial"
+        return "Enable serial"
+
     def button1ButtonRelease(self):
-        if self.writeToFactory(functools.partial(save_factory_mode, not self.display.runtime_config.factory_mode)):
-            self.display.runtime_config.factory_mode = not self.display.runtime_config.factory_mode
+        with FactoryMountedRW():
+            save_factory_mode(not self.display.runtime_config.factory_mode)
+            if self.display.runtime_config.factory_mode:
+                if defines.factory_enable.exists():
+                    defines.factory_enable.unlink()
+                # On factory disable, disable also ssh and serial to ensure
+                # end users do not end up with serial, ssh enabled.
+                if defines.ssh_service_enabled.exists():
+                    defines.ssh_service_enabled.unlink()
+                if defines.serial_service_enabled.exists():
+                    defines.serial_service_enabled.unlink()
+            else:
+                defines.factory_enable.touch()
+        self.display.runtime_config.factory_mode = not self.display.runtime_config.factory_mode
+        if self.display.runtime_config.factory_mode:
+            self.systemd.Reload()
+            self._systemd_enable_service(defines.serial_service_service)
+            self._systemd_enable_service(defines.ssh_service_service)
+
         return "_SELF_"
 
     def button2ButtonRelease(self):
-        self._trigger_unit(self.SSH_SERVICE)
+        if not self.display.runtime_config.factory_mode:
+            self._trigger_unit(defines.ssh_service_service, defines.ssh_service_enabled)
         return "_SELF_"
 
     def button3ButtonRelease(self):
-        self._trigger_unit(self.SERIAL_SERVICE)
+        if not self.display.runtime_config.factory_mode:
+            self._trigger_unit(defines.serial_service_service, defines.serial_service_enabled)
         return "_SELF_"
 
     def button5ButtonRelease(self):
@@ -120,14 +155,23 @@ class PageTools(Page):
             return "error"
         return "_SELF_"
 
-    def _trigger_unit(self, name: str):
-        state = self.systemd.GetUnitFileState(name)
-        if state == "enabled":
-            self.systemd.StopUnit(name, "replace")
-            self.systemd.DisableUnitFiles([name], False)
+    def _trigger_unit(self, service: str, enable_file: Path):
+        if enable_file.exists():
+            with FactoryMountedRW():
+                enable_file.unlink()
+            self._systemd_disable_service(service)
         else:
-            if state == "masked":
-                self.systemd.UnmaskUnitFiles([name], False)
-                self.systemd.Reload()
-            self.systemd.EnableUnitFiles([name], False, False)
-            self.systemd.StartUnit(name, "replace")
+            with FactoryMountedRW():
+                enable_file.touch()
+            self._systemd_enable_service(service)
+
+    def _systemd_enable_service(self, service: str):
+        state = self.systemd.GetUnitFileState(service)
+        if state == "masked":
+            self.systemd.UnmaskUnitFiles([service], False)
+        self.systemd.Reload()
+        self.systemd.StartUnit(service, "replace")
+
+    def _systemd_disable_service(self, service: str):
+        self.systemd.Reload()
+        self.systemd.StopUnit(service, "replace")

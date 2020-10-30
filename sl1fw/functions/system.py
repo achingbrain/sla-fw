@@ -111,8 +111,14 @@ class FactoryMountedRW:
 
     def __enter__(self):
         self.logger.info("Remounting factory partition rw")
-        subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", str(defines.factoryMountPoint)])
+        if test_runtime.testing:
+            self.logger.warning("Skipping factory RW remount due to testing")
+        else:
+            subprocess.check_call(["/usr/bin/mount", "-o", "remount,rw", str(defines.factoryMountPoint)])
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.logger.info("Remounting factory partition ro")
-        subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])
+        if test_runtime.testing:
+            self.logger.warning("Skipping factory RW remount due to testing")
+        else:
+            subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])

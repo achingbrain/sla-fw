@@ -30,6 +30,10 @@ hwConfigPath = configDir / hwConfigFileName
 hwConfigPathFactory = factoryMountPoint / "hardware.toml"
 factoryConfigPath = factoryMountPoint / "factory.toml"
 factory_enable = factoryMountPoint / "factory_mode_enabled"
+serial_service_enabled = factoryMountPoint / "serial_enabled"
+serial_service_service = "serial-getty@ttyS0.service"
+ssh_service_enabled = factoryMountPoint / "ssh_enabled"
+ssh_service_service = "sshd.socket"
 
 wizardDataFilename = "wizard_data.toml"
 wizardDataPath = configDir / wizardDataFilename

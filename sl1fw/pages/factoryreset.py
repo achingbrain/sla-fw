@@ -24,7 +24,7 @@ from sl1fw.errors.errors import (
     PrinterDataSendError,
 )
 from sl1fw.errors.exceptions import ConfigException, MotionControllerException
-from sl1fw.functions.system import shut_down, save_factory_mode, send_printer_data
+from sl1fw.functions.system import shut_down, save_factory_mode, send_printer_data, FactoryMountedRW
 from sl1fw.functions.files import ch_mode_owner
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -103,11 +103,12 @@ class PageFactoryReset(Page):
 
         # continue only in factory mode
         if not self.display.runtime_config.factory_mode:
+            self.logger.info("Factory reset shutdown")
             shut_down(self.display.hw, reboot=True)
             return None
 
         # disable factory mode
-        self.writeToFactory(self._disableFactory)
+        self._disableFactory()
 
         return self._pack_to_box(page_wait)
 
@@ -280,5 +281,13 @@ class PageFactoryReset(Page):
         return self.backButtonRelease()
 
     def _disableFactory(self):
-        if not save_factory_mode(False):
-            self.logger.error("Factory mode was not disabled!")
+        self.logger.info("Factory reset - disabling factory mode")
+        with FactoryMountedRW():
+            if defines.factory_enable.exists():
+                defines.factory_enable.unlink()
+            if defines.ssh_service_enabled.exists():
+                defines.ssh_service_enabled.unlink()
+            if defines.serial_service_enabled.exists():
+                defines.serial_service_enabled.unlink()
+            if not save_factory_mode(False):
+                self.logger.error("Factory mode was not disabled!")
