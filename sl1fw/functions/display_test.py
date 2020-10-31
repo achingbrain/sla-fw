@@ -10,7 +10,7 @@ from pathlib import Path
 from sl1fw import defines
 from sl1fw.libConfig import RuntimeConfig, HwConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 
 
 def start(hw: Hardware, screen : Screen, runtime_config: RuntimeConfig):

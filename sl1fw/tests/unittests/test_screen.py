@@ -11,7 +11,8 @@ from PIL import Image
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libConfig import HwConfig
-from sl1fw.libScreen import Area, AreaWithLabel, AreaWithLabelStripe, Calibration, Screen
+from sl1fw.screen.screen import Screen
+from sl1fw.screen.resin_calibration import Area, AreaWithLabel, AreaWithLabelStripe, Calibration
 from sl1fw.project.project import Project
 from sl1fw.states.project import ProjectErrors
 from sl1fw.utils.bounding_box import BBox

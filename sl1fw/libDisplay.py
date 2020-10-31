@@ -24,7 +24,7 @@ from sl1fw.libConfig import RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 from sl1fw.libVirtualDisplay import VirtualDisplay
 from sl1fw.pages import pages
 # TODO: Get rid of cyclic dependencies

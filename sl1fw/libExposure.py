@@ -47,7 +47,7 @@ from sl1fw.errors.exceptions import NotAvailableInState
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.project.project import Project, ProjectConfig
 from sl1fw.states.project import ProjectErrors, ProjectWarnings
@@ -404,11 +404,11 @@ class ExposureThread(threading.Thread):
 
         self.logger.info("Project after copy and check: %s", str(self.expo.project))
 
-        # start data preparation by libScreen
-        self.logger.debug("Initiating project in libScreen")
+        # start data preparation by Screen
+        self.logger.debug("Initiating project in Screen")
         self.expo.startProject()
         if self.expo.project.error != ProjectErrors.NONE:
-            self.logger.error("Initiating project in libScreen failed")
+            self.logger.error("Initiating project in Screen failed")
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.FAILURE
             raise ProjectFailed(self.expo.project.error)
 

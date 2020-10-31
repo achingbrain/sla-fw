@@ -4,7 +4,7 @@
 
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 from sl1fw.state_actions.manager import ActionManager
 from sl1fw.wizard.wizard import Wizard
 from sl1fw.wizard.wizards.calibration import CalibrationWizard

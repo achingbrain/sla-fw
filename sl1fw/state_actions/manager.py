@@ -22,7 +22,7 @@ from sl1fw.api.wizard0 import Wizard0
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.wizard import Wizard
 

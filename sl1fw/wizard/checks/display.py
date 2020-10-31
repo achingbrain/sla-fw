@@ -9,7 +9,7 @@ from sl1fw.errors.errors import DisplayTestFailed
 from sl1fw.functions import display_test
 from sl1fw.libConfig import RuntimeConfig, HwConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
 from sl1fw.wizard.checks.base import Check, WizardCheckType

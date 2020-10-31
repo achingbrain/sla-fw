@@ -12,7 +12,7 @@ from unittest.mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libHardware import Hardware
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 from sl1fw import defines
 from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation, ProjectFailed
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough

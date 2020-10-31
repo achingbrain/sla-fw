@@ -16,7 +16,7 @@ from sl1fw.api.decorators import dbus_api, auto_dbus, state_checked
 from sl1fw.functions import display_test
 from sl1fw.libConfig import RuntimeConfig, HwConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 
 
 @unique

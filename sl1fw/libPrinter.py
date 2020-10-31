@@ -42,7 +42,7 @@ from sl1fw.libHardware import Hardware
 from sl1fw.libHardware import MotConComState
 from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
-from sl1fw.libScreen import Screen
+from sl1fw.screen.screen import Screen
 from sl1fw.pages.wait import PageWait
 from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
@@ -112,7 +112,7 @@ class Printer:
         else:
             devices = [QtDisplay()]
 
-        self.logger.info("Initializing libScreen")
+        self.logger.info("Initializing Screen")
         self.screen = Screen()
 
         self.logger.info("Registering config D-Bus services")
