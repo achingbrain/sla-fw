@@ -4,8 +4,8 @@
 
 from __future__ import annotations
 
-import functools
 from pathlib import Path
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, Optional
 
 import pydbus
@@ -111,8 +111,7 @@ class PageTools(Page):
         pageWait = self.display.makeWait(self.display, line1="Downloading examples")
         pageWait.show()
         if not self.downloadExamlpes():
-            self.display.pages['error'].setParams(
-                text="Examples fetch failed")
+            self.display.pages["error"].setParams(text="Examples fetch failed")
             return "error"
         pageWait.showItems(line1="Saving dummy calibration data")
         writer = self.display.hwConfig.get_writer()
@@ -125,16 +124,16 @@ class PageTools(Page):
             writer.commit()
         except ConfigException:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text="Cannot save configuration")
+            self.display.pages["error"].setParams(text="Cannot save configuration")
             return "error"
 
-        if not self.writeToFactory(self.saveDefaultsFile):
-            self.display.pages['error'].setParams(
-                text = "!!! Failed to save factory defaults !!!")
+        try:
+            with FactoryMountedRW():
+                # saveDefaultsFile unfortunately hides all exceptions. Only the FactoryMountedRW raises exceptions.
+                self.saveDefaultsFile()
+        except CalledProcessError:
+            self.display.pages["error"].setParams(text="!!! Failed to save factory defaults !!!")
             return "error"
-        #else
-
         return "_SELF_"
 
     def button11ButtonRelease(self):
