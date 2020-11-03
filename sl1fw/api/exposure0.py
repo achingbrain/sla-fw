@@ -142,6 +142,10 @@ class Exposure0:
             self.exposure.hw.cover_state_changed.connect(lambda x: self._handle_cover_change())
         if self.exposure.hwConfig:
             self.exposure.hwConfig.add_onchange_handler(self._handle_config_change)
+        if self.exposure.project.path_changed:
+            self.exposure.project.path_changed.connect(
+                lambda _: self.PropertiesChanged(self.__INTERFACE__, {"project_file": self.project_file}, [])
+            )
 
     @auto_dbus
     @property
@@ -689,8 +693,6 @@ class Exposure0:
     @last_error
     def exposure_time_ms(self, value: int) -> None:
         self.exposure.project.exposure_time_ms = value
-        # TODO: this is temporary until we can report all changes to exposure time
-        self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_ms": self.exposure_time_ms}, [])
 
     @property
     @last_error
@@ -703,8 +705,6 @@ class Exposure0:
     @last_error
     def exposure_time_first_ms(self, value: int) -> None:
         self.exposure.project.exposure_time_first_ms = value
-        # TODO: this is temporary until we can report all changes to exposure time
-        self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_first_ms": self.exposure_time_first_ms}, [])
 
     @property
     @last_error
@@ -717,8 +717,6 @@ class Exposure0:
     @last_error
     def exposure_time_calibrate_ms(self, value: int) -> None:
         self.exposure.project.calibrate_time_ms = value
-        # TODO: this is temporary until we can report all changes to exposure time
-        self.PropertiesChanged(self.__INTERFACE__, {"exposure_time_calibrate_ms": self.exposure_time_calibrate_ms}, [])
 
     @auto_dbus
     @property
@@ -752,7 +750,7 @@ class Exposure0:
         "exposure_end": {"exposure_end"},
         "warning": {"exposure_warnings", "exposure_warning"},
         "check_results": {"checks_state"},
-        "project": {"exposure_time_ms", "exposure_time_first_ms", "exposure_time_calibrate_ms"}
+        "project": {"exposure_time_ms", "exposure_time_first_ms", "exposure_time_calibrate_ms", "calibration_regions"},
     }
 
     def _handle_change(self, key: str, _: Any):

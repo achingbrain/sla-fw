@@ -54,6 +54,7 @@ from sl1fw.states.project import ProjectErrors, ProjectWarnings
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.utils.traceable_collections import TraceableList, TraceableDict
 
+
 class ExposurePickler(pickle.Pickler):
 
     def __init__(self, file):
@@ -73,6 +74,7 @@ class ExposurePickler(pickle.Pickler):
             return "ProjectConfig"
         return None
 
+
 class ExposureUnpickler(pickle.Unpickler):
 
     def persistent_load(self, pid):
@@ -89,6 +91,7 @@ class ExposureUnpickler(pickle.Unpickler):
             projectConfig.read_file(file_path= Path(defines.lastProjectConfigFile))
             return projectConfig
         raise pickle.UnpicklingError(f'unsupported persistent object {str(pid)}')
+
 
 class ExposureThread(threading.Thread):
 
@@ -826,6 +829,10 @@ class Exposure:
             self.hw.uvLed(False)
             self.hw.stopFans()
             self.hw.motorsRelease()
+
+        # Signal project change on its parameter change. This lets Exposure0 emit
+        # property changed on properties bound to project parameters.
+        self.project.params_changed.connect(lambda: self.change.emit("project", None))
 
         self.logger.info("Created new exposure object id: %s", self.instance_id)
 

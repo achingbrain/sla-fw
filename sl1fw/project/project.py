@@ -20,6 +20,7 @@ from time import time
 
 import pprint
 from PIL import Image
+from PySignal import Signal
 
 from sl1fw import defines, test_runtime
 from sl1fw.libConfig import HwConfig
@@ -66,6 +67,7 @@ class ProjectLayer:
         elif total_height_nm < pad_thickness_nm + text_thickness_nm:
             self.calibration_type = LayerCalibrationType.LABEL_TEXT
 
+
 class Project:
     def __init__(self, hw_config: HwConfig, project_file: str):
         self.logger = logging.getLogger(__name__)
@@ -99,6 +101,8 @@ class Project:
         self._calibrate_time_ms_exact = []
         self._calibrate_regions = 0
         self._build_layers_description(self._read_toml_config())
+        self.params_changed = Signal()
+        self.path_changed = Signal()
 
     def __del__(self):
         self.data_close()
@@ -303,8 +307,10 @@ class Project:
     @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
     @exposure_time_ms.setter
     def exposure_time_ms(self, value: int) -> None:
-        self._exposure_time_ms = value
-        self._fill_layers_times()
+        if self._exposure_time_ms != value:
+            self._exposure_time_ms = value
+            self._fill_layers_times()
+            self.params_changed.emit()
 
     @property
     def exposure_time_first_ms(self) -> int:
@@ -313,8 +319,10 @@ class Project:
     @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
     @exposure_time_first_ms.setter
     def exposure_time_first_ms(self, value: int) -> None:
-        self._exposure_time_first_ms = value
-        self._fill_layers_times()
+        if self._exposure_time_first_ms != value:
+            self._exposure_time_first_ms = value
+            self._fill_layers_times()
+            self.params_changed.emit()
 
     # FIXME compatibility with api/standard0
     @property
@@ -328,8 +336,10 @@ class Project:
     @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     @calibrate_time_ms.setter
     def calibrate_time_ms(self, value: int) -> None:
-        self._calibrate_time_ms = value
-        self._fill_layers_times()
+        if self._calibrate_time_ms != value:
+            self._calibrate_time_ms = value
+            self._fill_layers_times()
+            self.params_changed.emit()
 
     # FIXME compatibility with api/standard0
     @property
@@ -344,8 +354,10 @@ class Project:
     def calibrate_regions(self, value: int) -> None:
         if value not in [0, 2, 4, 6, 8, 9, 10]:
             raise ValueError("Value %d not in [0, 2, 4, 6, 8, 9, 10]" % value)
-        self._calibrate_regions = value
-        self._fill_layers_times()
+        if self._calibrate_regions != value:
+            self._calibrate_regions = value
+            self._fill_layers_times()
+            self.params_changed.emit()
 
     @property
     def total_layers(self) -> int:
@@ -391,6 +403,7 @@ class Project:
                     # FIXME we do not need space for whole project when creating symlink
                     os.link(origin_path, new_source)
             self.path = new_source
+            self.path_changed.emit(self.path)
         except Exception:
             self.logger.exception("copyfile exception:")
             self.warnings.add(ProjectWarnings.PRINT_DIRECTLY)
