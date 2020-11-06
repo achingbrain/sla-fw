@@ -231,7 +231,6 @@ class Screen:
                     signal='Ready',
                     object='/cz/prusa3d/framebuffer1',
                     signal_fired=self._dbus_signal_handler)
-        self.blank_screen()
 
     def __del__(self):
         self._next_image_1_shm.close()
