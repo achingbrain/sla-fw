@@ -222,6 +222,7 @@ class Screen:
         temp_usage = numpy.zeros(defines.display_usage_size, dtype=numpy.float64, order='C')
         self._usage_shm = shared_memory.SharedMemory(create=True, size=temp_usage.nbytes)
         self._white_pixels = Value(c_uint32, 0)
+        self._screen = self._black_image.copy()
         if not test_runtime.testing:
             self._logger.debug("event")
             self._video_sync_event = Event()
