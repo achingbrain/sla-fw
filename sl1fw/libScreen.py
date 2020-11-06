@@ -7,7 +7,7 @@ import logging
 from multiprocessing import Process, shared_memory, Value, Lock
 from threading import Event
 import os
-from time import time
+from time import monotonic, time
 from typing import Optional
 
 from ctypes import c_uint32
@@ -244,10 +244,30 @@ class Screen:
         # pylint: disable=unused-argument
         self._video_sync_event.set()
 
+    @staticmethod
+    def _check_fb_service():
+        name = "weston-framebuffer.service"
+        if test_runtime.testing:
+            return "Running inside a test environment."
+        try:
+            unit = SystemBus().get(".systemd1", SystemBus().get(".systemd1").GetUnit(name))
+            state = "Unit {0} is {1}/{2}/{3}".format(name, unit.ActiveState, unit.SubState, unit.Result)
+            if unit.ActiveState == "active" and unit.SubState == "running":
+                running_for = monotonic() - unit.ExecMainStartTimestampMonotonic/1E6
+                state += " and has been running for {0} s.".format(running_for)
+            return state
+        except Exception as e:
+            return "Failed to read state of {}. ({})".format(name, e)
+
     def _writefb(self):
-        # open fbFile for write without truncation (conv=notrunc equivalent in dd)
-        with os.fdopen(os.open(defines.fbFile, os.O_RDWR), 'rb+') as fb:
-            fb.write(self._screen.convert("RGBX").tobytes())
+        try:
+            # open fbFile for write without truncation (conv=notrunc equivalent in dd)
+            with open(defines.fbFile, 'rb+') as fb:
+                fb.write(self._screen.convert("RGBX").tobytes())
+        except FileNotFoundError as e:
+            service_state = self._check_fb_service()
+            self._logger.error("framebuffer is not available (yet): %s; %s", e, service_state)
+            raise PreloadFailed() from e
         if not test_runtime.testing:
             self._logger.debug("waiting for video sync event")
             start_time = time()
