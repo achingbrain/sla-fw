@@ -56,8 +56,8 @@ class PrintMaskNotAvaiable(ExposureWarning):
     pass
 
 
-@with_code(Sl1Codes.OBJECT_TRUNCATED_WARNING)
-class PrintedObjectWasTruncated(ExposureWarning):
+@with_code(Sl1Codes.OBJECT_CROPPED_WARNING)
+class PrintedObjectWasCropped(ExposureWarning):
     pass
 
 

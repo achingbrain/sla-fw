@@ -21,7 +21,7 @@ class ProjectWarnings(Enum):
     ALTERED_VALUES = 2
     PER_PARTES_NOAVAIL = 3
     MASK_NOAVAIL = 4
-    TRUNCATED = 5
+    CROPPED = 5
 
 @unique
 class LayerCalibrationType(Enum):

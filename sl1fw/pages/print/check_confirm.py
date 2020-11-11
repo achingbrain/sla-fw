@@ -14,7 +14,7 @@ from sl1fw.errors.warnings import (
     ProjectSettingsModified,
     PerPartesPrintNotAvaiable,
     PrintMaskNotAvaiable,
-    PrintedObjectWasTruncated,
+    PrintedObjectWasCropped,
 )
 from sl1fw.pages import page
 from sl1fw.pages.print.base import PagePrintBase
@@ -118,9 +118,9 @@ class PageCheckConfirm(PagePrintBase):
             )
             return "confirm"
 
-        if isinstance(warning, PrintedObjectWasTruncated):
+        if isinstance(warning, PrintedObjectWasCropped):
             self.display.pages["confirm"].setParams(
-                continueFce=self.confirm_print, backFce=self.cancel_print, text=_("Printed object was truncated"),
+                continueFce=self.confirm_print, backFce=self.cancel_print, text=_("Printed object was cropped"),
             )
             return "confirm"
 

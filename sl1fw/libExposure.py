@@ -42,7 +42,7 @@ from sl1fw.errors.errors import ExposureError, TiltFailed, TowerFailed, TowerMov
     TempSensorFailed, FanFailed, ResinFailed, ResinTooLow, ResinTooHigh, WarningEscalation
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
     ModelMismatch, ResinNotEnough, ProjectSettingsModified, PerPartesPrintNotAvaiable, \
-    PrintMaskNotAvaiable, PrintedObjectWasTruncated
+    PrintMaskNotAvaiable, PrintedObjectWasCropped
 from sl1fw.errors.exceptions import NotAvailableInState
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
@@ -423,8 +423,8 @@ class ExposureThread(threading.Thread):
                 self._raise_preprint_warning(PerPartesPrintNotAvaiable())
             if ProjectWarnings.MASK_NOAVAIL in self.expo.project.warnings:
                 self._raise_preprint_warning(PrintMaskNotAvaiable())
-            if ProjectWarnings.TRUNCATED in self.expo.project.warnings:
-                self._raise_preprint_warning(PrintedObjectWasTruncated())
+            if ProjectWarnings.CROPPED in self.expo.project.warnings:
+                self._raise_preprint_warning(PrintedObjectWasCropped())
 
         if self.expo.check_results[ExposureCheck.PROJECT] != ExposureCheckResult.WARNING:
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.SUCCESS

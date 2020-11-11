@@ -172,7 +172,7 @@ class Calibration:
         if new_size != orig_size:
             self._logger.warning("project size %dx%d was reduced to %dx%d to fit area size %dx%d",
                     orig_size[0], orig_size[1], new_size[0], new_size[1], area_size[0], area_size[1])
-            project.warnings.add(ProjectWarnings.TRUNCATED)
+            project.warnings.add(ProjectWarnings.CROPPED)
             first_layer_bbox = project.layers[0].bbox
             orig_size = first_layer_bbox.size
             first_layer_bbox.crop(project.bbox)
