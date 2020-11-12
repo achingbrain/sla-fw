@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import re
-import select
 import subprocess
 from pathlib import Path
 from typing import List, Dict, TYPE_CHECKING, Any, Optional
@@ -891,24 +890,22 @@ class Printer0:
 
     @auto_dbus
     def add_usb(self) -> None:
-        with open("/proc/mounts", "r") as file:
-            try:
-                select.select([], [], [file], 5.0)
-                self.PropertiesChanged(self.__INTERFACE__, {"usb_path": self.usb_path}, [])
-                path = get_save_path()
-                if path:
-                    projects = path.glob("**/*.sl1")
-                    newest_proj = sorted(projects, key=lambda proj: proj.stat().st_mtime).pop()
-                    last_exposure = self.printer.action_manager.exposure
-                    if last_exposure:
-                        last_exposure.try_cancel()
-                    self.print(str(newest_proj), False)
-            except NotUVCalibrated:
-                self.printer.display.forcePage("uvcalibrationstart")
-            except NotMechanicallyCalibrated:
-                self.printer.display.forcePage("calibrationstart")
-            except Exception:
-                pass
+        try:
+            self.PropertiesChanged(self.__INTERFACE__, {"usb_path": self.usb_path}, [])
+            path = get_save_path()
+            if path:
+                projects = path.glob("**/*.sl1")
+                newest_proj = sorted(projects, key=lambda proj: proj.stat().st_mtime).pop()
+                last_exposure = self.printer.action_manager.exposure
+                if last_exposure:
+                    last_exposure.try_cancel()
+                self.print(str(newest_proj), False)
+        except NotUVCalibrated:
+            self.printer.display.forcePage("uvcalibrationstart")
+        except NotMechanicallyCalibrated:
+            self.printer.display.forcePage("calibrationstart")
+        except Exception:
+            pass
 
     @auto_dbus
     def remove_usb(self) -> None:
