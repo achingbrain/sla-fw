@@ -91,6 +91,7 @@ defines.uvCalibDataPath = str(Path(defines.ramdiskPath) / defines.uvCalibDataFil
 defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
 defines.loggingConfig = TEMP_DIR / "logging_config.json"
 defines.last_job = Path(defines.ramdiskPath) / "last_job"
+defines.last_log_token = Path(defines.ramdiskPath) / "last_log_token"
 defines.printer_summary = Path(defines.ramdiskPath) / "printer_summary"
 defines.firmwareListTemp = str(Path(defines.ramdiskPath) / "updates.json")
 defines.slicerProfilesFile = str(Path(defines.ramdiskPath) / "slicer_profiles.toml")

@@ -3,20 +3,36 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sl1fw.pages import page
-from sl1fw.states.display import DisplayState
-from sl1fw.pages.base import Page
+# TODO: Fix following pylint problems
+# pylint: disable=no-else-return
+# pylint: disable=too-many-instance-attributes
 
+from sl1fw.pages import page
+from sl1fw.pages.base import Page
+from sl1fw.states.display import DisplayState
 
 @page
-class PageUvDispSettings(Page):
-    Name = "uvdispsettings"
+class CalibrationSubMenu(Page):
+    Name = "calibrationSubMenu"
 
     def __init__(self, display):
-        super(PageUvDispSettings, self).__init__(display)
-        self.pageUI = "uvdispsettings"
+        super(CalibrationSubMenu, self).__init__(display)
+        self.pageUI = "calibrationSubMenu"
     #enddef
 
+    # Show wizard
+    def wizardButtonRelease(self): # pylint: disable=no-self-use
+        return "wizardinit"
+    #enddef
+
+    @staticmethod
+    def uvcalibrationButtonRelease():
+        return "uvcalibration"
+    #enddef
+
+    @staticmethod
+    def calibrationButtonRelease():
+        return "calibration1"
 
     def displaytestButtonRelease(self):
         self.display.state = DisplayState.DISPLAY_TEST
@@ -38,14 +54,8 @@ class PageUvDispSettings(Page):
         return "confirm"
     #enddef
 
-
     @staticmethod
     def displaytest():
         return "displaytest"
-    #endif
 
-    @staticmethod
-    def uvcalibrationButtonRelease():
-        return "uvcalibration"
-    #enddef
 #endclass

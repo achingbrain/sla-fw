@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import select
+import subprocess
 from pathlib import Path
 from typing import List, Dict, TYPE_CHECKING, Any, Optional
 
@@ -35,7 +36,7 @@ from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
-from sl1fw.errors.exceptions import ReprintWithoutHistory
+from sl1fw.errors.exceptions import ReprintWithoutHistory, ConfigException
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import TomlConfigStats, TomlConfig
@@ -167,7 +168,23 @@ class Printer0:
     @auto_dbus
     @property
     def http_digest(self) -> bool:
-        return TomlConfig(defines.remoteConfig).load().get("htdigest", True)
+        return TomlConfig(defines.remoteConfig).load().get("http_digest", True)
+
+    @auto_dbus
+    @http_digest.setter
+    @last_error
+    def http_digest(self, enabled: bool) -> None:
+        remoteConfig = TomlConfig(defines.remoteConfig)
+        newData = remoteConfig.load()
+        newData['http_digest'] = enabled
+        if not remoteConfig.save(data=newData):
+            raise ConfigException("Octoprint API key change failed")
+        if enabled:
+            subprocess.check_call([defines.htDigestCommand, "enable"])
+        else:
+            subprocess.check_call([defines.htDigestCommand, "disable"])
+        self.PropertiesChanged(self.__INTERFACE__, {"http_digest": enabled}, [])
+
 
     @auto_dbus
     @last_error
@@ -499,8 +516,15 @@ class Printer0:
 
         :return: Current api key string
         """
-        # TODO: emit changes
         return self.printer.get_actual_page().octoprintAuth
+
+    @auto_dbus
+    @api_key.setter
+    @last_error
+    def api_key(self, apikey:str) -> None:
+        if apikey != self.printer.get_actual_page().octoprintAuth:
+            subprocess.check_call(["/bin/api-keygen.sh", apikey])
+            self.PropertiesChanged(self.__INTERFACE__, {"api_key": apikey}, [])
 
     @auto_dbus
     @property

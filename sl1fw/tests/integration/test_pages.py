@@ -37,68 +37,25 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         self.test_turnoff()
 
-    def test_support(self):
+    def test_settings(self):
         self.switchPage("settings")
-        self.switchPage("support")
-
-        for page in ["manual", "videos", "sysinfo", "about"]:
-            self.switchPage(page)
-            self.press("back")
-            self.waitPage("support")
-
-        self.press("back")
-        self.waitPage("settings")
-
-        self.press("back")
-        self.waitPage("home")
-
-        self.test_turnoff()
-
-    def test_advancedsettings(self):
-        self.switchPage("settings")
-        self.switchPage("advancedsettings")
-
-        # Test moves
-        for page in ["towermove", "tiltmove"]:
-            self.switchPage(page)
-
-            for action in ["upfast", "upslow", "downfast", "downslow"]:
-                self.press(action)
-
-            self.press("back")
-            self.waitPage("advancedsettings")
-
-        # Test language settings
-        self.switchPage("setlanguage")
-        # TODO: Implement and try changing language
-        self.press("back")
-        self.waitPage("advancedsettings")
 
         # Test hostname settings
         self.switchPage("sethostname")
         # Try changning hostname
         self.press("back")
-        self.waitPage("advancedsettings")
-
-        # Test login credentials settings
-        self.press("setremoteaccess")
-        self.waitPage("setlogincredentials")
-        self.press("back")
-        self.waitPage("advancedsettings")
+        self.waitPage("settings")
 
         # TODO: Test changing settings
 
-        # Test display & UV settings
-        self.press("uvdispsettings")
-        self.waitPage("uvdispsettings")  # Enter into UV submenu
+        # Calibration
+        self.press("calibrationSubMenu")
+        self.waitPage("calibrationSubMenu")
         self.press("back")
-        self.waitPage("advancedsettings")
+        self.waitPage("settings")
 
         # Test firmware update
         self.switchPage("firmwareupdate")
-        self.press("back")
-        self.waitPage("advancedsettings")
-
         self.press("back")
         self.waitPage("settings")
 
@@ -110,8 +67,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_display_passing(self):
         self.printer.hwConfig.coverCheck = False
         self.switchPage("settings")
-        self.switchPage("advancedsettings")
-        self.switchPage("uvdispsettings")
+        self.switchPage("calibrationSubMenu")
 
         self.press("displaytest")
         self.waitPage("confirm")  # Please unscrew and remove ...
@@ -120,13 +76,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("cont")
         self.waitPage("yesno")  # Can you see company logo...
         self.press("yes")
-        self.waitPage("uvdispsettings")
+        self.waitPage("calibrationSubMenu")
 
     def test_display_failing(self):
         self.printer.hwConfig.coverCheck = False
         self.switchPage("settings")
-        self.switchPage("advancedsettings")
-        self.switchPage("uvdispsettings")
+        self.switchPage("calibrationSubMenu")
 
         self.press("displaytest")
         self.waitPage("confirm")  # Please unscrew and remove ...
@@ -137,26 +92,24 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.press("no")
         self.waitPage("error")  # No logo, contact service
         self.press("ok")
-        self.waitPage("uvdispsettings")
+        self.waitPage("calibrationSubMenu")
 
     def uv_calibration_enter_exit(self):
         self.printer.hwConfig.coverCheck = False
         self.switchPage("settings")
-        self.switchPage("advancedsettings")
-        self.switchPage("uvdispsettings")
+        self.switchPage("calibrationSubMenu")
 
         self.press("uvcalibration")
         self.waitPage("confirm")  # Welcome to UV calibration ...
         self.press("back")
         self.waitPage("yesno")  # Cancel calibration? ...
         self.press("yes")
-        self.waitPage("uvdispsettings")
+        self.waitPage("calibrationSubMenu")
 
     def test_uv_calibration_no_uvmeter(self):
         self.printer.hwConfig.coverCheck = False
         self.switchPage("settings")
-        self.switchPage("advancedsettings")
-        self.switchPage("uvdispsettings")
+        self.switchPage("calibrationSubMenu")
 
         with patch("sl1fw.test_runtime.test_uvmeter_present", False):
             self.printer.hwConfig.coverCheck = False
@@ -175,14 +128,13 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("wait")  # Waiting for UV meter
             self.waitPage("error")  # No UV meter connected
             self.press("ok")
-            self.waitPage("uvdispsettings")
+            self.waitPage("calibrationSubMenu")
 
     def test_uv_calibration_pass(self):
         with patch("sl1fw.test_runtime.test_fan_error_override", True):
             self.printer.hwConfig.coverCheck = False
             self.switchPage("settings")
-            self.switchPage("advancedsettings")
-            self.switchPage("uvdispsettings")
+            self.switchPage("calibrationSubMenu")
 
             self.printer.hwConfig.coverCheck = False
             self.press("uvcalibration")
@@ -202,7 +154,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("wait")  # Waiting for UV meter
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
             self.press("no")
-            self.waitPage("uvdispsettings")
+            self.waitPage("calibrationSubMenu")
 
             self.test_turnoff()
 
@@ -210,8 +162,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         with patch("sl1fw.test_runtime.test_fan_error_override", True):
             self.printer.hwConfig.coverCheck = False
             self.switchPage("settings")
-            self.switchPage("advancedsettings")
-            self.switchPage("uvdispsettings")
+            self.switchPage("calibrationSubMenu")
 
             self.printer.hwConfig.coverCheck = False
             self.press("uvcalibration")
@@ -231,7 +182,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("wait")  # Waiting for UV meter
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
             self.press("no")
-            self.waitPage("uvdispsettings")
+            self.waitPage("calibrationSubMenu")
 
             self.test_turnoff()
 
@@ -239,8 +190,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         with patch("sl1fw.test_runtime.test_fan_error_override", True), patch("sl1fw.test_runtime.uv_error_each", 3):
             self.printer.hwConfig.coverCheck = False
             self.switchPage("settings")
-            self.switchPage("advancedsettings")
-            self.switchPage("uvdispsettings")
+            self.switchPage("calibrationSubMenu")
 
             self.printer.hwConfig.coverCheck = False
             self.press("uvcalibration")
@@ -258,7 +208,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("wait")  # Waiting for UV meter
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
             self.press("no")
-            self.waitPage("uvdispsettings")
+            self.waitPage("calibrationSubMenu")
 
             self.test_turnoff()
 
@@ -268,7 +218,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.printer.hw.boardData = ("TEST complete", False)
         self.printer.runtime_config.factory_mode = True
         self.switchPage("settings")
-        self.switchPage("advancedsettings")
+        self.switchPage("firmwareupdate")
         self.press("factoryreset")
         # confirm
         self.waitPage("yesno")
@@ -283,7 +233,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.printer.hw.boardData = ("TEST kit", True)
         self.printer.runtime_config.factory_mode = True
         self.switchPage("settings")
-        self.switchPage("advancedsettings")
+        self.switchPage("firmwareupdate")
         self.press("factoryreset")
         self.waitPage("yesno") # confirm
         self.press("yes")
@@ -295,7 +245,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.printer.hw.boardData = ("TEST complete", False)
         self.printer.runtime_config.factory_mode = False
         self.switchPage("settings")
-        self.switchPage("advancedsettings")
+        self.switchPage("firmwareupdate")
         self.press("factoryreset")
         self.waitPage("yesno") # erase projects?
         self.press("no")
@@ -309,7 +259,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.printer.hw.boardData = ("TEST kit", True)
         self.printer.runtime_config.factory_mode = False
         self.switchPage("settings")
-        self.switchPage("advancedsettings")
+        self.switchPage("firmwareupdate")
         self.press("factoryreset")
         self.waitPage("yesno") # erase projects?
         self.press("no")
@@ -391,7 +341,8 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.printer.hwConfig.coverCheck = False
 
         self.switchPage("settings")
-        self.press("recalibration")
+        self.switchPage("calibrationSubMenu")
+        self.press("calibration")
         self.waitPage("confirm")  # If platform is not yet inserted ...
         self.press("cont")
         self.waitPage("wait")  # Printer homing
@@ -423,6 +374,8 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.waitPage("confirm", timeout_sec=120)  # Calibration done
         self.press("cont")
 
+        self.waitPage("calibrationSubMenu")
+        self.press("back")
         self.waitPage("settings")
         self.press("back")
         self.waitPage("home")

@@ -77,6 +77,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.lastProjectPickler = self._change_dir(defines.lastProjectPickler)
 
         defines.last_job = Path(defines.ramdiskPath) / "last_job"
+        defines.last_log_token = Path(defines.ramdiskPath) / "last_log_token"
 
         # factory reset
         defines.apikeyFile = str(self.API_KEY_FILE)

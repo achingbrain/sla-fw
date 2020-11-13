@@ -132,6 +132,10 @@ class Logs0:
         return self._exporter.log_upload_identifier
 
     @auto_dbus
+    def last_log_upload_identifier(self) -> str: # pylint: disable=no-self-use
+        return LogsExport.last_log_upload_identifier()
+
+    @auto_dbus
     @property
     def log_upload_url(self) -> str:
         if not self._exporter or not self._exporter.log_upload_url:

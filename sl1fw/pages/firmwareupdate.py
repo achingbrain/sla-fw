@@ -117,3 +117,22 @@ class PageFirmwareUpdate(Page):
             self.logger.error("Rauc update failed: %s", str(e))
             self.display.pages["error"].setParams(text=_("Update failed!"))
             return "error"
+
+    def _eraseProjectsYes(self):
+        self.display.pages["factoryreset"].eraseProjects = True
+        return "factoryreset"
+
+    def _eraseProjectsNo(self):
+        self.display.pages["factoryreset"].eraseProjects = False
+        return "factoryreset"
+
+    # Factory reset
+    def factoryresetButtonRelease(self): # pylint: disable=no-self-use
+        if self.display.runtime_config.factory_mode:
+            return self._eraseProjectsNo()
+        self.display.pages["yesno"].setParams(pageTitle=_("Erase projects?"),
+            text=_("Do you want to erase all projects on Internal storage?\nProjects will be erased during the Factory reset."),
+            yesFce=self._eraseProjectsYes,
+            noFce=self._eraseProjectsNo)
+        return "yesno"
+    #enddef

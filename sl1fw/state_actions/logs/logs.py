@@ -105,6 +105,16 @@ class LogsExport(ABC, Thread):
         if self._uploaded_log_identifier != value:
             self._uploaded_log_identifier = value
             self.uploaded_log_identifier_changed.emit(value)
+            with defines.last_log_token.open("w") as f:
+                f.write(str(value))
+
+    @staticmethod
+    def last_log_upload_identifier() -> str:
+        try:
+            with defines.last_log_token.open("r") as f:
+                return f.read()
+        except FileNotFoundError:
+            return ""
 
     @property
     def log_upload_url(self) -> str:
