@@ -67,7 +67,6 @@ defines.templates = str(SL1FW_DIR / "intranet" / "templates")
 test_runtime.testing = True
 test_runtime.hard_exceptions = False
 defines.truePoweroff = False
-defines.fbFile = "/dev/null"
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
 defines.cpuTempFile = str(SAMPLES_DIR / "cputemp")
 defines.multimediaRootPath = str(SL1FW_DIR / "multimedia")
@@ -116,7 +115,8 @@ class Virtual:
             "sl1fw.libUvLedMeterMulti.serial", sl1fw.tests.mocks.mc_port
         ), patch("sl1fw.motion_controller.controller.UInput", Mock()), patch(
             "sl1fw.motion_controller.controller.gpio", Mock()
-        ), patch("sl1fw.functions.files.get_save_path", self.fake_save_path):
+        ), patch("sl1fw.functions.files.get_save_path", self.fake_save_path), patch(
+            "sl1fw.screen.screen.Wayland", Mock()):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
             print("Publishing Rauc mock")

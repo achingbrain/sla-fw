@@ -25,7 +25,6 @@ from sl1fw.tests.mocks.display import TestDisplay
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
-    FB_DEV_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.fb_dev.dat"
     HARDWARE_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.hardware.cfg"
     SDL_AUDIO_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw"
     API_KEY_FILE = Sl1fwTestCase.TEMP_DIR / "api.key"
@@ -48,9 +47,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.temp_dir_project = TemporaryDirectory()
         self.temp_dir_wizard_history = TemporaryDirectory()
 
-        with open(self.FB_DEV_FILE, 'wb') as fb:
-            fb.truncate(4 * defines.screenWidth * defines.screenHeight)
-
         defines.wizardHistoryPath = self.temp_dir_wizard_history.name
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
@@ -59,7 +55,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigPath = self.HARDWARE_FILE
-        defines.fbFile = str(self.FB_DEV_FILE)
         defines.truePoweroff = False
         defines.internalProjectPath = str(self.SAMPLES_DIR)
         defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
@@ -136,7 +131,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         files = [
             self.EEPROM_FILE,
-            self.FB_DEV_FILE,
             self.HARDWARE_FILE,
             self.SDL_AUDIO_FILE,
             self.API_KEY_FILE,

@@ -35,7 +35,7 @@ sys.modules["gpio"] = Mock()
 sys.modules["serial"] = sl1fw.tests.mocks.mc_port
 sys.modules["serial.tools.list_ports"] = Mock()
 sys.modules["evdev"] = Mock()
-
+sys.modules["sl1fw.screen.wayland"] = Mock()
 
 class Sl1fwTestCase(DBusTestCase):
     SL1FW_DIR = Path(sl1fw.__file__).parent

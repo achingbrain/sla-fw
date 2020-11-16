@@ -8,6 +8,7 @@ Type=dbus
 BusName=cz.prusa3d.sl1.printer0
 ExecStartPre=/usr/bin/sh -c "/usr/bin/echo 0 > /sys/class/vtconsole/vtcon1/bind"
 Environment=PYTHONUNBUFFERED=1
+Environment=XDG_RUNTIME_DIR=/run/user/0
 ExecStart=/usr/bin/main.py
 Restart=always
 RestartSec=3

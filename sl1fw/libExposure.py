@@ -384,6 +384,7 @@ class ExposureThread(threading.Thread):
         self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.RUNNING
 
         # Raise warning when model or variant does not match the printer
+        # TODO should be an error? (different display resolution and/or dpi)
         if self.expo.project.printer_model != defines.slicerPrinterModel or\
                 self.expo.project.printer_variant != defines.slicerPrinterVariant:
             self._raise_preprint_warning(

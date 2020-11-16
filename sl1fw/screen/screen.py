@@ -1,26 +1,26 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
-# Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
 from multiprocessing import Process, shared_memory, Value, Lock
-from threading import Event
 import os
-from time import monotonic, time
+from time import time
 from typing import Optional
 
 from ctypes import c_uint32
 import numpy
 from PIL import Image, ImageOps
-from pydbus import SystemBus
 
-from sl1fw import defines, test_runtime
+from sl1fw import defines
 from sl1fw.errors.errors import PreloadFailed
 from sl1fw.project.project import Project
 from sl1fw.states.project import ProjectErrors, ProjectWarnings
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.screen.resin_calibration import Calibration
+from sl1fw.screen.wayland import Wayland
 
 
 class Screen:
@@ -31,6 +31,7 @@ class Screen:
         self._black_image = Image.new("L", defines.screen_size)
         self._overlays = {}
         self._calibration: Optional[Calibration] = None
+        self._output = None
         self._screen = None
         self._preloader: Optional[Process] = None
         self._last_preload_index: Optional[int] = None
@@ -40,16 +41,8 @@ class Screen:
         temp_usage = numpy.zeros(defines.display_usage_size, dtype=numpy.float64, order='C')
         self._usage_shm = shared_memory.SharedMemory(create=True, size=temp_usage.nbytes)
         self._white_pixels = Value(c_uint32, 0)
+        self._output = Wayland()    # may throw exception
         self._screen = self._black_image.copy()
-        if not test_runtime.testing:
-            self._logger.debug("event")
-            self._video_sync_event = Event()
-            self._logger.debug("connect")
-            SystemBus().subscribe(
-                    iface='cz.prusa3d.framebuffer1.Frame',
-                    signal='Ready',
-                    object='/cz/prusa3d/framebuffer1',
-                    signal_fired=self._dbus_signal_handler)
 
     def __del__(self):
         self._next_image_1_shm.close()
@@ -58,44 +51,8 @@ class Screen:
         self._next_image_2_shm.unlink()
         self._usage_shm.close()
         self._usage_shm.unlink()
-
-    def _dbus_signal_handler(self, *args):
-        # pylint: disable=unused-argument
-        self._video_sync_event.set()
-
-    @staticmethod
-    def _check_fb_service():
-        name = "weston-framebuffer.service"
-        if test_runtime.testing:
-            return "Running inside a test environment."
-        try:
-            unit = SystemBus().get(".systemd1", SystemBus().get(".systemd1").GetUnit(name))
-            state = "Unit {0} is {1}/{2}/{3}".format(name, unit.ActiveState, unit.SubState, unit.Result)
-            if unit.ActiveState == "active" and unit.SubState == "running":
-                running_for = monotonic() - unit.ExecMainStartTimestampMonotonic/1E6
-                state += " and has been running for {0} s.".format(running_for)
-            return state
-        except Exception as e:
-            return "Failed to read state of {}. ({})".format(name, e)
-
-    def _writefb(self):
-        try:
-            # open fbFile for write without truncation (conv=notrunc equivalent in dd)
-            with open(defines.fbFile, 'rb+') as fb:
-                fb.write(self._screen.convert("RGBX").tobytes())
-        except FileNotFoundError as e:
-            service_state = self._check_fb_service()
-            self._logger.error("framebuffer is not available (yet): %s; %s", e, service_state)
-            raise PreloadFailed() from e
-        if not test_runtime.testing:
-            self._logger.debug("waiting for video sync event")
-            start_time = time()
-            if not self._video_sync_event.wait(timeout=2):
-                self._logger.error("video sync event timeout")
-                # TODO this shouldn't happen, need better handling if yes
-                raise PreloadFailed()
-            self._video_sync_event.clear()
-            self._logger.debug("video sync done in %f secs", time() - start_time)
+        if self._output:
+            self._output.stop()
 
     def _open_image(self, filename):
         self._logger.debug("loading '%s'", filename)
@@ -137,20 +94,20 @@ class Screen:
 
     def blank_screen(self):
         self._screen = self._black_image.copy()
-        self._writefb()
+        self._output.show(self._screen)
 
     def fill_area(self, area_index, color=0):
         if self._calibration and area_index < len(self._calibration.areas):
             self._logger.debug("fill area %d", area_index)
             self._screen.paste(color, self._calibration.areas[area_index].coords)
-            self._writefb()
+            self._output.show(self._screen)
             self._logger.debug("fill area end")
 
     def show_image(self, filename):
         self._logger.debug("show of %s started", filename)
         start_time = time()
         self._screen = self._open_image(filename)
-        self._writefb()
+        self._output.show(self._screen)
         self._logger.debug("show of %s done in %f secs", filename, time() - start_time)
 
     def preload_image(self, layer_index: int, second=False):
@@ -235,7 +192,7 @@ class Screen:
         self._logger.debug("blit started")
         source_shm = self._next_image_2_shm if second else self._next_image_1_shm
         self._screen = Image.frombuffer("L", defines.screen_size, source_shm.buf, "raw", "L", 0, 1).copy()
-        self._writefb()
+        self._output.show(self._screen)
         self._logger.debug("get result and blit done in %f secs", time() - start_time)
         return self._white_pixels.value
 
@@ -252,7 +209,7 @@ class Screen:
         self._logger.debug("inverse started")
         start_time = time()
         self._screen = ImageOps.invert(self._screen)
-        self._writefb()
+        self._output.show(self._screen)
         self._logger.debug("inverse done in %f secs", time() - start_time)
 
     def save_display_usage(self):
@@ -274,3 +231,14 @@ class Screen:
     @property
     def is_screen_blank(self) -> bool:
         return get_white_pixels(self._screen) == 0
+
+    @property
+    def screen(self):
+        "read only"
+        return self._screen
+
+    @property
+    def printer_model(self):
+        if self._output:
+            return self._output.printer_model
+        return None
