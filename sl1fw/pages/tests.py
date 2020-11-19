@@ -2,6 +2,7 @@
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -27,6 +28,8 @@ class PageTests(Page):
                 "button3": "Tower sensitivity",
                 "button4": "Infinite UV meter test",
                 "button6": "Infinite test",
+                "button13": "Error - nocode",
+                "button14": "Error - code",
                 "button15": "Raise exception",
             }
         )
@@ -80,6 +83,27 @@ class PageTests(Page):
     def button6ButtonRelease(self):
         self.display.hw.saveUvStatistics()
         return PageInfiniteTest.Name
+
+    def button13ButtonRelease(self):
+        self.display.pages["error"].setParams(
+            text=_(
+                "Tower home check failed!\n\n"
+                "Please contact tech support!\n\n"
+                "Tower profiles need to be changed."
+            )
+        )
+        return "error"
+
+    def button14ButtonRelease(self):
+        self.display.pages["error"].setParams(
+            code=Sl1Codes.UNKNOWN.raw_code,
+            text=_(
+                "Tower home check failed!\n\n"
+                "Please contact tech support!\n\n"
+                "Tower profiles need to be changed."
+            )
+        )
+        return "error"
 
     @staticmethod
     def button15ButtonRelease():
