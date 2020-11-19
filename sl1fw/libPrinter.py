@@ -24,13 +24,14 @@ import pydbus
 from PySignal import Signal
 from gi.repository import GLib
 from pydbus import SystemBus
+
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.api.logs0 import Logs0
-from sl1fw.errors.exceptions import ConfigException, get_exception_code
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
 from sl1fw.functions.files import save_all_remain_wizard_history
 from sl1fw.functions.miscellaneous import toBase32hex
@@ -270,12 +271,6 @@ class Printer:
             if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("Printer run() init failed")
-            # TODO: following code is ignored, frontend handles exceptions via API
-            code = get_exception_code(exception)
-            message = getattr(exception, "MESSAGE") if hasattr(exception, "MESSAGE") else Sl1Codes.UNKNOWN.message
-            self.display.pages["exception"].setParams(
-                text=_("Error code: %(code)s\n\n%(message)s") % {'code': code, 'message': message})
-            self.display.doMenu("exception")
 
         try:
             self.exited.clear()
@@ -289,12 +284,6 @@ class Printer:
             if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("run() exception:")
-            # TODO: following code is ignored, frontend handles exceptions via API
-            code = get_exception_code(exception)
-            message = getattr(exception, "MESSAGE") if hasattr(exception, "MESSAGE") else Sl1Codes.UNKNOWN.message
-            self.display.pages["exception"].setParams(
-                text=_("Error code: %(code)s\n\n%(message)s") % {'code': code, 'message': message})
-            self.display.doMenu("exception")
 
         if self.action_manager.exposure and self.action_manager.exposure.in_progress:
             self.action_manager.exposure.waitDone()

@@ -39,17 +39,12 @@ builtins.N_ = lambda x: x
 
 warnings.simplefilter("ignore")
 
-
-def event_thread():
-    logger.info("Starting printer event loop")
-    GLib.MainLoop().run()
-    logger.info("Printer event loop exited")
-
-
-Thread(target=event_thread, daemon=True).start()
 printer = libPrinter.Printer()
 SystemBus().publish(Printer0.__INTERFACE__, Printer0(printer))
 SystemBus().publish(Standard0.__INTERFACE__, Standard0(printer))
 admin_manager = AdminManager()
 SystemBus().publish(Admin0.__INTERFACE__, Admin0(admin_manager, printer))
-printer.run()
+Thread(target=printer.run, daemon=False).start()
+
+logger.info("Running DBus event loop")
+GLib.MainLoop().run()

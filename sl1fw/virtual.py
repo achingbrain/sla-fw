@@ -115,8 +115,11 @@ class Virtual:
             "sl1fw.libUvLedMeterMulti.serial", sl1fw.tests.mocks.mc_port
         ), patch("sl1fw.motion_controller.controller.UInput", Mock()), patch(
             "sl1fw.motion_controller.controller.gpio", Mock()
-        ), patch("sl1fw.functions.files.get_save_path", self.fake_save_path), patch(
-            "sl1fw.screen.screen.Wayland", Mock()):
+        ), patch(
+            "sl1fw.functions.files.get_save_path", self.fake_save_path
+        ), patch(
+            "sl1fw.screen.screen.Wayland", Mock()
+        ):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
             print("Publishing Rauc mock")
@@ -124,7 +127,6 @@ class Virtual:
 
             print("Running glib mainloop")
             self.glib_loop = GLib.MainLoop()
-            Thread(target=self.glib_loop.run, daemon=True).start()
 
             print("Initializing printer")
             self.printer = libPrinter.Printer()
@@ -141,7 +143,8 @@ class Virtual:
             self.admin_manager = AdminManager()
             self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
             print("Running printer")
-            self.printer.run()
+            Thread(target=self.printer.run, daemon=False).start()
+            self.glib_loop.run()
 
             print("Unpublishing Rauc mock")
             self.rauc_mocks.unpublish()
