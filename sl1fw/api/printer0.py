@@ -30,7 +30,7 @@ from sl1fw.api.decorators import (
     DBusObjectPath,
     wrap_exception,
     last_error,
-    wrap_dict_data
+    wrap_dict_data,
 )
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
@@ -174,17 +174,16 @@ class Printer0:
     @http_digest.setter
     @last_error
     def http_digest(self, enabled: bool) -> None:
-        remoteConfig = TomlConfig(defines.remoteConfig)
-        newData = remoteConfig.load()
-        newData['http_digest'] = enabled
-        if not remoteConfig.save(data=newData):
+        remote_config = TomlConfig(defines.remoteConfig)
+        new_data = remote_config.load()
+        new_data["http_digest"] = enabled
+        if not remote_config.save(data=new_data):
             raise ConfigException("Octoprint API key change failed")
         if enabled:
             subprocess.check_call([defines.htDigestCommand, "enable"])
         else:
             subprocess.check_call([defines.htDigestCommand, "disable"])
         self.PropertiesChanged(self.__INTERFACE__, {"http_digest": enabled}, [])
-
 
     @auto_dbus
     @last_error
@@ -472,7 +471,7 @@ class Printer0:
     def _format_uv_statistics(statistics):
         # Saturate the value at max 32bit signed int due to DBus and UI
         # DBus can handle more if we pass
-        return {"uv_stat%d" % i: min(v, 0x7fffffff) for i, v in enumerate(statistics)}
+        return {"uv_stat%d" % i: min(v, 0x7FFFFFFF) for i, v in enumerate(statistics)}
         # uv_stats0 - time counter [s] # TODO: add uv average current,
 
     @auto_dbus
@@ -521,7 +520,7 @@ class Printer0:
     @auto_dbus
     @api_key.setter
     @last_error
-    def api_key(self, apikey:str) -> None:
+    def api_key(self, apikey: str) -> None:
         if apikey != self.printer.get_actual_page().octoprintAuth:
             subprocess.check_call(["/bin/api-keygen.sh", apikey])
             self.PropertiesChanged(self.__INTERFACE__, {"api_key": apikey}, [])
