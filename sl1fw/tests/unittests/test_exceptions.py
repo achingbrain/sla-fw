@@ -28,10 +28,12 @@ class TestExceptions(unittest.TestCase):
         "total_bytes: int": 0,
         "completed_bytes: int": 0,
         "failed_fans: List[int]": [1],
+        "failed_fan_names: List[str]": "UV Fan",
         "project_error: sl1fw.states.project.ProjectErrors": ProjectErrors.CANT_READ,
         "volume: float": 12.3,
         "volume_ml: float": 12.3,
         "failed_sensors: List[int]": [2],
+        "failed_sensor_names: List[str]": ["UV LED temperature"],
         "message: str": "Error occurred",
         "trace: sl1fw.motion_controller.trace.Trace": Trace(10),
         "current_state: enum.Enum": PrinterState.PRINTING,
@@ -55,6 +57,7 @@ class TestExceptions(unittest.TestCase):
         "tilt_position: Union[int, NoneType]": 5000,
         "tower_position_nm: int": 100000000,
         "sn: str": "123456789",
+        "min_resin_ml: float": 10,
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}

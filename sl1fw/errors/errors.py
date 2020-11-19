@@ -151,12 +151,14 @@ class ProjectFailed(ExposureError):
 @dataclass
 class TempSensorFailed(ExposureError):
     failed_sensors: List[int]
+    failed_sensor_names: List[str]
 
 
 @with_code(Sl1Codes.FAN_FAILED)
 @dataclass
 class FanFailed(ExposureError):
     failed_fans: List[int]
+    failed_fan_names: List[str]
 
 
 @with_code(Sl1Codes.RESIN_SENSOR_FAILED)
@@ -166,8 +168,9 @@ class ResinFailed(ExposureError):
 
 
 @with_code(Sl1Codes.RESIN_TOO_LOW)
+@dataclass
 class ResinTooLow(ResinFailed):
-    pass
+    min_resin_ml: float
 
 
 @with_code(Sl1Codes.RESIN_TOO_HIGH)

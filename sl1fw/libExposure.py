@@ -366,7 +366,8 @@ class ExposureThread(threading.Thread):
         failed = [i for i in range(2) if temperatures[i] < 0]
         if failed:
             self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.FAILURE
-            raise TempSensorFailed(failed)
+            failed_names = [self.expo.hw.getSensorName(i) for i in failed]
+            raise TempSensorFailed(failed, failed_names)
 
         if temperatures[1] < defines.minAmbientTemp:
             self.expo.check_results[ExposureCheck.TEMPERATURE] = ExposureCheckResult.WARNING
@@ -478,7 +479,8 @@ class ExposureThread(threading.Thread):
         if any(fans_state) and not defines.fan_check_override:
             failed_fans = [num for num, state in enumerate(fans_state) if state]
             self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
-            raise FanFailed(failed_fans)
+            failed_fan_names = [self.expo.hw.fans[i].name for i in failed_fans]
+            raise FanFailed(failed_fans, failed_fan_names)
         self.logger.info("Fans OK")
 
         self.expo.runtime_config.fan_error_override = False
@@ -499,7 +501,7 @@ class ExposureThread(threading.Thread):
                 raise ResinFailed(volume)
 
             if volume < defines.resinMinVolume:
-                raise ResinTooLow(volume)
+                raise ResinTooLow(volume, defines.resinMinVolume)
 
             if volume > defines.resinMaxVolume:
                 raise ResinTooHigh(volume)

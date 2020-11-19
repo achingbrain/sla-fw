@@ -698,6 +698,15 @@ class Printer0:
 
     @auto_dbus
     @last_error
+    @state_checked([Printer0State.IDLE])
+    def enter_home(self) -> None:
+        """
+        Enter home page
+        """
+        self.printer.display.forcePage("home")
+
+    @auto_dbus
+    @last_error
     @state_checked(Printer0State.IDLE)
     def check_ready(self) -> None:
         """

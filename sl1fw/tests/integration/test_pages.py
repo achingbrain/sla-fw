@@ -331,6 +331,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.waitPage("preprintchecks", timeout_sec=120)  # checks
         self.waitPage("print", timeout_sec=30)  # printing
         self.waitPage("wait", timeout_sec=240)  # moving platform to the top
+        self.printer.display.forcePage("home")
         self.waitPage("home", timeout_sec=30)
         # auto off enabled
 
