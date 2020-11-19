@@ -225,21 +225,18 @@ class PageSettings(Page):
     #enddef
 
     # Time settings
-    @confirm_leave
     def timesettingsButtonRelease(self): # pylint: disable=no-self-use
         return "timesettings"
     #enddef
 
 
     # Hostname
-    @confirm_leave
     def sethostnameButtonRelease(self): # pylint: disable=no-self-use
         return "sethostname"
     #enddef
 
 
     # Change name/password
-    @confirm_leave
     def setremoteaccessButtonRelease(self): # pylint: disable=no-self-use
         return "setlogincredentials"
     #enddef
@@ -347,20 +344,17 @@ class PageSettings(Page):
         return self._doConfirmReturn()
     #enddef
 
-    @confirm_leave
     def calibrationSubMenuButtonRelease(self): # pylint: disable=no-self-use
         return "calibrationSubMenu"
     #enddef
 
     # Firmware update
-    @confirm_leave
     def firmwareupdateButtonRelease(self): # pylint: disable=no-self-use
         return "firmwareupdate"
     #enddef
 
 
     # Download examples
-    @confirm_leave
     def downloadexamplesButtonRelease(self):
         pageWait = PageWait(self.display)
         pageWait.show()
@@ -375,18 +369,10 @@ class PageSettings(Page):
     #enddef
 
     # Admin
-    @confirm_leave
     def adminButtonRelease(self):
         if self.display.runtime_config.show_admin:
             return "admin"
         #endif
-    #enddef
-
-
-
-    @confirm_leave
-    def backButtonRelease(self): # pylint: disable=no-self-use
-        return super().backButtonRelease()
     #enddef
 
 
