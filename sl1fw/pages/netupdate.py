@@ -8,9 +8,12 @@ import json
 import distro
 
 from sl1fw import defines
+from sl1fw.errors.exceptions import get_exception_code
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
+from sl1fw.state_actions.examples import download_examples_legacy
+
 
 @page
 class PageNetUpdate(Page):
@@ -61,13 +64,13 @@ class PageNetUpdate(Page):
         pageWait = PageWait(self.display)
         pageWait.show()
         try:
-            self.display.inet.download_examples(pageWait)
+            download_examples_legacy(pageWait, self.display.inet)
             return "_BACK_"
-        except Exception as e:
-            self.display.pages['error'].setParams(
-                    text = "Fetching of samples failed" + str(e))
+        except Exception as exception:
+            self.logger.exception("Fetching of samples failed")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
-        #endexcept
+        #endtry
     #enddef
 
 

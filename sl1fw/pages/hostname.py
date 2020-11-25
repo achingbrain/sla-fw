@@ -3,6 +3,8 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from prusaerrors.sl1.codes import Sl1Codes
+
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -35,8 +37,7 @@ class PageSetHostname(Page):
             self.display.inet.hostname = data['hostname']
         except Exception:
             self.logger.exception("Failed to set hostname")
-            self.display.pages['error'].setParams(
-                text=_("Failed to set hostname"))
+            self.display.pages['error'].setParams(code=Sl1Codes.FAILED_TO_SET_HOSTNAME.raw_code)
             return "error"
         #endtry
 

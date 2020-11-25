@@ -5,9 +5,12 @@
 
 import logging
 
-from sl1fw.pages.base import Page
+from sl1fw.api.decorators import wrap_exception
+from sl1fw.errors.errors import FailedToSetLogLevel
+from sl1fw.errors.exceptions import get_exception_code
 from sl1fw.logger_config import get_log_level, set_log_level
 from sl1fw.pages import page
+from sl1fw.pages.base import Page
 
 
 @page
@@ -35,9 +38,11 @@ class PageLogging(Page):
         try:
             level = logging.DEBUG if self.debugEnabled else logging.INFO
             set_log_level(level)
-        except Exception:
+        except FailedToSetLogLevel as exception:
             self.logger.exception("Failed to set log level")
-            self.display.pages["error"].setParams(text="Failed to set log level")
+            self.display.pages["error"].setParams(
+                code=get_exception_code(exception).raw_code, params=wrap_exception(exception)
+            )
             return "error"
 
         # force all forked processes to reload logging settings is overkill, let user do it

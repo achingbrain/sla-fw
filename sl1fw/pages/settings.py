@@ -10,11 +10,12 @@
 # pylint: disable=too-many-instance-attributes
 
 from sl1fw import defines
-from sl1fw.states.display import DisplayState
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
+from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
-from sl1fw.pages import page
+from sl1fw.state_actions.examples import download_examples_legacy
+from sl1fw.states.display import DisplayState
 
 
 def item_updater(str_func = None, minLimit = None):
@@ -359,11 +360,11 @@ class PageSettings(Page):
         pageWait = PageWait(self.display)
         pageWait.show()
         try:
-            self.display.inet.download_examples(pageWait)
+            download_examples_legacy(pageWait, self.display.inet)
             return "_BACK_"
         except Exception as e:
-            self.display.pages['error'].setParams(
-                    text = _("Fetching of samples failed") + str(e))
+            self.logger.exception("Fetching of samples failed")
+            self.display.pages['error'].setParams(code=get_exception_code(e).raw_code)
             return "error"
         #endtry
     #enddef
@@ -387,10 +388,9 @@ class PageSettings(Page):
                 sensitivity_changed = self.configwrapper.changed('towerSensitivity') or self.configwrapper.changed('tiltSensitivity')
                 try:
                     self.configwrapper.commit()
-                except ConfigException:
+                except ConfigException as exception:
                     self.logger.exception("Failed to save configuration")
-                    self.display.pages['error'].setParams(
-                        text = _("Cannot save configuration"))
+                    self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
                     return "error"
                 #endif
                 if sensitivity_changed:

@@ -31,6 +31,10 @@ def with_code(code: str):
     return decor
 
 
+def get_exception_code(exception: Exception) -> Code:
+    return getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN
+
+
 @with_code(Sl1Codes.UNKNOWN)
 class PrinterException(Exception):
     """

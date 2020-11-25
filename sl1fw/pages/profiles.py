@@ -14,8 +14,10 @@ import os
 import json
 from copy import deepcopy
 
+from prusaerrors.sl1.codes import Sl1Codes
+
 from sl1fw import defines
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.functions.files import usb_remount
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -91,8 +93,7 @@ class ProfilesPage(Page):
         ''' export '''
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.pages['error'].setParams(
-                text="No USB storage present")
+            self.display.pages['error'].setParams(code=Sl1Codes.NO_EXTERNAL_STORAGE.raw_code)
             return "error"
         #endif
 
@@ -105,8 +106,7 @@ class ProfilesPage(Page):
             #endwith
         except Exception:
             self.logger.exception("export exception:")
-            self.display.pages['error'].setParams(
-                text="Cannot export profile")
+            self.display.pages['error'].setParams(code=Sl1Codes.FAILED_PROFILE_EXPORT.raw_code)
             return "error"
         #endtry
     #enddef
@@ -116,16 +116,14 @@ class ProfilesPage(Page):
         ''' import '''
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.pages['error'].setParams(
-                text="No USB storage present")
+            self.display.pages['error'].setParams(code=Sl1Codes.NO_EXTERNAL_STORAGE.raw_code)
             return "error"
         #endif
 
         profile_file = os.path.join(savepath, self.profilesFilename)
 
         if not os.path.isfile(profile_file):
-            self.display.pages['error'].setParams(
-                text="Cannot find profile to import")
+            self.display.pages['error'].setParams(code=Sl1Codes.FAILED_PROFILE_IMPORT.raw_code)
             return "error"
         #endif
 
@@ -137,8 +135,7 @@ class ProfilesPage(Page):
             return
         except Exception:
             self.logger.exception("import exception:")
-            self.display.pages['error'].setParams(
-                text="Cannot import profile")
+            self.display.pages['error'].setParams(code=Sl1Codes.FAILED_PROFILE_IMPORT.raw_code)
             return "error"
         #endtry
     #enddef
@@ -153,8 +150,7 @@ class ProfilesPage(Page):
             self._setProfile()
         except Exception:
             self.logger.exception("import exception:")
-            self.display.pages['error'].setParams(
-                text="Cannot load default profile")
+            self.display.pages['error'].setParams(code=Sl1Codes.FAILED_PROFILE_IMPORT.raw_code)
             return "error"
         #endtry
     #enddef
@@ -451,12 +447,11 @@ class PageTuneTilt(ProfilesPage):
         writer.tiltUp = self.profiles[2]
         try:
             writer.commit()
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text="Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
-        # endtry
+        #endtry
         return super(PageTuneTilt, self).backButtonRelease()
     #enddef
 

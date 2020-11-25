@@ -28,8 +28,10 @@ class PageTests(Page):
                 "button3": "Tower sensitivity",
                 "button4": "Infinite UV meter test",
                 "button6": "Infinite test",
-                "button13": "Error - nocode",
-                "button14": "Error - code",
+                "button11": "Error-code+float,str",
+                "button12": "Error-code+int",
+                "button13": "Error-nocode",
+                "button14": "Error-code",
                 "button15": "Raise exception",
             }
         )
@@ -64,11 +66,7 @@ class PageTests(Page):
         volume = self.display.hw.get_precise_resin_volume_ml()
         self.display.hw.powerLed("normal")
         if not volume:
-            self.display.pages["error"].setParams(
-                text="Resin measuring failed!\n\n"
-                "Is there the correct amount of resin in the tank?\n\n"
-                "Is the tank secured with both screws?"
-            )
+            self.display.pages["error"].setParams(code=Sl1Codes.RESIN_SENSOR_FAILED.raw_code)
             return "error"
 
         self.display.pages["confirm"].setParams(
@@ -83,6 +81,25 @@ class PageTests(Page):
     def button6ButtonRelease(self):
         self.display.hw.saveUvStatistics()
         return PageInfiniteTest.Name
+
+    def button11ButtonRelease(self):
+        self.display.pages["error"].setParams(
+            code=Sl1Codes.TEMPERATURE_OUT_OF_RANGE.raw_code,
+            params={
+                "sensor": "ambient",
+                "temperature": 42.123456789,
+            }
+        )
+        return "error"
+
+    def button12ButtonRelease(self):
+        self.display.pages["error"].setParams(
+            code=Sl1Codes.TILT_AXIS_CHECK_FAILED.raw_code,
+            params={
+                "position": 42
+            }
+        )
+        return "error"
 
     def button13ButtonRelease(self):
         self.display.pages["error"].setParams(

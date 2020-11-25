@@ -15,10 +15,12 @@ from dataclasses import dataclass, asdict
 from time import sleep
 
 import distro
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
+from sl1fw.api.decorators import wrap_exception
 from sl1fw.errors.errors import ResinFailed, TowerAxisCheckFailed
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.functions.checks import resin_sensor, tower_axis
 from sl1fw.functions.system import shut_down
 from sl1fw.functions.files import save_wizard_history
@@ -104,11 +106,9 @@ class PageWizardInit(PageWizardBase):
             # FIXME we don't want cut off betatesters with MC without serial number
             self.display.pages['error'].setParams(
                 backFce = self.justContinue, # use as confirm
-                text = _("Serial numbers in wrong format!\n\n"
-                    "A64: %(a64)s\n"
-                    "MC: %(mc)s\n"
-                    "Please contact tech support!"
-                    % {'a64' : self.display.hw.cpuSerialNo, 'mc' : self.display.hw.mcSerialNo}))
+                code=Sl1Codes.SERIAL_NUMBER_IN_WRONG_FORMAT.raw_code,
+                params={'a64' : self.display.hw.cpuSerialNo, 'mc' : self.display.hw.mcSerialNo}
+            )
             return "error"
 
         #endif
@@ -128,9 +128,7 @@ class PageWizardInit(PageWizardBase):
             self.display.hw.tiltSyncWait()
             homeStatus = self.display.hw.tiltHomingStatus
             if homeStatus == -2:
-                self.display.pages['error'].setParams(
-                    text = _("Tilt endstop not reached!\n\n"
-                        "Please check if the tilt motor and optical endstop are connected properly."))
+                self.display.pages['error'].setParams(code=Sl1Codes.TILT_ENDSTOP_NOT_REACHED.raw_code)
                 return "error"
             elif homeStatus == 0:
                 self.display.hw.tiltHomeCalibrateWait()
@@ -139,10 +137,7 @@ class PageWizardInit(PageWizardBase):
             #endif
         #endfor
         if homeStatus == -3:
-            self.display.pages['error'].setParams(
-                text = _("Tilt home check failed!\n\n"
-                    "Please contact tech support!\n\n"
-                    "Tilt profiles need to be changed."))
+            self.display.pages['error'].setParams(code=Sl1Codes.TILT_HOME_FAILED.raw_code)
             return "error"
         #endif
 
@@ -165,9 +160,9 @@ class PageWizardInit(PageWizardBase):
         #TODO make MC homing more accurate
         if self.display.hw.getTiltPosition() < -defines.tiltHomingTolerance or self.display.hw.getTiltPosition() > defines.tiltHomingTolerance:
             self.display.pages['error'].setParams(
-                text = _("Tilt axis check failed!\n\n"
-                    "Current position: %d\n\n"
-                    "Please check if the tilting mechanism can move smoothly in its entire range.") % self.display.hw.getTiltPosition())
+                code=Sl1Codes.TILT_AXIS_CHECK_FAILED.raw_code,
+                params={"position": self.display.hw.getTiltPosition()}
+            )
             return "error"
         #endif
         self.display.hw.setTiltProfile("homingFast")
@@ -192,8 +187,9 @@ class PageWizardInit(PageWizardBase):
         A64temperature = self.display.hw.getCpuTemperature()
         if A64temperature > defines.maxA64Temp:
             self.display.pages['error'].setParams(
-                text = _("A64 temperature is too high. Measured: %.1f °C!\n\n"
-                    "Shutting down in 10 seconds...") % A64temperature)
+                code=Sl1Codes.A64_OVERHEAT.raw_code,
+                params={"temperature": A64temperature}
+            )
             self.display.pages['error'].show()
             for i in range(10):
                 self.display.hw.beepAlarm(3)
@@ -207,8 +203,9 @@ class PageWizardInit(PageWizardBase):
         for i in range(2):
             if temperatures[i] < 0:
                 self.display.pages['error'].setParams(
-                    text = _("%s cannot be read.\n\n"
-                        "Please check if temperature sensors are connected correctly.") % self.display.hw.getSensorName(i))
+                    code=Sl1Codes.TEMP_SENSOR_FAILED.raw_code,
+                    params={"sensor": self.display.hw.getSensorName(i)}
+                )
                 return "error"
             #endif
             if i == 0:
@@ -218,10 +215,9 @@ class PageWizardInit(PageWizardBase):
             #endif
             if not defines.minAmbientTemp < temperatures[i] < maxTemp:
                 self.display.pages['error'].setParams(
-                    text = _("%(sensor)s not in range!\n\n"
-                        "Measured temperature: %(temp).1f °C.\n\n"
-                        "Keep the printer out of direct sunlight at room temperature (18 - 32 °C).")
-                    % { 'sensor' : self.display.hw.getSensorName(i), 'temp' : temperatures[i] })
+                    code=Sl1Codes.TEMPERATURE_OUT_OF_RANGE.raw_code,
+                    params={"sensor": self.display.hw.getSensorName(i), "temperature": temperatures[i]}
+                )
                 return "error"
             #endif
         #endfor
@@ -331,9 +327,9 @@ class PageWizardTowerAxis(PageWizardBase):
             tower_axis(self.display.hw, self.display.hwConfig)
         except TowerAxisCheckFailed as e:
             self.display.pages['error'].setParams(
-                text=_("Tower axis check failed!\n\n"
-                       "Current position: %d nm\n\n"
-                       "Please check if the ballscrew can move smoothly in its entire range.") % e.position_nm)
+                code=Sl1Codes.TOWER_AXIS_CHECK_FAILED.raw_code,
+                params=wrap_exception(e)
+            )
             return "error"
 
         return "wizardresinsensor"
@@ -383,20 +379,19 @@ class PageWizardResinSensor(PageWizardBase):
 
         try:
             self.display.wizardData.wizardResinVolume = resin_sensor(self.display.hw, self.display.hwConfig, self.logger)
-        except ResinFailed as e:
+        except ResinFailed as exception:
             self.display.pages['error'].setParams(
-                text=_("Resin sensor not working!\n\n"
-                       "Please check if the sensor is connected properly and tank is screwed down by both bolts.\n\n"
-                       "Measured %d ml.") % e.volume_ml)
+                code=Sl1Codes.RESIN_SENSOR_FAILED.raw_code,
+                params=wrap_exception(exception)
+            )
             return "error"
 
         self.display.hwConfig.showWizard = False
         try:
             self.display.hwConfig.write()
-        except ConfigException:
-            self.logger.exception("Failed to save wizard configuration")
-            self.display.pages['error'].setParams(
-                text = _("Cannot save wizard configuration"))
+        except ConfigException as exception:
+            self.logger.exception("Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endif
 
@@ -417,8 +412,7 @@ class PageWizardResinSensor(PageWizardBase):
             wizardConfig.data = wizardConfigFactory.data
         except AttributeError:
             self.logger.exception("wizardData is not completely filled")
-            self.display.pages['error'].setParams(
-                text = _("!!! Failed to serialize wizard data !!!"))
+            self.display.pages['error'].setParams(Sl1Codes.FAILED_TO_SERIALIZE_WIZARD_DATA.raw_code)
             return "error"
         #endtry
         wizardConfig.save_raw()
@@ -429,8 +423,7 @@ class PageWizardResinSensor(PageWizardBase):
             if self.writeToFactory(wizardConfigFactory.save_raw):
                 save_wizard_history(defines.wizardDataPathFactory)
             else:
-                self.display.pages['error'].setParams(
-                    text = _("!!! Failed to save wizard data !!!"))
+                self.display.pages['error'].setParams(code=Sl1Codes.FAILED_TO_SAVE_WIZARD_DATA.raw_code)
                 return "error"
             #endif
 
@@ -502,8 +495,7 @@ class PageWizardSpeaker(PageWizardBase):
 
 
     def noButtonRelease(self):
-        self.display.pages['error'].setParams(
-            text = _("Speaker not working.\nPlease check the wiring of the speaker."))
+        self.display.pages['error'].setParams(code=Sl1Codes.SOUND_TEST_FAILED.raw_code)
         return "error"
     #enddef
 
@@ -563,10 +555,9 @@ class PageWizardSkip(Page):
         self.display.hwConfig.showWizard = False
         try:
             self.display.hwConfig.write()
-        except ConfigException:
-            self.logger.exception("Failed to save wizard configuration")
-            self.display.pages['error'].setParams(
-                text = _("Cannot save wizard configuration"))
+        except ConfigException as exception:
+            self.logger.exception("Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endif
         return "_EXIT_"

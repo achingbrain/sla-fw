@@ -9,7 +9,7 @@
 from time import time, sleep
 
 from sl1fw.errors.errors import TowerBelowSurface
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.functions.checks import tilt_calib_start, tower_calibrate
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -491,10 +491,9 @@ class PageCalibration10(PageCalibrationBase):
             self.logger.debug("Saving calibration data")
             writer.commit()
             save_wizard_history(defines.hwConfigPath)
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
         self.display.hw.powerLed("normal")
@@ -537,10 +536,9 @@ class PageCalibrationEnd(Page):
         try:
             self.logger.debug("Setting configuration")
             self.display.hwConfig.write()
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
     #enddef

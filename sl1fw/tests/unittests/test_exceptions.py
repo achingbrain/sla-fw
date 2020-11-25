@@ -3,10 +3,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import inspect
+import re
 import unittest
+from glob import glob
+from pathlib import Path
 
 from gi.repository.GLib import Variant
+from prusaerrors.sl1.codes import Sl1Codes
 
+import sl1fw
 from sl1fw.api.decorators import wrap_dict_data, wrap_exception
 from sl1fw.errors import errors, exceptions, warnings
 from sl1fw.errors.warnings import AmbientTooHot
@@ -58,6 +63,7 @@ class TestExceptions(unittest.TestCase):
         "tower_position_nm: int": 100000000,
         "sn: str": "123456789",
         "min_resin_ml: float": 10,
+        "failed_fans_text: str": "[\"UV LED Fan\"]",
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}
@@ -92,6 +98,20 @@ class TestExceptions(unittest.TestCase):
             for key, value in wrapped_dict.items():
                 self.assertIsInstance(key, str)
                 self.assertIsInstance(value, Variant)
+
+    def test_error_codes_dummy(self):
+        """This is a stupid test that checks all attempts to use Sl1Codes.UNKNOWN likes are valid. Pylint cannot do
+        this for us as Sl1Codes are runtime generated from Yaml source"""
+
+        # This goes through all the source code looking for Sl1Codes usages and checks whenever these are legit.
+        root = Path(sl1fw.__file__).parent
+        sources = [Path(source) for source in glob(str(root / "**/*.py"), recursive=True)]
+        code_pattern = re.compile(r"(?<=Sl1Codes\.)\w+")
+        for source in sources:
+            text = source.read_text()
+            matches = code_pattern.findall(text)
+            for match in matches:
+                self.assertIn(match, dir(Sl1Codes))
 
 
 if __name__ == "__main__":

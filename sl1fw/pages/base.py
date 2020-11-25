@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Optional
 
 import distro
 from deprecation import deprecated
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines, test_runtime
 from sl1fw.states.exposure import ExposureState
@@ -278,9 +279,7 @@ class Page:
 
     def _syncTower(self):
         if not self.display.hw.towerSyncWait(retries = 2):
-            self.display.pages['error'].setParams(
-                    text = _("Tower homing failed!\n\n"
-                        "Check the printer's hardware."))
+            self.display.pages['error'].setParams(code=Sl1Codes.TOWER_HOME_FAILED.raw_code)
             return "error"
         #endif
         return "_SELF_"
@@ -289,9 +288,7 @@ class Page:
 
     def _syncTilt(self):
         if not self.display.hw.tiltSyncWait(retries = 2):
-            self.display.pages['error'].setParams(
-                    text = _("Tilt homing failed!\n\n"
-                        "Check the printer's hardware."))
+            self.display.pages['error'].setParams(code=Sl1Codes.TILT_HOME_FAILED.raw_code)
             return "error"
         #endif
         return "_SELF_"
@@ -437,20 +434,16 @@ class Page:
                 self.display.expo.doPause()
                 self.display.runtime_config.check_cooling_expo = False
                 backFce = self.exitPrint
-                addText = _("Current job will be canceled.")
             else:
                 self.display.hw.uvLed(False)
                 backFce = self.backButtonRelease
-                addText = ""
             #endif
 
             self.logger.error("UV temperature reading failed")
             self.display.pages['error'].setParams(
-                    backFce = backFce,
-                    text = _("Reading of UV LED temperature has failed!\n\n"
-                        "This value is essential for the UV LED lifespan and printer safety.\n\n"
-                        "Please contact tech support!\n\n"
-                        "%s") % addText)
+                code=Sl1Codes.UV_TEMP_SENSOR_FAILED.raw_code,
+                backFce = backFce
+            )
             return "error"
         #endif
 

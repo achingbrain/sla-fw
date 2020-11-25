@@ -8,9 +8,6 @@
 
 import logging
 import os
-import shutil
-import tarfile
-import tempfile
 from time import monotonic
 from typing import Optional, Any, Dict, Callable
 from urllib.request import urlopen, Request
@@ -18,11 +15,9 @@ from urllib.request import urlopen, Request
 import distro
 import pydbus
 from PySignal import Signal
-from deprecation import deprecated
 
-from sl1fw import defines, test_runtime
+from sl1fw import test_runtime
 from sl1fw.errors.errors import DownloadFailed
-from sl1fw.functions.files import ch_mode_owner
 
 
 class Network:
@@ -214,62 +209,3 @@ class Network:
                     raise DownloadFailed(url, file_size, file.tell())
         finally:
             source.close()
-
-    @deprecated("Use examples API")
-    def download_examples(self, page) -> None:
-
-        # WARNING: This has been reimplemented in the examples API, change both implementations, or remove this one.
-
-        failed = "."
-        try:
-            if not self.ip:
-                failed = _(": Not connected to network!")
-                raise Exception("Not connected to network")
-
-            statvfs = os.statvfs(defines.internalProjectPath)
-            internal_available = (
-                statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
-            )
-            self.logger.info(
-                "Internal storage available space: %d bytes", internal_available
-            )
-            # if internal storage is full, quit immediately
-            if internal_available < 0:
-                failed = _(": Not enough free space in the internal storage!")
-                raise Exception("Not enough free space in the internal storage")
-
-            if not os.path.isdir(defines.internalProjectPath):
-                os.makedirs(defines.internalProjectPath)
-
-            with tempfile.NamedTemporaryFile() as archive:
-                page.showItems(line1=_("Fetching examples"))
-                self.download_url(defines.examplesURL, archive.name, page)
-                page.showItems(line1=_("Extracting examples"), line2="")
-
-                with tempfile.TemporaryDirectory() as temp:
-                    extracted_size = 0
-                    with tarfile.open(fileobj=archive) as tar:
-                        for member in tar.getmembers():
-                            self.logger.debug(
-                                "Found '%s' (%d bytes)", member.name, member.size
-                            )
-                            extracted_size += member.size
-                            tar.extract(member, temp)
-
-                    if extracted_size > internal_available:
-                        failed = _(": Not enough free space in the internal storage!")
-                        raise Exception("Not enough free space in the internal storage")
-
-                    page.showItems(line1=_("Storing examples"))
-                    for item in os.listdir(temp):
-                        dest = os.path.join(defines.internalProjectPath, item)
-                        if os.path.exists(dest):
-                            shutil.rmtree(dest)
-                        shutil.copytree(os.path.join(temp, item), dest)
-                        ch_mode_owner(dest)
-
-                    page.showItems(line1=_("Cleaning up"))
-
-        except Exception as e:
-            self.logger.exception("Examples download failed: %s", str(e))
-            raise Exception(failed) from e

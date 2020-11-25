@@ -8,8 +8,12 @@ from os import path
 from time import sleep
 
 import pydbus
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
+from sl1fw.api.decorators import wrap_exception
+from sl1fw.errors.errors import DownloadFailed
+from sl1fw.errors.exceptions import get_exception_code
 from sl1fw.functions.system import shut_down
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -59,13 +63,7 @@ class PageFirmwareUpdate(Page):
             self.old_items = items
 
     def flashButtonSubmit(self, data):
-        try:
-            fw_url = data["firmware"]
-        except Exception as e:
-            self.logger.error("Error reading data['firmware']: %s", str(e))
-            self.display.pages["error"].setParams(text=_("Invalid firmware source!"))
-            return "error"
-
+        fw_url = data["firmware"]
         self.display.pages["yesno"].setParams(
             yesFce=self.fetchUpdate, yesParams={"fw_url": fw_url}, text=_("Do you really want to update the firmware?")
         )
@@ -76,9 +74,12 @@ class PageFirmwareUpdate(Page):
             pageWait = PageWait(self.display, line1=_("Fetching firmware"))
             pageWait.show()
             self.display.inet.download_url(fw_url, defines.firmwareTempFile, page=pageWait)
-        except Exception as e:
-            self.logger.error("Firmware fetch failed: %s", str(e))
-            self.display.pages["error"].setParams(text=_("Firmware fetch failed!"))
+        except DownloadFailed as exception:
+            self.logger.exception("Firmware fetch failed")
+            self.display.pages["error"].setParams(
+                code=get_exception_code(exception).raw_code,
+                params=wrap_exception(exception)
+            )
             return "error"
 
         return self.doUpdate(defines.firmwareTempFile)
@@ -113,9 +114,9 @@ class PageFirmwareUpdate(Page):
                 # Wait for a while
                 sleep(1)
 
-        except Exception as e:
-            self.logger.error("Rauc update failed: %s", str(e))
-            self.display.pages["error"].setParams(text=_("Update failed!"))
+        except Exception:
+            self.logger.exception("Rauc update failed")
+            self.display.pages["error"].setParams(code=Sl1Codes.UPDATE_FAILED.raw_code)
             return "error"
 
     def _eraseProjectsYes(self):

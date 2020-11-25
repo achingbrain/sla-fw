@@ -21,10 +21,11 @@ from datetime import datetime
 import toml
 
 import distro
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines, test_runtime
 from sl1fw.libConfig import TomlConfig, TomlConfigStats
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.states.display import DisplayState
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState
 from sl1fw.functions.files import save_wizard_history
@@ -59,8 +60,7 @@ class PageUvDataShow(Page):
 
     def showData(self, data):
         if not data:
-            self.display.pages['error'].setParams(
-                text = _("No calibration data to show!"))
+            self.display.pages['error'].setParams(code=Sl1Codes.NO_UV_CALIBRATION_DATA.raw_code)
             return "error"
         #enddef
         self.logger.info("Generating picture from: %s", str(data))
@@ -69,8 +69,7 @@ class PageUvDataShow(Page):
             UvLedMeterMulti().save_pic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)
             self.setItems(image_path = "file://%s" % imagePath)
         else:
-            self.display.pages['error'].setParams(
-                text = _("Data is from unknown UV LED sensor!"))
+            self.display.pages['error'].setParams(code=Sl1Codes.DATA_FROM_UNKNOWN_UV_SENSOR.raw_code)
             return "error"
         #endif
     #enddef
@@ -317,14 +316,12 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
             #endwhile
             if not self.display.hw.isTowerSynced():
                 self.display.state = DisplayState.IDLE
-                self.display.pages['error'].setParams(
-                        text = _("Tower homing failed!\n\nCheck the printer's hardware."))
+                self.display.pages['error'].setParams(code=Sl1Codes.TOWER_HOME_FAILED.raw_code)
                 return "error"
             #endif
             if not self.display.hw.isTiltSynced():
                 self.display.state = DisplayState.IDLE
-                self.display.pages['error'].setParams(
-                        text = _("Tilt homing failed!\n\nCheck the printer's hardware."))
+                self.display.pages['error'].setParams(code=Sl1Codes.TILT_HOME_FAILED.raw_code)
                 return "error"
             #endif
             self.display.hw.tiltLayerUpWait()
@@ -375,14 +372,12 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
         self.pageWait.showItems(line2 = "")
 
         if not self.uvmeter.present:
-            self.display.pages['error'].setParams(
-                text = _("The UV LED meter is not detected.\n\nCheck the connection and try again."))
+            self.display.pages['error'].setParams(code=Sl1Codes.UV_LED_METER_NOT_DETECTED.raw_code)
             return False
         #endif
         self.pageWait.showItems(line1 = _("Connecting to the UV meter"), line2 = _("Please wait..."))
         if not self.uvmeter.connect():
-            self.display.pages['error'].setParams(
-                text = _("Cannot connect to the UV LED meter.\n\nCheck the connection and try again."))
+            self.display.pages['error'].setParams(code=Sl1Codes.UV_LED_METER_NOT_RESPONDING.raw_code)
             return False
         #endif
 
@@ -417,22 +412,22 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
         self.ensureCoverIsClosed()
         self.showItems(line1 = _("Checking UV meter placement on the screen"), line2 = _("Please wait..."))
         retc = self.uvmeter.check_place(self.display.screen.inverse)
-        if retc:
-            errors = {
-                    UvMeterState.ERROR_COMMUNICATION : _("Communication with the UV LED meter has failed.\n\n"
-                        "Check the connection and try again."),
-                    UvMeterState.ERROR_TRANSLUCENT : _("The UV LED meter detected some light on a dark display. "
-                        "This means there is a light 'leak' under the UV meter, or "
-                        "your display does not block the UV light enough.\n\n"
-                        "Please check the UV meter placement on the screen or "
-                        "replace the exposure display."),
-                    UvMeterState.ERROR_INTENSITY : _("The UV LED meter failed to read expected UV light intensity.\n\n"
-                        "Please check the UV meter placement on the screen."),
-                    }
-            self.display.pages['error'].setParams(text = errors.get(retc, _("Unknown UV LED meter error code: %d" % retc)))
-            return False
+        if not retc:
+            return True
         #endif
-        return True
+
+        if retc == UvMeterState.ERROR_COMMUNICATION:
+            self.display.pages['error'].setParams(code=Sl1Codes.UV_LED_METER_COMMUNICATION_ERROR.raw_code)
+        elif retc == UvMeterState.ERROR_TRANSLUCENT:
+            self.display.pages['error'].setParams(code=Sl1Codes.DISPLAY_TRANSLUCENT.raw_code)
+        elif retc == UvMeterState.ERROR_INTENSITY:
+            self.display.pages['error'].setParams(code=Sl1Codes.UNEXPECTED_UV_INTENSITY.raw_code)
+        else:
+            self.display.pages["error"].setParams(
+                code=Sl1Codes.UNKNOWN_UV_MEASUREMENT_ERROR.raw_code,
+                params={"code": retc}
+            )
+        return False
 #endclass
 
 
@@ -538,23 +533,23 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
             return self.continuePage
         #endif
 
-        errors = {
-                self.ERROR_READ_FAILED : \
-                    _("Cannot read data from the UV LED meter.\n\nCheck the connection and try again."),
-                self.ERROR_TOO_BRIGHT : \
-                    _("Requested intensity cannot be reached by min. allowed PWM"),
-                self.ERROR_TOO_DIMM : \
-                    _("Requested intensity cannot be reached by max. allowed PWM"),
-                self.ERROR_TOO_HIGH_DEVIATION : \
-                    _("The correct settings was found but standard deviation "
-                            "(%(found).1f) is greater than allowed value (%(allow).1f)."
-                            "\n\nVerify the UV LED meter position and calibration,"
-                            " then try again.") %
-                    { 'allow' : self.INTENSITY_DEVIATION_THRESHOLD, 'found' : self.deviation },
+        if self.result == self.ERROR_READ_FAILED:
+            self.display.pages['error'].setParams(code=Sl1Codes.UV_LED_METER_COMMUNICATION_ERROR.raw_code)
+        elif self.result == self.ERROR_TOO_BRIGHT:
+            self.display.pages['error'].setParams(code=Sl1Codes.UV_TOO_BRIGHT.raw_code)
+        elif self.result == self.ERROR_TOO_DIMM:
+            self.display.pages['error'].setParams(code=Sl1Codes.UV_TOO_DIMM.raw_code)
+        elif self.result == self.ERROR_TOO_HIGH_DEVIATION:
+            self.display.pages['error'].setParams(
+                code=Sl1Codes.UV_INTENSITY_DEVIATION_TOO_HIGH.raw_code,
+                params={
+                    "found": self.deviation,
+                    "allowed": self.INTENSITY_DEVIATION_THRESHOLD,
                 }
+            )
+        else:
+            self.display.pages['error'].setParams(code=Sl1Codes.UNKNOWN_UV_MEASUREMENT_ERROR.raw_code)
 
-        self.display.pages['error'].setParams(text = errors.get(self.result,
-            _("Unknown UV calibration error: %s") % str(self.result)))
         self.off()
         return "error"
     #enddef
@@ -748,10 +743,9 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         del self.display.hwConfig.uvCurrent   # remove old value too
         try:
             self.display.hwConfig.write()
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
 
@@ -761,11 +755,10 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
             uvCalibConfig.data = asdict(self.display.uvCalibData)
             uvCalibConfig.data["uvOsVersion"] = distro.version()
             uvCalibConfig.data["uvMcBoardRev"] = self.display.hw.mcBoardRevision
-            uvCalibConfig.data["uvLedCounter"] =  self.display.hw.getUvStatistics()
+            uvCalibConfig.data["uvLedCounter"] = self.display.hw.getUvStatistics()
         except AttributeError:
             self.logger.exception("uvCalibData is not completely filled")
-            self.display.pages['error'].setParams(
-                text = _("!!! Failed to serialize calibration data !!!"))
+            self.display.pages['error'].setParams(code=Sl1Codes.MISSING_UV_CALIBRATION_DATA.raw_code)
             return "error"
         #endtry
         uvCalibConfig.save_raw()
@@ -778,8 +771,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
             if self.writeToFactory(functools.partial(self.writeAllDefaults, uvCalibConfigFactory)):
                 save_wizard_history(defines.uvCalibDataPathFactory)
             else:
-                self.display.pages['error'].setParams(
-                    text = _("!!! Failed to save factory defaults !!!"))
+                self.display.pages['error'].setParams(code=Sl1Codes.FAILED_TO_SAVE_FACTORY_DEFAULTS.raw_code)
                 return "error"
             #endif
         #endif
@@ -810,8 +802,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
             if self.writeToFactory(functools.partial(self.appendToFile, defines.counterLog, countersData)):
                 save_wizard_history(defines.counterLog)
             else:
-                self.display.pages['error'].setParams(
-                    text = _("!!! Failed to save factory defaults !!!"))
+                self.display.pages['error'].setParams(code=Sl1Codes.FAILED_TO_SAVE_FACTORY_DEFAULTS.raw_code)
                 return "error"
             #endif
         #endif

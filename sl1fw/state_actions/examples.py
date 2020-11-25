@@ -11,8 +11,10 @@ import shutil
 import tarfile
 import tempfile
 from threading import Thread
+from time import sleep
 
 from PySignal import Signal
+from deprecation import deprecated
 
 from sl1fw import defines
 from sl1fw.errors.errors import NotConnected, NotEnoughInternalSpace
@@ -138,3 +140,25 @@ class Examples(Thread):
 
     def _download_callback(self, progress):
         self.download_progress = progress
+
+
+@deprecated("Use examples API")
+def download_examples_legacy(page_wait, network: Network) -> None:
+    examples = Examples(network)
+    examples.start()
+
+    while examples.state not in ExamplesState.get_finished():
+        if examples.state == ExamplesState.DOWNLOADING:
+            page_wait.showItems(line1=_("Fetching examples"), line2="%d%%" % int(100 * examples.download_progress))
+        elif examples.state == ExamplesState.UNPACKING:
+            page_wait.showItems(line1=_("Extracting examples"), line2="%d%%" % int(100 * examples.unpack_progress))
+        elif examples.state == ExamplesState.COPYING:
+            page_wait.showItems(line1=_("Storing examples"), line2="%d%%" % int(100 * examples.copy_progress))
+        elif examples.state == ExamplesState.CLEANUP:
+            page_wait.showItems(line1=_("Cleaning up"))
+
+        sleep(0.1)
+
+    examples.join()
+    if examples.state != ExamplesState.COMPLETED:
+        raise examples.exception

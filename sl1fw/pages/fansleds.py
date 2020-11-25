@@ -6,9 +6,10 @@
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.pages.base import Page
 from sl1fw.pages import page
 
@@ -114,8 +115,7 @@ class PageFansLeds(Page):
         self._update_config()
 
         if not self.writeToFactory(self.saveDefaultsFile):
-            self.display.pages['error'].setParams(
-                text = "!!! Failed to save factory defaults !!!")
+            self.display.pages['error'].setParams(code=Sl1Codes.FAILED_TO_SAVE_FACTORY_DEFAULTS.raw_code)
             return "error"
         #else
 
@@ -141,10 +141,9 @@ class PageFansLeds(Page):
         self._reset_hw_values()
         try:
             self.display.hwConfig.write()
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text = "Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
         return "_BACK_"
@@ -167,12 +166,11 @@ class PageFansLeds(Page):
         self._update_config()
         try:
             self.display.hwConfig.write()
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text="Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
-        # endtry
+        #endtry
         return super(PageFansLeds, self).backButtonRelease()
     #endif
 

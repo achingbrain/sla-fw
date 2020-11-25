@@ -9,6 +9,8 @@
 
 import os
 
+from prusaerrors.sl1.codes import Sl1Codes
+
 from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -80,8 +82,7 @@ class PageDisplay(Page):
     def button6ButtonRelease(self):
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.pages['error'].setParams(
-                text = "No USB storage present")
+            self.display.pages['error'].setParams(code=Sl1Codes.NO_EXTERNAL_STORAGE.raw_code)
             return "error"
         #endif
 
@@ -89,17 +90,17 @@ class PageDisplay(Page):
 
         if not os.path.isfile(test_file):
             self.display.pages['error'].setParams(
-                text = "Cannot find the test image")
+                code=Sl1Codes.FILE_NOT_FOUND.raw_code(),
+                params={"path": test_file}
+            )
             return "error"
         #endif
 
         try:
             self.display.screen.show_image(test_file)
         except Exception:
-            # TODO: This is not reached. Exceptions from screen do not propagate here
-            self.logger.exception("Error displaying test image")
-            self.display.pages['error'].setParams(
-                text = "Cannot display the test image")
+            self.logger.exception("Error displaying custom image from USB")
+            self.display.pages['error'].setParams(code=Sl1Codes.FAILED_TO_DISPLAY_IMAGE.raw_code)
             return "error"
         #endtry
 
@@ -107,7 +108,13 @@ class PageDisplay(Page):
 
 
     def button7ButtonRelease(self):
-        self.display.screen.show_image(os.path.join(defines.dataPath, "logo_1440x2560.png"))
+        try:
+            self.display.screen.show_image(os.path.join(defines.dataPath, "logo_1440x2560.png"))
+        except Exception:
+            self.logger.exception("Error displaying test image")
+            self.display.pages['error'].setParams(code=Sl1Codes.FAILED_TO_DISPLAY_IMAGE.raw_code)
+            return "error"
+        #endtry
     #enddef
 
 

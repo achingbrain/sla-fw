@@ -28,7 +28,7 @@ from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.api.logs0 import Logs0
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
 from sl1fw.functions.files import save_all_remain_wizard_history
 from sl1fw.libAsync import AdminCheck
@@ -163,14 +163,7 @@ class Printer:
         self.hw.powerLed("normal")
 
         if self.hw.checkFailedBoot():
-            self.display.pages["error"].setParams(
-                text=_(
-                    "The printer has booted from an alternative slot due to failed boot attempts using the primary "
-                    "slot.\n\n Update the printer with up-to-date firmware ASAP to recover the primary slot.\n\n"
-                    "This usually happens after a failed update, or due to a hardware failure. Printer settings may "
-                    "have been reset. "
-                )
-            )
+            self.display.pages["error"].setParams(code=Sl1Codes.ALTERNATIVE_SLOT_BOOT.raw_code)
             self.display.doMenu("error")
 
         if self.firstRun:
@@ -183,13 +176,11 @@ class Printer:
                 self.logger.exception("Failed to obtain current locale.")
 
             if not self.hwConfig.is_factory_read() and not self.hw.isKit:
-                self.display.pages["error"].setParams(text=_("Failed to load fans and LEDs factory calibration."))
+                self.display.pages["error"].setParams(code=Sl1Codes.FAILED_TO_LOAD_FACTORY_LEDS_CALIBRATION.raw_code)
                 self.display.doMenu("error")
 
             if self.runtime_config.factory_mode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
-                self.display.pages["error"].setParams(
-                    text=_("Examples (any projects) are missing in the user storage.")
-                )
+                self.display.pages["error"].setParams(code=Sl1Codes.MISSING_EXAMPLES.raw_code)
                 self.display.doMenu("error")
 
             if not self.runtime_config.factory_mode and self.hwConfig.showUnboxing:
@@ -275,7 +266,8 @@ class Printer:
             if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("Printer run() init failed")
-            code = getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN.code
+            # TODO: following code is ignored, frontend handles exceptions via API
+            code = get_exception_code(exception)
             message = getattr(exception, "MESSAGE") if hasattr(exception, "MESSAGE") else Sl1Codes.UNKNOWN.message
             self.display.pages["exception"].setParams(
                 text=_("Error code: %(code)s\n\n%(message)s") % {'code': code, 'message': message})
@@ -293,7 +285,8 @@ class Printer:
             if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("run() exception:")
-            code = getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN.code
+            # TODO: following code is ignored, frontend handles exceptions via API
+            code = get_exception_code(exception)
             message = getattr(exception, "MESSAGE") if hasattr(exception, "MESSAGE") else Sl1Codes.UNKNOWN.message
             self.display.pages["exception"].setParams(
                 text=_("Error code: %(code)s\n\n%(message)s") % {'code': code, 'message': message})

@@ -159,6 +159,7 @@ class TempSensorFailed(ExposureError):
 class FanFailed(ExposureError):
     failed_fans: List[int]
     failed_fan_names: List[str]
+    failed_fans_text: str
 
 
 @with_code(Sl1Codes.RESIN_SENSOR_FAILED)
@@ -200,7 +201,7 @@ class MissingCalibrationData(PrinterDataSendError):
     pass
 
 
-@with_code(Sl1Codes.MISSING_UVCALIBRATION_DATA)
+@with_code(Sl1Codes.MISSING_UV_CALIBRATION_DATA)
 class MissingUVCalibrationData(PrinterDataSendError):
     pass
 
@@ -255,4 +256,9 @@ class NotMechanicallyCalibrated(PrinterError):
 
 @with_code(Sl1Codes.NOT_UV_CALIBRATED)
 class NotUVCalibrated(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.FAILED_TO_SET_LOGLEVEL)
+class FailedToSetLogLevel(PrinterError):
     pass

@@ -7,8 +7,11 @@
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
+from prusaerrors.sl1.codes import Sl1Codes
 
+from sl1fw.api.decorators import wrap_exception
 from sl1fw.errors.errors import UVLEDHeatsinkFailed, FanRPMOutOfTestRange
+from sl1fw.errors.exceptions import get_exception_code
 from sl1fw.functions.checks import check_uv_leds, check_uv_fans
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -47,26 +50,16 @@ class PageUvFansTest(Page):
         pageWait.showItems(line2=_("Fans check"))
         try:
             avg_rpms, uv_temp = check_uv_fans(self.display.hw, self.display.hwConfig, self.logger)
-        except UVLEDHeatsinkFailed as e:
+        except UVLEDHeatsinkFailed as exception:
             self.display.pages["error"].setParams(
-                text=_(
-                    "UV LED too hot!\n\n"
-                    "Please check if the UV LED panel is attached to the heatsink.\n\n"
-                    "Temperature data: %s"
-                )
-                % e.uv_temp_deg_c
+                code=get_exception_code(exception).raw_code,
+                params=wrap_exception(exception)
             )
             return "error"
         except FanRPMOutOfTestRange as e:
             self.display.pages["error"].setParams(
-                text=_(
-                    "RPM of %(fan)s not in range!\n\n"
-                    "Please check if the fan is connected correctly.\n\n"
-                    "RPM data: %(rpm)s\n"
-                    "Average: %(avg)s\n"
-                    "Fan error: %(fanError)s"
-                )
-                % {
+                code=Sl1Codes.FAN_RPM_OUT_OF_TEST_RANGE.raw_code,
+                params={
                     "fan": e.name,
                     "rpm": e.rpm if e.rpm else "NA",
                     "avg": e.avg if e.avg else "NA",

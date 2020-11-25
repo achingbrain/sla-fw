@@ -6,6 +6,8 @@
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-instance-attributes
 
+from prusaerrors.sl1.codes import Sl1Codes
+
 from sl1fw.states.display import DisplayState
 from sl1fw.functions import display_test
 from sl1fw.pages import page
@@ -50,9 +52,7 @@ class PageDisplayTest(Page):
 
     def noButtonRelease(self):
         self.display.state = DisplayState.IDLE
-        self.display.pages['error'].setParams(
-            text = _("Your display or LED set is probably not connected properly or broken.\n\n"
-                     "Please check the proper connection first. Contact tech support in any case of troubles!"))
+        self.display.pages['error'].setParams(code=Sl1Codes.DISPLAY_TEST_FAILED.raw_code)
         return "error"
     #enddef
 

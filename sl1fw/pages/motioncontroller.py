@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from prusaerrors.sl1.codes import Sl1Codes
+
 from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
@@ -94,7 +96,7 @@ class PageMotionController(Page):
     def mc2net(self, bootloader=False):
         ip = self.display.inet.ip
         if ip is None:
-            self.display.pages['error'].setParams(text="Not connected to network")
+            self.display.pages['error'].setParams(code=Sl1Codes.NOT_CONNECTED_TO_NETWORK.raw_code)
             return "error"
 
         self.display.hw.mcc.start_debugging(bootloader=bootloader)

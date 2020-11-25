@@ -14,16 +14,17 @@ from time import sleep
 
 import pydbus
 from gi.repository import GLib
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
+from sl1fw.api.decorators import wrap_exception
 from sl1fw.errors.errors import (
     MissingWizardData,
     MissingCalibrationData,
     MissingUVCalibrationData,
-    ErrorSendingDataToMQTT,
     PrinterDataSendError,
 )
-from sl1fw.errors.exceptions import ConfigException, MotionControllerException
+from sl1fw.errors.exceptions import ConfigException, MotionControllerException, get_exception_code
 from sl1fw.functions.system import shut_down, save_factory_mode, send_printer_data, FactoryMountedRW
 from sl1fw.functions.files import ch_mode_owner
 from sl1fw.pages import page
@@ -60,7 +61,7 @@ class PageFactoryReset(Page):
         self.logger.info("Starting factory reset with factory mode: %s", self.display.runtime_config.factory_mode)
         if self.display.runtime_config.factory_mode and self.display.hwConfig.uvPwm == 0:
             self.logger.error("Cannot do factory reset UV PWM not set (== 0)")
-            self.display.pages["error"].setParams(text=_("Cannot do factory config UV PWM is not set !!!"))
+            self.display.pages["error"].setParams(code=Sl1Codes.MISSING_UVPWM_SETTINGS.raw_code)
             return "error"
 
         self.display.state = DisplayState.FACTORY_RESET
@@ -75,24 +76,20 @@ class PageFactoryReset(Page):
             except PrinterDataSendError as error:
                 self.logger.exception("Failed to send printer data to mqtt")
                 if isinstance(error, MissingWizardData):
-                    self.display.pages["error"].setParams(
-                        backFce=lambda: "wizardinit", text="The wizard did not finish successfully!"
-                    )
+                    back_fce = lambda: "wizardinit"
                 elif isinstance(error, MissingCalibrationData):
-                    self.display.pages["error"].setParams(
-                        backFce=lambda: PageCalibrationStart.Name, text="The calibration did not finish successfully!"
-                    )
+                    back_fce = lambda: PageCalibrationStart.Name
                 elif isinstance(error, MissingUVCalibrationData):
-                    self.display.pages["error"].setParams(
-                        backFce=lambda: PageUvCalibration.Name,
-                        text="The automatic UV LED calibration did not finish successfully!",
-                    )
-                elif isinstance(error, ErrorSendingDataToMQTT):
-                    self.display.pages["error"].setParams(text="Cannot send factory config to MQTT!")
+                    back_fce = lambda: PageUvCalibration.Name
                 else:
-                    self.display.pages["error"].setParams(text="Undefined printer data send error")
+                    back_fce = None
 
                 self.display.state = DisplayState.IDLE
+                self.display.pages["error"].setParams(
+                    backFce=back_fce,
+                    code=get_exception_code(error).raw_code,
+                    params=wrap_exception(error),
+                )
                 return "error"
 
         # http://www.wavsource.com/snds_2018-06-03_5106726768923853/movie_stars/schwarzenegger/erased.wav

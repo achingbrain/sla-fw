@@ -3,7 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 
@@ -62,10 +62,9 @@ class PageTowerOffset(Page):
         self.display.hwConfig.calibTowerOffset = self.tmpTowerOffset
         try:
             self.display.hwConfig.write()
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text=_("Cannot save configuration"))
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
         return "_BACK_"

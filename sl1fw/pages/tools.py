@@ -9,13 +9,15 @@ from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, Optional
 
 import pydbus
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
 from sl1fw.errors.errors import FailedUpdateChannelGet, FailedUpdateChannelSet
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.functions.system import save_factory_mode, get_update_channel, set_update_channel, FactoryMountedRW
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
+from sl1fw.state_actions.examples import download_examples_legacy
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -110,8 +112,11 @@ class PageTools(Page):
     def button5ButtonRelease(self):
         pageWait = self.display.makeWait(self.display, line1="Downloading examples")
         pageWait.show()
-        if not self.downloadExamlpes():
-            self.display.pages["error"].setParams(text="Examples fetch failed")
+        try:
+            download_examples_legacy(pageWait, self.display.inet)
+        except Exception as e:
+            self.logger.exception("Fetching of samples failed")
+            self.display.pages['error'].setParams(code=get_exception_code(e).raw_code)
             return "error"
         pageWait.showItems(line1="Saving dummy calibration data")
         writer = self.display.hwConfig.get_writer()
@@ -122,9 +127,9 @@ class PageTools(Page):
         self.display.hw.uvLedPwm = writer.uvPwm
         try:
             writer.commit()
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages["error"].setParams(text="Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
 
         try:
@@ -132,7 +137,7 @@ class PageTools(Page):
                 # saveDefaultsFile unfortunately hides all exceptions. Only the FactoryMountedRW raises exceptions.
                 self.saveDefaultsFile()
         except CalledProcessError:
-            self.display.pages["error"].setParams(text="!!! Failed to save factory defaults !!!")
+            self.display.pages["error"].setParams(code=Sl1Codes.FAILED_TO_SAVE_FACTORY_DEFAULTS.raw_code)
             return "error"
         return "_SELF_"
 
@@ -148,9 +153,9 @@ class PageTools(Page):
     def _switch_channel(self, channel: str) -> Optional[str]:
         try:
             set_update_channel(channel)
-        except FailedUpdateChannelSet:
+        except FailedUpdateChannelSet as exception:
             self.logger.exception("Failed to set update channel")
-            self.display.pages["error"].setParams(text="Cannot set update channel")
+            self.display.pages["error"].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         return "_SELF_"
 

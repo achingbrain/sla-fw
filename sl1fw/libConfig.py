@@ -1204,7 +1204,10 @@ class RuntimeConfig:
             self.show_admin_changed.emit(value)
         if value:
             self._logger.info("Setting loglevel to DEBUG (transient)")
-            set_log_level(logging.DEBUG, persistent=False)
+            try:
+                set_log_level(logging.DEBUG, persistent=False)
+            except Exception:
+                self._logger.exception("Failed to set loglevel")
 
     @property
     def factory_mode(self) -> bool:

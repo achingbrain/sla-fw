@@ -4,8 +4,10 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from prusaerrors.sl1.codes import Sl1Codes
+
 from sl1fw.errors.errors import TowerEndstopNotReached, TowerHomeCheckFailed
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
@@ -38,18 +40,10 @@ class PageTowerSensitivity(Page):
         try:
             tower_sensitivity = self.display.hw.get_tower_sensitivity()
         except TowerEndstopNotReached:
-            self.display.pages["error"].setParams(
-                text=_("Tower endstop not reached!\n\n" "Please check if the tower motor is connected properly.")
-            )
+            self.display.pages["error"].setParams(code=Sl1Codes.TOWER_ENDSTOP_NOT_REACHED.raw_code)
             return "error"
         except TowerHomeCheckFailed:
-            self.display.pages["error"].setParams(
-                text=_(
-                    "Tower home check failed!\n\n"
-                    "Please contact tech support!\n\n"
-                    "Tower profiles need to be changed."
-                )
-            )
+            self.display.pages["error"].setParams(code=Sl1Codes.TOWER_HOME_FAILED.raw_code)
             return "error"
 
         self.display.hwConfig.towerSensitivity = tower_sensitivity
@@ -61,9 +55,9 @@ class PageTowerSensitivity(Page):
 
         try:
             self.display.hwConfig.write()
-        except ConfigException:
-            self.logger.exception("Cannot save wizard configuration")
-            self.display.pages["error"].setParams(text=_("Cannot save wizard configuration"))
+        except ConfigException as exception:
+            self.logger.exception("Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
 
         return "_OK_"

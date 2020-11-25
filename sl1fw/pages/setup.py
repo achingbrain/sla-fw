@@ -10,8 +10,10 @@
 import os
 from pathlib import Path
 
+from prusaerrors.sl1.codes import Sl1Codes
+
 from sl1fw import defines
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.functions.files import usb_remount
 from sl1fw.pages.base import Page
 from sl1fw.pages import page
@@ -50,8 +52,7 @@ class PageSetup(Page):
         ''' export '''
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.pages['error'].setParams(
-                text="No USB storage present")
+            self.display.pages['error'].setParams(code=Sl1Codes.NO_EXTERNAL_STORAGE.raw_code)
             return "error"
         #endif
 
@@ -60,10 +61,9 @@ class PageSetup(Page):
         try:
             usb_remount(config_file)
             self.display.hwConfig.write(file_path=config_file)
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text = "Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
     #enddef
@@ -73,35 +73,31 @@ class PageSetup(Page):
         ''' import '''
         savepath = self.getSavePath()
         if savepath is None:
-            self.display.pages['error'].setParams(
-                text="No USB storage present")
+            self.display.pages['error'].setParams(code=Sl1Codes.NO_EXTERNAL_STORAGE.raw_code)
             return "error"
         #endif
 
         config_file = Path(savepath) / defines.hwConfigFileName
 
         if not os.path.isfile(config_file):
-            self.display.pages['error'].setParams(
-                text="Cannot find configuration to import")
+            self.display.pages['error'].setParams(code=Sl1Codes.FILE_NOT_FOUND.raw_code)
             return "error"
         #endif
 
         try:
             self.display.hwConfig.read_file(config_file)
-        except Exception:
-            self.logger.exception("import exception:")
-            self.display.pages['error'].setParams(
-                text="Cannot import configuration")
+        except ConfigException as exception:
+            self.logger.exception("Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
 
         # TODO: Does import also means also save? There is special button for it.
         try:
             self.display.hwConfig.write()
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text = "Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
 
@@ -117,10 +113,9 @@ class PageSetup(Page):
         """
         try:
             self.display.hwConfig.get_writer().commit_dict(self.changed)
-        except ConfigException:
+        except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
-            self.display.pages['error'].setParams(
-                text="Cannot save configuration")
+            self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
             return "error"
         #endtry
         return super(PageSetup, self).backButtonRelease()

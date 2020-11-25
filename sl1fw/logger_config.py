@@ -9,6 +9,7 @@ from logging.config import dictConfig
 from typing import Dict
 
 from sl1fw import defines
+from sl1fw.errors.errors import FailedToSetLogLevel
 
 DEFAULT_CONFIG = {
     "version": 1,
@@ -54,13 +55,16 @@ def get_log_level() -> int:
 
 
 def _set_config(config: Dict, level: int, persistent: bool):
-    config["root"]["level"] = logging.getLevelName(level)
-    # Setting level to root logger changes all loggers (in the same process)
-    logging.getLogger().setLevel(level)
+    try:
+        config["root"]["level"] = logging.getLevelName(level)
+        # Setting level to root logger changes all loggers (in the same process)
+        logging.getLogger().setLevel(level)
 
-    if persistent:
-        with defines.loggingConfig.open("w") as f:
-            json.dump(config, f)
+        if persistent:
+            with defines.loggingConfig.open("w") as f:
+                json.dump(config, f)
+    except Exception as exception:
+        raise FailedToSetLogLevel from exception
 
 
 def set_log_level(level: int, persistent=True) -> bool:
@@ -68,13 +72,15 @@ def set_log_level(level: int, persistent=True) -> bool:
     Set log level to configuration file and runtime
 
     :param level: LogLevel to set
+    :param persistent: True to set persisten configuration, False to set transient/runtime configuration
     :return: True if config file was used as a base, False otherwise
     """
     try:
         config = _get_config()
-        _set_config(config, level, persistent)
-        return True
+        base_used = True
     except Exception:
         config = DEFAULT_CONFIG
-        _set_config(config, level, persistent)
-        return False
+        base_used = False
+
+    _set_config(config, level, persistent)
+    return base_used

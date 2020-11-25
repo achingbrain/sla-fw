@@ -480,7 +480,8 @@ class ExposureThread(threading.Thread):
             failed_fans = [num for num, state in enumerate(fans_state) if state]
             self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
             failed_fan_names = [self.expo.hw.fans[i].name for i in failed_fans]
-            raise FanFailed(failed_fans, failed_fan_names)
+            failed_fans_text = ",".join(failed_fan_names)
+            raise FanFailed(failed_fans, failed_fan_names, failed_fans_text)
         self.logger.info("Fans OK")
 
         self.expo.runtime_config.fan_error_override = False

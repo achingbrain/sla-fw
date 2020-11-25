@@ -9,6 +9,7 @@
 import os
 import numpy
 from PIL import Image
+from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
 from sl1fw.pages import page
@@ -87,13 +88,14 @@ class PageDisplayUsage(Page):
         #endtry
 
         if savedData is None:
-            self.display.pages['error'].setParams(text = "No data to show!")
+            self.logger.error("No display suage data to show")
+            self.display.pages['error'].setParams(code=Sl1Codes.NO_DISPLAY_USAGE_DATA.raw_code)
             return "error"
         #endif
 
         if savedData.shape != defines.display_usage_size:
             self.logger.warning("Wrong saved data shape: %s", savedData.shape)
-            self.display.pages['error'].setParams(text = "Wrong data format!")
+            self.display.pages['error'].setParams(code=Sl1Codes.NO_DISPLAY_USAGE_DATA.raw_code)
             return "error"
         #endif
 
