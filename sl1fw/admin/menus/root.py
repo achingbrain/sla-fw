@@ -10,6 +10,7 @@ from sl1fw.admin.menus.hardware_setup import HardwareSetupMenu
 from sl1fw.admin.menus.hwconfig import HwConfigMenu
 from sl1fw.admin.menus.net_update import NetUpdate
 from sl1fw.admin.menus.test import TestMenu
+from sl1fw.admin.menus.tests import TestsMenu
 from sl1fw.libPrinter import Printer
 
 
@@ -27,5 +28,5 @@ class RootMenu(AdminMenu):
         self.add_item(
             AdminAction("hardware.cfg", lambda: self.enter(HwConfigMenu(self._control, self._printer.hwConfig)))
         )
-
+        self.add_item(AdminAction("Tests", lambda: self.enter(TestsMenu(self._control, self._printer))))
         self.add_item(AdminAction("admin api test", lambda: self.enter(TestMenu(self._control))))

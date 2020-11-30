@@ -1,6 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 import functools
 import json
 import logging
