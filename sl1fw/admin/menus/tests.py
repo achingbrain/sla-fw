@@ -17,5 +17,5 @@ class TestsMenu(AdminMenu):
         self.logger = logging.getLogger(__name__)
         self._printer = printer
 
-        self.add_item(AdminAction("Test Errors", lambda: self.enter(TestErrors(self._control, self._printer))))
         self.add_item(AdminAction("Back", self._control.pop))
+        self.add_item(AdminAction("Test Errors", lambda: self.enter(TestErrors(self._control, self._printer))))

@@ -40,7 +40,7 @@ class Page:
 
     def __init__(self, display: Display):
         self.pageUI = "splash"
-        self.pageTitle = ""
+        self.pageTitle = "unknown"
         self.logger = logging.getLogger(__name__)
         self.display = display
         self.autorepeat = {}
