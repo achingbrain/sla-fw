@@ -257,7 +257,7 @@ class Printer:
 
             if self.slicer_profile.vendor:
                 self.logger.info("Starting slicer profiles updater")
-                self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile)
+                self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile, self.screen.printer_model)
 
             # Force update network state (in case we missed network going online)
             # All network state handler should be already registered

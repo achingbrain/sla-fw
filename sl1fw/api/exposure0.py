@@ -25,8 +25,10 @@ from sl1fw.api.decorators import (
     wrap_warning,
 )
 from sl1fw.libExposure import Exposure
-from sl1fw.project.project import ProjectErrors
 from sl1fw.states.exposure import ExposureState
+from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, ProjectErrorNotEnoughLayers, \
+                                ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
+                                ProjectErrorWrongPrinterModel, NotEnoughInternalSpace, ExposureError
 
 
 @unique
@@ -96,18 +98,22 @@ class Exposure0ProjectState(Enum):
     PRINT_DIRECTLY = 5
     ANALYSIS_FAILED = 6
     CALIBRATION_INVALID = 7
+    WRONG_PRINTER_MODEL = 8
+    NOT_ENOUGH_INTERNAL_SPACE = 9
 
     @staticmethod
-    def from_project(state: ProjectErrors) -> Exposure0ProjectState:
+    def from_exception(exception: ExposureError) -> Exposure0ProjectState:
         return {
-            ProjectErrors.NONE: Exposure0ProjectState.OK,
-            ProjectErrors.NOT_FOUND: Exposure0ProjectState.NOT_FOUND,
-            ProjectErrors.CANT_READ: Exposure0ProjectState.CANT_READ,
-            ProjectErrors.NOT_ENOUGH_LAYERS: Exposure0ProjectState.NOT_ENOUGH_LAYERS,
-            ProjectErrors.CORRUPTED: Exposure0ProjectState.CORRUPTED,
-            ProjectErrors.ANALYSIS_FAILED: Exposure0ProjectState.ANALYSIS_FAILED,
-            ProjectErrors.CALIBRATION_INVALID: Exposure0ProjectState.CALIBRATION_INVALID,
-        }[state]
+            None: Exposure0ProjectState.OK,
+            ProjectErrorNotFound: Exposure0ProjectState.NOT_FOUND,
+            ProjectErrorCantRead: Exposure0ProjectState.CANT_READ,
+            ProjectErrorNotEnoughLayers: Exposure0ProjectState.NOT_ENOUGH_LAYERS,
+            ProjectErrorCorrupted: Exposure0ProjectState.CORRUPTED,
+            ProjectErrorAnalysisFailed: Exposure0ProjectState.ANALYSIS_FAILED,
+            ProjectErrorCalibrationInvalid: Exposure0ProjectState.CALIBRATION_INVALID,
+            ProjectErrorWrongPrinterModel: Exposure0ProjectState.WRONG_PRINTER_MODEL,
+            NotEnoughInternalSpace: Exposure0ProjectState.NOT_ENOUGH_INTERNAL_SPACE,
+        }[exception]
 
 
 @dbus_api
@@ -256,7 +262,7 @@ class Exposure0:
 
         :return: Exposure0ProjectState as integer
         """
-        return Exposure0ProjectState.from_project(self.exposure.project.error).value
+        return Exposure0ProjectState.from_exception(self.exposure.exception).value
 
     @auto_dbus
     @property

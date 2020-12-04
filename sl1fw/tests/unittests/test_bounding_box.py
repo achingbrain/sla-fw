@@ -9,7 +9,6 @@ import unittest
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.utils.bounding_box import BBox
-from sl1fw.defines import screenWidth, screenHeight
 
 
 class TestBBox(Sl1fwTestCase):
@@ -17,11 +16,6 @@ class TestBBox(Sl1fwTestCase):
         super().__init__(*args, **kwargs)
 
     def test_create(self):
-        bbox = BBox()
-        self.assertEqual(bbox.x1, screenWidth)
-        self.assertEqual(bbox.y1, screenHeight)
-        self.assertEqual(bbox.x2, 0)
-        self.assertEqual(bbox.y2, 0)
         bbox = BBox((100, 200, 300, 400))
         self.assertEqual(bbox.x1, 100)
         self.assertEqual(bbox.y1, 200)
@@ -47,7 +41,7 @@ class TestBBox(Sl1fwTestCase):
         self.assertFalse(bbox)
         bbox = BBox((-1, -1, 300, 400))
         self.assertFalse(bbox)
-        bbox = BBox((0, 0, screenWidth+1, screenHeight+1))
+        bbox = BBox((0, 0, -1, -1))
         self.assertFalse(bbox)
 
     def test_compare(self):
@@ -68,7 +62,6 @@ class TestBBox(Sl1fwTestCase):
 
     def test_coords(self):
         bbox = BBox()
-        self.assertEqual(bbox.coords, (screenWidth, screenHeight, 0, 0))
         bbox.coords = 100, 200, 300, 400
         self.assertEqual(bbox.coords, (100, 200, 300, 400))
 
@@ -79,9 +72,9 @@ class TestBBox(Sl1fwTestCase):
         self.assertEqual(bbox.size, (200, 200))
 
     def test_maximize(self):
-        bbox = BBox((100, 200, 300, 400))
+        bbox = BBox()
         bbox.maximize(BBox((10, 20, 30, 40)))
-        self.assertEqual(bbox.coords, (10, 20, 300, 400))
+        self.assertEqual(bbox.coords, (10, 20, 30, 40))
         bbox.maximize(BBox((200, 300, 400, 500)))
         self.assertEqual(bbox.coords, (10, 20, 400, 500))
 

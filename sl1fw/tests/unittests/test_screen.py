@@ -14,7 +14,7 @@ from sl1fw.libConfig import HwConfig
 from sl1fw.screen.screen import Screen
 from sl1fw.screen.resin_calibration import Area, AreaWithLabel, AreaWithLabelStripe, Calibration
 from sl1fw.project.project import Project
-from sl1fw.states.project import ProjectErrors
+from sl1fw.errors.errors import ProjectErrorCalibrationInvalid
 from sl1fw.utils.bounding_box import BBox
 from sl1fw import defines, test_runtime
 
@@ -39,6 +39,8 @@ class TestScreen(Sl1fwTestCase):
         defines.displayUsageData = str(self.DISPLAY_USAGE)
         test_runtime.testing = True
         self.screen = Screen()
+        self.width = self.screen.printer_model.screen_width_px
+        self.height = self.screen.printer_model.screen_height_px
 
     def tearDown(self):
         files = [
@@ -52,7 +54,7 @@ class TestScreen(Sl1fwTestCase):
     def load_project(self, filename):
         hw_config = HwConfig(self.HW_CONFIG)
         hw_config.read_file()
-        return Project(hw_config, filename)
+        return Project(hw_config, self.screen.printer_model, filename)
 
     def test_init(self):
         self.assertSameImage(self.screen.screen, Image.open(self.SAMPLES_DIR / "fbdev" / "all_black.png"))
@@ -70,7 +72,6 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.NUMBERS)
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertFalse(project.per_partes)
         self.assertEqual(233600.0, self.screen.blit_image())
@@ -80,7 +81,6 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.NUMBERS)
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertFalse(project.per_partes)
         self.screen.save_display_usage()
@@ -95,7 +95,6 @@ class TestScreen(Sl1fwTestCase):
         project.per_partes = True
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertTrue(project.per_partes)
         second = False
@@ -110,96 +109,97 @@ class TestScreen(Sl1fwTestCase):
         self.assertSameImage(Image.open(defines.livePreviewImage), Image.open(self.SAMPLES_DIR / "live2.png"))
 
     def test_calibration_areas_no_bbox(self):
-        calib = Calibration()
-        self.assertFalse(calib.create_areas(1, None))
+        calib = Calibration(self.screen.printer_model)
+        with self.assertRaises(ProjectErrorCalibrationInvalid):
+            calib.create_areas(1, None)
         self.assertEqual(calib.areas, [])
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(2, None))
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(2, None)
         result = [
-                AreaWithLabel((0, 0, defines.screenWidth, defines.screenHeight // 2)),
-                AreaWithLabel((0, defines.screenHeight // 2, defines.screenWidth, defines.screenHeight)),
+                AreaWithLabel((0, 0, self.width, self.height // 2)),
+                AreaWithLabel((0, self.height // 2, self.width, self.height)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(4, None))
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(4, None)
         result = [
-                AreaWithLabel((0, 0, defines.screenWidth // 2, defines.screenHeight // 2)),
-                AreaWithLabel((0, defines.screenHeight // 2, defines.screenWidth // 2, defines.screenHeight)),
-                AreaWithLabel((defines.screenWidth // 2, 0, defines.screenWidth, defines.screenHeight // 2)),
-                AreaWithLabel((defines.screenWidth // 2, defines.screenHeight // 2, defines.screenWidth, defines.screenHeight)),
+                AreaWithLabel((0, 0, self.width // 2, self.height // 2)),
+                AreaWithLabel((0, self.height // 2, self.width // 2, self.height)),
+                AreaWithLabel((self.width // 2, 0, self.width, self.height // 2)),
+                AreaWithLabel((self.width // 2, self.height // 2, self.width, self.height)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(6, None))
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(6, None)
         result = [
-                AreaWithLabel((0, 0, defines.screenWidth // 2, defines.screenHeight // 3)),
-                AreaWithLabel((0, defines.screenHeight // 3, defines.screenWidth // 2, defines.screenHeight // 3 * 2)),
-                AreaWithLabel((0, defines.screenHeight // 3 * 2, defines.screenWidth // 2, defines.screenHeight - 1)),
-                AreaWithLabel((defines.screenWidth // 2, 0, defines.screenWidth, defines.screenHeight // 3)),
-                AreaWithLabel((defines.screenWidth // 2, defines.screenHeight // 3, defines.screenWidth, defines.screenHeight // 3 * 2)),
-                AreaWithLabel((defines.screenWidth // 2, defines.screenHeight // 3 * 2, defines.screenWidth, defines.screenHeight - 1)),
+                AreaWithLabel((0, 0, self.width // 2, self.height // 3)),
+                AreaWithLabel((0, self.height // 3, self.width // 2, self.height // 3 * 2)),
+                AreaWithLabel((0, self.height // 3 * 2, self.width // 2, self.height - 1)),
+                AreaWithLabel((self.width // 2, 0, self.width, self.height // 3)),
+                AreaWithLabel((self.width // 2, self.height // 3, self.width, self.height // 3 * 2)),
+                AreaWithLabel((self.width // 2, self.height // 3 * 2, self.width, self.height - 1)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(8, None))
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(8, None)
         result = [
-                AreaWithLabel((0, 0, defines.screenWidth // 2, defines.screenHeight // 4)),
-                AreaWithLabel((0, defines.screenHeight // 4, defines.screenWidth // 2, defines.screenHeight // 2)),
-                AreaWithLabel((0, defines.screenHeight // 2, defines.screenWidth // 2, defines.screenHeight // 4 * 3)),
-                AreaWithLabel((0, defines.screenHeight // 4 * 3, defines.screenWidth // 2, defines.screenHeight)),
-                AreaWithLabel((defines.screenWidth // 2, 0, defines.screenWidth, defines.screenHeight // 4)),
-                AreaWithLabel((defines.screenWidth // 2, defines.screenHeight // 4, defines.screenWidth, defines.screenHeight // 2)),
-                AreaWithLabel((defines.screenWidth // 2, defines.screenHeight // 2, defines.screenWidth, defines.screenHeight // 4 * 3)),
-                AreaWithLabel((defines.screenWidth // 2, defines.screenHeight // 4 * 3, defines.screenWidth, defines.screenHeight)),
+                AreaWithLabel((0, 0, self.width // 2, self.height // 4)),
+                AreaWithLabel((0, self.height // 4, self.width // 2, self.height // 2)),
+                AreaWithLabel((0, self.height // 2, self.width // 2, self.height // 4 * 3)),
+                AreaWithLabel((0, self.height // 4 * 3, self.width // 2, self.height)),
+                AreaWithLabel((self.width // 2, 0, self.width, self.height // 4)),
+                AreaWithLabel((self.width // 2, self.height // 4, self.width, self.height // 2)),
+                AreaWithLabel((self.width // 2, self.height // 2, self.width, self.height // 4 * 3)),
+                AreaWithLabel((self.width // 2, self.height // 4 * 3, self.width, self.height)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(9, None))
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(9, None)
         result = [
-                AreaWithLabel((0, 0, defines.screenWidth // 3, defines.screenHeight // 3)),
-                AreaWithLabel((0, defines.screenHeight // 3, defines.screenWidth // 3, defines.screenHeight // 3 * 2)),
-                AreaWithLabel((0, defines.screenHeight // 3 * 2, defines.screenWidth // 3, defines.screenHeight - 1)),
-                AreaWithLabel((defines.screenWidth // 3, 0, defines.screenWidth // 3 * 2, defines.screenHeight // 3)),
-                AreaWithLabel((defines.screenWidth // 3, defines.screenHeight // 3, defines.screenWidth // 3 * 2, defines.screenHeight // 3 * 2)),
-                AreaWithLabel((defines.screenWidth // 3, defines.screenHeight // 3 * 2, defines.screenWidth // 3 * 2, defines.screenHeight - 1)),
-                AreaWithLabel((defines.screenWidth // 3 * 2, 0, defines.screenWidth, defines.screenHeight // 3)),
-                AreaWithLabel((defines.screenWidth // 3 * 2, defines.screenHeight // 3, defines.screenWidth, defines.screenHeight // 3 * 2)),
-                AreaWithLabel((defines.screenWidth // 3 * 2, defines.screenHeight // 3 * 2, defines.screenWidth, defines.screenHeight - 1)),
+                AreaWithLabel((0, 0, self.width // 3, self.height // 3)),
+                AreaWithLabel((0, self.height // 3, self.width // 3, self.height // 3 * 2)),
+                AreaWithLabel((0, self.height // 3 * 2, self.width // 3, self.height - 1)),
+                AreaWithLabel((self.width // 3, 0, self.width // 3 * 2, self.height // 3)),
+                AreaWithLabel((self.width // 3, self.height // 3, self.width // 3 * 2, self.height // 3 * 2)),
+                AreaWithLabel((self.width // 3, self.height // 3 * 2, self.width // 3 * 2, self.height - 1)),
+                AreaWithLabel((self.width // 3 * 2, 0, self.width, self.height // 3)),
+                AreaWithLabel((self.width // 3 * 2, self.height // 3, self.width, self.height // 3 * 2)),
+                AreaWithLabel((self.width // 3 * 2, self.height // 3 * 2, self.width, self.height - 1)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(10, None))
-        stripe = defines.screenHeight // 10
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(10, None)
+        stripe = self.height // 10
         result = [
-                AreaWithLabelStripe((0, 0, defines.screenWidth, stripe)),
-                AreaWithLabelStripe((0, 1 * stripe, defines.screenWidth, 2 * stripe)),
-                AreaWithLabelStripe((0, 2 * stripe, defines.screenWidth, 3 * stripe)),
-                AreaWithLabelStripe((0, 3 * stripe, defines.screenWidth, 4 * stripe)),
-                AreaWithLabelStripe((0, 4 * stripe, defines.screenWidth, 5 * stripe)),
-                AreaWithLabelStripe((0, 5 * stripe, defines.screenWidth, 6 * stripe)),
-                AreaWithLabelStripe((0, 6 * stripe, defines.screenWidth, 7 * stripe)),
-                AreaWithLabelStripe((0, 7 * stripe, defines.screenWidth, 8 * stripe)),
-                AreaWithLabelStripe((0, 8 * stripe, defines.screenWidth, 9 * stripe)),
-                AreaWithLabelStripe((0, 9 * stripe, defines.screenWidth, 10 * stripe)),
+                AreaWithLabelStripe((0, 0, self.width, stripe)),
+                AreaWithLabelStripe((0, 1 * stripe, self.width, 2 * stripe)),
+                AreaWithLabelStripe((0, 2 * stripe, self.width, 3 * stripe)),
+                AreaWithLabelStripe((0, 3 * stripe, self.width, 4 * stripe)),
+                AreaWithLabelStripe((0, 4 * stripe, self.width, 5 * stripe)),
+                AreaWithLabelStripe((0, 5 * stripe, self.width, 6 * stripe)),
+                AreaWithLabelStripe((0, 6 * stripe, self.width, 7 * stripe)),
+                AreaWithLabelStripe((0, 7 * stripe, self.width, 8 * stripe)),
+                AreaWithLabelStripe((0, 8 * stripe, self.width, 9 * stripe)),
+                AreaWithLabelStripe((0, 9 * stripe, self.width, 10 * stripe)),
                 ]
         self.assertEqual(calib.areas, result)
 
     def test_calibration_areas_with_bbox(self):
         bbox = BBox((608, 1135, 832, 1455))
         w, h = bbox.size
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(2, bbox))
-        x = (defines.screenWidth - w ) // 2
-        y = (defines.screenHeight - 2 * h) // 2
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(2, bbox)
+        x = (self.width - w ) // 2
+        y = (self.height - 2 * h) // 2
         result = [
                 Area((x, y, x + w, y + h)),
                 Area((x, y + h, x + w, y + 2 * h)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(4, bbox))
-        x = (defines.screenWidth - 2 * w) // 2
-        y = (defines.screenHeight - 2 * h) // 2
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(4, bbox)
+        x = (self.width - 2 * w) // 2
+        y = (self.height - 2 * h) // 2
         result = [
                 Area((x, y, x + w, y + h)),
                 Area((x, y + h, x + w, y + 2 * h)),
@@ -207,10 +207,10 @@ class TestScreen(Sl1fwTestCase):
                 Area((x + w, y + h, x + 2 * w, y + 2 *h)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(6, bbox))
-        x = (defines.screenWidth - 2 * w) // 2
-        y = (defines.screenHeight - 3 * h) // 2
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(6, bbox)
+        x = (self.width - 2 * w) // 2
+        y = (self.height - 3 * h) // 2
         result = [
                 Area((x, y, x + w, y + h)),
                 Area((x, y + h, x + w, y + 2 * h)),
@@ -220,10 +220,10 @@ class TestScreen(Sl1fwTestCase):
                 Area((x + w, y + 2 * h, x + 2 * w, y + 3 * h)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(8, bbox))
-        x = (defines.screenWidth - 2 * w) // 2
-        y = (defines.screenHeight - 4 * h) // 2
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(8, bbox)
+        x = (self.width - 2 * w) // 2
+        y = (self.height - 4 * h) // 2
         result = [
                 Area((x, y, x + w, y + h)),
                 Area((x, y + h, x + w, y + 2 * h)),
@@ -235,10 +235,10 @@ class TestScreen(Sl1fwTestCase):
                 Area((x + w, y + 3 * h, x + 2 * w, y + 4 * h)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(9, bbox))
-        x = (defines.screenWidth - 3 * w) // 2
-        y = (defines.screenHeight - 3 * h) // 2
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(9, bbox)
+        x = (self.width - 3 * w) // 2
+        y = (self.height - 3 * h) // 2
         result = [
                 Area((x, y, x + w, y + h)),
                 Area((x, y + h, x + w, y + 2 * h)),
@@ -251,10 +251,10 @@ class TestScreen(Sl1fwTestCase):
                 Area((x + 2 * w, y + 2 * h, x + 3 * w, y + 3 * h)),
                 ]
         self.assertEqual(calib.areas, result)
-        calib = Calibration()
-        self.assertTrue(calib.create_areas(10, bbox))
+        calib = Calibration(self.screen.printer_model)
+        calib.create_areas(10, bbox)
         h = 256
-        x = (defines.screenWidth - w) // 2
+        x = (self.width - w) // 2
         result = [
                 Area((x, 0, x + w, h)),
                 Area((x, 1 * h, x + w, 2 * h)),
@@ -274,7 +274,6 @@ class TestScreen(Sl1fwTestCase):
         project.exposure_time_ms = 4000
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertEqual(1293509, self.screen.blit_image(False))
         self.assertSameImage(self.screen.screen, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_pad.png"))
@@ -283,7 +282,6 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION)
         project.exposure_time_ms = 4000
         self.screen.new_project(project)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.preload_image(10)
         white = self.screen.blit_image(False)
@@ -294,7 +292,6 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION)
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.blit_image(False)
         for idx in range(8):
@@ -306,7 +303,6 @@ class TestScreen(Sl1fwTestCase):
         project.calibrate_compact = True
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertEqual(1114168, self.screen.blit_image(False))
         self.assertSameImage(self.screen.screen, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_pad_compact.png"))
@@ -315,7 +311,6 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION)
         project.calibrate_compact = True
         self.screen.new_project(project)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.preload_image(10)
         white = self.screen.blit_image(False)
@@ -327,7 +322,6 @@ class TestScreen(Sl1fwTestCase):
         project.calibrate_compact = True
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.blit_image(False)
         for idx in range(8):
@@ -338,7 +332,6 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION_LINEAR)
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         white = self.screen.blit_image(False)
         self.assertLess(abs(3591170 - white), 50)
@@ -347,7 +340,6 @@ class TestScreen(Sl1fwTestCase):
     def test_calibration_calib_10(self):
         project = self.load_project(self.CALIBRATION_LINEAR)
         self.screen.new_project(project)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.preload_image(10)
         white = self.screen.blit_image(False)
@@ -358,7 +350,6 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION_LINEAR)
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.blit_image(False)
         for idx in range(10):
@@ -370,7 +361,6 @@ class TestScreen(Sl1fwTestCase):
         project.calibrate_compact = True
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         white = self.screen.blit_image(False)
         self.assertLess(abs(3361680 - white), 50)
@@ -380,7 +370,6 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION_LINEAR)
         project.calibrate_compact = True
         self.screen.new_project(project)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.preload_image(10)
         white = self.screen.blit_image(False)
@@ -392,7 +381,6 @@ class TestScreen(Sl1fwTestCase):
         project.calibrate_compact = True
         self.screen.new_project(project)
         self.screen.preload_image(0)
-        self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.blit_image(False)
         for idx in range(10):

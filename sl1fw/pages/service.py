@@ -93,7 +93,7 @@ class PageDisplayUsage(Page):
             return "error"
         #endif
 
-        if savedData.shape != defines.display_usage_size:
+        if savedData.shape != self.display.screen.display_usage_size:
             self.logger.warning("Wrong saved data shape: %s", savedData.shape)
             self.display.pages['error'].setParams(code=Sl1Codes.NO_DISPLAY_USAGE_DATA.raw_code)
             return "error"

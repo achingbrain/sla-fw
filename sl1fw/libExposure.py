@@ -38,11 +38,9 @@ from PySignal import Signal
 from deprecation import deprecated
 
 from sl1fw import defines, test_runtime
-from sl1fw.errors.errors import ExposureError, TiltFailed, TowerFailed, TowerMoveFailed, ProjectFailed, \
+from sl1fw.errors.errors import ExposureError, TiltFailed, TowerFailed, TowerMoveFailed, \
     TempSensorFailed, FanFailed, ResinFailed, ResinTooLow, ResinTooHigh, WarningEscalation
-from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, PrintingDirectlyFromMedia, \
-    ModelMismatch, ResinNotEnough, ProjectSettingsModified, PerPartesPrintNotAvaiable, \
-    PrintMaskNotAvaiable, PrintedObjectWasCropped
+from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough
 from sl1fw.errors.exceptions import NotAvailableInState
 from sl1fw.functions.system import shut_down
 from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
@@ -50,7 +48,6 @@ from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.project.project import Project, ProjectConfig
-from sl1fw.states.project import ProjectErrors, ProjectWarnings
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.utils.traceable_collections import TraceableList, TraceableDict
 
@@ -383,52 +380,34 @@ class ExposureThread(threading.Thread):
         self.logger.info("Running project checks")
         self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.RUNNING
 
-        # Raise warning when model or variant does not match the printer
-        # TODO should be an error? (different display resolution and/or dpi)
-        if self.expo.project.printer_model != defines.slicerPrinterModel or\
-                self.expo.project.printer_variant != defines.slicerPrinterVariant:
-            self._raise_preprint_warning(
-                ModelMismatch(defines.slicerPrinterModel, defines.slicerPrinterVariant,
-                              self.expo.project.printer_model, self.expo.project.printer_variant)
-            )
-
         # Remove old projects
         self.logger.debug("Running disk cleanup")
         self.expo.check_and_clean_last_data()
 
         self.logger.debug("Running project copy and check")
-        self.expo.project.copy_and_check()
-
-        if self.expo.project.error != ProjectErrors.NONE:
+        try:
+            self.expo.project.copy_and_check()
+        except Exception:
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.FAILURE
-            raise ProjectFailed(self.expo.project.error)
+            raise
 
         self.logger.info("Project after copy and check: %s", str(self.expo.project))
 
         # start data preparation by Screen
         self.logger.debug("Initiating project in Screen")
-        self.expo.startProject()
-        if self.expo.project.error != ProjectErrors.NONE:
+        try:
+            self.expo.startProject()
+        except Exception:
             self.logger.error("Initiating project in Screen failed")
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.FAILURE
-            raise ProjectFailed(self.expo.project.error)
+            raise
 
         # show all warnings
-        # TODO get exceptions directly
         if self.expo.project.warnings:
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.WARNING
-            if ProjectWarnings.PRINT_DIRECTLY in self.expo.project.warnings:
-                self._raise_preprint_warning(PrintingDirectlyFromMedia())
-            if ProjectWarnings.ALTERED_VALUES in self.expo.project.warnings:
-                self._raise_preprint_warning(ProjectSettingsModified(self.expo.project.altered_values))
-            if ProjectWarnings.PER_PARTES_NOAVAIL in self.expo.project.warnings:
-                self._raise_preprint_warning(PerPartesPrintNotAvaiable())
-            if ProjectWarnings.MASK_NOAVAIL in self.expo.project.warnings:
-                self._raise_preprint_warning(PrintMaskNotAvaiable())
-            if ProjectWarnings.CROPPED in self.expo.project.warnings:
-                self._raise_preprint_warning(PrintedObjectWasCropped())
-
-        if self.expo.check_results[ExposureCheck.PROJECT] != ExposureCheckResult.WARNING:
+            for warning in self.expo.project.warnings:
+                self._raise_preprint_warning(warning)
+        else:
             self.expo.check_results[ExposureCheck.PROJECT] = ExposureCheckResult.SUCCESS
 
 
@@ -685,7 +664,7 @@ class ExposureThread(threading.Thread):
             exposure_compensation = 0
 
             # /1e21 (1e7 ** 3) - we want cm3 (=ml) not nm3
-            self.expo.resin_count += white_pixels * defines.screen_pixel_size_nm ** 2 * layer.height_nm / 1e21
+            self.expo.resin_count += white_pixels * self.expo.screen.printer_model.screen_pixel_size_nm ** 2 * layer.height_nm / 1e21
             self.logger.debug("resin_count: %f", self.expo.resin_count)
 
             seconds = (datetime.now(tz=timezone.utc) - self.expo.printStartTime).total_seconds()
@@ -818,10 +797,12 @@ class Exposure:
 
         try:
             # Read project
-            self.project = Project(self.hwConfig, project_file)
-            if self.project.error != ProjectErrors.NONE:
-                raise ProjectFailed(self.project.error)
+            self.project = Project(self.hwConfig, self.screen.printer_model, project_file)
             self.state = ExposureState.CONFIRM
+            # Signal project change on its parameter change. This lets Exposure0 emit
+            # property changed on properties bound to project parameters.
+            self.project.params_changed.connect(lambda: self.change.emit("project", None))
+            self.logger.info("Created new exposure object id: %s", self.instance_id)
         except Exception as exception:
             # TODO: It is not nice to handle this in the constructor, but still better than let the constructor raise
             # TODO: an exception and kill the whole printer logic.
@@ -833,12 +814,6 @@ class Exposure:
             self.hw.uvLed(False)
             self.hw.stopFans()
             self.hw.motorsRelease()
-
-        # Signal project change on its parameter change. This lets Exposure0 emit
-        # property changed on properties bound to project parameters.
-        self.project.params_changed.connect(lambda: self.change.emit("project", None))
-
-        self.logger.info("Created new exposure object id: %s", self.instance_id)
 
     def confirm_print_start(self):
         self.expoThread.start()

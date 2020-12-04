@@ -17,7 +17,7 @@ from pywayland.protocol.xdg_shell import XdgWmBase
 from pywayland.protocol.presentation_time import WpPresentation
 from pywayland.utils import AnonymousFile
 
-from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.screen.printer_model import PrinterModelTypes
 
 
 class Wayland:
@@ -170,8 +170,8 @@ class Wayland:
 
     def _detect_model(self):
         self._logger.debug("got resolution %dx%d", self._width, self._height)
-        for printer_model in PrinterModel:
-            params = printer_model.parameters()
+        for printer_model_type in PrinterModelTypes:
+            params = printer_model_type.parameters()
             if params.screen_size_px == (self._width, self._height):
                 self.printer_model = params
                 break

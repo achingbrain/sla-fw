@@ -14,13 +14,14 @@ from ctypes import c_uint32
 import numpy
 from PIL import Image, ImageOps
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.errors.errors import PreloadFailed
 from sl1fw.project.project import Project
-from sl1fw.states.project import ProjectErrors, ProjectWarnings
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.screen.resin_calibration import Calibration
 from sl1fw.screen.wayland import Wayland
+from sl1fw.screen.printer_model import PrinterModelTypes
+from sl1fw.errors.warnings import PerPartesPrintNotAvaiable, PrintMaskNotAvaiable
 
 
 class Screen:
@@ -28,29 +29,43 @@ class Screen:
     def __init__(self):
         self._logger = logging.getLogger(__name__)
         self._project: Optional[Project] = None
-        self._black_image = Image.new("L", defines.screen_size)
         self._overlays = {}
         self._calibration: Optional[Calibration] = None
-        self._output = None
-        self._screen = None
+        self._output: Optional[Wayland] = None
+        self._screen: Optional[Image] = None
         self._preloader: Optional[Process] = None
         self._last_preload_index: Optional[int] = None
+        self._next_image_1_shm: Optional[shared_memory.SharedMemory] = None
+        self._next_image_2_shm: Optional[shared_memory.SharedMemory] = None
+        self._usage_shm: Optional[shared_memory.SharedMemory] = None
         self._preloader_lock = Lock()
-        self._next_image_1_shm = shared_memory.SharedMemory(create=True, size=defines.screenWidth * defines.screenHeight)
-        self._next_image_2_shm = shared_memory.SharedMemory(create=True, size=defines.screenWidth * defines.screenHeight)
-        temp_usage = numpy.zeros(defines.display_usage_size, dtype=numpy.float64, order='C')
+
+        self._output = Wayland()    # may throw exception
+        # FIXME this is ugly but can't mock this :-(
+        if test_runtime.testing:
+            self._output.printer_model = PrinterModelTypes.SL1.parameters()
+        self.live_preview_size_px = (self.printer_model.screen_width_px // defines.thumbnail_factor, self.printer_model.screen_height_px // defines.thumbnail_factor)
+        # numpy uses reversed axis indexing
+        self.display_usage_size = (self.printer_model.screen_height_px // defines.thumbnail_factor, self.printer_model.screen_width_px // defines.thumbnail_factor)
+        self.display_usage_shape = (self.display_usage_size[0], defines.thumbnail_factor, self.display_usage_size[1], defines.thumbnail_factor)
+        self._next_image_1_shm = shared_memory.SharedMemory(create=True, size=self.printer_model.screen_width_px * self.printer_model.screen_height_px)
+        self._next_image_2_shm = shared_memory.SharedMemory(create=True, size=self.printer_model.screen_width_px * self.printer_model.screen_height_px)
+        temp_usage = numpy.zeros(self.display_usage_size, dtype=numpy.float64, order='C')
         self._usage_shm = shared_memory.SharedMemory(create=True, size=temp_usage.nbytes)
         self._white_pixels = Value(c_uint32, 0)
-        self._output = Wayland()    # may throw exception
+        self._black_image = Image.new("L", self.printer_model.screen_size_px)
         self._screen = self._black_image.copy()
 
     def __del__(self):
-        self._next_image_1_shm.close()
-        self._next_image_1_shm.unlink()
-        self._next_image_2_shm.close()
-        self._next_image_2_shm.unlink()
-        self._usage_shm.close()
-        self._usage_shm.unlink()
+        if self._next_image_1_shm:
+            self._next_image_1_shm.close()
+            self._next_image_1_shm.unlink()
+        if self._next_image_2_shm:
+            self._next_image_2_shm.close()
+            self._next_image_2_shm.unlink()
+        if self._usage_shm:
+            self._usage_shm.close()
+            self._usage_shm.unlink()
         if self._output:
             self._output.stop()
 
@@ -71,7 +86,7 @@ class Screen:
         self._project = project
         self._overlays = {}
         self._calibration = None
-        usage = numpy.ndarray(defines.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
+        usage = numpy.ndarray(self.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
         usage.fill(0.0)
         if self._project.per_partes:
             try:
@@ -79,7 +94,7 @@ class Screen:
                 self._overlays['ppm2'] = ImageOps.invert(self._overlays['ppm1'])
             except Exception:
                 self._logger.exception("per partes masks exception")
-                self._project.warnings.add(ProjectWarnings.PER_PARTES_NOAVAIL)
+                self._project.warnings.add(PerPartesPrintNotAvaiable())
                 self._project.per_partes = False
         try:
             img = self._project.read_image(defines.maskFilename)
@@ -88,8 +103,8 @@ class Screen:
             self._logger.info("No mask picture in the project")
         except Exception:
             self._logger.exception("project mask exception")
-            self._project.warnings.add(ProjectWarnings.MASK_NOAVAIL)
-        self._calibration = Calibration()
+            self._project.warnings.add(PrintMaskNotAvaiable())
+        self._calibration = Calibration(self.printer_model)
         self._calibration.new_project(self._project)
 
     def blank_screen(self):
@@ -132,7 +147,7 @@ class Screen:
             startTimeFirst = time()
             input_image = self._project.read_image(layer.image)
             self._logger.debug("load of '%s' done in %f secs", layer.image, time() - startTimeFirst)
-            output_image = Image.frombuffer("L", defines.screen_size, self._next_image_1_shm.buf, "raw", "L", 0, 1)
+            output_image = Image.frombuffer("L", self.printer_model.screen_size_px, self._next_image_1_shm.buf, "raw", "L", 0, 1)
             output_image.readonly = False
             if self._calibration.areas:
                 start_time = time()
@@ -148,14 +163,14 @@ class Screen:
                 output_image.paste(self._black_image, mask=overlay)
             start_time = time()
             pixels = numpy.array(output_image)
-            usage = numpy.ndarray(defines.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
+            usage = numpy.ndarray(self.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
             # 1500 layers on 0.1 mm layer height <0:255> -> <0.0:1.0>
-            usage += numpy.reshape(pixels, defines.display_usage_shape).mean(axis=3).mean(axis=1) / 382500
+            usage += numpy.reshape(pixels, self.display_usage_shape).mean(axis=3).mean(axis=1) / 382500
             white_pixels = get_white_pixels(output_image)
             self._logger.debug("pixels manipulations done in %f secs, white pixels: %d",
                     time() - start_time, white_pixels)
             if self._project.per_partes and white_pixels > self._project.white_pixels_threshold:
-                output_image_second = Image.frombuffer("L", defines.screen_size, self._next_image_2_shm.buf, "raw", "L", 0, 1)
+                output_image_second = Image.frombuffer("L", self.printer_model.screen_size_px, self._next_image_2_shm.buf, "raw", "L", 0, 1)
                 output_image_second.readonly = False
                 output_image_second.paste(output_image)
                 output_image.paste(self._black_image, mask=self._overlays['ppm1'])
@@ -170,7 +185,7 @@ class Screen:
     def _screenshot(self, image: Image, number: str):
         try:
             start_time = time()
-            preview = image.resize(defines.livePreviewSize, Image.BICUBIC)
+            preview = image.resize(self.live_preview_size_px, Image.BICUBIC)
             self._logger.debug("resize done in %f secs", time() - start_time)
             start_time = time()
             preview.save(defines.livePreviewImage + "-tmp%s.png" % number)
@@ -182,7 +197,10 @@ class Screen:
         self._logger.debug("sync preloader started")
         self._preloader.join(5)
         if self._preloader.exitcode != 0:
-            self._logger.error("Preloader exit code: %s", str(self._preloader.exitcode))
+            if self._preloader.exitcode is None:
+                self._logger.error("Preloader did not finish yet!")
+            else:
+                self._logger.error("Preloader exit code: %d (%s)", self._preloader.exitcode, os.strerror(self._preloader.exitcode))
             # TODO this shouldn't happen, need better handling if yes
             raise PreloadFailed()
 
@@ -191,7 +209,7 @@ class Screen:
         start_time = time()
         self._logger.debug("blit started")
         source_shm = self._next_image_2_shm if second else self._next_image_1_shm
-        self._screen = Image.frombuffer("L", defines.screen_size, source_shm.buf, "raw", "L", 0, 1).copy()
+        self._screen = Image.frombuffer("L", self.printer_model.screen_size_px, source_shm.buf, "raw", "L", 0, 1).copy()
         self._output.show(self._screen)
         self._logger.debug("get result and blit done in %f secs", time() - start_time)
         return self._white_pixels.value
@@ -214,11 +232,11 @@ class Screen:
 
     def save_display_usage(self):
         self._sync_preloader()
-        usage = numpy.ndarray(defines.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
+        usage = numpy.ndarray(self.display_usage_size, dtype=numpy.float64, order='C', buffer=self._usage_shm.buf)
         try:
             with numpy.load(defines.displayUsageData) as npzfile:
                 saved_data = npzfile['display_usage']
-                if saved_data.shape != defines.display_usage_size:
+                if saved_data.shape != self.display_usage_size:
                     self._logger.warning("Wrong saved data shape: %s", saved_data.shape)
                 else:
                     usage += saved_data
@@ -239,6 +257,4 @@ class Screen:
 
     @property
     def printer_model(self):
-        if self._output:
-            return self._output.printer_model
-        return None
+        return self._output.printer_model

@@ -37,6 +37,7 @@ sys.modules["serial.tools.list_ports"] = Mock()
 sys.modules["evdev"] = Mock()
 sys.modules["sl1fw.screen.wayland"] = Mock()
 
+
 class Sl1fwTestCase(DBusTestCase):
     SL1FW_DIR = Path(sl1fw.__file__).parent
     SAMPLES_DIR = Path(samples.__file__).parent
@@ -53,6 +54,7 @@ class Sl1fwTestCase(DBusTestCase):
         warnings.simplefilter("always")
         test_runtime.testing = True
         defines.ramdiskPath = str(cls.TEMP_DIR)
+        defines.previousPrints = str(cls.TEMP_DIR)
         cls.start_system_bus()
         cls.dbus_con = cls.get_dbus(system_bus=True)
 

@@ -6,10 +6,13 @@
 import unittest
 
 from sl1fw.libConfig import HwConfig
-from sl1fw.states.project import ProjectErrors, LayerCalibrationType
-from sl1fw.project.project import Project, ProjectLayer
+from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorNotEnoughLayers, \
+                                ProjectErrorCorrupted, ProjectErrorWrongPrinterModel, \
+                                ProjectErrorCantRead, ProjectErrorCalibrationInvalid
+from sl1fw.project.project import Project, ProjectLayer, LayerCalibrationType
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.utils.bounding_box import BBox
+from sl1fw.screen.printer_model import PrinterModelTypes
 
 def _layer_generator(name, count, height_nm, times_ms, layer_times_ms):
     layers = []
@@ -32,13 +35,36 @@ class TestProject(Sl1fwTestCase):
     def setUp(self):
         self.assertEqual.__self__.maxDiff = None
         self.hwConfig = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
+        self.printer_model = PrinterModelTypes.SL1.parameters()
+
+    def test_notfound(self):
+        with self.assertRaises(ProjectErrorNotFound):
+            Project(self.hwConfig, self.printer_model, "bad_file")
+
+    def test_empty(self):
+        with self.assertRaises(ProjectErrorCantRead):
+            Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "empty_file.sl1"))
+
+    def test_truncated(self):
+        with self.assertRaises(ProjectErrorCantRead):
+            Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "test_truncated.sl1"))
+
+    def test_nolayers(self):
+        with self.assertRaises(ProjectErrorNotEnoughLayers):
+            Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "test_nolayer.sl1"))
+
+    def test_corrupted(self):
+        project = Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "test_corrupted.sl1"))
+        with self.assertRaises(ProjectErrorCorrupted):
+            project.copy_and_check()
+
+    def test_printer_model(self):
+        self.printer_model = PrinterModelTypes.TEST.parameters()
+        with self.assertRaises(ProjectErrorWrongPrinterModel):
+            Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "numbers.sl1"))
 
     def test_read(self):
-        project = Project(self.hwConfig, "bad_file")
-        self.assertEqual(ProjectErrors.NOT_FOUND, project.error, "Bad file test")
-
-        project = Project(self.hwConfig, str(self.SAMPLES_DIR / "numbers.sl1"))
-        self.assertEqual(ProjectErrors.NONE, project.error, "Base project read test")
+        project = Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "numbers.sl1"))
         print(project)
 
         self.assertEqual(project.name, "numbers", "Check project name")
@@ -60,8 +86,7 @@ class TestProject(Sl1fwTestCase):
         #self.assertAlmostEqual(consumed_resin_slicer, project.used_material_nl / 1e6, delta=0.1, msg="Resin count")
 
     def test_read_calibration(self):
-        project = Project(self.hwConfig, str(self.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"))
-        self.assertEqual(ProjectErrors.NONE, project.error, "Calibration project read test")
+        project = Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"))
         print(project)
 
         self.assertEqual(project.total_layers, 20, "Check total layers count")
@@ -82,12 +107,12 @@ class TestProject(Sl1fwTestCase):
         self.assertAlmostEqual(consumed_resin_slicer, project.used_material_nl / 1e6, delta=0.1, msg="Resin count")
         # TODO analyze check
 
-        # TODO check project preview/icon image
+    def test_project_modification(self):
+        project = Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"))
+        with self.assertRaises(ProjectErrorCalibrationInvalid):
+            project.calibrate_regions = 3
 
-
-#    def test_project_modification(self):
         # BIG TODO!
-
 #        project.expTime = 5.0
 #        self.assertAlmostEqual(project.expTime, 5.0, msg="Check expTime value")
 #        self.assertEqual(project.calibrateAreas, [], "calibrateAreas")

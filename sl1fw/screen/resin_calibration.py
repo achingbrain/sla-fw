@@ -9,9 +9,11 @@ from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
 
 from sl1fw import defines
-from sl1fw.project.project import Project
+from sl1fw.project.project import Project, LayerCalibrationType
+from sl1fw.errors.errors import ProjectErrorCalibrationInvalid
 from sl1fw.utils.bounding_box import BBox
-from sl1fw.states.project import ProjectErrors, ProjectWarnings, LayerCalibrationType
+from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.errors.warnings import PrintedObjectWasCropped
 
 
 class Area(BBox):
@@ -93,19 +95,17 @@ class AreaWithLabelStripe(AreaWithLabel):
         self._logger.debug("label position: %s", str(self._label_position))
 
 class Calibration:
-    def __init__(self):
+    def __init__(self, printer_model: PrinterModel):
         self.areas = []
         self._logger = logging.getLogger(__name__)
+        self._printer_model = printer_model
 
     def new_project(self, project: Project):
         if project.calibrate_regions:
             project.analyze()
-            if project.error == ProjectErrors.NONE:
-                bbox = project.bbox if project.calibrate_compact else None
-                if not self.create_areas(project.calibrate_regions, bbox):
-                    project.error = ProjectErrors.CALIBRATION_INVALID
-                    return
-                self.create_overlays(project)
+            bbox = project.bbox if project.calibrate_compact else None
+            self.create_areas(project.calibrate_regions, bbox)
+            self.create_overlays(project)
 
     def create_areas(self, regions, bbox: BBox):
         areaMap = {
@@ -118,9 +118,9 @@ class Calibration:
                 }
         if regions not in areaMap:
             self._logger.error("bad value regions (%d)", regions)
-            return False
+            raise ProjectErrorCalibrationInvalid
         divide = areaMap[regions]
-        if defines.screenWidth > defines.screenHeight:
+        if self._printer_model.screen_width_px > self._printer_model.screen_height_px:
             x = 0
             y = 1
         else:
@@ -128,22 +128,21 @@ class Calibration:
             y = 0
         if bbox:
             size = list(bbox.size)
-            if size[0] * divide[x] > defines.screenWidth:
-                size[0] = defines.screenWidth // divide[x]
-            if size[1] * divide[y] > defines.screenHeight:
-                size[1] = defines.screenHeight // divide[y]
+            if size[0] * divide[x] > self._printer_model.screen_width_px:
+                size[0] = self._printer_model.screen_width_px // divide[x]
+            if size[1] * divide[y] > self._printer_model.screen_height_px:
+                size[1] = self._printer_model.screen_height_px // divide[y]
             self._areas_loop(
-                    ((defines.screenWidth - divide[x] * size[0]) // 2, (defines.screenHeight - divide[y] * size[1]) // 2),
+                    ((self._printer_model.screen_width_px - divide[x] * size[0]) // 2, (self._printer_model.screen_height_px - divide[y] * size[1]) // 2),
                     (size[0], size[1]),
                     (divide[x], divide[y]),
                     Area)
         else:
             self._areas_loop(
                     (0, 0),
-                    (defines.screenWidth // divide[x], defines.screenHeight // divide[y]),
+                    (self._printer_model.screen_width_px // divide[x], self._printer_model.screen_height_px // divide[y]),
                     (divide[x], divide[y]),
                     AreaWithLabelStripe if regions == 10 else AreaWithLabel)
-        return True
 
     def _areas_loop(self, begin, step, rnge, area_type):
         for i in range(rnge[0]):
@@ -163,7 +162,7 @@ class Calibration:
         if new_size != orig_size:
             self._logger.warning("project size %dx%d was reduced to %dx%d to fit area size %dx%d",
                     orig_size[0], orig_size[1], new_size[0], new_size[1], area_size[0], area_size[1])
-            project.warnings.add(ProjectWarnings.CROPPED)
+            project.warnings.add(PrintedObjectWasCropped())
             first_layer_bbox = project.layers[0].bbox
             orig_size = first_layer_bbox.size
             first_layer_bbox.crop(project.bbox)
@@ -177,8 +176,7 @@ class Calibration:
         times = project.layers[-1].times_ms
         if len(times) != len(self.areas):
             self._logger.error("times != areas (%d, %d)", len(times), len(self.areas))
-            project.error = ProjectErrors.CALIBRATION_INVALID
-            return
+            raise ProjectErrorCalibrationInvalid
         font = ImageFont.truetype(defines.fontFile, project.calibrate_text_size_px)
         actual_time_ms = 0
         for area, time_ms in zip(self.areas, times):

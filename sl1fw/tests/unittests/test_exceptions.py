@@ -17,7 +17,6 @@ from sl1fw.errors import errors, exceptions, warnings
 from sl1fw.errors.warnings import AmbientTooHot
 from sl1fw.motion_controller.trace import Trace
 from sl1fw.states.printer import PrinterState
-from sl1fw.states.project import ProjectErrors
 
 
 class TestExceptions(unittest.TestCase):
@@ -34,7 +33,6 @@ class TestExceptions(unittest.TestCase):
         "completed_bytes: int": 0,
         "failed_fans: List[int]": [1],
         "failed_fan_names: List[str]": "UV Fan",
-        "project_error: sl1fw.states.project.ProjectErrors": ProjectErrors.CANT_READ,
         "volume: float": 12.3,
         "volume_ml: float": 12.3,
         "failed_sensors: List[int]": [2],
@@ -46,8 +44,8 @@ class TestExceptions(unittest.TestCase):
         "ambient_temperature: float": 42,
         "actual_model: str": "Some other printer",
         "actual_variant: str": "Some other variant",
-        "project_model: str": "Original Prusa SL1",
-        "project_variant: str": "SL1",
+        "printer_variant: str": "default",
+        "project_variant: str": "something_else",
         "changes: Dict[str, Tuple[Any, Any]]": {"exposure": (10, 20)},
         "measured_resin_ml: float": 12.3,
         "required_resin_ml: float": 23.4,

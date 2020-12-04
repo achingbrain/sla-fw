@@ -13,13 +13,13 @@ from unittest.mock import Mock
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
+from sl1fw.screen.printer_model import PrinterModelTypes
 from sl1fw import defines
-from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation, ProjectFailed
+from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation, ProjectErrorCantRead
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
 from sl1fw.libConfig import HwConfig, RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.states.exposure import ExposureState
-from sl1fw.states.project import ProjectErrors
 
 
 class TestExposure(Sl1fwTestCase):
@@ -49,7 +49,7 @@ class TestExposure(Sl1fwTestCase):
         self.screen.__class__ = Screen
         self.screen.__reduce__ = lambda x: (Mock, ())
         self.screen.blit_image.return_value = 100
-        self.screen.new_project.return_value = ProjectErrors.NONE, set(), False
+        self.screen.printer_model = PrinterModelTypes.SL1.parameters()
 
     def test_exposure_init_not_calibrated(self):
         with self.assertRaises(NotUVCalibrated):
@@ -96,7 +96,7 @@ class TestExposure(Sl1fwTestCase):
         hw = self._get_hw_mock()
         self._fake_calibration()
         exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config, self.BROKEN_EMPTY_PROJECT)
-        self.assertIsInstance(exposure.exception, ProjectFailed)
+        self.assertIsInstance(exposure.exception, ProjectErrorCantRead)
 
     def _run_exposure(self, hw) -> Exposure:
         self._fake_calibration()

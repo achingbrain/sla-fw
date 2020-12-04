@@ -9,7 +9,7 @@ from sl1fw.errors.warnings import (
     AmbientTooHot,
     AmbientTooCold,
     PrintingDirectlyFromMedia,
-    ModelMismatch,
+    VariantMismatch,
     ResinNotEnough,
     ProjectSettingsModified,
     PerPartesPrintNotAvaiable,
@@ -64,21 +64,19 @@ class PageCheckConfirm(PagePrintBase):
                 ),
             )
             return "yesno"
-        if isinstance(warning, ModelMismatch):
+        if isinstance(warning, VariantMismatch):
             self.display.pages["yesno"].setParams(
                 pageTitle=N_("Wrong project printer"),
                 yesFce=self.confirm_print,
                 noFce=self.cancel_print,
                 text=_(
-                    "Project is for different printer model.\n\n"
-                    "Actual printer: %(amodel)s/%(avariant)s\n"
-                    "Project printer: %(pmodel)s/%(pvariant)s\n\n"
+                    "The model was sliced for a different printer\n\n"
+                    "variant %(project_variant)s. Your printer\n\n"
+                    "variant is %(printer_variant)s.\n\n"
                     "Do you want to continue?"
                     % {
-                        "amodel": warning.actual_model,
-                        "avariant": warning.actual_variant,
-                        "pmodel": warning.project_model,
-                        "pvariant": warning.project_variant,
+                        "printer_variant": warning.printer_variant,
+                        "project_variant": warning.project_variant,
                     }
                 ),
             )

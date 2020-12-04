@@ -7,7 +7,7 @@
 from enum import unique, Enum
 
 
-class PrinterModelParams:
+class PrinterModel:
     def __init__(self, name, screen_size_px, screen_pixel_size_nm, referesh_delay_ms):
         self.name = name
         self.screen_size_px = screen_size_px
@@ -24,11 +24,14 @@ class PrinterModelParams:
 
 
 @unique
-class PrinterModel(Enum):
-    SL1 = 0
+class PrinterModelTypes(Enum):
+    TEST = 0
+    SL1 = 1
 
     def parameters(self):
         params = None
-        if self == self.SL1:
-            params = PrinterModelParams("SL1", (1440, 2560), 46875, 30)
+        if self == self.TEST:
+            params = PrinterModel("TEST", (1920, 1080), 50000, 0)
+        elif self == self.SL1:
+            params = PrinterModel("SL1", (1440, 2560), 46875, 30)
         return params

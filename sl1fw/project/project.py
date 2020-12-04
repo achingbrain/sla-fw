@@ -18,18 +18,30 @@ from io import BytesIO
 from pathlib import Path
 from time import time
 from typing import Optional
+from enum import unique, Enum
 
 import pprint
 from PIL import Image
 from PySignal import Signal
 
-from sl1fw import defines, test_runtime
+from sl1fw import defines
+from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, ProjectErrorNotEnoughLayers, \
+                                ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
+                                ProjectErrorWrongPrinterModel, NotEnoughInternalSpace
+from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ProjectSettingsModified, VariantMismatch
 from sl1fw.libConfig import HwConfig
 from sl1fw.project.config import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
-from sl1fw.states.project import ProjectErrors, ProjectWarnings, LayerCalibrationType
 from sl1fw.utils.bounding_box import BBox
 from sl1fw.api.decorators import range_checked
+from sl1fw.screen.printer_model import PrinterModel
+
+
+@unique
+class LayerCalibrationType(Enum):
+    NONE = 0
+    LABEL_PAD = 1
+    LABEL_TEXT = 2
 
 
 class ProjectLayer:
@@ -70,10 +82,10 @@ class ProjectLayer:
 
 
 class Project:
-    def __init__(self, hw_config: HwConfig, project_file: str):
+    def __init__(self, hw_config: HwConfig, printer_model: PrinterModel, project_file: str):
         self.logger = logging.getLogger(__name__)
         self._hw_config = hw_config
-        self.error = ProjectErrors.NONE
+        self._printer_model = printer_model
         self.warnings = set()
         self.path = project_file
         self._config = ProjectConfig()
@@ -88,9 +100,6 @@ class Project:
         self.bbox = BBox()
         self.used_material_nl = 0
         self.modification_time = 0.0
-        self.printer_model = None
-        self.printer_variant = None
-        self.altered_values = {}
         self.per_partes = hw_config.perPartes
         self._zf: Optional[ZipFile] = None
         self._mode_warn = True
@@ -101,7 +110,9 @@ class Project:
         self._calibrate_time_ms = 0
         self._calibrate_time_ms_exact = []
         self._calibrate_regions = 0
-        self._build_layers_description(self._read_toml_config())
+        namelist = self._read_toml_config()
+        self._parse_config()
+        self._build_layers_description(self._check_filenames(namelist))
         self.params_changed = Signal()
         self.path_changed = Signal()
 
@@ -117,8 +128,6 @@ class Project:
             'layer_height_first_nm': self.layer_height_first_nm,
             'used_material_nl': self.used_material_nl,
             'modification_time': self.modification_time,
-            'printer_model': self.printer_model,
-            'printer_variant': self.printer_variant,
             'exposure_time_ms': self._exposure_time_ms,
             'exposure_time_first_ms': self._exposure_time_first_ms,
             'layers_slow': self._layers_slow,
@@ -136,13 +145,10 @@ class Project:
         return "Project:\n" + pp.pformat(items)
 
     def _read_toml_config(self) -> list:
-        to_print = []
         self.logger.info("Opening project file '%s'", self.path)
-
         if not Path(self.path).exists():
-            self.logger.error("Project lookup exception: file not exists: %s", self.path)
-            self.error = ProjectErrors.NOT_FOUND
-            return to_print
+            self.logger.error("Project lookup exception: file not found: %s", self.path)
+            raise ProjectErrorNotFound
         try:
             zf = ZipFile(self.path, "r")
             self._config.read_text(zf.read(defines.configFile).decode("utf-8"))
@@ -150,15 +156,19 @@ class Project:
             zf.close()
         except Exception as e:
             self.logger.exception("zip read exception: %s", str(e))
-            self.error = ProjectErrors.CANT_READ
-            return to_print
+            raise ProjectErrorCantRead from e
+        return namelist
 
+    def _check_filenames(self, namelist: list) -> list:
+        to_print = []
         for filename in namelist:
             fName, fExt = os.path.splitext(filename)
             if fExt.lower() == ".png" and fName.startswith(self._config.job_dir):
                 to_print.append(filename)
         to_print.sort()
+        return to_print
 
+    def _parse_config(self):
         # copy visible config values to project internals
         self.logger.debug(self._config)
         self._exposure_time_ms = int(self._config.expTime * 1e3)
@@ -174,9 +184,9 @@ class Project:
         self._calibrate_time_ms = int(self._config.calibrateTime * 1e3)
         self._calibrate_time_ms_exact = [int(x * 1e3) for x in self._config.calibrateTimeExact]
         self._calibrate_regions = self._config.calibrateRegions
-        self.calibrate_text_size_px = int(self._config.calibrateTextSize * 1e6 // defines.screen_pixel_size_nm)
-        self.calibrate_pad_spacing_px = int(self._config.calibratePadSpacing * 1e6 // defines.screen_pixel_size_nm)
-        self.calibrate_penetration_px = int(self._config.calibratePenetration * 1e6 // defines.screen_pixel_size_nm)
+        self.calibrate_text_size_px = int(self._config.calibrateTextSize * 1e6 // self._printer_model.screen_pixel_size_nm)
+        self.calibrate_pad_spacing_px = int(self._config.calibratePadSpacing * 1e6 // self._printer_model.screen_pixel_size_nm)
+        self.calibrate_penetration_px = int(self._config.calibratePenetration * 1e6 // self._printer_model.screen_pixel_size_nm)
         self.calibrate_compact = self._config.calibrateCompact
         self.used_material_nl = int(self._config.usedMaterial * 1e6)
         if self._calibrate_regions:
@@ -185,7 +195,7 @@ class Project:
         if self._calibrate_time_ms_exact and len(self._calibrate_time_ms_exact) != self._calibrate_regions:
             self.logger.error("lenght of calibrate_time_ms_exact (%d) not match calibrate_regions (%d)",
                     len(self._calibrate_time_ms_exact), self.calibrate_regions)
-            self.error = ProjectErrors.CALIBRATION_INVALID
+            raise ProjectErrorCalibrationInvalid
         if self._config.raw_modification_time:
             try:
                 date_time = datetime.strptime(self._config.raw_modification_time, '%Y-%m-%d at %H:%M:%S %Z').replace(tzinfo=timezone.utc)
@@ -195,16 +205,17 @@ class Project:
         else:
             date_time = datetime.now(timezone.utc)
         self.modification_time = date_time.timestamp()
-        self.printer_model = self._config.printerModel
-        self.printer_variant = self._config.printerVariant
-        self.altered_values = self._config.get_altered_values()
-        if self.altered_values:
-            self.warnings.add(ProjectWarnings.ALTERED_VALUES)
-        return to_print
+        if self._printer_model.name != self._config.printerModel:
+            self.logger.error("Wrong printer model '%s', expected '%s'",
+                    self._config.printerModel, self._printer_model.name)
+            raise ProjectErrorWrongPrinterModel
+        if defines.printerVariant != self._config.printerVariant:
+            self.warnings.add(VariantMismatch(defines.printerVariant, self._config.printerVariant))
+        altered_values = self._config.get_altered_values()
+        if altered_values:
+            self.warnings.add(ProjectSettingsModified(altered_values))
 
     def _build_layers_description(self, to_print: list):
-        if self.error != ProjectErrors.NONE:
-            return
         first = True
         pad_thickness_nm = int(self._config.calibratePadThickness * 1e6)
         text_thickness_nm = int(self._config.calibrateTextThickness * 1e6)
@@ -221,10 +232,9 @@ class Project:
         total_layers = len(self.layers)
         self.logger.info("found %d layer(s)", total_layers)
         if not total_layers:
-            self.error = ProjectErrors.NOT_ENOUGH_LAYERS
-            return
+            self.logger.error("Not enough layers")
+            raise ProjectErrorNotEnoughLayers
         self._fill_layers_times()
-        # TODO preview/icon image
 
     def _fill_layers_times(self):
         time_loss = (self._exposure_time_first_ms - self._exposure_time_ms) // (self._config.fadeLayers + 1)
@@ -277,7 +287,7 @@ class Project:
                     if white_pixels > self._hw_config.whitePixelsThd:
                         new_slow_layers += 1
                     # nm3 -> nl
-                    layer.consumed_resin_nl = white_pixels * defines.screen_pixel_size_nm ** 2 * layer.height_nm // int(1e15)
+                    layer.consumed_resin_nl = white_pixels * self._printer_model.screen_pixel_size_nm ** 2 * layer.height_nm // int(1e15)
                     new_used_material_nl += layer.consumed_resin_nl
             self.logger.info("analyze done in %f secs, result: %s", time() - start_time, self.bbox)
             if update_consumed:
@@ -288,7 +298,7 @@ class Project:
                 self.logger.info("new used_material_nl: %d", self.used_material_nl)
         except Exception as e:
             self.logger.exception("analyze exception: %s", str(e))
-            self.error = ProjectErrors.ANALYSIS_FAILED
+            raise ProjectErrorAnalysisFailed from e
 
     @property
     def name(self) -> str:
@@ -354,7 +364,8 @@ class Project:
     @calibrate_regions.setter
     def calibrate_regions(self, value: int) -> None:
         if value not in [0, 2, 4, 6, 8, 9, 10]:
-            raise ValueError("Value %d not in [0, 2, 4, 6, 8, 9, 10]" % value)
+            self.logger.error("calibrate_regions - value %d not in [0, 2, 4, 6, 8, 9, 10]", value)
+            raise ProjectErrorCalibrationInvalid
         if self._calibrate_regions != value:
             self._calibrate_regions = value
             self._fill_layers_times()
@@ -378,8 +389,6 @@ class Project:
         return self._hw_config.whitePixelsThd
 
     def copy_and_check(self):
-        if self.error != ProjectErrors.NONE:
-            return
         # check free space
         statvfs = os.statvfs(os.path.dirname(defines.persistentStorage))
         size_available = statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
@@ -387,39 +396,36 @@ class Project:
         try:
             filesize = os.path.getsize(self.path)
             self.logger.info("Zip file size: %d bytes", filesize)
-        except Exception:
-            self.logger.exception("filesize exception:")
-            self.error = ProjectErrors.CANT_READ
-            return
+        except Exception as e:
+            self.logger.exception("filesize exception: %s", str(e))
+            raise ProjectErrorCantRead from e
         try:
             if size_available < filesize:
-                raise Exception("Not enough free space!")
+                raise NotEnoughInternalSpace
             (dummy, filename) = os.path.split(self.path)
             new_source = os.path.join(defines.previousPrints, filename)
             origin_path = os.path.normpath(self.path)
             if os.path.normpath(new_source) != origin_path:
-                if test_runtime.testing or origin_path.startswith(defines.mediaRootPath):
+                if origin_path.startswith(defines.mediaRootPath):
                     shutil.copyfile(origin_path, new_source)
                 else:
                     # FIXME we do not need space for whole project when creating symlink
-                    os.link(origin_path, new_source)
+                    os.symlink(origin_path, new_source)
             self.path = new_source
             self.path_changed.emit(self.path)
-        except Exception:
-            self.logger.exception("copyfile exception:")
-            self.warnings.add(ProjectWarnings.PRINT_DIRECTLY)
+        except Exception as e:
+            self.logger.exception("copyfile exception: %s", str(e))
+            self.warnings.add(PrintingDirectlyFromMedia())
         try:
             zf = ZipFile(self.path, "r")
             badfile = zf.testzip()
             zf.close()
-            if badfile is not None:
-                self.logger.error("Corrupted file: %s", badfile)
-                self.error = ProjectErrors.CORRUPTED
-                return
-        except Exception:
-            self.logger.exception("zip read exception:")
-            self.error = ProjectErrors.CANT_READ
-            return
+        except Exception as e:
+            self.logger.exception("zip read exception: %s", str(e))
+            raise ProjectErrorCantRead from e
+        if badfile is not None:
+            self.logger.error("Corrupted file: %s", badfile)
+            raise ProjectErrorCorrupted
         # TODO verify layers[]['image'] in zip files
 
     def read_image(self, filename: str):

@@ -19,6 +19,7 @@ from sl1fw.libNetwork import Network
 from sl1fw.slicer.profile_downloader import ProfileDownloader
 from sl1fw.slicer.profile_parser import ProfileParser
 from sl1fw.slicer.slicer_profile import SlicerProfile
+from sl1fw.screen.printer_model import PrinterModel
 
 
 class BackgroundNetworkCheck(ABC):
@@ -81,8 +82,9 @@ class AdminCheck(BackgroundNetworkCheck):
 
 
 class SlicerProfileUpdater(BackgroundNetworkCheck):
-    def __init__(self, inet: Network, profile: SlicerProfile):
+    def __init__(self, inet: Network, profile: SlicerProfile, printer_model: PrinterModel):
         self.profile = profile
+        self.printer_model = printer_model
         super().__init__(inet, "sl1fw.SlicerProfileUpdater")
 
     def check(self):
@@ -94,7 +96,7 @@ class SlicerProfileUpdater(BackgroundNetworkCheck):
             retc = defines.slicerProfilesCheckProblem
         elif new_version:
             f = downloader.download(new_version)
-            new_profile = ProfileParser().parse(f)
+            new_profile = ProfileParser(self.printer_model).parse(f)
             if new_profile and new_profile.save(filename = defines.slicerProfilesFile):
                 self.profile.data = new_profile.data
             else:

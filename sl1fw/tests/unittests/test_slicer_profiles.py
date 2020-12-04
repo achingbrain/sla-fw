@@ -12,6 +12,7 @@ from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.slicer.profile_parser import ProfileParser
 from sl1fw.slicer.profile_downloader import ProfileDownloader
 from sl1fw.libNetwork import Network
+from sl1fw.screen.printer_model import PrinterModelTypes
 
 
 class TestSlicerProfiles(Sl1fwTestCase):
@@ -22,7 +23,8 @@ class TestSlicerProfiles(Sl1fwTestCase):
         super().__init__(*args, **kwargs)
 
     def test_load(self):
-        profile = ProfileParser().parse(self.INI)
+        printer_model = PrinterModelTypes.SL1.parameters()
+        profile = ProfileParser(printer_model).parse(self.INI)
         self.assertTrue(profile.vendor)
         self.assertTrue(profile.printer)
         #profile.save(filename = "slicer_profiles_test.toml")
@@ -34,7 +36,7 @@ class TestSlicerProfiles(Sl1fwTestCase):
         downloader = ProfileDownloader(Network("CZPX1234X123XC12345"), profile.vendor)
         new_version = downloader.checkUpdates()
         self.assertIsNotNone(new_version)
-        new_profile = ProfileParser().parse(downloader.download(new_version))
+        new_profile = ProfileParser(printer_model).parse(downloader.download(new_version))
         self.assertIsNotNone(new_profile)
         print(new_profile)
 

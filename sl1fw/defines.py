@@ -12,6 +12,8 @@ from sl1fw import test_runtime
 
 reqMcVersion = "1.0.0"
 
+printerVariant = "default"
+
 factoryMountPoint = Path("/usr/share/factory/defaults")
 persistentStorage = "/var/sl1fw"
 
@@ -61,29 +63,17 @@ counterLog = os.path.join(factoryMountPoint, "counters-log.toml")
 last_job = Path(persistentStorage) / "last_job"
 last_log_token = Path(persistentStorage) / "last_log_token"
 
-screenWidth = 1440
-screenHeight = 2560
-screen_size = (screenWidth, screenHeight)
-screen_pixel_size_nm = 46875
-thumbnailFactor = 5
-thumbnailWidth = screenWidth // thumbnailFactor
-thumbnailHeight = screenHeight // thumbnailFactor
+# for live preview AND display usage heatmap
+thumbnail_factor = 5
+
 fontFile = os.path.join(dataPath, "FreeSansBold.otf")
-
-livePreviewSize = (thumbnailWidth, thumbnailHeight)
 livePreviewImage = os.path.join(ramdiskPath, "live.png")
-
-# numpy uses reversed axis indexing
-display_usage_size = (thumbnailHeight, thumbnailWidth)
-display_usage_shape = (thumbnailHeight, thumbnailFactor, thumbnailWidth, thumbnailFactor)
 displayUsageData = os.path.join(persistentStorage, "display_usage.npz")
 displayUsagePalette = os.path.join(dataPath, "heatmap_palette.txt")
 
 profilesFile = "slicer_profiles.toml"
 slicerProfilesFallback = Path(dataPath) / profilesFile
 slicerProfilesFile = Path(persistentStorage) / profilesFile
-slicerPrinterModel = "SL1"
-slicerPrinterVariant = "default"
 slicerMinVersion = "2.2.0-alpha3"
 slicerProfilesCheckProblem = 14400   # every four hours
 slicerProfilesCheckOK = 86400   # once per day

@@ -9,7 +9,6 @@ from typing import List, Dict, Optional
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.errors.exceptions import PrinterException, with_code
-from sl1fw.states.project import ProjectErrors
 
 
 class PrinterError(PrinterException):
@@ -141,10 +140,39 @@ class PreloadFailed(ExposureError):
     pass
 
 
-@with_code(Sl1Codes.PROJECT_FAILED)
-@dataclass
-class ProjectFailed(ExposureError):
-    project_error: ProjectErrors
+@with_code(Sl1Codes.FILE_NOT_FOUND)
+class ProjectErrorNotFound(ExposureError):
+    pass
+
+
+@with_code(Sl1Codes.PROJECT_ERROR_CANT_READ)
+class ProjectErrorCantRead(ExposureError):
+    pass
+
+
+@with_code(Sl1Codes.PROJECT_ERROR_NOT_ENOUGH_LAYERS)
+class ProjectErrorNotEnoughLayers(ExposureError):
+    pass
+
+
+@with_code(Sl1Codes.PROJECT_ERROR_CORRUPTED)
+class ProjectErrorCorrupted(ExposureError):
+    pass
+
+
+@with_code(Sl1Codes.PROJECT_ERROR_ANALYSIS_FAILED)
+class ProjectErrorAnalysisFailed(ExposureError):
+    pass
+
+
+@with_code(Sl1Codes.PROJECT_ERROR_CALIBRATION_INVALID)
+class ProjectErrorCalibrationInvalid(ExposureError):
+    pass
+
+
+@with_code(Sl1Codes.PROJECT_ERROR_WRONG_PRINTER_MODEL)
+class ProjectErrorWrongPrinterModel(ExposureError):
+    pass
 
 
 @with_code(Sl1Codes.TEMP_SENSOR_FAILED)

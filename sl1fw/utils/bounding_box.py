@@ -3,23 +3,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
-from sl1fw.defines import screenWidth, screenHeight
 
 class BBox:
     def __init__(self, coords=None):
         self._logger = logging.getLogger(__name__)
         if not coords:
-            coords = screenWidth, screenHeight, 0, 0
-        elif len(coords) != 4 or coords[2] <= coords[0] or coords[3] <= coords[1]:
+            coords = 1000000, 1000000, 0, 0
+        elif len(coords) != 4 or coords[2] <= coords[0] or coords[3] <= coords[1] or coords[0] < 0 or coords[1] < 0:
             self._logger.error("coords %s is not a rectangle", str(coords))
-            coords = screenWidth, screenHeight, 0, 0
-        elif (not 0 <= coords[0] <= screenWidth
-                or not 0 <= coords[1] <= screenHeight
-                or not 0 <= coords[2] <= screenWidth
-                or not 0 <= coords[3] <= screenHeight):
-            self._logger.error("coords %s is out of range (0, 0, %d, %d)",
-                    str(coords), screenWidth, screenHeight)
-            coords = screenWidth, screenHeight, 0, 0
+            coords = 1000000, 1000000, 0, 0
         self.x1 = coords[0]
         self.y1 = coords[1]
         self.x2 = coords[2]

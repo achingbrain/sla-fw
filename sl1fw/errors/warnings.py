@@ -61,12 +61,10 @@ class PrintedObjectWasCropped(ExposureWarning):
     pass
 
 
-@with_code(Sl1Codes.PRINTER_MODEL_MISMATCH_WARNING)
+@with_code(Sl1Codes.PRINTER_VARIANT_MISMATCH_WARNING)
 @dataclass
-class ModelMismatch(ExposureWarning):
-    actual_model: str
-    actual_variant: str
-    project_model: str
+class VariantMismatch(ExposureWarning):
+    printer_variant: str
     project_variant: str
 
 
