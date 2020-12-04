@@ -84,12 +84,12 @@ class UvLedMeterMulti:
         try:
             self._low_level_connect()
         except Exception:
-            self.logger.exception("UV meter connect failed with exception")
+            self.logger.exception("UV calibrator connect failed with exception")
             return False
         return True
 
     def _low_level_connect(self, retries: int = 3):
-        self.logger.info("Connecting to the UV meter, retries: %d", retries)
+        self.logger.info("Connecting to the UV calibrator, retries: %d", retries)
         try:
             self.port = serial.Serial(
                 port=self.uvLedMeterDevice,
@@ -105,7 +105,7 @@ class UvLedMeterMulti:
                 interCharTimeout=None,
             )
 
-            self.logger.info("Waiting for UV meter response")
+            self.logger.info("Waiting for UV calibrator response")
             timeout = 100
             while not self.port.inWaiting() and timeout:
                 sleep(0.1)
@@ -118,26 +118,26 @@ class UvLedMeterMulti:
             reply = None
             while reply != "<done":
                 reply = self.port.readline().strip().decode()
-                self.logger.debug("UV meter response: %s", reply)
+                self.logger.debug("UV calibrator response: %s", reply)
 
             if not test_runtime.testing:
                 devices = serial.tools.list_ports.comports()
                 if len(devices) > 1:
                     self.logger.warning("Multiple devices attached: %d", len(devices))
-                if devices[0].vid == 0x10C4 and devices[0].pid == 0xEA60:  # 60p UV meter
-                    self.logger.info("60p UV meter is present")
+                if devices[0].vid == 0x10C4 and devices[0].pid == 0xEA60:  # 60p UV calibrator
+                    self.logger.info("60p UV calibrator is present")
                     self.sleepTime = 3
                     self.sixty_points = True
-                elif devices[0].vid == 0x1A86 and devices[0].pid == 0x7523:  # 15p UV meter
-                    self.logger.info("15p UV meter is present")
+                elif devices[0].vid == 0x1A86 and devices[0].pid == 0x7523:  # 15p UV calibrator
+                    self.logger.info("15p UV calibrator is present")
                     self.sleepTime = 0.5
                     self.sixty_points = False
                 else:
                     self.logger.warning("Unknown device connected. VID: %x, PID: %x", devices[0].vid, devices[0].pid)
             else:
-                self.logger.warning("Skipping UV meter device detection due to testing")
+                self.logger.warning("Skipping UV calibrator device detection due to testing")
 
-            self.logger.info("UV meter connected successfully")
+            self.logger.info("UV calibrator connected successfully")
 
         except Exception as e:
             self.logger.exception("Connection failed:")
@@ -145,7 +145,7 @@ class UvLedMeterMulti:
                 self.logger.warning("Reconnecting, retries: %s", retries)
                 self.logger.debug("Waining 1 sec to reconnect")
                 sleep(1)
-                self.logger.debug("Reconnecting UV meter now")
+                self.logger.debug("Reconnecting UV calibrator now")
                 return self._low_level_connect(retries - 1)
             raise e
 
@@ -156,7 +156,7 @@ class UvLedMeterMulti:
         self.port = None
 
     def read(self):
-        self.logger.info("Reading UV meter data")
+        self.logger.info("Reading UV calibrator data")
         if not test_runtime.testing:
             sleep(self.sleepTime)
         self.np = None
@@ -184,26 +184,26 @@ class UvLedMeterMulti:
     def _low_level_read(self, retries: int) -> str:
         try:
             self.port.write(">all\n".encode())
-            self.logger.debug("UV meter command reply: %s", self.port.readline().strip().decode())
+            self.logger.debug("UV calibrator command reply: %s", self.port.readline().strip().decode())
             timeout = defines.uvLedMeterMaxWait_s * 10
             while not self.port.inWaiting() and timeout:
                 sleep(0.1)
                 timeout -= 1
 
             if not timeout:
-                raise TimeoutError("UV meter response timeout")
+                raise TimeoutError("UV calibrator response timeout")
 
             line = self.port.readline().strip().decode()
-            self.logger.debug("UV meter response: %s", line)
+            self.logger.debug("UV calibrator response: %s", line)
             return line
         except (TimeoutError, IOError) as e:
-            self.logger.error("Error reading UV meter")
+            self.logger.error("Error reading UV calibrator")
             if retries > 0:
-                self.logger.warning("Reconnecting, Retrying UV meter read: %s", retries)
+                self.logger.warning("Reconnecting, Retrying UV calibrator read: %s", retries)
                 self.connect()
                 return self._low_level_read(retries - 1)
             else:
-                self.logger.error("Too many UV meter read retries")
+                self.logger.error("Too many UV calibrator read retries")
                 raise e
 
     def get_data(self):
@@ -239,7 +239,7 @@ class UvLedMeterMulti:
             return None
 
     def check_place(self, screenOn):
-        self.logger.info("Checking UV meter placement")
+        self.logger.info("Checking UV calibrator placement")
         self.read()
         if self.np is None:
             return UvMeterState.ERROR_COMMUNICATION

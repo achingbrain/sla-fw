@@ -22,7 +22,7 @@ uvmeterMulti = UvLedMeterMulti()
 uvmeter = None
 wait = 10
 for i in range(0, wait):
-    print("Waiting for UV meter (%d/%d)" % (i, wait))
+    print("Waiting for UV calibrator (%d/%d)" % (i, wait))
     if uvmeterMulti.present:
         uvmeter = uvmeterMulti
         break
@@ -31,11 +31,11 @@ for i in range(0, wait):
 #endfor
 
 if not uvmeter:
-    print("UV meter not detected")
+    print("UV calibrator not detected")
 elif not uvmeter.connect():
-    print("Connect to UV meter failed")
+    print("Connect to UV calibrator failed")
 elif not uvmeter.read():
-    print("Read data from UV meter failed")
+    print("Read data from UV calibrator failed")
 else:
     data = uvmeter.get_data()
     data.uvFoundPwm = 256

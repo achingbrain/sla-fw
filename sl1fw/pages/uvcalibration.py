@@ -335,7 +335,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
     def show(self):
         self.items.update({
             'imageName' : "uvcalibration_insert_meter.jpg",
-            'text' : _("1. Place the UV meter on the print display and connect it to the front USB.\n"
+            'text' : _("1. Place the UV calibrator on the print display and connect it to the front USB.\n"
                 "2. Close the orange lid, don't open it! UV radiation is harmful!")})
         super(PageUvCalibrationPrepare, self).show()
 
@@ -359,7 +359,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
 
     def checkUVMeter(self):
         self.ensureCoverIsClosed()
-        self.pageWait.showItems(line1 = _("Waiting for UV meter"))
+        self.pageWait.showItems(line1 = _("Waiting for UV calibrator"))
         self.pageWait.show()
         for i in range(0, defines.uvLedMeterMaxWait_s, -1):
             self.pageWait.showItems(line2 = ngettext("Remaining %d second",
@@ -375,7 +375,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
             self.display.pages['error'].setParams(code=Sl1Codes.UV_LED_METER_NOT_DETECTED.raw_code)
             return False
         #endif
-        self.pageWait.showItems(line1 = _("Connecting to the UV meter"), line2 = _("Please wait..."))
+        self.pageWait.showItems(line1 = _("Connecting to the UV calibrator"), line2 = _("Please wait..."))
         if not self.uvmeter.connect():
             self.display.pages['error'].setParams(code=Sl1Codes.UV_LED_METER_NOT_RESPONDING.raw_code)
             return False
@@ -410,7 +410,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
 
     def checkPlacement(self):
         self.ensureCoverIsClosed()
-        self.showItems(line1 = _("Checking UV meter placement on the screen"), line2 = _("Please wait..."))
+        self.showItems(line1 = _("Checking UV calibrator placement on the screen"), line2 = _("Please wait..."))
         retc = self.uvmeter.check_place(self.display.screen.inverse)
         if not retc:
             return True
@@ -714,7 +714,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
         else:
             dev = ""
         #endif
-        text = _("The printer has been successfully calibrated! You can now open the lid and remove the UV meter.\n\n"
+        text = _("The printer has been successfully calibrated! You can now open the lid and remove the UV calibrator.\n\n"
                 "Would you like to apply the calibration results?")
         if self.display.runtime_config.factory_mode:
             text += _("\nThe result of calibration\n"

@@ -26,7 +26,7 @@ class PageTests(Page):
                 "button1": "Resin sensor test",
                 "button2": "UV & Fan test",
                 "button3": "Tower sensitivity",
-                "button4": "Infinite UV meter test",
+                "button4": "Infinite UV calibrator test",
                 "button6": "Infinite test",
                 "button11": "Error-code+float,str",
                 "button12": "Error-code+int",
@@ -127,22 +127,22 @@ class PageTests(Page):
         raise Exception("Test problem")
 
     def button4ButtonRelease(self):
-        wait = PageWait(self.display, line1="Running infinite UV meter test")
+        wait = PageWait(self.display, line1="Running infinite UV calibrator  test")
         wait.show()
 
         while True:
-            wait.showItems(line2="Connecting uvmeter")
-            self.logger.info("Connecting UV meter")
+            wait.showItems(line2="Connecting UV calibrator")
+            self.logger.info("Connecting UV calibrator")
             if not PageUvCalibrationBase.uvmeter.connect():
-                self.logger.error("Failed to connect UV meter")
+                self.logger.error("Failed to connect UV calibrator")
                 self.display.pages["error"].setParams(text="Failed to connect")
                 return "error"
 
             for _ in range(5):
-                self.logger.info("Reading UV meter data")
+                self.logger.info("Reading UV calibrator data")
                 wait.showItems(line2="Reading data")
                 if not PageUvCalibrationBase.uvmeter.read():
-                    self.logger.error("Failed to read UV meter data")
+                    self.logger.error("Failed to read UV calibrator data")
                     self.display.pages["error"].setParams(text="Failed to read")
                     return "error"
 
@@ -150,5 +150,5 @@ class PageTests(Page):
                 self.logger.info("Red data: UVMean: %s", uv_mean)
                 wait.showItems(line3=f"Last uvMean = {uv_mean}")
 
-            wait.showItems(line2="Closing uvmeter")
+            wait.showItems(line2="Closing UV calibrator")
             PageUvCalibrationBase.uvmeter.close()

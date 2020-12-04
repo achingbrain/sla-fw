@@ -123,10 +123,10 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("wait")  # Start positions
             self.waitPage("yesno")  # Display test. Can you see the logo? ...
             self.press("yes")
-            self.waitPage("confirm")  # Place the UV meter in and close lid ...
+            self.waitPage("confirm")  # Place the UV calibrator in and close lid ...
             self.press("cont")
-            self.waitPage("wait")  # Waiting for UV meter
-            self.waitPage("error")  # No UV meter connected
+            self.waitPage("wait")  # Waiting for UV calibrator
+            self.waitPage("error")  # No UV calibrator connected
             self.press("ok")
             self.waitPage("calibrationSubMenu")
 
