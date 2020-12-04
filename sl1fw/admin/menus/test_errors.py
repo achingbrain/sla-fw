@@ -29,7 +29,7 @@ class TestErrors(AdminMenu):
         "allowed": 150,
         "a64": "FAKEA64SERIAL",
         "mc": "FAKEMCSERIAL",
-        "uiPush": True,
+        "adminAPI": True,
     }
 
     def __init__(self, control: AdminControl, printer: Printer):

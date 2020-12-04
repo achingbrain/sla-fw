@@ -47,4 +47,8 @@ class PageError(Page):
         #endif
     #enddef
 
+    @staticmethod
+    def gotoSettingsButtonRelease():# TODO remove this hack when we get rid of the websockets
+        return "_SETTINGS_"
+
 #endclass

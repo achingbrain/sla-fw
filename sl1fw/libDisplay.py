@@ -273,7 +273,10 @@ class Display:
                             actualPage.show()
                         #endif
                         continue
-
+                    if newPage == "_SETTINGS_": # TODO remove this hack when we get rid of the websockets
+                        actualPage = self.pages['settings']
+                        self.actualPage = actualPage
+                        continue
                     if newPage is not None:
                         if actualPage.clearStack:
                             pageStack = list()
