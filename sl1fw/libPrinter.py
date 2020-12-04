@@ -12,7 +12,9 @@ import gettext
 import logging
 import os
 import re
+import hashlib
 import threading
+import subprocess
 from pathlib import Path
 from time import monotonic
 from typing import Optional
@@ -31,6 +33,7 @@ from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
 from sl1fw.functions.files import save_all_remain_wizard_history
+from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
 from sl1fw.libConfig import HwConfig, TomlConfig, RuntimeConfig, TomlConfigStats
@@ -51,6 +54,7 @@ from sl1fw import test_runtime
 class Printer:
     def __init__(self, debug_display=None):
         self.logger = logging.getLogger(__name__)
+        self._printer_identifier = None
         init_time = monotonic()
         self._exception: Optional[Exception] = None
         self.exception_changed = Signal()
@@ -351,3 +355,35 @@ class Printer:
         else:
             if wizard and wizard.state not in WizardState.finished_states():
                 self.state = PrinterState.WIZARD
+
+    @property
+    def id(self) -> str:
+        """Return a hex string identification for the printer image."""
+
+        if self._printer_identifier is None:
+            mac_eth0 = None
+            for device_path in self.inet.nm.Devices:
+                dev = pydbus.SystemBus().get(self.inet.NETWORKMANAGER_SERVICE, device_path)
+                if dev.Interface == 'eth0':
+                    mac_eth0 = dev.HwAddress.replace(":", "")
+                    break
+
+            boot = 1
+            output = subprocess.check_output("lsblk -l | grep -e '/$' | awk '{print $1}'", shell=True)
+            slot = output.decode().strip()
+            if slot not in ["mmcblk2p2", "mmcblk2p3"]:
+                boot = 0
+
+            cpu_serial = self.hw.cpuSerialNo.strip(" *")
+
+            emmc_serial = ""
+            with open("/sys/block/mmcblk2/device/cid") as f:
+                emmc_serial = f.read().strip()
+
+            trusted_image = 0
+
+            hash_hex = hashlib.sha256((emmc_serial+mac_eth0+cpu_serial).encode()).hexdigest()
+            binary = str(trusted_image)+str(boot)+bin(int(hash_hex[:10], 16))[2:-2]
+            self._printer_identifier = toBase32hex(int(binary, 2))
+
+        return self._printer_identifier

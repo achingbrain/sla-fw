@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import re
 import select
 import subprocess
 from pathlib import Path
@@ -975,3 +976,32 @@ class Printer0:
     @last_error
     def run_calibration_wizard(self) -> None:
         calibration_wizard(self.printer.action_manager, self.printer.hw, self.printer.hwConfig)
+
+    @auto_dbus
+    @property
+    def data_privacy(self) -> bool:
+        return TomlConfig(defines.remoteConfig).load().get("data_privacy", False)
+
+    @auto_dbus
+    @data_privacy.setter
+    @last_error
+    def data_privacy(self, enabled: bool) -> None:
+        remote_config = TomlConfig(defines.remoteConfig)
+        new_data = remote_config.load()
+        if enabled != new_data.get("data_privacy", False):
+            new_data["data_privacy"] = enabled
+            if not remote_config.save(data=new_data):
+                raise ConfigException("Data privacy change failed")
+            self.PropertiesChanged(self.__INTERFACE__, {"data_privacy": enabled, "help_page_url": self.help_page_url}, [])
+
+    @auto_dbus
+    @property
+    @last_error
+    def help_page_url(self) -> str:
+        url = ""
+        if not TomlConfig(defines.remoteConfig).load().get("data_privacy", False):
+            printer_identifier = self.printer.id
+            fw_version = re.sub(r"(\d*)\.(\d*)\.(\d*)-.*", r"\g<1>\g<2>\g<3>", distro.version())
+            url = url + f"/{printer_identifier}/{fw_version}"
+
+        return url
