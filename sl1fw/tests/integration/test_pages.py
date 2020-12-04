@@ -11,7 +11,7 @@ from time import sleep
 
 import unittest
 
-from mock import patch
+from unittest.mock import patch
 
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 

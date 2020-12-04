@@ -9,12 +9,12 @@ import tempfile
 import threading
 import warnings
 from pathlib import Path
+from unittest.mock import Mock
 
 import pydbus
 from PIL import Image, ImageChops
 from dbusmock import DBusTestCase
 from gi.repository import GLib
-from mock import Mock
 
 import sl1fw.tests.mocks.mc_port
 from sl1fw import defines, test_runtime

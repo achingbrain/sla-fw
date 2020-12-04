@@ -8,7 +8,7 @@ from pathlib import Path
 from time import sleep
 from typing import Optional
 
-from mock import Mock
+from unittest.mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libHardware import Hardware

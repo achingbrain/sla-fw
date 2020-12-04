@@ -5,8 +5,9 @@
 
 # pylint: disable=too-few-public-methods
 
+from unittest.mock import Mock
+
 from PySignal import Signal
-from mock import Mock
 
 
 class Network:

@@ -9,9 +9,9 @@ from functools import partial
 from pathlib import Path
 from threading import Event
 from time import sleep
+from unittest.mock import Mock
 
 import pydbus
-from mock import Mock
 from pydbus import SystemBus
 
 from sl1fw import defines
