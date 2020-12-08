@@ -75,6 +75,7 @@ class TestScreen(Sl1fwTestCase):
     def test_mask(self):
         project = self.load_project(self.NUMBERS)
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertFalse(project.per_partes)
@@ -84,6 +85,7 @@ class TestScreen(Sl1fwTestCase):
     def test_display_usage(self):
         project = self.load_project(self.NUMBERS)
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertFalse(project.per_partes)
@@ -98,6 +100,7 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.NUMBERS)
         project.per_partes = True
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertTrue(project.per_partes)
@@ -281,6 +284,7 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION)
         project.exposure_time_ms = 4000
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertEqual(1293509, self.screen.blit_image(False))
@@ -300,6 +304,7 @@ class TestScreen(Sl1fwTestCase):
     def test_calibration_fill(self):
         project = self.load_project(self.CALIBRATION)
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.blit_image(False)
@@ -311,6 +316,7 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION)
         project.calibrate_compact = True
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.assertEqual(1114168, self.screen.blit_image(False))
@@ -331,6 +337,7 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION)
         project.calibrate_compact = True
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.blit_image(False)
@@ -341,6 +348,7 @@ class TestScreen(Sl1fwTestCase):
     def test_calibration_calib_pad_10(self):
         project = self.load_project(self.CALIBRATION_LINEAR)
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         white = self.screen.blit_image(False)
@@ -360,6 +368,7 @@ class TestScreen(Sl1fwTestCase):
     def test_calibration_fill_10(self):
         project = self.load_project(self.CALIBRATION_LINEAR)
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.blit_image(False)
@@ -371,6 +380,7 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION_LINEAR)
         project.calibrate_compact = True
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         white = self.screen.blit_image(False)
@@ -392,6 +402,7 @@ class TestScreen(Sl1fwTestCase):
         project = self.load_project(self.CALIBRATION_LINEAR)
         project.calibrate_compact = True
         self.screen.new_project(project)
+        self.screen.preload_image(0)
         self.assertEqual(project.error, ProjectErrors.NONE)
         self.assertFalse(project.warnings)
         self.screen.blit_image(False)

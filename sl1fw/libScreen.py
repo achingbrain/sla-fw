@@ -316,8 +316,6 @@ class Screen:
             self._project.warnings.add(ProjectWarnings.MASK_NOAVAIL)
         self._calibration = Calibration()
         self._calibration.new_project(self._project)
-        if self._project.error == ProjectErrors.NONE:
-            self.preload_image(0)
 
     def blank_screen(self):
         self._screen = self._black_image.copy()

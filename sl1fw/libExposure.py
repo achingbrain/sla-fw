@@ -269,6 +269,7 @@ class ExposureThread(threading.Thread):
 
                 if command == "checks":
                     asyncio.run(self._run_checks())
+                    self.run_exposure()
                 else:
                     self.logger.error("Undefined command: \"%s\" ignored", command)
 
@@ -313,9 +314,6 @@ class ExposureThread(threading.Thread):
             await asyncio.gather(
                 fans, temps, project, hw
             )
-
-        self.run_exposure()
-
 
     async def _check_hw_related(self):
         if test_runtime.injected_preprint_warning:
@@ -899,6 +897,7 @@ class Exposure:
 
 
     def prepare(self):
+        self.screen.preload_image(0)
         self.hw.setTowerProfile('layer')
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
 
