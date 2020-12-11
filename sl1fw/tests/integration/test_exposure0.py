@@ -50,6 +50,9 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
         self._wait_for_state(Exposure0State.FINISHED, 30)
         self.assertEqual(100, self.exposure0.progress)
 
+        # Check zipfile is closed after print
+        self.assertFalse(self.printer.action_manager.exposure.project.is_open)
+
     def test_print_cancel(self):
         self.exposure0.confirm_start()
         self.exposure0.cancel()

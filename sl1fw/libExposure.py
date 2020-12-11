@@ -281,6 +281,8 @@ class ExposureThread(threading.Thread):
             self.expo.hw.uvLed(False)
             self.expo.hw.stopFans()
             self.expo.hw.motorsRelease()
+        if self.expo.project:
+            self.expo.project.data_close()
 
     def _raise_preprint_warning(self, warning: Warning):
         self.logger.warning("Warning being raised in pre-print: %s", type(warning))

@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from time import time
+from typing import Optional
 
 import pprint
 from PIL import Image
@@ -91,7 +92,7 @@ class Project:
         self.printer_variant = None
         self.altered_values = {}
         self.per_partes = hw_config.perPartes
-        self._zf = None
+        self._zf: Optional[ZipFile] = None
         self._mode_warn = True
         self._exposure_time_ms = 0
         self._exposure_time_first_ms = 0
@@ -470,3 +471,7 @@ class Project:
         self._exposure_time_ms = project.exposure_time_ms
         self._exposure_time_first_ms = project.exposure_time_first_ms
         self._calibrate_time_ms = project.calibrate_time_ms
+
+    @property
+    def is_open(self):
+        return self._zf and self._zf.fp
