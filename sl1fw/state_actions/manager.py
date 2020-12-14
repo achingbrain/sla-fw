@@ -3,12 +3,12 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-arguments
 
 import logging
+import weakref
 from queue import Queue
 from typing import Optional
 
@@ -117,13 +117,19 @@ class ActionManager:
 
         path = Exposure0.dbus_path(exposure.instance_id)
         exposure0 = Exposure0(exposure)
-        registration = self._system_bus.register_object(path, exposure0, None)
-        self._exposure_dbus_objects.put(registration)
+        weak_exposure0 = weakref.proxy(exposure0)
+        # pylint: disable=no-member
+        registration = self._system_bus.register_object(path, weak_exposure0, exposure0.dbus)
+        self._exposure_dbus_objects.put((exposure0, registration))
         self.logger.info("New exposure registered as: %s", path)
 
         # Maintain history of exposure registrations
         while self._exposure_dbus_objects.qsize() > self.MAX_EXPOSURES:
-            self._exposure_dbus_objects.get().unregister()
+            exposure0, registration = self._exposure_dbus_objects.get()
+            registration.unregister()
+            # TODO: it is not nice to touch pydbus signal internals, we would better fix the library
+            # The map holds strong reference to the Exposure0 preventing release of the exposure from RAM.
+            del Exposure0.PropertiesChanged.map[exposure0]
 
         return path
 
@@ -175,7 +181,8 @@ class ActionManager:
 
     def exit(self):
         while not self._exposure_dbus_objects.empty():
-            self._exposure_dbus_objects.get().unregister()
+            _, registration = self._exposure_dbus_objects.get()
+            registration.unregister()
         if self._exposure_bus_name:
             self._exposure_bus_name.unown()
         if self._display_test_registration:

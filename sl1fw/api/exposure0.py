@@ -136,16 +136,16 @@ class Exposure0:
     def __init__(self, exposure: Exposure):
         self._last_exception: Optional[Exception] = None
         self.exposure = exposure
+
+        # Do not use lambdas as handlers. These would keep references to Exposure0
         if self.exposure.change:
             self.exposure.change.connect(self._handle_change)
         if self.exposure.hw:
-            self.exposure.hw.cover_state_changed.connect(lambda x: self._handle_cover_change())
+            self.exposure.hw.cover_state_changed.connect(self._handle_cover_change_param)
         if self.exposure.hwConfig:
             self.exposure.hwConfig.add_onchange_handler(self._handle_config_change)
         if self.exposure.project.path_changed:
-            self.exposure.project.path_changed.connect(
-                lambda _: self.PropertiesChanged(self.__INTERFACE__, {"project_file": self.project_file}, [])
-            )
+            self.exposure.project.path_changed.connect(self._handle_path_changed_param)
 
     @auto_dbus
     @property
@@ -764,3 +764,9 @@ class Exposure0:
     def _handle_config_change(self, name: str, _: Any):
         if name == "coverCheck":
             self._handle_cover_change()
+
+    def _handle_path_changed_param(self, _):
+        self.PropertiesChanged(self.__INTERFACE__, {"project_file": self.project_file}, [])
+
+    def _handle_cover_change_param(self, _):
+        self._handle_cover_change()
