@@ -256,6 +256,7 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
+    @deprecated("Use exposure_exception property")
     def project_state(self) -> int:
         """
         State of source project data
