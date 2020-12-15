@@ -12,6 +12,7 @@ from time import sleep
 import unittest
 
 from unittest.mock import patch
+import pydbus
 
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 
@@ -277,9 +278,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.assertTrue(hwConfig.showUnboxing == unboxing, "config reset check")
         factoryConfig = TomlConfig(self.FACTORY_CONFIG_FILE)
         factoryConfig.load()
+        self.assertEqual(pydbus.SystemBus().get("org.freedesktop.NetworkManager").ListConnections(), ['ethernet']) # all wifi connections deleted
         self.assertTrue(factoryConfig.data["factoryMode"] == factoryMode, "factory is disabled check")
         # TODO check D-BUS hostname reset
-        # TODO check D-BUS wifi reset
         # TODO check D-BUS timezone reset
         # TODO check D-BUS locale reset
         # TODO check D-Bus NTP reset

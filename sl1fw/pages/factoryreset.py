@@ -180,11 +180,12 @@ class PageFactoryReset(Page):
 
         # Reset wifi
         try:
-            for item in system_bus.get(self.NETWORK_MANAGER, "Settings").ListConnections():
-                try:
-                    system_bus.get(self.NETWORK_MANAGER, item).Delete()
-                except GLib.GError:
-                    self.logger.exception("Failed to delete connection %s", item)
+            for connection in system_bus.get(self.NETWORK_MANAGER, "Settings").ListConnections():
+                if system_bus.get(self.NETWORK_MANAGER, connection).GetSettings()["connection"]["type"] == "802-11-wireless":
+                    try:
+                        system_bus.get(self.NETWORK_MANAGER, connection).Delete()
+                    except GLib.GError:
+                        self.logger.exception("Failed to delete connection %s", connection)
         except GLib.GError:
             self.logger.exception("Failed to reset wifi config")
 

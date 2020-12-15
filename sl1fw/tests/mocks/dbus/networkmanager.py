@@ -3,7 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import List
+from typing import List, Dict
 
 from pydbus.generic import signal
 
@@ -17,7 +17,10 @@ class NetworkManager:
     PropertiesChanged = signal()
 
     def __init__(self):
-        self.connections = ['test1', 'test2', 'test3']
+        self._connections = ['ethernet', 'wifi0', 'wifi1']
+        self.connections = self._connections.copy()
+        self.iter = iter(self._connections)
+        self.currentItem = ''
 
     @auto_dbus
     def GetAllDevices(self) -> List[DBusObjectPath]: # pylint: disable=no-self-use
@@ -38,4 +41,13 @@ class NetworkManager:
 
     @auto_dbus
     def Delete(self) -> None:
-        self.connections.pop()
+        # TODO: improve. This relies on the fact that connections are deleted while iterating over them.
+        self.connections.remove(self.currentItem)
+
+    @auto_dbus
+    def GetSettings(self) -> Dict[str, Dict[str, str]]:
+        self.currentItem = next(self.iter)
+        connectionType = '802-11-wireless'
+        if self.currentItem == 'ethernet':
+            connectionType = '802-3-ethernet'
+        return { 'connection' : {'type': connectionType}}
