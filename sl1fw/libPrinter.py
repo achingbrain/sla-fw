@@ -44,6 +44,7 @@ from sl1fw.libHardware import MotConComState
 from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
 from sl1fw.screen.screen import Screen
+from sl1fw.screen.printer_model import PrinterModel
 from sl1fw.pages.wait import PageWait
 from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
@@ -114,7 +115,7 @@ class Printer:
             devices = [QtDisplay()]
 
         self.logger.info("Initializing Screen")
-        self.screen = Screen()
+        self.screen = Screen(self.hwConfig)
 
         self.logger.info("Registering config D-Bus services")
         self.system_bus = SystemBus()
@@ -171,6 +172,10 @@ class Printer:
             self.display.pages["error"].setParams(code=Sl1Codes.ALTERNATIVE_SLOT_BOOT.raw_code)
             self.display.doMenu("error")
 
+        if self.screen.printer_model == PrinterModel.NONE:
+            self.display.pages["error"].setParams(code=Sl1Codes.DISPLAY_TEST_FAILED.raw_code)
+            self.display.doMenu("error")
+
         if self.firstRun:
             try:
                 locale = pydbus.SystemBus().get("org.freedesktop.locale1")
@@ -184,7 +189,7 @@ class Printer:
                 self.display.pages["error"].setParams(code=Sl1Codes.FAILED_TO_LOAD_FACTORY_LEDS_CALIBRATION.raw_code)
                 self.display.doMenu("error")
 
-            if self.runtime_config.factory_mode and not list(Path(defines.internalProjectPath).rglob("*.sl1")):
+            if self.runtime_config.factory_mode and not list(Path(defines.internalProjectPath).rglob("*%s" % list(self.screen.printer_model.extensions)[0])):
                 self.display.pages["error"].setParams(code=Sl1Codes.MISSING_EXAMPLES.raw_code)
                 self.display.doMenu("error")
 
@@ -201,7 +206,7 @@ class Printer:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("wizardinit")
 
-            if self.display.hwConfig.uvPwm < self.hw.getMinPwm():
+            if self.display.hwConfig.uvPwm < self.screen.printer_model.calibration(self.hw.is500khz).min_pwm:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("uvcalibrationstart")
 
@@ -258,7 +263,7 @@ class Printer:
 
             if self.slicer_profile.vendor:
                 self.logger.info("Starting slicer profiles updater")
-                self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile, self.screen.printer_model)
+                self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile, self.screen.printer_model.name)
 
             # Force update network state (in case we missed network going online)
             # All network state handler should be already registered

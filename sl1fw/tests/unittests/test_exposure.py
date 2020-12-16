@@ -13,7 +13,7 @@ from unittest.mock import Mock
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
-from sl1fw.screen.printer_model import PrinterModelTypes
+from sl1fw.screen.printer_model import PrinterModel
 from sl1fw import defines
 from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation, ProjectErrorCantRead
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
@@ -50,7 +50,9 @@ class TestExposure(Sl1fwTestCase):
         self.screen.__class__ = Screen
         self.screen.__reduce__ = lambda x: (Mock, ())
         self.screen.blit_image.return_value = 100
-        self.screen.printer_model = PrinterModelTypes.SL1.parameters()
+        self.screen.printer_model = PrinterModel.SL1
+        exposure_screen = self.screen.printer_model.exposure_screen
+        self.screen.white_pixels_threshold = exposure_screen.width_px * exposure_screen.height_px * self.hw_config.limit4fast // 100
 
     def test_exposure_init_not_calibrated(self):
         with self.assertRaises(NotUVCalibrated):
@@ -132,7 +134,7 @@ class TestExposure(Sl1fwTestCase):
         hw = Mock()
         hw.__class__ = Hardware
         hw.__reduce__ = lambda self: (Mock, ())
-        hw.getMinPwm.return_value = defines.uvLedMeasMinPwm500k
+        hw.is500khz = True
         hw.getUvLedState.return_value = (False, 0)
         hw.getUvStatistics.return_value = (6912,)
         hw.isTiltOnPosition.return_value = True
@@ -144,7 +146,7 @@ class TestExposure(Sl1fwTestCase):
         return hw
 
     def _fake_calibration(self):
-        self.hw_config.uvPwm = defines.uvLedMeasMinPwm500k
+        self.hw_config.uvPwm = 250
         self.hw_config.calibrated = True
 
 

@@ -54,7 +54,6 @@ class UvLedMeterMulti:
 
     uvLedMeterDevice = defines.uv_meter_device
     uvSensorType = 0
-    INTENSITY_ERROR_THRESHOLD = 1
 
     WEIGHTS60 = numpy.array(
         [0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30]

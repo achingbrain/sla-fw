@@ -5,21 +5,19 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from sl1fw import defines
 from sl1fw.libConfig import RuntimeConfig, HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
+from sl1fw.screen.printer_model import PrinterModel
 
 
-def start(hw: Hardware, screen : Screen, runtime_config: RuntimeConfig):
+def start(hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
     hw.startFans()
     runtime_config.fan_error_override = True
-    screen.show_image(filename=str(Path(defines.dataPath) / "logo_1440x2560.png"))
+    screen.show_system_image("logo.png")
 
 
-def end(hw: Hardware, screen : Screen, runtime_config: RuntimeConfig):
+def end(hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
     runtime_config.fan_error_override = False
     hw.saveUvStatistics()
     # can't call allOff(), motorsRelease() is harmful for the wizard
@@ -28,9 +26,9 @@ def end(hw: Hardware, screen : Screen, runtime_config: RuntimeConfig):
     hw.stopFans()
 
 
-def cover_check(hw: Hardware, hw_config: HwConfig) -> bool:
+def cover_check(hw: Hardware, hw_config: HwConfig, printer_model: PrinterModel) -> bool:
     if not hw_config.coverCheck or hw.isCoverClosed():
-        hw.uvLedPwm = hw.getMinPwm()
+        hw.uvLedPwm = printer_model.calibration(hw.is500khz).min_pwm
         hw.uvLed(True)
         return True
     hw.uvLed(False)

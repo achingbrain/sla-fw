@@ -23,9 +23,10 @@ class SourceDir:
         pass
     #endclass
 
-    def __init__(self, root, name):
+    def __init__(self, root, name, extensions):
         self.root = root
         self.name = name
+        self.extensions = extensions
         self.logger = logging.getLogger(__name__)
     #enddef
 
@@ -65,7 +66,7 @@ class SourceDir:
             for root, _dirs, files in os.walk(full_path):
                 for file in files:
                     (_, ext) = os.path.splitext(file)
-                    if ext not in defines.projectExtensions:
+                    if ext not in self.extensions:
                         continue
                     #endif
 
@@ -94,7 +95,7 @@ class SourceDir:
 
         # Add project as result
         (name, extension) = os.path.splitext(item)
-        if extension in defines.projectExtensions:
+        if extension in self.extensions:
             return {
                 'type': 'project',
                 'name': name,
@@ -124,6 +125,7 @@ class PageSrcSelect(Page):
         self.old_items = None
         self.sources = {}
         self.updateDataPeriod = 1
+        self.extensions = display.screen.printer_model.extensions
     #enddef
 
 
@@ -134,8 +136,8 @@ class PageSrcSelect(Page):
 
     def source_list(self):
         # Get source directories
-        sourceDirs = [SourceDir(defines.internalProjectPath, "internal")]
-        sourceDirs += [SourceDir(path, "usb") for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
+        sourceDirs = [SourceDir(defines.internalProjectPath, "internal", self.extensions)]
+        sourceDirs += [SourceDir(path, "usb", self.extensions) for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
 
         # Get content items
         dirs = {}
@@ -243,7 +245,7 @@ class PageSrcSelect(Page):
 #            for root, dirs, files in os.walk(item['fullpath']):
 #                for file in files:
 #                    (name, ext) = os.path.splitext(file)
-#                    if ext in defines.projectExtensions:
+#                    if ext in self.extensions:
 #                        os.remove(os.path.join(root, file))
 #            return
             raise NotImplementedError

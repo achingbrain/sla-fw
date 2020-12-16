@@ -38,7 +38,7 @@ class PageDisplayTest(Page):
             'text' : _("Can you see the company logo on the exposure display through the orange cover?\n\n"
                        "Tip: The logo is best seen when you look from above.\n\n"
                        "DO NOT open the cover!")})
-        if display_test.cover_check(self.display.hw, self.display.hwConfig):
+        if display_test.cover_check(self.display.hw, self.display.hwConfig, self.display.screen.printer_model):
             super(PageDisplayTest, self).show()
         #endif
     #enddef

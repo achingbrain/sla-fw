@@ -328,6 +328,7 @@ class Hardware:
 
     @property
     def is500khz(self):
+        # FIXME this will not work for board "7a"
         return self.mcc.board["revision"] >= 6 and self.mcc.board["subRevision"] == "c"
 
     def readCpuSerial(self):
@@ -1352,18 +1353,6 @@ class Hardware:
     def tilt_position(self, micro_steps: int):
         # TODO: This needs some safety check
         self.tiltMoveAbsolute(micro_steps)
-
-    def getMeasPwms(self):
-        if self.is500khz:
-            return defines.uvLedMeasMinPwm500k, defines.uvLedMeasMaxPwm500k
-
-        return defines.uvLedMeasMinPwm, defines.uvLedMeasMaxPwm
-
-    def getMinPwm(self):
-        return self.getMeasPwms()[0]
-
-    def getMaxPwm(self):
-        return self.getMeasPwms()[1]
 
     def get_tower_sensitivity(self) -> int:
         """

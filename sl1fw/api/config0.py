@@ -165,7 +165,6 @@ class Config0:
 
     CHANGED_MAP = {
         "screwMm": {"microStepsMM"},
-        "limit4fast": {"whitePixelsThd"},
         "raw_tiltdownlargefill": {"tuneTilt"},
         "raw_tiltdownsmallfill": {"tuneTilt"},
         "raw_tiltup": {"tuneTilt"},

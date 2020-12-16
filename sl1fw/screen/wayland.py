@@ -17,7 +17,7 @@ from pywayland.protocol.xdg_shell import XdgWmBase
 from pywayland.protocol.presentation_time import WpPresentation
 from pywayland.utils import AnonymousFile
 
-from sl1fw.screen.printer_model import PrinterModelTypes
+from sl1fw.screen.printer_model import PrinterModel
 
 
 class Wayland:
@@ -25,7 +25,8 @@ class Wayland:
     # pylint: disable=unused-argument
     # pylint: disable=too-many-arguments
     def __init__(self):
-        self.printer_model = None
+        self.printer_model = PrinterModel.NONE
+        self.exposure_screen = self.printer_model.exposure_screen
 
         self._logger = logging.getLogger(__name__)
         self._compositor = None
@@ -34,14 +35,14 @@ class Wayland:
         self._output = None
         self._presentation = None
         self._format_available = False
-        self._width = 0
-        self._height = 0
+        self._detected_size = (0, 0)
+        self._referesh_delay_s = 0.0
         self._surface = None
         self._shm_data = None
         self._frame_callback = None
         self._buffer = None
         self._stopped = False
-        self._image: Optional[Image] = None
+        self._image: Optional[bytes] = None
         self._new_image = True
         self._presentation_feedback = None
         self._video_sync_event = Event()
@@ -69,8 +70,6 @@ class Wayland:
             raise RuntimeError("no wp_presentation found")
         if not self._format_available:
             raise RuntimeError("no suitable shm format available")
-        if not self._width or not self._height:
-            raise RuntimeError("no suitable resolution available")
 
         self._detect_model()
 
@@ -145,9 +144,8 @@ class Wayland:
 
     def _output_mode_handler(self, wl_output, flags, width, height, referesh):
         self._logger.debug("flags:%d width:%d height:%d referesh:%d", flags, width, height, referesh)
-        if  self._width * self._height < width * height:
-            self._width = width
-            self._height = height
+        if  self._detected_size[0] * self._detected_size[1] < width * height:
+            self._detected_size = (width, height)
 
 
     def _xdg_surface_configure_handler(self, xdg_surface, serial):
@@ -164,29 +162,32 @@ class Wayland:
 
 
     def _xdg_toplevel_configure_handler(self, xdg_toplevel, width, height, states):
-        if width != self._width or height != self._height:
+        if width != self._detected_size[0] or height != self._detected_size[1]:
             self._logger.warning("resolution change request to %dx%d", width, height)
 
 
     def _detect_model(self):
-        self._logger.debug("got resolution %dx%d", self._width, self._height)
-        for printer_model_type in PrinterModelTypes:
-            params = printer_model_type.parameters()
-            if params.screen_size_px == (self._width, self._height):
-                self.printer_model = params
+        self._logger.debug("got resolution %s", str(self._detected_size))
+        for printer_model in PrinterModel:
+            exposure_screen = printer_model.exposure_screen
+            if exposure_screen.detected_size_px == self._detected_size:
+                self.printer_model = printer_model
+                self.exposure_screen = exposure_screen
                 break
-        if not self.printer_model:
-            raise RuntimeError("unknown printer model")
-        self._logger.info("Detected printer model: %s", self.printer_model.name)
+        if self.printer_model == PrinterModel.NONE:
+            self._logger.error("Unknown printer model (detected resolution: %s)", str(self._detected_size))
+        else:
+            self._logger.info("Detected printer model: %s", self.printer_model.name)
+            self._referesh_delay_s = self.exposure_screen.referesh_delay_ms / 1000
 
 
     def _create_buffer(self):
-        stride = self._width * 4
-        size = stride * self._height
+        stride = self._detected_size[0] * 4
+        size = stride * self._detected_size[1]
         with AnonymousFile(size) as fd:
             self._shm_data = mmap.mmap(fd, size, prot=mmap.PROT_READ | mmap.PROT_WRITE, flags=mmap.MAP_SHARED)
             pool = self._shm.create_pool(fd, size)
-            self._buffer = pool.create_buffer(0, self._width, self._height, stride, WlShm.format.xrgb8888.value)
+            self._buffer = pool.create_buffer(0, self._detected_size[0], self._detected_size[1], stride, WlShm.format.xrgb8888.value)
             pool.destroy()
         self._new_image = True
 
@@ -194,8 +195,8 @@ class Wayland:
     def _fill_buffer(self):
         if self._new_image and self._image:
             self._shm_data.seek(0)
-            self._shm_data.write(self._image.convert("RGBX").tobytes())
-            self._surface.damage_buffer(0, 0, self._width, self._height)
+            self._shm_data.write(self._image)
+            self._surface.damage_buffer(0, 0, self._detected_size[0], self._detected_size[1])
             self._presentation_feedback = self._presentation.feedback(self._surface)
             self._presentation_feedback.dispatcher["presented"] = self._feedback_presented_handler
             self._presentation_feedback.dispatcher["discarded"] = self._feedback_discarded_handler
@@ -221,10 +222,18 @@ class Wayland:
 
 
     def show(self, image: Image, sync = True):
-        # TODO update only region
-        if (image.width != self._width or image.height != self._height):
-            raise RuntimeError("invalid image size")
-        self._image = image.copy()
+        if image.size != self.exposure_screen.size_px:
+            self._logger.error("Invalid image size %s. Output is %s", str(image.size), str(self.exposure_screen.size_px))
+            return
+        if self.exposure_screen.monochromatic:
+            bit24 = Image.frombytes("RGB", self._detected_size, image.tobytes())
+            if self.exposure_screen.backwards:
+                bit32 = bit24.convert("BGR;32")
+            else:
+                bit32 = bit24.convert("RGBX")
+        else:
+            bit32 = image.convert("RGBX")
+        self._image = bit32.tobytes()
         self._new_image = True
         if sync:
             self.sync()
@@ -239,7 +248,6 @@ class Wayland:
             raise RuntimeError("video sync timeout")
         self._video_sync_event.clear()
         self._logger.debug("video sync done in %f secs", time() - start_time)
-        wait_s = self.printer_model.referesh_delay_ms / 1000
-        if wait_s > 0:
-            self._logger.debug("waiting %f secs for display referesh", wait_s)
-            sleep(wait_s)
+        if self._referesh_delay_s > 0:
+            self._logger.debug("waiting %f secs for display referesh", self._referesh_delay_s)
+            sleep(self._referesh_delay_s)

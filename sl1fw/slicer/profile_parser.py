@@ -13,14 +13,13 @@ import re
 
 from sl1fw import defines
 from sl1fw.slicer.slicer_profile import SlicerProfile
-from sl1fw.screen.printer_model import PrinterModel
 
 
 class ProfileParser:
 
-    def __init__(self, printer_model: PrinterModel):
+    def __init__(self, printer_type_name: str):
         self.logger = logging.getLogger(__name__)
-        self.printer_model = printer_model
+        self.printer_type_name = printer_type_name
         self.config = None
 
     @staticmethod
@@ -116,7 +115,7 @@ class ProfileParser:
                 continue
             printerName = key.split(":")[1]
             self.logger.info("Found SLA technology printer '%s'", printerName)
-            if tmp[key].get('printer_model', None) != self.printer_model.name or tmp[key].get('printer_variant', None) != defines.printerVariant:
+            if tmp[key].get('printer_model', None) != self.printer_type_name or tmp[key].get('printer_variant', None) != defines.printerVariant:
                 self.logger.debug("SLA printer '%s' not match printer model or printer variant", key)
                 continue
             printer = tmp[key]

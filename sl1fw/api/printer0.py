@@ -705,7 +705,7 @@ class Printer0:
         This raises subset of exceptions the print raises, but does not do anything on success
         :return: None
         """
-        check_ready_to_print(self.printer.hwConfig, self.printer.hw)
+        check_ready_to_print(self.printer.hwConfig, self.printer.screen.printer_model.calibration(self.printer.hw.is500khz))
 
     @auto_dbus
     @last_error
@@ -790,7 +790,7 @@ class Printer0:
 
         :return: Set of extension strings
         """
-        return list(defines.projectExtensions)
+        return list(self.printer.screen.printer_model.extensions)
 
     @auto_dbus
     @property
@@ -838,8 +838,9 @@ class Printer0:
         """
         sources = [Path(defines.internalProjectPath), Path(defines.mediaRootPath)]
         projects = []
+        extensions = self.printer.screen.printer_model.extensions
         for directory in sources:
-            for extension in defines.projectExtensions:
+            for extension in extensions:
                 projects.extend(directory.rglob(f"*{extension}"))
         return [str(project) for project in projects]
 

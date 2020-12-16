@@ -150,7 +150,7 @@ class Exposure0:
             self.exposure.hw.cover_state_changed.connect(self._handle_cover_change_param)
         if self.exposure.hwConfig:
             self.exposure.hwConfig.add_onchange_handler(self._handle_config_change)
-        if self.exposure.project.path_changed:
+        if self.exposure.project and self.exposure.project.path_changed:
             self.exposure.project.path_changed.connect(self._handle_path_changed_param)
 
     @auto_dbus

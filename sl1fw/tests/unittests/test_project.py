@@ -12,7 +12,7 @@ from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorNotEnoughLayer
 from sl1fw.project.project import Project, ProjectLayer, LayerCalibrationType
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.utils.bounding_box import BBox
-from sl1fw.screen.printer_model import PrinterModelTypes
+from sl1fw.screen.printer_model import PrinterModel
 
 
 def _layer_generator(name, count, height_nm, times_ms, layer_times_ms):
@@ -37,7 +37,7 @@ class TestProject(Sl1fwTestCase):
         super().setUp()
         self.assertEqual.__self__.maxDiff = None
         self.hwConfig = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
-        self.printer_model = PrinterModelTypes.SL1.parameters()
+        self.printer_model = PrinterModel.SL1
 
     def test_notfound(self):
         with self.assertRaises(ProjectErrorNotFound):
@@ -61,7 +61,7 @@ class TestProject(Sl1fwTestCase):
             project.copy_and_check()
 
     def test_printer_model(self):
-        self.printer_model = PrinterModelTypes.TEST.parameters()
+        self.printer_model = PrinterModel.NONE
         with self.assertRaises(ProjectErrorWrongPrinterModel):
             Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "numbers.sl1"))
 

@@ -8,10 +8,8 @@
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-statements
 
-import os
 from time import sleep
 
-from sl1fw import defines
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
@@ -54,7 +52,7 @@ class PageInfiniteTest(Page):
             line3="Tilt cycles: %d" % tilt_counter,
         )
         page_wait.show()
-        self.display.screen.show_image(os.path.join(defines.dataPath, "sachovnice16_1440x2560.png"))
+        self.display.screen.show_system_image("chess16.png")
         self.display.hw.startFans()
         self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
         self.display.hw.uvLed(True)

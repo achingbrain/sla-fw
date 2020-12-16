@@ -71,7 +71,7 @@ class DisplayTest0:
             return False
 
         old = self._state
-        if display_test.cover_check(self._hw, self._hw_config):
+        if display_test.cover_check(self._hw, self._hw_config, self._screen.printer_model):
             self._state = DisplayTest0State.DISPLAY
             self.change.emit()
         else:

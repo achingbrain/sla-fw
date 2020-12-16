@@ -108,6 +108,7 @@ class PageUvCalibrationBase(Page):
         self.pageUI = "confirm"
         self.pageTitle = N_("UV LED calibration")
         self.checkCooling = True
+        self.calibration_params = display.screen.printer_model.calibration(self.display.hw.is500khz)
         try:
             self.factoryUvPwm = TomlConfig(defines.uvCalibDataPathFactory).load()["uvFoundPwm"]
             self.logger.info("factoryUvPwm %s", self.factoryUvPwm)
@@ -183,7 +184,7 @@ class PageUvCalibration(PageUvCalibrationBase):
         PageUvCalibrationBase.writeDataToFactory = False
         PageUvCalibrationBase.resetDisplayCounter = False
         PageUvCalibrationBase.resetLedCounter = False
-        minpwm, maxpwm = self.display.hw.getMeasPwms()
+        minpwm, maxpwm = self.calibration_params.pwms
         text = _("Welcome to the UV LED calibration.\n\n"
                 "1. If the resin tank is in the printer, remove it along with the screws.\n"
                 "2. Close the orange lid, don't open it! UV radiation is harmful!")
@@ -390,7 +391,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
         self.pageWait.showItems(line1 = _("Warming up"))
 
         self.display.hw.startFans()
-        self.display.hw.uvLedPwm = self.display.hw.getMaxPwm()
+        self.display.hw.uvLedPwm = self.calibration_params.max_pwm
         self.display.screen.blank_screen()
         self.display.hw.uvLed(True)
 
@@ -404,7 +405,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
             #endif
         #endfor
 
-        self.display.hw.uvLedPwm = self.display.hw.getMinPwm()
+        self.display.hw.uvLedPwm = self.calibration_params.min_pwm
     #enddef
 
 
@@ -561,7 +562,6 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
 class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
     Name = "uvcalibratecenter"
 
-    PARAM_P = 0.75
     PARAM_I = 0.0025
     TUNNING_ITERATIONS = 100
     SUCCESS_ITERATIONS = 5
@@ -575,7 +575,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
 
     def calibrate(self):
         # Start UV led with minimal pwm
-        self.pwm = self.display.hw.getMinPwm()
+        self.pwm = self.calibration_params.min_pwm
 
         error = 0
         integrated_error = 0
@@ -603,7 +603,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
                               self.pwm, self.intensity, error, integrated_error, iteration, success_count)
 
             # Break cycle when error is tolerable
-            if abs(error) < self.uvmeter.INTENSITY_ERROR_THRESHOLD:
+            if abs(error) < self.calibration_params.intensity_error_threshold:
                 if success_count >= self.SUCCESS_ITERATIONS:
                     break
                 #endif
@@ -613,15 +613,15 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
             #endif
 
             # Adjust PWM according to error, integrated error and operational limits
-            self.pwm = self.pwm + self.PARAM_P * error + self.PARAM_I * integrated_error
-            self.pwm = max(self.display.hw.getMinPwm(), min(self.display.hw.getMaxPwm(), self.pwm))
+            self.pwm = self.pwm + self.calibration_params.param_p * error + self.PARAM_I * integrated_error
+            self.pwm = max(self.calibration_params.min_pwm, min(self.calibration_params.max_pwm, self.pwm))
         #endfor
 
         # Report ranges and deviation errors
-        if error > self.uvmeter.INTENSITY_ERROR_THRESHOLD:
+        if error > self.calibration_params.intensity_error_threshold:
             self.logger.error("UV intensity error: %f", error)
             return self.ERROR_TOO_DIMM, None
-        elif error < -self.uvmeter.INTENSITY_ERROR_THRESHOLD:
+        elif error < -self.calibration_params.intensity_error_threshold:
             self.logger.error("UV intensity error: %f", error)
             return self.ERROR_TOO_BRIGHT, None
         elif self.deviation > self.INTENSITY_DEVIATION_THRESHOLD:
@@ -649,7 +649,7 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
     def calibrate(self):
         self.display.screen.blank_screen()
         self.display.screen.inverse()
-        maxpwm = self.display.hw.getMaxPwm()
+        maxpwm = self.calibration_params.max_pwm
         # check PWM value from previous step
         self.pwm = self.display.hw.uvLedPwm
         while self.pwm <= maxpwm:

@@ -56,7 +56,6 @@ class TestIntegrationConfig0(Sl1FwIntegrationTestCaseBase):
         self.assertFalse(self.config0.perPartes)
         self.assertEqual(120, self.config0.uvWarmUpTime)
         self.assertEqual(100, self.config0.pwrLedPwm)
-        self.assertEqual(36864, self.config0.whitePixelsThd)
         self.assertTrue(self.config0.resinSensor)
         self.assertEqual(dict, type(self.config0.constraints))
 

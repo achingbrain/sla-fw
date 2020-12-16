@@ -105,7 +105,7 @@ class ExposureThread(threading.Thread):
         position_steps = self.expo.hwConfig.nm_to_tower_microsteps(self.expo.tower_position_nm) + self.expo.hwConfig.calibTowerOffset
 
         if self.expo.hwConfig.tilt:
-            if self.expo.hwConfig.layerTowerHop and prev_white_pixels > self.expo.hwConfig.whitePixelsThd:
+            if self.expo.hwConfig.layerTowerHop and prev_white_pixels > self.expo.screen.white_pixels_threshold:
                 self.expo.hw.towerMoveAbsoluteWait(position_steps + self.expo.hwConfig.layerTowerHop)
                 self.expo.hw.tiltLayerUpWait()
                 self.expo.hw.towerMoveAbsoluteWait(position_steps)
@@ -164,7 +164,7 @@ class ExposureThread(threading.Thread):
             sleep(self.expo.hwConfig.delayAfterExposure / 10.0)
 
         if self.expo.hwConfig.tilt:
-            slow_move = white_pixels > self.expo.hwConfig.whitePixelsThd
+            slow_move = white_pixels > self.expo.screen.white_pixels_threshold
             if slow_move:
                 self.expo.slow_layers_done += 1
             if not self.expo.hw.tiltLayerDownWait(slow_move):
@@ -653,7 +653,7 @@ class ExposureThread(threading.Thread):
                 break
 
             # exposure of the second part
-            if project.per_partes and white_pixels > self.expo.hwConfig.whitePixelsThd:
+            if project.per_partes and white_pixels > self.expo.screen.white_pixels_threshold:
                 success, dummy = self._do_frame(times_ms, white_pixels, was_stirring, True)
                 if not success and not self.doStuckRelease():
                     stuck = True
@@ -664,7 +664,7 @@ class ExposureThread(threading.Thread):
             exposure_compensation = 0
 
             # /1e21 (1e7 ** 3) - we want cm3 (=ml) not nm3
-            self.expo.resin_count += white_pixels * self.expo.screen.printer_model.screen_pixel_size_nm ** 2 * layer.height_nm / 1e21
+            self.expo.resin_count += white_pixels * self.expo.screen.printer_model.exposure_screen.pixel_size_nm ** 2 * layer.height_nm / 1e21
             self.logger.debug("resin_count: %f", self.expo.resin_count)
 
             seconds = (datetime.now(tz=timezone.utc) - self.expo.printStartTime).total_seconds()
@@ -762,7 +762,7 @@ class ExposureThread(threading.Thread):
 class Exposure:
     def __init__(self, job_id: int, hwConfig: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig,
                  project_file: str):
-        check_ready_to_print(hwConfig, hw)
+        check_ready_to_print(hwConfig, screen.printer_model.calibration(hw.is500khz))
         self.change = Signal()
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
@@ -802,18 +802,19 @@ class Exposure:
             # Signal project change on its parameter change. This lets Exposure0 emit
             # property changed on properties bound to project parameters.
             self.project.params_changed.connect(lambda: self.change.emit("project", None))
-            self.logger.info("Created new exposure object id: %s", self.instance_id)
         except Exception as exception:
             # TODO: It is not nice to handle this in the constructor, but still better than let the constructor raise
             # TODO: an exception and kill the whole printer logic.
             # TODO: Solution would be to move this to exposure thread, but we rely on project being loaded right after
             # TODO: the Exposure object is created.
+            # FIXME: this exception is not send to frontend !!!
             self.logger.exception("Exposure init exception")
             self.exception = exception
             self.state = ExposureState.FAILURE
             self.hw.uvLed(False)
             self.hw.stopFans()
             self.hw.motorsRelease()
+        self.logger.info("Created new exposure object id: %s", self.instance_id)
 
     def confirm_print_start(self):
         self.expoThread.start()

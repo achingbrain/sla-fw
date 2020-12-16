@@ -48,7 +48,7 @@ class DisplayTest(Check):
         close_cover_state: Optional[PushState] = None
         try:
             while self.result is None:
-                if display_test.cover_check(self.hw, self.hw_config):
+                if display_test.cover_check(self.hw, self.hw_config, self.screen.printer_model):
                     if close_cover_state:
                         actions.drop_state(close_cover_state)
                         close_cover_state = None

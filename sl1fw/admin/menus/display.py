@@ -3,9 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from datetime import timedelta
-from pathlib import Path
 
-from sl1fw import defines
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction, AdminBoolValue
 from sl1fw.admin.menu import AdminMenu
@@ -154,23 +152,23 @@ class DisplayControlMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def chess_8(self):
-        self._printer.screen.show_image(str(Path(defines.dataPath) / "sachovnice8_1440x2560.png"))
+        self._printer.screen.show_system_image("chess8.png")
 
     @SafeAdminMenu.safe_call
     def chess_16(self):
-        self._printer.screen.show_image(str(Path(defines.dataPath) / "sachovnice16_1440x2560.png"))
+        self._printer.screen.show_system_image("chess16.png")
 
     @SafeAdminMenu.safe_call
     def grid_8(self):
-        self._printer.screen.show_image(str(Path(defines.dataPath) / "mrizka8_1440x2560.png"))
+        self._printer.screen.show_system_image("grid8.png")
 
     @SafeAdminMenu.safe_call
     def grid_16(self):
-        self._printer.screen.show_image(str(Path(defines.dataPath) / "mrizka16_1440x2560.png"))
+        self._printer.screen.show_system_image("grid16.png")
 
     @SafeAdminMenu.safe_call
     def maze(self):
-        self._printer.screen.show_image(str(Path(defines.dataPath) / "bludiste_1440x2560.png"))
+        self._printer.screen.show_system_image("maze.png")
 
     @SafeAdminMenu.safe_call
     def usb_test(self):
@@ -180,11 +178,11 @@ class DisplayControlMenu(SafeAdminMenu):
         test_file = save_path / "test.png"
         if not test_file.exists():
             raise FileNotFoundError(f"Test image not found: {test_file}")
-        self._printer.screen.show_image(str(test_file))
+        self._printer.screen.show_image_with_path(str(test_file))
 
     @SafeAdminMenu.safe_call
     def prusa(self):
-        self._printer.screen.show_image(str(Path(defines.dataPath) / "logo_1440x2560.png"))
+        self._printer.screen.show_system_image("logo.png")
 
     @SafeAdminMenu.safe_call
     def black(self):

@@ -47,11 +47,10 @@ uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename
 
 uvCalibDuration = 60 # 1 minute countdown
 
-perPartesMask = os.path.join(dataPath, "perpartes_mask.png")
+perPartesMask = "perpartes_mask.png"
 
 configFile = "config.ini"
 maskFilename = "mask.png"
-projectExtensions = {".dwz", ".sl1"}
 previousPrints = os.path.join(persistentStorage, "previous-prints")
 lastProjectHwConfig = os.path.join(previousPrints, hwConfigFileName)
 lastProjectFactoryFile = os.path.join(previousPrints, os.path.basename(hwConfigPathFactory))
@@ -146,10 +145,7 @@ admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
 bootFailedStamp = os.path.join(persistentStorage, "failedboot")
 apikeyFile = configDir / "api.key"
 uvLedMeterMaxWait_s = 10
-uvLedMeasMinPwm = 125
-uvLedMeasMaxPwm = 218
-uvLedMeasMinPwm500k = 150
-uvLedMeasMaxPwm500k = 250
+
 logsBase = "/var/log/journal"
 traces = 30
 printer_summary = Path(ramdiskPath) / "printer_summary"

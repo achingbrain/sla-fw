@@ -12,7 +12,7 @@ from sl1fw import defines
 from sl1fw.project.project import Project, LayerCalibrationType
 from sl1fw.errors.errors import ProjectErrorCalibrationInvalid
 from sl1fw.utils.bounding_box import BBox
-from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.screen.printer_model import ExposureScreen
 from sl1fw.errors.warnings import PrintedObjectWasCropped
 
 
@@ -95,10 +95,10 @@ class AreaWithLabelStripe(AreaWithLabel):
         self._logger.debug("label position: %s", str(self._label_position))
 
 class Calibration:
-    def __init__(self, printer_model: PrinterModel):
+    def __init__(self, exposure_screen: ExposureScreen):
         self.areas = []
         self._logger = logging.getLogger(__name__)
-        self._printer_model = printer_model
+        self._exposure_screen = exposure_screen
 
     def new_project(self, project: Project):
         if project.calibrate_regions:
@@ -120,7 +120,7 @@ class Calibration:
             self._logger.error("bad value regions (%d)", regions)
             raise ProjectErrorCalibrationInvalid
         divide = areaMap[regions]
-        if self._printer_model.screen_width_px > self._printer_model.screen_height_px:
+        if self._exposure_screen.width_px > self._exposure_screen.height_px:
             x = 0
             y = 1
         else:
@@ -128,19 +128,19 @@ class Calibration:
             y = 0
         if bbox:
             size = list(bbox.size)
-            if size[0] * divide[x] > self._printer_model.screen_width_px:
-                size[0] = self._printer_model.screen_width_px // divide[x]
-            if size[1] * divide[y] > self._printer_model.screen_height_px:
-                size[1] = self._printer_model.screen_height_px // divide[y]
+            if size[0] * divide[x] > self._exposure_screen.width_px:
+                size[0] = self._exposure_screen.width_px // divide[x]
+            if size[1] * divide[y] > self._exposure_screen.height_px:
+                size[1] = self._exposure_screen.height_px // divide[y]
             self._areas_loop(
-                    ((self._printer_model.screen_width_px - divide[x] * size[0]) // 2, (self._printer_model.screen_height_px - divide[y] * size[1]) // 2),
+                    ((self._exposure_screen.width_px - divide[x] * size[0]) // 2, (self._exposure_screen.height_px - divide[y] * size[1]) // 2),
                     (size[0], size[1]),
                     (divide[x], divide[y]),
                     Area)
         else:
             self._areas_loop(
                     (0, 0),
-                    (self._printer_model.screen_width_px // divide[x], self._printer_model.screen_height_px // divide[y]),
+                    (self._exposure_screen.width_px // divide[x], self._exposure_screen.height_px // divide[y]),
                     (divide[x], divide[y]),
                     AreaWithLabelStripe if regions == 10 else AreaWithLabel)
 
