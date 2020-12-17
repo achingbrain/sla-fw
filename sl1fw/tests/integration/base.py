@@ -30,6 +30,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     API_KEY_FILE = Sl1fwTestCase.TEMP_DIR / "api.key"
     UV_CALIB_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.uvCalibDataFilename
     UV_CALIB_FACTORY_DATA_FILE = Sl1fwTestCase.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}"
+    COUNTER_LOG = Sl1fwTestCase.TEMP_DIR / defines.counterLogFilename
     WIZARD_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.wizardDataFilename
     FACTORY_CONFIG_FILE = Sl1fwTestCase.TEMP_DIR / "factory.toml"
 
@@ -47,6 +48,28 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.temp_dir_project = TemporaryDirectory()
         self.temp_dir_wizard_history = TemporaryDirectory()
 
+        self.rewriteDefines()
+
+        Path(self.API_KEY_FILE).touch()
+        Path(self.UV_CALIB_DATA_FILE).touch()
+        shutil.copy(self.SAMPLES_DIR / "wizard_data.toml", Path(self.WIZARD_DATA_FILE))
+        shutil.copy(self.SAMPLES_DIR / "uvcalib_data-60.toml", Path(self.UV_CALIB_FACTORY_DATA_FILE))
+
+        os.environ["SDL_AUDIODRIVER"] = "disk"
+        os.environ["SDL_DISKAUDIOFILE"] = str(self.SDL_AUDIO_FILE)
+
+        self.printer = Printer(debug_display=self.display)
+        test_runtime.screen = self.printer.screen
+
+        # overide writeToFactory function
+        self.printer.display.pages["factoryreset"].writeToFactory = self.call
+
+        self.printer0_dbus = SystemBus().publish(Printer0.__INTERFACE__, Printer0(self.printer))
+        self.thread = Thread(target=self.printer_thread)
+
+        self.tryStartPrinter()
+
+    def rewriteDefines(self) -> None:
         defines.wizardHistoryPath = self.temp_dir_wizard_history.name
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
@@ -76,27 +99,10 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         # factory reset
         defines.apikeyFile = str(self.API_KEY_FILE)
-        defines.uvCalibDataPath = str(self.UV_CALIB_DATA_FILE)
-        defines.uvCalibDataPathFactory = str(self.UV_CALIB_FACTORY_DATA_FILE)
+        defines.uvCalibDataPath = self.UV_CALIB_DATA_FILE
+        defines.uvCalibDataPathFactory = self.UV_CALIB_FACTORY_DATA_FILE
+        defines.counterLog = self.COUNTER_LOG
         defines.wizardDataPathFactory = str(self.WIZARD_DATA_FILE)
-        Path(self.API_KEY_FILE).touch()
-        Path(self.UV_CALIB_DATA_FILE).touch()
-        shutil.copy(self.SAMPLES_DIR / "wizard_data.toml", Path(self.WIZARD_DATA_FILE))
-        shutil.copy(self.SAMPLES_DIR / "uvcalib_data-60.toml", Path(self.UV_CALIB_FACTORY_DATA_FILE))
-
-        os.environ["SDL_AUDIODRIVER"] = "disk"
-        os.environ["SDL_DISKAUDIOFILE"] = str(self.SDL_AUDIO_FILE)
-
-        self.printer = Printer(debug_display=self.display)
-        test_runtime.screen = self.printer.screen
-
-        # overide writeToFactory function
-        self.printer.display.pages["factoryreset"].writeToFactory = self.call
-
-        self.printer0_dbus = SystemBus().publish(Printer0.__INTERFACE__, Printer0(self.printer))
-        self.thread = Thread(target=self.printer_thread)
-
-        self.tryStartPrinter()
 
     def _change_dir(self, path) -> str:
         return self.temp_dir_project.name + "/" + os.path.basename(path)

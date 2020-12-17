@@ -154,7 +154,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("cont")
             self.waitPage("wait")  # Waiting for UV meter
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
-            self.press("no")
+            self.press("yes")
             self.waitPage("calibrationSubMenu")
 
             self.test_turnoff()
@@ -182,7 +182,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("cont")
             self.waitPage("wait")  # Waiting for UV meter
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
-            self.press("no")
+            self.press("yes")
             self.waitPage("calibrationSubMenu")
 
             self.test_turnoff()
@@ -208,7 +208,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("cont")
             self.waitPage("wait")  # Waiting for UV meter
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
-            self.press("no")
+            self.press("yes")
             self.waitPage("calibrationSubMenu")
 
             self.test_turnoff()

@@ -59,7 +59,8 @@ lastProjectConfigFile = os.path.join(previousPrints, configFile)
 lastProjectPickler = os.path.join(previousPrints, "last_project.pck")
 statsData = os.path.join(persistentStorage, "stats.toml")
 serviceData = os.path.join(persistentStorage, "service.toml")
-counterLog = os.path.join(factoryMountPoint, "counters-log.toml")
+counterLogFilename = "counters-log.toml"
+counterLog = factoryMountPoint / counterLogFilename
 last_job = Path(persistentStorage) / "last_job"
 last_log_token = Path(persistentStorage) / "last_log_token"
 
