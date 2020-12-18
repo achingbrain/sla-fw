@@ -125,7 +125,7 @@ class MCSerial:
         self.process: Optional[Popen] = None
 
     def open(self):
-        self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE)
         mcusr = self.process.stdout.readline()
         self.logger.debug("MC serial simulator MCUSR = %s", mcusr)
         ready = self.process.stdout.readline()
@@ -147,7 +147,6 @@ class MCSerial:
         self.process.wait(timeout=3)
         self.process.stdin.close()
         self.process.stdout.close()
-        self.process.stderr.close()
 
     def write(self, data: bytes):
         """
