@@ -33,6 +33,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     COUNTER_LOG = Sl1fwTestCase.TEMP_DIR / defines.counterLogFilename
     WIZARD_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.wizardDataFilename
     FACTORY_CONFIG_FILE = Sl1fwTestCase.TEMP_DIR / "factory.toml"
+    HARDWARWE_FACTORY_FILE = Sl1fwTestCase.TEMP_DIR / "hardware.toml"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -45,6 +46,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         print(f'<<<<<===== {self.id()} =====>>>>>')
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
         copyfile(self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.FACTORY_CONFIG_FILE)
+        copyfile(self.SAMPLES_DIR / "hardware.toml", self.HARDWARWE_FACTORY_FILE)
         self.temp_dir_project = TemporaryDirectory()
         self.temp_dir_wizard_history = TemporaryDirectory()
 
@@ -74,7 +76,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigPath = str(self.FACTORY_CONFIG_FILE)
-        defines.hwConfigPathFactory = str(self.SAMPLES_DIR / "hardware.toml")
+        defines.hwConfigPathFactory = self.HARDWARWE_FACTORY_FILE
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigPath = self.HARDWARE_FILE
