@@ -169,3 +169,4 @@ set_update_channel_bin = "/usr/sbin/set-update-channel.sh"
 update_channel = Path("/etc/update_channel")
 
 log_url = "https://prusa3d.link/wp-json/p3d/v1/logserver"
+emmc_serial_path = Path("/sys/block/mmcblk2/device/cid")

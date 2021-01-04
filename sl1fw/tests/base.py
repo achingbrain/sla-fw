@@ -55,6 +55,7 @@ class Sl1fwTestCase(DBusTestCase):
         test_runtime.testing = True
         defines.ramdiskPath = str(cls.TEMP_DIR)
         defines.previousPrints = str(cls.TEMP_DIR)
+        defines.emmc_serial_path = cls.SAMPLES_DIR / "cid"
         cls.start_system_bus()
         cls.dbus_con = cls.get_dbus(system_bus=True)
 

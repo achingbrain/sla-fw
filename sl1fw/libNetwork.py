@@ -25,6 +25,7 @@ class Network:
     HOSTNAME_SERVICE = "org.freedesktop.hostname1"
     NM_STATE_CONNECTED_GLOBAL = 70
     REPORT_INTERVAL_S = 0.25
+    NM_DEVICE_TYPE_ETHERNET = 1
 
     def __init__(self, cpu_serial_no: str):
         self.logger = logging.getLogger(__name__)
@@ -32,9 +33,9 @@ class Network:
         self.cpu_serial_no = cpu_serial_no
         self.assign_active = None
         self.net_change = Signal()
-        self.bus = pydbus.SystemBus()
-        self.nm = self.bus.get(self.NETWORKMANAGER_SERVICE)
-        self.hostname_service = self.bus.get(self.HOSTNAME_SERVICE)
+        self._bus = pydbus.SystemBus()
+        self._nm = self._bus.get(self.NETWORKMANAGER_SERVICE)
+        self._hostname_service = self._bus.get(self.HOSTNAME_SERVICE)
 
     def register_events(self) -> None:
         """
@@ -43,9 +44,9 @@ class Network:
 
         :return: None
         """
-        self.nm.PropertiesChanged.connect(self._state_changed)
-        for device_path in self.nm.GetAllDevices():
-            device = self.bus.get(self.NETWORKMANAGER_SERVICE, device_path)
+        self._nm.PropertiesChanged.connect(self._state_changed)
+        for device_path in self._nm.GetAllDevices():
+            device = self._bus.get(self.NETWORKMANAGER_SERVICE, device_path)
             device.PropertiesChanged.connect(self._state_changed)
 
     def force_refresh_state(self):
@@ -53,7 +54,7 @@ class Network:
 
     @property
     def online(self) -> bool:
-        return self.nm.state() == self.NM_STATE_CONNECTED_GLOBAL
+        return self._nm.state() == self.NM_STATE_CONNECTED_GLOBAL
 
     def _state_changed(self, changed: map) -> None:
         events = {"Connectivity", "Metered", "ActiveConnections", "WirelessEnabled"}
@@ -67,7 +68,7 @@ class Network:
 
     @property
     def ip(self) -> Optional[str]:
-        connection_path = self.nm.PrimaryConnection
+        connection_path = self._nm.PrimaryConnection
 
         if connection_path == "/":
             return None
@@ -87,19 +88,19 @@ class Network:
         return {
             dev.Interface: self._get_ipv4(dev.Ip4Config)
             for dev in [
-                self._get_nm_obj(dev_path) for dev_path in self.nm.GetAllDevices()
+                self._get_nm_obj(dev_path) for dev_path in self._nm.GetAllDevices()
             ]
             if dev.Interface != "lo" and dev.Ip4Config != "/"
         }
 
     @property
     def hostname(self) -> str:
-        return self.hostname_service.StaticHostname
+        return self._hostname_service.StaticHostname
 
     @hostname.setter
     def hostname(self, hostname: str) -> None:
-        self.hostname_service.SetStaticHostname(hostname, False)
-        self.hostname_service.SetHostname(hostname, False)
+        self._hostname_service.SetStaticHostname(hostname, False)
+        self._hostname_service.SetHostname(hostname, False)
 
     def _get_ipv4(self, ipv4_config_path: str) -> Optional[str]:
         """
@@ -124,7 +125,7 @@ class Network:
         :param path:
         :return:
         """
-        return self.bus.get(self.NETWORKMANAGER_SERVICE, path)
+        return self._bus.get(self.NETWORKMANAGER_SERVICE, path)
 
     # TODO: Fix Pylint warnings
     # pylint: disable = too-many-arguments
@@ -209,3 +210,10 @@ class Network:
                     raise DownloadFailed(url, file_size, file.tell())
         finally:
             source.close()
+
+    def get_eth_mac(self):
+        for device_path in self._nm.Devices:
+            dev = pydbus.SystemBus().get(self.NETWORKMANAGER_SERVICE, device_path)
+            if dev.DeviceType == self.NM_DEVICE_TYPE_ETHERNET:
+                return dev.HwAddress.replace(":", "")
+        return None

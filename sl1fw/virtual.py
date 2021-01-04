@@ -95,6 +95,7 @@ defines.printer_summary = Path(defines.ramdiskPath) / "printer_summary"
 defines.firmwareListTemp = str(Path(defines.ramdiskPath) / "updates.json")
 defines.slicerProfilesFile = str(Path(defines.ramdiskPath) / "slicer_profiles.toml")
 defines.firmwareTempFile = str(Path(defines.ramdiskPath) / "update.raucb")
+defines.emmc_serial_path = SAMPLES_DIR / "cid"
 
 
 class Virtual:

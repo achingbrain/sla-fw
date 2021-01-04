@@ -180,6 +180,7 @@ class Hardware:
 
         self.mcc = MotionController(defines.motionControlDevice)
         self.boardData = self.readCpuSerial()
+        self._emmc_serial = self._read_emmc_serial()
 
         self._tower_moving = False
         self._tilt_moving = False
@@ -322,6 +323,10 @@ class Hardware:
         return self.boardData[1]
 
     @property
+    def emmc_serial(self) -> str:
+        return self._emmc_serial
+
+    @property
     def is500khz(self):
         return self.mcc.board["revision"] >= 6 and self.mcc.board["subRevision"] == "c"
 
@@ -383,6 +388,11 @@ class Hardware:
             self.logger.exception("CPU serial:")
 
         return sn, is_kit
+
+    @staticmethod
+    def _read_emmc_serial() -> str:
+        with open(defines.emmc_serial_path) as f:
+            return f.read().strip()
 
     def checkFailedBoot(self):
         """

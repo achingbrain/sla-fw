@@ -350,25 +350,15 @@ class Printer:
         """Return a hex string identification for the printer image."""
 
         if self._printer_identifier is None:
-            mac_eth0 = None
-            for device_path in self.inet.nm.Devices:
-                dev = pydbus.SystemBus().get(self.inet.NETWORKMANAGER_SERVICE, device_path)
-                if dev.Interface == 'eth0':
-                    mac_eth0 = dev.HwAddress.replace(":", "")
-                    break
-
             boot = 1
             output = subprocess.check_output("lsblk -l | grep -e '/$' | awk '{print $1}'", shell=True)
             slot = output.decode().strip()
             if slot not in ["mmcblk2p2", "mmcblk2p3"]:
                 boot = 0
 
+            mac_eth0 = self.inet.get_eth_mac()
             cpu_serial = self.hw.cpuSerialNo.strip(" *")
-
-            emmc_serial = ""
-            with open("/sys/block/mmcblk2/device/cid") as f:
-                emmc_serial = f.read().strip()
-
+            emmc_serial = self.hw.emmc_serial
             trusted_image = 0
 
             hash_hex = hashlib.sha256((emmc_serial+mac_eth0+cpu_serial).encode()).hexdigest()
