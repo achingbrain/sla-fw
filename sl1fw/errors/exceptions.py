@@ -89,3 +89,7 @@ class ReprintWithoutHistory(PrinterException):
 @with_code(Sl1Codes.ADMIN_NOT_AVAILABLE)
 class AdminNotAvailable(PrinterException):
     pass
+
+
+class ExposureCheckDisabled(PrinterException):
+    """Used to signal that exposure check is being skipped"""
