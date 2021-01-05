@@ -21,7 +21,7 @@ from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.wizard0 import Wizard0
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.libExposure import Exposure
+from sl1fw.exposure.exposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
 from sl1fw.states.wizard import WizardState
@@ -50,7 +50,8 @@ class ActionManager:
         self, config: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig, project: str
     ) -> Exposure:
         # Create new exposure object and apply passed settings
-        exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config, project)
+        exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config)
+        exposure.read_project(project)
         self.logger.info("Created new exposure id: %s", exposure.instance_id)
 
         # Register properties changed signal of the new exposure as current exposure signal source
@@ -77,7 +78,8 @@ class ActionManager:
     def reprint_exposure(
         self, reference: Exposure, config: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig
     ):
-        exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config, reference.project.path)
+        exposure = Exposure(self._get_job_id(), config, hw, screen, runtime_config)
+        exposure.read_project(reference.project.path)
         exposure.project.set_timings_reference(reference.project)
         self.logger.info("Created reprint exposure id: %s", exposure.instance_id)
 

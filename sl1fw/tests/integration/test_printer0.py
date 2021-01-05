@@ -13,7 +13,7 @@ from typing import Type
 import pydbus
 
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
-from sl1fw.libExposure import Exposure, ExposureThread
+from sl1fw.exposure.exposure import Exposure
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.state_actions.manager import ActionManager
 from sl1fw.api.printer0 import Printer0State, Printer0
@@ -158,7 +158,6 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
 
         initial_exposure0 = self._get_num_instances(Exposure0)
         initial_exposure = self._get_num_instances(Exposure)
-        initial_expo_thread = self._get_num_instances(ExposureThread)
 
         # Start and cancel more than max exposures -> force exposure gc
         for _ in range(ActionManager.MAX_EXPOSURES + 1):
@@ -169,7 +168,6 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         # Make sure we are not keeping extra exposure objects
         self.assertEqual(self._get_num_instances(Exposure0) - initial_exposure0, ActionManager.MAX_EXPOSURES)
         self.assertEqual(self._get_num_instances(Exposure) - initial_exposure, ActionManager.MAX_EXPOSURES)
-        self.assertEqual(self._get_num_instances(ExposureThread) - initial_expo_thread, ActionManager.MAX_EXPOSURES)
 
     @staticmethod
     def _get_num_instances(instance_type: Type) -> int:

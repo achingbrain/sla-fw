@@ -19,7 +19,7 @@ from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation,
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.libExposure import Exposure
+from sl1fw.exposure.exposure import Exposure
 from sl1fw.states.exposure import ExposureState
 
 
@@ -57,17 +57,20 @@ class TestExposure(Sl1fwTestCase):
 
     def test_exposure_init_not_calibrated(self):
         with self.assertRaises(NotUVCalibrated):
-            Exposure(0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT)
+            exposure = Exposure(0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config)
+            exposure.read_project(TestExposure.PROJECT)
 
     def test_exposure_init(self):
         self._fake_calibration()
-        Exposure(0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT)
+        exposure = Exposure(0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config)
+        exposure.read_project(TestExposure.PROJECT)
 
     def test_exposure_load(self):
         self._fake_calibration()
         exposure = Exposure(
-            0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config, TestExposure.PROJECT
+            0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config
         )
+        exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
 
     def test_exposure_start_stop(self):
@@ -99,12 +102,14 @@ class TestExposure(Sl1fwTestCase):
     def test_broken_empty_project(self):
         hw = self._get_hw_mock()
         self._fake_calibration()
-        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config, self.BROKEN_EMPTY_PROJECT)
+        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
+        exposure.read_project(self.BROKEN_EMPTY_PROJECT)
         self.assertIsInstance(exposure.exception, ProjectErrorCantRead)
 
     def _run_exposure(self, hw) -> Exposure:
         self._fake_calibration()
-        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config, TestExposure.PROJECT)
+        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
+        exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
         exposure.confirm_print_start()
 

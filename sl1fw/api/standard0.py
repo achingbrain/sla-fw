@@ -30,7 +30,7 @@ from sl1fw.configs.toml import TomlConfig
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
-    from sl1fw.libExposure import Exposure
+    from sl1fw.exposure.exposure import Exposure
 
 
 def state_checked(allowed_state: Union[Enum, List[Enum]]):

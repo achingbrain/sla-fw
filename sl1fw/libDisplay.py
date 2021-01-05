@@ -21,7 +21,7 @@ from PySignal import Signal
 
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.libExposure import Exposure
+from sl1fw.exposure.exposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
 from sl1fw.screen.screen import Screen

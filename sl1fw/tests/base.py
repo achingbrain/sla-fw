@@ -41,7 +41,7 @@ sys.modules["sl1fw.screen.wayland"] = Mock()
 from sl1fw.libPrinter import Printer
 from sl1fw.screen.screen import Screen
 from sl1fw.api.printer0 import Printer0
-from sl1fw.libExposure import Exposure
+from sl1fw.exposure.exposure import Exposure
 
 
 class Sl1fwTestCase(DBusTestCase):

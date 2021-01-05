@@ -24,7 +24,7 @@ from sl1fw.api.decorators import (
     wrap_dict_data,
     wrap_warning,
 )
-from sl1fw.libExposure import Exposure
+from sl1fw.exposure.exposure import Exposure
 from sl1fw.states.exposure import ExposureState
 from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, ProjectErrorNotEnoughLayers, \
                                 ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
@@ -147,8 +147,8 @@ class Exposure0:
             self.exposure.change.connect(self._handle_change)
         if self.exposure.hw:
             self.exposure.hw.cover_state_changed.connect(self._handle_cover_change_param)
-        if self.exposure.hwConfig:
-            self.exposure.hwConfig.add_onchange_handler(self._handle_config_change)
+        if self.exposure.hw_config:
+            self.exposure.hw_config.add_onchange_handler(self._handle_config_change)
         if self.exposure.project and self.exposure.project.path_changed:
             self.exposure.project.path_changed.connect(self._handle_path_changed_param)
 
@@ -605,7 +605,7 @@ class Exposure0:
     @property
     @last_error
     def close_cover_warning(self) -> bool:
-        return self.exposure.hwConfig.coverCheck and not self.exposure.hw.isCoverClosed(False)
+        return self.exposure.hw_config.coverCheck and not self.exposure.hw.isCoverClosed(False)
 
     @auto_dbus
     @last_error

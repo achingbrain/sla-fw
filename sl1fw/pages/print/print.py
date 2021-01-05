@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sl1fw.libExposure import Exposure
+from sl1fw.exposure.exposure import Exposure
 from sl1fw.pages import page
 from sl1fw.pages.print.action import PagePrintActionPending
 from sl1fw.pages.print.base import PagePrintBase
