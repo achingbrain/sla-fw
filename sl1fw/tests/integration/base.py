@@ -176,7 +176,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.display.add_event(self.display.page, identifier, pressed=True, data=data)
         self.display.add_event(self.display.page, identifier, pressed=False, data=data)
 
-    def waitPage(self, page: str, timeout_sec: int = 3):
+    def waitPage(self, page: str, timeout_sec: int = 5):
         try:
             self.assertEqual(page, self.display.read_page(timeout_sec=timeout_sec))
         except Empty as exception:
