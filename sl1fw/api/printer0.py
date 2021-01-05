@@ -907,12 +907,17 @@ class Printer0:
                 self.printer.display.forcePage("uvcalibrationstart")
             except NotMechanicallyCalibrated:
                 self.printer.display.forcePage("calibrationstart")
+            except Exception:
+                pass
 
     @auto_dbus
     def remove_usb(self) -> None:
-        expo = self.printer.action_manager.exposure
-        if expo and Path(defines.mediaRootPath) in Path(expo.project.path).parents:
-            expo.try_cancel()
+        try:
+            expo = self.printer.action_manager.exposure
+            if expo and Path(defines.mediaRootPath) in Path(expo.project.path).parents:
+                expo.try_cancel()
+        except Exception:
+            pass
 
     @auto_dbus
     @last_error
