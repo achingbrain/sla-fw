@@ -1,5 +1,5 @@
 # This file is part of the SL1 firmware
-# Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
+# Copyright (C) 2020-2021 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from abc import abstractmethod, ABC
@@ -32,4 +32,16 @@ class AdminControl(ABC):
     def exit(self) -> None:
         """
         Exit admin mode
+        """
+
+    @abstractmethod
+    def sysinfo(self) -> None:
+        """
+        Enter user sysinfo
+        """
+
+    @abstractmethod
+    def touchscreen_test(self) -> None:
+        """
+        Enter touchscreen test - implemented by touch UI
         """

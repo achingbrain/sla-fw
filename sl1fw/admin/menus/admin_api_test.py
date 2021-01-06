@@ -5,10 +5,10 @@
 from threading import Thread
 from time import sleep
 
-from sl1fw.admin.items import admin_action, admin_int, admin_text
+from sl1fw.admin.items import admin_action, admin_int, admin_text, AdminLabel
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.menu import AdminMenu
-from sl1fw.admin.menus.dialogs import Error
+from sl1fw.admin.menus.dialogs import Error, Info, Confirm, Wait
 
 
 class TestMenu(AdminMenu):
@@ -21,6 +21,8 @@ class TestMenu(AdminMenu):
         self._run = True
 
         self._thread = Thread(target=self._runner)
+
+    def on_enter(self):
         self._thread.start()
 
     def on_leave(self):
@@ -90,7 +92,25 @@ class TestMenu(AdminMenu):
 
     @admin_action
     def error(self):
-        self._control.enter(Error(self._control, text="Synthetic error", pop=2))
+        self._control.enter(Error(self._control, text="Synthetic error"))
+
+    @admin_action
+    def info(self):
+        self._control.enter(Info(self._control, "Test info"))
+
+    @admin_action
+    def confirm(self):
+        self._control.enter(Confirm(self._control, self.info, headline="Test confirm", text="Text text text.."))
+
+    @admin_action
+    def wait(self):
+        self._control.enter(Wait(self._control, self._do_wait))
+
+    @staticmethod
+    def _do_wait(status: AdminLabel):
+        for i in range(15):
+            sleep(0.2)
+            status.set(f"waiting: {i}")
 
 
 class TestMenu2(AdminMenu):

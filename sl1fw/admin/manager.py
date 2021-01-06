@@ -1,6 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 import logging
 from collections import deque
 from typing import Deque, Optional
@@ -16,6 +17,8 @@ class AdminManager(AdminControl):
         self._logger = logging.getLogger(__name__)
         self._menus: Deque[AdminMenu] = deque()
         self.menu_changed = Signal()
+        self.enter_sysinfo = Signal()
+        self.enter_touchscreen_test = Signal()
 
     @property
     def current_menu(self) -> Optional[AdminMenu]:
@@ -43,3 +46,9 @@ class AdminManager(AdminControl):
 
     def root(self) -> None:
         self.pop(len(self._menus) - 1)
+
+    def sysinfo(self):
+        self.enter_sysinfo.emit()
+
+    def touchscreen_test(self):
+        self.enter_touchscreen_test.emit()

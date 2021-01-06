@@ -4,7 +4,7 @@
 
 from enum import Enum, auto
 from functools import partial
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 from PySignal import Signal
 
@@ -78,6 +78,22 @@ class AdminTextValue(AdminValue):
     @classmethod
     def from_value(cls, name: str, obj: object, prop: str):
         return AdminTextValue(name, partial(getattr, obj, prop), partial(setattr, obj, prop))
+
+
+class AdminLabel(AdminTextValue):
+    INSTANCE_COUNTER = 0
+
+    def __init__(self, initial_text: Optional[str] = None):
+        super().__init__(f"Admin label {AdminLabel.INSTANCE_COUNTER}", self.label_get_value, self.set)
+        AdminLabel.INSTANCE_COUNTER += 1
+        self._label_value = initial_text if initial_text is not None else self.name
+
+    def label_get_value(self) -> str:
+        return self._label_value
+
+    def set(self, value: str):
+        self._label_value = value
+        self.changed.emit()
 
 
 class AdminItemType(Enum):

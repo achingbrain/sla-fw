@@ -13,7 +13,7 @@ from sl1fw.admin.items import AdminAction, AdminIntValue, AdminFloatValue, Admin
 from sl1fw.admin.manager import AdminManager
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.root import RootMenu
-from sl1fw.api.decorators import DBusObjectPath, dbus_api, auto_dbus
+from sl1fw.api.decorators import DBusObjectPath, dbus_api, auto_dbus, auto_dbus_signal
 from sl1fw.errors.exceptions import NotAvailableInState, AdminNotAvailable
 from sl1fw.libPrinter import Printer
 from sl1fw.states.printer import PrinterState
@@ -196,6 +196,14 @@ class Admin0:
 
     PropertiesChanged = signal()
 
+    @auto_dbus_signal
+    def enter_sysinfo(self):
+        pass
+
+    @auto_dbus_signal
+    def enter_touchscreen_test(self):
+        pass
+
     def __init__(self, manager: AdminManager, printer: Printer):
         self._logger = logging.getLogger(__name__)
         self._manager = manager
@@ -205,6 +213,14 @@ class Admin0:
         self._children: List[Tuple[str, DBusObjectPath]] = []
         self._bus_name = None
         manager.menu_changed.connect(self._on_menu_change)
+        manager.enter_sysinfo.connect(self._on_enter_sysinfo)
+        manager.enter_touchscreen_test.connect(self._on_enter_touchscreen_test)
+
+    def _on_enter_sysinfo(self):
+        self.enter_sysinfo()
+
+    def _on_enter_touchscreen_test(self):
+        self.enter_touchscreen_test()
 
     @auto_dbus
     def enter(self) -> None:

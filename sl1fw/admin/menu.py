@@ -5,7 +5,7 @@
 import logging
 from collections import OrderedDict
 from functools import partial, wraps
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, Optional
 
 from PySignal import Signal
 
@@ -19,7 +19,7 @@ from sl1fw.admin.items import (
     AdminIntValue,
     AdminTextValue,
     AdminFloatValue,
-    AdminBoolValue,
+    AdminBoolValue, AdminLabel,
 )
 
 
@@ -86,6 +86,15 @@ class AdminMenu(AdminMenuBase):
             item.changed.connect(self.value_changed.emit)
         self._items[item.name] = item
         self.items_changed.emit()
+
+    def add_label(self, initial_text: Optional[str] = None):
+        label = AdminLabel(initial_text)
+        self.add_item(label)
+        return label
+
+    def add_back(self, bold=True):
+        text = "<b>Back</b>" if bold else "Back"
+        self.add_item(AdminAction(text, self._control.pop))
 
     def del_item(self, item: AdminItem):
         del self._items[item.name]

@@ -13,7 +13,7 @@ from sl1fw.admin.menu import AdminMenu
 from sl1fw.libPrinter import Printer
 
 
-class TestErrors(AdminMenu):
+class TestErrorsMenu(AdminMenu):
     ARGS = {
         "failed_fans_text": '["rear"]',
         "volume_ml": 242,

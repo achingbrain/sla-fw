@@ -2,10 +2,11 @@
 # Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from threading import Thread, current_thread
 from typing import Callable
 
 from sl1fw.admin.control import AdminControl
-from sl1fw.admin.items import admin_action, admin_text
+from sl1fw.admin.items import AdminLabel, AdminAction
 from sl1fw.admin.menu import AdminMenu
 
 
@@ -13,20 +14,12 @@ class Confirm(AdminMenu):
     def __init__(self, control: AdminControl, target: Callable[[], None], headline="Confirm", text=""):
         super().__init__(control)
         self._target = target
-        self._headline = headline
-        self._text = text
+        self._headline = self.add_label(f"<h2>{headline}</h2>")
+        self._text = self.add_label(text)
+        self.add_back(bold=False)
+        self.add_item(AdminAction("<b>Continue</b>", self.cont))
 
-    @admin_text
-    @property
-    def header(self):
-        return f"<h2>{self._headline}</h2><br/>{self._text}"
-
-    @admin_action
-    def back(self):
-        self._control.pop()
-
-    @admin_action
-    def yes(self):
+    def cont(self):
         self._control.pop()
         self._target()
 
@@ -34,31 +27,43 @@ class Confirm(AdminMenu):
 class Error(AdminMenu):
     def __init__(self, control: AdminControl, headline="Error", text="", pop=2):
         super().__init__(control)
-        self._headline = headline
-        self._text = text
+        self._headline = self.add_label(f"<h2>{headline}</h2>")
+        self._text = self.add_label(text)
         self._pop_num = pop
+        self.add_item(AdminAction("Ok", self.ok))
 
-    @admin_text
-    @property
-    def header(self):
-        return f"<h2>{self._headline}</h2><br/>{self._text}"
-
-    @admin_action
     def ok(self):
         self._control.pop(self._pop_num)
 
 
 class Info(AdminMenu):
-    def __init__(self, control: AdminControl, text: str, pop=1):
+    def __init__(self, control: AdminControl, text: str, headline="Info", pop=1):
         super().__init__(control)
-        self._text = text
+        self._headline = self.add_label(f"<h2>{headline}</h2>")
+        self._text = self.add_label(text)
         self._pop_num = pop
+        self.add_item(AdminAction("Ok", self.ok))
 
-    @admin_text
-    @property
-    def header(self):
-        return self._text
-
-    @admin_action
     def ok(self):
         self._control.pop(self._pop_num)
+
+
+class Wait(AdminMenu):
+    def __init__(self, control: AdminControl, body: Callable[[AdminLabel], None], pop = 1):
+        super().__init__(control)
+        self._body = body
+        self._thread = Thread(target=self._run)
+        self.headline = self.add_label("<h2>Wait...</h2>")
+        self.status = self.add_label()
+        self._num_pop = pop
+
+    def on_enter(self):
+        self._thread.start()
+
+    def on_leave(self):
+        if current_thread() != self._thread:
+            self._thread.join()
+
+    def _run(self):
+        self._body(self.status)
+        self._control.pop(self._num_pop)

@@ -5,12 +5,17 @@
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction
 from sl1fw.admin.menu import AdminMenu
+from sl1fw.admin.menus.display import DisplayRootMenu
 from sl1fw.admin.menus.fans_and_uvled import FansAndUVLedMenu
-from sl1fw.admin.menus.hardware_setup import HardwareSetupMenu
+from sl1fw.admin.menus.motion_controller import MotionControllerMenu
+from sl1fw.admin.menus.setup import HardwareSetupMenu, ExposureSetupMenu
 from sl1fw.admin.menus.hwconfig import HwConfigMenu
+from sl1fw.admin.menus.logging import LoggingMenu
 from sl1fw.admin.menus.net_update import NetUpdate
-from sl1fw.admin.menus.test import TestMenu
-from sl1fw.admin.menus.tests import TestsMenu
+from sl1fw.admin.menus.system_info import SystemInfoMenu
+from sl1fw.admin.menus.system_tools import SystemToolsMenu
+from sl1fw.admin.menus.tests.tests import TestsMenu
+from sl1fw.admin.menus.tilt_and_tower import TiltAndTowerMenu
 from sl1fw.libPrinter import Printer
 
 
@@ -19,14 +24,26 @@ class RootMenu(AdminMenu):
         super().__init__(control)
         self._printer = printer
 
-        self.add_item(AdminAction("Leave admin", self.exit))
+        self.add_item(AdminAction("<b>Leave admin</b>", self.exit))
         self.add_item(AdminAction("Fans & UV LED", lambda: self.enter(FansAndUVLedMenu(self._control, self._printer))))
         self.add_item(
             AdminAction("Hardware setup", lambda: self.enter(HardwareSetupMenu(self._control, self._printer)))
+        )
+        self.add_item(
+            AdminAction("Exposure setup", lambda: self.enter(ExposureSetupMenu(self._control, self._printer)))
         )
         self.add_item(AdminAction("Net update", lambda: self.enter(NetUpdate(self._control, self._printer))))
         self.add_item(
             AdminAction("hardware.cfg", lambda: self.enter(HwConfigMenu(self._control, self._printer.hwConfig)))
         )
         self.add_item(AdminAction("Tests", lambda: self.enter(TestsMenu(self._control, self._printer))))
-        self.add_item(AdminAction("admin api test", lambda: self.enter(TestMenu(self._control))))
+        self.add_item(AdminAction("Logging", lambda: self.enter(LoggingMenu(self._control))))
+        self.add_item(AdminAction("System tools", lambda: self.enter(SystemToolsMenu(self._control, self._printer))))
+        self.add_item(
+            AdminAction("System information", lambda: self.enter(SystemInfoMenu(self._control, self._printer)))
+        )
+        self.add_item(AdminAction("Display", lambda: self.enter(DisplayRootMenu(self._control, self._printer))))
+        self.add_item(
+            AdminAction("Motion controller", lambda: self.enter(MotionControllerMenu(self._control, self._printer)))
+        )
+        self.add_item(AdminAction("Tilt and tower", lambda: self.enter(TiltAndTowerMenu(self._control, self._printer))))

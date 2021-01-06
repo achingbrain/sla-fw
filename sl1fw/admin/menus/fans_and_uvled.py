@@ -23,7 +23,7 @@ class FansAndUVLedMenu(AdminMenu):
         uv_led_state = self._printer.hw.getUvLedState()
         self._init_uv_led = uv_led_state[0] and uv_led_state[1] == 0
 
-        self.add_item(AdminAction("back", self._control.pop))
+        self.add_back()
         self.add_item(AdminBoolValue.from_value("UV LED fan", self, "uv_led_fan"))
         uv_led_fan_rpm_item = AdminIntValue.from_value("UV LED fan RPM", self._temp, "fan1Rpm", 100)
         uv_led_fan_rpm_item.changed.connect(self._uv_led_fan_changed)

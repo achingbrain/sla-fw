@@ -369,13 +369,6 @@ class PageSettings(Page):
         #endtry
     #enddef
 
-    # Admin
-    def adminButtonRelease(self):
-        if self.display.runtime_config.show_admin:
-            return "admin"
-        #endif
-    #enddef
-
 
     def confirmChanges(self):
         self.display.hw.setFans({2 : False})

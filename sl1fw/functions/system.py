@@ -23,6 +23,7 @@ from sl1fw.errors.errors import (
 )
 from sl1fw.libConfig import TomlConfig, HwConfig
 from sl1fw.libHardware import Hardware
+from sl1fw.screen.screen import Screen
 
 
 def shut_down(hw: Hardware, reboot=False):
@@ -103,6 +104,21 @@ def set_update_channel(channel: str):
         subprocess.check_call([defines.set_update_channel_bin, channel])
     except Exception as e:
         raise FailedUpdateChannelSet() from e
+
+
+def get_octoprint_auth(logger: logging.Logger) -> str:
+    try:
+        with open(defines.octoprintAuthFile, "r") as f:
+            return f.read()
+    except IOError:
+        logger.exception("Octoprint auth file read failed")
+
+
+def hw_all_off(hw: Hardware, screen: Screen):
+    screen.blank_screen()
+    hw.uvLed(False)
+    hw.stopFans()
+    hw.motorsRelease()
 
 
 class FactoryMountedRW:

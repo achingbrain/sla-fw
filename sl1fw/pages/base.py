@@ -27,7 +27,7 @@ from sl1fw.states.exposure import ExposureState
 from sl1fw.states.examples import ExamplesState
 from sl1fw.state_actions.examples import Examples
 from sl1fw.functions import files
-from sl1fw.functions.system import shut_down, FactoryMountedRW
+from sl1fw.functions.system import shut_down, FactoryMountedRW, get_octoprint_auth, hw_all_off
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.libConfig import TomlConfig
 
@@ -71,14 +71,7 @@ class Page:
 
     @property
     def octoprintAuth(self):
-        try:
-            with open(defines.octoprintAuthFile, "r") as f:
-                return f.read()
-            #endwith
-        except IOError as e:
-            self.logger.exception("octoprintAuthFile exception: %s", str(e))
-            return None
-        #endtry
+        return get_octoprint_auth(self.logger)
     #enddef
 
     @property
@@ -533,10 +526,7 @@ class Page:
 
 
     def allOff(self):
-        self.display.screen.blank_screen()
-        self.display.hw.uvLed(False)
-        self.display.hw.stopFans()
-        self.display.hw.motorsRelease()
+        hw_all_off(self.display.hw, self.display.screen)
     #enddef
 
 

@@ -93,6 +93,7 @@ class UVSerial:
 
     def readline(self):
         self._simulate_error()
+        sleep(0.1)
         return self._data.get()
 
     def _simulate_error(self):
