@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
+import errno
 import shutil
 import asyncio
 import json
@@ -18,12 +19,14 @@ from typing import Optional, Callable
 
 import aiohttp
 from PySignal import Signal
+from aiohttp.client_exceptions import ClientConnectorError
 
 from sl1fw import defines
 from sl1fw.functions.files import get_save_path, usb_remount
 from sl1fw.libHardware import Hardware
 from sl1fw.states.logs import LogsState, StoreType
 from sl1fw.state_actions.logs.summary import create_summary
+from sl1fw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace
 
 def get_logs_file_name(hw: Hardware) -> str:
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -172,8 +175,26 @@ class LogsExport(ABC, Thread):
 
             self._logger.debug("Exporting log data to a temporary file")
             self.export_progress = 0
-            log_tar_file = await self._do_export(tmpdir_path)
-            self.export_progress = 1
+            try:
+                log_tar_file = await self._do_export(tmpdir_path)
+                self.export_progress = 1
+            except shutil.Error as exception:
+                # shutil.Error concatenates the OSError errors like [(src, dst, str(why),]
+                if exception.args:
+                    code_re = re.compile(r"\[Errno\s*([0-9]*)\]")
+                    args = exception.args[0]
+                    for e in args:
+                        why = e[-1]
+                        error_no = int(code_re.search(why).group(1))
+                        if error_no == errno.ENOSPC:
+                            self._logger.error(why)
+                            raise NotEnoughInternalSpace(why) from exception
+                raise
+            except OSError as exception:
+                if exception.errno == errno.ENOSPC:
+                    self._logger.error(exception.strerror)
+                    raise NotEnoughInternalSpace(exception.strerror) from exception
+                raise
 
             self._logger.debug("Running store log method")
             self.state = LogsState.SAVING
@@ -303,13 +324,22 @@ class ServerUpload(LogsExport):
                 data.add_field("token", "12345")
                 data.add_field("serial", "CZPX1419X009XC00271")
 
-                async with session.post(url=defines.log_url, data=data) as response:
-                    self._logger.debug("aiohttp post done")
-                    response = await response.text()
-                    self._logger.debug("Log upload response: %s", response)
-                    response_data = json.loads(response)
-                    self.log_upload_identifier = response_data["id"] if "id" in response_data else response_data["url"]
-                    self.log_upload_url = response_data["url"]
+                try:
+                    async with session.post(url=defines.log_url, data=data) as response:
+                        if response.status == 200:
+                            self._logger.debug("aiohttp post done")
+                            response = await response.text()
+                            self._logger.debug("Log upload response: %s", response)
+                            response_data = json.loads(response)
+                            self.log_upload_identifier = response_data["id"] if "id" in response_data else response_data["url"]
+                            self.log_upload_url = response_data["url"]
+                        else:
+                            strerror = f"Cannot connect to host {defines.log_url} [status code: {response.status}]"
+                            self._logger.error(strerror)
+                            raise ConnectionFailed(strerror)
+                except ClientConnectorError as exception:
+                    self._logger.error(exception.strerror)
+                    raise NotConnected(exception.strerror) from exception
 
     @property
     def type(self) -> StoreType:
