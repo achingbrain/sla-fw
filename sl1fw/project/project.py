@@ -18,7 +18,7 @@ from io import BytesIO
 from pathlib import Path
 from time import time
 from typing import Optional
-from enum import unique, Enum
+from enum import unique, IntEnum
 
 import pprint
 from PIL import Image
@@ -38,7 +38,7 @@ from sl1fw.screen.printer_model import PrinterModel
 
 
 @unique
-class LayerCalibrationType(Enum):
+class LayerCalibrationType(IntEnum):
     NONE = 0
     LABEL_PAD = 1
     LABEL_TEXT = 2

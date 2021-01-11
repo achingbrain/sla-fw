@@ -22,7 +22,8 @@ from sl1fw.project.functions import get_white_pixels
 from sl1fw.screen.resin_calibration import Calibration
 from sl1fw.screen.wayland import Wayland
 from sl1fw.screen.printer_model import PrinterModel
-from sl1fw.errors.warnings import PerPartesPrintNotAvaiable, PrintMaskNotAvaiable
+from sl1fw.errors.errors import ProjectErrorCalibrationInvalid
+from sl1fw.errors.warnings import PerPartesPrintNotAvaiable, PrintMaskNotAvaiable, PrintedObjectWasCropped
 
 
 class Screen:
@@ -51,6 +52,7 @@ class Screen:
         # numpy uses reversed axis indexing
         self.display_usage_size = (self.exposure_screen.height_px // defines.thumbnail_factor, self.exposure_screen.width_px // defines.thumbnail_factor)
         self.display_usage_shape = (self.display_usage_size[0], defines.thumbnail_factor, self.display_usage_size[1], defines.thumbnail_factor)
+
         self._next_image_1_shm = shared_memory.SharedMemory(create=True, size=self.exposure_screen.width_px * self.exposure_screen.height_px)
         self._next_image_2_shm = shared_memory.SharedMemory(create=True, size=self.exposure_screen.width_px * self.exposure_screen.height_px)
         temp_usage = numpy.zeros(self.display_usage_size, dtype=numpy.float64, order='C')
@@ -108,8 +110,21 @@ class Screen:
         except Exception:
             self._logger.exception("project mask exception")
             self._project.warnings.add(PrintMaskNotAvaiable())
-        self._calibration = Calibration(self.exposure_screen)
-        self._calibration.new_project(self._project)
+        if self._project.calibrate_regions:
+            self._project.analyze()
+            self._calibration = Calibration(self.exposure_screen.size_px)
+            if not self._calibration.new_project(
+                    self._project.bbox,
+                    self._project.layers[0].bbox,
+                    self._project.calibrate_regions,
+                    self._project.calibrate_compact,
+                    self._project.layers[-1].times_ms,
+                    self._project.calibrate_penetration_px,
+                    self._project.calibrate_text_size_px,
+                    self._project.calibrate_pad_spacing_px):
+                raise ProjectErrorCalibrationInvalid
+            if self._calibration.is_cropped:
+                self._project.warnings.add(PrintedObjectWasCropped())
 
     def blank_screen(self):
         self._buffer = self._black_image.copy()
@@ -156,7 +171,7 @@ class Screen:
             self._logger.debug("load of '%s' done in %f secs", layer.image, time() - startTimeFirst)
             output_image = Image.frombuffer("L", self.exposure_screen.size_px, self._next_image_1_shm.buf, "raw", "L", 0, 1)
             output_image.readonly = False
-            if self._calibration.areas:
+            if self._calibration and self._calibration.areas:
                 start_time = time()
                 crop = input_image.crop(self._project.bbox.coords)
                 output_image.paste(self._black_image)

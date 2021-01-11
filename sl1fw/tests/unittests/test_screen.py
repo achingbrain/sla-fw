@@ -12,10 +12,7 @@ from PIL import Image
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.configs.hw import HwConfig
 from sl1fw.screen.screen import Screen
-from sl1fw.screen.resin_calibration import Area, AreaWithLabel, AreaWithLabelStripe, Calibration
 from sl1fw.project.project import Project
-from sl1fw.errors.errors import ProjectErrorCalibrationInvalid
-from sl1fw.utils.bounding_box import BBox
 from sl1fw import defines, test_runtime
 
 
@@ -29,9 +26,6 @@ class TestScreen(Sl1fwTestCase):
     PREVIEW_FILE = Sl1fwTestCase.TEMP_DIR / "live.png"
     DISPLAY_USAGE = Sl1fwTestCase.TEMP_DIR / "display_usage.npz"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def setUp(self):
         super().setUp()
         defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
@@ -41,8 +35,6 @@ class TestScreen(Sl1fwTestCase):
         self.hw_config = HwConfig(self.HW_CONFIG)
         self.hw_config.read_file()
         self.screen = Screen(self.hw_config)
-        self.width = self.screen.printer_model.exposure_screen.width_px
-        self.height = self.screen.printer_model.exposure_screen.height_px
 
     def tearDown(self):
         super().tearDown()
@@ -105,167 +97,6 @@ class TestScreen(Sl1fwTestCase):
         self.assertEqual(233600.0, self.screen.blit_image(second))
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "part2.png"))
         self.assertSameImage(Image.open(defines.livePreviewImage), Image.open(self.SAMPLES_DIR / "live2.png"))
-
-    def test_calibration_areas_no_bbox(self):
-        calib = Calibration(self.screen.exposure_screen)
-        with self.assertRaises(ProjectErrorCalibrationInvalid):
-            calib.create_areas(1, None)
-        self.assertEqual(calib.areas, [])
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(2, None)
-        result = [
-                AreaWithLabel((0, 0, self.width, self.height // 2)),
-                AreaWithLabel((0, self.height // 2, self.width, self.height)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(4, None)
-        result = [
-                AreaWithLabel((0, 0, self.width // 2, self.height // 2)),
-                AreaWithLabel((0, self.height // 2, self.width // 2, self.height)),
-                AreaWithLabel((self.width // 2, 0, self.width, self.height // 2)),
-                AreaWithLabel((self.width // 2, self.height // 2, self.width, self.height)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(6, None)
-        result = [
-                AreaWithLabel((0, 0, self.width // 2, self.height // 3)),
-                AreaWithLabel((0, self.height // 3, self.width // 2, self.height // 3 * 2)),
-                AreaWithLabel((0, self.height // 3 * 2, self.width // 2, self.height - 1)),
-                AreaWithLabel((self.width // 2, 0, self.width, self.height // 3)),
-                AreaWithLabel((self.width // 2, self.height // 3, self.width, self.height // 3 * 2)),
-                AreaWithLabel((self.width // 2, self.height // 3 * 2, self.width, self.height - 1)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(8, None)
-        result = [
-                AreaWithLabel((0, 0, self.width // 2, self.height // 4)),
-                AreaWithLabel((0, self.height // 4, self.width // 2, self.height // 2)),
-                AreaWithLabel((0, self.height // 2, self.width // 2, self.height // 4 * 3)),
-                AreaWithLabel((0, self.height // 4 * 3, self.width // 2, self.height)),
-                AreaWithLabel((self.width // 2, 0, self.width, self.height // 4)),
-                AreaWithLabel((self.width // 2, self.height // 4, self.width, self.height // 2)),
-                AreaWithLabel((self.width // 2, self.height // 2, self.width, self.height // 4 * 3)),
-                AreaWithLabel((self.width // 2, self.height // 4 * 3, self.width, self.height)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(9, None)
-        result = [
-                AreaWithLabel((0, 0, self.width // 3, self.height // 3)),
-                AreaWithLabel((0, self.height // 3, self.width // 3, self.height // 3 * 2)),
-                AreaWithLabel((0, self.height // 3 * 2, self.width // 3, self.height - 1)),
-                AreaWithLabel((self.width // 3, 0, self.width // 3 * 2, self.height // 3)),
-                AreaWithLabel((self.width // 3, self.height // 3, self.width // 3 * 2, self.height // 3 * 2)),
-                AreaWithLabel((self.width // 3, self.height // 3 * 2, self.width // 3 * 2, self.height - 1)),
-                AreaWithLabel((self.width // 3 * 2, 0, self.width, self.height // 3)),
-                AreaWithLabel((self.width // 3 * 2, self.height // 3, self.width, self.height // 3 * 2)),
-                AreaWithLabel((self.width // 3 * 2, self.height // 3 * 2, self.width, self.height - 1)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(10, None)
-        stripe = self.height // 10
-        result = [
-                AreaWithLabelStripe((0, 0, self.width, stripe)),
-                AreaWithLabelStripe((0, 1 * stripe, self.width, 2 * stripe)),
-                AreaWithLabelStripe((0, 2 * stripe, self.width, 3 * stripe)),
-                AreaWithLabelStripe((0, 3 * stripe, self.width, 4 * stripe)),
-                AreaWithLabelStripe((0, 4 * stripe, self.width, 5 * stripe)),
-                AreaWithLabelStripe((0, 5 * stripe, self.width, 6 * stripe)),
-                AreaWithLabelStripe((0, 6 * stripe, self.width, 7 * stripe)),
-                AreaWithLabelStripe((0, 7 * stripe, self.width, 8 * stripe)),
-                AreaWithLabelStripe((0, 8 * stripe, self.width, 9 * stripe)),
-                AreaWithLabelStripe((0, 9 * stripe, self.width, 10 * stripe)),
-                ]
-        self.assertEqual(calib.areas, result)
-
-    def test_calibration_areas_with_bbox(self):
-        bbox = BBox((608, 1135, 832, 1455))
-        w, h = bbox.size
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(2, bbox)
-        x = (self.width - w ) // 2
-        y = (self.height - 2 * h) // 2
-        result = [
-                Area((x, y, x + w, y + h)),
-                Area((x, y + h, x + w, y + 2 * h)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(4, bbox)
-        x = (self.width - 2 * w) // 2
-        y = (self.height - 2 * h) // 2
-        result = [
-                Area((x, y, x + w, y + h)),
-                Area((x, y + h, x + w, y + 2 * h)),
-                Area((x + w, y, x + 2 * w, y + h)),
-                Area((x + w, y + h, x + 2 * w, y + 2 *h)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(6, bbox)
-        x = (self.width - 2 * w) // 2
-        y = (self.height - 3 * h) // 2
-        result = [
-                Area((x, y, x + w, y + h)),
-                Area((x, y + h, x + w, y + 2 * h)),
-                Area((x, y + 2 * h, x + w, y + 3 * h)),
-                Area((x + w, y, x + 2 * w, y + h)),
-                Area((x + w, y + h, x + 2 * w, y + 2 * h)),
-                Area((x + w, y + 2 * h, x + 2 * w, y + 3 * h)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(8, bbox)
-        x = (self.width - 2 * w) // 2
-        y = (self.height - 4 * h) // 2
-        result = [
-                Area((x, y, x + w, y + h)),
-                Area((x, y + h, x + w, y + 2 * h)),
-                Area((x, y + 2 * h, x + w, y + 3 * h)),
-                Area((x, y + 3 * h, x + w, y + 4 * h)),
-                Area((x + w, y, x + 2 * w, y + h)),
-                Area((x + w, y + h, x + 2 * w, y + 2 * h)),
-                Area((x + w, y + 2 * h, x + 2 * w, y + 3 * h)),
-                Area((x + w, y + 3 * h, x + 2 * w, y + 4 * h)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(9, bbox)
-        x = (self.width - 3 * w) // 2
-        y = (self.height - 3 * h) // 2
-        result = [
-                Area((x, y, x + w, y + h)),
-                Area((x, y + h, x + w, y + 2 * h)),
-                Area((x, y + 2 * h, x + w, y + 3 * h)),
-                Area((x + w, y, x + 2 * w, y + h)),
-                Area((x + w, y + h, x + 2 * w, y + 2 * h)),
-                Area((x + w, y + 2 * h, x + 2 * w, y + 3 * h)),
-                Area((x + 2 * w, y, x + 3 * w, y + h)),
-                Area((x + 2 * w, y + h, x + 3 * w, y + 2 * h)),
-                Area((x + 2 * w, y + 2 * h, x + 3 * w, y + 3 * h)),
-                ]
-        self.assertEqual(calib.areas, result)
-        calib = Calibration(self.screen.exposure_screen)
-        calib.create_areas(10, bbox)
-        h = 256
-        x = (self.width - w) // 2
-        result = [
-                Area((x, 0, x + w, h)),
-                Area((x, 1 * h, x + w, 2 * h)),
-                Area((x, 2 * h, x + w, 3 * h)),
-                Area((x, 3 * h, x + w, 4 * h)),
-                Area((x, 4 * h, x + w, 5 * h)),
-                Area((x, 5 * h, x + w, 6 * h)),
-                Area((x, 6 * h, x + w, 7 * h)),
-                Area((x, 7 * h, x + w, 8 * h)),
-                Area((x, 8 * h, x + w, 9 * h)),
-                Area((x, 9 * h, x + w, 10 * h)),
-                ]
-        self.assertEqual(calib.areas, result)
 
     def test_calibration_calib_pad(self):
         project = Project(self.hw_config, self.screen.printer_model, self.CALIBRATION)

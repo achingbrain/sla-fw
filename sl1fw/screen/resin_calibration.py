@@ -9,11 +9,8 @@ from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
 
 from sl1fw import defines
-from sl1fw.project.project import Project, LayerCalibrationType
-from sl1fw.errors.errors import ProjectErrorCalibrationInvalid
+from sl1fw.project.project import LayerCalibrationType
 from sl1fw.utils.bounding_box import BBox
-from sl1fw.screen.printer_model import ExposureScreen
-from sl1fw.errors.warnings import PrintedObjectWasCropped
 
 
 class Area(BBox):
@@ -28,7 +25,7 @@ class Area(BBox):
     def set_label_text(self, font, text, text_padding, label_size):
         pass
 
-    def set_label_position(self, label_size, project: Project):
+    def set_label_position(self, label_size, calibrate_penetration_px, project_bbox, first_layer_bbox):
         pass
 
     def paste(self, image: Image, source: Image, calibration_type: LayerCalibrationType):
@@ -59,10 +56,10 @@ class AreaWithLabel(Area):
         self._text_layer = self._transpose(tmp)
         self._pad_layer = self._transpose(Image.new("L", label_size, 255))
 
-    def set_label_position(self, label_size, project: Project):
-        first_padding = project.bbox - project.layers[0].bbox
+    def set_label_position(self, label_size, calibrate_penetration_px, project_bbox, first_layer_bbox):
+        first_padding = project_bbox - first_layer_bbox
         label_x = self.x1 + (self.size[0] - label_size[0]) // 2
-        label_y = self._copy_position[1] + first_padding[1] - label_size[1] + project.calibrate_penetration_px
+        label_y = self._copy_position[1] + first_padding[1] - label_size[1] + calibrate_penetration_px
         if label_y < self.y1:
             label_y = self.y1
         self._label_position = label_x, label_y
@@ -85,9 +82,9 @@ class AreaWithLabelStripe(AreaWithLabel):
         self._copy_position = 0, self.y1 + (self_size[1] - bbox_size[1]) // 2
         self._logger.debug("copy position: %s", str(self._copy_position))
 
-    def set_label_position(self, label_size, project: Project):
-        first_size = project.layers[0].bbox.size
-        label_x = first_size[0] - project.calibrate_penetration_px
+    def set_label_position(self, label_size, calibrate_penetration_px, project_bbox, first_layer_bbox):
+        first_size = first_layer_bbox.size
+        label_x = first_size[0] - calibrate_penetration_px
         label_y = self.y1 + (self.size[1] - label_size[0]) // 2 # text is 90 degree rotated
         if label_y < 0:
             label_y = 0
@@ -95,17 +92,30 @@ class AreaWithLabelStripe(AreaWithLabel):
         self._logger.debug("label position: %s", str(self._label_position))
 
 class Calibration:
-    def __init__(self, exposure_screen: ExposureScreen):
+    # pylint: disable=too-many-arguments
+    def __init__(self, exposure_size_px: ()):
         self.areas = []
+        self.is_cropped = False
         self._logger = logging.getLogger(__name__)
-        self._exposure_screen = exposure_screen
+        self._width_px, self._height_px = exposure_size_px
+        self._project_bbox: Optional[BBox] = None
+        self._first_layer_bbox: Optional[BBox] = None
 
-    def new_project(self, project: Project):
-        if project.calibrate_regions:
-            project.analyze()
-            bbox = project.bbox if project.calibrate_compact else None
-            self.create_areas(project.calibrate_regions, bbox)
-            self.create_overlays(project)
+    def new_project(self,
+            project_bbox: BBox,
+            first_layer_bbox: BBox,
+            calibrate_regions: int,
+            calibrate_compact: bool,
+            calibrate_times_ms: list,
+            calibrate_penetration_px: int,
+            calibrate_text_size_px: int,
+            calibrate_pad_spacing_px: int):
+        self._project_bbox = project_bbox
+        self._first_layer_bbox = first_layer_bbox
+        if self.create_areas(calibrate_regions, project_bbox if calibrate_compact else None):
+            self._check_project_size()
+            return self._create_overlays(calibrate_times_ms, calibrate_penetration_px, calibrate_text_size_px, calibrate_pad_spacing_px)
+        return False
 
     def create_areas(self, regions, bbox: BBox):
         areaMap = {
@@ -118,9 +128,9 @@ class Calibration:
                 }
         if regions not in areaMap:
             self._logger.error("bad value regions (%d)", regions)
-            raise ProjectErrorCalibrationInvalid
+            return False
         divide = areaMap[regions]
-        if self._exposure_screen.width_px > self._exposure_screen.height_px:
+        if self._width_px > self._height_px:
             x = 0
             y = 1
         else:
@@ -128,21 +138,22 @@ class Calibration:
             y = 0
         if bbox:
             size = list(bbox.size)
-            if size[0] * divide[x] > self._exposure_screen.width_px:
-                size[0] = self._exposure_screen.width_px // divide[x]
-            if size[1] * divide[y] > self._exposure_screen.height_px:
-                size[1] = self._exposure_screen.height_px // divide[y]
+            if size[0] * divide[x] > self._width_px:
+                size[0] = self._width_px // divide[x]
+            if size[1] * divide[y] > self._height_px:
+                size[1] = self._height_px // divide[y]
             self._areas_loop(
-                    ((self._exposure_screen.width_px - divide[x] * size[0]) // 2, (self._exposure_screen.height_px - divide[y] * size[1]) // 2),
+                    ((self._width_px - divide[x] * size[0]) // 2, (self._height_px - divide[y] * size[1]) // 2),
                     (size[0], size[1]),
                     (divide[x], divide[y]),
                     Area)
         else:
             self._areas_loop(
                     (0, 0),
-                    (self._exposure_screen.width_px // divide[x], self._exposure_screen.height_px // divide[y]),
+                    (self._width_px // divide[x], self._height_px // divide[y]),
                     (divide[x], divide[y]),
                     AreaWithLabelStripe if regions == 10 else AreaWithLabel)
+        return True
 
     def _areas_loop(self, begin, step, rnge, area_type):
         for i in range(rnge[0]):
@@ -153,43 +164,45 @@ class Calibration:
                 self._logger.debug("%d-%d: %s", i, j, area)
                 self.areas.append(area)
 
-    def _check_project_size(self, project: Project):
-        orig_size = project.bbox.size
-        self._logger.debug("project bbox: %s  project size: %dx%d", str(project.bbox), orig_size[0], orig_size[1])
+    def _check_project_size(self):
+        orig_size = self._project_bbox.size
+        self._logger.debug("project bbox: %s  project size: %dx%d", str(self._project_bbox), orig_size[0], orig_size[1])
         area_size = self.areas[0].size
-        project.bbox.shrink(area_size)
-        new_size = project.bbox.size
+        self._project_bbox.shrink(area_size)
+        new_size = self._project_bbox.size
         if new_size != orig_size:
             self._logger.warning("project size %dx%d was reduced to %dx%d to fit area size %dx%d",
                     orig_size[0], orig_size[1], new_size[0], new_size[1], area_size[0], area_size[1])
-            project.warnings.add(PrintedObjectWasCropped())
-            first_layer_bbox = project.layers[0].bbox
-            orig_size = first_layer_bbox.size
-            first_layer_bbox.crop(project.bbox)
-            new_size = first_layer_bbox.size
+            self.is_cropped = True
+            orig_size = self._first_layer_bbox.size
+            self._first_layer_bbox.crop(self._project_bbox)
+            new_size = self._first_layer_bbox.size
             if new_size != orig_size:
                 self._logger.warning("project first layer bbox %s was cropped to project bbox %s",
-                        str(first_layer_bbox), str(project.bbox))
+                        str(self._first_layer_bbox), str(self._project_bbox.size))
 
-    def create_overlays(self, project: Project):
-        self._check_project_size(project)
-        times = project.layers[-1].times_ms
-        if len(times) != len(self.areas):
-            self._logger.error("times != areas (%d, %d)", len(times), len(self.areas))
-            raise ProjectErrorCalibrationInvalid
-        font = ImageFont.truetype(defines.fontFile, project.calibrate_text_size_px)
+    def _create_overlays(self,
+            calibrate_times_ms: list,
+            calibrate_penetration_px: int,
+            calibrate_text_size_px: int,
+            calibrate_pad_spacing_px: int):
+        if len(calibrate_times_ms) != len(self.areas):
+            self._logger.error("calibrate_times_ms != areas (%d, %d)", len(calibrate_times_ms), len(self.areas))
+            return False
+        font = ImageFont.truetype(defines.fontFile, calibrate_text_size_px)
         actual_time_ms = 0
-        for area, time_ms in zip(self.areas, times):
-            area.set_copy_position(project.bbox)
+        for area, time_ms in zip(self.areas, calibrate_times_ms):
+            area.set_copy_position(self._project_bbox)
             actual_time_ms += time_ms
             text = "%.1f" % (actual_time_ms / 1000)
             self._logger.debug("calib. text: '%s'", text)
             text_size = font.getsize(text)
             text_offset = font.getoffset(text)
             self._logger.debug("text_size: %s  text_offset: %s", str(text_size), str(text_offset))
-            label_size = (text_size[0] + 2 * project.calibrate_pad_spacing_px - text_offset[0],
-                    text_size[1] + 2 * project.calibrate_pad_spacing_px - text_offset[1])
+            label_size = (text_size[0] + 2 * calibrate_pad_spacing_px - text_offset[0],
+                    text_size[1] + 2 * calibrate_pad_spacing_px - text_offset[1])
             text_padding = ((label_size[0] - text_size[0] - text_offset[0]) // 2,
                     (label_size[1] - text_size[1] - text_offset[1]) // 2)
             area.set_label_text(font, text, text_padding, label_size)
-            area.set_label_position(label_size, project)
+            area.set_label_position(label_size, calibrate_penetration_px, self._project_bbox, self._first_layer_bbox)
+        return True
