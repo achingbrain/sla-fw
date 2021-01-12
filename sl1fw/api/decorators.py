@@ -1,6 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2021 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
@@ -11,6 +12,7 @@ from time import monotonic
 from typing import Union, List, Any, Dict, get_type_hints, Optional
 
 from pydbus import Variant
+from pydbus.generic import signal
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.errors.exceptions import NotAvailableInState, DBusMappingException, PrinterException
@@ -62,6 +64,7 @@ def range_checked(minimum, maximum):
     :param maximum: Maximal allowed value
     :return: Decorated property
     """
+
     def decor(prop: property):
         assert isinstance(prop, property)
         logger = logging.getLogger(__name__)
@@ -152,6 +155,13 @@ def auto_dbus(func):
     return manual_dbus(dbus)(func)
 
 
+def auto_dbus_signal(func):
+    sig = signal()
+    args = gen_method_dbus_args_spec(func)
+    sig.__dbus__ = f"<signal name=\"{func.__name__}\">{''.join(args)}</signal>"
+    return sig
+
+
 PYTHON_TO_DBUS_TYPE = {
     int: "i",
     float: "d",
@@ -192,16 +202,21 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
                 access = "readwrite"
             return f'<property name="{name}" type="{get_type}" access="{access}"></property>'
         if callable(obj):
-            args = []
-            for n, t in get_type_hints(obj).items():
-                if t == type(None):
-                    continue
-                direction = "out" if n == "return" else "in"
-                args.append(f"<arg type='{python_to_dbus_type(t)}' name='{n}' direction='{direction}'/>")
+            args = gen_method_dbus_args_spec(obj)
             return f"<method name='{name}'>{''.join(args)}</method>"
         raise ValueError(f"Unsupported dbus mapping type: {type(obj)}")
     except Exception as exception:
         raise DBusMappingException(f"Failed to generate dbus specification for {name}") from exception
+
+
+def gen_method_dbus_args_spec(obj) -> List[str]:
+    args = []
+    for n, t in get_type_hints(obj).items():
+        if t == type(None):
+            continue
+        direction = "out" if n == "return" else "in"
+        args.append(f"<arg type='{python_to_dbus_type(t)}' name='{n}' direction='{direction}'/>")
+    return args
 
 
 def python_to_dbus_value_type(data: Any):

@@ -7,7 +7,13 @@ from typing import List, Dict, Any, Tuple
 from unittest import TestCase
 from gi.repository.GLib import Variant
 
-from sl1fw.api.decorators import wrap_dict_data, python_to_dbus_type
+from sl1fw.api.decorators import (
+    wrap_dict_data,
+    python_to_dbus_type,
+    auto_dbus,
+    gen_method_dbus_args_spec,
+    auto_dbus_signal,
+)
 
 
 class TestWrapDictData(TestCase):
@@ -62,6 +68,102 @@ class TestPythonToDbus(TestCase):
 
     def test_dict_str_dict_str_any(self):
         self.assertEqual("a{sa{sv}}", python_to_dbus_type(Dict[str, Dict[str, Any]]))
+
+
+class TestAutoDbus(TestCase):
+    def test_simple(self):
+        # No args
+        def test1():
+            pass
+
+        self.assertEqual("<method name='test1'></method>", auto_dbus(test1).__dbus__)
+
+    def test_arg(self):
+        # Single arg
+        def test2(a: str):
+            # pylint: disable = unused-argument
+            pass
+
+        self.assertEqual(
+            "<method name='test2'><arg type='s' name='a' direction='in'/></method>", auto_dbus(test2).__dbus__
+        )
+
+    def test_two_args(self):
+        # Two args
+        def test3(a: str, b: int):
+            # pylint: disable = unused-argument
+            pass
+
+        self.assertEqual(
+            "<method name='test3'><arg type='s' name='a' direction='in'/>"
+            "<arg type='i' name='b' direction='in'/></method>",
+            auto_dbus(test3).__dbus__,
+        )
+
+    def test_return(self):
+        # Return
+        def test4() -> float:
+            return 1.23
+
+        self.assertEqual(
+            "<method name='test4'><arg type='d' name='return' direction='out'/></method>", auto_dbus(test4).__dbus__
+        )
+
+    def test_two_args_return(self):
+        # Two args + Return
+        def test5(a: str, b: int) -> float:
+            # pylint: disable = unused-argument
+            pass
+
+        self.assertEqual(
+            "<method name='test5'><arg type='s' name='a' direction='in'/>"
+            "<arg type='i' name='b' direction='in'/><arg type='d' name='return' direction='out'/></method>",
+            auto_dbus(test5).__dbus__,
+        )
+
+
+class TestDBusArgsGen(TestCase):
+    def test_no_args(self):
+        def simple():
+            pass
+
+        self.assertListEqual([], gen_method_dbus_args_spec(simple))
+
+    def test_single_arg(self):
+        def single(a: str):
+            # pylint: disable = unused-argument
+            pass
+
+        self.assertListEqual(["<arg type='s' name='a' direction='in'/>"], gen_method_dbus_args_spec(single))
+
+    def test_two_args(self):
+        def two(a: str, b: int):
+            # pylint: disable = unused-argument
+            pass
+
+        self.assertListEqual(
+            ["<arg type='s' name='a' direction='in'/>", "<arg type='i' name='b' direction='in'/>"],
+            gen_method_dbus_args_spec(two),
+        )
+
+
+class TestAutoDBusSignal(TestCase):
+    def test_simple(self):
+        def simple():
+            pass
+
+        self.assertEqual('<signal name="simple"></signal>', auto_dbus_signal(simple).__dbus__)
+
+    def test_args(self):
+        def args(a: str, b: int):
+            # pylint: disable = unused-argument
+            pass
+
+        self.assertEqual(
+            "<signal name=\"args\"><arg type='s' name='a' direction='in'/>"
+            "<arg type='i' name='b' direction='in'/></signal>",
+            auto_dbus_signal(args).__dbus__,
+        )
 
 
 if __name__ == "__main__":
