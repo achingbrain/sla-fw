@@ -12,8 +12,8 @@ import distro
 import pydbus
 
 from sl1fw import defines
-from sl1fw.admin.items import admin_action, admin_text, AdminAction
 from sl1fw.admin.control import AdminControl
+from sl1fw.admin.items import AdminAction, AdminTextValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error, Confirm
 from sl1fw.functions.system import shut_down
@@ -26,15 +26,13 @@ class NetUpdate(AdminMenu):
         self._printer = printer
         self._status = "Downloading list of updates"
 
+        self.add_back()
+        self.add_label("<h2>Custom updates to latest dev builds</h2>")
+        self.add_item(AdminTextValue.from_property(self, NetUpdate.status))
+
         self._thread = Thread(target=self._download_list)
         self._thread.start()
 
-    @admin_text
-    @property
-    def header(self):
-        return "<h2>Custom updates to latest dev builds</h2>"
-
-    @admin_text
     @property
     def status(self):
         return self._status
@@ -43,10 +41,8 @@ class NetUpdate(AdminMenu):
     def status(self, value: str):
         self._status = value
 
-    @admin_action
-    def back(self):
+    def on_leave(self):
         self._thread.join()
-        self._control.pop()
 
     def _download_list(self):
         query_url = f"{defines.firmwareListURL}/?serial={self._printer.hw.cpuSerialNo}&version={distro.version()}"
@@ -60,7 +56,7 @@ class NetUpdate(AdminMenu):
             for firmware in firmwares:
                 item = AdminAction(firmware["version"], functools.partial(self._install_fw, firmware))
                 self.add_item(item)
-        self.del_item(self.get_item("status"))
+        self.del_item(self.items["status"])
 
     def _download_callback(self, progress: float):
         self.status = f"Downloading list of updates: {round(progress * 100)}%"
@@ -86,15 +82,12 @@ class FwInstall(AdminMenu):
         self._firmware = firmware
         self._status = "Downloading firmware"
 
+        self.add_label(f"<h2>Updating firmware</h2><br/>Version: {self._firmware['version']}")
+        self.add_item(AdminTextValue.from_property(self, NetUpdate.status))
+
         self._thread = Thread(target=self._install, daemon=True)
         self._thread.start()
 
-    @admin_text
-    @property
-    def headline(self):
-        return f"<h2>Updating firmware</h2><br/>Version: {self._firmware['version']}"
-
-    @admin_text
     @property
     def status(self):
         return self._status

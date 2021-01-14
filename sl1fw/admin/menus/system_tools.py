@@ -9,7 +9,7 @@ import pydbus
 
 from sl1fw import defines
 from sl1fw.admin.control import AdminControl
-from sl1fw.admin.items import AdminAction, admin_bool, admin_action, AdminTextValue
+from sl1fw.admin.items import AdminAction, AdminTextValue, AdminBoolValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error
 from sl1fw.errors.errors import FailedUpdateChannelSet
@@ -28,16 +28,15 @@ class SystemToolsMenu(AdminMenu):
         self._channel_value = AdminTextValue(
             "Channel", lambda: f"Update channel: {get_update_channel()}", self._set_update_channel
         )
+        self.add_back()
         self.add_item(self._channel_value)
         self.add_item(AdminAction("Switch to stable", partial(self._set_update_channel, "stable")))
         self.add_item(AdminAction("Switch to beta", partial(self._set_update_channel, "beta")))
         self.add_item(AdminAction("Switch to dev", partial(self._set_update_channel, "dev")))
+        self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.factory_mode))
+        self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.ssh))
+        self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.serial))
 
-    @admin_action
-    def back(self):
-        self._control.pop()
-
-    @admin_bool
     @property
     def factory_mode(self) -> bool:
         return self._printer.runtime_config.factory_mode
@@ -64,7 +63,6 @@ class SystemToolsMenu(AdminMenu):
             self._systemd_enable_service(defines.serial_service_service)
             self._systemd_enable_service(defines.ssh_service_service)
 
-    @admin_bool
     @property
     def ssh(self) -> bool:
         return defines.ssh_service_enabled.exists()
@@ -75,7 +73,6 @@ class SystemToolsMenu(AdminMenu):
             raise ValueError("Already enabled by factory mode")
         self._set_unit(defines.ssh_service_service, defines.ssh_service_enabled, value)
 
-    @admin_bool
     @property
     def serial(self) -> bool:
         return defines.serial_service_enabled.exists()

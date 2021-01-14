@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+from typing import Any
 from unittest.mock import Mock
 
-from sl1fw.admin.items import admin_action, admin_int
+from sl1fw.admin.items import AdminIntValue, AdminAction, AdminValue
 from sl1fw.admin.menu import AdminMenu
 
 
@@ -15,12 +16,13 @@ class SampleMenu(AdminMenu):
         self._a = 42
         self.called = False
 
-    @admin_action
+        self.add_item(AdminAction("print_hello", self.print_hello))
+        self.add_item(AdminIntValue.from_property(self, SampleMenu.a, 1))
+
     def print_hello(self):
         print("Hello world")
         self.called = True
 
-    @admin_int()
     @property
     def a(self) -> int:
         print(f"a > {self._a}")
@@ -31,15 +33,29 @@ class SampleMenu(AdminMenu):
         print(f"a < {value}")
         self._a = value
 
+    def get_value(self, name: str) -> Any:
+        item = self.items[name]
+        if not isinstance(item, AdminValue):
+            raise ValueError("Not a value")
+        return item.get_value()
+
+    def set_value(self, name: str, value: Any) -> None:
+        item = self.items[name]
+        if not isinstance(item, AdminValue):
+            raise ValueError("Not a value")
+        item.set_value(value)
+
+    def execute_action(self, name: str):
+        item = self.items[name]
+        if not isinstance(item, AdminAction):
+            raise ValueError("Not an action")
+        item.execute()
+
 
 class TestAdminMenu(unittest.TestCase):
     def test_items_list(self):
         m = SampleMenu()
-        self.assertEqual(2, len(list(m.items)))
-
-    def test_value_list(self):
-        m = SampleMenu()
-        self.assertEqual(1, len(m.values.items()))
+        self.assertEqual(2, len(m.items))
 
     def test_value(self):
         m = SampleMenu()
@@ -72,5 +88,5 @@ class TestAdminMenu(unittest.TestCase):
         self.assertTrue(callback.called)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -5,8 +5,13 @@
 from threading import Thread
 from time import sleep
 
-from sl1fw.admin.items import admin_action, admin_int, admin_text, AdminLabel
 from sl1fw.admin.control import AdminControl
+from sl1fw.admin.items import (
+    AdminLabel,
+    AdminTextValue,
+    AdminAction,
+    AdminIntValue,
+)
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error, Info, Confirm, Wait
 
@@ -20,6 +25,22 @@ class TestMenu(AdminMenu):
         self._text = "inital"
         self._run = True
 
+        self.add_back()
+        self.add_item(AdminTextValue.from_property(self, TestMenu.text))
+        self.add_item(AdminAction("Print hello", self.print_hello))
+        self.add_label(
+            "Long text Long text Long text Long text Long" " text Long text Long text Long text Long text Long text"
+        )
+        self.add_item(AdminIntValue.from_property(self, TestMenu.a, 1))
+        self.add_item(AdminIntValue.from_property(self, TestMenu.b, 3))
+        self.add_item(AdminAction("Test 2", self.test2))
+        self.add_label("<center>Centered</center><br/><h1>Headline</h1>")
+        self.add_item(AdminAction("<b>Exit</b>", self.exit))
+        self.add_item(AdminAction("Error", self.error))
+        self.add_item(AdminAction("Info", self.info))
+        self.add_item(AdminAction("Confirm", self.confirm))
+        self.add_item(AdminAction("Wait", self.wait))
+
         self._thread = Thread(target=self._runner)
 
     def on_enter(self):
@@ -29,11 +50,6 @@ class TestMenu(AdminMenu):
         self._run = False
         self._thread.join()
 
-    @admin_action
-    def back(self):
-        self._control.pop()
-
-    @admin_text
     @property
     def text(self):
         return self._text
@@ -42,17 +58,10 @@ class TestMenu(AdminMenu):
     def text(self, value: str):
         self._text = value
 
-    @admin_action
-    def print_hello(self):
-        # pylint: disable=no-self-use
+    @staticmethod
+    def print_hello():
         print("Hello world")
 
-    @admin_text
-    @property
-    def long_text(self):
-        return "Long text Long text Long text Long text Long text Long text Long text Long text Long text Long text"
-
-    @admin_int()
     @property
     def a(self) -> int:
         return self._a
@@ -61,7 +70,6 @@ class TestMenu(AdminMenu):
     def a(self, value: int) -> None:
         self._a = value
 
-    @admin_int(step=3)
     @property
     def b(self) -> int:
         return self._b
@@ -70,16 +78,9 @@ class TestMenu(AdminMenu):
     def b(self, value: int) -> None:
         self._b = value
 
-    @admin_action
     def test2(self):
         self._control.enter(TestMenu2(self._control))
 
-    @admin_text
-    @property
-    def formatted_text(self):
-        return "<center>Centered</center><br/><h1>Headline</h1>"
-
-    @admin_action
     def exit(self):
         self._control.exit()
 
@@ -90,19 +91,15 @@ class TestMenu(AdminMenu):
             self.text = f"Text: {self._cnt}"
             print(self._cnt)
 
-    @admin_action
     def error(self):
         self._control.enter(Error(self._control, text="Synthetic error"))
 
-    @admin_action
     def info(self):
         self._control.enter(Info(self._control, "Test info"))
 
-    @admin_action
     def confirm(self):
         self._control.enter(Confirm(self._control, self.info, headline="Test confirm", text="Text text text.."))
 
-    @admin_action
     def wait(self):
         self._control.enter(Wait(self._control, self._do_wait))
 
@@ -114,6 +111,6 @@ class TestMenu(AdminMenu):
 
 
 class TestMenu2(AdminMenu):
-    @admin_action
-    def back(self):
-        self._control.pop()
+    def __init__(self, control: AdminControl):
+        super().__init__(control)
+        self.add_back()

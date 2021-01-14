@@ -261,7 +261,7 @@ class Admin0:
             self._logger.debug("No menu -> no items")
             return
 
-        for item in self._current_menu.items:
+        for item in self._current_menu.items.values():
             dbus_name = self.DBUS_NAME_REPLACE_PATTERN.sub("_", item.name)
             if len(dbus_name) < 2:
                 dbus_name += "__"

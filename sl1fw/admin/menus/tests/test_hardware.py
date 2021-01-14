@@ -5,7 +5,7 @@
 from threading import Thread
 
 from sl1fw.admin.control import AdminControl
-from sl1fw.admin.items import AdminAction, admin_text
+from sl1fw.admin.items import AdminAction, AdminTextValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error, Confirm, Info
 from sl1fw.libPrinter import Printer
@@ -54,6 +54,9 @@ class InfiniteUVCalibratorMenu(AdminMenu):
     def __init__(self, control: AdminControl):
         super().__init__(control)
 
+        self.add_item(AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.status))
+        self.add_item(AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.value))
+        self.add_item(AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.iteration))
         self.add_item(AdminAction("Stop", self.stop))
 
         self._status = "Initializing"
@@ -72,7 +75,6 @@ class InfiniteUVCalibratorMenu(AdminMenu):
         self.on_leave()
         self._control.pop()
 
-    @admin_text
     @property
     def status(self):
         return self._status
@@ -81,7 +83,6 @@ class InfiniteUVCalibratorMenu(AdminMenu):
     def status(self, value: str):
         self._status = value
 
-    @admin_text
     @property
     def value(self):
         return self._value
@@ -90,7 +91,6 @@ class InfiniteUVCalibratorMenu(AdminMenu):
     def value(self, value: str):
         self._value = value
 
-    @admin_text
     @property
     def iteration(self):
         return self._iteration
@@ -133,10 +133,10 @@ class ResinSensorTestMenu(AdminMenu):
         self._status = "Initializing"
         self._iteration = ""
         self._value = ""
+        self.add_item(AdminTextValue.from_property(self, ResinSensorTestMenu.status))
         self._thread = Thread(target=self._runner)
         self._thread.start()
 
-    @admin_text
     @property
     def status(self):
         return self._status
