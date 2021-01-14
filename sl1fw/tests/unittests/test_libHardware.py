@@ -69,6 +69,7 @@ class TestLibHardware(Sl1fwTestCase):
             raise exception
 
     def tearDown(self):
+        super().tearDown()
         self.hw.exit()
         if self.EEPROM_FILE.exists():
             self.EEPROM_FILE.unlink()

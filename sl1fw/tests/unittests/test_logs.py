@@ -38,6 +38,7 @@ class TestLogs0(Sl1fwTestCase):
         self.logs0: Logs0 = pydbus.SystemBus().get("cz.prusa3d.sl1.logs0")
 
     def tearDown(self) -> None:
+        super().tearDown()
         self.logs0_dbus.unpublish()
 
     def test_initial_state(self):

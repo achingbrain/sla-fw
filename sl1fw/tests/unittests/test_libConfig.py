@@ -9,8 +9,17 @@ from pathlib import Path
 from shutil import copyfile
 
 from sl1fw import defines
-from sl1fw.libConfig import HwConfig, Config, FloatValue, IntListValue, IntValue, BoolValue, \
-    FloatListValue, TextValue, ConfigWriter
+from sl1fw.libConfig import (
+    HwConfig,
+    Config,
+    FloatValue,
+    IntListValue,
+    IntValue,
+    BoolValue,
+    FloatListValue,
+    TextValue,
+    ConfigWriter,
+)
 from sl1fw.project.config import ProjectConfig
 from sl1fw.tests.base import Sl1fwTestCase
 
@@ -29,11 +38,13 @@ class TestConfigValues(Sl1fwTestCase):
         self.assertEqual(8, c.b)
         self.assertEqual(-5, c.c)
         self.assertEqual(c.a * c.b, c.ab)
-        c.read_text("""
+        c.read_text(
+            """
         a = 55
         b = 11
         c = -1
-        """)
+        """
+        )
         self.assertEqual(55, c.a)
         self.assertEqual(10, c.b)
         self.assertEqual(-1, c.c)
@@ -59,11 +70,13 @@ class TestConfigValues(Sl1fwTestCase):
         self.assertEqual(8, c.b)
         self.assertEqual(-5, c.c)
         self.assertEqual(c.a * c.b, c.ab)
-        c.read_text("""
+        c.read_text(
+            """
         a = 5.5
         b = 11
         c = -1
-        """)
+        """
+        )
         self.assertEqual(5.5, c.a)
         self.assertEqual(10.1, c.b)
         self.assertEqual(-1, c.c)
@@ -90,14 +103,16 @@ class TestConfigValues(Sl1fwTestCase):
         c = BoolConfig()
         self.assertFalse(c.a)
         self.assertTrue(c.b)
-        c.read_text("""
+        c.read_text(
+            """
         f0 = true
         f1 = yes
         f2 = on
         t0 = false
         t1 = no
         t2 = off
-        """)
+        """
+        )
         self.assertTrue(c.f0)
         self.assertTrue(c.f1)
         self.assertTrue(c.f2)
@@ -114,10 +129,12 @@ class TestConfigValues(Sl1fwTestCase):
         c = StringConfig()
         self.assertEqual("def", c.a)
         self.assertEqual("", c.b)
-        c.read_text("""
+        c.read_text(
+            """
         a = old school text
         b = "toml compatible text"
-        c = 123 numbers test 123""")
+        c = 123 numbers test 123"""
+        )
         self.assertEqual("old school text", c.a)
         self.assertEqual("toml compatible text", c.b)
         self.assertEqual("123 numbers test 123", c.c)
@@ -136,32 +153,36 @@ class TestConfigValues(Sl1fwTestCase):
         self.assertEqual([0.1, 0.2, 0.3], c.f0)
         self.assertEqual([0.1, 0.2, 0.3], c.f1)
 
-        c.read_text("""
+        c.read_text(
+            """
         i0 = [ 1, 1, 1 ]
         i1 = 1 1 1
         f0 = [0.1, 0.1,0.1]
         f1 = 0.1    0.1 0.1
         i2 = [ 12840, 14115, 15640,]
-        """)
+        """
+        )
         self.assertEqual([1, 1, 1], c.i0)
         self.assertEqual([1, 1, 1], c.i1)
         self.assertEqual([0.1, 0.1, 0.1], c.f0)
         self.assertEqual([0.1, 0.1, 0.1], c.f1)
-        self.assertEqual([ 12840, 14115, 15640], c.i2)
+        self.assertEqual([12840, 14115, 15640], c.i2)
 
     def test_dictionary(self):
         class SimpleConfig(Config):
             a = IntValue(5)
+
         s = SimpleConfig()
-        self.assertIn('a', s.as_dictionary())
-        self.assertEqual(5, s.as_dictionary()['a'])
-        self.assertNotIn('a', s.as_dictionary(nondefault=False))
+        self.assertIn("a", s.as_dictionary())
+        self.assertEqual(5, s.as_dictionary()["a"])
+        self.assertNotIn("a", s.as_dictionary(nondefault=False))
         s.read_text("a = 5")  # Setting value to default should not make it non-default
-        self.assertNotIn('a', s.as_dictionary(nondefault=False))
+        self.assertNotIn("a", s.as_dictionary(nondefault=False))
 
     def test_value_reset(self):
         class SimpleConfig(Config):
             a = IntValue(5)
+
         s = SimpleConfig()
         self.assertEqual(5, s.a)
         s.a = 7
@@ -192,12 +213,14 @@ class TestHardwareConfig(Sl1fwTestCase):
         super().__init__(*args, **kwargs)
 
     def setUp(self):
+        super().setUp()
         defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
         defines.hwConfigPathFactory = str(self.SAMPLES_DIR / "hardware.toml")
         defines.hwConfigPath = str(self.SAMPLES_DIR / "hardware-toml.cfg")
         copyfile(defines.hwConfigPath, "hwconfig.test")
 
     def tearDown(self):
+        super().tearDown()
         for path in [self.test_config_path, self.writetest_config_path]:
             if path.exists():
                 path.unlink()
@@ -217,7 +240,6 @@ class TestHardwareConfig(Sl1fwTestCase):
         with open(str(path), "r") as f:
             return f.read()
 
-
     def test_instances(self):
         """
         Ensure different instances do not share the data
@@ -226,7 +248,6 @@ class TestHardwareConfig(Sl1fwTestCase):
         a.showUnboxing = False
         HwConfig()
         self.assertFalse(a.showUnboxing)
-
 
     def test_write(self):
         hw_config = HwConfig(self.test_config_path, is_master=True)
@@ -245,10 +266,10 @@ class TestHardwareConfig(Sl1fwTestCase):
             # "showUnboxing = true\r\n"
             # "MCversionCheck = false\r\n"
             # "autoOff = true\r\n"
-            "uvPwm = 222\n"
-            "towerHeight = 1024\n",
+            "uvPwm = 222\n" "towerHeight = 1024\n",
             self.get_config_content(self.writetest_config_path),
-            "Check file lines append")
+            "Check file lines append",
+        )
 
         del hw_config.MCBoardVersion
         hw_config.write(self.test_config_path)
@@ -257,10 +278,10 @@ class TestHardwareConfig(Sl1fwTestCase):
             # "showUnboxing = false\r\n"
             # "MCversionCheck = false\r\n"
             # "autoOff = true\r\n"
-            "uvPwm = 222\n"
-            "towerHeight = 1024\n",
+            "uvPwm = 222\n" "towerHeight = 1024\n",
             self.get_config_content(self.test_config_path),
-            "Check file lines delete")
+            "Check file lines delete",
+        )
 
     def test_uvledpwm1(self):
         hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
@@ -279,14 +300,16 @@ class TestHardwareConfig(Sl1fwTestCase):
         self.assertEqual(142, hw_config.uvPwm, "UV LED PWM - direct PWM")
 
     def test_uvledpwm4(self):
-        hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg",
-                             factory_file_path=self.SAMPLES_DIR / "hardware-current.toml")
+        hw_config = HwConfig(
+            self.SAMPLES_DIR / "hardware.cfg", factory_file_path=self.SAMPLES_DIR / "hardware-current.toml"
+        )
         hw_config.read_file()
         self.assertEqual(243, hw_config.uvPwm, "UV LED PWM - default current to PWM")
 
     def test_uvledpwm5(self):
-        hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg",
-                             factory_file_path=self.SAMPLES_DIR / "hardware-pwm.toml")
+        hw_config = HwConfig(
+            self.SAMPLES_DIR / "hardware.cfg", factory_file_path=self.SAMPLES_DIR / "hardware-pwm.toml"
+        )
         hw_config.read_file()
         self.assertEqual(123, hw_config.uvPwm, "UV LED PWM - default direct PWM")
 
@@ -295,10 +318,12 @@ class TestConfigHelper(Sl1fwTestCase):
     CONFIG_PATH = Path("config.cfg")
 
     def setUp(self):
+        super().setUp()
         self.hwConfig = HwConfig(self.CONFIG_PATH, is_master=True)
         self.helper = ConfigWriter(self.hwConfig)
 
     def tearDown(self):
+        super().tearDown()
         if self.CONFIG_PATH.exists():
             self.CONFIG_PATH.unlink()
 
@@ -326,8 +351,8 @@ class TestConfigHelper(Sl1fwTestCase):
     def test_commit(self):
         # Fresh helper is not changed
         self.assertFalse(self.helper.changed())
-        self.assertFalse(self.helper.changed('autoOff'))
-        self.assertFalse(self.helper.changed('tiltFastTime'))
+        self.assertFalse(self.helper.changed("autoOff"))
+        self.assertFalse(self.helper.changed("tiltFastTime"))
 
         self.helper.autoOff = False
 
@@ -336,8 +361,8 @@ class TestConfigHelper(Sl1fwTestCase):
 
         # Changed behaviour before commit
         self.assertTrue(self.helper.changed())
-        self.assertTrue(self.helper.changed('autoOff'))
-        self.assertFalse(self.helper.changed('tiltFastTime'))
+        self.assertTrue(self.helper.changed("autoOff"))
+        self.assertFalse(self.helper.changed("tiltFastTime"))
 
         self.helper.commit()
 
@@ -346,8 +371,8 @@ class TestConfigHelper(Sl1fwTestCase):
 
         # Changed behaviour after commit
         self.assertFalse(self.helper.changed())
-        self.assertFalse(self.helper.changed('autoOff'))
-        self.assertFalse(self.helper.changed('tiltFastTime'))
+        self.assertFalse(self.helper.changed("autoOff"))
+        self.assertFalse(self.helper.changed("tiltFastTime"))
 
     def test_changed(self):
         self.assertFalse(self.helper.changed(), "Fresh config is not changed")
@@ -368,6 +393,7 @@ class TestPrintConfig(Sl1fwTestCase):
     CONFIG_PATH = Path("config.cfg")
 
     def setUp(self):
+        super().setUp()
         self.print_config = ProjectConfig()
         self.print_config.read_file(self.SAMPLES_DIR / "num_name_print_config.ini")
 
@@ -381,5 +407,5 @@ class TestPrintConfig(Sl1fwTestCase):
         self.assertEqual("123456789", self.print_config.job_dir)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

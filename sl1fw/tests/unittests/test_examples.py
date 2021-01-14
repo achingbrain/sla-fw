@@ -17,6 +17,7 @@ from sl1fw.tests.mocks.network import fake_network_system_bus
 
 class TestExamples(Sl1fwTestCase):
     def setUp(self) -> None:
+        super().setUp()
         self.download_happening = False
         self.unpack_happening = False
         self.copy_happening = False

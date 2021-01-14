@@ -14,6 +14,7 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.utils.bounding_box import BBox
 from sl1fw.screen.printer_model import PrinterModelTypes
 
+
 def _layer_generator(name, count, height_nm, times_ms, layer_times_ms):
     layers = []
     for i in range(count):
@@ -33,6 +34,7 @@ def _layer_generator(name, count, height_nm, times_ms, layer_times_ms):
 
 class TestProject(Sl1fwTestCase):
     def setUp(self):
+        super().setUp()
         self.assertEqual.__self__.maxDiff = None
         self.hwConfig = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
         self.printer_model = PrinterModelTypes.SL1.parameters()
@@ -118,6 +120,7 @@ class TestProject(Sl1fwTestCase):
 #        self.assertEqual(project.calibrateAreas, [], "calibrateAreas")
 
         # project.config.write("projectconfig.txt")
+
 
 if __name__ == '__main__':
     unittest.main()

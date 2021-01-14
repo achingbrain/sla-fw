@@ -27,9 +27,6 @@ from sl1fw.tests.mocks.dbus.timedate import TimeDate
 from sl1fw.tests.mocks.gettext import fake_gettext
 
 fake_gettext()
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG
-)
 
 sys.modules["gpio"] = Mock()
 sys.modules["serial"] = sl1fw.tests.mocks.mc_port
@@ -39,6 +36,8 @@ sys.modules["sl1fw.screen.wayland"] = Mock()
 
 
 class Sl1fwTestCase(DBusTestCase):
+    LOGGER_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+
     SL1FW_DIR = Path(sl1fw.__file__).parent
     SAMPLES_DIR = Path(samples.__file__).parent
     temp_dir_obj = tempfile.TemporaryDirectory()
@@ -89,6 +88,17 @@ class Sl1fwTestCase(DBusTestCase):
         # TODO: Would be nice to properly terminate fake dbus bus and start new one next time
         #       Unfortunately this does not work out of the box.
         # DBusTestCase.tearDownClass()
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Set stream handler heare in order to use stdout already captured by unittest
+        self.stream_handler = logging.StreamHandler(sys.stdout)
+        self.stream_handler.setFormatter(logging.Formatter(self.LOGGER_FORMAT))
+        logging.getLogger().addHandler(self.stream_handler)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        logging.getLogger().removeHandler(self.stream_handler)
 
     def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg=None):
         if a.mode != b.mode:

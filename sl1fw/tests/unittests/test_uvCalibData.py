@@ -38,9 +38,11 @@ class TestUvMeterMulti60(Sl1fwTestCase):
     OUT = Sl1fwTestCase.TEMP_DIR / "test.png"
 
     def setUp(self):
+        super().setUp()
         self.uvmeter = UvLedMeterMulti()
 
     def tearDown(self):
+        super().tearDown()
         files = [
             self.OUT,
         ]

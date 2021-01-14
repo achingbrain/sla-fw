@@ -43,6 +43,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.temp_dir_project = None
 
     def setUp(self):
+        super().setUp()
         print(f'<<<<<===== {self.id()} =====>>>>>')
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
         copyfile(self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.FACTORY_CONFIG_FILE)
@@ -133,6 +134,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         # cProfile.runctx('self.printer.start()', globals=globals(), locals=locals())
 
     def tearDown(self):
+        super().tearDown()
         self.printer0_dbus.unpublish()
         self.printer.exit()
         self.thread.join()

@@ -43,6 +43,7 @@ class TestScreen(Sl1fwTestCase):
         self.height = self.screen.printer_model.screen_height_px
 
     def tearDown(self):
+        super().tearDown()
         files = [
             self.PREVIEW_FILE,
             self.DISPLAY_USAGE,
