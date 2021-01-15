@@ -22,5 +22,5 @@ then
     exit 2
 fi
 
-python3 -m unittest discover --failfast --verbose sl1fw.tests.integration $ARGS &&
-python3 -m unittest discover --failfast --verbose sl1fw.tests.virtual
+python3 -m unittest discover --failfast --verbose --buffer sl1fw.tests.integration $ARGS &&
+python3 -m unittest discover --failfast --verbose --buffer sl1fw.tests.virtual

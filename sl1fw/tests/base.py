@@ -95,6 +95,7 @@ class Sl1fwTestCase(DBusTestCase):
         self.stream_handler = logging.StreamHandler(sys.stdout)
         self.stream_handler.setFormatter(logging.Formatter(self.LOGGER_FORMAT))
         logging.getLogger().addHandler(self.stream_handler)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     def tearDown(self) -> None:
         super().tearDown()

@@ -15,6 +15,7 @@ from pydbus import SystemBus, Variant
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 from sl1fw.api.standard0 import Standard0
 
+
 class const:
     """Temporary soluction until Prusa Connect be published"""
     class State(Enum):
@@ -90,11 +91,10 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
             "remaining_time"
         ], self.standard0.job)
 
-
     def test_cmds_print_pause_cont(self):
         self.standard0.cmd_confirm()
         self._wait_for_state(const.State.BUSY, 10)
-        self._wait_for_state(const.State.PRINTING, 30)
+        self._wait_for_state(const.State.PRINTING, 60)
         self.standard0.cmd_pause("feed_me")
         self._wait_for_state(const.State.ATTENTION, 30)
         self.standard0.cmd_continue()
@@ -122,6 +122,7 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
     def assertKeysIn(self, keys:list, container:dict):
         for key in keys:
             self.assertIn(key, container)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -122,7 +122,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("yesno")  # New uv led set? ...
             self.press("no")
             self.waitPage("wait")  # Start positions
-            self.waitPage("yesno")  # Display test. Can you see the logo? ...
+            self.waitPage("yesno", timeout_sec=6)  # Display test. Can you see the logo? ...
             self.press("yes")
             self.waitPage("confirm")  # Place the UV calibrator in and close lid ...
             self.press("cont")
@@ -330,7 +330,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.waitPage("printpreviewswipe")
         self.press("cont")
         self.waitPage("preprintchecks", timeout_sec=120)  # checks
-        self.waitPage("print", timeout_sec=30)  # printing
+        self.waitPage("print", timeout_sec=60)  # printing
         self.waitPage("wait", timeout_sec=240)  # moving platform to the top
         self.printer.display.forcePage("home")
         self.waitPage("home", timeout_sec=30)
