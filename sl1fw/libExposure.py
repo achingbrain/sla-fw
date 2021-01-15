@@ -120,6 +120,7 @@ class ExposureThread(threading.Thread):
             self.expo.hw.towerMoveAbsoluteWait(position_steps)
         self.expo.hw.setTowerCurrent(defines.towerHoldCurrent)
 
+        white_pixels = self.expo.screen.sync_preloader()
         self.expo.screen.screenshot_rename(second)
 
         if self.expo.hwConfig.delayBeforeExposure:
@@ -134,7 +135,7 @@ class ExposureThread(threading.Thread):
         if self.expo.hwConfig.tilt:
             self.expo.hw.getMcTemperatures()
 
-        white_pixels = self.expo.screen.blit_image(second)
+        self.expo.screen.blit_image(second)
 
         exp_time_ms = sum(times_ms)
         self.expo.exposure_end = datetime.now(tz=timezone.utc) + timedelta(seconds=exp_time_ms / 1e3)

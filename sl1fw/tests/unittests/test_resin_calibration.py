@@ -215,3 +215,4 @@ class TestResinCalibration(Sl1fwTestCase):
             project.calibrate_text_size_px,
             project.calibrate_pad_spacing_px))
         self.assertTrue(calib.is_cropped)
+        screen.exit()

@@ -37,7 +37,7 @@ class TestScreen(Sl1fwTestCase):
         self.screen = Screen(self.hw_config)
 
     def tearDown(self):
-        super().tearDown()
+        self.screen.exit()
         files = [
             self.PREVIEW_FILE,
             self.DISPLAY_USAGE,
@@ -45,14 +45,14 @@ class TestScreen(Sl1fwTestCase):
         for file in files:
             if file.exists():
                 file.unlink()
+        super().tearDown()
 
-    def test_init(self):
-        self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "all_black.png"))
-
-    def test_inverse(self):
-        self.assertTrue(self.screen.is_screen_blank)
+    def test_basics(self):
+        self.assertTrue(self.screen.is_screen_blank, "Test init")
         self.screen.inverse()
-        self.assertFalse(self.screen.is_screen_blank)
+        self.assertFalse(self.screen.is_screen_blank, "Test inverse")
+        self.screen.blank_screen()
+        self.assertTrue(self.screen.is_screen_blank, "Test blank screen")
 
     def test_show_image(self):
         self.screen.show_image_with_path(TestScreen.ZABA)
@@ -64,7 +64,9 @@ class TestScreen(Sl1fwTestCase):
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
         self.assertFalse(project.per_partes)
-        self.assertEqual(233600.0, self.screen.blit_image())
+        white_pixels = self.screen.sync_preloader()
+        self.assertEqual(233600, white_pixels)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "mask.png"))
 
     def test_display_usage(self):
@@ -73,6 +75,7 @@ class TestScreen(Sl1fwTestCase):
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
         self.assertFalse(project.per_partes)
+        self.screen.sync_preloader()
         self.screen.save_display_usage()
         with numpy.load(TestScreen.DISPLAY_USAGE) as npzfile:
             savedData = npzfile['display_usage']
@@ -88,13 +91,15 @@ class TestScreen(Sl1fwTestCase):
         self.assertFalse(project.warnings)
         self.assertTrue(project.per_partes)
         second = False
+        white_pixels = self.screen.sync_preloader()
+        self.assertEqual(233600, white_pixels)
         self.screen.screenshot_rename(second)
-        self.assertEqual(233600.0, self.screen.blit_image(second))
+        self.screen.blit_image(second)
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "part1.png"))
         self.assertSameImage(Image.open(defines.livePreviewImage), Image.open(self.SAMPLES_DIR / "live1.png"))
         second = True
         self.screen.screenshot_rename(second)
-        self.assertEqual(233600.0, self.screen.blit_image(second))
+        self.screen.blit_image(second)
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "part2.png"))
         self.assertSameImage(Image.open(defines.livePreviewImage), Image.open(self.SAMPLES_DIR / "live2.png"))
 
@@ -104,17 +109,20 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
-        self.assertEqual(1293509, self.screen.blit_image(False))
+        white_pixels = self.screen.sync_preloader()
+        self.assertEqual(1293509, white_pixels)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_pad.png"))
 
     def test_calibration_calib(self):
         project = Project(self.hw_config, self.screen.printer_model, self.CALIBRATION)
         project.exposure_time_ms = 4000
         self.screen.new_project(project)
-        self.assertFalse(project.warnings)
         self.screen.preload_image(10)
-        white = self.screen.blit_image(False)
-        self.assertLess(abs(1166913 - white), 50)
+        self.assertFalse(project.warnings)
+        white_pixels = self.screen.sync_preloader()
+        self.assertLess(abs(1166913 - white_pixels), 50)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib.png"), threshold=40)
 
     def test_calibration_fill(self):
@@ -122,7 +130,8 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
-        self.screen.blit_image(False)
+        self.screen.sync_preloader()
+        self.screen.blit_image()
         for idx in range(8):
             self.screen.fill_area(idx, idx * 32)
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_fill.png"))
@@ -133,17 +142,20 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
-        self.assertEqual(1114168, self.screen.blit_image(False))
+        white_pixels = self.screen.sync_preloader()
+        self.assertEqual(1114168, white_pixels)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_pad_compact.png"))
 
     def test_calibration_calib_compact(self):
         project = Project(self.hw_config, self.screen.printer_model, self.CALIBRATION)
         project.calibrate_compact = True
         self.screen.new_project(project)
-        self.assertFalse(project.warnings)
         self.screen.preload_image(10)
-        white = self.screen.blit_image(False)
-        self.assertLess(abs(1126168 - white), 50)
+        self.assertFalse(project.warnings)
+        white_pixels = self.screen.sync_preloader()
+        self.assertLess(abs(1126168 - white_pixels), 50)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_compact.png"), threshold=40)
 
     def test_calibration_fill_compact(self):
@@ -152,7 +164,8 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
-        self.screen.blit_image(False)
+        self.screen.sync_preloader()
+        self.screen.blit_image()
         for idx in range(8):
             self.screen.fill_area(idx, idx * 32)
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_fill_compact.png"))
@@ -162,8 +175,9 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
-        white = self.screen.blit_image(False)
-        self.assertLess(abs(3591170 - white), 50)
+        white_pixels = self.screen.sync_preloader()
+        self.assertLess(abs(3591170 - white_pixels), 50)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_pad_10.png"))
 
     def test_calibration_calib_10(self):
@@ -171,8 +185,9 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.assertFalse(project.warnings)
         self.screen.preload_image(10)
-        white = self.screen.blit_image(False)
-        self.assertLess(abs(1781967 - white), 50)
+        white_pixels = self.screen.sync_preloader()
+        self.assertLess(abs(1781967 - white_pixels), 50)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_10.png"), threshold=40)
 
     def test_calibration_fill_10(self):
@@ -180,7 +195,8 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
-        self.screen.blit_image(False)
+        self.screen.sync_preloader()
+        self.screen.blit_image()
         for idx in range(10):
             self.screen.fill_area(idx, idx * 32)
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_fill_10.png"))
@@ -191,18 +207,20 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
-        white = self.screen.blit_image(False)
-        self.assertLess(abs(3361680 - white), 50)
+        white_pixels = self.screen.sync_preloader()
+        self.assertLess(abs(3361680 - white_pixels), 50)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_pad_10_compact.png"))
 
     def test_calibration_calib_10_compact(self):
         project = Project(self.hw_config, self.screen.printer_model, self.CALIBRATION_LINEAR)
         project.calibrate_compact = True
         self.screen.new_project(project)
-        self.assertFalse(project.warnings)
         self.screen.preload_image(10)
-        white = self.screen.blit_image(False)
-        self.assertLess(abs(1728640 - white), 50)
+        self.assertFalse(project.warnings)
+        white_pixels = self.screen.sync_preloader()
+        self.assertLess(abs(1728640 - white_pixels), 50)
+        self.screen.blit_image()
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_10_compact.png"), threshold=40)
 
     def test_calibration_fill_10_compact(self):
@@ -211,7 +229,8 @@ class TestScreen(Sl1fwTestCase):
         self.screen.new_project(project)
         self.screen.preload_image(0)
         self.assertFalse(project.warnings)
-        self.screen.blit_image(False)
+        self.screen.sync_preloader()
+        self.screen.blit_image()
         for idx in range(10):
             self.screen.fill_area(idx, idx * 32)
         self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_fill_10_compact.png"))

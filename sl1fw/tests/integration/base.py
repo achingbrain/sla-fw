@@ -134,10 +134,10 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         # cProfile.runctx('self.printer.start()', globals=globals(), locals=locals())
 
     def tearDown(self):
-        super().tearDown()
         self.printer0_dbus.unpublish()
         self.printer.exit()
         self.thread.join()
+        super().tearDown()  # closes logger!
 
         files = [
             self.EEPROM_FILE,

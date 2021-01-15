@@ -161,6 +161,7 @@ class Printer:
     def exit(self):
         self.state = PrinterState.EXIT
         self.display.exit()
+        self.screen.exit()
         self.exited.wait(timeout=60)
         self.hw.exit()
         self.action_manager.exit()

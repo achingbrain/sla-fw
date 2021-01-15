@@ -109,6 +109,7 @@ class Display:
         for device in self.devices:
             device.exit()
         #endfor
+        self.screen = None
     #enddef
 
 

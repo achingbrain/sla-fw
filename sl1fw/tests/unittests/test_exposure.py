@@ -50,7 +50,7 @@ class TestExposure(Sl1fwTestCase):
         self.screen = Mock()
         self.screen.__class__ = Screen
         self.screen.__reduce__ = lambda x: (Mock, ())
-        self.screen.blit_image.return_value = 100
+        self.screen.sync_preloader.return_value = 100
         self.screen.printer_model = PrinterModel.SL1
         exposure_screen = self.screen.printer_model.exposure_screen
         self.screen.white_pixels_threshold = exposure_screen.width_px * exposure_screen.height_px * self.hw_config.limit4fast // 100
