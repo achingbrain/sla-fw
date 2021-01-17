@@ -13,6 +13,7 @@ from typing import Union, List, Any, Dict, get_type_hints, Optional
 
 from pydbus import Variant
 from pydbus.generic import signal
+from gi.repository import GLib
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.errors.exceptions import NotAvailableInState, DBusMappingException, PrinterException
@@ -221,6 +222,11 @@ def gen_method_dbus_args_spec(obj) -> List[str]:
 
 def python_to_dbus_value_type(data: Any):
     # pylint: disable = unidiomatic-typecheck
+
+    if isinstance(data, int):
+        if data > GLib.MAXINT32 or data < GLib.MININT32:
+            return "x"
+
     if type(data) in PYTHON_TO_DBUS_TYPE:
         return PYTHON_TO_DBUS_TYPE[type(data)]
 
@@ -247,6 +253,11 @@ def python_to_dbus_value_type(data: Any):
 
 def wrap_value(data: Any) -> Variant:
     # pylint: disable = unidiomatic-typecheck
+
+    if isinstance(data, int):
+        if data > GLib.MAXINT32 or data < GLib.MININT32:
+            return Variant("x", data)
+
     if type(data) in PYTHON_TO_DBUS_TYPE:
         return Variant(PYTHON_TO_DBUS_TYPE[type(data)], data)
 
