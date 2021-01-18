@@ -91,11 +91,14 @@ class Sl1fwTestCase(DBusTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Set stream handler heare in order to use stdout already captured by unittest
+        # Set stream handler here in order to use stdout already captured by unittest
         self.stream_handler = logging.StreamHandler(sys.stdout)
         self.stream_handler.setFormatter(logging.Formatter(self.LOGGER_FORMAT))
-        logging.getLogger().addHandler(self.stream_handler)
-        logging.getLogger().setLevel(logging.DEBUG)
+        logger = logging.getLogger()
+        if logger.hasHandlers():
+            raise RuntimeError("Handler already installed !!! Failed to run super().tearDown in previous test ???")
+        logger.addHandler(self.stream_handler)
+        logger.setLevel(logging.DEBUG)
 
     def tearDown(self) -> None:
         super().tearDown()

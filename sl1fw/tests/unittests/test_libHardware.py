@@ -27,6 +27,7 @@ class TestLibHardwareConnect(Sl1fwTestCase):
         self.hw.start()
 
     def tearDown(self) -> None:
+        super().tearDown()
         self.hw.exit()
         if os.path.isfile(self.EEPROM_FILE):
             os.remove(self.EEPROM_FILE)
