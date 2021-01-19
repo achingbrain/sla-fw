@@ -5,6 +5,7 @@
 
 import gc
 import unittest
+import weakref
 from pathlib import Path
 from time import sleep
 from typing import Type
@@ -176,14 +177,10 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         counter = 0
         for obj in gc.get_objects():
             try:
-                if isinstance(obj, instance_type):
-                    hash(obj)
+                if isinstance(obj, instance_type) and not isinstance(obj, weakref.ProxyTypes):
                     counter += 1
             except ReferenceError:
                 # Weak reference target just disappeared, does not count
-                pass
-            except TypeError:
-                # Weak references are not hashable, this is weakref, does not count
                 pass
         return counter
 
