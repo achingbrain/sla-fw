@@ -3,7 +3,9 @@
 # Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from dataclasses import dataclass
 from enum import Enum
+from functools import partial
 from typing import List
 
 from prusaerrors.shared.codes import Code
@@ -24,7 +26,7 @@ def with_code(code: str):
         cls.CODE = code
         cls.MESSAGE = code.message
         if not isinstance(code, Code):
-            raise ValueError(f"with_code requires valid error code string i.e \"#10108\", got: \"{code}\"")
+            raise ValueError(f'with_code requires valid error code string i.e "#10108", got: "{code}"')
         cls.__name__ = f"e{code.raw_code}.{cls.__name__}"
         return cls
 
@@ -33,6 +35,9 @@ def with_code(code: str):
 
 def get_exception_code(exception: Exception) -> Code:
     return getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN
+
+
+exception_dataclass = partial(dataclass, frozen=True, eq=True)
 
 
 @with_code(Sl1Codes.UNKNOWN)
