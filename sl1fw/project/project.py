@@ -27,7 +27,7 @@ from PySignal import Signal
 from sl1fw import defines
 from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, ProjectErrorNotEnoughLayers, \
                                 ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
-                                ProjectErrorWrongPrinterModel, NotEnoughInternalSpace
+                                ProjectErrorWrongPrinterModel
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ProjectSettingsModified, VariantMismatch
 from sl1fw.libConfig import HwConfig
 from sl1fw.project.config import ProjectConfig
@@ -388,33 +388,37 @@ class Project:
         return self.used_material_nl / 1e6
 
     def copy_and_check(self):
-        # check free space
-        statvfs = os.statvfs(os.path.dirname(defines.persistentStorage))
-        size_available = statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
-        self.logger.debug("Size available space: %d bytes", size_available)
-        try:
-            filesize = os.path.getsize(self.path)
-            self.logger.info("Zip file size: %d bytes", filesize)
-        except Exception as e:
-            self.logger.exception("filesize exception: %s", str(e))
-            raise ProjectErrorCantRead from e
-        try:
-            if size_available < filesize:
-                raise NotEnoughInternalSpace
-            (dummy, filename) = os.path.split(self.path)
-            new_source = os.path.join(defines.previousPrints, filename)
-            origin_path = os.path.normpath(self.path)
-            if os.path.normpath(new_source) != origin_path:
-                if origin_path.startswith(defines.mediaRootPath):
-                    shutil.copyfile(origin_path, new_source)
-                else:
-                    # FIXME we do not need space for whole project when creating symlink
-                    os.symlink(origin_path, new_source)
+        origin_path = os.path.normpath(self.path)
+        (dummy, filename) = os.path.split(origin_path)
+        new_source = os.path.join(defines.previousPrints, filename)
+        if origin_path.startswith(defines.internalProjectPath):
+            self.logger.debug("Internal storage file, creating symlink '%s' -> '%s'", origin_path, new_source)
+            os.symlink(origin_path, new_source)
             self.path = new_source
             self.path_changed.emit(self.path)
-        except Exception as e:
-            self.logger.exception("copyfile exception: %s", str(e))
-            self.warnings.add(PrintingDirectlyFromMedia())
+        else:
+            statvfs = os.statvfs(os.path.dirname(defines.previousPrints))
+            size_available = statvfs.f_frsize * statvfs.f_bavail - defines.internalReservedSpace
+            self.logger.debug("Internal storage available space: %d bytes", size_available)
+            try:
+                filesize = os.path.getsize(self.path)
+                self.logger.debug("Project file size: %d bytes", filesize)
+            except Exception as e:
+                self.logger.exception("filesize exception: %s", str(e))
+                raise ProjectErrorCantRead from e
+            if size_available < filesize:
+                self.logger.warning("Not enough free space, printing directly from USB.")
+                self.warnings.add(PrintingDirectlyFromMedia())
+            else:
+                try:
+                    self.logger.debug("Copying file to internal storage '%s' -> '%s'", origin_path, new_source)
+                    shutil.copyfile(origin_path, new_source)
+                    self.path = new_source
+                    self.path_changed.emit(self.path)
+                except Exception as e:
+                    self.logger.exception("copyfile exception: %s", str(e))
+                    self.logger.warning("Can't copy the project, printing directly from USB.")
+                    self.warnings.add(PrintingDirectlyFromMedia())
         try:
             zf = ZipFile(self.path, "r")
             badfile = zf.testzip()

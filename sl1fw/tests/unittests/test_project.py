@@ -3,12 +3,16 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import unittest
+from pathlib import Path
 
+from sl1fw import defines
 from sl1fw.libConfig import HwConfig
 from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorNotEnoughLayers, \
                                 ProjectErrorCorrupted, ProjectErrorWrongPrinterModel, \
                                 ProjectErrorCantRead, ProjectErrorCalibrationInvalid
+from sl1fw.errors.warnings import PrintingDirectlyFromMedia
 from sl1fw.project.project import Project, ProjectLayer, LayerCalibrationType
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.utils.bounding_box import BBox
@@ -38,6 +42,9 @@ class TestProject(Sl1fwTestCase):
         self.assertEqual.__self__.maxDiff = None
         self.hwConfig = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
         self.printer_model = PrinterModel.SL1
+        self.file2copy = self.SAMPLES_DIR / "Resin_calibration_object.sl1"
+        (dummy, filename) = os.path.split(self.file2copy)
+        self.destfile = Path(os.path.join(defines.previousPrints, filename))
 
     def test_notfound(self):
         with self.assertRaises(ProjectErrorNotFound):
@@ -59,6 +66,34 @@ class TestProject(Sl1fwTestCase):
         project = Project(self.hwConfig, self.printer_model, str(self.SAMPLES_DIR / "test_corrupted.sl1"))
         with self.assertRaises(ProjectErrorCorrupted):
             project.copy_and_check()
+
+    def test_copy_and_check(self):
+        project = Project(self.hwConfig, self.printer_model, str(self.file2copy))
+        project.copy_and_check()
+        self.assertFalse(PrintingDirectlyFromMedia() in project.warnings, "Printed directly warning issued")
+        self.destfile.unlink()
+
+    def test_avaiable_space_check_usb(self):
+        statvfs = os.statvfs(os.path.dirname(defines.previousPrints))
+        backup = defines.internalReservedSpace
+        defines.internalReservedSpace = statvfs.f_frsize * statvfs.f_bavail
+        project = Project(self.hwConfig, self.printer_model, str(self.file2copy))
+        project.copy_and_check()
+        self.assertTrue(PrintingDirectlyFromMedia() in project.warnings, "Printed directly warning not issued")
+        defines.internalReservedSpace = backup
+
+    def test_avaiable_space_check_internal(self):
+        statvfs = os.statvfs(os.path.dirname(defines.previousPrints))
+        backup1 = defines.internalReservedSpace
+        backup2 = defines.internalProjectPath
+        defines.internalReservedSpace = statvfs.f_frsize * statvfs.f_bavail
+        defines.internalProjectPath = str(self.SAMPLES_DIR)
+        project = Project(self.hwConfig, self.printer_model, str(self.file2copy))
+        project.copy_and_check()
+        self.assertFalse(PrintingDirectlyFromMedia() in project.warnings, "Printed directly warning issued")
+        self.destfile.unlink()
+        defines.internalReservedSpace = backup1
+        defines.internalProjectPath = backup2
 
     def test_printer_model(self):
         self.printer_model = PrinterModel.NONE

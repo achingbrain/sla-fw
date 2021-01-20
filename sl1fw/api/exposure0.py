@@ -28,7 +28,7 @@ from sl1fw.libExposure import Exposure
 from sl1fw.states.exposure import ExposureState
 from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, ProjectErrorNotEnoughLayers, \
                                 ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
-                                ProjectErrorWrongPrinterModel, NotEnoughInternalSpace, ExposureError
+                                ProjectErrorWrongPrinterModel, ExposureError
 
 
 @unique
@@ -99,7 +99,7 @@ class Exposure0ProjectState(Enum):
     ANALYSIS_FAILED = 6
     CALIBRATION_INVALID = 7
     WRONG_PRINTER_MODEL = 8
-    NOT_ENOUGH_INTERNAL_SPACE = 9
+    NOT_ENOUGH_INTERNAL_SPACE = 9   # obsolete
 
     @staticmethod
     def from_exception(exception: ExposureError) -> Exposure0ProjectState:
@@ -112,7 +112,6 @@ class Exposure0ProjectState(Enum):
             ProjectErrorAnalysisFailed: Exposure0ProjectState.ANALYSIS_FAILED,
             ProjectErrorCalibrationInvalid: Exposure0ProjectState.CALIBRATION_INVALID,
             ProjectErrorWrongPrinterModel: Exposure0ProjectState.WRONG_PRINTER_MODEL,
-            NotEnoughInternalSpace: Exposure0ProjectState.NOT_ENOUGH_INTERNAL_SPACE,
         }[exception]
 
 
