@@ -14,7 +14,7 @@ from sl1fw.errors.errors import (
     InvalidTiltAlignPosition,
 )
 from sl1fw.functions.checks import tilt_calib_start
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 from sl1fw.states.wizard import WizardState

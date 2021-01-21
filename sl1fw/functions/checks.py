@@ -15,7 +15,7 @@ from sl1fw.errors.errors import (
     TowerAxisCheckFailed,
     TowerBelowSurface,
 )
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 

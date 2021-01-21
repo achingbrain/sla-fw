@@ -4,7 +4,7 @@
 
 from typing import Iterable
 
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId, WizardState
 from sl1fw.wizard.groups.base import CheckGroup

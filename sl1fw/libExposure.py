@@ -43,7 +43,9 @@ from sl1fw.errors.errors import ExposureError, TiltFailed, TowerFailed, TowerMov
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough
 from sl1fw.errors.exceptions import NotAvailableInState
 from sl1fw.functions.system import shut_down
-from sl1fw.libConfig import HwConfig, TomlConfigStats, RuntimeConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.stats import TomlConfigStats
+from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
 from sl1fw.project.functions import check_ready_to_print

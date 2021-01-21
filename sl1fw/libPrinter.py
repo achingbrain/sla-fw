@@ -37,7 +37,10 @@ from sl1fw.functions.files import save_all_remain_wizard_history
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
-from sl1fw.libConfig import HwConfig, TomlConfig, RuntimeConfig, TomlConfigStats
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.toml import TomlConfig
+from sl1fw.configs.runtime import RuntimeConfig
+from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libHardware import MotConComState

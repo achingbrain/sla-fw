@@ -8,7 +8,7 @@ import numpy
 from PIL import Image
 
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.screen.printer_model import Calibration
 
 def get_white_pixels(image: Image) -> int:

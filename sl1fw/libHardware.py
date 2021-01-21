@@ -28,7 +28,7 @@ from PySignal import Signal
 from sl1fw import defines
 from sl1fw.errors.errors import TiltHomeFailed, TowerHomeFailed, TowerEndstopNotReached, TowerHomeCheckFailed
 from sl1fw.errors.exceptions import MotionControllerException
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.motion_controller.states import MotConComState
 from sl1fw.utils.value_checker import ValueChecker

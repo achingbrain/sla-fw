@@ -29,8 +29,8 @@ from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, Proj
                                 ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
                                 ProjectErrorWrongPrinterModel
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ProjectSettingsModified, VariantMismatch
-from sl1fw.libConfig import HwConfig
-from sl1fw.project.config import ProjectConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.project import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.utils.bounding_box import BBox
 from sl1fw.api.decorators import range_checked

@@ -9,18 +9,11 @@ from pathlib import Path
 from shutil import copyfile
 
 from sl1fw import defines
-from sl1fw.libConfig import (
-    HwConfig,
-    Config,
-    FloatValue,
-    IntListValue,
-    IntValue,
-    BoolValue,
-    FloatListValue,
-    TextValue,
-    ConfigWriter,
-)
-from sl1fw.project.config import ProjectConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.ini import Config
+from sl1fw.configs.writer import ConfigWriter
+from sl1fw.configs.value import FloatValue, IntListValue, IntValue, BoolValue, FloatListValue, TextValue
+from sl1fw.configs.project import ProjectConfig
 from sl1fw.tests.base import Sl1fwTestCase
 
 

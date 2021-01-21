@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pprint
-from sl1fw.libConfig import TomlConfig
+from sl1fw.configs.toml import TomlConfig
 
 class SlicerProfile(TomlConfig):
 

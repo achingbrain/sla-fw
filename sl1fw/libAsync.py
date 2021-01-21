@@ -13,7 +13,7 @@ from time import sleep
 from abc import ABC, abstractmethod
 
 from sl1fw import defines
-from sl1fw.libConfig import RuntimeConfig
+from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
 from sl1fw.slicer.profile_downloader import ProfileDownloader

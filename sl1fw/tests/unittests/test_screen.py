@@ -10,7 +10,7 @@ import numpy
 from PIL import Image
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.screen.screen import Screen
 from sl1fw.screen.resin_calibration import Area, AreaWithLabel, AreaWithLabelStripe, Calibration
 from sl1fw.project.project import Project

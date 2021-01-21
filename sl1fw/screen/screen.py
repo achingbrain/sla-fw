@@ -15,7 +15,7 @@ import numpy
 from PIL import Image, ImageOps
 
 from sl1fw import defines, test_runtime
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.errors.errors import PreloadFailed
 from sl1fw.project.project import Project
 from sl1fw.project.functions import get_white_pixels

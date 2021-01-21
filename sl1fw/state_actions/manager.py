@@ -19,7 +19,8 @@ from sl1fw import defines
 from sl1fw.api.display_test0 import DisplayTest0, DisplayTest0State
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.wizard0 import Wizard0
-from sl1fw.libConfig import HwConfig, RuntimeConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen

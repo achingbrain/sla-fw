@@ -39,7 +39,8 @@ from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.errors.exceptions import ReprintWithoutHistory, ConfigException
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
-from sl1fw.libConfig import TomlConfigStats, TomlConfig
+from sl1fw.configs.toml import TomlConfig
+from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.functions.wizards import (
     displaytest_wizard,
     unboxing_wizard,

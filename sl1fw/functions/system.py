@@ -12,7 +12,7 @@ import subprocess
 import distro
 import paho.mqtt.publish as mqtt
 
-from sl1fw import defines, libConfig, test_runtime
+from sl1fw import defines, test_runtime
 from sl1fw.errors.errors import (
     MissingWizardData,
     MissingCalibrationData,
@@ -21,7 +21,8 @@ from sl1fw.errors.errors import (
     FailedUpdateChannelSet,
     FailedUpdateChannelGet,
 )
-from sl1fw.libConfig import TomlConfig, HwConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.toml import TomlConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
 
@@ -49,7 +50,7 @@ def save_factory_mode(enable: bool):
     :param enable: Required factory mode state
     :return: True if successful, false otherwise
     """
-    return libConfig.TomlConfig(defines.factoryConfigPath).save(data={"factoryMode": enable})
+    return TomlConfig(defines.factoryConfigPath).save(data={"factoryMode": enable})
 
 
 def send_printer_data(hw: Hardware, config: HwConfig):

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from sl1fw import defines
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorNotEnoughLayers, \
                                 ProjectErrorCorrupted, ProjectErrorWrongPrinterModel, \
                                 ProjectErrorCantRead, ProjectErrorCalibrationInvalid

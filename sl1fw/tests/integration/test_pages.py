@@ -16,7 +16,8 @@ import pydbus
 
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 
-from sl1fw.libConfig import HwConfig, TomlConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.toml import TomlConfig
 
 
 class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):

@@ -5,7 +5,7 @@
 from time import sleep
 from typing import Optional
 
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType

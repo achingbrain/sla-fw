@@ -24,7 +24,8 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw.functions.system import get_update_channel
 from sl1fw.libHardware import Hardware
-from sl1fw.libConfig import TomlConfig, TomlConfigStats
+from sl1fw.configs.toml import TomlConfig
+from sl1fw.configs.stats import TomlConfigStats
 
 def create_summary(hw: Hardware, logger: logging.Logger, summary_path: Path):
     data_template = {

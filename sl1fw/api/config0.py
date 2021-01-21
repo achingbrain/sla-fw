@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING
 from pydbus.generic import signal
 
 from sl1fw.api.decorators import auto_dbus, dbus_api, wrap_dict_data_recursive
-from sl1fw.libConfig import HwConfig, Value, NumericValue, ListValue, TextValue
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.value import  Value, NumericValue, ListValue, TextValue
 
 if TYPE_CHECKING:
     from sl1fw.libHardware import Hardware

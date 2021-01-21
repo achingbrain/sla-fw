@@ -24,7 +24,8 @@ import distro
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines, test_runtime
-from sl1fw.libConfig import TomlConfig, TomlConfigStats
+from sl1fw.configs.toml import TomlConfig
+from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.states.display import DisplayState
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState

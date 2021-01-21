@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 
-from sl1fw.libConfig import RuntimeConfig, HwConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
 from sl1fw.screen.printer_model import PrinterModel

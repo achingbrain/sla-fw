@@ -12,7 +12,7 @@ from typing import Optional
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
-from sl1fw.libConfig import HwConfig
+from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware, MotConComState
 
 

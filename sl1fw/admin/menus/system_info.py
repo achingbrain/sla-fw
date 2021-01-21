@@ -14,7 +14,7 @@ from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.functions.system import get_octoprint_auth
-from sl1fw.libConfig import TomlConfigStats
+from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.libPrinter import Printer
 
 

@@ -6,7 +6,8 @@ from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminIntValue, AdminFloatValue, AdminBoolValue, AdminAction
 from sl1fw.admin.menu import AdminMenu, part
 from sl1fw.admin.menus.dialogs import Info
-from sl1fw.libConfig import HwConfig, IntValue, FloatValue, BoolValue
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.value import IntValue, FloatValue, BoolValue
 
 
 class HwConfigMenu(AdminMenu):

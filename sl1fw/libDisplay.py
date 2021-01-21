@@ -19,8 +19,8 @@ from typing import Optional, List
 
 from PySignal import Signal
 
-from sl1fw.libConfig import HwConfig
-from sl1fw.libConfig import RuntimeConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network

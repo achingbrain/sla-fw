@@ -6,7 +6,8 @@
 # TODO: Fix following pylint problems
 # pylint: disable=too-many-instance-attributes
 
-from sl1fw.libConfig import Config, FloatValue, IntValue, TextValue, BoolValue, FloatListValue
+from sl1fw.configs.ini import Config
+from sl1fw.configs.value import FloatValue, IntValue, TextValue, BoolValue, FloatListValue
 from sl1fw import defines
 
 

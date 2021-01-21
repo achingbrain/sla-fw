@@ -32,7 +32,7 @@ from sl1fw.api.decorators import (
     wrap_exception,
     DBusObjectPath
 )
-from sl1fw.libConfig import TomlConfig
+from sl1fw.configs.toml import TomlConfig
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer

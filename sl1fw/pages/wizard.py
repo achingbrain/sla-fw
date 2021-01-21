@@ -24,7 +24,7 @@ from sl1fw.errors.exceptions import ConfigException, get_exception_code
 from sl1fw.functions.checks import resin_sensor, tower_axis
 from sl1fw.functions.system import shut_down
 from sl1fw.functions.files import save_wizard_history
-from sl1fw.libConfig import TomlConfig
+from sl1fw.configs.toml import TomlConfig
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait

@@ -17,7 +17,8 @@ from sl1fw.screen.printer_model import PrinterModel
 from sl1fw import defines
 from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation, ProjectErrorCantRead
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
-from sl1fw.libConfig import HwConfig, RuntimeConfig
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libExposure import Exposure
 from sl1fw.states.exposure import ExposureState
 
