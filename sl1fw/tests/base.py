@@ -101,8 +101,8 @@ class Sl1fwTestCase(DBusTestCase):
         logger.setLevel(logging.DEBUG)
 
     def tearDown(self) -> None:
-        super().tearDown()
         logging.getLogger().removeHandler(self.stream_handler)
+        super().tearDown()
 
     def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg=None):
         if a.mode != b.mode:

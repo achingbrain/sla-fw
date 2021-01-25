@@ -38,9 +38,9 @@ class TestVirtualPrinter(DBusTestCase):
         cls.dbus_con = cls.get_dbus(system_bus=True)
 
     def tearDown(self):
-        super().tearDown()
         for dbus_mock in self.dbus_mocks:
             dbus_mock.unpublish()
+        super().tearDown()
 
     def run_virtual_without_system(self):
         # Setup common system services

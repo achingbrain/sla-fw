@@ -42,13 +42,13 @@ class TestUvMeterMulti60(Sl1fwTestCase):
         self.uvmeter = UvLedMeterMulti()
 
     def tearDown(self):
-        super().tearDown()
         files = [
             self.OUT,
         ]
         for file in files:
             if file.exists():
                 file.unlink()
+        super().tearDown()
 
     def test_generatePNG(self):
         data = toml.load(self.DATA)

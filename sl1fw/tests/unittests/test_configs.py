@@ -213,10 +213,10 @@ class TestHardwareConfig(Sl1fwTestCase):
         copyfile(defines.hwConfigPath, "hwconfig.test")
 
     def tearDown(self):
-        super().tearDown()
         for path in [self.test_config_path, self.writetest_config_path]:
             if path.exists():
                 path.unlink()
+        super().tearDown()
 
     def test_read(self):
         hw_config = HwConfig(Path(defines.hwConfigPath))
@@ -316,9 +316,9 @@ class TestConfigHelper(Sl1fwTestCase):
         self.helper = ConfigWriter(self.hwConfig)
 
     def tearDown(self):
-        super().tearDown()
         if self.CONFIG_PATH.exists():
             self.CONFIG_PATH.unlink()
+        super().tearDown()
 
     def test_boolValueStore(self):
         self.helper.autoOff = True

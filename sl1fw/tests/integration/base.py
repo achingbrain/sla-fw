@@ -137,7 +137,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.printer0_dbus.unpublish()
         self.printer.exit()
         self.thread.join()
-        super().tearDown()  # closes logger!
 
         files = [
             self.EEPROM_FILE,
@@ -155,6 +154,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.temp_dir_project.cleanup()
         self.temp_dir_wizard_history.cleanup()
         print(f'<<<<<===== {self.id()} =====>>>>>')
+        super().tearDown()  # closes logger!
 
     def press(self, identifier, data=None):
         print("Pressing button: %s on page %s" % (identifier, self.display.page))

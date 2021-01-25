@@ -27,10 +27,10 @@ class TestLibHardwareConnect(Sl1fwTestCase):
         self.hw.start()
 
     def tearDown(self) -> None:
-        super().tearDown()
         self.hw.exit()
         if os.path.isfile(self.EEPROM_FILE):
             os.remove(self.EEPROM_FILE)
+        super().tearDown()
 
     def test_mcc_connect_ok(self) -> None:
         self.assertEqual(MotConComState.OK, self.hw.mcc.connect(mc_version_check=False))
@@ -70,10 +70,10 @@ class TestLibHardware(Sl1fwTestCase):
             raise exception
 
     def tearDown(self):
-        super().tearDown()
         self.hw.exit()
         if self.EEPROM_FILE.exists():
             self.EEPROM_FILE.unlink()
+        super().tearDown()
 
     def test_connect(self):
         self.assertEqual(MotConComState.OK, self.hw_state)
