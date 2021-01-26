@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
+from logging.handlers import QueueListener
 from multiprocessing import Process, shared_memory, Queue
 import os
 from time import time
@@ -38,6 +39,8 @@ class Screen:
         self._sl: Optional[shared_memory.ShareableList] = None
         self._shm: Optional[list] = None
         self._preloader: Optional[Process] = None
+        self._preloader_log_queue = Queue()
+        self._preloader_log_listener = QueueListener(self._preloader_log_queue, *logging.getLogger().handlers)
         self._output = Wayland()    # may throw exception
         # FIXME this is ugly but can't mock this :-(
         if test_runtime.testing:
@@ -71,13 +74,16 @@ class Screen:
                 shared_memory.ShareableList(range(5), name=shm_prefix+SHMIDX.PROJECT_BBOX.name),
                 shared_memory.ShareableList(range(5), name=shm_prefix+SHMIDX.PROJECT_FL_BBOX.name),
                 shared_memory.ShareableList(range(11), name=shm_prefix+SHMIDX.PROJECT_TIMES_MS.name)]
-        self._preloader = Preloader(self.exposure_screen, self._start_preload, self._preload_result, shm_prefix)
+        self._preloader = Preloader(self.exposure_screen, self._start_preload, self._preload_result, shm_prefix,
+                                    self._preloader_log_queue)
+        self._preloader_log_listener.start()
         self._preloader.start()
         self._buffer = Image.new("L", self.exposure_screen.size_px)
 
     def exit(self):
         if self._preloader:
             self._preloader.join()
+            self._preloader_log_listener.stop()
         if self._sl:
             self._sl.shm.close()
             self._sl.shm.unlink()

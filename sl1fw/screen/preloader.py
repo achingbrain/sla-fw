@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
+from logging.handlers import QueueHandler
 from os import getpid
 from signal import signal, SIGTERM
 from enum import unique, IntEnum, IntFlag
@@ -52,10 +53,12 @@ class SLIDX(IntEnum):
     WHITE_PIXELS_THRESHOLD = 6
 
 class Preloader(Process):
-    # pylint: disable=too-many-instance-attributes
-    def __init__(self, exposure_screen: ExposureScreen, start_preload: Queue, preload_result: Queue, shm_prefix: str):
+    # pylint: disable=too-many-instance-attributes, too-many-arguments
+    def __init__(self, exposure_screen: ExposureScreen, start_preload: Queue, preload_result: Queue, shm_prefix: str,
+                 log_queue: Queue):
         super().__init__()
         self._logger = logging.getLogger(__name__)
+        self._log_queue = log_queue
         self._exposure_screen = exposure_screen
         self._start_preload = start_preload
         self._preload_result = preload_result
@@ -90,6 +93,9 @@ class Preloader(Process):
         return super().join(timeout)
 
     def run(self):
+        queue_handler = QueueHandler(self._log_queue)
+        logging.getLogger().addHandler(queue_handler)
+        self._logger = logging.getLogger(__name__)
         self._logger.info("process started")
         self._logger.debug("process PID: %d", getpid())
         signal(SIGTERM, self.signal_handler)
@@ -102,7 +108,14 @@ class Preloader(Process):
             except Exception:
                 self._logger.exception("get calibration_type exception")
                 continue
-            self._preload_result.put(self._preload(calibration_type))
+            try:
+                self._preload_result.put(self._preload(calibration_type))
+            except Exception:
+                self._logger.exception("Preload failed")
+                # TODO: We would need to recover from error or force resart of the printer.
+                # This way all subsequent prints will end up with preloader timeout as this
+                # kills the preloader process.
+                raise
 
         if self._shm:
             for shm in self._shm:
