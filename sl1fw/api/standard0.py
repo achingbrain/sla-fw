@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import functools
+import weakref
 from enum import Enum
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List, Union, TYPE_CHECKING
@@ -24,19 +25,13 @@ from sl1fw import defines
 from sl1fw.states.printer import PrinterState, Printer0State
 from sl1fw.api.exposure0 import Exposure0, Exposure0State
 from sl1fw.errors.exceptions import NotAvailableInState
-from sl1fw.api.decorators import (
-    auto_dbus,
-    dbus_api,
-    last_error,
-    wrap_dict_data,
-    wrap_exception,
-    DBusObjectPath
-)
+from sl1fw.api.decorators import auto_dbus, dbus_api, last_error, wrap_dict_data, wrap_exception, DBusObjectPath
 from sl1fw.configs.toml import TomlConfig
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
     from sl1fw.libExposure import Exposure
+
 
 def state_checked(allowed_state: Union[Enum, List[Enum]]):
     """
@@ -64,6 +59,7 @@ def state_checked(allowed_state: Union[Enum, List[Enum]]):
 
     return decor
 
+
 @dbus_api
 class Standard0:
     """
@@ -76,10 +72,10 @@ class Standard0:
 
     # Mode R | Mode W: bool
     PROPERTIES_ALLOWED = {
-            "exposure_time_ms": True,
-            "exposure_time_first_ms": True,
-            "calibration_regions": False,
-            "exposure_time_calibrate_ms": True
+        "exposure_time_ms": True,
+        "exposure_time_first_ms": True,
+        "calibration_regions": False,
+        "exposure_time_calibrate_ms": True,
     }
 
     PROPERTIES_GROUP = {
@@ -87,13 +83,14 @@ class Standard0:
             "exposure_time_ms",
             "exposure_time_first_ms",
             "calibration_regions",
-            "exposure_time_calibrate_ms"
+            "exposure_time_calibrate_ms",
         }
     }
 
     def __init__(self, printer: Printer):
         self._last_exception: Optional[Exception] = None
-        self._printer = printer
+        # Avoid keeping printer alive by API object. Printer object shares lifecycle with the whole application.
+        self._printer = weakref.proxy(printer)
         self.__info_mac = None
         self.__info_uuid = None
         self._printer.display.state_changed.connect(self._state_update)
@@ -101,7 +98,7 @@ class Standard0:
         self._printer.action_manager.exposure_change.connect(self._state_update)
         self._last_state = None
 
-    def _state_update(self, *args): # pylint: disable=unused-argument
+    def _state_update(self, *args):  # pylint: disable=unused-argument
         state = self._state
         if self._last_state != state:
             self.PropertiesChanged(self.__INTERFACE__, {"state": state}, [])
@@ -119,7 +116,6 @@ class Standard0:
 
         return Printer0State.IDLE
 
-
     @property
     def _current_expo(self) -> Exposure:
         """
@@ -130,9 +126,8 @@ class Standard0:
 
         raise NotAvailableInState(self._printer_state, [Printer0State.PRINTING])
 
-
     @property
-    def _state(self) ->  str:
+    def _state(self) -> str:
         state = self._printer_state
 
         try:
@@ -149,7 +144,12 @@ class Standard0:
         elif state == Printer0State.PRINTING:
             if substate == Exposure0State.PRINTING:
                 result = "PRINTING"
-            elif substate in [Exposure0State.COVER_OPEN, Exposure0State.FEED_ME, Exposure0State.CHECK_WARNING, Exposure0State.CONFIRM]:
+            elif substate in [
+                Exposure0State.COVER_OPEN,
+                Exposure0State.FEED_ME,
+                Exposure0State.CHECK_WARNING,
+                Exposure0State.CONFIRM,
+            ]:
                 result = "ATTENTION"
             elif substate in [Exposure0State.DONE, Exposure0State.CANCELED, Exposure0State.FINISHED]:
                 result = "FINISHED"
@@ -164,9 +164,9 @@ class Standard0:
         network = SystemBus().get("org.freedesktop.NetworkManager")
         for device_path in network.Devices:
             dev = SystemBus().get("org.freedesktop.NetworkManager", device_path)
-            if dev.Interface == 'eth0':
+            if dev.Interface == "eth0":
                 mac_eth0 = dev.HwAddress
-            elif dev.Interface == 'wlan0':
+            elif dev.Interface == "wlan0":
                 mac_wlan0 = dev.HwAddress
 
         uuid_hash = hashlib.blake2b(digest_size=16)
@@ -192,12 +192,11 @@ class Standard0:
 
     @auto_dbus
     @property
-    def state(self) ->  str:
+    def state(self) -> str:
         """
         Return a generic state
         """
         return self._state
-
 
     @auto_dbus
     @property
@@ -259,12 +258,12 @@ class Standard0:
         """
         exposure = self._current_expo
         data = {
-                "current_layer": exposure.actual_layer,
-                "total_layers": exposure.project.total_layers,
-                "remaining_material" : exposure.remain_resin_ml if exposure.remain_resin_ml else -1,
-                "consumed_material": exposure.resin_count,
-                "progress": 100 * exposure.progress,
-                "remaining_time": exposure.countRemainTime() * 60000
+            "current_layer": exposure.actual_layer,
+            "total_layers": exposure.project.total_layers,
+            "remaining_material": exposure.remain_resin_ml if exposure.remain_resin_ml else -1,
+            "consumed_material": exposure.resin_count,
+            "progress": 100 * exposure.progress,
+            "remaining_time": exposure.countRemainTime() * 60000,
         }
         if exposure.printStartTime.microsecond == 0:
             data["time_elapsed"] = 0
@@ -301,12 +300,14 @@ class Standard0:
                 },
             }
         """
-        return wrap_dict_data({
-            "cover_closed": self._printer.hw.isCoverClosed(),
-            "temperatures": self._printer.hw.getTemperaturesDict(),
-            "fans" : self._printer.hw.getFansRpmDict(),
-            "state": self._state,
-        })
+        return wrap_dict_data(
+            {
+                "cover_closed": self._printer.hw.isCoverClosed(),
+                "temperatures": self._printer.hw.getTemperaturesDict(),
+                "fans": self._printer.hw.getFansRpmDict(),
+                "state": self._state,
+            }
+        )
 
     ## PROJECT PROPERTIES ##
 
@@ -323,7 +324,6 @@ class Standard0:
         """
         exposure = self._current_expo
         return str(exposure.project.path)
-
 
     @auto_dbus
     @last_error
@@ -403,10 +403,10 @@ class Standard0:
                 "exposure_times": "{0:.3g}/{1:.3g}/{2:.3g} s".format(
                     exposure.project.exposure_time_first_ms / 1000,
                     exposure.project.exposure_time_ms / 1000,
-                    exposure.project.calibrate_time_ms / 1000
+                    exposure.project.calibrate_time_ms / 1000,
                 ),
                 "last_modified": exposure.project.modification_time * 1000,
-                "total_layers": exposure.project.total_layers
+                "total_layers": exposure.project.total_layers,
             }
         )
 
@@ -422,7 +422,8 @@ class Standard0:
 
         :param project_path: Path to project in printer filesystem
         :param auto_advance: Automatic start print
-        :param ignore_errors: Don't throw errors, useful to try open the latest project when uploading a new file or plug an USB.
+        :param ignore_errors: Don't throw errors, useful to try open the latest project when uploading a new file or
+         plug an USB.
 
         :returns: Print task object
         """
@@ -443,7 +444,7 @@ class Standard0:
                 self._printer.hw,
                 self._printer.screen,
                 self._printer.runtime_config,
-                project_path
+                project_path,
             )
 
             # start print automaticaly
@@ -468,7 +469,6 @@ class Standard0:
         """
         self._current_expo.confirm_print_start()
 
-
     @auto_dbus
     @last_error
     @state_checked([Exposure0State.PRINTING, Exposure0State.CHECKS, Exposure0State.CONFIRM, Exposure0State.COVER_OPEN])
@@ -491,7 +491,6 @@ class Standard0:
             self._current_expo.doFeedMe()
         else:
             raise TypeError(f"Unknoun motivation: {motivation}")
-
 
     @auto_dbus
     @last_error
@@ -539,16 +538,10 @@ class Standard0:
                 "options": { "api_key": "samebigstring" }
             }
         """
-        if TomlConfig(defines.remoteConfig).load().get('htdigest', True):
-            data = {
-                "type": "digest" ,
-                "password": self._printer.get_actual_page().octoprintAuth
-            }
+        if TomlConfig(defines.remoteConfig).load().get("htdigest", True):
+            data = {"type": "digest", "password": self._printer.get_actual_page().octoprintAuth}
         else:
-            data = {
-                "type": "api_key",
-                "api_key": self._printer.get_actual_page().octoprintAuth
-            }
+            data = {"type": "api_key", "api_key": self._printer.get_actual_page().octoprintAuth}
         return wrap_dict_data(data)
 
     ## SYSTEM ##
