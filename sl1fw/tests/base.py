@@ -3,11 +3,13 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import gc
 import logging
 import sys
 import tempfile
 import threading
 import warnings
+import weakref
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -33,6 +35,13 @@ sys.modules["serial"] = sl1fw.tests.mocks.mc_port
 sys.modules["serial.tools.list_ports"] = Mock()
 sys.modules["evdev"] = Mock()
 sys.modules["sl1fw.screen.wayland"] = Mock()
+
+# These needs to be imported after sys.module override
+# pylint: disable = wrong-import-position
+from sl1fw.libPrinter import Printer
+from sl1fw.screen.screen import Screen
+from sl1fw.api.printer0 import Printer0
+from sl1fw.libExposure import Exposure
 
 
 class Sl1fwTestCase(DBusTestCase):
@@ -94,6 +103,7 @@ class Sl1fwTestCase(DBusTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+
         # Set stream handler here in order to use stdout already captured by unittest
         self.stream_handler = logging.StreamHandler(sys.stdout)
         self.stream_handler.setFormatter(logging.Formatter(self.LOGGER_FORMAT))
@@ -105,7 +115,31 @@ class Sl1fwTestCase(DBusTestCase):
 
     def tearDown(self) -> None:
         logging.getLogger().removeHandler(self.stream_handler)
+        self.ref_check_type(Printer0)
+        self.ref_check_type(Printer)
+        self.ref_check_type(Exposure)
+        self.ref_check_type(Screen)
         super().tearDown()
+
+    def ref_check_type(self, t: type):
+        gc.collect()
+        instances = 0
+        for obj in gc.get_objects():
+            try:
+                if isinstance(obj, (weakref.ProxyTypes, Mock)):
+                    continue
+                if isinstance(obj, t):
+                    instances += 1
+                    print(f"Referrers to {t}:")
+                    for num, ref in enumerate(gc.get_referrers(obj)):
+                        if isinstance(ref, list) and len(ref) > 100:
+                            print(f"Referrer {num}: <100+ LONG LIST>")
+                        else:
+                            print(f"Referrers {num}: {ref} - {type(ref)}")
+            except ReferenceError:
+                # Weak reference no longer valid
+                pass
+        self.assertEqual(0, instances, f"Found {instances} of {t} left behind by test run")
 
     def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg=None):
         if a.mode != b.mode:
