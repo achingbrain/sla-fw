@@ -17,7 +17,6 @@ from typing import List, Dict, TYPE_CHECKING, Any, Optional
 
 import distro
 import pydbus
-from PySignal import Signal
 from deprecation import deprecated
 from pydbus.generic import signal
 
@@ -35,12 +34,12 @@ from sl1fw.api.decorators import (
 from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
+from sl1fw.configs.stats import TomlConfigStats
+from sl1fw.configs.toml import TomlConfig
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.errors.exceptions import ReprintWithoutHistory, ConfigException
 from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import shut_down
-from sl1fw.configs.toml import TomlConfig
-from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.functions.wizards import (
     displaytest_wizard,
     unboxing_wizard,
@@ -95,38 +94,71 @@ class Printer0:
         self._calibration = None
         self._prints = []
 
-        self._connect_property(self.printer.display.state_changed, "state")
-        self._connect_property(self.printer.state_changed, "state")
-        self._connect_property(self.printer.exception_changed, "printer_exception")
-        self._connect_property(self.printer.hw.fans_changed, "fans")
-        self.printer.hw.mc_temps_changed.connect(
-            lambda value: self.PropertiesChanged(self.__INTERFACE__, {"temps": self._format_temps(value)}, [])
-        )
-        self._connect_property_value(self.printer.hw.cpu_temp_changed, "cpu_temp")
-        self.printer.hw.led_voltages_changed.connect(
-            lambda value: self.PropertiesChanged(self.__INTERFACE__, {"leds": self._format_leds(value)}, [])
-        )
-        self._connect_property_value(self.printer.hw.resin_sensor_state_changed, "resin_sensor_state")
-        self._connect_property_value(self.printer.hw.cover_state_changed, "cover_state")
-        self._connect_property_value(self.printer.hw.power_button_state_changed, "power_switch_state")
-        self._connect_property(self.printer.action_manager.exposure_change, "current_exposure")
-        self._connect_property(self.printer.hw.mc_sw_version_changed, "controller_sw_version")
-        self.printer.hw.uv_statistics_changed.connect(
-            lambda value: self.PropertiesChanged(
-                self.__INTERFACE__, {"uv_statistics": self._format_uv_statistics(value)}, []
-            )
-        )
-        self._connect_property_value(self.printer.runtime_config.factory_mode_changed, "factory_mode")
-        self._connect_property_value(self.printer.runtime_config.show_admin_changed, "admin_enabled")
+        self.printer.display.state_changed.connect(self._on_state_changed)
+        self.printer.state_changed.connect(self._on_state_changed)
+        self.printer.exception_changed.connect(self._on_exception_changed)
+        self.printer.hw.fans_changed.connect(self._on_fans_changed)
+        self.printer.hw.mc_temps_changed.connect(self._on_temps_changed)
+        self.printer.hw.cpu_temp_changed.connect(self._on_cpu_temp_changed)
+        self.printer.hw.led_voltages_changed.connect(self._on_led_voltages_changed)
+        self.printer.hw.resin_sensor_state_changed.connect(self._on_resin_sensor_changed)
+        self.printer.hw.cover_state_changed.connect(self._on_cover_state_changed)
+        self.printer.hw.power_button_state_changed.connect(self._on_power_switch_state_changed)
+        self.printer.action_manager.exposure_change.connect(self._on_exposure_change)
+        self.printer.hw.mc_sw_version_changed.connect(self._on_controller_sw_version_change)
+        self.printer.hw.uv_statistics_changed.connect(self._on_uv_statistics_changed)
+        self.printer.runtime_config.factory_mode_changed.connect(self._on_factory_mode_changed)
+        self.printer.runtime_config.show_admin_changed.connect(self._on_admin_enabled_changed)
+        self.printer.hw.tower_position_changed.connect(self._on_tower_position_changed)
+        self.printer.hw.tilt_position_changed.connect(self._on_tilt_position_changed)
 
-        self._connect_property(self.printer.hw.tower_position_changed, "tower_position_nm")
-        self._connect_property(self.printer.hw.tilt_position_changed, "tilt_position")
+    def _on_state_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
 
-    def _connect_property(self, sig: Signal, prop: str):
-        sig.connect(lambda: self.PropertiesChanged(self.__INTERFACE__, {prop: getattr(self, prop)}, []))
+    def _on_exception_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"printer_exception": self.printer_exception}, [])
 
-    def _connect_property_value(self, sig: Signal, prop: str):
-        sig.connect(lambda value: self.PropertiesChanged(self.__INTERFACE__, {prop: value}, []))
+    def _on_fans_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
+
+    def _on_temps_changed(self, value):
+        self.PropertiesChanged(self.__INTERFACE__, {"temps": self._format_temps(value)}, [])
+
+    def _on_cpu_temp_changed(self, value):
+        self.PropertiesChanged(self.__INTERFACE__, {"cpu_temp": value}, [])
+
+    def _on_led_voltages_changed(self, value):
+        self.PropertiesChanged(self.__INTERFACE__, {"leds": self._format_leds(value)}, [])
+
+    def _on_resin_sensor_changed(self, value: bool):
+        self.PropertiesChanged(self.__INTERFACE__, {"resin_sensor_state": value}, [])
+
+    def _on_cover_state_changed(self, value):
+        self.PropertiesChanged(self.__INTERFACE__, {"cover_state": value}, [])
+
+    def _on_power_switch_state_changed(self, value):
+        self.PropertiesChanged(self.__INTERFACE__, {"power_switch_state": value}, [])
+
+    def _on_exposure_change(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"current_exposure": self.current_exposure}, [])
+
+    def _on_controller_sw_version_change(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"controller_sw_version": self.controller_sw_version}, [])
+
+    def _on_uv_statistics_changed(self, value):
+        self.PropertiesChanged(self.__INTERFACE__, {"uv_statistics": self._format_uv_statistics(value)}, [])
+
+    def _on_factory_mode_changed(self, value):
+        self.PropertiesChanged(self.__INTERFACE__, {"factory_mode": value}, [])
+
+    def _on_admin_enabled_changed(self, value):
+        self.PropertiesChanged(self.__INTERFACE__, {"admin_enabled": value}, [])
+
+    def _on_tower_position_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"tower_position_nm": self.tower_position_nm}, [])
+
+    def _on_tilt_position_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"tilt_position": self.tilt_position}, [])
 
     @auto_dbus
     @property

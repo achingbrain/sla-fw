@@ -5,6 +5,7 @@
 
 import os
 import shutil
+import weakref
 
 from pathlib import Path
 from queue import Empty
@@ -67,7 +68,10 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         # overide writeToFactory function
         self.printer.display.pages["factoryreset"].writeToFactory = self.call
 
-        self.printer0_dbus = SystemBus().publish(Printer0.__INTERFACE__, Printer0(self.printer))
+        self._printer0 = Printer0(self.printer)
+        # pylint: disable = no-member
+        self.printer0_dbus = SystemBus().publish(Printer0.__INTERFACE__, (None, weakref.proxy(self._printer0),
+                                                                          self._printer0.dbus))
         self.thread = Thread(target=self.printer_thread)
 
         self.tryStartPrinter()
@@ -135,8 +139,19 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
     def tearDown(self):
         self.printer0_dbus.unpublish()
+        print(Printer0.PropertiesChanged.map)
+        if self._printer0 in Printer0.PropertiesChanged.map:
+            del Printer0.PropertiesChanged.map[self._printer0]
+
         self.printer.exit()
         self.thread.join()
+
+        # Make sure we are not leaving these behind.
+        # Base test tear down checks this does not happen.
+        del self.printer
+        del self._printer0
+        del self.printer0_dbus
+        test_runtime.screen = None
 
         files = [
             self.EEPROM_FILE,

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import weakref
 from enum import unique, IntEnum
 
 from PySignal import Signal
@@ -37,10 +38,10 @@ class DisplayTest0:
 
     def __init__(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
         self.logger = logging.getLogger(__name__)
-        self._hw = hw
-        self._screen = screen
-        self._runtime_config = runtime_config
-        self._hw_config = hw_config
+        self._hw = weakref.proxy(hw)
+        self._screen = weakref.proxy(screen)
+        self._runtime_config = weakref.proxy(runtime_config)
+        self._hw_config = weakref.proxy(hw_config)
         self._state = DisplayTest0State.INIT
         self.change = Signal()
         self.change.connect(self._state_changed)

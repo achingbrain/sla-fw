@@ -125,14 +125,17 @@ class ActionManager:
         self.logger.info("New exposure registered as: %s", path)
 
         # Maintain history of exposure registrations
-        while self._exposure_dbus_objects.qsize() > self.MAX_EXPOSURES:
+        self._shrink_exposures_to(self.MAX_EXPOSURES)
+
+        return path
+
+    def _shrink_exposures_to(self, limit: int):
+        while self._exposure_dbus_objects.qsize() > limit:
             exposure0, registration = self._exposure_dbus_objects.get()
             registration.unregister()
             # TODO: it is not nice to touch pydbus signal internals, we would better fix the library
             # The map holds strong reference to the Exposure0 preventing release of the exposure from RAM.
             del Exposure0.PropertiesChanged.map[exposure0]
-
-        return path
 
     @property
     def exposure(self) -> Optional[Exposure]:
@@ -151,8 +154,9 @@ class ActionManager:
         # Create new display test
         display_test = DisplayTest0(hw, hw_config, screen, runtime_config)
         display_test.change.connect(self.display_test_change.emit)
+        # pylint: disable=no-member
         self._display_test_registration = self._system_bus.publish(
-            DisplayTest0.__INTERFACE__, (DisplayTest0.DBUS_PATH, display_test)
+            DisplayTest0.__INTERFACE__, (DisplayTest0.DBUS_PATH, weakref.proxy(display_test), display_test.dbus)
         )
         self.display_test_change.emit()
 
@@ -181,15 +185,15 @@ class ActionManager:
         return self._wizard
 
     def exit(self):
-        while not self._exposure_dbus_objects.empty():
-            _, registration = self._exposure_dbus_objects.get()
-            registration.unregister()
+        self._shrink_exposures_to(0)
         if self._exposure_bus_name:
             self._exposure_bus_name.unown()
         if self._display_test_registration:
             self._display_test_registration.unpublish()
         if self._wizard_registration:
             self._wizard_registration.unpublish()
+        # Throw away reference to let exposure garbage collect
+        self._current_exposure = None
 
     def _on_exposure_change(self, __, changed, ___):
         if "state" in changed:

@@ -24,6 +24,7 @@ import logging
 import pickle
 import queue
 import threading
+import weakref
 from hashlib import md5
 from logging import Logger
 from pathlib import Path
@@ -99,7 +100,7 @@ class ExposureThread(threading.Thread):
         super(ExposureThread, self).__init__()
         self.logger = logging.getLogger(__name__)
         self.commands = commands
-        self.expo = expo
+        self.expo = weakref.proxy(expo)  # weak reference to avoid reference cycle ExposureThread <-> Exposure
         self.warning_dismissed = Event()
         self.warning_result: Optional[Exception] = None
         self._pending_warning = threading.Lock()
@@ -740,6 +741,7 @@ class ExposureThread(threading.Thread):
 
         self.logger.debug("Exposure ended")
 
+
     def _wait_cover_close(self) -> bool:
         """
         Waits for cover close
@@ -792,7 +794,7 @@ class Exposure:
         self.exposure_end: Optional[datetime] = None
         self.instance_id = job_id
         self.check_results = TraceableDict()
-        self.check_results.changed.connect(lambda: self.change.emit("check_results", self.check_results))
+        self.check_results.changed.connect(self._on_check_result_change)
         self.exception: Optional[ExposureError] = None
         self.warning: Optional[Warning] = None
         self.canceled = False
@@ -805,7 +807,7 @@ class Exposure:
             self.state = ExposureState.CONFIRM
             # Signal project change on its parameter change. This lets Exposure0 emit
             # property changed on properties bound to project parameters.
-            self.project.params_changed.connect(lambda: self.change.emit("project", None))
+            self.project.params_changed.connect(self._on_project_changed)
         except Exception as exception:
             # TODO: It is not nice to handle this in the constructor, but still better than let the constructor raise
             # TODO: an exception and kill the whole printer logic.
@@ -819,6 +821,12 @@ class Exposure:
             self.hw.stopFans()
             self.hw.motorsRelease()
         self.logger.info("Created new exposure object id: %s", self.instance_id)
+
+    def _on_check_result_change(self):
+        self.change.emit("check_results", self.check_results)
+
+    def _on_project_changed(self):
+        self.change.emit("project", None)
 
     def confirm_print_start(self):
         self.expoThread.start()

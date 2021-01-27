@@ -15,6 +15,7 @@ import re
 import hashlib
 import threading
 import subprocess
+import weakref
 from pathlib import Path
 from time import monotonic
 from typing import Optional
@@ -238,8 +239,8 @@ class Printer:
         try:
             self.logger.info("Registering event handlers")
             self.inet.register_events()
-            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(self._locale_changed)
-            self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
+            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(weakref.proxy(self._locale_changed))
+            self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(weakref.proxy(self._rauc_changed))
 
             self.logger.info("Connecting motion controller")
             state = self.hw.connectMC()

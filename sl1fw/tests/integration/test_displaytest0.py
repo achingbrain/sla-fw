@@ -40,5 +40,5 @@ class TestIntegrationDisplayTest0(Sl1FwIntegrationTestCaseBase):
         self.displaytest0.finish(True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -45,6 +45,9 @@ class TestScreen(Sl1fwTestCase):
         for file in files:
             if file.exists():
                 file.unlink()
+        # Make sure we do not leave Screen instances behind
+        # There is a test to ensure this does not happen in tests
+        del self.screen
         super().tearDown()
 
     def test_basics(self):
