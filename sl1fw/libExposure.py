@@ -964,9 +964,8 @@ class Exposure:
         return -1
 
     def write_last_exposure(self):
-        self.save()
-        if self.canceled or not self.hwConfig.autoOff:
-            Exposure.cleanup_last_data(self.logger)
+        if self.hwConfig.autoOff and not self.canceled:
+            self.save()
 
     def save(self):
         self.logger.debug("Storing Exposure data")
