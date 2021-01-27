@@ -44,19 +44,22 @@ class Sl1fwTestCase(DBusTestCase):
     TEMP_DIR = Path(temp_dir_obj.name)
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
 
+    dbus_started = False
     dbus_mocks = []
     event_loop = GLib.MainLoop()
     event_thread: threading.Thread = None
 
     @classmethod
     def setUpClass(cls):
+        DBusTestCase.setUpClass()
         warnings.simplefilter("always")
         test_runtime.testing = True
         defines.ramdiskPath = str(cls.TEMP_DIR)
         defines.previousPrints = str(cls.TEMP_DIR)
         defines.emmc_serial_path = cls.SAMPLES_DIR / "cid"
-        cls.start_system_bus()
-        cls.dbus_con = cls.get_dbus(system_bus=True)
+        if not cls.dbus_started:
+            cls.start_system_bus()
+            cls.dbus_started = True
 
         bus = pydbus.SystemBus()
         nm = NetworkManager()
