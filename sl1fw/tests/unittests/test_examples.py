@@ -9,10 +9,9 @@ from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.libNetwork import Network
 from sl1fw.state_actions.examples import Examples
 from sl1fw.states.examples import ExamplesState
-from sl1fw.tests.mocks.network import fake_network_system_bus
+from sl1fw.tests.mocks.network import fake_network_system_bus, Network
 
 
 class TestExamples(Sl1fwTestCase):
@@ -22,7 +21,7 @@ class TestExamples(Sl1fwTestCase):
         self.unpack_happening = False
         self.copy_happening = False
 
-    def test_examples_download(self):
+    def test_examples_fake_download(self):
         with TemporaryDirectory() as temp:
             chown = Mock()
             with patch("sl1fw.defines.internalProjectPath", temp), patch("os.chown", chown), patch(
@@ -31,13 +30,13 @@ class TestExamples(Sl1fwTestCase):
                 self._internal_examples_download()
             chown.assert_called()
             examples = list(Path(temp).rglob("*.sl1"))
-            self.assertLess(3, len(examples))
+            self.assertEqual(3, len(examples))
             self.assertTrue(self.download_happening)
             self.assertTrue(self.unpack_happening)
             self.assertTrue(self.copy_happening)
 
     def _internal_examples_download(self):
-        network = Network("TEST SERIAL")
+        network = Network()
         examples = Examples(network)
         examples.start()
         examples.change.connect(functools.partial(self.check_change, examples))

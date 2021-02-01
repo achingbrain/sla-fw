@@ -5,20 +5,44 @@
 
 # pylint: disable=too-few-public-methods
 
+from pathlib import Path
+from shutil import copyfile
+from typing import Optional, Callable
 from unittest.mock import Mock
 
 from PySignal import Signal
 
+from sl1fw import defines
+from sl1fw.tests import samples
+
 
 class Network:
-    def __init__(self):
+    def __init__(self, *_, **__):
         self.ip = "1.2.3.4"
         self.devices = {"eth0": "1.2.3.4"}
         self.hostname = "test_hostname"
         self.net_change = Signal()
 
+    def register_events(self):
+        pass
+
     def start_net_monitor(self):
         pass
+
+    @staticmethod
+    def download_url(
+        url: str,
+        destination: str,
+        progress_callback: Optional[Callable[[float], None]] = None,
+    ):
+        if url != defines.examplesURL:
+            raise ValueError(f"Unsupported mock url value: {url}")
+        mini_examples = Path(samples.__file__).parent / "mini_examples.tar.gz"
+        progress_callback(0)
+        progress_callback(1)
+        copyfile(mini_examples, destination)
+        progress_callback(99)
+        progress_callback(100)
 
 
 def fake_network_system_bus():
