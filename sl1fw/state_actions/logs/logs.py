@@ -321,8 +321,8 @@ class ServerUpload(LogsExport):
                     filename=src.name,
                     content_type="application/x-xz",
                 )
-                data.add_field("token", "12345")
-                data.add_field("serial", "CZPX1419X009XC00271")
+                data.add_field("token", defines.log_upload_token)
+                data.add_field("serial", self._hw.cpuSerialNo)
 
                 try:
                     async with session.post(url=defines.log_url, data=data) as response:
