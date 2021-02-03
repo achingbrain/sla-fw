@@ -4,7 +4,7 @@
 
 from threading import Event
 from time import sleep, time
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from sl1fw import defines
 from sl1fw.errors.errors import (
@@ -143,9 +143,9 @@ class TiltAlignTest(SyncCheck):
             Configuration(TankSetup.REMOVED, None),
             [Resource.TILT, Resource.TOWER_DOWN],
         )
-        self.hw = hw
+        self._hw = hw
         self.hw_config = hw_config
-
+        self._tilt_height = None
         self.tilt_aligned_event = Event()
 
     def task_run(self, actions: UserActionBroker):
@@ -159,12 +159,16 @@ class TiltAlignTest(SyncCheck):
             actions.drop_state(level_tilt_state)
 
     def tilt_aligned(self):
-        position = self.hw.tilt_position
+        position = self._hw.tilt_position
         if position is None:
-            self.hw.beepAlarm(3)
+            self._hw.beepAlarm(3)
             raise InvalidTiltAlignPosition(position)
-        self.hw_config.tiltHeight = position
+        self._tilt_height = position
+        self.hw_config.tiltHeight = self._tilt_height
         self.tilt_aligned_event.set()
 
     def tilt_move(self, direction: int):
-        self.hw.tilt_move(direction, fullstep=True)
+        self._hw.tilt_move(direction, fullstep=True)
+
+    def get_result_data(self) -> Dict[str, Any]:
+        return {"tiltHeight": self._tilt_height}

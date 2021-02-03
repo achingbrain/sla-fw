@@ -31,22 +31,23 @@ def get_save_path() -> Optional[Path]:
         return None
     return usbs[0]
 
+
 def save_wizard_history(path: Path):
+    # TODO: Limit history size
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if path.parent == defines.factoryMountPoint:
-        mode = "factory_data"
+        wizard_history = defines.wizardHistoryPath / f"{path.stem}.{timestamp}{path.suffix}"
     else:
-        mode =  "user_data"
+        wizard_history = defines.wizardHistoryPathFactory / f"{path.stem}.{timestamp}{path.suffix}"
 
-    wizard_history = Path(defines.wizardHistoryPath) / mode / f"{path.stem}.{timestamp}{path.suffix}"
     wizard_history.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(path, wizard_history)
 
-def _save_wizard_history_bach(files: dict, src:Path, dest:Path):
+
+def _save_wizard_history_bach(files: dict, src: Path, dest: Path):
     saved_files = set()
     for file_name in dest.glob("**/*"):
-        elem = file_name.name[:file_name.name.index(".")]
-        saved_files.add(elem)
+        saved_files.add(file_name.stem)
     for prefix, names in files.items():
         for name in names:
             if name not in saved_files:
@@ -54,20 +55,20 @@ def _save_wizard_history_bach(files: dict, src:Path, dest:Path):
                 if path.is_file():
                     save_wizard_history(path)
 
-def save_all_remain_wizard_history():
-    wizard_history_path = Path(defines.wizardHistoryPath)
 
+def save_all_remain_wizard_history():
     _save_wizard_history_bach(
         {".toml": ["factory", "hardware", "uvcalib_data", "wizard_data"]},
         defines.factoryMountPoint,
-        wizard_history_path / "factory_data"
+        defines.wizardHistoryPathFactory,
     )
 
     _save_wizard_history_bach(
         {".toml": ["uvcalib_data", "wizard_data"], ".cfg": ["hardware"]},
         defines.configDir,
-        wizard_history_path / "user_data"
+        defines.wizardHistoryPath,
     )
+
 
 def ch_mode_owner(src):
     """

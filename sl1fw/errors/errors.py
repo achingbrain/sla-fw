@@ -290,3 +290,13 @@ class NotUVCalibrated(PrinterError):
 @with_code(Sl1Codes.FAILED_TO_SET_LOGLEVEL)
 class FailedToSetLogLevel(PrinterError):
     pass
+
+
+@with_code(Sl1Codes.FAILED_TO_SAVE_WIZARD_DATA)
+class FailedToSaveWizardData(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.FAILED_TO_SERIALIZE_WIZARD_DATA)
+class FailedToSerializeWizardData(PrinterError):
+    pass

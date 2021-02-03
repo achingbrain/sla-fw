@@ -66,6 +66,12 @@ class Sl1fwTestCase(DBusTestCase):
         defines.ramdiskPath = str(cls.TEMP_DIR)
         defines.previousPrints = str(cls.TEMP_DIR)
         defines.emmc_serial_path = cls.SAMPLES_DIR / "cid"
+        defines.wizardHistoryPath = cls.TEMP_DIR / "wizard_history" / "user_data"
+        defines.wizardHistoryPath.mkdir(exist_ok=True, parents=True)
+        defines.wizardHistoryPathFactory = cls.TEMP_DIR / "wizard_history" / "factory_data"
+        defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
+        defines.factoryMountPoint = cls.TEMP_DIR
+        defines.configDir = cls.TEMP_DIR
         if not cls.dbus_started:
             cls.start_system_bus()
             cls.dbus_started = True

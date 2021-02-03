@@ -200,9 +200,9 @@ class Printer:
 
             if not self.runtime_config.factory_mode and self.hwConfig.showUnboxing:
                 if self.hw.isKit:
-                    unboxing = kit_unboxing_wizard(self.action_manager, self.hw, self.hwConfig)
+                    unboxing = kit_unboxing_wizard(self.action_manager, self.hw, self.hwConfig, self.runtime_config)
                 else:
-                    unboxing = unboxing_wizard(self.action_manager, self.hw, self.hwConfig)
+                    unboxing = unboxing_wizard(self.action_manager, self.hw, self.hwConfig, self.runtime_config)
                 self.logger.info("Running unboxing wizard")
                 unboxing.join()
                 self.logger.info("Unboxing finished")

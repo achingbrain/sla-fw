@@ -35,12 +35,8 @@ def get_logs_file_name(hw: Hardware) -> str:
 
 
 def export_configs(temp_dir: Path):
-    wizard_history_path = Path(defines.wizardHistoryPath)
-    for category in ["factory_data", "user_data"]:
-        src = wizard_history_path / category
-        dest = temp_dir / category
-        if src.is_dir():
-            shutil.copytree(src, dest)
+    shutil.copytree(defines.wizardHistoryPath, temp_dir / defines.wizardHistoryPath.name)
+    shutil.copytree(defines.wizardHistoryPathFactory, temp_dir / defines.wizardHistoryPathFactory.name)
 
 
 class LogsExport(ABC, Thread):

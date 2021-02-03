@@ -39,6 +39,8 @@ class WizardCheckType(Enum):
     TILT_CALIBRATION = 23
     TOWER_CALIBRATION = 24
     TILT_TIMING = 25
+    SYS_INFO = 26
+    CALIBRATION_INFO = 27
 
 
 class Check(ABC):
@@ -155,6 +157,10 @@ class Check(ABC):
     @abstractmethod
     async def async_task_run(self, actions: UserActionBroker):
         ...
+
+    @staticmethod
+    def get_result_data() -> Dict[str, Any]:
+        return {}
 
 
 class SyncCheck(Check):

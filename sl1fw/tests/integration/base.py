@@ -77,7 +77,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.tryStartPrinter()
 
     def rewriteDefines(self) -> None:
-        defines.wizardHistoryPath = self.temp_dir_wizard_history.name
+        defines.wizardHistoryPath = Path(self.temp_dir_wizard_history.name)
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.factoryConfigPath = str(self.FACTORY_CONFIG_FILE)

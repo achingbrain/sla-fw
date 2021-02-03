@@ -96,6 +96,9 @@ defines.firmwareListTemp = str(Path(defines.ramdiskPath) / "updates.json")
 defines.slicerProfilesFile = str(Path(defines.ramdiskPath) / "slicer_profiles.toml")
 defines.firmwareTempFile = str(Path(defines.ramdiskPath) / "update.raucb")
 defines.emmc_serial_path = SAMPLES_DIR / "cid"
+defines.wizardHistoryPath = TEMP_DIR
+defines.wizardHistoryPathFactory = TEMP_DIR
+defines.factoryMountPoint = TEMP_DIR
 
 
 class Virtual:

@@ -278,7 +278,7 @@ def wrap_value(data: Any) -> Variant:
     if isinstance(data, Enum):
         return wrap_value(data.value)
 
-    raise DBusMappingException(f"Failed to wrap dbus value {data}")
+    raise DBusMappingException(f"Failed to wrap dbus value \"{data}\" of type {type(data)}")
 
 
 def wrap_dict_value(data):

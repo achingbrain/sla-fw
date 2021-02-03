@@ -2,7 +2,7 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from sl1fw.functions.checks import tower_axis, tower_calibrate
 from sl1fw.configs.hw import HwConfig
@@ -29,6 +29,12 @@ class TowerHomeTest(SyncCheck):
                 if not self.hw.towerSyncWait():
                     self.wizard_tower_sensitivity = self.hw.get_tower_sensitivity()
 
+    def get_result_data(self) -> Dict[str, Any]:
+        return {
+            # measured fake resin volume in wizard (without resin with rotated platform)
+            "towerSensitivity": self.wizard_tower_sensitivity
+        }
+
 
 class TowerRangeTest(SyncCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
@@ -52,9 +58,13 @@ class TowerAlignTest(SyncCheck):
         )
         self.hw = hw
         self.hw_config = hw_config
+        self._tower_height = None
 
     def task_run(self, actions: UserActionBroker):
         # TODO: ensure cover closed
         with actions.led_warn:
-            tower_calibrate(self.hw, self.hw_config, self._logger)
+            self._tower_height = tower_calibrate(self.hw, self.hw_config, self._logger)
             # TODO: Allow to repeat align step on exception
+
+    def get_result_data(self) -> Dict[str, Any]:
+        return {"towerHeight": self._tower_height}

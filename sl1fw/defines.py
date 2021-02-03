@@ -25,7 +25,8 @@ configDir = Path("/etc/sl1fw")
 loggingConfig = configDir / "loggerConfig.json"
 remoteConfig = configDir / "remoteConfig.toml"
 
-wizardHistoryPath = os.path.join(persistentStorage, "wizard_history")
+wizardHistoryPath = Path(persistentStorage) / "wizard_history" / "user_data"
+wizardHistoryPathFactory = Path(persistentStorage) / "wizard_history" / "factory_data"
 
 hwConfigFileName = "hardware.cfg"
 hwConfigPath = configDir / hwConfigFileName
@@ -37,9 +38,9 @@ serial_service_service = "serial-getty@ttyS0.service"
 ssh_service_enabled = factoryMountPoint / "ssh_enabled"
 ssh_service_service = "sshd.socket"
 
-wizardDataFilename = "wizard_data.toml"
-wizardDataPath = configDir / wizardDataFilename
-wizardDataPathFactory = factoryMountPoint / wizardDataFilename
+wizardDataFilename = "wizard_data.toml" # deprecated
+wizardDataPath = configDir / wizardDataFilename # deprecated
+wizardDataPathFactory = factoryMountPoint / wizardDataFilename # deprecated
 
 uvCalibDataFilename = "uvcalib_data.toml"
 uvCalibDataPath = configDir / uvCalibDataFilename

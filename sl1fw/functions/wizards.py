@@ -20,12 +20,16 @@ def displaytest_wizard(
     return action_manager.start_wizard(DisplayTestWizard(hw, hw_config, screen, runtime_config))
 
 
-def unboxing_wizard(action_manager: ActionManager, hw: Hardware, hw_config: HwConfig) -> Wizard:
-    return action_manager.start_wizard(CompleteUnboxingWizard(hw, hw_config))
+def unboxing_wizard(
+    action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig
+) -> Wizard:
+    return action_manager.start_wizard(CompleteUnboxingWizard(hw, hw_config, runtime_config))
 
 
-def kit_unboxing_wizard(action_manager: ActionManager, hw: Hardware, hw_config: HwConfig) -> Wizard:
-    return action_manager.start_wizard(KitUnboxingWizard(hw, hw_config))
+def kit_unboxing_wizard(
+    action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig
+) -> Wizard:
+    return action_manager.start_wizard(KitUnboxingWizard(hw, hw_config, runtime_config))
 
 
 def the_wizard(
@@ -34,5 +38,7 @@ def the_wizard(
     return action_manager.start_wizard(TheWizard(hw, hw_config, screen, runtime_config))
 
 
-def calibration_wizard(action_manager: ActionManager, hw: Hardware, hw_config: HwConfig) -> Wizard:
-    return action_manager.start_wizard(CalibrationWizard(hw, hw_config))
+def calibration_wizard(
+    action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig
+) -> Wizard:
+    return action_manager.start_wizard(CalibrationWizard(hw, hw_config, runtime_config))

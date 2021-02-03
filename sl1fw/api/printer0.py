@@ -738,7 +738,9 @@ class Printer0:
         This raises subset of exceptions the print raises, but does not do anything on success
         :return: None
         """
-        check_ready_to_print(self.printer.hwConfig, self.printer.screen.printer_model.calibration(self.printer.hw.is500khz))
+        check_ready_to_print(
+            self.printer.hwConfig, self.printer.screen.printer_model.calibration(self.printer.hw.is500khz)
+        )
 
     @auto_dbus
     @last_error
@@ -981,12 +983,16 @@ class Printer0:
     @auto_dbus
     @last_error
     def run_unboxing_wizard(self) -> None:
-        unboxing_wizard(self.printer.action_manager, self.printer.hw, self.printer.hwConfig)
+        unboxing_wizard(
+            self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+        )
 
     @auto_dbus
     @last_error
     def run_kit_unboxing_wizard(self) -> None:
-        kit_unboxing_wizard(self.printer.action_manager, self.printer.hw, self.printer.hwConfig)
+        kit_unboxing_wizard(
+            self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+        )
 
     @auto_dbus
     @last_error
@@ -1002,7 +1008,9 @@ class Printer0:
     @auto_dbus
     @last_error
     def run_calibration_wizard(self) -> None:
-        calibration_wizard(self.printer.action_manager, self.printer.hw, self.printer.hwConfig)
+        calibration_wizard(
+            self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+        )
 
     @auto_dbus
     @property
@@ -1019,7 +1027,9 @@ class Printer0:
             new_data["data_privacy"] = enabled
             if not remote_config.save(data=new_data):
                 raise ConfigException("Data privacy change failed")
-            self.PropertiesChanged(self.__INTERFACE__, {"data_privacy": enabled, "help_page_url": self.help_page_url}, [])
+            self.PropertiesChanged(
+                self.__INTERFACE__, {"data_privacy": enabled, "help_page_url": self.help_page_url}, []
+            )
 
     @auto_dbus
     @property

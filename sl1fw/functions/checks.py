@@ -40,13 +40,13 @@ def check_uv_leds(hw: Hardware, progress_callback: Callable[[float], None] = Non
         if progress_callback:
             progress_callback(i / 3)
         hw.uvLedPwm = uv_pwms[i]
-        sleep(5)  # wait to refresh all voltages (board rev. 0.6+)
-        volts = hw.getVoltages()
+        if not test_runtime.testing:
+            sleep(5)  # wait to refresh all voltages (board rev. 0.6+)
+        volts = list(hw.getVoltages())
         del volts[-1]  # delete power supply voltage
         if max(volts) - min(volts) > diff:
             hw.uvLed(False)
             raise UVLEDsVoltagesDifferTooMuch()
-
         row1.append(int(volts[0] * 1000))
         row2.append(int(volts[1] * 1000))
         row3.append(int(volts[2] * 1000))
@@ -169,7 +169,7 @@ def tilt_calib_start(hw: Hardware):
         sleep(0.25)
 
 
-def tower_calibrate(hw: Hardware, hw_config: HwConfig, logger: Logger):
+def tower_calibrate(hw: Hardware, hw_config: HwConfig, logger: Logger) -> int:
     logger.info("Starting platform calibration")
     hw.setTiltProfile("homingFast")
     hw.setTiltCurrent(defines.tiltCalibCurrent)
@@ -217,5 +217,7 @@ def tower_calibrate(hw: Hardware, hw_config: HwConfig, logger: Logger):
     while hw.isTowerMoving():
         sleep(0.25)
     logger.info("tower position: %d", hw.getTowerPositionMicroSteps())
-    hw_config.towerHeight = -hw.getTowerPositionMicroSteps()
+    towerHeight = -hw.getTowerPositionMicroSteps()
+    hw_config.towerHeight = towerHeight
     hw.setTowerProfile("homingFast")
+    return towerHeight

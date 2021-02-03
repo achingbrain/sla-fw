@@ -48,10 +48,14 @@ class TestWizardsMenu(AdminMenu):
         )
 
     def api_unpacking_c(self):
-        unboxing_wizard(self._printer.action_manager, self._printer.hw, self._printer.hwConfig)
+        unboxing_wizard(
+            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config
+        )
 
     def api_unpacking_k(self):
-        kit_unboxing_wizard(self._printer.action_manager, self._printer.hw, self._printer.hwConfig)
+        kit_unboxing_wizard(
+            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config
+        )
 
     def api_wizard(self):
         the_wizard(
@@ -63,4 +67,6 @@ class TestWizardsMenu(AdminMenu):
         )
 
     def api_calibration(self):
-        calibration_wizard(self._printer.action_manager, self._printer.hw, self._printer.hwConfig)
+        calibration_wizard(
+            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config
+        )

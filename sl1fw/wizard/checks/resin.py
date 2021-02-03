@@ -1,8 +1,8 @@
 # This file is part of the SL1 firmware
-# Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2020-2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from sl1fw.functions.checks import resin_sensor
 from sl1fw.configs.hw import HwConfig
@@ -19,11 +19,14 @@ class ResinSensorTest(SyncCheck):
             Configuration(TankSetup.PRINT, PlatformSetup.RESIN_TEST),
             [Resource.TOWER, Resource.TOWER_DOWN],
         )
-        self.hw = hw
-        self.hw_config = hw_config
+        self._hw = hw
+        self._hw_config = hw_config
 
         self.wizard_resin_volume_ml: Optional[float] = None
 
     def task_run(self, actions: UserActionBroker):
         with actions.led_warn:
-            self.wizard_resin_volume_ml = resin_sensor(self.hw, self.hw_config, self._logger)
+            self.wizard_resin_volume_ml = resin_sensor(self._hw, self._hw_config, self._logger)
+
+    def get_result_data(self) -> Dict[str, Any]:
+        return {"wizardResinVolume": self.wizard_resin_volume_ml}
