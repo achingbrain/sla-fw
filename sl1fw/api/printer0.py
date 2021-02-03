@@ -1007,7 +1007,7 @@ class Printer0:
     @auto_dbus
     @property
     def data_privacy(self) -> bool:
-        return TomlConfig(defines.remoteConfig).load().get("data_privacy", False)
+        return TomlConfig(defines.remoteConfig).load().get("data_privacy", True)
 
     @auto_dbus
     @data_privacy.setter
@@ -1015,7 +1015,7 @@ class Printer0:
     def data_privacy(self, enabled: bool) -> None:
         remote_config = TomlConfig(defines.remoteConfig)
         new_data = remote_config.load()
-        if enabled != new_data.get("data_privacy", False):
+        if enabled != new_data.get("data_privacy", True):
             new_data["data_privacy"] = enabled
             if not remote_config.save(data=new_data):
                 raise ConfigException("Data privacy change failed")
@@ -1026,7 +1026,7 @@ class Printer0:
     @last_error
     def help_page_url(self) -> str:
         url = ""
-        if not TomlConfig(defines.remoteConfig).load().get("data_privacy", False):
+        if TomlConfig(defines.remoteConfig).load().get("data_privacy", True):
             printer_identifier = self.printer.id
             fw_version = re.sub(r"(\d*)\.(\d*)\.(\d*)-.*", r"\g<1>\g<2>\g<3>", distro.version())
             url = url + f"/{printer_identifier}/{fw_version}"
