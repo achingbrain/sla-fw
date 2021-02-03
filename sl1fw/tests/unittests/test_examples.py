@@ -31,15 +31,15 @@ class TestExamples(Sl1fwTestCase):
             chown.assert_called()
             examples = list(Path(temp).rglob("*.sl1"))
             self.assertEqual(3, len(examples))
-            self.assertTrue(self.download_happening)
-            self.assertTrue(self.unpack_happening)
-            self.assertTrue(self.copy_happening)
+            self.assertTrue(self.download_happening, "Download progress reported")
+            self.assertTrue(self.unpack_happening, "Unpacking progress reported")
+            self.assertTrue(self.copy_happening, "Copy progress reported")
 
     def _internal_examples_download(self):
         network = Network()
         examples = Examples(network)
-        examples.start()
         examples.change.connect(functools.partial(self.check_change, examples))
+        examples.start()
         examples.join(timeout=180)
         self.assertEqual(ExamplesState.COMPLETED, examples.state)
 
