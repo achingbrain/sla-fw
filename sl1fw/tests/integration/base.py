@@ -56,7 +56,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         Path(self.API_KEY_FILE).touch()
         Path(self.UV_CALIB_DATA_FILE).touch()
-        shutil.copy(self.SAMPLES_DIR / "wizard_data.toml", Path(self.WIZARD_DATA_FILE))
+        shutil.copy(self.SAMPLES_DIR / "self_test_data.json", Path(defines.factoryMountPoint))
         shutil.copy(self.SAMPLES_DIR / "uvcalib_data-60.toml", Path(self.UV_CALIB_FACTORY_DATA_FILE))
 
         os.environ["SDL_AUDIODRIVER"] = "disk"

@@ -10,22 +10,22 @@ from sl1fw.functions.system import hw_all_off
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
 from sl1fw.states.wizard import WizardId
-from sl1fw.wizard.groups.wizard import (
-    WizardPart1CheckGroup,
-    WizardPart2CheckGroup,
-    WizardPart3CheckGroup,
+from sl1fw.wizard.groups.self_test import (
+    SelfTestPart1CheckGroup,
+    SelfTestPart2CheckGroup,
+    SelfTestPart3CheckGroup,
 )
 from sl1fw.wizard.wizard import Wizard
 
 
-class TheWizard(Wizard):
+class SelfTestWizard(Wizard):
     def __init__(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
         super().__init__(
-            WizardId.THE_WIZARD,
+            WizardId.SELF_TEST,
             [
-                WizardPart1CheckGroup(hw, hw_config, screen, runtime_config),
-                WizardPart2CheckGroup(hw, hw_config),
-                WizardPart3CheckGroup(hw, hw_config),
+                SelfTestPart1CheckGroup(hw, hw_config, screen, runtime_config),
+                SelfTestPart2CheckGroup(hw, hw_config),
+                SelfTestPart3CheckGroup(hw, hw_config),
             ],
             hw,
             runtime_config,

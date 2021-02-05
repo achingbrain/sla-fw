@@ -44,7 +44,7 @@ from sl1fw.functions.wizards import (
     displaytest_wizard,
     unboxing_wizard,
     kit_unboxing_wizard,
-    the_wizard,
+    self_test_wizard,
     calibration_wizard,
 )
 from sl1fw.project.functions import check_ready_to_print
@@ -996,8 +996,8 @@ class Printer0:
 
     @auto_dbus
     @last_error
-    def run_the_wizard(self) -> None:
-        the_wizard(
+    def run_self_test_wizard(self) -> None:
+        self_test_wizard(
             self.printer.action_manager,
             self.printer.hw,
             self.printer.hwConfig,

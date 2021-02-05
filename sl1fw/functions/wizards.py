@@ -11,7 +11,7 @@ from sl1fw.wizard.wizard import Wizard
 from sl1fw.wizard.wizards.calibration import CalibrationWizard
 from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
 from sl1fw.wizard.wizards.unboxing import KitUnboxingWizard, CompleteUnboxingWizard
-from sl1fw.wizard.wizards.wizard import TheWizard
+from sl1fw.wizard.wizards.self_test import SelfTestWizard
 
 
 def displaytest_wizard(
@@ -32,10 +32,10 @@ def kit_unboxing_wizard(
     return action_manager.start_wizard(KitUnboxingWizard(hw, hw_config, runtime_config))
 
 
-def the_wizard(
+def self_test_wizard(
     action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig
 ) -> Wizard:
-    return action_manager.start_wizard(TheWizard(hw, hw_config, screen, runtime_config))
+    return action_manager.start_wizard(SelfTestWizard(hw, hw_config, screen, runtime_config))
 
 
 def calibration_wizard(

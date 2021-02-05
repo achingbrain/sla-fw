@@ -17,7 +17,7 @@ from sl1fw.wizard.checks.base import Check, WizardCheckType
 from sl1fw.wizard.groups.base import CheckGroup
 from sl1fw.wizard.setup import Configuration, PlatformSetup, TankSetup
 from sl1fw.wizard.wizard import Wizard
-from sl1fw.wizard.wizards.wizard import TheWizard
+from sl1fw.wizard.wizards.self_test import SelfTestWizard
 
 from sl1fw.wizard.wizard import serializer
 
@@ -33,7 +33,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         group.checks = []
         # group.setup.return_value = None
 
-        wizard = Wizard(WizardId.THE_WIZARD, [group], Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [group], Mock(), RuntimeConfig())
         self.assertEqual(WizardState.INIT, wizard.state)
         wizard.start()
         wizard.join()
@@ -57,7 +57,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         task_body = AsyncMock()
         task_body.side_effect = exception
         check.async_task_run = task_body
-        wizard = Wizard(WizardId.THE_WIZARD, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig())
         wizard.start()
         wizard.join()
 
@@ -75,7 +75,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
                 super().__init__(WizardCheckType.UNKNOWN, Mock(), [])
 
         check = Test()
-        wizard = Wizard(WizardId.THE_WIZARD, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig())
         wizard.start()
         wizard.join()
 
@@ -144,7 +144,7 @@ class TestWizards(Sl1fwTestCase):
     def test_self_test_data(self):
         hw_config = HwConfig()
         hw_config.uvWarmUpTime = 0
-        wizard = TheWizard(self._get_hw_mock(), hw_config, Mock(), RuntimeConfig())
+        wizard = SelfTestWizard(self._get_hw_mock(), hw_config, Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_WIZARD_PART_1:

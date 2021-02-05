@@ -9,7 +9,7 @@ from sl1fw.functions.wizards import (
     displaytest_wizard,
     unboxing_wizard,
     kit_unboxing_wizard,
-    the_wizard,
+    self_test_wizard,
     calibration_wizard,
 )
 from sl1fw.libPrinter import Printer
@@ -27,7 +27,7 @@ class TestWizardsMenu(AdminMenu):
         self.add_item(AdminAction("API Display test", self.api_display_test))
         self.add_item(AdminAction("API Unpacking (C)", self.api_unpacking_c))
         self.add_item(AdminAction("API Unpacking (K)", self.api_unpacking_k))
-        self.add_item(AdminAction("API Wizard", self.api_wizard))
+        self.add_item(AdminAction("API Self test", self.api_wizard))
         self.add_item(AdminAction("API Calibration", self.api_calibration))
 
     def self_test(self):
@@ -58,7 +58,7 @@ class TestWizardsMenu(AdminMenu):
         )
 
     def api_wizard(self):
-        the_wizard(
+        self_test_wizard(
             self._printer.action_manager,
             self._printer.hw,
             self._printer.hwConfig,

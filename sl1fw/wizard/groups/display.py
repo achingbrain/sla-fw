@@ -18,4 +18,4 @@ class DisplayTestCheckGroup(CheckGroup):
         super().__init__(Configuration(TankSetup.REMOVED, None), [DisplayTest(hw, hw_config, screen, runtime_config)])
 
     async def setup(self, actions: UserActionBroker):
-        await self.wait_for_user(actions, actions.prepare_displaytest_done, WizardState.PREPARE_DISPLAYTEST)
+        await self.wait_for_user(actions, actions.prepare_displaytest_done, WizardState.PREPARE_DISPLAY_TEST)

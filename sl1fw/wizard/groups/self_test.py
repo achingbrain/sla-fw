@@ -23,7 +23,7 @@ from sl1fw.wizard.groups.base import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 
 
-class WizardPart1CheckGroup(CheckGroup):
+class SelfTestPart1CheckGroup(CheckGroup):
     def __init__(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
@@ -46,7 +46,7 @@ class WizardPart1CheckGroup(CheckGroup):
         await self.wait_for_user(actions, actions.prepare_wizard_part_1_done, WizardState.PREPARE_WIZARD_PART_1)
 
 
-class WizardPart2CheckGroup(CheckGroup):
+class SelfTestPart2CheckGroup(CheckGroup):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.RESIN_TEST),
@@ -59,7 +59,7 @@ class WizardPart2CheckGroup(CheckGroup):
         await self.wait_for_user(actions, actions.prepare_wizard_part_2_done, WizardState.PREPARE_WIZARD_PART_2)
 
 
-class WizardPart3CheckGroup(CheckGroup):
+class SelfTestPart3CheckGroup(CheckGroup):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
