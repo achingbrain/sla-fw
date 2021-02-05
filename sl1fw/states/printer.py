@@ -17,11 +17,12 @@ class Printer0State(Enum):
     # Replaced by wizard, UNBOXING = 2
     WIZARD = 3
     CALIBRATION = 4
-    DISPLAY_TEST = 5
+    DISPLAY_TEST = 5  # Will be replaced by wizard
     PRINTING = 6
     UPDATE = 7
     ADMIN = 8
     EXCEPTION = 9
+
 
 @unique
 class PrinterState(Enum):
@@ -31,8 +32,8 @@ class PrinterState(Enum):
     UPDATING = 3
     EXIT = 4
     EXCEPTION = 5
-    # Used to be "UNBOXING = 6", now unboxing is wizard
-    DISPLAY_TEST = 7
+    # Used to be "UNBOXING = 6", now unboxing is a wizard
+    # Used to be "DISPLAY_TEST = 7", now display test is a wizard
     WIZARD = 8
 
     def to_state0(self):
@@ -47,7 +48,5 @@ class PrinterState(Enum):
             state = Printer0State.PRINTING
         elif self == self.WIZARD:
             state = Printer0State.WIZARD
-        elif self == self.DISPLAY_TEST:
-            state = Printer0State.DISPLAY_TEST
 
         return state

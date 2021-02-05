@@ -31,7 +31,6 @@ from sl1fw.api.decorators import (
     last_error,
     wrap_dict_data,
 )
-from sl1fw.api.display_test0 import DisplayTest0
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.configs.stats import TomlConfigStats
@@ -640,20 +639,6 @@ class Printer0:
         :return: True if in factory mode, False otherwise
         """
         return self.printer.runtime_config.factory_mode
-
-    @auto_dbus
-    @last_error
-    @state_checked([Printer0State.IDLE, Printer0State.DISPLAY_TEST])
-    def display_test(self) -> DBusObjectPath:
-        """
-        Initiate display test object
-
-        :return: Display test object path
-        """
-        self.printer.action_manager.start_display_test(
-            self.printer.hw, self.printer.hwConfig, self.printer.screen, self.printer.runtime_config
-        )
-        return DBusObjectPath(DisplayTest0.DBUS_PATH)
 
     @auto_dbus
     @state_checked([Printer0State.IDLE])

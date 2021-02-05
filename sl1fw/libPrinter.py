@@ -30,7 +30,6 @@ from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
 from sl1fw.api.config0 import Config0
-from sl1fw.api.display_test0 import DisplayTest0State
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
@@ -73,7 +72,6 @@ class Printer:
         self.firstRun = True
         self.action_manager = ActionManager()
         self.action_manager.exposure_change.connect(self._exposure_changed)
-        self.action_manager.display_test_change.connect(self._display_test_changed)
         self.action_manager.wizard_changed.connect(self._wizard_changed)
         self.exited = threading.Event()
         self.exited.set()
@@ -334,16 +332,6 @@ class Printer:
         else:
             if self.action_manager.exposure and not self.action_manager.exposure.done:
                 self.state = PrinterState.PRINTING
-
-    def _display_test_changed(self):
-        display_test = self.action_manager.display_test
-        if self.state == PrinterState.DISPLAY_TEST:
-            if not display_test or display_test.state != DisplayTest0State.FINISHED:
-                self.state = PrinterState.RUNNING
-
-        else:
-            if display_test and display_test.state != DisplayTest0State.FINISHED:
-                self.state = PrinterState.DISPLAY_TEST
 
     def _wizard_changed(self):
         self.logger.debug("Wizard changed")

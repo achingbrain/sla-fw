@@ -16,7 +16,6 @@ from PySignal import Signal
 from pydbus import SystemBus
 
 from sl1fw import defines
-from sl1fw.api.display_test0 import DisplayTest0, DisplayTest0State
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.wizard0 import Wizard0
 from sl1fw.configs.hw import HwConfig
@@ -38,11 +37,8 @@ class ActionManager:
         self._exposure_dbus_objects = Queue()
         self._system_bus = SystemBus()
         self.exposure_change = Signal()
-        self.display_test_change = Signal()
         self.wizard_changed = Signal()
         self._exposure_bus_name = None
-        self._display_test: Optional[DisplayTest0] = None
-        self._display_test_registration = None
         self._wizard: Optional[Wizard0] = None
         self._wizard_registration = None
 
@@ -143,25 +139,6 @@ class ActionManager:
     def exposure(self) -> Optional[Exposure]:
         return self._current_exposure
 
-    def start_display_test(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
-        # Do nothing if display test is already running
-        if self._display_test and self._display_test.state != DisplayTest0State.FINISHED:
-            return
-
-        # Test is in finished state unregister it
-        if self._display_test_registration:
-            self._display_test_registration.unpublish()
-            self._display_test_registration = None
-
-        # Create new display test
-        display_test = DisplayTest0(hw, hw_config, screen, runtime_config)
-        display_test.change.connect(self.display_test_change.emit)
-        # pylint: disable=no-member
-        self._display_test_registration = self._system_bus.publish(
-            DisplayTest0.__INTERFACE__, (DisplayTest0.DBUS_PATH, weakref.proxy(display_test), display_test.dbus)
-        )
-        self.display_test_change.emit()
-
     def start_wizard(self, wizard: Wizard) -> Wizard:
         if self._wizard and self._wizard.state in WizardState.finished_states():
             self._wizard = None
@@ -179,10 +156,6 @@ class ActionManager:
         return self._wizard
 
     @property
-    def display_test(self) -> Optional[DisplayTest0]:
-        return self._display_test
-
-    @property
     def wizard(self) -> Optional[Wizard0]:
         return self._wizard
 
@@ -190,8 +163,6 @@ class ActionManager:
         self._shrink_exposures_to(0)
         if self._exposure_bus_name:
             self._exposure_bus_name.unown()
-        if self._display_test_registration:
-            self._display_test_registration.unpublish()
         if self._wizard_registration:
             self._wizard_registration.unpublish()
         # Throw away reference to let exposure garbage collect
