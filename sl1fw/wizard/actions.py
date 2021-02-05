@@ -1,7 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import logging
 from collections import deque
 from dataclasses import dataclass
 from typing import Optional, Callable
@@ -54,6 +54,7 @@ class WarnLevelCounter:
 class UserActionBroker:
     # pylint: disable=too-many-instance-attributes
     def __init__(self, hw: Hardware):
+        self._logger = logging.getLogger(__name__)
         self._states = deque()
         self.states_changed = Signal()
         self._hw = hw
@@ -85,6 +86,7 @@ class UserActionBroker:
     def push_state(self, state: PushState):
         self._states.append(state)
         self.states_changed.emit()
+        self._logger.debug("Wizard state pushed: %s", state)
 
     def drop_state(self, state: PushState):
         self._states.remove(state)

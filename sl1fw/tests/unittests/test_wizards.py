@@ -17,7 +17,10 @@ from sl1fw.wizard.checks.base import Check, WizardCheckType
 from sl1fw.wizard.groups.base import CheckGroup
 from sl1fw.wizard.setup import Configuration, PlatformSetup, TankSetup
 from sl1fw.wizard.wizard import Wizard
+from sl1fw.wizard.wizards.calibration import CalibrationWizard
+from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
+from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 
 from sl1fw.wizard.wizard import serializer
 
@@ -125,6 +128,8 @@ class TestWizards(Sl1fwTestCase):
         hw.getTiltPosition.return_value = 0
         hw.getVoltages.return_value = [11.203, 11.203, 11.203, 0]
         hw.getUvLedTemperature.return_value = 46.7
+        hw.tilt_position = 5000
+        hw.tower_position_nm = defines.defaultTowerHeight * 1000 * 1000 * 1000
 
         hw_config = HwConfig()
         hw.fans = {
@@ -136,6 +141,9 @@ class TestWizards(Sl1fwTestCase):
         hw.isTowerMoving.return_value = False
         hw.tower_end = hw_config.calcMicroSteps(150)
         hw.getTowerPositionMicroSteps.return_value = hw.tower_end
+        hw.tower_above_surface = hw.tower_end
+        hw.tower_min = hw.tower_end - 1
+        hw.tower_calib_pos = hw.tower_end
         hw.mcFwVersion = "1.0.0"
         hw.mcBoardRevision = "6c"
 
@@ -159,9 +167,7 @@ class TestWizards(Sl1fwTestCase):
                 wizard.prepare_wizard_part_3_done()
 
         wizard.state_changed.connect(on_state_changed)
-        wizard.start()
-        wizard.join(timeout=60)
-        self.assertEqual(WizardState.DONE, wizard.state)
+        self._run_wizard(wizard)
 
         wizard_data_path = defines.configDir / wizard.data_filename
         self.assertTrue(wizard_data_path.exists(), "Wizard data file exists")
@@ -189,6 +195,73 @@ class TestWizards(Sl1fwTestCase):
         self.assertEqual(53.5, data["wizardTempA64"])
         self.assertEqual(defines.resinWizardMaxVolume, data["wizardResinVolume"])
         self.assertEqual(0, data["towerSensitivity"])
+
+    def test_display_test(self):
+        wizard = DisplayTestWizard(self._get_hw_mock(), HwConfig(), Mock(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.PREPARE_DISPLAY_TEST:
+                wizard.prepare_displaytest_done()
+            if wizard.state == WizardState.TEST_DISPLAY:
+                wizard.report_display(True)
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
+
+    def test_unboxing_complete(self):
+        wizard = CompleteUnboxingWizard(self._get_hw_mock(), HwConfig(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.REMOVE_SAFETY_STICKER:
+                wizard.safety_sticker_removed()
+            if wizard.state == WizardState.REMOVE_SIDE_FOAM:
+                wizard.side_foam_removed()
+            if wizard.state == WizardState.REMOVE_TANK_FOAM:
+                wizard.tank_foam_removed()
+            if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
+                wizard.display_foil_removed()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
+
+    def test_unboxing_kit(self):
+        wizard = KitUnboxingWizard(self._get_hw_mock(), HwConfig(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
+                wizard.display_foil_removed()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
+
+    def test_calibration(self):
+        wizard = CalibrationWizard(self._get_hw_mock(), HwConfig(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.PREPARE_CALIBRATION_PLATFORM_INSERT:
+                wizard.prepare_calibration_platform_insert_done()
+            if wizard.state == WizardState.PREPARE_CALIBRATION_TANK_PLACEMENT:
+                wizard.prepare_calibration_tank_placement_done()
+            if wizard.state == WizardState.PREPARE_CALIBRATION_TILT_ALIGN:
+                wizard.prepare_calibration_tilt_align_done()
+            if wizard.state == WizardState.LEVEL_TILT:
+                wizard.tilt_aligned()
+            if wizard.state == WizardState.PREPARE_CALIBRATION_PLATFORM_ALIGN:
+                wizard.prepare_calibration_platform_align_done()
+            if wizard.state == WizardState.PREPARE_CALIBRATION_FINISH:
+                wizard.prepare_calibration_finish_done()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
+
+    def _run_wizard(self, wizard: Wizard, limit_s: int = 5):
+        wizard.start()
+        wizard.join(limit_s)
+        if wizard.is_alive():
+            wizard.cancel()
+            wizard.abort()
+            wizard.join()
+        self.assertEqual(WizardState.DONE, wizard.state)
 
 
 if __name__ == "__main__":

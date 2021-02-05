@@ -56,7 +56,7 @@ class CheckGroup(ABC):
         await self._future
 
     async def run_task(self, actions: UserActionBroker):
-        self._init_locks()  # Locks has to be initialized from running event loop
+        self._init_locks()  # Locks has to be initialized from a running event loop
         self._logger.info("Running group setup")
         await self.setup(actions)
         self._logger.info("Running non-finished group tasks")
