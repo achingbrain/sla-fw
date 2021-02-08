@@ -68,7 +68,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         self.assertEqual(exception, wizard.exception)
 
     def test_wizard_warning(self):
-        warning = Exception("Warning")
+        warning = Warning("Warning")
 
         class Test(Check):
             async def async_task_run(self, actions: UserActionBroker):
