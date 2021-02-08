@@ -115,8 +115,6 @@ class Check(ABC):
             "state": self.state,
             "progress": self._progress,
         }
-        if self.exception:
-            data["exception"] = self.exception
         return data
 
     async def run(self, locks: Dict[Resource, asyncio.Lock], actions: UserActionBroker):
