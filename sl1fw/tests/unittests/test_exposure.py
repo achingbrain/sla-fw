@@ -11,16 +11,21 @@ from typing import Optional
 from unittest.mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
 from sl1fw.screen.printer_model import PrinterModel
 from sl1fw import defines
-from sl1fw.errors.errors import NotUVCalibrated, ResinTooLow, WarningEscalation, ProjectErrorCantRead
+from sl1fw.errors.errors import (
+    NotUVCalibrated,
+    ResinTooLow,
+    WarningEscalation,
+    ProjectErrorCantRead,
+)
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.states.exposure import ExposureState
+from sl1fw.tests.mocks.hardware import Hardware
 
 
 class TestExposure(Sl1fwTestCase):
@@ -37,11 +42,15 @@ class TestExposure(Sl1fwTestCase):
 
     def setUp(self):
         super().setUp()
-        defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
+        defines.factoryConfigPath = str(
+            self.SL1FW_DIR / ".." / "factory" / "factory.toml"
+        )
         defines.statsData = str(self.TEMP_DIR / "stats.toml")
         defines.previousPrints = str(self.TEMP_DIR)
         defines.lastProjectHwConfig = self._change_dir(defines.lastProjectHwConfig)
-        defines.lastProjectFactoryFile = self._change_dir(defines.lastProjectFactoryFile)
+        defines.lastProjectFactoryFile = self._change_dir(
+            defines.lastProjectFactoryFile
+        )
         defines.lastProjectConfigFile = self._change_dir(defines.lastProjectConfigFile)
         defines.lastProjectPickler = self._change_dir(defines.lastProjectPickler)
 
@@ -53,40 +62,49 @@ class TestExposure(Sl1fwTestCase):
         self.screen.sync_preloader.return_value = 100
         self.screen.printer_model = PrinterModel.SL1
         exposure_screen = self.screen.printer_model.exposure_screen
-        self.screen.white_pixels_threshold = exposure_screen.width_px * exposure_screen.height_px * self.hw_config.limit4fast // 100
+        self.screen.white_pixels_threshold = (
+            exposure_screen.width_px
+            * exposure_screen.height_px
+            * self.hw_config.limit4fast
+            // 100
+        )
 
     def test_exposure_init_not_calibrated(self):
         with self.assertRaises(NotUVCalibrated):
-            exposure = Exposure(0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config)
+            exposure = Exposure(
+                0, self.hw_config, Hardware(), self.screen, self.runtime_config
+            )
             exposure.read_project(TestExposure.PROJECT)
 
     def test_exposure_init(self):
         self._fake_calibration()
-        exposure = Exposure(0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config)
+        exposure = Exposure(
+            0, self.hw_config, Hardware(), self.screen, self.runtime_config
+        )
         exposure.read_project(TestExposure.PROJECT)
 
     def test_exposure_load(self):
         self._fake_calibration()
         exposure = Exposure(
-            0, self.hw_config, self._get_hw_mock(), self.screen, self.runtime_config
+            0, self.hw_config, Hardware(), self.screen, self.runtime_config
         )
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
 
     def test_exposure_start_stop(self):
-        exposure = self._run_exposure(self._get_hw_mock())
+        exposure = self._run_exposure(Hardware())
         self.assertNotEqual(exposure.state, ExposureState.FAILURE)
         self.assertIsNone(exposure.warning)
 
     def test_resin_enough(self):
-        hw = self._get_hw_mock()
+        hw = Hardware()
         hw.getResinVolume.return_value = defines.resinMaxVolume
         exposure = self._run_exposure(hw)
         self.assertNotEqual(exposure.state, ExposureState.FAILURE)
         self.assertIsNone(exposure.warning)
 
     def test_resin_warning(self):
-        hw = self._get_hw_mock()
+        hw = Hardware()
         hw.getResinVolume.return_value = defines.resinMinVolume + 0.1
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.exception, WarningEscalation)
@@ -94,20 +112,20 @@ class TestExposure(Sl1fwTestCase):
         self.assertIsInstance(exposure.exception.warning, ResinNotEnough)
 
     def test_resin_error(self):
-        hw = self._get_hw_mock()
+        hw = Hardware()
         hw.getResinVolume.return_value = defines.resinMinVolume - 0.1
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.exception, ResinTooLow)
 
     def test_broken_empty_project(self):
-        hw = self._get_hw_mock()
+        hw = Hardware()
         self._fake_calibration()
         exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
         exposure.read_project(self.BROKEN_EMPTY_PROJECT)
         self.assertIsInstance(exposure.exception, ProjectErrorCantRead)
 
     def test_stuck_recovery_success(self):
-        hw = self._get_hw_mock()
+        hw = Hardware()
         self._fake_calibration()
         hw.tiltLayerDownWait = lambda _: False
         exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
@@ -135,7 +153,7 @@ class TestExposure(Sl1fwTestCase):
         raise TimeoutError("Waiting for exposure failed")
 
     def test_stuck_recovery_fail(self):
-        hw = self._get_hw_mock()
+        hw = Hardware()
         self._fake_calibration()
         hw.tiltLayerDownWait = lambda _: False
         exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
@@ -190,22 +208,6 @@ class TestExposure(Sl1fwTestCase):
             exposure.doExitPrint()
         exposure.waitDone()
         return exposure
-
-    @staticmethod
-    def _get_hw_mock():
-        hw = Mock()
-        hw.__class__ = Hardware
-        hw.__reduce__ = lambda self: (Mock, ())
-        hw.is500khz = True
-        hw.getUvLedState.return_value = (False, 0)
-        hw.getUvStatistics.return_value = (6912,)
-        hw.isTiltOnPosition.return_value = True
-        hw.isTiltMoving.return_value = False
-        hw.getMcTemperatures.return_value = [42, 24, 0, 0]
-        hw.getResinVolume.return_value = defines.resinMaxVolume
-        hw.towerPositonFailed.return_value = False
-        hw.getFansError.return_value = {0: False, 1: False, 2: False}
-        return hw
 
     def _fake_calibration(self):
         self.hw_config.uvPwm = 250

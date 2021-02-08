@@ -1,5 +1,5 @@
 # This file is part of the SL1 firmware
-# Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2020-2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import asyncio
@@ -10,8 +10,8 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.libHardware import Hardware, Fan
 from sl1fw.states.wizard import WizardState, WizardId
+from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType
 from sl1fw.wizard.groups.base import CheckGroup
@@ -60,7 +60,9 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         task_body = AsyncMock()
         task_body.side_effect = exception
         check.async_task_run = task_body
-        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig())
+        wizard = Wizard(
+            WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig()
+        )
         wizard.start()
         wizard.join()
 
@@ -78,7 +80,9 @@ class TestWizardInfrastructure(Sl1fwTestCase):
                 super().__init__(WizardCheckType.UNKNOWN, Mock(), [])
 
         check = Test()
-        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig())
+        wizard = Wizard(
+            WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig()
+        )
         wizard.start()
         wizard.join()
 
@@ -108,51 +112,10 @@ class TestWizardInfrastructure(Sl1fwTestCase):
 
 
 class TestWizards(Sl1fwTestCase):
-    @staticmethod
-    def _get_hw_mock():
-        hw = Mock()
-        hw.__class__ = Hardware
-        hw.__reduce__ = lambda self: (Mock, ())
-        hw.is500khz = True
-        hw.getUvLedState.return_value = (False, 0)
-        hw.getUvStatistics.return_value = (6912, 3600)
-        hw.isTiltOnPosition.return_value = True
-        hw.isTiltMoving.return_value = False
-        hw.getMcTemperatures.return_value = [46.7, 26.1, 0, 0]
-        hw.getResinVolume.return_value = defines.resinWizardMaxVolume
-        hw.towerPositonFailed.return_value = False
-        hw.getFansError.return_value = {0: False, 1: False, 2: False}
-        hw.getCpuTemperature.return_value = 53.5
-        hw.cpuSerialNo = "CZPX0819X009XC00151"
-        hw.mcSerialNo = "CZPX0619X678XC12345"
-        hw.getTiltPosition.return_value = 0
-        hw.getVoltages.return_value = [11.203, 11.203, 11.203, 0]
-        hw.getUvLedTemperature.return_value = 46.7
-        hw.tilt_position = 5000
-        hw.tower_position_nm = defines.defaultTowerHeight * 1000 * 1000 * 1000
-
-        hw_config = HwConfig()
-        hw.fans = {
-            0: Fan("UV LED fan", defines.fanMaxRPM[0], hw_config.fan1Rpm, hw_config.fan1Enabled),
-            1: Fan("blower fan", defines.fanMaxRPM[1], hw_config.fan2Rpm, hw_config.fan2Enabled),
-            2: Fan("rear fan", defines.fanMaxRPM[2], hw_config.fan3Rpm, hw_config.fan3Enabled),
-        }
-        hw.getFansRpm.return_value = [hw_config.fan1Rpm, hw_config.fan2Rpm, hw_config.fan3Rpm]
-        hw.isTowerMoving.return_value = False
-        hw.tower_end = hw_config.calcMicroSteps(150)
-        hw.getTowerPositionMicroSteps.return_value = hw.tower_end
-        hw.tower_above_surface = hw.tower_end
-        hw.tower_min = hw.tower_end - 1
-        hw.tower_calib_pos = hw.tower_end
-        hw.mcFwVersion = "1.0.0"
-        hw.mcBoardRevision = "6c"
-
-        return hw
-
     def test_self_test_data(self):
         hw_config = HwConfig()
         hw_config.uvWarmUpTime = 0
-        wizard = SelfTestWizard(self._get_hw_mock(), hw_config, Mock(), RuntimeConfig())
+        wizard = SelfTestWizard(Hardware(), hw_config, Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_WIZARD_PART_1:
@@ -188,7 +151,10 @@ class TestWizards(Sl1fwTestCase):
         self.assertListEqual([11203, 11203, 11203,], data["wizardUvVoltageRow1"])
         self.assertListEqual([11203, 11203, 11203,], data["wizardUvVoltageRow2"])
         self.assertListEqual([11203, 11203, 11203,], data["wizardUvVoltageRow3"])
-        self.assertListEqual([hw_config.fan1Rpm, hw_config.fan2Rpm, hw_config.fan3Rpm], data["wizardFanRpm"])
+        self.assertListEqual(
+            [hw_config.fan1Rpm, hw_config.fan2Rpm, hw_config.fan3Rpm],
+            data["wizardFanRpm"],
+        )
         self.assertEqual(46.7, data["wizardTempUvInit"])
         self.assertEqual(46.7, data["wizardTempUvWarm"])
         self.assertEqual(26.1, data["wizardTempAmbient"])
@@ -197,7 +163,7 @@ class TestWizards(Sl1fwTestCase):
         self.assertEqual(0, data["towerSensitivity"])
 
     def test_display_test(self):
-        wizard = DisplayTestWizard(self._get_hw_mock(), HwConfig(), Mock(), RuntimeConfig())
+        wizard = DisplayTestWizard(Hardware(), HwConfig(), Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_DISPLAY_TEST:
@@ -209,7 +175,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_unboxing_complete(self):
-        wizard = CompleteUnboxingWizard(self._get_hw_mock(), HwConfig(), RuntimeConfig())
+        wizard = CompleteUnboxingWizard(Hardware(), HwConfig(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.REMOVE_SAFETY_STICKER:
@@ -225,7 +191,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_unboxing_kit(self):
-        wizard = KitUnboxingWizard(self._get_hw_mock(), HwConfig(), RuntimeConfig())
+        wizard = KitUnboxingWizard(Hardware(), HwConfig(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
@@ -235,7 +201,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_calibration(self):
-        wizard = CalibrationWizard(self._get_hw_mock(), HwConfig(), RuntimeConfig())
+        wizard = CalibrationWizard(Hardware(), HwConfig(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_CALIBRATION_PLATFORM_INSERT:
