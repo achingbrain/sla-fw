@@ -519,15 +519,16 @@ class Exposure:
 
     def _do_frame(self, times_ms, prev_white_pixels, was_stirring, second):
         position_steps = self.hw_config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw_config.calibTowerOffset
+        slow_move = prev_white_pixels > self.screen.white_pixels_threshold
 
         if self.hw_config.tilt:
-            if self.hw_config.layerTowerHop and prev_white_pixels > self.screen.white_pixels_threshold:
+            if self.hw_config.layerTowerHop and slow_move:
                 self.hw.towerMoveAbsoluteWait(position_steps + self.hw_config.layerTowerHop)
-                self.hw.tiltLayerUpWait()
+                self.hw.tiltLayerUpWait(slow_move)
                 self.hw.towerMoveAbsoluteWait(position_steps)
             else:
                 self.hw.towerMoveAbsoluteWait(position_steps)
-                self.hw.tiltLayerUpWait()
+                self.hw.tiltLayerUpWait(slow_move)
         else:
             self.hw.towerMoveAbsoluteWait(position_steps + self.hw_config.layerTowerHop)
             self.hw.towerMoveAbsoluteWait(position_steps)

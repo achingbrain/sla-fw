@@ -422,7 +422,8 @@ class PageTuneTilt(ProfilesPage):
         self.items.update({
                 "label1g1" : "Down slow",
                 "label1g2" : "Down fast",
-                "label1g3" : "Up",
+                "label1g3" : "Up slow",
+                "label1g4" : "Up fast",
 
                 "label2g1" : "init profile",
                 "label2g2" : "offset steps",
@@ -439,12 +440,27 @@ class PageTuneTilt(ProfilesPage):
     #enddef
 
 
+    def __value(self, index, valmin, valmax, change):
+        if valmin <= self.profiles[self.actualProfile][index] + change <= valmax:
+            self.profiles[self.actualProfile][index] += change
+            if index in self.nameIndexes:
+                self.showItems(**{ 'value2g%d' % (index + 1) : str(self.profilesNames[self.profiles[self.actualProfile][index]]) })
+            else:
+                self.showItems(**{ 'value2g%d' % (index + 1) : str(self.profiles[self.actualProfile][index]) })
+            #endif
+        else:
+            self.display.hw.beepAlarm(1)
+        #endif
+    #enddef
+
+
     def button4ButtonRelease(self):
         ''' save '''
         writer = self.display.hwConfig.get_writer()
-        writer.tiltDownLargeFill = self.profiles[0]
-        writer.tiltDownSmallFill = self.profiles[1]
-        writer.tiltUp = self.profiles[2]
+        writer.raw_tiltdownlargefill = self.profiles[0]
+        writer.raw_tiltdownsmallfill = self.profiles[1]
+        writer.raw_tiltuplargefill = self.profiles[2]
+        writer.raw_tiltupsmallfill = self.profiles[3]
         try:
             writer.commit()
         except ConfigException as exception:
@@ -460,11 +476,6 @@ class PageTuneTilt(ProfilesPage):
         self.display.pages['tiltmove'].changeProfiles(True)
         return super(PageTuneTilt, self).backButtonRelease()
     #endif
-
-
-    def state1g4ButtonRelease(self):
-        pass
-    #enddef
 
 
     def state1g5ButtonRelease(self):

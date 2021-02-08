@@ -1082,10 +1082,7 @@ class Hardware:
         return stopped
 
     def tiltLayerDownWait(self, slowMove=False):
-        if slowMove:
-            tiltProfile = self.hwConfig.tuneTilt[0]
-        else:
-            tiltProfile = self.hwConfig.tuneTilt[1]
+        tiltProfile = self.hwConfig.tuneTilt[0] if slowMove else self.hwConfig.tuneTilt[1]
 
         # initial release movement with optional sleep at the end
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
@@ -1132,23 +1129,25 @@ class Hardware:
 
         return self.tiltSyncWait(retries=1)
 
-    def tiltLayerUpWait(self):
-        self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[2][0]])
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - self.hwConfig.tuneTilt[2][1])
+    def tiltLayerUpWait(self, slowMove=False):
+        tiltProfile = self.hwConfig.tuneTilt[2] if slowMove else self.hwConfig.tuneTilt[3]
+
+        self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
+        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - tiltProfile[1])
         while self.isTiltMoving():
             sleep(0.1)
 
-        sleep(self.hwConfig.tuneTilt[2][2] / 1000.0)
-        self.setTiltProfile(self._tiltProfileNames[self.hwConfig.tuneTilt[2][3]])
+        sleep(tiltProfile[2] / 1000.0)
+        self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
 
         # finish move may be also splited in multiple sections
-        movePerCycle = int((self.hwConfig.tiltHeight - self.getTiltPositionMicroSteps()) / self.hwConfig.tuneTilt[2][4])
-        for _ in range(self.hwConfig.tuneTilt[2][4]):
+        movePerCycle = int((self.hwConfig.tiltHeight - self.getTiltPositionMicroSteps()) / tiltProfile[4])
+        for _ in range(tiltProfile[4]):
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() + movePerCycle)
             while self.isTiltMoving():
                 sleep(0.1)
 
-            sleep(self.hwConfig.tuneTilt[2][5] / 1000.0)
+            sleep(tiltProfile[5] / 1000.0)
 
     def setTiltPosition(self, position):
         self.mcc.do("!tipo", position)

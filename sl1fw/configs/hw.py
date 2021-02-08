@@ -155,15 +155,16 @@ class HwConfig(Config):
     # Tilt & Tower -> Tilt tune
     raw_tiltdownlargefill = IntListValue([5, 650, 1000, 4, 1, 0, 64, 3], length=8, key="tiltdownlargefill")
     raw_tiltdownsmallfill = IntListValue([5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill")
-    raw_tiltup = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltup")
+    raw_tiltuplargefill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltuplargefill")
+    raw_tiltupsmallfill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltupsmallfill")
 
     @property
     def tuneTilt(self) -> List[List[int]]:
-        return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltup]
+        return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill]
 
     @tuneTilt.setter
     def tuneTilt(self, value: List[List[int]]):
-        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltup] = value
+        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill] = value
 
     raw_calibrated = BoolValue(False, key="calibrated")
 
