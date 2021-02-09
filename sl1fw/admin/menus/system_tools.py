@@ -9,15 +9,21 @@ import pydbus
 
 from sl1fw import defines
 from sl1fw.admin.control import AdminControl
-from sl1fw.admin.items import AdminAction, AdminTextValue, AdminBoolValue
-from sl1fw.admin.menu import AdminMenu
-from sl1fw.admin.menus.dialogs import Error
+from sl1fw.admin.items import AdminAction, AdminTextValue, AdminBoolValue, AdminLabel
+from sl1fw.admin.menus.dialogs import Error, Wait
+from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.errors.errors import FailedUpdateChannelSet
-from sl1fw.functions.system import FactoryMountedRW, save_factory_mode, set_update_channel, get_update_channel
+from sl1fw.functions.system import (
+    FactoryMountedRW,
+    save_factory_mode,
+    set_update_channel,
+    get_update_channel,
+)
 from sl1fw.libPrinter import Printer
+from sl1fw.state_actions.examples import Examples
 
 
-class SystemToolsMenu(AdminMenu):
+class SystemToolsMenu(SafeAdminMenu):
     SYSTEMD_DBUS = ".systemd1"
 
     def __init__(self, control: AdminControl, printer: Printer):
@@ -26,16 +32,25 @@ class SystemToolsMenu(AdminMenu):
         self.systemd = pydbus.SystemBus().get(self.SYSTEMD_DBUS)
 
         self._channel_value = AdminTextValue(
-            "Channel", lambda: f"Update channel: {get_update_channel()}", self._set_update_channel
+            "Channel",
+            lambda: f"Update channel: {get_update_channel()}",
+            self._set_update_channel,
         )
         self.add_back()
         self.add_item(self._channel_value)
-        self.add_item(AdminAction("Switch to stable", partial(self._set_update_channel, "stable")))
-        self.add_item(AdminAction("Switch to beta", partial(self._set_update_channel, "beta")))
-        self.add_item(AdminAction("Switch to dev", partial(self._set_update_channel, "dev")))
+        self.add_item(
+            AdminAction("Switch to stable", partial(self._set_update_channel, "stable"))
+        )
+        self.add_item(
+            AdminAction("Switch to beta", partial(self._set_update_channel, "beta"))
+        )
+        self.add_item(
+            AdminAction("Switch to dev", partial(self._set_update_channel, "dev"))
+        )
         self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.factory_mode))
         self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.ssh))
         self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.serial))
+        self.add_item(AdminAction("Fake setup", self._fake_setup))
 
     @property
     def factory_mode(self) -> bool:
@@ -90,7 +105,9 @@ class SystemToolsMenu(AdminMenu):
             set_update_channel(channel)
         except FailedUpdateChannelSet:
             self.logger.exception("Failed to set update channel")
-            self._control.enter(Error(self._control, text="Failed to set update channel", pop=2))
+            self._control.enter(
+                Error(self._control, text="Failed to set update channel", pop=2)
+            )
         finally:
             self._channel_value.changed.emit()
 
@@ -114,3 +131,30 @@ class SystemToolsMenu(AdminMenu):
     def _systemd_disable_service(self, service: str):
         self.systemd.Reload()
         self.systemd.StopUnit(service, "replace")
+
+    def _fake_setup(self):
+        self.enter(Wait(self._control, self._do_fake_setup))
+
+    @SafeAdminMenu.safe_call
+    def _do_fake_setup(self, status: AdminLabel):
+        status.set("Downloading examples")
+        examples = Examples(self._printer.inet)
+        examples.start()
+        examples.join()
+
+        status.set("Saving dummy calibration data")
+        writer = self._printer.hwConfig.get_writer()
+        writer.calibrated = True
+        writer.showWizard = False
+        writer.showUnboxing = False
+        writer.uvPwm = self._printer.screen.printer_model.calibration(
+            self._printer.hw.is500khz
+        ).min_pwm
+        self._printer.hw.uvLedPwm = writer.uvPwm
+        writer.commit()
+
+        status.set("Saving dummy factory data")
+        with FactoryMountedRW():
+            self._printer.hwConfig.write_factory()
+
+        status.set("Done")
