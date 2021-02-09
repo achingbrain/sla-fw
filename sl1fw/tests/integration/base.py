@@ -26,16 +26,7 @@ from sl1fw.tests.mocks.display import TestDisplay
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
-    HARDWARE_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.hardware.cfg"
-    SDL_AUDIO_FILE = Sl1fwTestCase.TEMP_DIR / "sl1fw.sdl_audio.raw"
-    API_KEY_FILE = Sl1fwTestCase.TEMP_DIR / "api.key"
-    UV_CALIB_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.uvCalibDataFilename
-    UV_CALIB_FACTORY_DATA_FILE = Sl1fwTestCase.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}"
-    COUNTER_LOG = Sl1fwTestCase.TEMP_DIR / defines.counterLogFilename
-    WIZARD_DATA_FILE = Sl1fwTestCase.TEMP_DIR / defines.wizardDataFilename
-    FACTORY_CONFIG_FILE = Sl1fwTestCase.TEMP_DIR / "factory.toml"
-    HARDWARWE_FACTORY_FILE = Sl1fwTestCase.TEMP_DIR / "hardware.toml"
-
+    # pylint: disable = too-many-instance-attributes
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.display = TestDisplay()
@@ -45,22 +36,40 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
     def setUp(self):
         super().setUp()
-        print(f'<<<<<===== {self.id()} =====>>>>>')
-        copyfile(self.SAMPLES_DIR / "hardware.cfg", self.HARDWARE_FILE)
-        copyfile(self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.FACTORY_CONFIG_FILE)
-        copyfile(self.SAMPLES_DIR / "hardware.toml", self.HARDWARWE_FACTORY_FILE)
+
+        self.hardware_file = self.TEMP_DIR / "sl1fw.hardware.cfg"
+        self.sdl_audio_file = self.TEMP_DIR / "sl1fw.sdl_audio.raw"
+        self.api_key_file = self.TEMP_DIR / "api.key"
+        self.uv_calib_data_file = self.TEMP_DIR / defines.uvCalibDataFilename
+        self.uv_calib_factory_data_file = (
+            self.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}"
+        )
+        self.counter_log = self.TEMP_DIR / defines.counterLogFilename
+        self.wizard_data_file = self.TEMP_DIR / defines.wizardDataFilename
+        self.factory_config_file = self.TEMP_DIR / "factory.toml"
+        self.hardwarwe_factory_file = self.TEMP_DIR / "hardware.toml"
+
+        print(f"<<<<<===== {self.id()} =====>>>>>")
+        copyfile(self.SAMPLES_DIR / "hardware.cfg", self.hardware_file)
+        copyfile(
+            self.SL1FW_DIR / ".." / "factory" / "factory.toml", self.factory_config_file
+        )
+        copyfile(self.SAMPLES_DIR / "hardware.toml", self.hardwarwe_factory_file)
         self.temp_dir_project = TemporaryDirectory()
         self.temp_dir_wizard_history = TemporaryDirectory()
 
         self.rewriteDefines()
 
-        Path(self.API_KEY_FILE).touch()
-        Path(self.UV_CALIB_DATA_FILE).touch()
+        Path(self.api_key_file).touch()
+        Path(self.uv_calib_data_file).touch()
         shutil.copy(self.SAMPLES_DIR / "self_test_data.json", Path(defines.factoryMountPoint))
-        shutil.copy(self.SAMPLES_DIR / "uvcalib_data-60.toml", Path(self.UV_CALIB_FACTORY_DATA_FILE))
+        shutil.copy(
+            self.SAMPLES_DIR / "uvcalib_data-60.toml",
+            Path(self.uv_calib_factory_data_file),
+        )
 
         os.environ["SDL_AUDIODRIVER"] = "disk"
-        os.environ["SDL_DISKAUDIOFILE"] = str(self.SDL_AUDIO_FILE)
+        os.environ["SDL_DISKAUDIOFILE"] = str(self.sdl_audio_file)
 
         self.printer = Printer(debug_display=self.display)
         test_runtime.screen = self.printer.screen
@@ -70,8 +79,10 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         self._printer0 = Printer0(self.printer)
         # pylint: disable = no-member
-        self.printer0_dbus = SystemBus().publish(Printer0.__INTERFACE__, (None, weakref.proxy(self._printer0),
-                                                                          self._printer0.dbus))
+        self.printer0_dbus = SystemBus().publish(
+            Printer0.__INTERFACE__,
+            (None, weakref.proxy(self._printer0), self._printer0.dbus),
+        )
         self.thread = Thread(target=self.printer_thread)
 
         self.tryStartPrinter()
@@ -80,11 +91,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.wizardHistoryPath = Path(self.temp_dir_wizard_history.name)
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.factoryConfigPath = str(self.FACTORY_CONFIG_FILE)
-        defines.hwConfigPathFactory = self.HARDWARWE_FACTORY_FILE
+        defines.factoryConfigPath = str(self.factory_config_file)
+        defines.hwConfigPathFactory = self.hardwarwe_factory_file
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
-        defines.hwConfigPath = self.HARDWARE_FILE
+        defines.hwConfigPath = self.hardware_file
         defines.truePoweroff = False
         defines.internalProjectPath = str(self.SAMPLES_DIR)
         defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
@@ -97,7 +108,9 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         defines.previousPrints = self.temp_dir_project.name
         defines.lastProjectHwConfig = self._change_dir(defines.lastProjectHwConfig)
-        defines.lastProjectFactoryFile = self._change_dir(defines.lastProjectFactoryFile)
+        defines.lastProjectFactoryFile = self._change_dir(
+            defines.lastProjectFactoryFile
+        )
         defines.lastProjectConfigFile = self._change_dir(defines.lastProjectConfigFile)
         defines.lastProjectPickler = self._change_dir(defines.lastProjectPickler)
 
@@ -105,11 +118,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.last_log_token = Path(defines.ramdiskPath) / "last_log_token"
 
         # factory reset
-        defines.apikeyFile = str(self.API_KEY_FILE)
-        defines.uvCalibDataPath = self.UV_CALIB_DATA_FILE
-        defines.uvCalibDataPathFactory = self.UV_CALIB_FACTORY_DATA_FILE
-        defines.counterLog = self.COUNTER_LOG
-        defines.wizardDataPathFactory = str(self.WIZARD_DATA_FILE)
+        defines.apikeyFile = str(self.api_key_file)
+        defines.uvCalibDataPath = self.uv_calib_data_file
+        defines.uvCalibDataPathFactory = self.uv_calib_factory_data_file
+        defines.counterLog = self.counter_log
+        defines.wizardDataPathFactory = str(self.wizard_data_file)
 
     def _change_dir(self, path) -> str:
         return self.temp_dir_project.name + "/" + os.path.basename(path)
@@ -155,11 +168,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         files = [
             self.EEPROM_FILE,
-            self.HARDWARE_FILE,
-            self.SDL_AUDIO_FILE,
-            self.API_KEY_FILE,
-            self.UV_CALIB_DATA_FILE,
-            self.FACTORY_CONFIG_FILE,
+            self.hardware_file,
+            self.sdl_audio_file,
+            self.api_key_file,
+            self.uv_calib_data_file,
+            self.factory_config_file,
         ]
 
         for file in files:
@@ -168,7 +181,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
         self.temp_dir_project.cleanup()
         self.temp_dir_wizard_history.cleanup()
-        print(f'<<<<<===== {self.id()} =====>>>>>')
+        print(f"<<<<<===== {self.id()} =====>>>>>")
         super().tearDown()  # closes logger!
 
     def press(self, identifier, data=None):
@@ -180,7 +193,9 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         try:
             self.assertEqual(page, self.display.read_page(timeout_sec=timeout_sec))
         except Empty as exception:
-            raise Exception(f'Wait timeout for page "{page}" ({timeout_sec} seconds)') from exception
+            raise Exception(
+                f'Wait timeout for page "{page}" ({timeout_sec} seconds)'
+            ) from exception
         print("Wait done for: %s" % page)
 
     def readItems(self):

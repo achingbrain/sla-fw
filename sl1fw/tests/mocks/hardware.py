@@ -11,7 +11,10 @@ from sl1fw.libHardware import Fan
 
 class Hardware:
     # pylint: disable = too-many-instance-attributes
-    def __init__(self):
+    def __init__(self, hw_config: HwConfig = None):
+        if hw_config is None:
+            hw_config = HwConfig()
+
         self.is500khz = True
 
         self.cpuSerialNo = "CZPX0819X009XC00151"
@@ -20,7 +23,7 @@ class Hardware:
         self.tilt_position = 5000
         self.tower_position_nm = defines.defaultTowerHeight * 1000 * 1000 * 1000
 
-        self.hw_config = HwConfig()
+        self.hw_config = hw_config
         self.fans = {
             0: Fan(
                 "UV LED fan",

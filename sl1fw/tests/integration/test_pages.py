@@ -272,12 +272,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self._check_factory_reset(unboxing=False, factoryMode=True)  # user reset doesn't reset factoryMode
 
     def _check_factory_reset(self, unboxing, factoryMode):
-        self.assertFalse(os.path.exists(self.API_KEY_FILE), "apikey reset check")
-        self.assertFalse(os.path.exists(self.UV_CALIB_DATA_FILE), "user UV calibration data reset check")
-        hwConfig = HwConfig(self.HARDWARE_FILE)
+        self.assertFalse(os.path.exists(self.api_key_file), "apikey reset check")
+        self.assertFalse(os.path.exists(self.uv_calib_data_file), "user UV calibration data reset check")
+        hwConfig = HwConfig(self.hardware_file)
         hwConfig.read_file()
         self.assertTrue(hwConfig.showUnboxing == unboxing, "config reset check")
-        factoryConfig = TomlConfig(self.FACTORY_CONFIG_FILE)
+        factoryConfig = TomlConfig(self.factory_config_file)
         factoryConfig.load()
         self.assertEqual(pydbus.SystemBus().get("org.freedesktop.NetworkManager").ListConnections(), ['ethernet']) # all wifi connections deleted
         self.assertTrue(factoryConfig.data["factoryMode"] == factoryMode, "factory is disabled check")

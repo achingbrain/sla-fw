@@ -35,15 +35,15 @@ class TestUvCalibData(Sl1fwTestCase):
 class TestUvMeterMulti60(Sl1fwTestCase):
     DATA = Sl1fwTestCase.SAMPLES_DIR / "uvcalib_data-60.toml"
     PNG = Sl1fwTestCase.SAMPLES_DIR / "uvcalib-60.png"
-    OUT = Sl1fwTestCase.TEMP_DIR / "test.png"
 
     def setUp(self):
         super().setUp()
+        self.out = self.TEMP_DIR / "test.png"
         self.uvmeter = UvLedMeterMulti()
 
     def tearDown(self):
         files = [
-            self.OUT,
+            self.out,
         ]
         for file in files:
             if file.exists():
@@ -52,8 +52,8 @@ class TestUvMeterMulti60(Sl1fwTestCase):
 
     def test_generatePNG(self):
         data = toml.load(self.DATA)
-        self.uvmeter.save_pic(800, 400, "PWM: %d" % data['uvFoundPwm'], self.OUT, data)
-        self.assertSameImage(Image.open(self.OUT), Image.open(self.PNG), 32, "Generated PNG")
+        self.uvmeter.save_pic(800, 400, "PWM: %d" % data['uvFoundPwm'], self.out, data)
+        self.assertSameImage(Image.open(self.out), Image.open(self.PNG), 32, "Generated PNG")
 
 
 # TODO TestUvMeterMulti15

@@ -49,8 +49,6 @@ class Sl1fwTestCase(DBusTestCase):
 
     SL1FW_DIR = Path(sl1fw.__file__).parent
     SAMPLES_DIR = Path(samples.__file__).parent
-    temp_dir_obj = tempfile.TemporaryDirectory()
-    TEMP_DIR = Path(temp_dir_obj.name)
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
 
     dbus_started = False
@@ -61,46 +59,15 @@ class Sl1fwTestCase(DBusTestCase):
     @classmethod
     def setUpClass(cls):
         DBusTestCase.setUpClass()
-        warnings.simplefilter("always")
-        test_runtime.testing = True
-        defines.ramdiskPath = str(cls.TEMP_DIR)
-        defines.previousPrints = str(cls.TEMP_DIR)
-        defines.emmc_serial_path = cls.SAMPLES_DIR / "cid"
-        defines.wizardHistoryPath = cls.TEMP_DIR / "wizard_history" / "user_data"
-        defines.wizardHistoryPath.mkdir(exist_ok=True, parents=True)
-        defines.wizardHistoryPathFactory = cls.TEMP_DIR / "wizard_history" / "factory_data"
-        defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
-        defines.factoryMountPoint = cls.TEMP_DIR
-        defines.configDir = cls.TEMP_DIR
         if not cls.dbus_started:
             cls.start_system_bus()
             cls.dbus_started = True
-
-        bus = pydbus.SystemBus()
-        nm = NetworkManager()
-        cls.dbus_mocks = [
-            bus.publish(
-                NetworkManager.__INTERFACE__,
-                nm,
-                ("Settings", nm),
-                ("ethernet", nm),
-                ("wifi0", nm),
-                ("wifi1", nm),
-            ),
-            bus.publish(Hostname.__INTERFACE__, Hostname()),
-            bus.publish(Rauc.__OBJECT__, ("/", Rauc())),
-            bus.publish(Locale.__INTERFACE__, Locale()),
-            bus.publish(TimeDate.__INTERFACE__, TimeDate()),
-        ]
 
         cls.event_thread = threading.Thread(target=cls.event_loop.run)
         cls.event_thread.start()
 
     @classmethod
     def tearDownClass(cls):
-        for dbus_mock in cls.dbus_mocks:
-            dbus_mock.unpublish()
-
         cls.event_loop.quit()
         cls.event_thread.join()
         # TODO: Would be nice to properly terminate fake dbus bus and start new one next time
@@ -119,12 +86,59 @@ class Sl1fwTestCase(DBusTestCase):
         logger.addHandler(self.stream_handler)
         logger.setLevel(logging.DEBUG)
 
+        # Test overrides
+        warnings.simplefilter("always")
+        test_runtime.testing = True
+
+        # Test temp paths
+        self.temp_dir_obj = tempfile.TemporaryDirectory()
+        self.TEMP_DIR = Path(self.temp_dir_obj.name)
+        defines.ramdiskPath = str(self.TEMP_DIR)
+        defines.previousPrints = str(self.TEMP_DIR)
+        defines.emmc_serial_path = self.SAMPLES_DIR / "cid"
+        defines.wizardHistoryPath = self.TEMP_DIR / "wizard_history" / "user_data"
+        defines.wizardHistoryPath.mkdir(exist_ok=True, parents=True)
+        defines.wizardHistoryPathFactory = self.TEMP_DIR / "wizard_history" / "factory_data"
+        defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
+        defines.factoryMountPoint = self.TEMP_DIR
+        defines.configDir = self.TEMP_DIR
+        defines.uvCalibDataPathFactory = self.TEMP_DIR / defines.uvCalibDataFilename
+        defines.wizardDataPathFactory = self.TEMP_DIR / defines.wizardDataFilename
+        defines.factoryConfigPath = self.TEMP_DIR / "factory_config.toml"
+
+        # DBus mocks
+        nm = NetworkManager()
+        bus = pydbus.SystemBus()
+        self.hostname = Hostname()
+        self.locale = Locale()
+        self.time_date = TimeDate()
+        self.dbus_mocks = [
+            bus.publish(
+                NetworkManager.__INTERFACE__,
+                nm,
+                ("Settings", nm),
+                ("ethernet", nm),
+                ("wifi0", nm),
+                ("wifi1", nm),
+            ),
+            bus.publish(Hostname.__INTERFACE__, self.hostname),
+            bus.publish(Rauc.__OBJECT__, ("/", Rauc())),
+            bus.publish(Locale.__INTERFACE__, self.locale),
+            bus.publish(TimeDate.__INTERFACE__, self.time_date),
+        ]
+
     def tearDown(self) -> None:
         logging.getLogger().removeHandler(self.stream_handler)
         self.ref_check_type(Printer0)
         self.ref_check_type(Printer)
         self.ref_check_type(Exposure)
         self.ref_check_type(Screen)
+
+        self.temp_dir_obj.cleanup()
+
+        for dbus_mock in self.dbus_mocks:
+            dbus_mock.unpublish()
+
         super().tearDown()
 
     def ref_check_type(self, t: type):

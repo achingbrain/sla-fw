@@ -23,14 +23,15 @@ class TestScreen(Sl1fwTestCase):
     CALIBRATION = Sl1fwTestCase.SAMPLES_DIR / "Resin_calibration_object.sl1"
     CALIBRATION_LINEAR = Sl1fwTestCase.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"
     ZABA = Sl1fwTestCase.SAMPLES_DIR / "zaba.png"
-    PREVIEW_FILE = Sl1fwTestCase.TEMP_DIR / "live.png"
-    DISPLAY_USAGE = Sl1fwTestCase.TEMP_DIR / "display_usage.npz"
 
     def setUp(self):
         super().setUp()
+
+        self.preview_file = self.TEMP_DIR / "live.png"
+        self.display_usage = self.TEMP_DIR / "display_usage.npz"
         defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
-        defines.livePreviewImage = str(self.PREVIEW_FILE)
-        defines.displayUsageData = str(self.DISPLAY_USAGE)
+        defines.livePreviewImage = str(self.preview_file)
+        defines.displayUsageData = str(self.display_usage)
         test_runtime.testing = True
         self.hw_config = HwConfig(self.HW_CONFIG)
         self.hw_config.read_file()
@@ -39,8 +40,8 @@ class TestScreen(Sl1fwTestCase):
     def tearDown(self):
         self.screen.exit()
         files = [
-            self.PREVIEW_FILE,
-            self.DISPLAY_USAGE,
+            self.preview_file,
+            self.display_usage,
         ]
         for file in files:
             if file.exists():
@@ -80,11 +81,11 @@ class TestScreen(Sl1fwTestCase):
         self.assertFalse(project.per_partes)
         self.screen.sync_preloader()
         self.screen.save_display_usage()
-        with numpy.load(TestScreen.DISPLAY_USAGE) as npzfile:
-            savedData = npzfile['display_usage']
+        with numpy.load(self.display_usage) as npzfile:
+            saved_data = npzfile['display_usage']
         with numpy.load(self.SAMPLES_DIR / "display_usage.npz") as npzfile:
-            exampleData = npzfile['display_usage']
-        self.assertTrue(numpy.array_equal(savedData, exampleData))
+            example_data = npzfile['display_usage']
+        self.assertTrue(numpy.array_equal(saved_data, example_data))
 
     def test_per_partes(self):
         project = Project(self.hw_config, self.screen.printer_model, self.NUMBERS)
@@ -159,7 +160,8 @@ class TestScreen(Sl1fwTestCase):
         white_pixels = self.screen.sync_preloader()
         self.assertLess(abs(1126168 - white_pixels), 50)
         self.screen.blit_image()
-        self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_compact.png"), threshold=40)
+        self.assertSameImage(self.screen.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_compact.png"),
+                             threshold=40)
 
     def test_calibration_fill_compact(self):
         project = Project(self.hw_config, self.screen.printer_model, self.CALIBRATION)

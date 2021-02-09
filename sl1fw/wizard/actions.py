@@ -78,7 +78,7 @@ class UserActionBroker:
         self.tank_foam_removed = UserAction()
         self.display_foil_removed = UserAction()
 
-        # Wizard
+        # Self-test
         self.prepare_wizard_part_1_done = UserAction()
         self.prepare_wizard_part_2_done = UserAction()
         self.prepare_wizard_part_3_done = UserAction()
