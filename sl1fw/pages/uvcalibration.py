@@ -102,7 +102,6 @@ class PageUvCalibrationBase(Page):
     writeDataToFactory = False
     resetLedCounter = False
     resetDisplayCounter = False
-    factoryUvPwm = None
 
     def __init__(self, display):
         super(PageUvCalibrationBase, self).__init__(display)
@@ -110,11 +109,6 @@ class PageUvCalibrationBase(Page):
         self.pageTitle = N_("UV LED calibration")
         self.checkCooling = True
         self.calibration_params = display.screen.printer_model.calibration(self.display.hw.is500khz)
-        try:
-            self.factoryUvPwm = TomlConfig(defines.uvCalibDataPathFactory).load()["uvFoundPwm"]
-            self.logger.info("factoryUvPwm %s", self.factoryUvPwm)
-        except KeyError:
-            self.logger.error("not found factoryUvPwm")
     #enddef
 
     def off(self):
@@ -457,6 +451,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         self.boostResults = False
         self.boostMultiplier = 1.2
         self.secondPassThreshold = 240
+        self.factoryUvPwm = None
 
 
     def show(self):
@@ -465,10 +460,16 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
         self.display.uvCalibData = None
 
-        if PageUvCalibrationBase.resetLedCounter or PageUvCalibrationBase.resetDisplayCounter or PageUvCalibrationBase.factoryUvPwm is None:   # if user replaced HW component allow UV PWM up to 240 without boost
-            PageUvCalibrationBase.factoryUvPwm = 200
+        try:
+            self.factoryUvPwm = TomlConfig(defines.uvCalibDataPathFactory).load()["uvFoundPwm"]
+        except KeyError:
+            self.logger.error("Factory UV PWM not found.")
+
+        if PageUvCalibrationBase.resetLedCounter or PageUvCalibrationBase.resetDisplayCounter or self.factoryUvPwm is None:   # if user replaced HW component allow UV PWM up to 240 without boost
+            self.factoryUvPwm = 200
             PageUvCalibrationBase.writeDataToFactory = True  # only scenario when this will change the value False->True is with new KIT
-            self.logger.info("using temporary default factoryUvPwm %s", PageUvCalibrationBase.factoryUvPwm)
+            self.logger.info("Using temporary default factoryUvPwm %s.", self.factoryUvPwm)
+            self.logger.info("Result will be written into factory parition.")
 
         # TODO Concurrent.futures would allow us to pass errors as exceptions
         self.result = None
@@ -512,7 +513,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         #endif
 
         if ((self.pwm > self.secondPassThreshold or
-                self.pwm > (PageUvCalibrationBase.factoryUvPwm / 100) * (100 + self.display.hwConfig.uvCalibBoostTolerance) or
+                self.pwm > (self.factoryUvPwm / 100) * (100 + self.display.hwConfig.uvCalibBoostTolerance) or
                 self.result == self.ERROR_TOO_DIMM) and
                 not self.boostResults and
                 not self.uvmeter.sixty_points):
@@ -522,8 +523,8 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
                 "Requested intensity cannot be reached by max. allowed PWM, run second iteration with boostResults on (PWM=%d)",
                 self.pwm)
             self.logger.info("Boosted results applied due to bigger tolerance. Factory: %d, max: %f, tolerance: %d",
-                PageUvCalibrationBase.factoryUvPwm,
-                (PageUvCalibrationBase.factoryUvPwm / 100)  * (100 + self.display.hwConfig.uvCalibBoostTolerance),
+                self.factoryUvPwm,
+                (self.factoryUvPwm / 100)  * (100 + self.display.hwConfig.uvCalibBoostTolerance),
                 self.display.hwConfig.uvCalibBoostTolerance)
             self.display.hw.beepAlarm(2)
             return PageUVCalibrateCenter.Name
@@ -736,7 +737,6 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
 
     def yesButtonRelease(self):
         self.display.state = DisplayState.IDLE
-
         # save hwConfig
         self.previousUvPwm = self.display.hwConfig.uvPwm
         self.display.hwConfig.uvPwm = self.display.uvCalibData.uvFoundPwm
