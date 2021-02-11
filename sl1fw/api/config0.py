@@ -156,7 +156,7 @@ class Config0:
         if isinstance(value, ListValue):
             ret["length"] = value.length
         if isinstance(value, TextValue):
-            ret["regex"] = value.regex
+            ret["regex"] = value.regex.pattern
         return ret
 
     def _on_change(self, key: str, _: Any):
