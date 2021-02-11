@@ -96,7 +96,7 @@ class SystemToolsMenu(SafeAdminMenu):
     def serial(self, value: bool):
         if self._printer.runtime_config.factory_mode:
             raise ValueError("Already enabled by factory mode")
-        self._set_unit(defines.ssh_service_service, defines.ssh_service_enabled, value)
+        self._set_unit(defines.serial_service_service, defines.serial_service_enabled, value)
 
     def _set_update_channel(self, channel: str):
         try:
@@ -114,12 +114,12 @@ class SystemToolsMenu(SafeAdminMenu):
     def _set_unit(self, service: str, enable_file: Path, state: bool):
         if state:
             with FactoryMountedRW():
-                enable_file.unlink()
-            self._systemd_disable_service(service)
-        else:
-            with FactoryMountedRW():
                 enable_file.touch()
             self._systemd_enable_service(service)
+        else:
+            with FactoryMountedRW():
+                enable_file.unlink()
+            self._systemd_disable_service(service)
 
     def _systemd_enable_service(self, service: str):
         state = self.systemd.GetUnitFileState(service)
