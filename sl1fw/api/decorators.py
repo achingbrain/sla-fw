@@ -253,6 +253,7 @@ def python_to_dbus_value_type(data: Any):
 
 def wrap_value(data: Any) -> Variant:
     # pylint: disable = unidiomatic-typecheck
+    # pylint: disable = too-many-return-statements
 
     if isinstance(data, int):
         if data > GLib.MAXINT32 or data < GLib.MININT32:
@@ -277,6 +278,9 @@ def wrap_value(data: Any) -> Variant:
 
     if isinstance(data, Enum):
         return wrap_value(data.value)
+
+    if data is None:
+        return wrap_value("None")
 
     raise DBusMappingException(f"Failed to wrap dbus value \"{data}\" of type {type(data)}")
 
