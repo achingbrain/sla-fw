@@ -26,7 +26,7 @@ from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardState, WizardCheckState, WizardId
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType
-from sl1fw.wizard.groups.base import CheckGroup
+from sl1fw.wizard.group import CheckGroup
 
 
 class Wizard(Thread, UserActionBroker):

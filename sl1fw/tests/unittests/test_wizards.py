@@ -14,7 +14,7 @@ from sl1fw.states.wizard import WizardState, WizardId
 from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType
-from sl1fw.wizard.groups.base import CheckGroup
+from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, PlatformSetup, TankSetup
 from sl1fw.wizard.wizard import Wizard
 from sl1fw.wizard.wizards.calibration import CalibrationWizard
