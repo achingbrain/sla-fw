@@ -44,7 +44,7 @@ def check_uv_leds(hw: Hardware, progress_callback: Callable[[float], None] = Non
             sleep(5)  # wait to refresh all voltages (board rev. 0.6+)
         volts = list(hw.getVoltages())
         del volts[-1]  # delete power supply voltage
-        if max(volts) - min(volts) > diff:
+        if max(volts) - min(volts) > diff and not test_runtime.testing:
             hw.uvLed(False)
             raise UVLEDsVoltagesDifferTooMuch()
         row1.append(int(volts[0] * 1000))
