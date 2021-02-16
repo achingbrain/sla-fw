@@ -57,9 +57,14 @@ def send_printer_data(hw: Hardware, config: HwConfig):
     logger = logging.getLogger(__name__)
 
     # Get wizard data
-    wizard_dict = TomlConfig(defines.wizardDataPathFactory).load()
-    if not wizard_dict and not hw.isKit:
-        raise MissingWizardData()
+    try:
+        # TODO: Reference SelfTestWizard.data_filename once this does not cause circular import
+        with (defines.factoryMountPoint / "self_test_data.json").open("rt") as file:
+            wizard_dict = json.load(file)
+        if not wizard_dict and not hw.isKit:
+            raise MissingWizardData()
+    except Exception as exception:
+        raise MissingWizardData from exception
 
     if not config.calibrated and not hw.isKit:
         raise MissingCalibrationData()
