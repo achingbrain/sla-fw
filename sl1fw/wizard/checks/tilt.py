@@ -168,6 +168,7 @@ class TiltAlignTest(SyncCheck):
         self.tilt_aligned_event.set()
 
     def tilt_move(self, direction: int):
+        self._logger.debug("Tilt move direction: %s", direction)
         self._hw.tilt_move(direction, fullstep=True)
 
     def get_result_data(self) -> Dict[str, Any]:

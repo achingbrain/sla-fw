@@ -121,18 +121,13 @@ class Wizard0:
 
     @auto_dbus
     @last_error
-    def prepare_calibration_platform_insert_done(self):
-        self._wizard.prepare_calibration_platform_insert_done()
+    def prepare_calibration_platform_tank_done(self):
+        self._wizard.prepare_calibration_platform_tank_done()
 
     @auto_dbus
     @last_error
     def prepare_calibration_platform_align_done(self):
         self._wizard.prepare_calibration_platform_align_done()
-
-    @auto_dbus
-    @last_error
-    def prepare_calibration_tank_placement_done(self):
-        self._wizard.prepare_calibration_tank_placement_done()
 
     @auto_dbus
     @last_error

@@ -60,12 +60,11 @@ class UserActionBroker:
         self._hw = hw
         self._warn_level_counter = WarnLevelCounter(hw)
 
-        self.prepare_calibration_platform_insert_done = UserAction()
         self.prepare_calibration_platform_align_done = UserAction()
-        self.prepare_calibration_tank_placement_done = UserAction()
         self.prepare_calibration_tilt_align_done = UserAction()
         self.prepare_calibration_finish_done = UserAction()
         self.prepare_displaytest_done = UserAction()
+        self.prepare_calibration_platform_tank_done = UserAction()
 
         self.report_display = UserAction()
         self.report_audio = UserAction()

@@ -204,10 +204,8 @@ class TestWizards(Sl1fwTestCase):
         wizard = CalibrationWizard(Hardware(), HwConfig(), RuntimeConfig())
 
         def on_state_changed():
-            if wizard.state == WizardState.PREPARE_CALIBRATION_PLATFORM_INSERT:
-                wizard.prepare_calibration_platform_insert_done()
-            if wizard.state == WizardState.PREPARE_CALIBRATION_TANK_PLACEMENT:
-                wizard.prepare_calibration_tank_placement_done()
+            if wizard.state == WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK:
+                wizard.prepare_calibration_platform_tank_done()
             if wizard.state == WizardState.PREPARE_CALIBRATION_TILT_ALIGN:
                 wizard.prepare_calibration_tilt_align_done()
             if wizard.state == WizardState.LEVEL_TILT:
