@@ -8,7 +8,7 @@ from typing import List
 
 from sl1fw import defines
 from sl1fw.configs.ini import Config
-from sl1fw.configs.value import BoolValue, IntValue, IntListValue, FloatValue
+from sl1fw.configs.value import BoolValue, IntValue, IntListValue, FloatValue, TextValue
 
 
 class HwConfig(Config):
@@ -157,6 +157,8 @@ class HwConfig(Config):
     raw_tiltdownsmallfill = IntListValue([5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill")
     raw_tiltuplargefill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltuplargefill")
     raw_tiltupsmallfill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltupsmallfill")
+
+    currentProfilesSet = TextValue("n/a", doc="Last applied profiles set")
 
     @property
     def tuneTilt(self) -> List[List[int]]:

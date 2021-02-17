@@ -6,6 +6,7 @@ from time import sleep
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction, AdminLabel
 from sl1fw.admin.menus.dialogs import Wait, Error
+from sl1fw.admin.menus.profiles_sets import ProfilesSetsMenu
 from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.libPrinter import Printer
 
@@ -29,6 +30,7 @@ class TiltAndTowerMenu(SafeAdminMenu):
         self.add_item(AdminAction("Tune tilt", self.tune_tilt))
         self.add_item(AdminAction("Tower sensitivity", self.tower_sensitivity))
         self.add_item(AdminAction("Tower offset", self.tower_offset))
+        self.add_item(AdminAction("Profiles sets", lambda: self.enter(ProfilesSetsMenu(self._control, self._printer))))
 
     @SafeAdminMenu.safe_call
     def tilt_home(self):

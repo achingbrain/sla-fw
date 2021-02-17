@@ -89,6 +89,12 @@ class ProfilesPage(Page):
     #enddef
 
 
+    def reset_current_profiles_set(self, commit = True):
+        self.display.hwConfig.currentProfilesSet = "changed"
+        if commit:
+            self.display.hwConfig.get_writer().commit()
+
+
     def button1ButtonRelease(self):
         ''' export '''
         savepath = self.getSavePath()
@@ -132,6 +138,7 @@ class ProfilesPage(Page):
                 self.profiles = json.loads(f.read())
             #endwith
             self._setProfile()
+            self.reset_current_profiles_set()
             return
         except Exception:
             self.logger.exception("import exception:")
@@ -148,6 +155,7 @@ class ProfilesPage(Page):
                 self.profiles = json.loads(f.read())
             #endwith
             self._setProfile()
+            self.reset_current_profiles_set()
         except Exception:
             self.logger.exception("import exception:")
             self.display.pages['error'].setParams(code=Sl1Codes.FAILED_PROFILE_IMPORT.raw_code)
@@ -323,6 +331,7 @@ class PageTiltProfiles(ProfilesPage):
         self.display.pages['tiltmove'].changeProfiles(True)
         self.display.hw.setTiltProfiles(self.profiles)
         self.profiles = None
+        self.reset_current_profiles_set()
         return super(PageTiltProfiles, self).backButtonRelease()
     #enddef
 
@@ -391,6 +400,7 @@ class PageTowerProfiles(ProfilesPage):
         self.display.pages['towermove'].changeProfiles(True)
         self.display.hw.setTowerProfiles(self.profiles)
         self.profiles = None
+        self.reset_current_profiles_set()
         return super(PageTowerProfiles, self).backButtonRelease()
     #enddef
 
@@ -461,6 +471,7 @@ class PageTuneTilt(ProfilesPage):
         writer.raw_tiltdownsmallfill = self.profiles[1]
         writer.raw_tiltuplargefill = self.profiles[2]
         writer.raw_tiltupsmallfill = self.profiles[3]
+        self.reset_current_profiles_set(commit = False)
         try:
             writer.commit()
         except ConfigException as exception:
