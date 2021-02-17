@@ -2,6 +2,7 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from abc import ABC
 from threading import Event
 from time import sleep, time
 from typing import Optional, Dict, Any
@@ -19,14 +20,14 @@ from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
-from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType
+from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck, SyncCheck
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup
 
 
-class TiltHomeTest(SyncCheck):
+class TiltHomeTest(SyncDangerousCheck, ABC):
     def __init__(self, hw: Hardware):
         super().__init__(
-            WizardCheckType.TILT_HOME, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
+            hw, WizardCheckType.TILT_HOME, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
         self.hw = hw
 
@@ -48,10 +49,10 @@ class TiltHomeTest(SyncCheck):
                 raise TiltHomeCheckFailed()
 
 
-class TiltRangeTest(SyncCheck):
+class TiltRangeTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware):
         super().__init__(
-            WizardCheckType.TILT_RANGE, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
+            hw, WizardCheckType.TILT_RANGE, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
         self.hw = hw
 
@@ -83,10 +84,10 @@ class TiltRangeTest(SyncCheck):
                 sleep(0.25)
 
 
-class TiltTimingTest(SyncCheck):
+class TiltTimingTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
-            WizardCheckType.TILT_TIMING, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
+            hw, WizardCheckType.TILT_TIMING, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
         self.hw = hw
         self.hw_config = hw_config
@@ -124,10 +125,10 @@ class TiltTimingTest(SyncCheck):
         return round(1000 * tilt_time / total)
 
 
-class TiltCalibrationStartTest(SyncCheck):
+class TiltCalibrationStartTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware):
         super().__init__(
-            WizardCheckType.TILT_CALIBRATION_START, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
+            hw, WizardCheckType.TILT_CALIBRATION_START, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
         self.hw = hw
 

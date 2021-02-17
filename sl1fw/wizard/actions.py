@@ -1,6 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 import logging
 from collections import deque
 from dataclasses import dataclass
@@ -82,8 +83,14 @@ class UserActionBroker:
         self.prepare_wizard_part_2_done = UserAction()
         self.prepare_wizard_part_3_done = UserAction()
 
-    def push_state(self, state: PushState):
-        self._states.append(state)
+        # Packing
+        self.insert_foam = UserAction()
+
+    def push_state(self, state: PushState, priority: bool = False):
+        if priority:
+            self._states.appendleft(state)
+        else:
+            self._states.append(state)
         self.states_changed.emit()
         self._logger.debug("Wizard state pushed: %s", state)
 

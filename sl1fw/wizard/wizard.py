@@ -24,8 +24,8 @@ from sl1fw.errors.warnings import PrinterWarning
 from sl1fw.functions.system import FactoryMountedRW
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardState, WizardCheckState, WizardId
-from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import Check, WizardCheckType
+from sl1fw.wizard.actions import UserActionBroker, PushState
+from sl1fw.wizard.checks.base import Check, WizardCheckType, DangerousCheck
 from sl1fw.wizard.group import CheckGroup
 
 
@@ -57,6 +57,8 @@ class Wizard(Thread, UserActionBroker):
         self.unstop_result = Queue()
         self._runtime_config = runtime_config
         self.started = datetime.now()
+        self._dangerous_running = False
+        self._close_cover_state: Optional[PushState] = None
 
         for check in self.checks:
             check.state_changed.connect(self.check_states_changed.emit)
@@ -66,6 +68,8 @@ class Wizard(Thread, UserActionBroker):
             check.data_changed.connect(self.data_changed.emit)
 
         self.states_changed.connect(self.state_changed.emit)
+        self.check_states_changed.connect(self._update_dangerous_check_running)
+        self._hw.cover_state_changed.connect(self._check_cover_closed)
 
     @property
     def identifier(self) -> WizardId:
@@ -107,6 +111,10 @@ class Wizard(Thread, UserActionBroker):
         for check in self.checks:
             for warning in check.warnings:
                 yield warning
+
+    @property
+    def dangerous_check_running(self) -> bool:
+        return self._dangerous_running
 
     @property
     def check_state(self) -> Dict[WizardCheckType, WizardCheckState]:
@@ -235,3 +243,25 @@ class Wizard(Thread, UserActionBroker):
             except Exception as exception:
                 raise FailedToSaveWizardData() from exception
         self._logger.info("Wizard %s data stored", type(self).__name__)
+
+    def _update_dangerous_check_running(self):
+        self._dangerous_running = self.__current_group and any(
+            [
+                isinstance(check, DangerousCheck) and check.state == WizardCheckState.RUNNING
+                for check in self.__current_group.checks
+            ]
+        )
+        self._check_cover_closed(self._hw.isCoverClosed())
+
+    def _check_cover_closed(self, closed: bool):
+        self._logger.debug("Checking cover closed, open: %s", closed)
+        if self.dangerous_check_running and self._hw.hwConfig.coverCheck and not closed and not self._close_cover_state:
+            self._logger.warning("Cover open and dangerous check running, pushing close cover state")
+            self._close_cover_state = PushState(WizardState.CLOSE_COVER)
+            self.push_state(self._close_cover_state, priority=True)
+            return
+
+        if self._close_cover_state:
+            self._logger.debug("Danger from closed cover neutralized, dropping close cover state")
+            self.drop_state(self._close_cover_state)
+            self._close_cover_state = None

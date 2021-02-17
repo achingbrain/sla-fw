@@ -163,7 +163,7 @@ class TestWizards(Sl1fwTestCase):
         self.assertEqual(0, data["towerSensitivity"])
 
     def test_display_test(self):
-        wizard = DisplayTestWizard(Hardware(), HwConfig(), Mock(), RuntimeConfig())
+        wizard = DisplayTestWizard(Hardware(), Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_DISPLAY_TEST:

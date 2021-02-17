@@ -2,7 +2,6 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.functions.system import hw_all_off
 from sl1fw.libHardware import Hardware
@@ -17,17 +16,17 @@ from sl1fw.wizard.wizard import Wizard
 
 
 class DisplayTestCheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
-        super().__init__(Configuration(TankSetup.REMOVED, None), [DisplayTest(hw, hw_config, screen, runtime_config)])
+    def __init__(self, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
+        super().__init__(Configuration(TankSetup.REMOVED, None), [DisplayTest(hw, screen, runtime_config)])
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(actions, actions.prepare_displaytest_done, WizardState.PREPARE_DISPLAY_TEST)
 
 
 class DisplayTestWizard(Wizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
         super().__init__(
-            WizardId.DISPLAY, [DisplayTestCheckGroup(hw, hw_config, screen, runtime_config)], hw, runtime_config
+            WizardId.DISPLAY, [DisplayTestCheckGroup(hw, screen, runtime_config)], hw, runtime_config
         )
         self._screen = screen
 

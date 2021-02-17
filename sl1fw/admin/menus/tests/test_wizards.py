@@ -42,7 +42,6 @@ class TestWizardsMenu(AdminMenu):
         displaytest_wizard(
             self._printer.display.action_manager,
             self._printer.display.hw,
-            self._printer.display.hwConfig,
             self._printer.display.screen,
             self._printer.display.runtime_config,
         )

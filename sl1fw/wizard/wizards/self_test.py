@@ -42,7 +42,7 @@ class SelfTestPart1CheckGroup(CheckGroup):
                 TowerHomeTest(hw, hw_config),
                 UVLEDsTest(hw, hw_config),
                 UVFansTest(hw, hw_config),
-                DisplayTest(hw, hw_config, screen, runtime_config),
+                DisplayTest(hw, screen, runtime_config),
                 CalibrationInfo(hw_config),
             ],
         )

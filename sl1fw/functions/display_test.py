@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.screen.screen import Screen
@@ -27,8 +26,8 @@ def end(hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
     hw.stopFans()
 
 
-def cover_check(hw: Hardware, hw_config: HwConfig, printer_model: PrinterModel) -> bool:
-    if not hw_config.coverCheck or hw.isCoverClosed():
+def cover_check(hw: Hardware, printer_model: PrinterModel) -> bool:
+    if hw.isCoverVirtuallyClosed():
         hw.uvLedPwm = printer_model.calibration(hw.is500khz).min_pwm
         hw.uvLed(True)
         return True

@@ -15,9 +15,14 @@ from sl1fw.wizard.wizards.self_test import SelfTestWizard
 
 
 def displaytest_wizard(
-    action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig
+    action_manager: ActionManager,
+    hw: Hardware,
+    screen: Screen,
+    runtime_config: RuntimeConfig,
 ) -> Wizard:
-    return action_manager.start_wizard(DisplayTestWizard(hw, hw_config, screen, runtime_config))
+    return action_manager.start_wizard(
+        DisplayTestWizard(hw, screen, runtime_config)
+    )
 
 
 def unboxing_wizard(

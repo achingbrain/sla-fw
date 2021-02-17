@@ -958,7 +958,6 @@ class Printer0:
         displaytest_wizard(
             self.printer.action_manager,
             self.printer.hw,
-            self.printer.hwConfig,
             self.printer.screen,
             self.printer.runtime_config,
         )

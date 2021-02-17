@@ -8,14 +8,14 @@ from sl1fw.functions.checks import tower_axis, tower_calibrate
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType
+from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType, SyncDangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup, PlatformSetup
 
 
-class TowerHomeTest(SyncCheck):
+class TowerHomeTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
-            WizardCheckType.TOWER_HOME, Configuration(None, None), [Resource.TOWER, Resource.TOWER_DOWN],
+            hw, WizardCheckType.TOWER_HOME, Configuration(None, None), [Resource.TOWER, Resource.TOWER_DOWN],
         )
         self.hw = hw
         self.hw_config = hw_config

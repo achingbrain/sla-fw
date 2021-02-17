@@ -8,14 +8,14 @@ from typing import Optional
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType
+from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource
 
 
-class MoveToFoam(SyncCheck):
+class MoveToFoam(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
-            WizardCheckType.MOVE_TO_FOAM, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
+            hw, WizardCheckType.MOVE_TO_FOAM, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
         )
         self.result: Optional[bool] = None
         self.hw = hw
@@ -31,10 +31,10 @@ class MoveToFoam(SyncCheck):
             self.hw.motorsRelease()
 
 
-class MoveToTank(SyncCheck):
+class MoveToTank(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
-            WizardCheckType.MOVE_TO_TANK, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
+            hw, WizardCheckType.MOVE_TO_TANK, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
         )
         self.result: Optional[bool] = None
         self.hw = hw

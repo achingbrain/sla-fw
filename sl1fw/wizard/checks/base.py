@@ -12,6 +12,7 @@ from typing import Optional, List, Iterable, Dict, Any
 
 from PySignal import Signal
 
+from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardCheckState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.setup import Resource, Configuration
@@ -172,3 +173,23 @@ class SyncCheck(Check):
     @abstractmethod
     def task_run(self, actions: UserActionBroker):
         ...
+
+
+class DangerousCheck(Check, ABC):
+    """
+    Dangerous checks require cover closed during operation
+    """
+
+    def __init__(self, hw: Hardware, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._hw = hw
+
+    async def wait_cover_closed(self):
+        await asyncio.sleep(0)
+        while not self._hw.isCoverVirtuallyClosed():
+            await asyncio.sleep(0.5)
+
+
+class SyncDangerousCheck(SyncCheck, DangerousCheck, ABC):
+    def wait_cover_closed_sync(self):
+        asyncio.run(super().wait_cover_closed())

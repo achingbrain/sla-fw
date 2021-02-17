@@ -642,6 +642,12 @@ class Hardware:
     def isCoverClosed(self, check_for_updates: bool = True):
         return self.checkState("cover", check_for_updates)
 
+    def isCoverVirtuallyClosed(self, check_for_updates: bool = True):
+        """
+        Check whenever the cover is closed or cover check is disabled
+        """
+        return self.isCoverClosed(check_for_updates=check_for_updates) or not self.hwConfig.coverCheck
+
     def getPowerswitchState(self):
         return self.checkState("button")
 
