@@ -688,6 +688,8 @@ class Exposure:
         except Exception as exception:
             self.logger.exception("Exposure thread exception")
             self.exception = exception
+            if not isinstance(exception, (TiltFailed, TowerFailed)):
+                self._final_go_up()
             self.state = ExposureState.FAILURE
             self.hw.uvLed(False)
             self.hw.stopFans()
@@ -751,7 +753,6 @@ class Exposure:
         project = self.project
         project_hash = md5(project.name.encode()).hexdigest()[:8] + "_"
         prev_white_pixels = 0
-        stuck = False
         was_stirring = True
         exposure_compensation = 0
 
@@ -854,18 +855,15 @@ class Exposure:
             times_ms[0] += exposure_compensation
 
             success, white_pixels = self._do_frame(times_ms, prev_white_pixels, was_stirring, False)
-            if not success and not self.doStuckRelease():
+            if not success:
+                self.doStuckRelease()
                 self.hw.powerLed("normal")
-                self.cancel()
-                stuck = True
-                break
 
             # exposure of the second part
             if project.per_partes and white_pixels > self.screen.white_pixels_threshold:
                 success, dummy = self._do_frame(times_ms, white_pixels, was_stirring, True)
-                if not success and not self.doStuckRelease():
-                    stuck = True
-                    break
+                if not success:
+                    self.doStuckRelease()
 
             prev_white_pixels = white_pixels
             was_stirring = False
@@ -889,12 +887,7 @@ class Exposure:
         self.hw.saveUvStatistics()
         self.hw.uvLed(False)
 
-        if not stuck:
-            self.state = ExposureState.GOING_UP
-            self.hw.setTowerProfile("homingFast")
-            self.hw.towerToTop()
-            while not self.hw.isTowerOnTop():
-                sleep(0.25)
+        self._final_go_up()
 
         self.hw.stopFans()
         self.hw.motorsRelease()
@@ -964,3 +957,10 @@ class Exposure:
         self.state = old_state
         self.logger.info("Cover closed now")
         return True
+
+    def _final_go_up(self):
+        self.state = ExposureState.GOING_UP
+        self.hw.setTowerProfile("homingFast")
+        self.hw.towerToTop()
+        while not self.hw.isTowerOnTop():
+            sleep(0.25)

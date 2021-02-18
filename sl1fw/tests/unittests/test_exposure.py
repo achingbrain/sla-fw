@@ -106,6 +106,62 @@ class TestExposure(Sl1fwTestCase):
         exposure.read_project(self.BROKEN_EMPTY_PROJECT)
         self.assertIsInstance(exposure.exception, ProjectErrorCantRead)
 
+    def test_stuck_recovery_success(self):
+        hw = self._get_hw_mock()
+        self._fake_calibration()
+        hw.tiltLayerDownWait = lambda _: False
+        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
+        exposure.read_project(TestExposure.PROJECT)
+        exposure.startProject()
+        exposure.confirm_print_start()
+
+        for i in range(30):
+            print(f"Waiting for exposure {i}, state: ", exposure.state)
+            if exposure.state == ExposureState.CHECK_WARNING:
+                print(exposure.warning)
+                if isinstance(exposure.warning, PrintingDirectlyFromMedia):
+                    exposure.confirm_print_warning()
+                else:
+                    exposure.reject_print_warning()
+            if exposure.state in ExposureState.finished_states():
+                self._exposure_check(exposure)
+                self.assertEqual(exposure.state, ExposureState.FINISHED)
+                return
+            if exposure.state == ExposureState.STUCK:
+                hw.tiltLayerDownWait = lambda _: True
+                exposure.doContinue()
+            sleep(1)
+
+        raise TimeoutError("Waiting for exposure failed")
+
+    def test_stuck_recovery_fail(self):
+        hw = self._get_hw_mock()
+        self._fake_calibration()
+        hw.tiltLayerDownWait = lambda _: False
+        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
+        exposure.read_project(TestExposure.PROJECT)
+        exposure.startProject()
+        exposure.confirm_print_start()
+
+        for i in range(30):
+            print(f"Waiting for exposure {i}, state: ", exposure.state)
+            if exposure.state == ExposureState.CHECK_WARNING:
+                print(exposure.warning)
+                if isinstance(exposure.warning, PrintingDirectlyFromMedia):
+                    exposure.confirm_print_warning()
+                else:
+                    exposure.reject_print_warning()
+            if exposure.state in ExposureState.finished_states():
+                self._exposure_check(exposure)
+                self.assertEqual(exposure.state, ExposureState.FAILURE)
+                return
+            if exposure.state == ExposureState.STUCK:
+                hw.tiltSyncWait = lambda **_: False
+                exposure.doContinue()
+            sleep(1)
+
+        raise TimeoutError("Waiting for exposure failed")
+
     def _run_exposure(self, hw) -> Exposure:
         self._fake_calibration()
         exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
