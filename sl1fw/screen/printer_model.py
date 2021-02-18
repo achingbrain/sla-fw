@@ -68,8 +68,7 @@ class PrinterModel(Enum):
         return {
                 self.NONE: ExposureScreen((1024, 768), 50000, 0, False, False),
                 self.SL1: ExposureScreen((1440, 2560), 46875, 30, False, False),
-                # TODO real delay value
-                self.SL1S: ExposureScreen((1620, 2560), 51000, 0, True, False),
+                self.SL1S: ExposureScreen((1620, 2560), 50000, 20, True, False),
             }[self]
 
     def calibration(self, is500khz: bool) -> Calibration:

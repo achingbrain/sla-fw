@@ -33,8 +33,8 @@ class TestPrinterModel(Sl1fwTestCase):
         self.assertEqual(exposure_screen.detected_size_px, (1024, 768))
         exposure_screen = PrinterModel.SL1S.exposure_screen
         self.assertEqual(exposure_screen.size_px, (1620, 2560))
-        self.assertEqual(exposure_screen.pixel_size_nm, 51000)
-        self.assertEqual(exposure_screen.referesh_delay_ms, 0)
+        self.assertEqual(exposure_screen.pixel_size_nm, 50000)
+        self.assertEqual(exposure_screen.referesh_delay_ms, 20)
         self.assertEqual(exposure_screen.monochromatic, True)
         self.assertEqual(exposure_screen.backwards, False)
         self.assertEqual(exposure_screen.width_px, 1620)
