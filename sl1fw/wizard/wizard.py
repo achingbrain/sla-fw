@@ -224,10 +224,12 @@ class Wizard(Thread, UserActionBroker):
                 if not self._data_present_in_factory():
                     with FactoryMountedRW():
                         copyfile(temp.name, defines.factoryMountPoint / self.data_filename)
+                        defines.wizardHistoryPathFactory.mkdir(parents=True, exist_ok=True)
                         copyfile(temp.name, defines.wizardHistoryPathFactory / self.history_data_filename)
                 else:
                     # Store as current wizard result in etc
                     copyfile(temp.name, defines.configDir / self.data_filename)
+                    defines.wizardHistoryPath.mkdir(parents=True, exist_ok=True)
                     copyfile(temp.name, defines.wizardHistoryPath / self.history_data_filename)
 
             except Exception as exception:
