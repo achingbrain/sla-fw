@@ -11,6 +11,8 @@ from sl1fw.functions.wizards import (
     kit_unboxing_wizard,
     self_test_wizard,
     calibration_wizard,
+    packing_wizard,
+    factory_reset_wizard,
 )
 from sl1fw.libPrinter import Printer
 
@@ -29,6 +31,10 @@ class TestWizardsMenu(AdminMenu):
         self.add_item(AdminAction("API Unpacking (K)", self.api_unpacking_k))
         self.add_item(AdminAction("API Self test", self.api_wizard))
         self.add_item(AdminAction("API Calibration", self.api_calibration))
+        self.add_item(AdminAction("API Factory reset", self.api_factory_reset))
+        self.add_item(
+            AdminAction("API Packing (Factory factory reset)", self.api_packing)
+        )
 
     def self_test(self):
         self._printer.display.doMenu("wizardinit")
@@ -48,12 +54,18 @@ class TestWizardsMenu(AdminMenu):
 
     def api_unpacking_c(self):
         unboxing_wizard(
-            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config
+            self._printer.action_manager,
+            self._printer.hw,
+            self._printer.hwConfig,
+            self._printer.runtime_config,
         )
 
     def api_unpacking_k(self):
         kit_unboxing_wizard(
-            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config
+            self._printer.action_manager,
+            self._printer.hw,
+            self._printer.hwConfig,
+            self._printer.runtime_config,
         )
 
     def api_wizard(self):
@@ -67,5 +79,24 @@ class TestWizardsMenu(AdminMenu):
 
     def api_calibration(self):
         calibration_wizard(
-            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config
+            self._printer.action_manager,
+            self._printer.hw,
+            self._printer.hwConfig,
+            self._printer.runtime_config,
+        )
+
+    def api_packing(self):
+        packing_wizard(
+            self._printer.action_manager,
+            self._printer.hw,
+            self._printer.hwConfig,
+            self._printer.runtime_config,
+        )
+
+    def api_factory_reset(self):
+        factory_reset_wizard(
+            self._printer.action_manager,
+            self._printer.hw,
+            self._printer.hwConfig,
+            self._printer.runtime_config,
         )

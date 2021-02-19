@@ -6,8 +6,15 @@ from typing import Optional, Any, Dict, List
 
 from pydbus.generic import signal
 
-from sl1fw.api.decorators import dbus_api, auto_dbus, wrap_dict_data, wrap_exception, last_error, wrap_warning, \
-    wrap_dict_data_recursive
+from sl1fw.api.decorators import (
+    dbus_api,
+    auto_dbus,
+    wrap_dict_data,
+    wrap_exception,
+    last_error,
+    wrap_warning,
+    wrap_dict_data_recursive,
+)
 from sl1fw.wizard.wizard import Wizard
 
 
@@ -183,6 +190,11 @@ class Wizard0:
     @last_error
     def display_foil_removed(self):
         self._wizard.display_foil_removed()
+
+    @auto_dbus
+    @last_error
+    def foam_inserted(self):
+        self._wizard.foam_inserted()
 
     def _started_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"identifier": self.identifier}, [])

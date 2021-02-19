@@ -11,12 +11,12 @@ from typing import Iterable, Optional, Dict
 
 from sl1fw.states.wizard import WizardState, WizardCheckState
 from sl1fw.wizard.actions import UserActionBroker, UserAction, PushState
-from sl1fw.wizard.checks.base import Check
+from sl1fw.wizard.checks.base import BaseCheck
 from sl1fw.wizard.setup import Resource, Configuration
 
 
 class CheckGroup(ABC):
-    def __init__(self, configuration: Configuration, checks: Iterable[Check]):
+    def __init__(self, configuration: Configuration = Configuration(None, None), checks: Iterable[BaseCheck] = ()):
         self._logger = logging.getLogger(__name__)
         if not all([configuration.is_compatible(check.configuration) for check in checks]):
             raise ValueError("Check does not match group configuration")
@@ -31,7 +31,7 @@ class CheckGroup(ABC):
         ...
 
     @property
-    def checks(self) -> Iterable[Check]:
+    def checks(self) -> Iterable[BaseCheck]:
         return self._checks
 
     async def wait_for_user(self, actions: UserActionBroker, action: UserAction, state: WizardState):

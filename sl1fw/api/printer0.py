@@ -45,6 +45,8 @@ from sl1fw.functions.wizards import (
     kit_unboxing_wizard,
     self_test_wizard,
     calibration_wizard,
+    packing_wizard,
+    factory_reset_wizard,
 )
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.state_actions.examples import Examples
@@ -993,6 +995,18 @@ class Printer0:
         calibration_wizard(
             self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
         )
+
+    @auto_dbus
+    @last_error
+    def run_factory_reset_wizard(self) -> None:
+        if self.printer.runtime_config.factory_mode:
+            packing_wizard(
+                self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+            )
+        else:
+            factory_reset_wizard(
+                self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+            )
 
     @auto_dbus
     @property

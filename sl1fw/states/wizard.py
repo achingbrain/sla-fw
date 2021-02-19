@@ -37,6 +37,7 @@ class WizardState(Enum):
     REMOVE_SIDE_FOAM = 2102
     REMOVE_TANK_FOAM = 2103  # Remove resin tank
     REMOVE_DISPLAY_FOIL = 2104  # Peel off exposure display foil
+    INSERT_FOAM = 2105  # At factory reset, insert packing foams
 
     @staticmethod
     def finished_states():
@@ -51,6 +52,8 @@ class WizardId(Enum):
     DISPLAY = 3
     COMPLETE_UNBOXING = 4
     KIT_UNBOXING = 5
+    FACTORY_RESET = 6
+    PACKING = 7
 
 
 @unique

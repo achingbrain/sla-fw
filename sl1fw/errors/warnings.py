@@ -96,3 +96,9 @@ class WrongA64SerialFormat(PrinterWarning):
 @exception_dataclass
 class WrongMCSerialFormat(PrinterWarning):
     sn: str
+
+
+# TODO: Add code
+@exception_dataclass
+class FactoryResetCheckFailure(PrinterWarning):
+    message: str

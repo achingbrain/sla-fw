@@ -42,7 +42,7 @@ class Configuration:
 
     def is_compatible(self, other: Configuration):
         if not isinstance(other, Configuration):
-            raise ValueError("The other configuration is not configuration")
+            raise ValueError(f"The other configuration is not a configuration but \"{type(other)}\"")
 
         if self.tank and other.tank and self.tank != other.tank:
             return False

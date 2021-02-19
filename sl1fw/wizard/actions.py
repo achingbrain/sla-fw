@@ -4,6 +4,7 @@
 
 import logging
 from collections import deque
+from concurrent.futures.thread import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Optional, Callable
 
@@ -54,12 +55,15 @@ class WarnLevelCounter:
 
 class UserActionBroker:
     # pylint: disable=too-many-instance-attributes
+    MAX_PARALLEL_SYNC_TASKS = 3
+
     def __init__(self, hw: Hardware):
         self._logger = logging.getLogger(__name__)
         self._states = deque()
         self.states_changed = Signal()
         self._hw = hw
         self._warn_level_counter = WarnLevelCounter(hw)
+        self.sync_executor = ThreadPoolExecutor(max_workers=self.MAX_PARALLEL_SYNC_TASKS)
 
         self.prepare_calibration_platform_align_done = UserAction()
         self.prepare_calibration_tilt_align_done = UserAction()
@@ -84,7 +88,7 @@ class UserActionBroker:
         self.prepare_wizard_part_3_done = UserAction()
 
         # Packing
-        self.insert_foam = UserAction()
+        self.foam_inserted = UserAction()
 
     def push_state(self, state: PushState, priority: bool = False):
         if priority:

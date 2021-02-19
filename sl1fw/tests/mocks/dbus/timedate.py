@@ -11,12 +11,20 @@ from sl1fw.api.decorators import dbus_api, auto_dbus
 @dbus_api
 class TimeDate:
     __INTERFACE__ = "org.freedesktop.timedate1"
+    DEFAULT_TZ = 'America/Vancouver'
+    DEFAULT_NTP = True
 
     PropertiesChanged = signal()
 
     def __init__(self):
-        self._ntp = True
-        self._tz = 'America/Vancouver'
+        self._ntp = TimeDate.DEFAULT_NTP
+        self._tz = TimeDate.DEFAULT_TZ
+
+    def is_default_tz(self) -> bool:
+        return self._tz == TimeDate.DEFAULT_TZ
+
+    def is_default_ntp(self) -> bool:
+        return self._ntp == TimeDate.DEFAULT_NTP
 
     @auto_dbus
     @property

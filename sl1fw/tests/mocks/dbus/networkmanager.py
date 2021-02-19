@@ -46,8 +46,11 @@ class NetworkManager:
 
     @auto_dbus
     def GetSettings(self) -> Dict[str, Dict[str, str]]:
-        self.currentItem = next(self.iter)
-        connectionType = '802-11-wireless'
-        if self.currentItem == 'ethernet':
-            connectionType = '802-3-ethernet'
-        return { 'connection' : {'type': connectionType}}
+        try:
+            self.currentItem = next(self.iter)
+            connectionType = '802-11-wireless'
+            if self.currentItem == 'ethernet':
+                connectionType = '802-3-ethernet'
+            return { 'connection' : {'type': connectionType}}
+        except StopIteration:
+            return  {}

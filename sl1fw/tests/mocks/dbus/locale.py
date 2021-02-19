@@ -13,17 +13,21 @@ from sl1fw.api.decorators import dbus_api, auto_dbus
 @dbus_api
 class Locale:
     __INTERFACE__ = "org.freedesktop.locale1"
+    DEFAULT_LOCALE = ["C"]
 
     PropertiesChanged = signal()
 
     def __init__(self):
-        self._locale = "C"
+        self._locale = Locale.DEFAULT_LOCALE
 
     @auto_dbus
     @property
-    def Locale(self) -> str:
+    def Locale(self) -> List[str]:
         return self._locale
 
     @auto_dbus
     def SetLocale(self, locale: List[str], _: bool) -> None:
         self._locale = locale
+
+    def is_default(self):
+        return self._locale == Locale.DEFAULT_LOCALE

@@ -14,13 +14,16 @@ class Hostname:
 
     PropertiesChanged = signal()
 
+    def __init__(self):
+        self.hostname_set = False
+
     @auto_dbus
-    def SetStaticHostname(self, hostname: str, _: bool) -> None:
+    def SetStaticHostname(self, _: str, __: bool) -> None:
         pass
 
     @auto_dbus
-    def SetHostname(self, hostname: str, _: bool) -> None:
-        pass
+    def SetHostname(self, _: str, __: bool) -> None:
+        self.hostname_set = True
 
     @auto_dbus
     @property

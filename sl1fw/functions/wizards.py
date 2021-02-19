@@ -10,8 +10,11 @@ from sl1fw.state_actions.manager import ActionManager
 from sl1fw.wizard.wizard import Wizard
 from sl1fw.wizard.wizards.calibration import CalibrationWizard
 from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
+from sl1fw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
 from sl1fw.wizard.wizards.unboxing import KitUnboxingWizard, CompleteUnboxingWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
+
+# TODO: Get rid of this indirection
 
 
 def displaytest_wizard(
@@ -26,13 +29,21 @@ def displaytest_wizard(
 
 
 def unboxing_wizard(
-    action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig
+    action_manager: ActionManager,
+    hw: Hardware,
+    hw_config: HwConfig,
+    runtime_config: RuntimeConfig,
 ) -> Wizard:
-    return action_manager.start_wizard(CompleteUnboxingWizard(hw, hw_config, runtime_config))
+    return action_manager.start_wizard(
+        CompleteUnboxingWizard(hw, hw_config, runtime_config)
+    )
 
 
 def kit_unboxing_wizard(
-    action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig
+    action_manager: ActionManager,
+    hw: Hardware,
+    hw_config: HwConfig,
+    runtime_config: RuntimeConfig,
 ) -> Wizard:
     return action_manager.start_wizard(KitUnboxingWizard(hw, hw_config, runtime_config))
 
@@ -40,10 +51,35 @@ def kit_unboxing_wizard(
 def self_test_wizard(
     action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig
 ) -> Wizard:
-    return action_manager.start_wizard(SelfTestWizard(hw, hw_config, screen, runtime_config))
+    return action_manager.start_wizard(
+        SelfTestWizard(hw, hw_config, screen, runtime_config)
+    )
 
 
 def calibration_wizard(
-    action_manager: ActionManager, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig
+    action_manager: ActionManager,
+    hw: Hardware,
+    hw_config: HwConfig,
+    runtime_config: RuntimeConfig,
 ) -> Wizard:
     return action_manager.start_wizard(CalibrationWizard(hw, hw_config, runtime_config))
+
+
+def packing_wizard(
+    action_manager: ActionManager,
+    hw: Hardware,
+    hw_config: HwConfig,
+    runtime_config: RuntimeConfig,
+) -> Wizard:
+    return action_manager.start_wizard(PackingWizard(hw, hw_config, runtime_config))
+
+
+def factory_reset_wizard(
+    action_manager: ActionManager,
+    hw: Hardware,
+    hw_config: HwConfig,
+    runtime_config: RuntimeConfig,
+) -> Wizard:
+    return action_manager.start_wizard(
+        FactoryResetWizard(hw, hw_config, runtime_config)
+    )

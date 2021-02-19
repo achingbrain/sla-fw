@@ -224,6 +224,18 @@ class PageFactoryReset(Page):
         except (FileNotFoundError, PermissionError):
             self.logger.exception("Failed to remove downloaded slicer profiles")
 
+        # Reset user UV calibration data
+        try:
+            os.remove(defines.uvCalibDataPath)
+        except (FileNotFoundError, PermissionError):
+            self.logger.exception("Failed to remove user UV calibration data")
+
+        # Remove downloaded slicer profiles
+        try:
+            os.remove(defines.slicerProfilesFile)
+        except (FileNotFoundError, PermissionError):
+            self.logger.exception("Failed to remove remove downloaded slicer profiles")
+
     def _erase_projects(self, force = False):
         if self.eraseProjects or force:
             try:
