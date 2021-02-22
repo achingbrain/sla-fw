@@ -122,6 +122,7 @@ class Printer:
 
         self.logger.info("Initializing ExposureImage")
         self.exposure_image = ExposureImage(self.hw)
+        test_runtime.exposure_image = self.exposure_image
 
         self.logger.info("Registering config D-Bus services")
         self.system_bus = SystemBus()

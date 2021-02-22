@@ -55,6 +55,8 @@ SAMPLES_DIR = Path(samples.__file__).parent
 SL1FW_DIR = Path(sl1fw.__file__).parent
 HARDWARE_FILE = TEMP_DIR / "sl1fw.hardware.cfg"
 copyfile(SAMPLES_DIR / "hardware-virtual.cfg", HARDWARE_FILE)
+HARDWARE_FILE_FACTORY = TEMP_DIR / "sl1fw.hardware.cfg.factory"
+copyfile(SAMPLES_DIR / "hardware.toml", HARDWARE_FILE_FACTORY)
 
 
 def change_dir(path):
@@ -63,7 +65,7 @@ def change_dir(path):
 
 defines.hwConfigPath = HARDWARE_FILE
 defines.factoryConfigPath = str(SL1FW_DIR / ".." / "factory" / "factory.toml")
-defines.hwConfigPathFactory = str(SAMPLES_DIR / "hardware.toml")
+defines.hwConfigPathFactory = HARDWARE_FILE_FACTORY
 defines.templates = str(SL1FW_DIR / "intranet" / "templates")
 test_runtime.testing = True
 test_runtime.hard_exceptions = False
@@ -87,7 +89,7 @@ defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
 defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
 defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
 defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
-defines.uvCalibDataPath = str(Path(defines.ramdiskPath) / defines.uvCalibDataFilename)
+defines.uvCalibDataPath = Path(defines.ramdiskPath) / defines.uvCalibDataFilename
 defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
 defines.loggingConfig = TEMP_DIR / "logging_config.json"
 defines.last_job = Path(defines.ramdiskPath) / "last_job"
@@ -102,6 +104,8 @@ defines.wizardHistoryPath = TEMP_DIR / "wizard_history" / "user_data"
 defines.wizardHistoryPath.mkdir(exist_ok=True, parents=True)
 defines.wizardHistoryPathFactory = TEMP_DIR / "wizard_history" / "factory_data"
 defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
+defines.uvCalibDataPathFactory = TEMP_DIR / "uv_calib_data_factory.toml"
+defines.counterLog = TEMP_DIR / defines.counterLogFilename
 
 
 class Virtual:
