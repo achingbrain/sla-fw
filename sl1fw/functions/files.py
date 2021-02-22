@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Optional
 
 from sl1fw import defines, test_runtime
+from sl1fw.screen.printer_model import PrinterModel
 
 
 def get_save_path() -> Optional[Path]:
@@ -30,6 +31,21 @@ def get_save_path() -> Optional[Path]:
     if not usbs:
         return None
     return usbs[0]
+
+
+def get_all_supported_files(printer_model: PrinterModel, path: Path) -> list:
+    """
+    Returns list of all supported files in specified path
+
+    :param printer_model: PrinterModel enum
+    :param path: which path to use
+
+    :return: list of all supported files
+    """
+    files = []
+    for extension in printer_model.extensions:
+        files.extend(path.rglob("*%s" % extension))
+    return files
 
 
 def save_wizard_history(path: Path):

@@ -17,9 +17,9 @@ class TestPrinterModel(Sl1fwTestCase):
 
     def test_extensions(self):
         model = PrinterModel.NONE
-        self.assertEqual(model.extensions, {".none"})
+        self.assertEqual(model.extensions, {""})
         model = PrinterModel.SL1S
-        self.assertEqual(model.extensions, {".sl1s"})
+        self.assertEqual(model.extensions, {".sl1", ".sl1s"})
 
     def test_exposure_screen(self):
         exposure_screen = PrinterModel.NONE.exposure_screen

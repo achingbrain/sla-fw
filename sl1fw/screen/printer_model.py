@@ -61,7 +61,11 @@ class PrinterModel(Enum):
 
     @property
     def extensions(self) -> set:
-        return {"." + self.name.lower()}
+        return {
+                self.NONE: {""},
+                self.SL1: {".sl1"},
+                self.SL1S: {".sl1", ".sl1s"},
+            }[self]
 
     @property
     def exposure_screen(self) -> ExposureScreen:

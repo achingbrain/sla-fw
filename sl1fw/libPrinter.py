@@ -33,7 +33,7 @@ from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
-from sl1fw.functions.files import save_all_remain_wizard_history
+from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
@@ -192,11 +192,11 @@ class Printer:
                 self.display.pages["error"].setParams(code=Sl1Codes.FAILED_TO_LOAD_FACTORY_LEDS_CALIBRATION.raw_code)
                 self.display.doMenu("error")
 
-            if self.runtime_config.factory_mode and not list(Path(defines.internalProjectPath).rglob("*%s" % list(self.screen.printer_model.extensions)[0])):
-                self.display.pages["error"].setParams(code=Sl1Codes.MISSING_EXAMPLES.raw_code)
-                self.display.doMenu("error")
-
-            if not self.runtime_config.factory_mode and self.hwConfig.showUnboxing:
+            if self.runtime_config.factory_mode:
+                if not get_all_supported_files(self.screen.printer_model, Path(defines.internalProjectPath)):
+                    self.display.pages["error"].setParams(code=Sl1Codes.MISSING_EXAMPLES.raw_code)
+                    self.display.doMenu("error")
+            elif self.hwConfig.showUnboxing:
                 if self.hw.isKit:
                     unboxing = kit_unboxing_wizard(self.action_manager, self.hw, self.hwConfig, self.runtime_config)
                 else:

@@ -37,7 +37,7 @@ from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.configs.toml import TomlConfig
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.errors.exceptions import ReprintWithoutHistory, ConfigException
-from sl1fw.functions.files import get_save_path
+from sl1fw.functions.files import get_save_path, get_all_supported_files
 from sl1fw.functions.system import shut_down
 from sl1fw.functions.wizards import (
     displaytest_wizard,
@@ -858,10 +858,8 @@ class Printer0:
         """
         sources = [Path(defines.internalProjectPath), Path(defines.mediaRootPath)]
         projects = []
-        extensions = self.printer.screen.printer_model.extensions
         for directory in sources:
-            for extension in extensions:
-                projects.extend(directory.rglob(f"*{extension}"))
+            projects.extend(get_all_supported_files(self.printer.screen.printer_model, directory))
         return [str(project) for project in projects]
 
     @auto_dbus
@@ -906,7 +904,7 @@ class Printer0:
             self.PropertiesChanged(self.__INTERFACE__, {"usb_path": self.usb_path}, [])
             path = get_save_path()
             if path:
-                projects = path.glob("**/*.sl1")
+                projects = get_all_supported_files(self.printer.screen.printer_model, path)
                 newest_proj = sorted(projects, key=lambda proj: proj.stat().st_mtime).pop()
                 last_exposure = self.printer.action_manager.exposure
                 if last_exposure:
