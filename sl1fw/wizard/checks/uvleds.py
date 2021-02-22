@@ -37,7 +37,7 @@ class UVLEDsTest(SyncDangerousCheck):
         self._result_data = None
 
     def task_run(self, actions: UserActionBroker):
-        self.wait_cover_closed()
+        self.wait_cover_closed_sync()
         row1, row2, row3 = check_uv_leds(self._hw, self._progress_callback)
         self._result_data = CheckData(row1, row2, row3, self._hw_config.uvPwm)
 

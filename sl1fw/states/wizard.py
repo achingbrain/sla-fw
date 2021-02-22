@@ -39,6 +39,11 @@ class WizardState(Enum):
     REMOVE_DISPLAY_FOIL = 2104  # Peel off exposure display foil
     INSERT_FOAM = 2105  # At factory reset, insert packing foams
 
+    UV_CALIBRATION_PREPARE = 2200
+    UV_CALIBRATION_PLACE_UV_METER = 2201
+    UV_CALIBRATION_REMOVE_UV_METER = 2202
+    UV_CALIBRATION_APPLY_RESULTS = 2203
+
     @staticmethod
     def finished_states():
         return [WizardState.FAILED, WizardState.DONE, WizardState.CANCELED]
@@ -54,6 +59,7 @@ class WizardId(Enum):
     KIT_UNBOXING = 5
     FACTORY_RESET = 6
     PACKING = 7
+    UV_CALIBRATION = 8
 
 
 @unique

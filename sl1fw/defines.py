@@ -38,13 +38,14 @@ serial_service_service = "serial-getty@ttyS0.service"
 ssh_service_enabled = factoryMountPoint / "ssh_enabled"
 ssh_service_service = "sshd.socket"
 
-wizardDataFilename = "wizard_data.toml" # deprecated
-wizardDataPath = configDir / wizardDataFilename # deprecated
-wizardDataPathFactory = factoryMountPoint / wizardDataFilename # deprecated
-
-uvCalibDataFilename = "uvcalib_data.toml"
-uvCalibDataPath = configDir / uvCalibDataFilename
-uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename
+# Deprecated. Used be calibration data show, but this does not respect new format used by API based wizards.
+# TODO: This needs to be fixed in order to be able to display recent wizard data properly.
+wizardDataFilename = "wizard_data.toml"  # deprecated
+wizardDataPath = configDir / wizardDataFilename  # deprecated
+wizardDataPathFactory = factoryMountPoint / wizardDataFilename  # deprecated
+uvCalibDataFilename = "uvcalib_data.toml"  # deprecated
+uvCalibDataPath = configDir / uvCalibDataFilename  # deprecated
+uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename  # deprecated
 
 uvCalibDuration = 60 # 1 minute countdown
 

@@ -34,6 +34,7 @@ class Wizard0:
         wizard.check_states_changed.connect(self._check_states_changed)
         wizard.exception_changed.connect(self._exception_changed)
         wizard.warnings_changed.connect(self._warnings_changed)
+        wizard.check_data_changed.connect(self._check_data_changed)
         wizard.data_changed.connect(self._data_changed)
 
     @auto_dbus
@@ -89,6 +90,12 @@ class Wizard0:
         :return: List of warning dictionaries
         """
         return [wrap_dict_data(wrap_warning(warning)) for warning in self._wizard.warnings]
+
+    @auto_dbus
+    @property
+    @last_error
+    def data(self) -> Dict[str, Any]:
+        return wrap_dict_data(self._wizard.data)
 
     @auto_dbus
     @property
@@ -196,6 +203,26 @@ class Wizard0:
     def foam_inserted(self):
         self._wizard.foam_inserted()
 
+    @auto_dbus
+    @last_error
+    def uv_calibration_prepared(self):
+        self._wizard.uv_calibration_prepared()
+
+    @auto_dbus
+    @last_error
+    def uv_meter_placed(self):
+        self._wizard.uv_meter_placed()
+
+    @auto_dbus
+    @last_error
+    def uv_apply_result(self):
+        self._wizard.uv_apply_result()
+
+    @auto_dbus
+    @last_error
+    def uv_discard_results(self):
+        self._wizard.uv_discard_results()
+
     def _started_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"identifier": self.identifier}, [])
         self.PropertiesChanged(self.__INTERFACE__, {"cancelable": self.cancelable}, [])
@@ -212,5 +239,8 @@ class Wizard0:
     def _warnings_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"check_warnings": self.check_warnings}, [])
 
-    def _data_changed(self):
+    def _check_data_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"check_data": self.check_data}, [])
+
+    def _data_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"data": self.data}, [])

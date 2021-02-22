@@ -21,6 +21,8 @@ class CheckData:
     mcSerialNo: str
     mcFwVersion: str
     mcBoardRev: str
+    uvLedCounter_s: int
+    displayCounter_s: int
 
 
 class SystemInfoTest(Check):
@@ -35,7 +37,12 @@ class SystemInfoTest(Check):
         self._logger.debug("Obtaining system information")
 
         self._result_data = CheckData(
-            distro.version(), self._hw.cpuSerialNo, self._hw.mcSerialNo, self._hw.mcFwVersion, self._hw.mcBoardRevision
+            distro.version(),
+            self._hw.cpuSerialNo,
+            self._hw.mcSerialNo,
+            self._hw.mcFwVersion,
+            self._hw.mcBoardRevision,
+            *self._hw.getUvStatistics()
         )
 
     def get_result_data(self) -> Dict[str, Any]:

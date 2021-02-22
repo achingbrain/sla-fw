@@ -13,6 +13,8 @@ from sl1fw.wizard.setup import Configuration, Resource
 
 
 class MoveToFoam(SyncCheck):
+    FOAM_TARGET_POSITION_NM = 30_000_000
+
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
             WizardCheckType.MOVE_TO_FOAM, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
@@ -25,8 +27,15 @@ class MoveToFoam(SyncCheck):
         with actions.led_warn:
             self.hw.setTowerPosition(0)
             self.hw.setTowerProfile("homingFast")
-            self.hw.towerMoveAbsolute(self.hw_config.calcMicroSteps(30))
+            initial_pos_nm = self.hw.tower_position_nm
+            self.hw.tower_position_nm = self.FOAM_TARGET_POSITION_NM
             while self.hw.isTowerMoving():
+                if self.FOAM_TARGET_POSITION_NM != initial_pos_nm:
+                    self.progress = (self.hw.tower_position_nm - initial_pos_nm) / (
+                        self.FOAM_TARGET_POSITION_NM - initial_pos_nm
+                    )
+                else:
+                    self.progress = 1
                 sleep(0.5)
             self.hw.motorsRelease()
 

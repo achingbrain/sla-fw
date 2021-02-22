@@ -40,7 +40,7 @@ class TestWizardData(Sl1fwTestCase):
         self.assertEqual(len(asdict(wd)), 18, "WizardData completeness")
 
 
-class TestWizardDataPresent(Sl1fwTestCase):
+class TestSelfTestWizardDataPresent(Sl1fwTestCase):
     # pylint: disable = protected-access
     def setUp(self) -> None:
         super().setUp()
@@ -62,13 +62,13 @@ class TestWizardDataPresent(Sl1fwTestCase):
         garbage.unlink()
 
     def present(self):
-        present = defines.factoryMountPoint / self.wizard.data_filename
+        present = defines.factoryMountPoint / self.wizard.get_data_filename()
         present.touch()
         self.assertTrue(self.wizard._data_present_in_factory())
         present.unlink()
 
     def test_present_different(self):
-        different_extension = defines.factoryMountPoint / "self_test_data.xyz"
+        different_extension = defines.factoryMountPoint / "wizard_data.xyz"
         different_extension.touch()
         self.assertTrue(self.wizard._data_present_in_factory())
         different_extension.unlink()

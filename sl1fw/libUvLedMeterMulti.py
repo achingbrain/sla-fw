@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, unique
 from time import sleep
+from typing import Optional
 
 import numpy
 import serial
@@ -40,6 +41,12 @@ class UvCalibrationData:
     uvMaxValue: int
     uvPercDiff: list
     uvFoundPwm: int
+
+
+@dataclass()
+class UVCalibrationResult:
+    data: Optional[UvCalibrationData] = None
+    boost: bool = False
 
 
 @unique
@@ -77,7 +84,7 @@ class UvLedMeterMulti:
 
     @property
     def present(self):
-        return os.path.exists(self.uvLedMeterDevice) or test_runtime.test_uvmeter_present
+        return os.path.exists(self.uvLedMeterDevice) or test_runtime.testing and test_runtime.test_uvmeter_present
 
     def connect(self):
         try:

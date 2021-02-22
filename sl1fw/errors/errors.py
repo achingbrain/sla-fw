@@ -300,3 +300,63 @@ class FailedToSaveWizardData(PrinterError):
 @with_code(Sl1Codes.FAILED_TO_SERIALIZE_WIZARD_DATA)
 class FailedToSerializeWizardData(PrinterError):
     pass
+
+
+@with_code(Sl1Codes.UV_LED_METER_NOT_DETECTED)
+class FailedToDetectUVMeter(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.UV_LED_METER_NOT_RESPONDING)
+class UVMeterFailedToRespond(PrinterError):
+    pass
+
+
+@with_code(code=Sl1Codes.UV_LED_METER_COMMUNICATION_ERROR)
+class UVMeterCommunicationFailed(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.DISPLAY_TRANSLUCENT)
+class ScreenTranslucent(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.UNEXPECTED_UV_INTENSITY)
+class UnexpectedUVIntensity(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.UNKNOWN_UV_MEASUREMENT_ERROR)
+@dataclass()
+class UnknownUVMeasurementFailure(PrinterError):
+    unknown_code: int
+
+
+class UVCalibrationError(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.UV_TOO_BRIGHT)
+@dataclass()
+class UVTooBright(UVCalibrationError):
+    intensity: float
+    threshold: float
+
+
+@with_code(Sl1Codes.UV_TOO_DIMM)
+class UVTooDimm(UVCalibrationError):
+    intensity: float
+    threshold: float
+
+
+@with_code(Sl1Codes.UV_INTENSITY_DEVIATION_TOO_HIGH)
+@dataclass()
+class UVDeviationTooHigh(UVCalibrationError):
+    found: float
+    allowed: float
+
+
+@with_code(Sl1Codes.FAILED_TO_SAVE_FACTORY_DEFAULTS)
+class FailedToSaveFactoryConfig(PrinterError):
+    pass

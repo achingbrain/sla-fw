@@ -45,7 +45,7 @@ class TowerRangeTest(SyncDangerousCheck):
         self.hw_config = hw_config
 
     def task_run(self, actions: UserActionBroker):
-        self.wait_cover_closed()
+        self.wait_cover_closed_sync()
         with actions.led_warn:
             tower_axis(self.hw, self.hw_config)
 
@@ -63,7 +63,7 @@ class TowerAlignTest(SyncDangerousCheck):
         self._tower_height = None
 
     def task_run(self, actions: UserActionBroker):
-        self.wait_cover_closed()
+        self.wait_cover_closed_sync()
         with actions.led_warn:
             self._tower_height = tower_calibrate(self.hw, self.hw_config, self._logger)
             # TODO: Allow to repeat align step on exception

@@ -25,6 +25,7 @@ from sl1fw.functions.system import (
 from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck
+from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
 
 class ResetCheck(SyncCheck):
@@ -154,7 +155,8 @@ class ResetUVCalibrationData(ResetCheck):
         super().__init__(WizardCheckType.RESET_UV_CALIBRATION_DATA, *args, **kwargs)
 
     def reset_task_run(self, actions: UserActionBroker):
-        Path(defines.uvCalibDataPath).unlink(missing_ok=True)
+        for name in UVCalibrationWizard.get_alt_names():
+            (defines.configDir / name).unlink(missing_ok=True)
 
 
 class RemoveSlicerProfiles(ResetCheck):

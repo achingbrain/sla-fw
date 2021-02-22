@@ -50,7 +50,7 @@ class Wizard(Thread, UserActionBroker):
         self.started_changed = Signal()
         self.state_changed = Signal()
         self.check_states_changed = Signal()
-        self.data_changed = Signal()
+        self.check_data_changed = Signal()
         self.exception_changed = Signal()
         self.warnings_changed = Signal()
         self.__current_group: Optional[CheckGroup] = None
@@ -59,13 +59,16 @@ class Wizard(Thread, UserActionBroker):
         self.started = datetime.now()
         self._dangerous_running = False
         self._close_cover_state: Optional[PushState] = None
+        self._data = {}
+        self.data_changed = Signal()
 
         for check in self.checks:
             check.state_changed.connect(self.check_states_changed.emit)
             check.state_changed.connect(self.state_changed.emit)
+            check.state_changed.connect(self._update_data)
             check.exception_changed.connect(self.exception_changed.emit)
             check.warnings_changed.connect(self.warnings_changed.emit)
-            check.data_changed.connect(self.data_changed.emit)
+            check.data_changed.connect(self.check_data_changed.emit)
 
         self.states_changed.connect(self.state_changed.emit)
         self.check_states_changed.connect(self._update_dangerous_check_running)
@@ -124,6 +127,10 @@ class Wizard(Thread, UserActionBroker):
     def check_data(self) -> Dict[WizardCheckType, Dict[str, Any]]:
         return {check.type: check.data for check in self.checks}
 
+    @property
+    def data(self) -> Dict[str, Any]:
+        return self._data
+
     def run(self):
         self._logger.info("Wizard %s running", type(self).__name__)
         self.state = WizardState.RUNNING
@@ -181,6 +188,10 @@ class Wizard(Thread, UserActionBroker):
         self._logger.info("Retrying wizard")
         self.unstop_result.put(True)
 
+    def _update_data(self):
+        self._data = self._get_data()
+        self.data_changed.emit()
+
     def _get_data(self) -> Dict[str, Any]:
         data = {}
         for group in self.__groups:
@@ -193,38 +204,33 @@ class Wizard(Thread, UserActionBroker):
                     self._logger.warning("Check %s in state %s during wizard data store", check, check.state)
         return data
 
-    @property
-    def name(self) -> str:
-        return type(self).__name__.lower()
+    @classmethod
+    def get_name(cls) -> str:
+        return cls.__name__.lower()
 
-    @property
-    def alt_names(self) -> Iterable[str]:
-        return (self.name,)
+    @classmethod
+    def get_data_filename(cls) -> str:
+        return f"{cls.get_name()}_data.{serializer.__name__}"
 
-    @property
-    def base_filename(self) -> str:
-        return f"{self.name}_data"
-
-    @property
-    def data_filename(self) -> str:
-        return f"{self.base_filename}.{serializer.__name__}"
+    @classmethod
+    def get_alt_names(cls) -> Iterable[str]:
+        return (cls.get_data_filename(),)
 
     @property
     def history_data_filename(self) -> str:
-        return f"{self.name}_data.{self.started.strftime('%Y-%m-%d_%H-%M-%S')}.{serializer.__name__}"
+        return f"{self.get_name()}_data.{self.started.strftime('%Y-%m-%d_%H-%M-%S')}.{serializer.__name__}"
 
     def _data_present_in_factory(self) -> bool:
-        return any([list(defines.factoryMountPoint.glob(name + "*")) for name in self.alt_names])
+        return any([list(defines.factoryMountPoint.glob(name + "*")) for name in self.get_alt_names()])
 
     def _store_data(self):
         with NamedTemporaryFile(mode="wt", encoding="utf-8") as temp:
             try:
-                data = self._get_data()
-                self._logger.debug("Wizard data to store: %s", data)
-                if not data:
+                self._logger.debug("Wizard data to store: %s", self.data)
+                if not self.data:
                     self._logger.info("Not saving empty wizard data")
                     return
-                serializer.dump(data, temp)
+                serializer.dump(self.data, temp)
                 temp.flush()
             except Exception as exception:
                 raise FailedToSerializeWizardData() from exception
@@ -233,12 +239,12 @@ class Wizard(Thread, UserActionBroker):
                 # Store as current wizard result in factory (in case it is already not present i.e. from factory setup)
                 if not self._data_present_in_factory():
                     with FactoryMountedRW():
-                        copyfile(temp.name, defines.factoryMountPoint / self.data_filename)
+                        copyfile(temp.name, defines.factoryMountPoint / self.get_data_filename())
                         defines.wizardHistoryPathFactory.mkdir(parents=True, exist_ok=True)
                         copyfile(temp.name, defines.wizardHistoryPathFactory / self.history_data_filename)
                 else:
                     # Store as current wizard result in etc
-                    copyfile(temp.name, defines.configDir / self.data_filename)
+                    copyfile(temp.name, defines.configDir / self.get_data_filename())
                     defines.wizardHistoryPath.mkdir(parents=True, exist_ok=True)
                     copyfile(temp.name, defines.wizardHistoryPath / self.history_data_filename)
 

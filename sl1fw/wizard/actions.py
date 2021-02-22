@@ -90,6 +90,12 @@ class UserActionBroker:
         # Packing
         self.foam_inserted = UserAction()
 
+        # UV Calibration
+        self.uv_calibration_prepared = UserAction()
+        self.uv_meter_placed = UserAction()
+        self.uv_apply_result = UserAction()
+        self.uv_discard_results = UserAction()
+
     def push_state(self, state: PushState, priority: bool = False):
         if priority:
             self._states.appendleft(state)

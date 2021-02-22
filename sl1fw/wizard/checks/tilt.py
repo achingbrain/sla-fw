@@ -2,9 +2,10 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import asyncio
 from abc import ABC
 from threading import Event
-from time import sleep, time
+from time import time
 from typing import Optional, Dict, Any
 
 from sl1fw import defines
@@ -20,7 +21,7 @@ from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
-from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck, SyncCheck
+from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck, SyncCheck, DangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup
 
 
@@ -49,28 +50,45 @@ class TiltHomeTest(SyncDangerousCheck, ABC):
                 raise TiltHomeCheckFailed()
 
 
-class TiltRangeTest(SyncDangerousCheck):
+class TiltLevelTest(DangerousCheck):
+    def __init__(self, hw: Hardware):
+        super().__init__(
+            hw, WizardCheckType.TILT_LEVEL, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN]
+        )
+        self._hw = hw
+
+    async def async_task_run(self, actions: UserActionBroker):
+        self._hw.setTiltProfile("homingFast")
+        self._hw.tiltUp()
+        while self._hw.isTiltMoving():
+            await asyncio.sleep(0.25)
+
+
+class TiltRangeTest(DangerousCheck):
     def __init__(self, hw: Hardware):
         super().__init__(
             hw, WizardCheckType.TILT_RANGE, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
         self.hw = hw
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         with actions.led_warn:
             self.hw.setTiltProfile("homingFast")
             self.hw.tiltMoveAbsolute(self.hw.tilt_end)
             while self.hw.isTiltMoving():
-                sleep(0.25)
+                await asyncio.sleep(0.25)
+            self.progress = 0.25
 
             self.hw.tiltMoveAbsolute(512)  # go down fast before endstop
             while self.hw.isTiltMoving():
-                sleep(0.25)
+                await asyncio.sleep(0.25)
+            self.progress = 0.5
 
             self.hw.setTiltProfile("homingSlow")  # finish measurement with slow profile (more accurate)
             self.hw.tiltMoveAbsolute(self.hw.tilt_min)
             while self.hw.isTiltMoving():
-                sleep(0.25)
+                await asyncio.sleep(0.25)
+            self.progress = 0.75
 
             # TODO make MC homing more accurate
             if (
@@ -81,45 +99,53 @@ class TiltRangeTest(SyncDangerousCheck):
             self.hw.setTiltProfile("homingFast")
             self.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
             while self.hw.isTiltMoving():
-                sleep(0.25)
+                await asyncio.sleep(0.25)
 
 
-class TiltTimingTest(SyncDangerousCheck):
+class TiltTimingTest(DangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
             hw, WizardCheckType.TILT_TIMING, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
-        self.hw = hw
-        self.hw_config = hw_config
+        self._hw = hw
+        self._hw_config = hw_config
 
         self.tilt_slow_time_ms = Optional[int]
         self.tilt_fast_time_ms = Optional[int]
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         with actions.led_warn:
-            self.hw.towerSync()
-            while not self.hw.isTowerSynced():
-                sleep(0.25)
+            self._hw.towerSync()
+            while not self._hw.isTowerSynced():
+                await asyncio.sleep(0.25)
 
-            self.hw.tiltSyncWait(2)  # FIXME MC cant properly home tilt while tower is moving
-            self.tilt_slow_time_ms = self._get_tilt_time(slowMove=True)
-            self.tilt_fast_time_ms = self._get_tilt_time(slowMove=False)
-            self.hw.setTowerProfile("homingFast")
-            self.hw.setTiltProfile("homingFast")
-            self.hw.tiltUpWait()
+            self._hw.tiltSyncWait(2)  # FIXME MC cant properly home tilt while tower is moving
+            self.tilt_slow_time_ms = await self._get_tilt_time(slowMove=True)
+            self.tilt_fast_time_ms = await self._get_tilt_time(slowMove=False)
+            self._hw.setTowerProfile("homingFast")
+            self._hw.setTiltProfile("homingFast")
+            self._hw.tiltUp()
+            while self._hw.isTiltMoving():
+                await asyncio.sleep(0.25)
 
-    def _get_tilt_time(self, slowMove):
+    async def _get_tilt_time(self, slowMove):
         tilt_time = 0
-        total = self.hw_config.measuringMoves
+        total = self._hw_config.measuringMoves
         for i in range(total):
+            if slowMove:
+                self.progress = i / total / 2
+            else:
+                self.progress = 0.5 + i / total
             self._logger.info(
                 "Slow move %(count)d/%(total)d" % {"count": i + 1, "total": total}
                 if slowMove
                 else "Fast move %(count)d/%(total)d" % {"count": i + 1, "total": total}
             )
+            await asyncio.sleep(0)
             tilt_start_time = time()
-            self.hw.tiltLayerUpWait()
-            self.hw.tiltLayerDownWait(slowMove)
+            self._hw.tiltLayerUpWait()
+            await asyncio.sleep(0)
+            self._hw.tiltLayerDownWait(slowMove)
             tilt_time += time() - tilt_start_time
 
         return round(1000 * tilt_time / total)

@@ -44,6 +44,7 @@ from sl1fw.functions.wizards import (
     calibration_wizard,
     packing_wizard,
     factory_reset_wizard,
+    uv_calibration_wizard,
 )
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.state_actions.examples import Examples
@@ -1005,6 +1006,19 @@ class Printer0:
             factory_reset_wizard(
                 self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
             )
+
+    @auto_dbus
+    @last_error
+    def run_uv_calibration_wizard(self, display_replaced: bool, led_module_replaced: bool) -> None:
+        uv_calibration_wizard(
+            self.printer.action_manager,
+            self.printer.hw,
+            self.printer.hwConfig,
+            self.printer.exposure_image,
+            self.printer.runtime_config,
+            display_replaced=display_replaced,
+            led_module_replaced=led_module_replaced,
+        )
 
     @auto_dbus
     @property

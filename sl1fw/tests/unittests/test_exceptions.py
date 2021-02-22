@@ -65,6 +65,11 @@ class TestExceptions(unittest.TestCase):
         "sn: str": "123456789",
         "min_resin_ml: float": 10,
         "failed_fans_text: str": "[\"UV LED Fan\"]",
+        "found: float": 240,
+        "allowed: float": 250,
+        "intensity: float": 150,
+        "threshold: float": 125,
+        "unknown_code: int": 42,
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}

@@ -26,24 +26,9 @@ class Hardware:
 
         self.hw_config = hw_config
         self.fans = {
-            0: Fan(
-                "UV LED fan",
-                defines.fanMaxRPM[0],
-                self.hw_config.fan1Rpm,
-                self.hw_config.fan1Enabled,
-            ),
-            1: Fan(
-                "blower fan",
-                defines.fanMaxRPM[1],
-                self.hw_config.fan2Rpm,
-                self.hw_config.fan2Enabled,
-            ),
-            2: Fan(
-                "rear fan",
-                defines.fanMaxRPM[2],
-                self.hw_config.fan3Rpm,
-                self.hw_config.fan3Enabled,
-            ),
+            0: Fan("UV LED fan", defines.fanMaxRPM[0], self.hw_config.fan1Rpm, self.hw_config.fan1Enabled,),
+            1: Fan("blower fan", defines.fanMaxRPM[1], self.hw_config.fan2Rpm, self.hw_config.fan2Enabled,),
+            2: Fan("rear fan", defines.fanMaxRPM[2], self.hw_config.fan3Rpm, self.hw_config.fan3Enabled,),
         }
 
         self.tower_end = self.hw_config.calcMicroSteps(150)
@@ -59,7 +44,8 @@ class Hardware:
         self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.hw_config.limit4fast // 100
 
         self.getUvLedState = Mock(return_value=(False, 0))
-        self.getUvStatistics = Mock(return_value=(6912, 3600))
+        self._led_stat_s = 6912
+        self._display_stat_s = 3600
         self.isTiltOnPosition = Mock(return_value=True)
         self.isTiltMoving = Mock(return_value=False)
         self.getMcTemperatures = Mock(return_value=[46.7, 26.1, 0, 0])
@@ -72,16 +58,18 @@ class Hardware:
         self.getVoltages = Mock(return_value=[11.203, 11.203, 11.203, 0])
         self.getUvLedTemperature = Mock(return_value=46.7)
 
-        self.getFansRpm = Mock(
-            return_value=[
-                self.hw_config.fan1Rpm,
-                self.hw_config.fan2Rpm,
-                self.hw_config.fan3Rpm,
-            ]
-        )
+        self.getFansRpm = Mock(return_value=[self.hw_config.fan1Rpm, self.hw_config.fan2Rpm, self.hw_config.fan3Rpm,])
         self.isTowerMoving = Mock(return_value=False)
-
         self.getTowerPositionMicroSteps = Mock(return_value=self.tower_end)
+
+    def getUvStatistics(self):
+        return self._led_stat_s, self._display_stat_s
+
+    def clearUvStatistics(self):
+        self._led_stat_s = 0
+
+    def clearDisplayStatistics(self):
+        self._display_stat_s = 0
 
     def __reduce__(self):
         return (Mock, ())

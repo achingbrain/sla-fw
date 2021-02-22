@@ -26,7 +26,7 @@ class ResinSensorTest(SyncDangerousCheck):
         self.wizard_resin_volume_ml: Optional[float] = None
 
     def task_run(self, actions: UserActionBroker):
-        self.wait_cover_closed()
+        self.wait_cover_closed_sync()
         with actions.led_warn:
             self.wizard_resin_volume_ml = resin_sensor(self._hw, self._hw_config, self._logger)
 

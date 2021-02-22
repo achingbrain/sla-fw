@@ -5,6 +5,7 @@
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.functions.system import shut_down
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId, WizardState
 from sl1fw.wizard.actions import UserActionBroker

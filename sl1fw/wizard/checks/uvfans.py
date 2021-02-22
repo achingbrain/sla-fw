@@ -32,7 +32,7 @@ class UVFansTest(SyncDangerousCheck):
         self._check_data = None
 
     def task_run(self, actions: UserActionBroker):
-        self.wait_cover_closed()
+        self.wait_cover_closed_sync()
         avg_rpms, uv_temp = check_uv_fans(
             self.hw, self.hw_config, self._logger, progress_callback=self._progress_callback
         )

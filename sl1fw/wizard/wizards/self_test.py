@@ -95,10 +95,10 @@ class SelfTestWizard(Wizard):
     def name(self) -> str:
         return "self_test"
 
-    @property
-    def alt_names(self) -> Iterable[str]:
-        names = ["wizard_data", "thewizard_data"]
-        names.extend(super().alt_names)
+    @classmethod
+    def get_alt_names(cls) -> Iterable[str]:
+        names = ["wizard_data.toml", "thewizard_data.toml", "wizard_data"]
+        names.extend(super().get_alt_names())
         return names
 
     def run(self):
