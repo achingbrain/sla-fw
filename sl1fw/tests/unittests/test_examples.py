@@ -12,6 +12,7 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.state_actions.examples import Examples
 from sl1fw.states.examples import ExamplesState
 from sl1fw.tests.mocks.network import fake_network_system_bus, Network
+from sl1fw.screen.printer_model import PrinterModel
 
 
 class TestExamples(Sl1fwTestCase):
@@ -37,7 +38,8 @@ class TestExamples(Sl1fwTestCase):
 
     def _internal_examples_download(self):
         network = Network()
-        examples = Examples(network)
+        printer_model = PrinterModel.SL1
+        examples = Examples(network, printer_model)
         examples.change.connect(functools.partial(self.check_change, examples))
         examples.start()
         examples.join(timeout=180)

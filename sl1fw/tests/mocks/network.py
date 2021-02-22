@@ -9,6 +9,7 @@ from pathlib import Path
 from shutil import copyfile
 from typing import Optional, Callable
 from unittest.mock import Mock
+import re
 
 from PySignal import Signal
 
@@ -35,7 +36,8 @@ class Network:
         destination: str,
         progress_callback: Optional[Callable[[float], None]] = None,
     ):
-        if url != defines.examplesURL:
+        dld_regex = re.compile(defines.examplesURL.replace("{PRINTER_MODEL}", "SL1S?"))
+        if not dld_regex.match(url):
             raise ValueError(f"Unsupported mock url value: {url}")
         mini_examples = Path(samples.__file__).parent / "mini_examples.tar.gz"
         progress_callback(0)

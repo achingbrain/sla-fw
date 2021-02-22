@@ -360,7 +360,7 @@ class PageSettings(Page):
         pageWait = PageWait(self.display)
         pageWait.show()
         try:
-            download_examples_legacy(pageWait, self.display.inet)
+            download_examples_legacy(pageWait, self.display.inet, self.display.screen.printer_model)
             return "_BACK_"
         except Exception as e:
             self.logger.exception("Fetching of samples failed")

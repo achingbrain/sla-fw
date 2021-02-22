@@ -138,7 +138,7 @@ class SystemToolsMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def _do_fake_setup(self, status: AdminLabel):
         status.set("Downloading examples")
-        examples = Examples(self._printer.inet)
+        examples = Examples(self._printer.inet, self._printer.screen.printer_model)
         examples.start()
         examples.join()
 

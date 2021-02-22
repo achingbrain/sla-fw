@@ -21,10 +21,11 @@ from sl1fw.errors.errors import NotConnected, NotEnoughInternalSpace
 from sl1fw.libNetwork import Network
 from sl1fw.states.examples import ExamplesState
 from sl1fw.functions.files import ch_mode_owner
+from sl1fw.screen.printer_model import PrinterModel
 
 
 class Examples(Thread):
-    def __init__(self, network: Network):
+    def __init__(self, network: Network, printer_model: PrinterModel):
         super().__init__()
         self._logger = logging.getLogger(__name__)
         self._state = ExamplesState.INITIALIZING
@@ -33,6 +34,7 @@ class Examples(Thread):
         self._copy_progress: float = 0
         self._exception = None
         self._network = network
+        self._printer_model = printer_model
         self.change = Signal()
 
     @property
@@ -106,7 +108,8 @@ class Examples(Thread):
         with tempfile.NamedTemporaryFile() as archive:
             self.state = ExamplesState.DOWNLOADING
             self._logger.info("Downloading examples archive")
-            self._network.download_url(defines.examplesURL, archive.name, progress_callback=self._download_callback)
+            url = defines.examplesURL.replace("{PRINTER_MODEL}", self._printer_model.name)
+            self._network.download_url(url, archive.name, progress_callback=self._download_callback)
 
             self.state = ExamplesState.UNPACKING
             self._logger.info("Extracting examples archive")
@@ -143,8 +146,8 @@ class Examples(Thread):
 
 
 @deprecated("Use examples API")
-def download_examples_legacy(page_wait, network: Network) -> None:
-    examples = Examples(network)
+def download_examples_legacy(page_wait, network: Network, printer_model: PrinterModel) -> None:
+    examples = Examples(network, printer_model)
     examples.start()
 
     while examples.state not in ExamplesState.get_finished():

@@ -531,7 +531,7 @@ class Page:
 
 
     def downloadExamlpes(self):
-        examples = Examples(self.display.inet)
+        examples = Examples(self.display.inet, self.display.screen.printer_model)
         examples.start()
         examples.join()
         if examples.state != ExamplesState.COMPLETED:

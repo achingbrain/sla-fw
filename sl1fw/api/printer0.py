@@ -660,7 +660,7 @@ class Printer0:
             self._examples.join()
 
         # Initiate new examples download
-        self._examples = Examples(self.printer.inet)
+        self._examples = Examples(self.printer.inet, self.printer.screen.printer_model)
         self._examples0 = Examples0(self._examples)
         self._examples_registration = pydbus.SystemBus().publish(
             Examples0.__INTERFACE__, (Examples0.DBUS_PATH, self._examples0)
