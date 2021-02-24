@@ -912,12 +912,19 @@ class Hardware:
     #        else:
     #            self.logger.error("Invalid tower current %d", current)
 
+    # metal vat:
     #  5.0 mm -  35 % -  68.5 ml
     # 10.0 mm -  70 % - 137.0 ml
     # 14.5 mm - 100 % - 200.0 ml
-
     # 35 % -  70 % : 1.0 mm = 13.7 ml
-    # 70 % - 100 % : 0.9 mm = 12.5 ml
+    # 70 % - 100 % : 1.0 mm = 14.0 ml
+
+    # plastic vat:
+    #  4.5 mm -  35 % -  66.0 ml (mostly same as metal vat)
+    # 10.0 mm -  70 % - 146.5 ml
+    # 13.6 mm - 100 % - 200.0 ml
+    # 35 % -  70 % : 1.0 mm = 14.65 ml
+    # 70 % - 100 % : 1.0 mm = 14.85 ml
 
     @safe_call(0, MotionControllerException)
     def get_precise_resin_volume_ml(self):
@@ -935,11 +942,18 @@ class Hardware:
         if position == self._towerResinEndPos:
             return 0
 
-        posMM = self.hwConfig.calcMM(position)
-        if posMM < 10:  # cca 137 ml
-            volume = posMM * 13.7
+        if self.hwConfig.vatRevision == 1:
+            self.logger.debug("Using PLASTIC vat values")
+            resin_constant = (14.65, 14.85)
         else:
-            volume = posMM * 0.9 * 12.5
+            self.logger.debug("Using METALIC vat values")
+            resin_constant = (13.7, 14.0)
+
+        posMM = self.hwConfig.calcMM(position)
+        if posMM < 10.0:
+            volume = posMM * resin_constant[0]
+        else:
+            volume = posMM * resin_constant[1]
 
         return volume
 
