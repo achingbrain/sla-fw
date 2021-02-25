@@ -8,13 +8,14 @@ from sl1fw.functions.checks import resin_sensor
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import WizardCheckType, SyncCheck
+from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup, Resource
 
 
-class ResinSensorTest(SyncCheck):
+class ResinSensorTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
+            hw,
             WizardCheckType.RESIN_SENSOR,
             Configuration(TankSetup.PRINT, PlatformSetup.RESIN_TEST),
             [Resource.TOWER, Resource.TOWER_DOWN],
@@ -25,6 +26,7 @@ class ResinSensorTest(SyncCheck):
         self.wizard_resin_volume_ml: Optional[float] = None
 
     def task_run(self, actions: UserActionBroker):
+        self.wait_cover_closed()
         with actions.led_warn:
             self.wizard_resin_volume_ml = resin_sensor(self._hw, self._hw_config, self._logger)
 

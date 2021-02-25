@@ -9,7 +9,7 @@ from sl1fw.configs.hw import HwConfig
 from sl1fw.functions.checks import check_uv_leds
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType
+from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource
 
 
@@ -26,10 +26,10 @@ class CheckData:
     uvPwm: int
 
 
-class UVLEDsTest(SyncCheck):
+class UVLEDsTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
-            WizardCheckType.UV_LEDS, Configuration(None, None), [Resource.UV],
+            hw, WizardCheckType.UV_LEDS, Configuration(None, None), [Resource.UV],
         )
         self._hw = hw
         self._hw_config = hw_config
@@ -37,6 +37,7 @@ class UVLEDsTest(SyncCheck):
         self._result_data = None
 
     def task_run(self, actions: UserActionBroker):
+        self.wait_cover_closed()
         row1, row2, row3 = check_uv_leds(self._hw, self._progress_callback)
         self._result_data = CheckData(row1, row2, row3, self._hw_config.uvPwm)
 

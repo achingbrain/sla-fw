@@ -8,7 +8,7 @@ from sl1fw.functions.checks import tower_axis, tower_calibrate
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType, SyncDangerousCheck
+from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup, PlatformSetup
 
 
@@ -36,22 +36,24 @@ class TowerHomeTest(SyncDangerousCheck):
         }
 
 
-class TowerRangeTest(SyncCheck):
+class TowerRangeTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
-            WizardCheckType.TOWER_RANGE, Configuration(None, None), [Resource.TOWER, Resource.TOWER_DOWN],
+            hw, WizardCheckType.TOWER_RANGE, Configuration(None, None), [Resource.TOWER, Resource.TOWER_DOWN],
         )
         self.hw = hw
         self.hw_config = hw_config
 
     def task_run(self, actions: UserActionBroker):
+        self.wait_cover_closed()
         with actions.led_warn:
             tower_axis(self.hw, self.hw_config)
 
 
-class TowerAlignTest(SyncCheck):
+class TowerAlignTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
+            hw,
             WizardCheckType.TOWER_CALIBRATION,
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [Resource.TOWER, Resource.TOWER_DOWN],
@@ -61,7 +63,7 @@ class TowerAlignTest(SyncCheck):
         self._tower_height = None
 
     def task_run(self, actions: UserActionBroker):
-        # TODO: ensure cover closed
+        self.wait_cover_closed()
         with actions.led_warn:
             self._tower_height = tower_calibrate(self.hw, self.hw_config, self._logger)
             # TODO: Allow to repeat align step on exception

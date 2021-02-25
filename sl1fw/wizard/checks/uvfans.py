@@ -9,7 +9,7 @@ from sl1fw.configs.hw import HwConfig
 from sl1fw.functions.checks import check_uv_fans
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType
+from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource
 
 
@@ -21,10 +21,10 @@ class CheckData:
     wizardTempUvWarm: float
 
 
-class UVFansTest(SyncCheck):
+class UVFansTest(SyncDangerousCheck):
     def __init__(self, hw: Hardware, hw_config: HwConfig):
         super().__init__(
-            WizardCheckType.UV_FANS, Configuration(None, None), [Resource.FANS, Resource.UV],
+            hw, WizardCheckType.UV_FANS, Configuration(None, None), [Resource.FANS, Resource.UV],
         )
         self.hw = hw
         self.hw_config = hw_config
@@ -32,6 +32,7 @@ class UVFansTest(SyncCheck):
         self._check_data = None
 
     def task_run(self, actions: UserActionBroker):
+        self.wait_cover_closed()
         avg_rpms, uv_temp = check_uv_fans(
             self.hw, self.hw_config, self._logger, progress_callback=self._progress_callback
         )
