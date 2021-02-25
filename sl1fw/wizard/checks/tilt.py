@@ -113,7 +113,7 @@ class TiltTimingTest(SyncDangerousCheck):
         total = self.hw_config.measuringMoves
         for i in range(total):
             self._logger.info(
-                "Slow move %(count)d/%(total)d"
+                "Slow move %(count)d/%(total)d" % {"count": i + 1, "total": total}
                 if slowMove
                 else "Fast move %(count)d/%(total)d" % {"count": i + 1, "total": total}
             )

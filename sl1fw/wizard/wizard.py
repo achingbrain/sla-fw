@@ -141,9 +141,11 @@ class Wizard(Thread, UserActionBroker):
             self.state = WizardState.CANCELED
         except Exception:
             self.state = WizardState.FAILED
+            self._hw.motorsRelease()
             self._store_data()
             raise
 
+        self._hw.motorsRelease()
         if self.state not in [WizardState.CANCELED, WizardState.FAILED]:
             self.state = WizardState.DONE
         self._logger.info("Wizard %s finished with state %s", type(self).__name__, self.state)

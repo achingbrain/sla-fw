@@ -73,13 +73,6 @@ class CalibrationWizard(Wizard):
             runtime_config,
         )
 
-    def run(self):
-        try:
-            super().run()
-        except Exception:
-            self._hw.motorsRelease()
-            raise
-
     @property
     def name(self) -> str:
         return "calibration"
