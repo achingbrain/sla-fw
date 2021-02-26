@@ -83,7 +83,7 @@ class FwInstall(AdminMenu):
         self._status = "Downloading firmware"
 
         self.add_label(f"<h2>Updating firmware</h2><br/>Version: {self._firmware['version']}")
-        self.add_item(AdminTextValue.from_property(self, NetUpdate.status))
+        self.add_item(AdminTextValue.from_property(self, FwInstall.status))
 
         self._thread = Thread(target=self._install, daemon=True)
         self._thread.start()
