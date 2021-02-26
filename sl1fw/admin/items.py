@@ -72,7 +72,13 @@ class AdminIntValue(AdminValue):
 
     @classmethod
     def from_value(cls, name: str, obj: object, prop: str, step: int) -> AdminIntValue:
-        return AdminIntValue(name, partial(getattr, obj, prop), partial(setattr, obj, prop), step)
+        def g():
+            return getattr(obj, prop)
+
+        def s(value):
+            setattr(obj, prop, value)
+
+        return AdminIntValue(name, g, s, step)
 
     @classmethod
     def from_property(cls, obj: object, prop: property, step: int) -> AdminIntValue:
@@ -93,7 +99,13 @@ class AdminFloatValue(AdminValue):
 
     @classmethod
     def from_value(cls, name: str, obj: object, prop: str, step: float) -> AdminFloatValue:
-        return AdminFloatValue(name, partial(getattr, obj, prop), partial(setattr, obj, prop), step)
+        def g():
+            return getattr(obj, prop)
+
+        def s(value):
+            setattr(obj, prop, value)
+
+        return AdminFloatValue(name, g, s, step)
 
     @classmethod
     def from_property(cls, obj: object, prop: property, step: float) -> AdminFloatValue:

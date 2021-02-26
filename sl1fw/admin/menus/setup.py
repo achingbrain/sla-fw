@@ -7,11 +7,11 @@ from abc import abstractmethod
 
 from sl1fw import defines
 from sl1fw.admin.control import AdminControl
-from sl1fw.admin.items import AdminIntValue, AdminBoolValue, AdminAction
+from sl1fw.admin.items import AdminIntValue, AdminBoolValue, AdminAction, AdminFloatValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error, Info
 from sl1fw.errors.exceptions import ConfigException
-from sl1fw.functions.files import get_save_path
+from sl1fw.functions.files import get_save_path, usb_remount
 from sl1fw.libPrinter import Printer
 
 
@@ -44,6 +44,7 @@ class SetupMenu(AdminMenu):
         config_file = save_path / defines.hwConfigFileName
 
         try:
+            usb_remount(config_file)
             self._printer.hwConfig.write(file_path=config_file)
         except ConfigException:
             self.logger.exception("Cannot save configuration")
@@ -86,8 +87,15 @@ class HardwareSetupMenu(SetupMenu):
         self.add_item(AdminIntValue.from_value("Screw [mm/rot]", self._temp, "screwMm", 1))
         self.add_item(AdminIntValue.from_value("Tilt msteps", self._temp, "tiltHeight", 1))
         self.add_item(AdminIntValue.from_value("Measuring moves count", self._temp, "measuringMoves", 1))
-        self.add_item(AdminIntValue.from_value("Stirring moves count", self._temp, "stirringDelay", 1))
-        self.add_item(AdminIntValue.from_value("Delay after stirring [s]", self._temp, "tiltHeight", 1))
+        self.add_item(AdminIntValue.from_value("Stirring moves count", self._temp, "stirringMoves", 1))
+
+        def set_stirring_delay(value):
+            self._temp.stirringDelay = int(round(value * 10, ndigits=1))
+
+        def get_stirring_delay():
+            return self._temp.stirringDelay / 10
+
+        self.add_item(AdminFloatValue("Delay after stirring [s]", get_stirring_delay, set_stirring_delay, 0.1))
         self.add_item(AdminIntValue.from_value("Power LED intensity", self._temp, "pwrLedPwm", 1))
         self.add_item(AdminIntValue.from_value("MC board version", self._temp, "MCBoardVersion", 1))
 
@@ -100,10 +108,48 @@ class ExposureSetupMenu(SetupMenu):
         self.add_item(AdminBoolValue.from_value("Up&Down UV on", self._temp, "upAndDownUvOn"))
 
         self.add_item(AdminIntValue.from_value("Layer trigger [s]", self._temp, "trigger", 1))
-        self.add_item(AdminIntValue.from_value("Layer tower hop [mm]", self._temp, "layertowerhop", 1))
-        self.add_item(AdminIntValue.from_value("Delay before expos. [s]", self._temp, "delaybeforeexposure", 1))
-        self.add_item(AdminIntValue.from_value("Delay after expos. [s]", self._temp, "delayafterexposure", 1))
+
+        def set_layer_tower_hop(value):
+            self._temp.layerTowerHop = int(self._printer.hwConfig.nm_to_tower_microsteps(value * 1000))
+
+        def get_layer_tower_hop():
+            return self._printer.hwConfig.tower_microsteps_to_nm(self._temp.layerTowerHop) / 1000
+
+        self.add_item(AdminIntValue("Layer tower hop [μm]", get_layer_tower_hop, set_layer_tower_hop, 100))
+
+        def set_delay_before_expo(value):
+            self._temp.delayBeforeExposure = int(round(value * 10, ndigits=1))
+
+        def get_delay_before_expo():
+            return self._temp.delayBeforeExposure / 10
+
+        self.add_item(AdminFloatValue("Delay before expos. [s]", get_delay_before_expo, set_delay_before_expo, 0.1))
+
+        def set_delay_after_expo(value):
+            self._temp.delayafterexposure = int(round(value * 10, ndigits=1))
+
+        def get_delay_after_expo():
+            return self._temp.delayafterexposure / 10
+
+        self.add_item(AdminFloatValue("Delay after expos. [s]", get_delay_after_expo, set_delay_after_expo, 0.1))
+
         self.add_item(AdminIntValue.from_value("Up&down wait [s]", self._temp, "upanddownwait", 1))
         self.add_item(AdminIntValue.from_value("Up&down every n-th l.", self._temp, "upanddowneverylayer", 1))
-        self.add_item(AdminIntValue.from_value("Up&down Z offset [mm]", self._temp, "upanddownzoffset", 1))
-        self.add_item(AdminIntValue.from_value("Up&down expo comp [s]", self._temp, "upanddownexpocomp", 1))
+
+        def set_up_and_down_z_offset(value):
+            self._temp.upAndDownZoffset = int(self._printer.hwConfig.nm_to_tower_microsteps(value * 1000))
+
+        def get_up_and_down_z_offset():
+            return self._printer.hwConfig.tower_microsteps_to_nm(self._temp.upAndDownZoffset) / 1000
+
+        self.add_item(AdminIntValue("Up&down Z offset [μm]", get_up_and_down_z_offset, set_up_and_down_z_offset, 10))
+
+        def set_up_and_down_expo_comp(value):
+            self._temp.upAndDownExpoComp = int(round(value / 100))
+
+        def get_up_and_down_expo_comp():
+            return self._temp.upAndDownExpoComp * 100
+
+        self.add_item(
+            AdminIntValue("Up&down expo comp [ms]", get_up_and_down_expo_comp, set_up_and_down_expo_comp, 100)
+        )
