@@ -18,6 +18,7 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw import libPrinter
 from sl1fw.api.admin0 import Admin0
+from sl1fw.api.factorytests0 import FactoryTests0
 from sl1fw.api.printer0 import Printer0
 from sl1fw.api.standard0 import Standard0
 from sl1fw.admin.manager import AdminManager
@@ -44,6 +45,7 @@ SystemBus().publish(Printer0.__INTERFACE__, Printer0(printer))
 SystemBus().publish(Standard0.__INTERFACE__, Standard0(printer))
 admin_manager = AdminManager()
 SystemBus().publish(Admin0.__INTERFACE__, Admin0(admin_manager, printer))
+factorytests0 = FactoryTests0(printer)
 Thread(target=printer.run, daemon=False).start()
 
 logger.info("Running DBus event loop")
