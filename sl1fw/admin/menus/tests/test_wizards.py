@@ -6,17 +6,13 @@ from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction, AdminLabel, AdminBoolValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.safe_menu import SafeAdminMenu
-from sl1fw.functions.wizards import (
-    displaytest_wizard,
-    unboxing_wizard,
-    kit_unboxing_wizard,
-    self_test_wizard,
-    calibration_wizard,
-    packing_wizard,
-    factory_reset_wizard,
-    uv_calibration_wizard,
-)
 from sl1fw.libPrinter import Printer
+from sl1fw.wizard.wizards.calibration import CalibrationWizard
+from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
+from sl1fw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
+from sl1fw.wizard.wizards.self_test import SelfTestWizard
+from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
+from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
 
 class TestWizardsMenu(AdminMenu):
@@ -26,15 +22,13 @@ class TestWizardsMenu(AdminMenu):
 
         self.add_item(AdminAction("back", self._control.pop))
 
-        self.add_item(AdminAction("Self test", self.self_test))
-        self.add_item(AdminAction("Calibration", self.calibration))
-        self.add_item(AdminAction("API Display test", self.api_display_test))
-        self.add_item(AdminAction("API Unpacking (C)", self.api_unpacking_c))
-        self.add_item(AdminAction("API Unpacking (K)", self.api_unpacking_k))
-        self.add_item(AdminAction("API Self test", self.api_wizard))
-        self.add_item(AdminAction("API Calibration", self.api_calibration))
-        self.add_item(AdminAction("API Factory reset", self.api_factory_reset))
-        self.add_item(AdminAction("API Packing (Factory factory reset)", self.api_packing))
+        self.add_item(AdminAction("Display test", self.api_display_test))
+        self.add_item(AdminAction("Unpacking (C)", self.api_unpacking_c))
+        self.add_item(AdminAction("Unpacking (K)", self.api_unpacking_k))
+        self.add_item(AdminAction("Self test", self.api_self_test))
+        self.add_item(AdminAction("Calibration", self.api_calibration))
+        self.add_item(AdminAction("Factory reset", self.api_factory_reset))
+        self.add_item(AdminAction("Packing (Factory factory reset)", self.api_packing))
         self.add_item(
             AdminAction(
                 "API UV Calibration wizard",
@@ -42,54 +36,41 @@ class TestWizardsMenu(AdminMenu):
             )
         )
 
-    def self_test(self):
-        self._printer.display.doMenu("wizardinit")
-        return "_SELF_"
-
-    def calibration(self):
-        self._printer.display.doMenu("calibrationstart")
-        return "_SELF_"
-
     def api_display_test(self):
-        displaytest_wizard(
-            self._printer.display.action_manager,
-            self._printer.display.hw,
-            self._printer.display.exposure_image,
-            self._printer.display.runtime_config,
+        self._printer.action_manager.start_wizard(
+            DisplayTestWizard(self._printer.hw, self._printer.exposure_image, self._printer.runtime_config)
         )
 
     def api_unpacking_c(self):
-        unboxing_wizard(
-            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config,
+        self._printer.action_manager.start_wizard(
+            CompleteUnboxingWizard(self._printer.hw, self._printer.hwConfig, self._printer.runtime_config)
         )
 
     def api_unpacking_k(self):
-        kit_unboxing_wizard(
-            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config,
+        self._printer.action_manager.start_wizard(
+            KitUnboxingWizard(self._printer.hw, self._printer.hwConfig, self._printer.runtime_config)
         )
 
-    def api_wizard(self):
-        self_test_wizard(
-            self._printer.action_manager,
-            self._printer.hw,
-            self._printer.hwConfig,
-            self._printer.exposure_image,
-            self._printer.runtime_config,
+    def api_self_test(self):
+        self._printer.action_manager.start_wizard(
+            SelfTestWizard(
+                self._printer.hw, self._printer.hwConfig, self._printer.exposure_image, self._printer.runtime_config
+            )
         )
 
     def api_calibration(self):
-        calibration_wizard(
-            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config,
+        self._printer.action_manager.start_wizard(
+            CalibrationWizard(self._printer.hw, self._printer.hwConfig, self._printer.runtime_config)
         )
 
     def api_packing(self):
-        packing_wizard(
-            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config,
+        self._printer.action_manager.start_wizard(
+            PackingWizard(self._printer.hw, self._printer.hwConfig, self._printer.runtime_config)
         )
 
     def api_factory_reset(self):
-        factory_reset_wizard(
-            self._printer.action_manager, self._printer.hw, self._printer.hwConfig, self._printer.runtime_config,
+        self._printer.action_manager.start_wizard(
+            FactoryResetWizard(self._printer.hw, self._printer.hwConfig, self._printer.runtime_config)
         )
 
 
@@ -107,12 +88,14 @@ class TestUVCalibrationWizardMenu(SafeAdminMenu):
 
     def run_calibration(self):
         self._control.pop()
-        uv_calibration_wizard(
-            self._printer.action_manager,
-            self._printer.hw,
-            self._printer.hwConfig,
-            self._printer.screen,
-            self._printer.runtime_config,
-            self._lcd_replaced,
-            self._led_replaced,
+
+        self._printer.action_manager.start_wizard(
+            UVCalibrationWizard(
+                self._printer.hw,
+                self._printer.hwConfig,
+                self._printer.exposure_image,
+                self._printer.runtime_config,
+                display_replaced=self._lcd_replaced,
+                led_module_replaced=self._led_replaced,
+            )
         )

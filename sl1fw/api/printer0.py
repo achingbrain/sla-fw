@@ -36,20 +36,16 @@ from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.errors.exceptions import ReprintWithoutHistory
 from sl1fw.functions.files import get_save_path, get_all_supported_files
 from sl1fw.functions.system import shut_down
-from sl1fw.functions.wizards import (
-    displaytest_wizard,
-    unboxing_wizard,
-    kit_unboxing_wizard,
-    self_test_wizard,
-    calibration_wizard,
-    packing_wizard,
-    factory_reset_wizard,
-    uv_calibration_wizard,
-)
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.state_actions.examples import Examples
 from sl1fw.states.examples import ExamplesState
 from sl1fw.states.printer import Printer0State
+from sl1fw.wizard.wizards.calibration import CalibrationWizard
+from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
+from sl1fw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
+from sl1fw.wizard.wizards.self_test import SelfTestWizard
+from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
+from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
@@ -124,7 +120,9 @@ class Printer0:
         self.PropertiesChanged(self.__INTERFACE__, {"api_key": self.api_key}, [])
 
     def _on_data_privacy_changed(self):
-        self.PropertiesChanged(self.__INTERFACE__, {"data_privacy": self.data_privacy, "help_page_url": self.help_page_url}, [])
+        self.PropertiesChanged(
+            self.__INTERFACE__, {"data_privacy": self.data_privacy, "help_page_url": self.help_page_url}, []
+        )
 
     def _on_exception_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"printer_exception": self.printer_exception}, [])
@@ -741,7 +739,11 @@ class Printer0:
         :returns: Print task object
         """
         expo = self.printer.action_manager.new_exposure(
-            self.printer.hwConfig, self.printer.hw, self.printer.exposure_image, self.printer.runtime_config, project_path
+            self.printer.hwConfig,
+            self.printer.hw,
+            self.printer.exposure_image,
+            self.printer.runtime_config,
+            project_path,
         )
         if auto_advance:
             expo.confirm_print_start()
@@ -765,7 +767,11 @@ class Printer0:
 
         last_exposure = self.printer.action_manager.exposure
         exposure = self.printer.action_manager.reprint_exposure(
-            last_exposure, self.printer.hwConfig, self.printer.hw, self.printer.exposure_image, self.printer.runtime_config
+            last_exposure,
+            self.printer.hwConfig,
+            self.printer.hw,
+            self.printer.exposure_image,
+            self.printer.runtime_config,
         )
         if auto_advance:
             exposure.confirm_print_start()
@@ -956,68 +962,64 @@ class Printer0:
 
     @last_error
     def run_displaytest_wizard(self) -> None:
-        displaytest_wizard(
-            self.printer.action_manager,
-            self.printer.hw,
-            self.printer.exposure_image,
-            self.printer.runtime_config,
+        self.printer.action_manager.start_wizard(
+            DisplayTestWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
         )
 
     @auto_dbus
     @last_error
     def run_unboxing_wizard(self) -> None:
-        unboxing_wizard(
-            self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+        self.printer.action_manager.start_wizard(
+            CompleteUnboxingWizard(self.printer.hw, self.printer.hwConfig, self.printer.runtime_config)
         )
 
     @auto_dbus
     @last_error
     def run_kit_unboxing_wizard(self) -> None:
-        kit_unboxing_wizard(
-            self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+        self.printer.action_manager.start_wizard(
+            KitUnboxingWizard(self.printer.hw, self.printer.hwConfig, self.printer.runtime_config)
         )
 
     @auto_dbus
     @last_error
     def run_self_test_wizard(self) -> None:
-        self_test_wizard(
-            self.printer.action_manager,
-            self.printer.hw,
-            self.printer.hwConfig,
-            self.printer.exposure_image,
-            self.printer.runtime_config,
+        self.printer.action_manager.start_wizard(
+            SelfTestWizard(
+                self.printer.hw, self.printer.hwConfig, self.printer.exposure_image, self.printer.runtime_config
+            )
         )
 
     @auto_dbus
     @last_error
     def run_calibration_wizard(self) -> None:
-        calibration_wizard(
-            self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+        self.printer.action_manager.start_wizard(
+            CalibrationWizard(self.printer.hw, self.printer.hwConfig, self.printer.runtime_config)
         )
 
     @auto_dbus
     @last_error
     def run_factory_reset_wizard(self) -> None:
         if self.printer.runtime_config.factory_mode:
-            packing_wizard(
-                self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+            self.printer.action_manager.start_wizard(
+                PackingWizard(self.printer.hw, self.printer.hwConfig, self.printer.runtime_config)
             )
         else:
-            factory_reset_wizard(
-                self.printer.action_manager, self.printer.hw, self.printer.hwConfig, self.printer.runtime_config
+            self.printer.action_manager.start_wizard(
+                FactoryResetWizard(self.printer.hw, self.printer.hwConfig, self.printer.runtime_config)
             )
 
     @auto_dbus
     @last_error
     def run_uv_calibration_wizard(self, display_replaced: bool, led_module_replaced: bool) -> None:
-        uv_calibration_wizard(
-            self.printer.action_manager,
-            self.printer.hw,
-            self.printer.hwConfig,
-            self.printer.exposure_image,
-            self.printer.runtime_config,
-            display_replaced=display_replaced,
-            led_module_replaced=led_module_replaced,
+        self.printer.action_manager.start_wizard(
+            UVCalibrationWizard(
+                self.printer.hw,
+                self.printer.hwConfig,
+                self.printer.exposure_image,
+                self.printer.runtime_config,
+                display_replaced=display_replaced,
+                led_module_replaced=led_module_replaced,
+            )
         )
 
     @auto_dbus

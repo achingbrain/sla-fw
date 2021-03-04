@@ -32,7 +32,6 @@ from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException
-from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth
@@ -55,6 +54,7 @@ from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.wizard import WizardState
 from sl1fw import test_runtime
+from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 
 
 class Printer:
@@ -83,13 +83,14 @@ class Printer:
 
         self.logger.info("Initializing hwconfig")
         self.hwConfig = HwConfig(
-            file_path=Path(defines.hwConfigPath),
-            factory_file_path=Path(defines.hwConfigPathFactory),
-            is_master=True,
+            file_path=Path(defines.hwConfigPath), factory_file_path=Path(defines.hwConfigPathFactory), is_master=True,
         )
         self.runtime_config = RuntimeConfig()
-        self.runtime_config.factory_mode = defines.factory_enable.exists() or \
-            TomlConfig(defines.factoryConfigPath).load().get("factoryMode", False)  # Single value TOML now deprecated
+        self.runtime_config.factory_mode = defines.factory_enable.exists() or TomlConfig(
+            defines.factoryConfigPath
+        ).load().get(
+            "factoryMode", False
+        )  # Single value TOML now deprecated
         self.logger.info("Factory mode: %s", self.runtime_config.factory_mode)
         self.runtime_config.show_admin = self.runtime_config.factory_mode
         try:
@@ -203,9 +204,13 @@ class Printer:
                     self.display.doMenu("error")
             elif self.hwConfig.showUnboxing:
                 if self.hw.isKit:
-                    unboxing = kit_unboxing_wizard(self.action_manager, self.hw, self.hwConfig, self.runtime_config)
+                    unboxing = self.action_manager.start_wizard(
+                        KitUnboxingWizard(self.hw, self.hwConfig, self.runtime_config)
+                    )
                 else:
-                    unboxing = unboxing_wizard(self.action_manager, self.hw, self.hwConfig, self.runtime_config)
+                    unboxing = self.action_manager.start_wizard(
+                        CompleteUnboxingWizard(self.hw, self.hwConfig, self.runtime_config)
+                    )
                 self.logger.info("Running unboxing wizard")
                 unboxing.join()
                 self.logger.info("Unboxing finished")
@@ -244,7 +249,9 @@ class Printer:
         try:
             self.logger.info("Registering event handlers")
             self.inet.register_events()
-            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(weakref.proxy(self._locale_changed))
+            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(
+                weakref.proxy(self._locale_changed)
+            )
             self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(weakref.proxy(self._rauc_changed))
 
             self.logger.info("Connecting motion controller")
@@ -273,7 +280,9 @@ class Printer:
 
             if self.slicer_profile.vendor:
                 self.logger.info("Starting slicer profiles updater")
-                self.slicer_profile_updater = SlicerProfileUpdater(self.inet, self.slicer_profile, self.hw.printer_model.name)
+                self.slicer_profile_updater = SlicerProfileUpdater(
+                    self.inet, self.slicer_profile, self.hw.printer_model.name
+                )
 
             # Force update network state (in case we missed network going online)
             # All network state handler should be already registered
@@ -366,8 +375,8 @@ class Printer:
             emmc_serial = self.hw.emmc_serial
             trusted_image = 0
 
-            hash_hex = hashlib.sha256((emmc_serial+mac_eth0+cpu_serial).encode()).hexdigest()
-            binary = str(trusted_image)+str(boot)+bin(int(hash_hex[:10], 16))[2:-2]
+            hash_hex = hashlib.sha256((emmc_serial + mac_eth0 + cpu_serial).encode()).hexdigest()
+            binary = str(trusted_image) + str(boot) + bin(int(hash_hex[:10], 16))[2:-2]
             self._printer_identifier = toBase32hex(int(binary, 2))
 
         return self._printer_identifier
