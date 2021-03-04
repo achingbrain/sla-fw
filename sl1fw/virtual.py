@@ -29,6 +29,7 @@ import pydbus
 from gi.repository import GLib
 
 import sl1fw.tests.mocks.mc_port
+from  sl1fw.tests.mocks.exposure_screen import ExposureScreen
 from sl1fw import defines, test_runtime
 from sl1fw import libPrinter
 from sl1fw.admin.manager import AdminManager
@@ -124,7 +125,7 @@ class Virtual:
         ), patch(
             "sl1fw.functions.files.get_save_path", self.fake_save_path
         ), patch(
-            "sl1fw.screen.screen.Wayland", Mock()
+            "sl1fw.libHardware.ExposureScreen", ExposureScreen
         ):
             print("Resolving system bus")
             bus = pydbus.SystemBus()

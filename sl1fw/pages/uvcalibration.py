@@ -108,7 +108,6 @@ class PageUvCalibrationBase(Page):
         self.pageUI = "confirm"
         self.pageTitle = N_("UV LED calibration")
         self.checkCooling = True
-        self.calibration_params = display.screen.printer_model.calibration(self.display.hw.is500khz)
     #enddef
 
     def off(self):
@@ -179,7 +178,7 @@ class PageUvCalibration(PageUvCalibrationBase):
         PageUvCalibrationBase.writeDataToFactory = False
         PageUvCalibrationBase.resetDisplayCounter = False
         PageUvCalibrationBase.resetLedCounter = False
-        minpwm, maxpwm = self.calibration_params.pwms
+        minpwm, maxpwm = self.display.hw.printer_model.calibration_parameters(self.display.hw.is500khz).pwms
         text = _("Welcome to the UV LED calibration.\n\n"
                 "1. If the resin tank is in the printer, remove it along with the screws.\n"
                 "2. Close the orange lid, don't open it! UV radiation is harmful!")
@@ -382,9 +381,11 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
         self.ensureCoverIsClosed()
         self.pageWait.showItems(line1 = _("Warming up"))
 
+        calibration_params = self.display.hw.printer_model.calibration_parameters(self.display.hw.is500khz)
+
         self.display.hw.startFans()
-        self.display.hw.uvLedPwm = self.calibration_params.max_pwm
-        self.display.screen.blank_screen()
+        self.display.hw.uvLedPwm = calibration_params.max_pwm
+        self.display.exposure_image.blank_screen()
         self.display.hw.uvLed(True)
 
         for countdown in range(self.display.hwConfig.uvWarmUpTime, 0, -1):
@@ -397,14 +398,14 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
             #endif
         #endfor
 
-        self.display.hw.uvLedPwm = self.calibration_params.min_pwm
+        self.display.hw.uvLedPwm = calibration_params.min_pwm
     #enddef
 
 
     def checkPlacement(self):
         self.ensureCoverIsClosed()
         self.showItems(line1 = _("Checking UV calibrator placement on the screen"), line2 = _("Please wait..."))
-        retc = self.uvmeter.check_place(self.display.screen.inverse)
+        retc = self.uvmeter.check_place(self.display.exposure_image.inverse)
         if not retc:
             return True
         #endif
@@ -526,7 +527,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
             self.display.hw.beepAlarm(2)
             return PageUVCalibrateCenter.Name
 
-        self.display.screen.blank_screen()
+        self.display.exposure_image.blank_screen()
 
         if self.result == self.ERROR_DONE:
             self.display.pages[self.continuePage].boostResults = self.boostResults
@@ -575,7 +576,8 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
 
     def calibrate(self):
         # Start UV led with minimal pwm
-        self.pwm = self.calibration_params.min_pwm
+        calibration_params = self.display.hw.printer_model.calibration_parameters(self.display.hw.is500khz)
+        self.pwm = calibration_params.min_pwm
 
         error = 0
         integrated_error = 0
@@ -603,7 +605,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
                               self.pwm, self.intensity, error, integrated_error, iteration, success_count)
 
             # Break cycle when error is tolerable
-            if abs(error) < self.calibration_params.intensity_error_threshold:
+            if abs(error) < calibration_params.intensity_error_threshold:
                 if success_count >= self.SUCCESS_ITERATIONS:
                     break
                 #endif
@@ -613,15 +615,15 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
             #endif
 
             # Adjust PWM according to error, integrated error and operational limits
-            self.pwm = self.pwm + self.calibration_params.param_p * error + self.PARAM_I * integrated_error
-            self.pwm = max(self.calibration_params.min_pwm, min(self.calibration_params.max_pwm, self.pwm))
+            self.pwm = self.pwm + calibration_params.param_p * error + self.PARAM_I * integrated_error
+            self.pwm = max(calibration_params.min_pwm, min(calibration_params.max_pwm, self.pwm))
         #endfor
 
         # Report ranges and deviation errors
-        if error > self.calibration_params.intensity_error_threshold:
+        if error > calibration_params.intensity_error_threshold:
             self.logger.error("UV intensity error: %f", error)
             return self.ERROR_TOO_DIMM, None
-        elif error < -self.calibration_params.intensity_error_threshold:
+        elif error < -calibration_params.intensity_error_threshold:
             self.logger.error("UV intensity error: %f", error)
             return self.ERROR_TOO_BRIGHT, None
         elif self.deviation > self.INTENSITY_DEVIATION_THRESHOLD:
@@ -647,9 +649,9 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
 
 
     def calibrate(self):
-        self.display.screen.blank_screen()
-        self.display.screen.inverse()
-        maxpwm = self.calibration_params.max_pwm
+        self.display.exposure_image.blank_screen()
+        self.display.exposure_image.inverse()
+        maxpwm = self.display.hw.printer_model.calibration_parameters(self.display.hw.is500khz).max_pwm
         # check PWM value from previous step
         self.pwm = self.display.hw.uvLedPwm
         while self.pwm <= maxpwm:

@@ -14,7 +14,7 @@ from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.project import ProjectConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.screen.screen import Screen
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.utils.traceable_collections import TraceableDict, TraceableList
 
 
@@ -22,7 +22,7 @@ class ExposurePickler(pickle.Pickler):
     IGNORED_CLASSES = (
         Signal,
         Hardware,
-        Screen,
+        ExposureImage,
         Thread,
         TraceableDict,
         TraceableList,

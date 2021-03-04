@@ -526,12 +526,12 @@ class Page:
 
 
     def allOff(self):
-        hw_all_off(self.display.hw, self.display.screen)
+        hw_all_off(self.display.hw, self.display.exposure_image)
     #enddef
 
 
     def downloadExamlpes(self):
-        examples = Examples(self.display.inet, self.display.screen.printer_model)
+        examples = Examples(self.display.inet, self.display.hw.printer_model)
         examples.start()
         examples.join()
         if examples.state != ExamplesState.COMPLETED:

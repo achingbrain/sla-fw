@@ -56,7 +56,7 @@ from sl1fw.functions.system import shut_down
 from sl1fw.libHardware import Hardware
 from sl1fw.project.functions import check_ready_to_print
 from sl1fw.project.project import Project
-from sl1fw.screen.screen import Screen
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.utils.traceable_collections import TraceableDict
 
@@ -148,8 +148,8 @@ class ProjectDataCheck(ExposureCheckRunner):
 
         self.logger.info("Project after copy and check: %s", str(self.expo.project))
 
-        # start data preparation by Screen
-        self.logger.debug("Initiating project in Screen")
+        # start data preparation by ExposureImage
+        self.logger.debug("Initiating project in ExposureImage")
         self.expo.startProject()
 
         # show all warnings
@@ -290,7 +290,7 @@ class StirringCheck(ExposureCheckRunner):
 
 class Exposure:
     def __init__(
-        self, job_id: int, hw_config: HwConfig, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig,
+        self, job_id: int, hw_config: HwConfig, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig,
     ):
         self.change = Signal()
         self.logger = logging.getLogger(__name__)
@@ -298,7 +298,7 @@ class Exposure:
         self.runtime_config = runtime_config
         self.project: Optional[Project] = None
         self.hw = hw
-        self.screen = screen
+        self.exposure_image = exposure_image
         self.resin_count = 0.0
         self.resin_volume = None
         self.expoThread: Optional[Thread] = None
@@ -326,10 +326,10 @@ class Exposure:
         self.expoThread = Thread(target=self.run)
 
     def read_project(self, project_file: str):
-        check_ready_to_print(self.hw_config, self.screen.printer_model.calibration(self.hw.is500khz))
+        check_ready_to_print(self.hw_config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
         try:
             # Read project
-            self.project = Project(self.hw_config, self.screen.printer_model, project_file)
+            self.project = Project(self.hw_config, self.hw, project_file)
             self.state = ExposureState.CONFIRM
             # Signal project change on its parameter change. This lets Exposure0 emit
             # property changed on properties bound to project parameters.
@@ -401,14 +401,14 @@ class Exposure:
         self.actual_layer = 0
         self.resin_count = 0.0
         self.slow_layers_done = 0
-        self.screen.new_project(self.project)
+        self.exposure_image.new_project(self.project)
 
     def prepare(self):
-        self.screen.preload_image(0)
+        self.exposure_image.preload_image(0)
         self.hw.setTowerProfile("layer")
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
 
-        self.screen.blank_screen()
+        self.exposure_image.blank_screen()
         self.hw.uvLedPwm = self.hw_config.uvPwm
         if not self.hw_config.blinkExposure:
             self.hw.uvLed(True)
@@ -519,7 +519,7 @@ class Exposure:
 
     def _do_frame(self, times_ms, prev_white_pixels, was_stirring, second):
         position_steps = self.hw_config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw_config.calibTowerOffset
-        slow_move = prev_white_pixels > self.screen.white_pixels_threshold
+        slow_move = prev_white_pixels > self.hw.white_pixels_threshold
 
         if self.hw_config.tilt:
             if self.hw_config.layerTowerHop and slow_move:
@@ -534,8 +534,8 @@ class Exposure:
             self.hw.towerMoveAbsoluteWait(position_steps)
         self.hw.setTowerCurrent(defines.towerHoldCurrent)
 
-        white_pixels = self.screen.sync_preloader()
-        self.screen.screenshot_rename(second)
+        white_pixels = self.exposure_image.sync_preloader()
+        self.exposure_image.screenshot_rename(second)
 
         if self.hw_config.delayBeforeExposure:
             self.logger.info("delayBeforeExposure [s]: %f", self.hw_config.delayBeforeExposure / 10.0)
@@ -549,7 +549,7 @@ class Exposure:
         if self.hw_config.tilt:
             self.hw.getMcTemperatures()
 
-        self.screen.blit_image(second)
+        self.exposure_image.blit_image(second)
 
         exp_time_ms = sum(times_ms)
         self.exposure_end = datetime.now(tz=timezone.utc) + timedelta(seconds=exp_time_ms / 1e3)
@@ -567,12 +567,12 @@ class Exposure:
                     uv_is_on, uv_on_remain_ms = self.hw.getUvLedState()
             else:
                 sleep(time_ms / 1e3)
-            self.screen.fill_area(i)
+            self.exposure_image.fill_area(i)
             i += 1
 
-        self.screen.blank_screen()
+        self.exposure_image.blank_screen()
         self.logger.info("exposure done")
-        self.screen.preload_image(self.actual_layer + 1)
+        self.exposure_image.preload_image(self.actual_layer + 1)
 
         temperatures = self.hw.getMcTemperatures()
         self.logger.info("UV temperature [C]: %.1f  Ambient temperature [C]: %.1f", temperatures[0], temperatures[1])
@@ -582,7 +582,7 @@ class Exposure:
             sleep(self.hw_config.delayAfterExposure / 10.0)
 
         if self.hw_config.tilt:
-            slow_move = white_pixels > self.screen.white_pixels_threshold
+            slow_move = white_pixels > self.hw.white_pixels_threshold
             if slow_move:
                 self.slow_layers_done += 1
             if not self.hw.tiltLayerDownWait(slow_move):
@@ -860,7 +860,7 @@ class Exposure:
                 self.hw.powerLed("normal")
 
             # exposure of the second part
-            if project.per_partes and white_pixels > self.screen.white_pixels_threshold:
+            if project.per_partes and white_pixels > self.hw.white_pixels_threshold:
                 success, dummy = self._do_frame(times_ms, white_pixels, was_stirring, True)
                 if not success:
                     self.doStuckRelease()
@@ -871,7 +871,7 @@ class Exposure:
 
             # /1e21 (1e7 ** 3) - we want cm3 (=ml) not nm3
             self.resin_count += (
-                white_pixels * self.screen.printer_model.exposure_screen.pixel_size_nm ** 2 * layer.height_nm / 1e21
+                white_pixels * self.hw.exposure_screen.parameters.pixel_size_nm ** 2 * layer.height_nm / 1e21
             )
             self.logger.debug("resin_count: %f", self.resin_count)
 
@@ -921,7 +921,7 @@ class Exposure:
             self.tower_position_nm / 1e6,
         )
 
-        self.screen.save_display_usage()
+        self.exposure_image.save_display_usage()
 
         if self.canceled:
             self.state = ExposureState.CANCELED

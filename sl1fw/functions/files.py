@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Optional
 
 from sl1fw import defines, test_runtime
-from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.hardware.printer_model import PrinterModel
 
 
 def get_save_path() -> Optional[Path]:

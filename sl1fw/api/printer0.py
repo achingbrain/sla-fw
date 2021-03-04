@@ -660,7 +660,7 @@ class Printer0:
             self._examples.join()
 
         # Initiate new examples download
-        self._examples = Examples(self.printer.inet, self.printer.screen.printer_model)
+        self._examples = Examples(self.printer.inet, self.printer.hw.printer_model)
         self._examples0 = Examples0(self._examples)
         self._examples_registration = pydbus.SystemBus().publish(
             Examples0.__INTERFACE__, (Examples0.DBUS_PATH, self._examples0)
@@ -724,7 +724,7 @@ class Printer0:
         :return: None
         """
         check_ready_to_print(
-            self.printer.hwConfig, self.printer.screen.printer_model.calibration(self.printer.hw.is500khz)
+            self.printer.hwConfig, self.printer.hw.printer_model.calibration_parameters(self.printer.hw.is500khz)
         )
 
     @auto_dbus
@@ -740,7 +740,7 @@ class Printer0:
         :returns: Print task object
         """
         expo = self.printer.action_manager.new_exposure(
-            self.printer.hwConfig, self.printer.hw, self.printer.screen, self.printer.runtime_config, project_path
+            self.printer.hwConfig, self.printer.hw, self.printer.exposure_image, self.printer.runtime_config, project_path
         )
         if auto_advance:
             expo.confirm_print_start()
@@ -764,7 +764,7 @@ class Printer0:
 
         last_exposure = self.printer.action_manager.exposure
         exposure = self.printer.action_manager.reprint_exposure(
-            last_exposure, self.printer.hwConfig, self.printer.hw, self.printer.screen, self.printer.runtime_config
+            last_exposure, self.printer.hwConfig, self.printer.hw, self.printer.exposure_image, self.printer.runtime_config
         )
         if auto_advance:
             exposure.confirm_print_start()
@@ -810,7 +810,7 @@ class Printer0:
 
         :return: Set of extension strings
         """
-        return list(self.printer.screen.printer_model.extensions)
+        return list(self.printer.hw.printer_model.extensions)
 
     @auto_dbus
     @property
@@ -859,7 +859,7 @@ class Printer0:
         sources = [Path(defines.internalProjectPath), Path(defines.mediaRootPath)]
         projects = []
         for directory in sources:
-            projects.extend(get_all_supported_files(self.printer.screen.printer_model, directory))
+            projects.extend(get_all_supported_files(self.printer.hw.printer_model, directory))
         return [str(project) for project in projects]
 
     @auto_dbus
@@ -904,7 +904,7 @@ class Printer0:
             self.PropertiesChanged(self.__INTERFACE__, {"usb_path": self.usb_path}, [])
             path = get_save_path()
             if path:
-                projects = get_all_supported_files(self.printer.screen.printer_model, path)
+                projects = get_all_supported_files(self.printer.hw.printer_model, path)
                 newest_proj = sorted(projects, key=lambda proj: proj.stat().st_mtime).pop()
                 last_exposure = self.printer.action_manager.exposure
                 if last_exposure:
@@ -958,7 +958,7 @@ class Printer0:
         displaytest_wizard(
             self.printer.action_manager,
             self.printer.hw,
-            self.printer.screen,
+            self.printer.exposure_image,
             self.printer.runtime_config,
         )
 
@@ -983,7 +983,7 @@ class Printer0:
             self.printer.action_manager,
             self.printer.hw,
             self.printer.hwConfig,
-            self.printer.screen,
+            self.printer.exposure_image,
             self.printer.runtime_config,
         )
 

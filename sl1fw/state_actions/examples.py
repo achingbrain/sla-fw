@@ -21,7 +21,7 @@ from sl1fw.errors.errors import NotConnected, NotEnoughInternalSpace
 from sl1fw.libNetwork import Network
 from sl1fw.states.examples import ExamplesState
 from sl1fw.functions.files import ch_mode_owner
-from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.hardware.printer_model import PrinterModel
 
 
 class Examples(Thread):

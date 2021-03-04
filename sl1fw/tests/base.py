@@ -19,6 +19,7 @@ from dbusmock import DBusTestCase
 from gi.repository import GLib
 
 import sl1fw.tests.mocks.mc_port
+import sl1fw.tests.mocks.exposure_screen
 from sl1fw import defines, test_runtime
 from sl1fw.tests import samples
 from sl1fw.tests.mocks.dbus.hostname import Hostname
@@ -34,14 +35,14 @@ sys.modules["gpio"] = Mock()
 sys.modules["serial"] = sl1fw.tests.mocks.mc_port
 sys.modules["serial.tools.list_ports"] = Mock()
 sys.modules["evdev"] = Mock()
-sys.modules["sl1fw.screen.wayland"] = Mock()
+sys.modules["sl1fw.hardware.exposure_screen"] = sl1fw.tests.mocks.exposure_screen
 
 # These needs to be imported after sys.module override
 # pylint: disable = wrong-import-position
 from sl1fw.libPrinter import Printer
-from sl1fw.screen.screen import Screen
 from sl1fw.api.printer0 import Printer0
 from sl1fw.exposure.exposure import Exposure
+from sl1fw.image.exposure_image import ExposureImage
 
 
 class Sl1fwTestCase(DBusTestCase):
@@ -132,7 +133,7 @@ class Sl1fwTestCase(DBusTestCase):
         self.ref_check_type(Printer0)
         self.ref_check_type(Printer)
         self.ref_check_type(Exposure)
-        self.ref_check_type(Screen)
+        self.ref_check_type(ExposureImage)
 
         self.temp_dir_obj.cleanup()
 
@@ -170,4 +171,6 @@ class Sl1fwTestCase(DBusTestCase):
             msg = self._formatMessage(
                 msg, f"Images contain pixels different by mote than {threshold}."
             )
+            a.save("assertSameImage-a.png")
+            b.save("assertSameImage-b.png")
             raise self.failureException(msg)

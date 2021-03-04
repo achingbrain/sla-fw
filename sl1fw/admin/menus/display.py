@@ -136,7 +136,7 @@ class DisplayControlMenu(SafeAdminMenu):
 
     def on_leave(self):
         self._printer.hw.saveUvStatistics()
-        hw_all_off(self._printer.hw, self._printer.screen)
+        hw_all_off(self._printer.hw, self._printer.exposure_image)
 
     def get_uv(self):
         return self._printer.hw.getUvLedState()[0]
@@ -152,23 +152,23 @@ class DisplayControlMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def chess_8(self):
-        self._printer.screen.show_system_image("chess8.png")
+        self._printer.exposure_image.show_system_image("chess8.png")
 
     @SafeAdminMenu.safe_call
     def chess_16(self):
-        self._printer.screen.show_system_image("chess16.png")
+        self._printer.exposure_image.show_system_image("chess16.png")
 
     @SafeAdminMenu.safe_call
     def grid_8(self):
-        self._printer.screen.show_system_image("grid8.png")
+        self._printer.exposure_image.show_system_image("grid8.png")
 
     @SafeAdminMenu.safe_call
     def grid_16(self):
-        self._printer.screen.show_system_image("grid16.png")
+        self._printer.exposure_image.show_system_image("grid16.png")
 
     @SafeAdminMenu.safe_call
     def maze(self):
-        self._printer.screen.show_system_image("maze.png")
+        self._printer.exposure_image.show_system_image("maze.png")
 
     @SafeAdminMenu.safe_call
     def usb_test(self):
@@ -178,16 +178,16 @@ class DisplayControlMenu(SafeAdminMenu):
         test_file = save_path / "test.png"
         if not test_file.exists():
             raise FileNotFoundError(f"Test image not found: {test_file}")
-        self._printer.screen.show_image_with_path(str(test_file))
+        self._printer.exposure_image.show_image_with_path(str(test_file))
 
     @SafeAdminMenu.safe_call
     def prusa(self):
-        self._printer.screen.show_system_image("logo.png")
+        self._printer.exposure_image.show_system_image("logo.png")
 
     @SafeAdminMenu.safe_call
     def black(self):
-        self._printer.screen.blank_screen()
+        self._printer.exposure_image.blank_screen()
 
     @SafeAdminMenu.safe_call
     def invert(self):
-        self._printer.screen.inverse()
+        self._printer.exposure_image.inverse()

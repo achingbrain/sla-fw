@@ -9,20 +9,20 @@ from PIL import Image
 
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.configs.hw import HwConfig
-from sl1fw.screen.printer_model import Calibration
+from sl1fw.hardware.printer_model import CalibrationParameters
 
 def get_white_pixels(image: Image) -> int:
     np_array = numpy.array(image.histogram())
     return int(numpy.sum(np_array[128:]))  # simple treshold
 
 
-def check_ready_to_print(config: HwConfig, calibration_data: Calibration) -> None:
+def check_ready_to_print(config: HwConfig, calibration_parameters: CalibrationParameters) -> None:
     """
     This raises exceptions when printer is not ready to print
 
     :return: None
     """
-    if config.uvPwm < calibration_data.min_pwm:
+    if config.uvPwm < calibration_parameters.min_pwm:
         raise NotUVCalibrated()
 
     if not config.calibrated:

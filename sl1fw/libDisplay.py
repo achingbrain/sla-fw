@@ -24,7 +24,7 @@ from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
-from sl1fw.screen.screen import Screen
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libVirtualDisplay import VirtualDisplay
 from sl1fw.pages import pages
 # TODO: Get rid of cyclic dependencies
@@ -36,14 +36,14 @@ from sl1fw.states.display import DisplayState
 
 class Display:
 
-    def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network, screen: Screen,
-                 runtime_config: RuntimeConfig, action_manager: ActionManager):
+    def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network,
+                 exposure_image: ExposureImage, runtime_config: RuntimeConfig, action_manager: ActionManager):
         self.logger = logging.getLogger(__name__)
         self.hwConfig = hwConfig
         self.devices = devices
         self.hw = hw
         self.inet = inet
-        self.screen = screen
+        self.exposure_image = exposure_image
         self.runtime_config = runtime_config
         self.wizardData = None
         self.uvCalibData = None
@@ -109,7 +109,7 @@ class Display:
         for device in self.devices:
             device.exit()
         #endfor
-        self.screen = None
+        self.exposure_image = None
     #enddef
 
 

@@ -5,7 +5,7 @@
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.functions.system import hw_all_off
 from sl1fw.libHardware import Hardware
-from sl1fw.screen.screen import Screen
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker
@@ -16,25 +16,25 @@ from sl1fw.wizard.wizard import Wizard
 
 
 class DisplayTestCheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
-        super().__init__(Configuration(TankSetup.REMOVED, None), [DisplayTest(hw, screen, runtime_config)])
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+        super().__init__(Configuration(TankSetup.REMOVED, None), [DisplayTest(hw, exposure_image, runtime_config)])
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(actions, actions.prepare_displaytest_done, WizardState.PREPARE_DISPLAY_TEST)
 
 
 class DisplayTestWizard(Wizard):
-    def __init__(self, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
-            WizardId.DISPLAY, [DisplayTestCheckGroup(hw, screen, runtime_config)], hw, runtime_config
+            WizardId.DISPLAY, [DisplayTestCheckGroup(hw, exposure_image, runtime_config)], hw, runtime_config
         )
-        self._screen = screen
+        self._exposure_image = exposure_image
 
     def run(self):
         try:
             super().run()
         except Exception:
-            hw_all_off(self._hw, self._screen)
+            hw_all_off(self._hw, self._exposure_image)
             raise
 
     @property

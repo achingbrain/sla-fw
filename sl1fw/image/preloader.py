@@ -17,8 +17,8 @@ import numpy
 from PIL import Image
 
 from sl1fw import defines
-from sl1fw.screen.printer_model import ExposureScreen
-from sl1fw.screen.resin_calibration import Calibration
+from sl1fw.hardware.printer_model import ExposureScreenParameters
+from sl1fw.image.resin_calibration import Calibration
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.utils.bounding_box import BBox
 
@@ -54,21 +54,21 @@ class SLIDX(IntEnum):
 
 class Preloader(Process):
     # pylint: disable=too-many-instance-attributes, too-many-arguments
-    def __init__(self, exposure_screen: ExposureScreen, start_preload: Queue, preload_result: Queue, shm_prefix: str,
-                 log_queue: Queue):
+    def __init__(self, exposure_screen_parameters: ExposureScreenParameters, start_preload: Queue, preload_result: Queue,
+                 shm_prefix: str, log_queue: Queue):
         super().__init__()
         self._logger = logging.getLogger(__name__)
         self._log_queue = log_queue
-        self._exposure_screen = exposure_screen
+        self._params = exposure_screen_parameters
         self._start_preload = start_preload
         self._preload_result = preload_result
         self._shm: Optional[shared_memory.SharedMemory] = None
         self._sl: Optional[shared_memory.ShareableList] = None
         self._stoprequest = Event()
-        self._live_preview_size_px = (self._exposure_screen.width_px // defines.thumbnail_factor, self._exposure_screen.height_px // defines.thumbnail_factor)
-        self._display_usage_size = (self._exposure_screen.height_px // defines.thumbnail_factor, self._exposure_screen.width_px // defines.thumbnail_factor)
+        self._live_preview_size_px = (self._params.width_px // defines.thumbnail_factor, self._params.height_px // defines.thumbnail_factor)
+        self._display_usage_size = (self._params.height_px // defines.thumbnail_factor, self._params.width_px // defines.thumbnail_factor)
         self._display_usage_shape = (self._display_usage_size[0], defines.thumbnail_factor, self._display_usage_size[1], defines.thumbnail_factor)
-        self._black_image = Image.new("L", self._exposure_screen.size_px)
+        self._black_image = Image.new("L", self._params.size_px)
         self._project_serial: Optional[int] = None
         self._calibration: Optional[Calibration] = None
         self._shm = [
@@ -140,7 +140,7 @@ class Preloader(Process):
             self._project_serial = self._sl[SLIDX.PROJECT_SERIAL]
             self._calibration = None
             if self._sl[SLIDX.PROJECT_CALIBRATE_REGIONS]:
-                self._calibration = Calibration(self._exposure_screen.size_px)
+                self._calibration = Calibration(self._params.size_px)
                 if not self._calibration.new_project(
                         BBox(self._read_SL(self._shm[SHMIDX.PROJECT_BBOX])),
                         BBox(self._read_SL(self._shm[SHMIDX.PROJECT_FL_BBOX])),
@@ -151,8 +151,8 @@ class Preloader(Process):
                         self._sl[SLIDX.PROJECT_CALIBRATE_TEXT_SIZE_PX],
                         self._sl[SLIDX.PROJECT_CALIBRATE_PAD_SPACING_PX]):
                     self._logger.warning("Calibration is invalid!")
-        input_image = Image.frombuffer("L", self._exposure_screen.size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
-        output_image = Image.frombuffer("L", self._exposure_screen.size_px, self._shm[SHMIDX.OUTPUT_IMAGE1].buf, "raw", "L", 0, 1)
+        input_image = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
+        output_image = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.OUTPUT_IMAGE1].buf, "raw", "L", 0, 1)
         output_image.readonly = False
         if self._calibration and self._calibration.areas:
             start_time = time()
@@ -165,7 +165,7 @@ class Preloader(Process):
         else:
             output_image.paste(input_image)
         if self._sl[SLIDX.PROJECT_FLAGS] & ProjectFlags.USE_MASK:
-            mask = Image.frombuffer("L", self._exposure_screen.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
+            mask = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
             output_image.paste(self._black_image, mask=mask)
         start_time = time()
         pixels = numpy.array(output_image)
@@ -176,12 +176,12 @@ class Preloader(Process):
         self._logger.debug("pixels manipulations done in %f secs, white pixels: %d",
                 time() - start_time, white_pixels)
         if self._sl[SLIDX.PROJECT_FLAGS] & ProjectFlags.PER_PARTES and white_pixels > self._sl[SLIDX.WHITE_PIXELS_THRESHOLD]:
-            output_image_second = Image.frombuffer("L", self._exposure_screen.size_px, self._shm[SHMIDX.OUTPUT_IMAGE2].buf, "raw", "L", 0, 1)
+            output_image_second = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.OUTPUT_IMAGE2].buf, "raw", "L", 0, 1)
             output_image_second.readonly = False
             output_image_second.paste(output_image)
-            mask = Image.frombuffer("L", self._exposure_screen.size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
+            mask = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
             output_image.paste(self._black_image, mask=mask)
-            mask = Image.frombuffer("L", self._exposure_screen.size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
+            mask = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
             output_image_second.paste(self._black_image, mask=mask)
             self._screenshot(output_image_second, "2")
         self._screenshot(output_image, "1")

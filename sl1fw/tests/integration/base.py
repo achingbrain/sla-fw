@@ -72,7 +72,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         os.environ["SDL_DISKAUDIOFILE"] = str(self.sdl_audio_file)
 
         self.printer = Printer(debug_display=self.display)
-        test_runtime.screen = self.printer.screen
+        test_runtime.exposure_image = self.printer.exposure_image
 
         # overide writeToFactory function
         self.printer.display.pages["factoryreset"].writeToFactory = self.call
@@ -164,7 +164,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         del self.printer
         del self._printer0
         del self.printer0_dbus
-        test_runtime.screen = None
+        test_runtime.exposure_image = None
 
         files = [
             self.EEPROM_FILE,

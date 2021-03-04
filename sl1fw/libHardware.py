@@ -32,6 +32,8 @@ from sl1fw.configs.hw import HwConfig
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.motion_controller.states import MotConComState
 from sl1fw.utils.value_checker import ValueChecker
+from sl1fw.hardware.exposure_screen import ExposureScreen
+from sl1fw.hardware.printer_model import PrinterModel
 
 
 def safe_call(default_value, exceptions):
@@ -190,6 +192,9 @@ class Hardware:
         self._value_refresh_run = True
         self._value_refresh_thread = Thread(daemon=True, target=self._value_refresh_body)
 
+        self.exposure_screen = ExposureScreen()
+        self.printer_model = PrinterModel.NONE
+
         self.fans_changed = Signal()
         self.mc_temps_changed = Signal()
         self.cpu_temp_changed = Signal()
@@ -209,6 +214,7 @@ class Hardware:
         self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
 
     def start(self):
+        self.printer_model = self.exposure_screen.start()
         self.mcc.start()
         self._value_refresh_thread.start()
 
@@ -216,6 +222,7 @@ class Hardware:
         self._value_refresh_run = False
         self._value_refresh_thread.join()
         self.mcc.exit()
+        self.exposure_screen.exit()
 
     def connectMC(self, force_flash=False):
         if force_flash:
@@ -294,6 +301,10 @@ class Hardware:
     @property
     def tower_calib_pos(self) -> int:
         return self._towerCalibPos
+
+    @property
+    def white_pixels_threshold(self) -> int:
+        return self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.hwConfig.limit4fast // 100
 
     @property
     def mcFwVersion(self):

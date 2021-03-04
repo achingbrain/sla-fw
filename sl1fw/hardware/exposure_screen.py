@@ -17,16 +17,15 @@ from pywayland.protocol.xdg_shell import XdgWmBase
 from pywayland.protocol.presentation_time import WpPresentation
 from pywayland.utils import AnonymousFile
 
-from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.hardware.printer_model import PrinterModel
 
 
-class Wayland:
+class ExposureScreen:
     # pylint: disable=too-many-instance-attributes
     # pylint: disable=unused-argument
     # pylint: disable=too-many-arguments
     def __init__(self):
-        self.printer_model = PrinterModel.NONE
-        self.exposure_screen = self.printer_model.exposure_screen
+        self.parameters = PrinterModel.NONE.exposure_screen_parameters
 
         self._logger = logging.getLogger(__name__)
         self._compositor = None
@@ -46,7 +45,11 @@ class Wayland:
         self._new_image = True
         self._presentation_feedback = None
         self._video_sync_event = Event()
+        self._thread: Optional[Thread] = None
+        self._display = None
 
+
+    def start(self) -> PrinterModel:
         self._display = Display()
         self._display.connect()
         self._logger.debug("connected to display")
@@ -71,16 +74,17 @@ class Wayland:
         if not self._format_available:
             raise RuntimeError("no suitable shm format available")
 
-        self._detect_model()
-
         self._thread = Thread(target=self._event_loop)
         self._thread.start()
 
+        return self._detect_model()
 
-    def stop(self):
+
+    def exit(self):
         self._logger.debug("stopped")
         self._stopped = True
-        self._thread.join()
+        if self._thread:
+            self._thread.join()
 
 
     def _event_loop(self):
@@ -168,17 +172,19 @@ class Wayland:
 
     def _detect_model(self):
         self._logger.debug("got resolution %s", str(self._detected_size))
-        for printer_model in PrinterModel:
-            exposure_screen = printer_model.exposure_screen
-            if exposure_screen.detected_size_px == self._detected_size:
-                self.printer_model = printer_model
-                self.exposure_screen = exposure_screen
+        detected_model = PrinterModel.NONE
+        for model in PrinterModel:
+            parameters = model.exposure_screen_parameters
+            if parameters.detected_size_px == self._detected_size:
+                detected_model = model
+                self.parameters = parameters
                 break
-        if self.printer_model == PrinterModel.NONE:
+        if detected_model == PrinterModel.NONE:
             self._logger.error("Unknown printer model (detected resolution: %s)", str(self._detected_size))
         else:
-            self._logger.info("Detected printer model: %s", self.printer_model.name)
-            self._referesh_delay_s = self.exposure_screen.referesh_delay_ms / 1000
+            self._logger.info("Detected printer model: %s", detected_model.name)
+            self._referesh_delay_s = self.parameters.referesh_delay_ms / 1000
+        return detected_model
 
 
     def _create_buffer(self):
@@ -222,12 +228,12 @@ class Wayland:
 
 
     def show(self, image: Image, sync = True):
-        if image.size != self.exposure_screen.size_px:
-            self._logger.error("Invalid image size %s. Output is %s", str(image.size), str(self.exposure_screen.size_px))
+        if image.size != self.parameters.size_px:
+            self._logger.error("Invalid image size %s. Output is %s", str(image.size), str(self.parameters.size_px))
             return
-        if self.exposure_screen.monochromatic:
+        if self.parameters.monochromatic:
             bit24 = Image.frombytes("RGB", self._detected_size, image.tobytes())
-            if self.exposure_screen.backwards:
+            if self.parameters.backwards:
                 bit32 = bit24.convert("BGR;32")
             else:
                 bit32 = bit24.convert("RGBX")

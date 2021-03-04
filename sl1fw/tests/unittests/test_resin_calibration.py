@@ -6,11 +6,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.screen.resin_calibration import Area, AreaWithLabel, AreaWithLabelStripe, Calibration
+from sl1fw.image.resin_calibration import Area, AreaWithLabel, AreaWithLabelStripe, Calibration
 from sl1fw.utils.bounding_box import BBox
 
 from sl1fw.configs.hw import HwConfig
-from sl1fw.screen.screen import Screen
+from sl1fw.tests.mocks.hardware import Hardware
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.project.project import Project
 
 class TestResinCalibration(Sl1fwTestCase):
@@ -199,8 +200,9 @@ class TestResinCalibration(Sl1fwTestCase):
         NUMBERS = Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1"
         hw_config = HwConfig(HW_CONFIG)
         hw_config.read_file()
-        screen = Screen(hw_config)
-        project = Project(hw_config, screen.printer_model, NUMBERS)
+        hw = Hardware(hw_config)
+        exposure_image = ExposureImage(hw)
+        project = Project(hw_config, hw, NUMBERS)
         project.calibrate_regions = 9
         project.analyze()
         #  project bbox: (605, 735, 835, 1825)
@@ -215,4 +217,4 @@ class TestResinCalibration(Sl1fwTestCase):
             project.calibrate_text_size_px,
             project.calibrate_pad_spacing_px))
         self.assertTrue(calib.is_cropped)
-        screen.exit()
+        exposure_image.exit()

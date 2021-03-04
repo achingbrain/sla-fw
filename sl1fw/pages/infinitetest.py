@@ -52,7 +52,7 @@ class PageInfiniteTest(Page):
             line3="Tilt cycles: %d" % tilt_counter,
         )
         page_wait.show()
-        self.display.screen.show_system_image("chess16.png")
+        self.display.exposure_image.show_system_image("chess16.png")
         self.display.hw.startFans()
         self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
         self.display.hw.uvLed(True)

@@ -125,7 +125,6 @@ class PageSrcSelect(Page):
         self.old_items = None
         self.sources = {}
         self.updateDataPeriod = 1
-        self.extensions = display.screen.printer_model.extensions
     #enddef
 
 
@@ -135,9 +134,10 @@ class PageSrcSelect(Page):
 
 
     def source_list(self):
+        extensions = self.display.hw.printer_model.extensions
         # Get source directories
-        sourceDirs = [SourceDir(defines.internalProjectPath, "internal", self.extensions)]
-        sourceDirs += [SourceDir(path, "usb", self.extensions) for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
+        sourceDirs = [SourceDir(defines.internalProjectPath, "internal", extensions)]
+        sourceDirs += [SourceDir(path, "usb", extensions) for path in glob.glob(os.path.join(defines.mediaRootPath, "*"))]
 
         # Get content items
         dirs = {}
@@ -227,7 +227,7 @@ class PageSrcSelect(Page):
             self.show()
             return None
         #endif
-        self.display.action_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.screen,
+        self.display.action_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.exposure_image,
                                                  self.display.runtime_config, item['fullpath'])
         return "reading"
     #enddef
@@ -242,10 +242,11 @@ class PageSrcSelect(Page):
         #endtry
 
         if item['type'] == 'dir':
+#            extensions = self.display.hw.printer_model.extensions
 #            for root, dirs, files in os.walk(item['fullpath']):
 #                for file in files:
 #                    (name, ext) = os.path.splitext(file)
-#                    if ext in self.extensions:
+#                    if ext in extensions:
 #                        os.remove(os.path.join(root, file))
 #            return
             raise NotImplementedError

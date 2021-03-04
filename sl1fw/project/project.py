@@ -34,7 +34,7 @@ from sl1fw.configs.project import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.utils.bounding_box import BBox
 from sl1fw.api.decorators import range_checked
-from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.libHardware import Hardware
 
 
 @unique
@@ -82,13 +82,10 @@ class ProjectLayer:
 
 
 class Project:
-    def __init__(self, hw_config: HwConfig, printer_model: PrinterModel, project_file: str):
+    def __init__(self, hw_config: HwConfig, hw: Hardware, project_file: str):
         self.logger = logging.getLogger(__name__)
         self._hw_config = hw_config
-        self._printer_type_name = printer_model.name
-        exposure_screen = printer_model.exposure_screen
-        self._pixel_size_nm = exposure_screen.pixel_size_nm
-        self._white_pixels_threshold = exposure_screen.width_px * exposure_screen.height_px * hw_config.limit4fast // 100
+        self._hw = hw
         self.warnings = set()
         self.path = project_file
         self._config = ProjectConfig()
@@ -187,9 +184,10 @@ class Project:
         self._calibrate_time_ms = int(self._config.calibrateTime * 1e3)
         self._calibrate_time_ms_exact = [int(x * 1e3) for x in self._config.calibrateTimeExact]
         self._calibrate_regions = self._config.calibrateRegions
-        self.calibrate_text_size_px = int(self._config.calibrateTextSize * 1e6 // self._pixel_size_nm)
-        self.calibrate_pad_spacing_px = int(self._config.calibratePadSpacing * 1e6 // self._pixel_size_nm)
-        self.calibrate_penetration_px = int(self._config.calibratePenetration * 1e6 // self._pixel_size_nm)
+        pixel_size_nm = self._hw.exposure_screen.parameters.pixel_size_nm
+        self.calibrate_text_size_px = int(self._config.calibrateTextSize * 1e6 // pixel_size_nm)
+        self.calibrate_pad_spacing_px = int(self._config.calibratePadSpacing * 1e6 // pixel_size_nm)
+        self.calibrate_penetration_px = int(self._config.calibratePenetration * 1e6 // pixel_size_nm)
         self.calibrate_compact = self._config.calibrateCompact
         self.used_material_nl = int(self._config.usedMaterial * 1e6)
         if self._calibrate_regions:
@@ -208,9 +206,9 @@ class Project:
         else:
             date_time = datetime.now(timezone.utc)
         self.modification_time = date_time.timestamp()
-        if self._printer_type_name != self._config.printerModel:
+        if self._hw.printer_model.name != self._config.printerModel:
             self.logger.error("Wrong printer model '%s', expected '%s'",
-                    self._config.printerModel, self._printer_type_name)
+                    self._config.printerModel, self._hw.printer_model.name)
             raise ProjectErrorWrongPrinterModel
         if defines.printerVariant != self._config.printerVariant:
             self.warnings.add(VariantMismatch(defines.printerVariant, self._config.printerVariant))
@@ -287,10 +285,10 @@ class Project:
                         white_pixels *= self._calibrate_regions
                     self.logger.debug("white_pixels: %s", white_pixels)
                     update_consumed = True
-                    if white_pixels > self._white_pixels_threshold:
+                    if white_pixels > self._hw.white_pixels_threshold:
                         new_slow_layers += 1
                     # nm3 -> nl
-                    layer.consumed_resin_nl = white_pixels * self._pixel_size_nm ** 2 * layer.height_nm // int(1e15)
+                    layer.consumed_resin_nl = white_pixels * self._hw.exposure_screen.parameters.pixel_size_nm ** 2 * layer.height_nm // int(1e15)
                     new_used_material_nl += layer.consumed_resin_nl
             self.logger.info("analyze done in %f secs, result: %s", time() - start_time, self.bbox)
             if update_consumed:

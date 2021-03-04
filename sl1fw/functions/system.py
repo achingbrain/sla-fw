@@ -25,7 +25,7 @@ from sl1fw.errors.exceptions import ConfigException
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.toml import TomlConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.screen.screen import Screen
+from sl1fw.image.exposure_image import ExposureImage
 
 
 def shut_down(hw: Hardware, reboot=False):
@@ -122,8 +122,8 @@ def get_octoprint_auth(logger: logging.Logger) -> str:
         raise ConfigException("Octoprint auth file read failed") from e
 
 
-def hw_all_off(hw: Hardware, screen: Screen):
-    screen.blank_screen()
+def hw_all_off(hw: Hardware, exposure_image: ExposureImage):
+    exposure_image.blank_screen()
     hw.uvLed(False)
     hw.stopFans()
     hw.motorsRelease()

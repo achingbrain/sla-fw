@@ -7,6 +7,7 @@ from unittest.mock import Mock
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Fan
+from sl1fw.hardware.printer_model import PrinterModel
 
 
 class Hardware:
@@ -52,6 +53,10 @@ class Hardware:
         self.tower_calib_pos = self.tower_end
         self.mcFwVersion = "1.0.0"
         self.mcBoardRevision = "6c"
+
+        self.printer_model = PrinterModel.SL1
+        self.exposure_screen.parameters = self.printer_model.exposure_screen_parameters
+        self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.hw_config.limit4fast // 100
 
         self.getUvLedState = Mock(return_value=(False, 0))
         self.getUvStatistics = Mock(return_value=(6912, 3600))

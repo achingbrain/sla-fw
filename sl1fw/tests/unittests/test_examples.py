@@ -12,7 +12,7 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.state_actions.examples import Examples
 from sl1fw.states.examples import ExamplesState
 from sl1fw.tests.mocks.network import fake_network_system_bus, Network
-from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.hardware.printer_model import PrinterModel
 
 
 class TestExamples(Sl1fwTestCase):

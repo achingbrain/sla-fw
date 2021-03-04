@@ -11,8 +11,7 @@ from typing import Optional
 from unittest.mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.screen.screen import Screen
-from sl1fw.screen.printer_model import PrinterModel
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw import defines
 from sl1fw.errors.errors import (
     NotUVCalibrated,
@@ -56,37 +55,29 @@ class TestExposure(Sl1fwTestCase):
 
         self.hw_config = HwConfig()
         self.runtime_config = RuntimeConfig()
-        self.screen = Mock()
-        self.screen.__class__ = Screen
-        self.screen.__reduce__ = lambda x: (Mock, ())
-        self.screen.sync_preloader.return_value = 100
-        self.screen.printer_model = PrinterModel.SL1
-        exposure_screen = self.screen.printer_model.exposure_screen
-        self.screen.white_pixels_threshold = (
-            exposure_screen.width_px
-            * exposure_screen.height_px
-            * self.hw_config.limit4fast
-            // 100
-        )
+        self.exposure_image = Mock()
+        self.exposure_image.__class__ = ExposureImage
+        self.exposure_image.__reduce__ = lambda x: (Mock, ())
+        self.exposure_image.sync_preloader.return_value = 100
 
     def test_exposure_init_not_calibrated(self):
         with self.assertRaises(NotUVCalibrated):
             exposure = Exposure(
-                0, self.hw_config, Hardware(), self.screen, self.runtime_config
+                0, self.hw_config, Hardware(), self.exposure_image, self.runtime_config
             )
             exposure.read_project(TestExposure.PROJECT)
 
     def test_exposure_init(self):
         self._fake_calibration()
         exposure = Exposure(
-            0, self.hw_config, Hardware(), self.screen, self.runtime_config
+            0, self.hw_config, Hardware(), self.exposure_image, self.runtime_config
         )
         exposure.read_project(TestExposure.PROJECT)
 
     def test_exposure_load(self):
         self._fake_calibration()
         exposure = Exposure(
-            0, self.hw_config, Hardware(), self.screen, self.runtime_config
+            0, self.hw_config, Hardware(), self.exposure_image, self.runtime_config
         )
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
@@ -120,7 +111,7 @@ class TestExposure(Sl1fwTestCase):
     def test_broken_empty_project(self):
         hw = Hardware()
         self._fake_calibration()
-        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
+        exposure = Exposure(0, self.hw_config, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(self.BROKEN_EMPTY_PROJECT)
         self.assertIsInstance(exposure.exception, ProjectErrorCantRead)
 
@@ -128,7 +119,7 @@ class TestExposure(Sl1fwTestCase):
         hw = Hardware()
         self._fake_calibration()
         hw.tiltLayerDownWait = lambda _: False
-        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
+        exposure = Exposure(0, self.hw_config, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
         exposure.confirm_print_start()
@@ -156,7 +147,7 @@ class TestExposure(Sl1fwTestCase):
         hw = Hardware()
         self._fake_calibration()
         hw.tiltLayerDownWait = lambda _: False
-        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
+        exposure = Exposure(0, self.hw_config, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
         exposure.confirm_print_start()
@@ -182,7 +173,7 @@ class TestExposure(Sl1fwTestCase):
 
     def _run_exposure(self, hw) -> Exposure:
         self._fake_calibration()
-        exposure = Exposure(0, self.hw_config, hw, self.screen, self.runtime_config)
+        exposure = Exposure(0, self.hw_config, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
         exposure.confirm_print_start()

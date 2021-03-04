@@ -47,7 +47,7 @@ class PageHome(Page):
         #           return PageWizardInit.Name
 
         try:
-            check_ready_to_print(self.display.hwConfig, self.display.screen.printer_model.calibration(self.display.hw.is500khz))
+            check_ready_to_print(self.display.hwConfig, self.display.hw.printer_model.calibration_parameters(self.display.hw.is500khz))
         except NotUVCalibrated:
             return PageUvCalibrationStart.Name
         except NotMechanicallyCalibrated:

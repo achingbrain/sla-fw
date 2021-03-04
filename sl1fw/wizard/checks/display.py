@@ -8,7 +8,7 @@ from sl1fw.errors.errors import DisplayTestFailed
 from sl1fw.functions import display_test
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.screen.screen import Screen
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
@@ -17,7 +17,7 @@ from sl1fw.wizard.setup import Configuration, TankSetup, Resource
 
 class DisplayTest(DangerousCheck):
     def __init__(
-        self, hw: Hardware, screen: Screen, runtime_config: RuntimeConfig,
+        self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig,
     ):
         super().__init__(
             hw,
@@ -26,7 +26,7 @@ class DisplayTest(DangerousCheck):
             [Resource.UV, Resource.TILT, Resource.TOWER_DOWN, Resource.TOWER],
         )
         self.hw = hw
-        self.screen = screen
+        self.exposure_image = exposure_image
         self.runtime_config = runtime_config
 
         self.result: Optional[bool] = None
@@ -43,7 +43,7 @@ class DisplayTest(DangerousCheck):
         await self.wait_cover_closed()
         self.hw.tilt_home()
         await self.wait_cover_closed()
-        display_test.start(self.hw, self.screen, self.runtime_config)
+        display_test.start(self.hw, self.exposure_image, self.runtime_config)
 
         self._logger.debug("Registering display test user resolution callback")
         actions.report_display.register_callback(self.user_callback)
@@ -51,12 +51,12 @@ class DisplayTest(DangerousCheck):
         actions.push_state(display_check_state)
         try:
             while self.result is None:
-                display_test.cover_check(self.hw, self.screen.printer_model)
+                display_test.cover_check(self.hw, self.hw.printer_model)
         finally:
             actions.report_display.unregister_callback()
             actions.drop_state(display_check_state)
             self._logger.debug("Finishing display test")
-            display_test.end(self.hw, self.screen, self.runtime_config)
+            display_test.end(self.hw, self.exposure_image, self.runtime_config)
             self.hw.motorsRelease()
 
         if not self.result:

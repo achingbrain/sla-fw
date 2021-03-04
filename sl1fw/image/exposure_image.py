@@ -14,43 +14,38 @@ from typing import Optional
 import numpy
 from PIL import Image, ImageOps
 
-from sl1fw import defines, test_runtime
-from sl1fw.configs.hw import HwConfig
+from sl1fw import defines
 from sl1fw.errors.errors import PreloadFailed
+from sl1fw.libHardware import Hardware
 from sl1fw.project.project import Project
 from sl1fw.project.functions import get_white_pixels
-from sl1fw.screen.resin_calibration import Calibration
-from sl1fw.screen.wayland import Wayland
-from sl1fw.screen.printer_model import PrinterModel
-from sl1fw.screen.preloader import Preloader, SLIDX, SHMIDX, ProjectFlags
+from sl1fw.image.resin_calibration import Calibration
+from sl1fw.image.preloader import Preloader, SLIDX, SHMIDX, ProjectFlags
 from sl1fw.errors.errors import ProjectErrorCalibrationInvalid
 from sl1fw.errors.warnings import PerPartesPrintNotAvaiable, PrintMaskNotAvaiable, PrintedObjectWasCropped
 
 
-class Screen:
+class ExposureImage:
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, hw_config: HwConfig):
+    def __init__(self, hardware: Hardware):
+        self._hw = hardware
         self._logger = logging.getLogger(__name__)
-        self._hw_config = hw_config
         self._project: Optional[Project] = None
         self._calibration: Optional[Calibration] = None
-        self._output: Optional[Wayland] = None
         self._buffer: Optional[Image] = None
         self._sl: Optional[shared_memory.ShareableList] = None
         self._shm: Optional[list] = None
         self._preloader: Optional[Process] = None
         self._preloader_log_queue = Queue()
         self._preloader_log_listener = QueueListener(self._preloader_log_queue, *logging.getLogger().handlers)
-        self._output = Wayland()    # may throw exception
-        # FIXME this is ugly but can't mock this :-(
-        if test_runtime.testing:
-            self._output.printer_model = PrinterModel.SL1
-            self._output.exposure_screen = self._output.printer_model.exposure_screen
-        # numpy uses reversed axis indexing
-        self.display_usage_size = (self.exposure_screen.height_px // defines.thumbnail_factor, self.exposure_screen.width_px // defines.thumbnail_factor)
         self._start_preload = Queue()
         self._preload_result = Queue()
-        image_bytes_count = self.exposure_screen.width_px * self.exposure_screen.height_px
+        self.display_usage_size = None
+
+    def start(self):
+        # numpy uses reversed axis indexing
+        self.display_usage_size = (self._hw.exposure_screen.parameters.height_px // defines.thumbnail_factor, self._hw.exposure_screen.parameters.width_px // defines.thumbnail_factor)
+        image_bytes_count = self._hw.exposure_screen.parameters.width_px * self._hw.exposure_screen.parameters.height_px
         temp_usage = numpy.zeros(self.display_usage_size, dtype=numpy.float64, order='C')
         # see SLIDX!!!
         self._sl = shared_memory.ShareableList(sequence=[
@@ -74,11 +69,11 @@ class Screen:
                 shared_memory.ShareableList(range(5), name=shm_prefix+SHMIDX.PROJECT_BBOX.name),
                 shared_memory.ShareableList(range(5), name=shm_prefix+SHMIDX.PROJECT_FL_BBOX.name),
                 shared_memory.ShareableList(range(11), name=shm_prefix+SHMIDX.PROJECT_TIMES_MS.name)]
-        self._preloader = Preloader(self.exposure_screen, self._start_preload, self._preload_result, shm_prefix,
+        self._preloader = Preloader(self._hw.exposure_screen.parameters, self._start_preload, self._preload_result, shm_prefix,
                                     self._preloader_log_queue)
         self._preloader_log_listener.start()
         self._preloader.start()
-        self._buffer = Image.new("L", self.exposure_screen.size_px)
+        self._buffer = Image.new("L", self._hw.exposure_screen.parameters.size_px)
 
     def exit(self):
         if self._preloader:
@@ -95,8 +90,6 @@ class Screen:
                 else:
                     shm.shm.close()
                     shm.shm.unlink()
-        if self._output:
-            self._output.stop()
 
     def _open_image(self, filename):
         self._logger.debug("loading '%s'", filename)
@@ -119,11 +112,11 @@ class Screen:
         usage.fill(0.0)
         if self._project.per_partes:
             try:
-                image1 = Image.frombuffer("L", self.exposure_screen.size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
+                image1 = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
                 image1.readonly = False
                 image1.paste(self._open_image(os.path.join(
-                    defines.dataPath, self.printer_model.name, defines.perPartesMask)))
-                image2 = Image.frombuffer("L", self.exposure_screen.size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
+                    defines.dataPath, self._hw.printer_model.name, defines.perPartesMask)))
+                image2 = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
                 image2.readonly = False
                 image2.paste(ImageOps.invert(image1))
                 project_flags |= ProjectFlags.PER_PARTES
@@ -131,7 +124,7 @@ class Screen:
                 self._logger.exception("per partes masks exception")
                 self._project.warnings.add(PerPartesPrintNotAvaiable())
         try:
-            mask = Image.frombuffer("L", self.exposure_screen.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
+            mask = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
             mask.readonly = False
             mask.paste(ImageOps.invert(self._project.read_image(defines.maskFilename)))
             project_flags |= ProjectFlags.USE_MASK
@@ -142,7 +135,7 @@ class Screen:
             self._project.warnings.add(PrintMaskNotAvaiable())
         if self._project.calibrate_regions:
             self._project.analyze()
-            self._calibration = Calibration(self.exposure_screen.size_px)
+            self._calibration = Calibration(self._hw.exposure_screen.parameters.size_px)
             if not self._calibration.new_project(
                     self._project.bbox,
                     self._project.layers[0].bbox,
@@ -166,7 +159,7 @@ class Screen:
         self._sl[SLIDX.PROJECT_CALIBRATE_PENETRATION_PX] = self._project.calibrate_penetration_px
         self._sl[SLIDX.PROJECT_CALIBRATE_TEXT_SIZE_PX] = self._project.calibrate_text_size_px
         self._sl[SLIDX.PROJECT_CALIBRATE_PAD_SPACING_PX] = self._project.calibrate_pad_spacing_px
-        self._sl[SLIDX.WHITE_PIXELS_THRESHOLD] = self.white_pixels_threshold
+        self._sl[SLIDX.WHITE_PIXELS_THRESHOLD] = self._hw.white_pixels_threshold
 
     @staticmethod
     def _write_SL(dst, src):
@@ -178,25 +171,25 @@ class Screen:
     def blank_screen(self):
         self._logger.debug("blank started")
         start_time = time()
-        self._buffer.paste(0, (0, 0, self.exposure_screen.width_px, self.exposure_screen.height_px))
-        self._output.show(self._buffer)
+        self._buffer.paste(0, (0, 0, self._hw.exposure_screen.parameters.width_px, self._hw.exposure_screen.parameters.height_px))
+        self._hw.exposure_screen.show(self._buffer)
         self._logger.debug("blank done in %f secs", time() - start_time)
 
     def fill_area(self, area_index, color=0):
         if self._calibration and area_index < len(self._calibration.areas):
             self._logger.debug("fill area %d", area_index)
             self._buffer.paste(color, self._calibration.areas[area_index].coords)
-            self._output.show(self._buffer)
+            self._hw.exposure_screen.show(self._buffer)
             self._logger.debug("fill area end")
 
     def show_system_image(self, filename: str):
-        self.show_image_with_path(os.path.join(defines.dataPath, self.printer_model.name, filename))
+        self.show_image_with_path(os.path.join(defines.dataPath, self._hw.printer_model.name, filename))
 
     def show_image_with_path(self, filename_with_path: str):
         self._logger.debug("show of %s started", filename_with_path)
         start_time = time()
         self._buffer = self._open_image(filename_with_path)
-        self._output.show(self._buffer)
+        self._hw.exposure_screen.show(self._buffer)
         self._logger.debug("show of %s done in %f secs", filename_with_path, time() - start_time)
 
     def preload_image(self, layer_index: int, second=False):
@@ -218,7 +211,7 @@ class Screen:
         except Exception as e:
             self._logger.exception("read image exception:")
             raise PreloadFailed() from e
-        image = Image.frombuffer("L", self.exposure_screen.size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
+        image = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
         image.readonly = False
         image.paste(input_image)
         self._start_preload.put(layer.calibration_type.value)
@@ -235,8 +228,8 @@ class Screen:
         self._logger.debug("blit started")
         start_time = time()
         source_shm = self._shm[SHMIDX.OUTPUT_IMAGE2].buf if second else self._shm[SHMIDX.OUTPUT_IMAGE1].buf
-        self._buffer = Image.frombuffer("L", self.exposure_screen.size_px, source_shm, "raw", "L", 0, 1).copy()
-        self._output.show(self._buffer)
+        self._buffer = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, source_shm, "raw", "L", 0, 1).copy()
+        self._hw.exposure_screen.show(self._buffer)
         self._logger.debug("get result and blit done in %f secs", time() - start_time)
 
     def screenshot_rename(self, second=False):
@@ -251,7 +244,7 @@ class Screen:
         self._logger.debug("inverse started")
         start_time = time()
         self._buffer = ImageOps.invert(self._buffer)
-        self._output.show(self._buffer)
+        self._hw.exposure_screen.show(self._buffer)
         self._logger.debug("inverse done in %f secs", time() - start_time)
 
     def save_display_usage(self):
@@ -277,17 +270,3 @@ class Screen:
     def buffer(self):
         "read only"
         return self._buffer
-
-    @property
-    def exposure_screen(self):
-        "read only"
-        return self._output.exposure_screen
-
-    @property
-    def printer_model(self):
-        "read only"
-        return self._output.printer_model
-
-    @property
-    def white_pixels_threshold(self) -> int:
-        return self.exposure_screen.width_px * self.exposure_screen.height_px * self._hw_config.limit4fast // 100

@@ -448,7 +448,7 @@ class Standard0:
             expo = self._printer.action_manager.new_exposure(
                 self._printer.hwConfig,
                 self._printer.hw,
-                self._printer.screen,
+                self._printer.exposure_image,
                 self._printer.runtime_config,
                 project_path,
             )

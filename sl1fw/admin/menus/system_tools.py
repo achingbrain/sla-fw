@@ -138,7 +138,7 @@ class SystemToolsMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def _do_fake_setup(self, status: AdminLabel):
         status.set("Downloading examples")
-        examples = Examples(self._printer.inet, self._printer.screen.printer_model)
+        examples = Examples(self._printer.inet, self._printer.hw.printer_model)
         examples.start()
         examples.join()
 
@@ -147,7 +147,7 @@ class SystemToolsMenu(SafeAdminMenu):
         writer.calibrated = True
         writer.showWizard = False
         writer.showUnboxing = False
-        writer.uvPwm = self._printer.screen.printer_model.calibration(
+        writer.uvPwm = self._printer.hw.printer_model.calibration_parameters(
             self._printer.hw.is500khz
         ).min_pwm
         self._printer.hw.uvLedPwm = writer.uvPwm

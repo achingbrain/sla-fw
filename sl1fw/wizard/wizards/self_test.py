@@ -8,7 +8,7 @@ from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.functions.system import hw_all_off
 from sl1fw.libHardware import Hardware
-from sl1fw.screen.screen import Screen
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker
@@ -29,7 +29,7 @@ from sl1fw.wizard.wizard import Wizard
 
 
 class SelfTestPart1CheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
@@ -42,7 +42,7 @@ class SelfTestPart1CheckGroup(CheckGroup):
                 TowerHomeTest(hw, hw_config),
                 UVLEDsTest(hw, hw_config),
                 UVFansTest(hw, hw_config),
-                DisplayTest(hw, screen, runtime_config),
+                DisplayTest(hw, exposure_image, runtime_config),
                 CalibrationInfo(hw_config),
             ],
         )
@@ -78,18 +78,18 @@ class SelfTestPart3CheckGroup(CheckGroup):
 
 
 class SelfTestWizard(Wizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, screen: Screen, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.SELF_TEST,
             [
-                SelfTestPart1CheckGroup(hw, hw_config, screen, runtime_config),
+                SelfTestPart1CheckGroup(hw, hw_config, exposure_image, runtime_config),
                 SelfTestPart2CheckGroup(hw, hw_config),
                 SelfTestPart3CheckGroup(hw, hw_config),
             ],
             hw,
             runtime_config,
         )
-        self._screen = screen
+        self._exposure_image = exposure_image
 
     @property
     def name(self) -> str:
@@ -105,5 +105,5 @@ class SelfTestWizard(Wizard):
         try:
             super().run()
         except Exception:
-            hw_all_off(self._hw, self._screen)
+            hw_all_off(self._hw, self._exposure_image)
             raise
