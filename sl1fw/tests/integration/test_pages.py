@@ -66,36 +66,6 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         self.test_turnoff()
 
-    def test_display_passing(self):
-        self.printer.hwConfig.coverCheck = False
-        self.switchPage("settings")
-        self.switchPage("calibrationSubMenu")
-
-        self.press("displaytest")
-        self.waitPage("confirm")  # Please unscrew and remove ...
-        self.press("cont")
-        self.waitPage("confirm")  # Please close the orange lid...
-        self.press("cont")
-        self.waitPage("yesno")  # Can you see company logo...
-        self.press("yes")
-        self.waitPage("calibrationSubMenu")
-
-    def test_display_failing(self):
-        self.printer.hwConfig.coverCheck = False
-        self.switchPage("settings")
-        self.switchPage("calibrationSubMenu")
-
-        self.press("displaytest")
-        self.waitPage("confirm")  # Please unscrew and remove ...
-        self.press("cont")
-        self.waitPage("confirm")  # Please close the orange lid...
-        self.press("cont")
-        self.waitPage("yesno")  # Can you see company logo...
-        self.press("no")
-        self.waitPage("error")  # No logo, contact service
-        self.press("ok")
-        self.waitPage("calibrationSubMenu")
-
     def uv_calibration_enter_exit(self):
         self.printer.hwConfig.coverCheck = False
         self.switchPage("settings")
@@ -123,8 +93,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("yesno")  # New uv led set? ...
             self.press("no")
             self.waitPage("wait")  # Start positions
-            self.waitPage("yesno", timeout_sec=6)  # Display test. Can you see the logo? ...
-            self.press("yes")
+            # Display test removed - needs to be skipped from this test
             self.waitPage("confirm")  # Place the UV calibrator in and close lid ...
             self.press("cont")
             self.waitPage("wait")  # Waiting for UV calibrator
@@ -149,8 +118,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("confirm")  # Warning abour reseting counters and write to factory
             self.press("cont")
             self.waitPage("wait")  # Start positions
-            self.waitPage("yesno", timeout_sec=15)  # Display test. Can you see the logo? ...
-            self.press("yes")
+            # Display test removed - needs to be skipped from this test
             self.waitPage("confirm")  # Place the UV meter in and close lid ...
             self.press("cont")
             self.waitPage("wait")  # Waiting for UV meter
@@ -177,8 +145,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("confirm")  # Warning abour reseting counters and write to factory
             self.press("cont")
             self.waitPage("wait")  # Start positions
-            self.waitPage("yesno", timeout_sec=15)  # Display test. Can you see the logo? ...
-            self.press("yes")
+            # Display test removed - needs to be skipped from this test
             self.waitPage("confirm")  # Place the UV meter in and close lid ...
             self.press("cont")
             self.waitPage("wait")  # Waiting for UV meter
@@ -203,8 +170,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.waitPage("yesno")  # New uv led set? ...
             self.press("no")
             self.waitPage("wait")  # Start positions
-            self.waitPage("yesno", timeout_sec=15)  # Display test. Can you see the logo? ...
-            self.press("yes")
+            # Display test removed - needs to be skipped from this test
             self.waitPage("confirm")  # Place the UV meter in and close lid ...
             self.press("cont")
             self.waitPage("wait")  # Waiting for UV meter

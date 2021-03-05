@@ -33,7 +33,6 @@ from sl1fw.functions.files import save_wizard_history
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
-from sl1fw.pages.displaytest import PageDisplayTest
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -317,11 +316,6 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
                 return "error"
             #endif
             self.display.hw.tiltLayerUpWait()
-
-            if not self.display.doMenu(PageDisplayTest.Name):
-                self.off()
-                return self._EXIT_()
-            #endif
 
 
     def show(self):

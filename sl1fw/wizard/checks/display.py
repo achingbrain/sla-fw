@@ -5,7 +5,6 @@
 from typing import Optional
 
 from sl1fw.errors.errors import DisplayTestFailed
-from sl1fw.functions import display_test
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.image.exposure_image import ExposureImage
@@ -43,7 +42,9 @@ class DisplayTest(DangerousCheck):
         await self.wait_cover_closed()
         self.hw.tilt_home()
         await self.wait_cover_closed()
-        display_test.start(self.hw, self.exposure_image, self.runtime_config)
+        self.hw.startFans()
+        self.runtime_config.fan_error_override = True
+        self.exposure_image.show_system_image("logo.png")
 
         self._logger.debug("Registering display test user resolution callback")
         actions.report_display.register_callback(self.user_callback)
@@ -51,12 +52,20 @@ class DisplayTest(DangerousCheck):
         actions.push_state(display_check_state)
         try:
             while self.result is None:
-                display_test.cover_check(self.hw, self.hw.printer_model)
+                if self.hw.isCoverVirtuallyClosed():
+                    self.hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).min_pwm
+                    self.hw.uvLed(True)
+                else:
+                    self.hw.uvLed(False)
         finally:
             actions.report_display.unregister_callback()
             actions.drop_state(display_check_state)
             self._logger.debug("Finishing display test")
-            display_test.end(self.hw, self.exposure_image, self.runtime_config)
+            self.runtime_config.fan_error_override = False
+            self.hw.saveUvStatistics()
+            self.exposure_image.blank_screen()
+            self.hw.uvLed(False)
+            self.hw.stopFans()
             self.hw.motorsRelease()
 
         if not self.result:
