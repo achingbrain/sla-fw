@@ -35,6 +35,7 @@ from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.wizards import kit_unboxing_wizard, unboxing_wizard
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
+from sl1fw.functions.system import get_octoprint_auth
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
 from sl1fw.configs.hw import HwConfig
@@ -69,6 +70,9 @@ class Printer:
         self.slicer_profile_updater = None
         self._state = PrinterState.INIT
         self.state_changed = Signal()
+        self.http_digest_changed = Signal()
+        self.api_key_changed = Signal()
+        self.data_privacy_changed = Signal()
         self.firstRun = True
         self.action_manager = ActionManager()
         self.action_manager.exposure_change.connect(self._exposure_changed)
@@ -364,3 +368,58 @@ class Printer:
             self._printer_identifier = toBase32hex(int(binary, 2))
 
         return self._printer_identifier
+
+    @property
+    def http_digest(self) -> bool:
+        return TomlConfig(defines.remoteConfig).load().get("http_digest", True)
+
+    @http_digest.setter
+    def http_digest(self, enabled: bool) -> None:
+        remote_config = TomlConfig(defines.remoteConfig)
+        new_data = remote_config.load()
+        new_data["http_digest"] = enabled
+        if not remote_config.save(data=new_data):
+            raise ConfigException("Octoprint API key change failed")
+        if enabled:
+            subprocess.check_call([defines.htDigestCommand, "enable"])
+        else:
+            subprocess.check_call([defines.htDigestCommand, "disable"])
+        self.http_digest_changed.emit()
+
+    @property
+    def api_key(self) -> str:
+        """
+        Get current API key
+
+        :return: Current api key string
+        """
+        return get_octoprint_auth(self.logger)
+
+    @api_key.setter
+    def api_key(self, apikey: str) -> None:
+        if apikey != get_octoprint_auth(self.logger):
+            subprocess.check_call(["/bin/api-keygen.sh", apikey])
+            self.api_key_changed.emit()
+
+    @property
+    def data_privacy(self) -> bool:
+        return TomlConfig(defines.remoteConfig).load().get("data_privacy", True)
+
+    @data_privacy.setter
+    def data_privacy(self, enabled: bool) -> None:
+        remote_config = TomlConfig(defines.remoteConfig)
+        new_data = remote_config.load()
+        if enabled != new_data.get("data_privacy", True):
+            new_data["data_privacy"] = enabled
+            if not remote_config.save(data=new_data):
+                raise ConfigException("Data privacy change failed")
+            self.data_privacy_changed.emit()
+
+    @property
+    def help_page_url(self) -> str:
+        url = ""
+        if TomlConfig(defines.remoteConfig).load().get("data_privacy", True):
+            fw_version = re.sub(r"(\d*)\.(\d*)\.(\d*)-.*", r"\g<1>\g<2>\g<3>", distro.version())
+            url = url + f"/{self.id}/{fw_version}"
+
+        return url

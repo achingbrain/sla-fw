@@ -10,8 +10,6 @@
 
 from __future__ import annotations
 
-import re
-import subprocess
 from pathlib import Path
 from typing import List, Dict, TYPE_CHECKING, Any, Optional
 
@@ -34,9 +32,8 @@ from sl1fw.api.decorators import (
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.configs.stats import TomlConfigStats
-from sl1fw.configs.toml import TomlConfig
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
-from sl1fw.errors.exceptions import ReprintWithoutHistory, ConfigException
+from sl1fw.errors.exceptions import ReprintWithoutHistory
 from sl1fw.functions.files import get_save_path, get_all_supported_files
 from sl1fw.functions.system import shut_down
 from sl1fw.functions.wizards import (
@@ -97,6 +94,9 @@ class Printer0:
 
         self.printer.display.state_changed.connect(self._on_state_changed)
         self.printer.state_changed.connect(self._on_state_changed)
+        self.printer.http_digest_changed.connect(self._on_http_digest_changed)
+        self.printer.api_key_changed.connect(self._on_api_key_changed)
+        self.printer.data_privacy_changed.connect(self._on_data_privacy_changed)
         self.printer.exception_changed.connect(self._on_exception_changed)
         self.printer.hw.fans_changed.connect(self._on_fans_changed)
         self.printer.hw.mc_temps_changed.connect(self._on_temps_changed)
@@ -115,6 +115,15 @@ class Printer0:
 
     def _on_state_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
+
+    def _on_http_digest_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"http_digest": self.http_digest}, [])
+
+    def _on_api_key_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"api_key": self.api_key}, [])
+
+    def _on_data_privacy_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"data_privacy": self.data_privacy, "help_page_url": self.help_page_url}, [])
 
     def _on_exception_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"printer_exception": self.printer_exception}, [])
@@ -202,22 +211,13 @@ class Printer0:
     @auto_dbus
     @property
     def http_digest(self) -> bool:
-        return TomlConfig(defines.remoteConfig).load().get("http_digest", True)
+        return self.printer.http_digest
 
     @auto_dbus
     @http_digest.setter
     @last_error
     def http_digest(self, enabled: bool) -> None:
-        remote_config = TomlConfig(defines.remoteConfig)
-        new_data = remote_config.load()
-        new_data["http_digest"] = enabled
-        if not remote_config.save(data=new_data):
-            raise ConfigException("Octoprint API key change failed")
-        if enabled:
-            subprocess.check_call([defines.htDigestCommand, "enable"])
-        else:
-            subprocess.check_call([defines.htDigestCommand, "disable"])
-        self.PropertiesChanged(self.__INTERFACE__, {"http_digest": enabled}, [])
+        self.printer.http_digest = enabled
 
     @auto_dbus
     @last_error
@@ -549,15 +549,13 @@ class Printer0:
 
         :return: Current api key string
         """
-        return self.printer.get_actual_page().octoprintAuth
+        return self.printer.api_key
 
     @auto_dbus
     @api_key.setter
     @last_error
     def api_key(self, apikey: str) -> None:
-        if apikey != self.printer.get_actual_page().octoprintAuth:
-            subprocess.check_call(["/bin/api-keygen.sh", apikey])
-            self.PropertiesChanged(self.__INTERFACE__, {"api_key": apikey}, [])
+        self.printer.api_key = apikey
 
     @auto_dbus
     @property
@@ -1011,30 +1009,16 @@ class Printer0:
     @auto_dbus
     @property
     def data_privacy(self) -> bool:
-        return TomlConfig(defines.remoteConfig).load().get("data_privacy", True)
+        return self.printer.data_privacy
 
     @auto_dbus
     @data_privacy.setter
     @last_error
     def data_privacy(self, enabled: bool) -> None:
-        remote_config = TomlConfig(defines.remoteConfig)
-        new_data = remote_config.load()
-        if enabled != new_data.get("data_privacy", True):
-            new_data["data_privacy"] = enabled
-            if not remote_config.save(data=new_data):
-                raise ConfigException("Data privacy change failed")
-            self.PropertiesChanged(
-                self.__INTERFACE__, {"data_privacy": enabled, "help_page_url": self.help_page_url}, []
-            )
+        self.printer.data_privacy = enabled
 
     @auto_dbus
     @property
     @last_error
     def help_page_url(self) -> str:
-        url = ""
-        if TomlConfig(defines.remoteConfig).load().get("data_privacy", True):
-            printer_identifier = self.printer.id
-            fw_version = re.sub(r"(\d*)\.(\d*)\.(\d*)-.*", r"\g<1>\g<2>\g<3>", distro.version())
-            url = url + f"/{printer_identifier}/{fw_version}"
-
-        return url
+        return self.printer.help_page_url

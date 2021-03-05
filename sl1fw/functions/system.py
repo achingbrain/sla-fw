@@ -21,6 +21,7 @@ from sl1fw.errors.errors import (
     FailedUpdateChannelSet,
     FailedUpdateChannelGet,
 )
+from sl1fw.errors.exceptions import ConfigException
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.toml import TomlConfig
 from sl1fw.libHardware import Hardware
@@ -116,8 +117,9 @@ def get_octoprint_auth(logger: logging.Logger) -> str:
     try:
         with open(defines.octoprintAuthFile, "r") as f:
             return f.read()
-    except IOError:
+    except IOError as e:
         logger.exception("Octoprint auth file read failed")
+        raise ConfigException("Octoprint auth file read failed") from e
 
 
 def hw_all_off(hw: Hardware, screen: Screen):

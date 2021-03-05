@@ -21,12 +21,10 @@ import distro
 from pydbus import SystemBus
 from pydbus.generic import signal
 
-from sl1fw import defines
 from sl1fw.states.printer import PrinterState, Printer0State
 from sl1fw.api.exposure0 import Exposure0, Exposure0State
 from sl1fw.errors.exceptions import NotAvailableInState
 from sl1fw.api.decorators import auto_dbus, dbus_api, last_error, wrap_dict_data, wrap_exception, DBusObjectPath
-from sl1fw.configs.toml import TomlConfig
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
@@ -93,10 +91,18 @@ class Standard0:
         self._printer = weakref.proxy(printer)
         self.__info_mac = None
         self.__info_uuid = None
+        self._last_state = None
         self._printer.display.state_changed.connect(self._state_update)
         self._printer.state_changed.connect(self._state_update)
         self._printer.action_manager.exposure_change.connect(self._state_update)
-        self._last_state = None
+        self._printer.http_digest_changed.connect(self._on_http_digest_changed)
+        self._printer.api_key_changed.connect(self._on_api_key_changed)
+
+    def _on_http_digest_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"net_authorization": self.net_authorization}, [])
+
+    def _on_api_key_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"net_authorization": self.net_authorization}, [])
 
     def _state_update(self, *args):  # pylint: disable=unused-argument
         state = self._state
@@ -538,10 +544,10 @@ class Standard0:
                 "options": { "api_key": "samebigstring" }
             }
         """
-        if TomlConfig(defines.remoteConfig).load().get("htdigest", True):
-            data = {"type": "digest", "password": self._printer.get_actual_page().octoprintAuth}
+        if self._printer.http_digest:
+            data = {"type": "digest", "password": self._printer.api_key}
         else:
-            data = {"type": "api_key", "api_key": self._printer.get_actual_page().octoprintAuth}
+            data = {"type": "api_key", "api_key": self._printer.api_key}
         return wrap_dict_data(data)
 
     ## SYSTEM ##
