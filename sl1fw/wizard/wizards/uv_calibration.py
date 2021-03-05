@@ -135,6 +135,7 @@ class UVCalibrationWizard(Wizard):
                 ),
             ],
             hw,
+            exposure_image,
             runtime_config,
         )
         self._display_replaced = display_replaced

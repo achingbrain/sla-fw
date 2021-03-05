@@ -52,9 +52,15 @@ class RemoveDisplayFoilCheckGroup(CheckGroup):
 class UnboxingWizard(Wizard):
     # pylint: disable = too-many-arguments
     def __init__(
-        self, identifier, groups: Iterable[CheckGroup], hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig
+        self,
+        identifier,
+        groups: Iterable[CheckGroup],
+        hw: Hardware,
+        hw_config: HwConfig,
+        exposure_image: ExposureImage,
+        runtime_config: RuntimeConfig,
     ):
-        super().__init__(identifier, groups, hw, runtime_config, cancelable=False)
+        super().__init__(identifier, groups, hw, exposure_image, runtime_config, cancelable=False)
         self._hw_config = hw_config
 
     def run(self):
@@ -71,7 +77,7 @@ class UnboxingWizard(Wizard):
 
 
 class CompleteUnboxingWizard(UnboxingWizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.COMPLETE_UNBOXING,
             [
@@ -82,6 +88,7 @@ class CompleteUnboxingWizard(UnboxingWizard):
             ],
             hw,
             hw_config,
+            exposure_image,
             runtime_config,
         )
 
@@ -98,8 +105,10 @@ class CompleteUnboxingWizard(UnboxingWizard):
 
 
 class KitUnboxingWizard(UnboxingWizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig):
-        super().__init__(WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup()], hw, hw_config, runtime_config)
+    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+        super().__init__(
+            WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup()], hw, hw_config, exposure_image, runtime_config
+        )
 
     def run(self):
         try:

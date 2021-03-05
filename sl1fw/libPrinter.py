@@ -205,11 +205,11 @@ class Printer:
             elif self.hwConfig.showUnboxing:
                 if self.hw.isKit:
                     unboxing = self.action_manager.start_wizard(
-                        KitUnboxingWizard(self.hw, self.hwConfig, self.runtime_config)
+                        KitUnboxingWizard(self.hw, self.hwConfig, self.exposure_image, self.runtime_config)
                     )
                 else:
                     unboxing = self.action_manager.start_wizard(
-                        CompleteUnboxingWizard(self.hw, self.hwConfig, self.runtime_config)
+                        CompleteUnboxingWizard(self.hw, self.hwConfig, self.exposure_image, self.runtime_config)
                     )
                 self.logger.info("Running unboxing wizard")
                 unboxing.join()

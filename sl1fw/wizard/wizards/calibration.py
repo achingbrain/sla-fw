@@ -61,7 +61,7 @@ class CalibrationFinishCheckGroup(CheckGroup):
 
 
 class CalibrationWizard(Wizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.CALIBRATION,
             [
@@ -71,6 +71,7 @@ class CalibrationWizard(Wizard):
                 CalibrationFinishCheckGroup(hw, hw_config),
             ],
             hw,
+            exposure_image,
             runtime_config,
         )
 

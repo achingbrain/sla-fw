@@ -21,7 +21,8 @@ from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.errors.errors import WizardNotCancelable, FailedToSerializeWizardData, FailedToSaveWizardData
 from sl1fw.errors.exceptions import PrinterException
 from sl1fw.errors.warnings import PrinterWarning
-from sl1fw.functions.system import FactoryMountedRW
+from sl1fw.functions.system import FactoryMountedRW, hw_all_off
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardState, WizardCheckState, WizardId
 from sl1fw.wizard.actions import UserActionBroker, PushState
@@ -37,12 +38,14 @@ class Wizard(Thread, UserActionBroker):
         identifier: WizardId,
         groups: Iterable[CheckGroup],
         hw: Hardware,
+        exposure_image: ExposureImage,
         runtime_config: RuntimeConfig,
         cancelable=True,
     ):
         self._logger = logging.getLogger(__name__)
         Thread.__init__(self)
         UserActionBroker.__init__(self, hw)
+        self._exposure_image = exposure_image
         self.__state = WizardState.INIT
         self.__cancelable = cancelable
         self.__groups = groups
@@ -146,13 +149,14 @@ class Wizard(Thread, UserActionBroker):
         except CancelledError:
             self._logger.debug("Wizard group canceled successfully")
             self.state = WizardState.CANCELED
+            hw_all_off(self._hw, self._exposure_image)
         except Exception:
             self.state = WizardState.FAILED
-            self._hw.motorsRelease()
+            hw_all_off(self._hw, self._exposure_image)
             self._store_data()
             raise
 
-        self._hw.motorsRelease()
+        hw_all_off(self._hw, self._exposure_image)
         if self.state not in [WizardState.CANCELED, WizardState.FAILED]:
             self.state = WizardState.DONE
         self._logger.info("Wizard %s finished with state %s", type(self).__name__, self.state)
@@ -175,6 +179,7 @@ class Wizard(Thread, UserActionBroker):
                 break
             except (CancelledError, PrinterException):
                 self.state = WizardState.STOPPED
+                hw_all_off(self._hw, self._exposure_image)
                 self._logger.exception("Wizard group stopped by exception")
                 if not self.unstop_result.get():
                     raise
@@ -262,7 +267,7 @@ class Wizard(Thread, UserActionBroker):
         self._check_cover_closed(self._hw.isCoverClosed())
 
     def _check_cover_closed(self, closed: bool):
-        self._logger.debug("Checking cover closed, open: %s", closed)
+        self._logger.debug("Checking cover closed: %s", closed)
         if self.dangerous_check_running and self._hw.hwConfig.coverCheck and not closed and not self._close_cover_state:
             self._logger.warning("Cover open and dangerous check running, pushing close cover state")
             self._close_cover_state = PushState(WizardState.CLOSE_COVER)

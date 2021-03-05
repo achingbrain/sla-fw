@@ -99,13 +99,22 @@ class PackStage2(CheckGroup):
 
 
 class FactoryResetWizard(Wizard):
+    # pylint: disable=too-many-arguments
     def __init__(
-        self, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig, erase_projects: bool = False,
+        self,
+        hw: Hardware,
+        hw_config: HwConfig,
+        exposure_image: ExposureImage,
+        runtime_config: RuntimeConfig,
+        erase_projects: bool = False,
     ):
         super().__init__(
-            WizardId.FACTORY_RESET, [ResetSettingsGroup(hw, hw_config, True, erase_projects)], hw, runtime_config,
+            WizardId.FACTORY_RESET,
+            [ResetSettingsGroup(hw, hw_config, True, erase_projects)],
+            hw,
+            exposure_image,
+            runtime_config,
         )
-        self._hw = hw
 
     def run(self):
         super().run()
@@ -113,7 +122,7 @@ class FactoryResetWizard(Wizard):
 
 
 class PackingWizard(Wizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         groups = [
             SendPrinterDataGroup(hw, hw_config),
             ResetSettingsGroup(hw, hw_config, disable_unboxing=False, erase_projects=False, hard_errors=True),
@@ -124,8 +133,7 @@ class PackingWizard(Wizard):
             groups.append(PackStage1(hw, hw_config, runtime_config, True))
             groups.append(PackStage2(hw, hw_config))
 
-        super().__init__(WizardId.FACTORY_RESET, groups, hw, runtime_config)
-        self._hw = hw
+        super().__init__(WizardId.FACTORY_RESET, groups, hw, exposure_image, runtime_config)
 
     def run(self):
         super().run()

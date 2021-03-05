@@ -87,6 +87,7 @@ class SelfTestWizard(Wizard):
                 SelfTestPart3CheckGroup(hw, hw_config),
             ],
             hw,
+            exposure_image,
             runtime_config,
         )
         self._exposure_image = exposure_image

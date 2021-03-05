@@ -5,7 +5,7 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from asyncio import CancelledError
+from asyncio import CancelledError, sleep
 from enum import unique, Enum
 from typing import Optional, List, Iterable, Dict, Any
 
@@ -156,6 +156,7 @@ class BaseCheck(ABC):
         self._logger.info("Locked resources: %s", type(self).__name__)
 
         try:
+            await sleep(0.1)  # This allows to break asyncio program in case the wizard is canceled
             await self.run_wrapper(actions)
         except CancelledError:
             self._logger.warning("Check canceled")

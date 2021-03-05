@@ -26,7 +26,11 @@ class DisplayTestCheckGroup(CheckGroup):
 class DisplayTestWizard(Wizard):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
-            WizardId.DISPLAY, [DisplayTestCheckGroup(hw, exposure_image, runtime_config)], hw, runtime_config
+            WizardId.DISPLAY,
+            [DisplayTestCheckGroup(hw, exposure_image, runtime_config)],
+            hw,
+            exposure_image,
+            runtime_config,
         )
         self._exposure_image = exposure_image
 

@@ -46,7 +46,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         group.checks = []
         # group.setup.return_value = None
 
-        wizard = Wizard(WizardId.SELF_TEST, [group], Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [group], Mock(), Mock(), RuntimeConfig())
         self.assertEqual(WizardState.INIT, wizard.state)
         wizard.start()
         wizard.join()
@@ -70,7 +70,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         task_body = AsyncMock()
         task_body.side_effect = exception
         check.async_task_run = task_body
-        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), Mock(), RuntimeConfig())
         wizard.start()
         wizard.join()
 
@@ -88,7 +88,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
                 super().__init__(WizardCheckType.UNKNOWN, Mock(), [])
 
         check = Test()
-        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), Mock(), RuntimeConfig())
         wizard.start()
         wizard.join()
 
@@ -180,7 +180,9 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_unboxing_complete(self):
-        wizard = CompleteUnboxingWizard(Hardware(), HwConfig(defines.hwConfigPath, is_master=True), RuntimeConfig())
+        wizard = CompleteUnboxingWizard(
+            Hardware(), HwConfig(defines.hwConfigPath, is_master=True), Mock(), RuntimeConfig()
+        )
 
         def on_state_changed():
             if wizard.state == WizardState.REMOVE_SAFETY_STICKER:
@@ -196,7 +198,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_unboxing_kit(self):
-        wizard = KitUnboxingWizard(Hardware(), HwConfig(defines.hwConfigPath, is_master=True), RuntimeConfig())
+        wizard = KitUnboxingWizard(Hardware(), HwConfig(defines.hwConfigPath, is_master=True), Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
@@ -206,7 +208,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_calibration(self):
-        wizard = CalibrationWizard(Hardware(), HwConfig(), RuntimeConfig())
+        wizard = CalibrationWizard(Hardware(), HwConfig(), Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK:
@@ -283,25 +285,25 @@ class TestReset(TestWizards):
     def test_packing_complete(self):
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST complete", False)
-        self._run_wizard(PackingWizard(self.hw, self.hw_config, self.runtime_config))
+        self._run_wizard(PackingWizard(self.hw, self.hw_config, Mock(), self.runtime_config))
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_packing_kit(self):
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST kit", True)
-        self._run_wizard(PackingWizard(self.hw, self.hw_config, self.runtime_config))
+        self._run_wizard(PackingWizard(self.hw, self.hw_config, Mock(), self.runtime_config))
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_factory_reset_complete(self):
         self.runtime_config.factory_mode = False
         self.hw.boardData = ("TEST kit", False)
-        self._run_wizard(FactoryResetWizard(self.hw, self.hw_config, self.runtime_config, True))
+        self._run_wizard(FactoryResetWizard(self.hw, self.hw_config, Mock(), self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def test_factory_reset_kit(self):
         self.runtime_config.factory_mode = False
         self.hw.boardData = ("TEST kit", True)
-        self._run_wizard(FactoryResetWizard(self.hw, self.hw_config, self.runtime_config, True))
+        self._run_wizard(FactoryResetWizard(self.hw, self.hw_config, Mock(), self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def _check_factory_reset(self, unboxing: bool, factory_mode: bool):
