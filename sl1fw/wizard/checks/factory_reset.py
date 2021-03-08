@@ -283,3 +283,11 @@ class DisableAccess(SyncCheck):
         with FactoryMountedRW():
             defines.ssh_service_enabled.unlink(missing_ok=True)
             defines.serial_service_enabled.unlink(missing_ok=True)
+
+
+class ResetTouchUI(ResetCheck):
+    def __init__(self):
+        super().__init__(WizardCheckType.RESET_TOUCH_UI)
+
+    def reset_task_run(self, actions: UserActionBroker):
+        defines.touch_ui_config.unlink(missing_ok=True)

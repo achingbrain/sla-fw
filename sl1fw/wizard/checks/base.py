@@ -68,6 +68,7 @@ class WizardCheckType(Enum):
     UV_CALIBRATION_APPLY_RESULTS = 65
     UV_METER_REMOVED = 66
     TILT_LEVEL = 67
+    RESET_TOUCH_UI = 68
 
 
 class BaseCheck(ABC):

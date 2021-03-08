@@ -28,6 +28,7 @@ from sl1fw.wizard.checks.factory_reset import (
     InitiatePackingMoves,
     FinishPackingMoves,
     DisableAccess,
+    ResetTouchUI,
 )
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration
@@ -57,6 +58,7 @@ class ResetSettingsGroup(CheckGroup):
             EraseMCEeprom(hw, hard_errors=hard_errors),
             ResetHomingProfiles(hw, hard_errors=hard_errors),
             DisableAccess(),
+            ResetTouchUI(),
         ]
         if erase_projects:
             checks.append(EraseProjects(hard_errors=hard_errors))
