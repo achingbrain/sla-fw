@@ -34,7 +34,6 @@ import psutil
 from PySignal import Signal
 
 from sl1fw import defines, test_runtime
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.errors.errors import (
@@ -118,7 +117,7 @@ class CoverCheck(ExposureCheckRunner):
         super().__init__(ExposureCheck.COVER, *args, **kwargs)
 
     def run(self):
-        if not self.expo.hw_config.coverCheck:
+        if not self.expo.hw.config.coverCheck:
             self.logger.info("Disabling cover check")
             raise ExposureCheckDisabled()
 
@@ -220,7 +219,7 @@ class ResinCheck(ExposureCheckRunner):
         super().__init__(ExposureCheck.RESIN, *args, **kwargs)
 
     def run(self):
-        if not self.expo.hw_config.resinSensor:
+        if not self.expo.hw.config.resinSensor:
             raise ExposureCheckDisabled()
 
         volume_ml = self.expo.hw.getResinVolume()
@@ -257,7 +256,7 @@ class StartPositionsCheck(ExposureCheckRunner):
 
     def run(self):
         self.logger.info("Prepare tank and resin")
-        if self.expo.hw_config.tilt:
+        if self.expo.hw.config.tilt:
             self.logger.info("Tilting down")
             self.expo.hw.tiltDownWait()
 
@@ -283,18 +282,17 @@ class StirringCheck(ExposureCheckRunner):
         super().__init__(ExposureCheck.STIRRING, *args, **kwargs)
 
     def run(self):
-        if not self.expo.hw_config.tilt:
+        if not self.expo.hw.config.tilt:
             raise ExposureCheckDisabled()
         self.expo.hw.stirResin()
 
 
 class Exposure:
     def __init__(
-        self, job_id: int, hw_config: HwConfig, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig,
+        self, job_id: int, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig,
     ):
         self.change = Signal()
         self.logger = logging.getLogger(__name__)
-        self.hw_config = hw_config
         self.runtime_config = runtime_config
         self.project: Optional[Project] = None
         self.hw = hw
@@ -326,10 +324,10 @@ class Exposure:
         self.expoThread = Thread(target=self.run)
 
     def read_project(self, project_file: str):
-        check_ready_to_print(self.hw_config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
+        check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
         try:
             # Read project
-            self.project = Project(self.hw_config, self.hw, project_file)
+            self.project = Project(self.hw, project_file)
             self.state = ExposureState.CONFIRM
             # Signal project change on its parameter change. This lets Exposure0 emit
             # property changed on properties bound to project parameters.
@@ -409,8 +407,8 @@ class Exposure:
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
 
         self.exposure_image.blank_screen()
-        self.hw.uvLedPwm = self.hw_config.uvPwm
-        if not self.hw_config.blinkExposure:
+        self.hw.uvLedPwm = self.hw.config.uvPwm
+        if not self.hw.config.blinkExposure:
             self.hw.uvLed(True)
 
     @property
@@ -469,7 +467,7 @@ class Exposure:
         return -1
 
     def write_last_exposure(self):
-        if self.hw_config.autoOff and not self.canceled:
+        if self.hw.config.autoOff and not self.canceled:
             self.save()
 
     def save(self):
@@ -518,35 +516,35 @@ class Exposure:
         self.state = ExposureState.DONE
 
     def _do_frame(self, times_ms, prev_white_pixels, was_stirring, second):
-        position_steps = self.hw_config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw_config.calibTowerOffset
+        position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
         slow_move = prev_white_pixels > self.hw.white_pixels_threshold
 
-        if self.hw_config.tilt:
-            if self.hw_config.layerTowerHop and slow_move:
-                self.hw.towerMoveAbsoluteWait(position_steps + self.hw_config.layerTowerHop)
+        if self.hw.config.tilt:
+            if self.hw.config.layerTowerHop and slow_move:
+                self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
                 self.hw.tiltLayerUpWait(slow_move)
                 self.hw.towerMoveAbsoluteWait(position_steps)
             else:
                 self.hw.towerMoveAbsoluteWait(position_steps)
                 self.hw.tiltLayerUpWait(slow_move)
         else:
-            self.hw.towerMoveAbsoluteWait(position_steps + self.hw_config.layerTowerHop)
+            self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
             self.hw.towerMoveAbsoluteWait(position_steps)
         self.hw.setTowerCurrent(defines.towerHoldCurrent)
 
         white_pixels = self.exposure_image.sync_preloader()
         self.exposure_image.screenshot_rename(second)
 
-        if self.hw_config.delayBeforeExposure:
-            self.logger.info("delayBeforeExposure [s]: %f", self.hw_config.delayBeforeExposure / 10.0)
-            sleep(self.hw_config.delayBeforeExposure / 10.0)
+        if self.hw.config.delayBeforeExposure:
+            self.logger.info("delayBeforeExposure [s]: %f", self.hw.config.delayBeforeExposure / 10.0)
+            sleep(self.hw.config.delayBeforeExposure / 10.0)
 
         if was_stirring:
-            self.logger.info("stirringDelay [s]: %f", self.hw_config.stirringDelay / 10.0)
-            sleep(self.hw_config.stirringDelay / 10.0)
+            self.logger.info("stirringDelay [s]: %f", self.hw.config.stirringDelay / 10.0)
+            sleep(self.hw.config.stirringDelay / 10.0)
 
         # FIXME WTF?
-        if self.hw_config.tilt:
+        if self.hw.config.tilt:
             self.hw.getMcTemperatures()
 
         self.exposure_image.blit_image(second)
@@ -558,7 +556,7 @@ class Exposure:
         i = 0
         for time_ms in times_ms:
             uv_on_remain_ms = time_ms
-            if self.hw_config.blinkExposure:
+            if self.hw.config.blinkExposure:
                 uv_is_on = True
                 self.logger.debug("uv on")
                 self.hw.uvLed(True, time_ms)
@@ -577,11 +575,11 @@ class Exposure:
         temperatures = self.hw.getMcTemperatures()
         self.logger.info("UV temperature [C]: %.1f  Ambient temperature [C]: %.1f", temperatures[0], temperatures[1])
 
-        if self.hw_config.delayAfterExposure:
-            self.logger.info("delayAfterExposure [s]: %f", self.hw_config.delayAfterExposure / 10.0)
-            sleep(self.hw_config.delayAfterExposure / 10.0)
+        if self.hw.config.delayAfterExposure:
+            self.logger.info("delayAfterExposure [s]: %f", self.hw.config.delayAfterExposure / 10.0)
+            sleep(self.hw.config.delayAfterExposure / 10.0)
 
-        if self.hw_config.tilt:
+        if self.hw.config.tilt:
             slow_move = white_pixels > self.hw.white_pixels_threshold
             if slow_move:
                 self.slow_layers_done += 1
@@ -592,7 +590,7 @@ class Exposure:
 
     def upAndDown(self):
         self.hw.powerLed("warn")
-        if self.hw_config.blinkExposure and self.hw_config.upAndDownUvOn:
+        if self.hw.config.blinkExposure and self.hw.config.upAndDownUvOn:
             self.hw.uvLed(True)
 
         self.state = ExposureState.GOING_UP
@@ -602,22 +600,22 @@ class Exposure:
             sleep(0.25)
 
         self.state = ExposureState.WAITING
-        for sec in range(self.hw_config.upAndDownWait):
-            cnt = self.hw_config.upAndDownWait - sec
+        for sec in range(self.hw.config.upAndDownWait):
+            cnt = self.hw.config.upAndDownWait - sec
             self.remaining_wait_sec = cnt
             sleep(1)
-            if self.hw_config.coverCheck and not self.hw.isCoverClosed():
+            if self.hw.config.coverCheck and not self.hw.isCoverClosed():
                 self.state = ExposureState.COVER_OPEN
                 while not self.hw.isCoverClosed():
                     sleep(1)
                 self.state = ExposureState.WAITING
 
-        if self.hw_config.tilt:
+        if self.hw.config.tilt:
             self.state = ExposureState.STIRRING
             self.hw.stirResin()
 
         self.state = ExposureState.GOING_DOWN
-        position = self.hw_config.upAndDownZoffset
+        position = self.hw.config.upAndDownZoffset
         if position < 0:
             position = 0
         self.hw.towerMoveAbsolute(position)
@@ -768,19 +766,19 @@ class Exposure:
             if command == "updown":
                 self.upAndDown()
                 was_stirring = True
-                exposure_compensation = self.hw_config.upAndDownExpoComp * 100
+                exposure_compensation = self.hw.config.upAndDownExpoComp * 100
 
             if command == "exit":
                 break
 
             if command == "pause":
-                if not self.hw_config.blinkExposure:
+                if not self.hw.config.blinkExposure:
                     self.hw.uvLed(False)
 
                 if self.doWait(False) == "exit":
                     break
 
-                if not self.hw_config.blinkExposure:
+                if not self.hw.config.blinkExposure:
                     self.hw.uvLed(True)
 
             if self.resin_volume:
@@ -790,7 +788,7 @@ class Exposure:
 
             if command == "feedme" or self.low_resin:
                 self.hw.powerLed("warn")
-                if self.hw_config.tilt:
+                if self.hw.config.tilt:
                     self.hw.tiltLayerUpWait()
                 self.state = ExposureState.FEED_ME
                 self.doWait(self.low_resin)
@@ -799,7 +797,7 @@ class Exposure:
                 self._wait_cover_close()
 
                 # Stir resin before resuming print
-                if self.hw_config.tilt:
+                if self.hw.config.tilt:
                     self.state = ExposureState.STIRRING
                     self.hw.setTiltProfile("homingFast")
                     self.hw.tiltDownWait()
@@ -811,13 +809,13 @@ class Exposure:
                 self.state = ExposureState.PRINTING
 
             if (
-                self.hw_config.upAndDownEveryLayer
+                self.hw.config.upAndDownEveryLayer
                 and self.actual_layer
-                and not self.actual_layer % self.hw_config.upAndDownEveryLayer
+                and not self.actual_layer % self.hw.config.upAndDownEveryLayer
             ):
                 self.doUpAndDown()
                 was_stirring = True
-                exposure_compensation = self.hw_config.upAndDownExpoComp * 100
+                exposure_compensation = self.hw.config.upAndDownExpoComp * 100
 
             layer = project.layers[self.actual_layer]
 
@@ -877,9 +875,9 @@ class Exposure:
 
             seconds = (datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds()
 
-            if self.hw_config.trigger:
+            if self.hw.config.trigger:
                 self.hw.cameraLed(True)
-                sleep(self.hw_config.trigger / 10.0)
+                sleep(self.hw.config.trigger / 10.0)
                 self.hw.cameraLed(False)
 
             self.actual_layer += 1
@@ -911,7 +909,7 @@ class Exposure:
             statistics["started_projects"],
             project_hash[:-1],
             is_finished,
-            self.hw_config.autoOff,
+            self.hw.config.autoOff,
             self.actual_layer,
             project.total_layers,
             seconds,
@@ -931,7 +929,7 @@ class Exposure:
         self.write_last_exposure()
 
         if not self.canceled:
-            if self.hw_config.autoOff:
+            if self.hw.config.autoOff:
                 shut_down(self.hw)
 
         self.logger.debug("Exposure ended")
@@ -942,7 +940,7 @@ class Exposure:
 
         :return: True if was waiting false otherwise
         """
-        if not self.hw_config.coverCheck:
+        if not self.hw.config.coverCheck:
             return False
 
         if self.hw.isCoverClosed():

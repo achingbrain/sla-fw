@@ -4,7 +4,6 @@
 
 from typing import Iterable
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
@@ -33,11 +32,11 @@ from sl1fw.wizard.wizard import Wizard
 
 
 class UVCalibrationPrepare(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
-                TowerHomeTest(hw, hw_config),
+                TowerHomeTest(hw),
                 TiltLevelTest(hw),
                 DisplayTest(hw, exposure_image, runtime_config),
                 SystemInfoTest(hw),
@@ -49,13 +48,13 @@ class UVCalibrationPrepare(CheckGroup):
 
 
 class UVCalibrationPlaceUVMeter(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
                 CheckUVMeter(hw, uv_meter),
-                UVWarmupCheck(hw, hw_config, exposure_image, uv_meter),
-                CheckUVMeterPlacement(hw, hw_config, exposure_image, uv_meter),
+                UVWarmupCheck(hw, exposure_image, uv_meter),
+                CheckUVMeterPlacement(hw, exposure_image, uv_meter),
             ],
         )
 
@@ -67,7 +66,6 @@ class UVCalibrationCalibrate(CheckGroup):
     def __init__(
         self,
         hw: Hardware,
-        hw_config: HwConfig,
         exposure_image: ExposureImage,
         uv_meter: UvLedMeterMulti,
         replacement: bool,
@@ -76,8 +74,8 @@ class UVCalibrationCalibrate(CheckGroup):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
-                UVCalibrateCenter(hw, hw_config, exposure_image, uv_meter, replacement, result),
-                UVCalibrateEdge(hw, hw_config, exposure_image, uv_meter, replacement, result),
+                UVCalibrateCenter(hw, exposure_image, uv_meter, replacement, result),
+                UVCalibrateEdge(hw, exposure_image, uv_meter, replacement, result),
             ],
         )
 
@@ -90,7 +88,6 @@ class UVCalibrationFinish(CheckGroup):
     def __init__(
         self,
         hw: Hardware,
-        hw_config: HwConfig,
         runtime_config: RuntimeConfig,
         result: UVCalibrationResult,
         display_replaced: bool,
@@ -101,7 +98,7 @@ class UVCalibrationFinish(CheckGroup):
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
                 UVRemoveCalibrator(hw, uv_meter),
-                UVCalibrateApply(hw, hw_config, runtime_config, result, display_replaced, led_module_replaced),
+                UVCalibrateApply(hw, runtime_config, result, display_replaced, led_module_replaced),
             ],
         )
 
@@ -114,7 +111,6 @@ class UVCalibrationWizard(Wizard):
     def __init__(
         self,
         hw: Hardware,
-        hw_config: HwConfig,
         exposure_image: ExposureImage,
         runtime_config: RuntimeConfig,
         display_replaced: bool,
@@ -125,13 +121,13 @@ class UVCalibrationWizard(Wizard):
         super().__init__(
             WizardId.UV_CALIBRATION,
             [
-                UVCalibrationPrepare(hw, hw_config, exposure_image, runtime_config),
-                UVCalibrationPlaceUVMeter(hw, hw_config, exposure_image, self._uv_meter),
+                UVCalibrationPrepare(hw, exposure_image, runtime_config),
+                UVCalibrationPlaceUVMeter(hw, exposure_image, self._uv_meter),
                 UVCalibrationCalibrate(
-                    hw, hw_config, exposure_image, self._uv_meter, display_replaced or led_module_replaced, self._result
+                    hw, exposure_image, self._uv_meter, display_replaced or led_module_replaced, self._result
                 ),
                 UVCalibrationFinish(
-                    hw, hw_config, runtime_config, self._result, display_replaced, led_module_replaced, self._uv_meter
+                    hw, runtime_config, self._result, display_replaced, led_module_replaced, self._uv_meter
                 ),
             ],
             hw,

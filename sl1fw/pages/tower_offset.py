@@ -22,7 +22,7 @@ class PageTowerOffset(Page):
 
 
     def show(self):
-        self.tmpTowerOffset = self.display.hwConfig.calibTowerOffset
+        self.tmpTowerOffset = self.display.hw.config.calibTowerOffset
         self.items["value"] = self._strOffset(self.tmpTowerOffset)
         super(PageTowerOffset, self).show()
     #enddef
@@ -59,9 +59,9 @@ class PageTowerOffset(Page):
 
 
     def okButtonRelease(self):
-        self.display.hwConfig.calibTowerOffset = self.tmpTowerOffset
+        self.display.hw.config.calibTowerOffset = self.tmpTowerOffset
         try:
-            self.display.hwConfig.write()
+            self.display.hw.config.write()
         except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)

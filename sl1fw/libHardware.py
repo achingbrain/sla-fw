@@ -96,9 +96,9 @@ class Fan:
 
 
 class Hardware:
-    def __init__(self, hwConfig: HwConfig):
+    def __init__(self, hw_config: HwConfig):
         self.logger = logging.getLogger(__name__)
-        self.hwConfig = hwConfig
+        self.config = hw_config
 
         self._tiltSynced = False
         self._towerSynced = False
@@ -155,9 +155,9 @@ class Hardware:
         }
 
         self.fans = {
-            0: Fan(N_("UV LED fan"), defines.fanMaxRPM[0], self.hwConfig.fan1Rpm, self.hwConfig.fan1Enabled),
-            1: Fan(N_("blower fan"), defines.fanMaxRPM[1], self.hwConfig.fan2Rpm, self.hwConfig.fan2Enabled),
-            2: Fan(N_("rear fan"), defines.fanMaxRPM[2], self.hwConfig.fan3Rpm, self.hwConfig.fan3Enabled),
+            0: Fan(N_("UV LED fan"), defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled),
+            1: Fan(N_("blower fan"), defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled),
+            2: Fan(N_("rear fan"), defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled),
         }
 
         self._sensorsNames = {
@@ -172,13 +172,13 @@ class Hardware:
         self._tiltEnd = 6016  # top deadlock
         self._tiltMax = self._tiltEnd
         self._tiltCalibStart = 4352
-        self._towerMin = -self.hwConfig.calcMicroSteps(155)
-        self._towerAboveSurface = -self.hwConfig.calcMicroSteps(145)
-        self._towerMax = self.hwConfig.calcMicroSteps(310)
-        self._towerEnd = self.hwConfig.calcMicroSteps(150)
-        self._towerCalibPos = self.hwConfig.calcMicroSteps(1)
-        self._towerResinStartPos = self.hwConfig.calcMicroSteps(36)
-        self._towerResinEndPos = self.hwConfig.calcMicroSteps(1)
+        self._towerMin = -self.config.calcMicroSteps(155)
+        self._towerAboveSurface = -self.config.calcMicroSteps(145)
+        self._towerMax = self.config.calcMicroSteps(310)
+        self._towerEnd = self.config.calcMicroSteps(150)
+        self._towerCalibPos = self.config.calcMicroSteps(1)
+        self._towerResinStartPos = self.config.calcMicroSteps(36)
+        self._towerResinEndPos = self.config.calcMicroSteps(1)
 
         self.mcc = MotionController(defines.motionControlDevice)
         self.boardData = self.readCpuSerial()
@@ -226,12 +226,12 @@ class Hardware:
 
     def connectMC(self, force_flash=False):
         if force_flash:
-            state = self.mcc.flash(self.hwConfig.MCBoardVersion)
+            state = self.mcc.flash(self.config.MCBoardVersion)
             if state != MotConComState.OK:
                 self.logger.error("Motion controller flash error: %s", state)
                 return state
 
-        state = self.mcc.connect(self.hwConfig.MCversionCheck)
+        state = self.mcc.connect(self.config.MCversionCheck)
         if state != MotConComState.OK:
             self.logger.error("Motion controller connect error: %s", state)
             return state
@@ -262,8 +262,8 @@ class Hardware:
 
     def initDefaults(self):
         self.motorsRelease()
-        self.uvLedPwm = self.hwConfig.uvPwm
-        self.powerLedPwm = self.hwConfig.pwrLedPwm
+        self.uvLedPwm = self.config.uvPwm
+        self.powerLedPwm = self.config.pwrLedPwm
         self.resinSensor(False)
         self.stopFans()
 
@@ -304,7 +304,7 @@ class Hardware:
 
     @property
     def white_pixels_threshold(self) -> int:
-        return self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.hwConfig.limit4fast // 100
+        return self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 
     @property
     def mcFwVersion(self):
@@ -520,7 +520,7 @@ class Hardware:
         return samplesList
 
     def beep(self, frequency, lenght):
-        if not self.hwConfig.mute:
+        if not self.config.mute:
             self.mcc.do("!beep", frequency, int(lenght * 1000))
 
     def beepEcho(self) -> None:
@@ -657,7 +657,7 @@ class Hardware:
         """
         Check whenever the cover is closed or cover check is disabled
         """
-        return self.isCoverClosed(check_for_updates=check_for_updates) or not self.hwConfig.coverCheck
+        return self.isCoverClosed(check_for_updates=check_for_updates) or not self.config.coverCheck
 
     def getPowerswitchState(self):
         return self.checkState("button")
@@ -776,7 +776,7 @@ class Hardware:
         """ return tower status. False if tower is still homing or error occured """
         if not self._towerSynced:
             if self.towerHomingStatus == 0:
-                self.setTowerPosition(self.hwConfig.towerHeight)
+                self.setTowerPosition(self.config.towerHeight)
                 self._towerSynced = True
             else:
                 self._towerSynced = False
@@ -792,7 +792,7 @@ class Hardware:
         while True:
             homingStatus = self.towerHomingStatus
             if homingStatus == 0:
-                self.setTowerPosition(self.hwConfig.towerHeight)
+                self.setTowerPosition(self.config.towerHeight)
                 self._towerSynced = True
                 return True
 
@@ -818,7 +818,7 @@ class Hardware:
         self.mcc.do("!twma", position)
 
     def towerToPosition(self, mm):
-        self.towerMoveAbsolute(self.hwConfig.calcMicroSteps(mm))
+        self.towerMoveAbsolute(self.config.calcMicroSteps(mm))
 
     # TODO use !brk instead. Motor might stall at !mot 0
     def towerStop(self):
@@ -864,13 +864,13 @@ class Hardware:
         return self._towerPositionRetries == 0
 
     def towerToZero(self):
-        self.towerMoveAbsolute(self.hwConfig.calibTowerOffset)
+        self.towerMoveAbsolute(self.config.calibTowerOffset)
 
     def isTowerOnZero(self):
         return self.isTowerOnPosition()
 
     def towerToTop(self):
-        self.towerMoveAbsolute(self.hwConfig.towerHeight)
+        self.towerMoveAbsolute(self.config.towerHeight)
 
     def isTowerOnTop(self):
         return self.isTowerOnPosition()
@@ -905,7 +905,7 @@ class Hardware:
     @safe_call("ERROR", Exception)
     def getTowerPosition(self):
         steps = self.getTowerPositionMicroSteps()
-        return "%.3f mm" % self.hwConfig.calcMM(int(steps))
+        return "%.3f mm" % self.config.calcMM(int(steps))
 
     def getTowerPositionMicroSteps(self):
         steps = self.mcc.doGetInt("?twpo")
@@ -959,14 +959,14 @@ class Hardware:
         if position == self._towerResinEndPos:
             return 0
 
-        if self.hwConfig.vatRevision == 1:
+        if self.config.vatRevision == 1:
             self.logger.debug("Using PLASTIC vat values")
             resin_constant = (14.65, 14.85)
         else:
             self.logger.debug("Using METALIC vat values")
             resin_constant = (13.7, 14.0)
 
-        posMM = self.hwConfig.calcMM(position)
+        posMM = self.config.calcMM(position)
         if posMM < 10.0:
             volume = posMM * resin_constant[0]
         else:
@@ -1082,7 +1082,7 @@ class Hardware:
             sleep(0.1)
 
     def tiltUp(self):
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight)
+        self.tiltMoveAbsolute(self.config.tiltHeight)
 
     def isTiltUp(self):
         return self.isTiltOnPosition()
@@ -1113,7 +1113,7 @@ class Hardware:
         return stopped
 
     def tiltLayerDownWait(self, slowMove=False):
-        tiltProfile = self.hwConfig.tuneTilt[0] if slowMove else self.hwConfig.tuneTilt[1]
+        tiltProfile = self.config.tuneTilt[0] if slowMove else self.config.tuneTilt[1]
 
         # initial release movement with optional sleep at the end
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
@@ -1161,10 +1161,10 @@ class Hardware:
         return self.tiltSyncWait(retries=1)
 
     def tiltLayerUpWait(self, slowMove=False):
-        tiltProfile = self.hwConfig.tuneTilt[2] if slowMove else self.hwConfig.tuneTilt[3]
+        tiltProfile = self.config.tuneTilt[2] if slowMove else self.config.tuneTilt[3]
 
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
-        self.tiltMoveAbsolute(self.hwConfig.tiltHeight - tiltProfile[1])
+        self.tiltMoveAbsolute(self.config.tiltHeight - tiltProfile[1])
         while self.isTiltMoving():
             sleep(0.1)
 
@@ -1172,7 +1172,7 @@ class Hardware:
         self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
 
         # finish move may be also splited in multiple sections
-        movePerCycle = int((self.hwConfig.tiltHeight - self.getTiltPositionMicroSteps()) / tiltProfile[4])
+        movePerCycle = int((self.config.tiltHeight - self.getTiltPositionMicroSteps()) / tiltProfile[4])
         for _ in range(tiltProfile[4]):
             self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() + movePerCycle)
             while self.isTiltMoving():
@@ -1213,7 +1213,7 @@ class Hardware:
         self.mcc.do("!tigf", goUp)
 
     def stirResin(self):
-        for _ in range(self.hwConfig.stirringMoves):
+        for _ in range(self.config.stirringMoves):
             self.setTiltProfile("homingFast")
             # do not verify end positions
             self.tiltUp()
@@ -1364,7 +1364,7 @@ class Hardware:
         """
         # TODO: Raise exception if tower not synced
         microsteps = self.getTowerPositionMicroSteps()
-        return self.hwConfig.tower_microsteps_to_nm(microsteps)
+        return self.config.tower_microsteps_to_nm(microsteps)
 
     @tower_position_nm.setter
     def tower_position_nm(self, position_nm: int) -> None:
@@ -1392,7 +1392,7 @@ class Hardware:
         """
 
         tower_sensitivity = 0  # use default sensitivity first
-        self.updateMotorSensitivity(self.hwConfig.tiltSensitivity, tower_sensitivity)
+        self.updateMotorSensitivity(self.config.tiltSensitivity, tower_sensitivity)
         tries = 3
         while tries > 0:
             self.towerSyncWait()
@@ -1406,7 +1406,7 @@ class Hardware:
                 if tower_sensitivity >= len(self.towerAdjust["homingFast"]) - 2:
                     raise TowerHomeCheckFailed()
 
-                self.updateMotorSensitivity(self.hwConfig.tiltSensitivity, tower_sensitivity)
+                self.updateMotorSensitivity(self.config.tiltSensitivity, tower_sensitivity)
 
                 continue
             tries -= 1

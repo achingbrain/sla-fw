@@ -35,5 +35,5 @@ class TestsMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def send_printer_data(self):
-        send_printer_data(self._printer.hw, self._printer.hwConfig)
+        send_printer_data(self._printer.hw)
         self._control.enter(Info(self._control, "Data send"))

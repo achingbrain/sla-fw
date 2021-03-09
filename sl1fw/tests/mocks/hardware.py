@@ -12,9 +12,9 @@ from sl1fw.hardware.printer_model import PrinterModel
 
 class Hardware:
     # pylint: disable = too-many-instance-attributes
-    def __init__(self, hw_config: HwConfig = None):
-        if hw_config is None:
-            hw_config = HwConfig()
+    def __init__(self, config: HwConfig = None):
+        if config is None:
+            config = HwConfig()
 
         self.is500khz = True
 
@@ -24,15 +24,14 @@ class Hardware:
         self.tilt_position = 5000
         self.tower_position_nm = defines.defaultTowerHeight * 1000 * 1000 * 1000
 
-        self.hw_config = hw_config
-        self.hwConfig = hw_config
+        self.config = config
         self.fans = {
-            0: Fan("UV LED fan", defines.fanMaxRPM[0], self.hw_config.fan1Rpm, self.hw_config.fan1Enabled,),
-            1: Fan("blower fan", defines.fanMaxRPM[1], self.hw_config.fan2Rpm, self.hw_config.fan2Enabled,),
-            2: Fan("rear fan", defines.fanMaxRPM[2], self.hw_config.fan3Rpm, self.hw_config.fan3Enabled,),
+            0: Fan("UV LED fan", defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled,),
+            1: Fan("blower fan", defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled,),
+            2: Fan("rear fan", defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled,),
         }
 
-        self.tower_end = self.hw_config.calcMicroSteps(150)
+        self.tower_end = self.config.calcMicroSteps(150)
 
         self.tower_above_surface = self.tower_end
         self.tower_min = self.tower_end - 1
@@ -42,7 +41,7 @@ class Hardware:
 
         self.printer_model = PrinterModel.SL1
         self.exposure_screen.parameters = self.printer_model.exposure_screen_parameters
-        self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.hw_config.limit4fast // 100
+        self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 
         self.getUvLedState = Mock(return_value=(False, 0))
         self._led_stat_s = 6912
@@ -59,7 +58,7 @@ class Hardware:
         self.getVoltages = Mock(return_value=[11.203, 11.203, 11.203, 0])
         self.getUvLedTemperature = Mock(return_value=46.7)
 
-        self.getFansRpm = Mock(return_value=[self.hw_config.fan1Rpm, self.hw_config.fan2Rpm, self.hw_config.fan3Rpm,])
+        self.getFansRpm = Mock(return_value=[self.config.fan1Rpm, self.config.fan2Rpm, self.config.fan3Rpm,])
         self.isTowerMoving = Mock(return_value=False)
         self.getTowerPositionMicroSteps = Mock(return_value=self.tower_end)
         self.tiltHomingStatus = 0

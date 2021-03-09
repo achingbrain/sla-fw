@@ -14,8 +14,8 @@ from sl1fw.libHardware import Hardware
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
 
-hwConfig = HwConfig()
-hw = Hardware(hwConfig)
+hw_config = HwConfig()
+hw = Hardware(hw_config)
 
 hw.tiltSyncWait()
 hw.tiltMoveAbsolute(5300)

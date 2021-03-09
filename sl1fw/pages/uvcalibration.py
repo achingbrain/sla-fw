@@ -112,7 +112,7 @@ class PageUvCalibrationBase(Page):
     def off(self):
         self.uvmeter.close()
         self.allOff()
-        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
+        self.display.hw.uvLedPwm = self.display.hw.config.uvPwm
     #enddef
 
 
@@ -184,9 +184,9 @@ class PageUvCalibration(PageUvCalibrationBase):
         if self.display.runtime_config.factory_mode:
             text += _("\n\nIntensity: center %(cint)d, edge %(eint)d\n"
                 "Warm-up: %(time)d s, PWM: <%(minp)d, %(maxp)d>") \
-            % { 'cint' : self.display.hwConfig.uvCalibIntensity,
-                'eint' : self.display.hwConfig.uvCalibMinIntEdge,
-                'time' : self.display.hwConfig.uvWarmUpTime,
+            % { 'cint' : self.display.hw.config.uvCalibIntensity,
+                'eint' : self.display.hw.config.uvCalibMinIntEdge,
+                'time' : self.display.hw.config.uvWarmUpTime,
                 'minp' : minpwm,
                 'maxp' : maxpwm,
                 }
@@ -382,7 +382,7 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
         self.display.exposure_image.blank_screen()
         self.display.hw.uvLed(True)
 
-        for countdown in range(self.display.hwConfig.uvWarmUpTime, 0, -1):
+        for countdown in range(self.display.hw.config.uvWarmUpTime, 0, -1):
             self.pageWait.showItems(line2 = ngettext("Remaining %d second",
                 "Remaining %d seconds", countdown) % countdown)
             sleep(1)
@@ -505,7 +505,7 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
         #endif
 
         if ((self.pwm > self.secondPassThreshold or
-                self.pwm > (self.factoryUvPwm / 100) * (100 + self.display.hwConfig.uvCalibBoostTolerance) or
+                self.pwm > (self.factoryUvPwm / 100) * (100 + self.display.hw.config.uvCalibBoostTolerance) or
                 self.result == self.ERROR_TOO_DIMM) and
                 not self.boostResults and
                 not self.uvmeter.sixty_points):
@@ -516,8 +516,8 @@ class PageUvCalibrationThreadBase(PageUvCalibrationBase):
                 self.pwm)
             self.logger.info("Boosted results applied due to bigger tolerance. Factory: %d, max: %f, tolerance: %d",
                 self.factoryUvPwm,
-                (self.factoryUvPwm / 100)  * (100 + self.display.hwConfig.uvCalibBoostTolerance),
-                self.display.hwConfig.uvCalibBoostTolerance)
+                (self.factoryUvPwm / 100)  * (100 + self.display.hw.config.uvCalibBoostTolerance),
+                self.display.hw.config.uvCalibBoostTolerance)
             self.display.hw.beepAlarm(2)
             return PageUVCalibrateCenter.Name
 
@@ -592,7 +592,7 @@ class PageUVCalibrateCenter(PageUvCalibrationThreadBase):
             #endif
 
             # Calculate new error
-            error = self.display.hwConfig.uvCalibIntensity - self.intensity
+            error = self.display.hw.config.uvCalibIntensity - self.intensity
             integrated_error += error
 
             self.logger.info("UV pwm tuning: pwm: %d, intensity: %f, error: %f, integrated: %f, iteration: %d, success count: %d",
@@ -663,7 +663,7 @@ class PageUVCalibrateEdge(PageUvCalibrationThreadBase):
             self.logger.info("UV pwm tuning: pwm: %d, minValue: %f", self.pwm, self.minValue)
 
             # Break cycle when minimal intensity (on the edge) is ok
-            if self.minValue >= self.display.hwConfig.uvCalibMinIntEdge:
+            if self.minValue >= self.display.hw.config.uvCalibMinIntEdge:
                 break
             #endif
             self.pwm += 1
@@ -732,12 +732,12 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
     def yesButtonRelease(self):
         self.display.state = DisplayState.IDLE
         # save hwConfig
-        self.previousUvPwm = self.display.hwConfig.uvPwm
-        self.display.hwConfig.uvPwm = self.display.uvCalibData.uvFoundPwm
+        self.previousUvPwm = self.display.hw.config.uvPwm
+        self.display.hw.config.uvPwm = self.display.uvCalibData.uvFoundPwm
         self.display.hw.uvLedPwm = self.display.uvCalibData.uvFoundPwm
-        del self.display.hwConfig.uvCurrent   # remove old value too
+        del self.display.hw.config.uvCurrent   # remove old value too
         try:
-            self.display.hwConfig.write()
+            self.display.hw.config.write()
         except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
@@ -790,7 +790,7 @@ class PageUvCalibrationConfirm(PageUvCalibrationBase):
                     "resetDisplayCounter": PageUvCalibrationBase.resetDisplayCounter,
                     "resetUvLedCounter": PageUvCalibrationBase.resetLedCounter,
                     "previousUvPwm": self.previousUvPwm,
-                    "newUvPwm": self.display.hwConfig.uvPwm
+                    "newUvPwm": self.display.hw.config.uvPwm
                 }
             }
             self.logger.info("counter data: %s", countersData)

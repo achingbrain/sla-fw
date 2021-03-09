@@ -202,7 +202,7 @@ class TestResinCalibration(Sl1fwTestCase):
         hw_config.read_file()
         hw = Hardware(hw_config)
         exposure_image = ExposureImage(hw)
-        project = Project(hw_config, hw, NUMBERS)
+        project = Project(hw, NUMBERS)
         project.calibrate_regions = 9
         project.analyze()
         #  project bbox: (605, 735, 835, 1825)

@@ -312,8 +312,8 @@ class TestConfigHelper(Sl1fwTestCase):
 
     def setUp(self):
         super().setUp()
-        self.hwConfig = HwConfig(self.CONFIG_PATH, is_master=True)
-        self.helper = ConfigWriter(self.hwConfig)
+        self.hw_config = HwConfig(self.CONFIG_PATH, is_master=True)
+        self.helper = ConfigWriter(self.hw_config)
 
     def tearDown(self):
         if self.CONFIG_PATH.exists():
@@ -350,7 +350,7 @@ class TestConfigHelper(Sl1fwTestCase):
         self.helper.autoOff = False
 
         # Underling valus is intact before commit
-        self.assertTrue(self.hwConfig.autoOff)
+        self.assertTrue(self.hw_config.autoOff)
 
         # Changed behaviour before commit
         self.assertTrue(self.helper.changed())
@@ -360,7 +360,7 @@ class TestConfigHelper(Sl1fwTestCase):
         self.helper.commit()
 
         # Underling value is changed after commit
-        self.assertFalse(self.hwConfig.autoOff)
+        self.assertFalse(self.hw_config.autoOff)
 
         # Changed behaviour after commit
         self.assertFalse(self.helper.changed())
@@ -376,7 +376,7 @@ class TestConfigHelper(Sl1fwTestCase):
 
     def test_on_change(self):
         on_change = mock.MagicMock()
-        self.hwConfig.add_onchange_handler(on_change)
+        self.hw_config.add_onchange_handler(on_change)
         self.helper.calibrated = True
         self.helper.commit()
         on_change.assert_called_with("calibrated", True)

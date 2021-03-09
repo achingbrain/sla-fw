@@ -90,9 +90,9 @@ class ProfilesPage(Page):
 
 
     def reset_current_profiles_set(self, commit = True):
-        self.display.hwConfig.currentProfilesSet = "changed"
+        self.display.hw.config.currentProfilesSet = "changed"
         if commit:
-            self.display.hwConfig.get_writer().commit()
+            self.display.hw.config.get_writer().commit()
 
 
     def button1ButtonRelease(self):
@@ -445,7 +445,7 @@ class PageTuneTilt(ProfilesPage):
                 "label2g8" : "homing cycles",
                 })
         super(PageTuneTilt, self).show()
-        self.profiles = deepcopy(self.display.hwConfig.tuneTilt)
+        self.profiles = deepcopy(self.display.hw.config.tuneTilt)
         self._setProfile()
     #enddef
 
@@ -466,7 +466,7 @@ class PageTuneTilt(ProfilesPage):
 
     def button4ButtonRelease(self):
         ''' save '''
-        writer = self.display.hwConfig.get_writer()
+        writer = self.display.hw.config.get_writer()
         writer.raw_tiltdownlargefill = self.profiles[0]
         writer.raw_tiltdownsmallfill = self.profiles[1]
         writer.raw_tiltuplargefill = self.profiles[2]

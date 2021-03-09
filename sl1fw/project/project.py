@@ -29,7 +29,6 @@ from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, Proj
                                 ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
                                 ProjectErrorWrongPrinterModel
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ProjectSettingsModified, VariantMismatch
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.project import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.utils.bounding_box import BBox
@@ -82,9 +81,8 @@ class ProjectLayer:
 
 
 class Project:
-    def __init__(self, hw_config: HwConfig, hw: Hardware, project_file: str):
+    def __init__(self, hw: Hardware, project_file: str):
         self.logger = logging.getLogger(__name__)
-        self._hw_config = hw_config
         self._hw = hw
         self.warnings = set()
         self.path = project_file
@@ -100,7 +98,7 @@ class Project:
         self.bbox = BBox()
         self.used_material_nl = 0
         self.modification_time = 0.0
-        self.per_partes = hw_config.perPartes
+        self.per_partes = hw.config.perPartes
         self._zf: Optional[ZipFile] = None
         self._mode_warn = True
         self._exposure_time_ms = 0
@@ -179,7 +177,7 @@ class Project:
             self.layer_height_nm = int(self._config.layerHeight * 1e6)
         else:
             # for backward compatibility: 8 mm per turn and stepNum = 40 is 0.05 mm
-            self.layer_height_nm = self._hw_config.tower_microsteps_to_nm(self._config.stepnum // (self._hw_config.screwMm / 4))
+            self.layer_height_nm = self._hw.config.tower_microsteps_to_nm(self._config.stepnum // (self._hw.config.screwMm / 4))
         self.layer_height_first_nm = int(self._config.layerHeightFirst * 1e6)
         self._calibrate_time_ms = int(self._config.calibrateTime * 1e3)
         self._calibrate_time_ms_exact = [int(x * 1e3) for x in self._config.calibrateTimeExact]
@@ -459,12 +457,12 @@ class Project:
         if slow_layers < 0:
             slow_layers = 0
         fast_layers = total_layers - layers_done - slow_layers
-        time_remain_ms += fast_layers * self._hw_config.tiltFastTime * 1000
-        time_remain_ms += slow_layers * self._hw_config.tiltSlowTime * 1000
+        time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
+        time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
         time_remain_ms += (total_layers - layers_done) * (
                 self.layer_height_nm * 5000 / 1000 / 1000  # tower move
-                + self._hw_config.delayBeforeExposure * 100
-                + self._hw_config.delayAfterExposure * 100)
+                + self._hw.config.delayBeforeExposure * 100
+                + self._hw.config.delayAfterExposure * 100)
         self.logger.debug("time_remain_ms: %f", time_remain_ms)
         return int(round(time_remain_ms / 60 / 1000))
 

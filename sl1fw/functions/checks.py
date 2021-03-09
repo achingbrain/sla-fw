@@ -15,7 +15,6 @@ from sl1fw.errors.errors import (
     TowerAxisCheckFailed,
     TowerBelowSurface,
 )
-from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 
@@ -54,7 +53,7 @@ def check_uv_leds(hw: Hardware, progress_callback: Callable[[float], None] = Non
     return row1, row2, row3
 
 
-def check_uv_fans(hw: Hardware, hw_config: HwConfig, logger: Logger, progress_callback: Callable[[float], None] = None):
+def check_uv_fans(hw: Hardware, logger: Logger, progress_callback: Callable[[float], None] = None):
     fan_diff = 200
     hw.startFans()
     rpm = [[], [], []]
@@ -64,9 +63,9 @@ def check_uv_fans(hw: Hardware, hw_config: HwConfig, logger: Logger, progress_ca
     hw.uvLedPwm = get_uv_check_pwms(hw)[3]
 
     uv_temp = hw.getUvLedTemperature()
-    for countdown in range(hw_config.uvWarmUpTime, 0, -1):
+    for countdown in range(hw.config.uvWarmUpTime, 0, -1):
         if progress_callback:
-            progress_callback(1 - countdown / hw_config.uvWarmUpTime)
+            progress_callback(1 - countdown / hw.config.uvWarmUpTime)
 
         uv_temp = hw.getUvLedTemperature()
         if uv_temp > defines.maxUVTemp:
@@ -76,7 +75,7 @@ def check_uv_fans(hw: Hardware, hw_config: HwConfig, logger: Logger, progress_ca
             logger.error("Skipping UV Fan check due to fan failure")
             break
 
-        if fans_wait_time < hw_config.uvWarmUpTime - countdown:
+        if fans_wait_time < hw.config.uvWarmUpTime - countdown:
             actual_rpm = hw.getFansRpm()
             for i in hw.fans:
                 rpm[i].append(actual_rpm[i])
@@ -115,9 +114,9 @@ def check_uv_fans(hw: Hardware, hw_config: HwConfig, logger: Logger, progress_ca
     return avg_rpms, uv_temp
 
 
-def resin_sensor(hw: Hardware, hw_config: HwConfig, logger: Logger):
+def resin_sensor(hw: Hardware, logger: Logger):
     hw.towerSyncWait()
-    hw.setTowerPosition(hw_config.calcMicroSteps(defines.defaultTowerHeight))
+    hw.setTowerPosition(hw.config.calcMicroSteps(defines.defaultTowerHeight))
     volume_ml = hw.getResinVolume()
     logger.debug("resin volume: %s", volume_ml)
     if (
@@ -135,7 +134,7 @@ def resin_sensor(hw: Hardware, hw_config: HwConfig, logger: Logger):
     return volume_ml
 
 
-def tower_axis(hw: Hardware, hw_config: HwConfig):
+def tower_axis(hw: Hardware):
     hw.towerSyncWait()
     hw.setTowerPosition(hw.tower_end)
     hw.setTowerProfile("homingFast")
@@ -159,7 +158,7 @@ def tower_axis(hw: Hardware, hw_config: HwConfig):
     if (
         position_microsteps < hw.tower_end or position_microsteps > hw.tower_end + 1024 + 127
     ):  # add tolerance half full-step
-        raise TowerAxisCheckFailed(hw_config.tower_microsteps_to_nm(position_microsteps))
+        raise TowerAxisCheckFailed(hw.config.tower_microsteps_to_nm(position_microsteps))
 
 
 def tilt_calib_start(hw: Hardware):
@@ -169,7 +168,7 @@ def tilt_calib_start(hw: Hardware):
         sleep(0.25)
 
 
-def tower_calibrate(hw: Hardware, hw_config: HwConfig, logger: Logger) -> int:
+def tower_calibrate(hw: Hardware, logger: Logger) -> int:
     logger.info("Starting platform calibration")
     hw.setTiltProfile("homingFast")
     hw.setTiltCurrent(defines.tiltCalibCurrent)
@@ -218,6 +217,6 @@ def tower_calibrate(hw: Hardware, hw_config: HwConfig, logger: Logger) -> int:
         sleep(0.25)
     logger.info("tower position: %d", hw.getTowerPositionMicroSteps())
     towerHeight = -hw.getTowerPositionMicroSteps()
-    hw_config.towerHeight = towerHeight
+    hw.config.towerHeight = towerHeight
     hw.setTowerProfile("homingFast")
     return towerHeight

@@ -21,7 +21,7 @@ class DisplayTestCheckGroup(CheckGroup):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             Configuration(TankSetup.REMOVED, None),
-            [TowerHomeTest(hw, hw.hwConfig), TiltLevelTest(hw), DisplayTest(hw, exposure_image, runtime_config)],
+            [TowerHomeTest(hw), TiltLevelTest(hw), DisplayTest(hw, exposure_image, runtime_config)],
         )
 
     async def setup(self, actions: UserActionBroker):

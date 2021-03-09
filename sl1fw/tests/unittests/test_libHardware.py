@@ -22,8 +22,8 @@ class TestLibHardwareConnect(Sl1fwTestCase):
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         defines.reqMcVersion = "INVALID"
-        self.hwConfig = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
-        self.hw = Hardware(self.hwConfig)
+        self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
+        self.hw = Hardware(self.hw_config)
         self.hw.start()
 
     def tearDown(self) -> None:
@@ -47,7 +47,7 @@ class TestLibHardwareConnect(Sl1fwTestCase):
 class TestLibHardware(Sl1fwTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.hwConfig = None
+        self.hw_config = None
         self.config = None
         self.hw: Optional[Hardware] = None
         self.hw_state = None
@@ -59,8 +59,8 @@ class TestLibHardware(Sl1fwTestCase):
         defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory/factory.toml")
         defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
 
-        self.hwConfig = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
-        self.hw = Hardware(self.hwConfig)
+        self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
+        self.hw = Hardware(self.hw_config)
 
         try:
             self.hw.start()

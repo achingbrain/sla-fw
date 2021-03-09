@@ -2,7 +2,6 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
@@ -17,9 +16,9 @@ from sl1fw.wizard.wizard import Wizard
 
 
 class PlatformTankInsertCheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(
-            Configuration(None, None), [TiltHomeTest(hw), TowerHomeTest(hw, hw_config), TiltCalibrationStartTest(hw)]
+            Configuration(None, None), [TiltHomeTest(hw), TowerHomeTest(hw), TiltCalibrationStartTest(hw)]
         )
 
     async def setup(self, actions: UserActionBroker):
@@ -31,8 +30,8 @@ class PlatformTankInsertCheckGroup(CheckGroup):
 
 
 class TiltAlignCheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
-        super().__init__(Configuration(TankSetup.REMOVED, None), [TiltAlignTest(hw, hw_config)])
+    def __init__(self, hw: Hardware):
+        super().__init__(Configuration(TankSetup.REMOVED, None), [TiltAlignTest(hw)])
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(
@@ -41,8 +40,8 @@ class TiltAlignCheckGroup(CheckGroup):
 
 
 class PlatformAlignCheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
-        super().__init__(Configuration(TankSetup.PRINT, PlatformSetup.PRINT), [TowerAlignTest(hw, hw_config)])
+    def __init__(self, hw: Hardware):
+        super().__init__(Configuration(TankSetup.PRINT, PlatformSetup.PRINT), [TowerAlignTest(hw)])
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(
@@ -51,8 +50,8 @@ class PlatformAlignCheckGroup(CheckGroup):
 
 
 class CalibrationFinishCheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
-        super().__init__(Configuration(TankSetup.PRINT, PlatformSetup.PRINT), [TiltTimingTest(hw, hw_config)])
+    def __init__(self, hw: Hardware):
+        super().__init__(Configuration(TankSetup.PRINT, PlatformSetup.PRINT), [TiltTimingTest(hw)])
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(
@@ -61,14 +60,14 @@ class CalibrationFinishCheckGroup(CheckGroup):
 
 
 class CalibrationWizard(Wizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.CALIBRATION,
             [
-                PlatformTankInsertCheckGroup(hw, hw_config),
-                TiltAlignCheckGroup(hw, hw_config),
-                PlatformAlignCheckGroup(hw, hw_config),
-                CalibrationFinishCheckGroup(hw, hw_config),
+                PlatformTankInsertCheckGroup(hw),
+                TiltAlignCheckGroup(hw),
+                PlatformAlignCheckGroup(hw),
+                CalibrationFinishCheckGroup(hw),
             ],
             hw,
             exposure_image,

@@ -143,7 +143,7 @@ class SystemToolsMenu(SafeAdminMenu):
         examples.join()
 
         status.set("Saving dummy calibration data")
-        writer = self._printer.hwConfig.get_writer()
+        writer = self._printer.hw.config.get_writer()
         writer.calibrated = True
         writer.showWizard = False
         writer.showUnboxing = False
@@ -155,6 +155,6 @@ class SystemToolsMenu(SafeAdminMenu):
 
         status.set("Saving dummy factory data")
         with FactoryMountedRW():
-            self._printer.hwConfig.write_factory()
+            self._printer.hw.config.write_factory()
 
         status.set("Done")

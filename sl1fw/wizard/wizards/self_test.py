@@ -4,7 +4,6 @@
 
 from typing import Iterable
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.functions.system import hw_all_off
 from sl1fw.libHardware import Hardware
@@ -29,7 +28,7 @@ from sl1fw.wizard.wizard import Wizard
 
 
 class SelfTestPart1CheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
@@ -39,11 +38,11 @@ class SelfTestPart1CheckGroup(CheckGroup):
                 SpeakerTest(),
                 TiltHomeTest(hw),
                 TiltRangeTest(hw),
-                TowerHomeTest(hw, hw_config),
-                UVLEDsTest(hw, hw_config),
-                UVFansTest(hw, hw_config),
+                TowerHomeTest(hw),
+                UVLEDsTest(hw),
+                UVFansTest(hw),
                 DisplayTest(hw, exposure_image, runtime_config),
-                CalibrationInfo(hw_config),
+                CalibrationInfo(hw.config),
             ],
         )
 
@@ -52,11 +51,11 @@ class SelfTestPart1CheckGroup(CheckGroup):
 
 
 class SelfTestPart2CheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.RESIN_TEST),
             [
-                ResinSensorTest(hw, hw_config)
+                ResinSensorTest(hw)
             ]
         )
 
@@ -65,11 +64,11 @@ class SelfTestPart2CheckGroup(CheckGroup):
 
 
 class SelfTestPart3CheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
-                TowerRangeTest(hw, hw_config)
+                TowerRangeTest(hw)
             ]
         )
 
@@ -78,13 +77,13 @@ class SelfTestPart3CheckGroup(CheckGroup):
 
 
 class SelfTestWizard(Wizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.SELF_TEST,
             [
-                SelfTestPart1CheckGroup(hw, hw_config, exposure_image, runtime_config),
-                SelfTestPart2CheckGroup(hw, hw_config),
-                SelfTestPart3CheckGroup(hw, hw_config),
+                SelfTestPart1CheckGroup(hw, exposure_image, runtime_config),
+                SelfTestPart2CheckGroup(hw),
+                SelfTestPart3CheckGroup(hw),
             ],
             hw,
             exposure_image,

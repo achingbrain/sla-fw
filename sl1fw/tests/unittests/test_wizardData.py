@@ -50,7 +50,7 @@ class TestSelfTestWizardDataPresent(Sl1fwTestCase):
         except FileNotFoundError:
             pass
         defines.factoryMountPoint.mkdir(parents=True)
-        self.wizard = SelfTestWizard(Mock(), Mock(), Mock(), Mock())
+        self.wizard = SelfTestWizard(Mock(), Mock(), Mock())
 
     def test_data_nothing(self):
         self.assertFalse(self.wizard._data_present_in_factory())

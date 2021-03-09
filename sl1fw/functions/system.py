@@ -22,7 +22,6 @@ from sl1fw.errors.errors import (
     FailedUpdateChannelGet,
 )
 from sl1fw.errors.exceptions import ConfigException
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.toml import TomlConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.image.exposure_image import ExposureImage
@@ -54,7 +53,7 @@ def save_factory_mode(enable: bool):
     return TomlConfig(defines.factoryConfigPath).save(data={"factoryMode": enable})
 
 
-def send_printer_data(hw: Hardware, config: HwConfig):
+def send_printer_data(hw: Hardware):
     logger = logging.getLogger(__name__)
 
     # Get wizard data
@@ -67,7 +66,7 @@ def send_printer_data(hw: Hardware, config: HwConfig):
     except Exception as exception:
         raise MissingWizardData from exception
 
-    if not config.calibrated and not hw.isKit:
+    if not hw.config.calibrated and not hw.isKit:
         raise MissingCalibrationData()
 
     # Get UV calibration data

@@ -60,7 +60,7 @@ class PageFactoryReset(Page):
 
     def _do_factory_reset(self):
         self.logger.info("Starting factory reset with factory mode: %s", self.display.runtime_config.factory_mode)
-        if self.display.runtime_config.factory_mode and self.display.hwConfig.uvPwm == 0:
+        if self.display.runtime_config.factory_mode and self.display.hw.config.uvPwm == 0:
             self.logger.error("Cannot do factory reset UV PWM not set (== 0)")
             self.display.pages["error"].setParams(code=Sl1Codes.MISSING_UVPWM_SETTINGS.raw_code)
             return "error"
@@ -73,7 +73,7 @@ class PageFactoryReset(Page):
         if self.display.runtime_config.factory_mode:
             page_wait.showItems(line1=_("Sending printer data"))
             try:
-                send_printer_data(self.display.hw, self.display.hwConfig)
+                send_printer_data(self.display.hw)
             except PrinterDataSendError as error:
                 self.logger.exception("Failed to send printer data to mqtt")
                 if isinstance(error, MissingWizardData):
@@ -113,12 +113,12 @@ class PageFactoryReset(Page):
     def _reset_printer_settings(self):
         # save hwConfig
         try:
-            self.display.hwConfig.read_file()
-            self.display.hwConfig.factory_reset()
+            self.display.hw.config.read_file()
+            self.display.hw.config.factory_reset()
             # do not display unpacking after user factory reset
             if not self.display.runtime_config.factory_mode:
-                self.display.hwConfig.showUnboxing = False
-            self.display.hwConfig.write()
+                self.display.hw.config.showUnboxing = False
+            self.display.hw.config.write()
             rmtree(defines.wizardHistoryPath, ignore_errors=True)
         except ConfigException:
             self.logger.exception("Failed to do factory reset on config")
@@ -132,7 +132,7 @@ class PageFactoryReset(Page):
         # set homing profiles to factory defaults
         try:
             self.display.hw.updateMotorSensitivity(
-                self.display.hwConfig.tiltSensitivity, self.display.hwConfig.towerSensitivity
+                self.display.hw.config.tiltSensitivity, self.display.hw.config.towerSensitivity
             )
         except MotionControllerException:
             self.logger.exception("Failed to set default sensitivity profiles")
@@ -262,7 +262,7 @@ class PageFactoryReset(Page):
             sleep(0.25)
 
         self.display.hw.setTowerProfile("homingFast")
-        self.display.hw.towerMoveAbsolute(self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(74))
+        self.display.hw.towerMoveAbsolute(self.display.hw.config.towerHeight - self.display.hw.config.calcMicroSteps(74))
         while self.display.hw.isTowerMoving():
             sleep(0.25)
 
@@ -277,7 +277,7 @@ class PageFactoryReset(Page):
         page_wait.show()
 
         # slightly press the foam against printers base
-        self.display.hw.towerMoveAbsolute(self.display.hwConfig.towerHeight - self.display.hwConfig.calcMicroSteps(93))
+        self.display.hw.towerMoveAbsolute(self.display.hw.config.towerHeight - self.display.hw.config.calcMicroSteps(93))
         while self.display.hw.isTowerMoving():
             sleep(0.25)
 

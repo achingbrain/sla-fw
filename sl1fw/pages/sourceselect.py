@@ -227,7 +227,7 @@ class PageSrcSelect(Page):
             self.show()
             return None
         #endif
-        self.display.action_manager.new_exposure(self.display.hwConfig, self.display.hw, self.display.exposure_image,
+        self.display.action_manager.new_exposure(self.display.hw, self.display.exposure_image,
                                                  self.display.runtime_config, item['fullpath'])
         return "reading"
     #enddef

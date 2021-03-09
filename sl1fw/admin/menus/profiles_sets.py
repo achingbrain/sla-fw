@@ -53,7 +53,7 @@ class ProfilesSetsMenu(SafeAdminMenu):
                     AdminAction(
                         (
                             "--> "
-                            if self._printer.hwConfig.currentProfilesSet == cfg_set_name
+                            if self._printer.hw.config.currentProfilesSet == cfg_set_name
                             else ""
                         )
                         + profiles_set.stem,
@@ -103,7 +103,7 @@ class ProfilesSetsMenu(SafeAdminMenu):
             applied.append("tune tilt")
 
         if writer is None:
-            writer = self._printer.hwConfig.get_writer()
+            writer = self._printer.hw.config.get_writer()
 
         writer.currentProfilesSet = (
             "usb:" if self.usb else "internal:"
@@ -192,7 +192,7 @@ class ProfilesSetsMenu(SafeAdminMenu):
             else:
                 raise Exception("Missing tilt tuning '%s' in selected file!" % name)
 
-        writer = self._printer.hw.hwConfig.get_writer()
+        writer = self._printer.hw.config.get_writer()
         for name in names:
             attr = [-1, -1, -1, -1, -1, -1, -1, -1]
             for i, key in enumerate(keys):

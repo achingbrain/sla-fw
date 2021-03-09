@@ -49,7 +49,7 @@ class PageUvFansTest(Page):
 
         pageWait.showItems(line2=_("Fans check"))
         try:
-            avg_rpms, uv_temp = check_uv_fans(self.display.hw, self.display.hwConfig, self.logger)
+            avg_rpms, uv_temp = check_uv_fans(self.display.hw, self.display.hw.config, self.logger)
         except UVLEDHeatsinkFailed as exception:
             self.display.pages["error"].setParams(
                 code=get_exception_code(exception).raw_code,
@@ -76,6 +76,6 @@ class PageUvFansTest(Page):
     def leave(self):
         self.display.fanErrorOverride = False
         self.display.hw.uvLed(False)
-        self.display.hw.uvLedPwm = self.display.hwConfig.uvPwm
+        self.display.hw.uvLedPwm = self.display.hw.config.uvPwm
         if not self.display.wizardData:
             self.display.hw.stopFans()  # stop fans only if not in wizard

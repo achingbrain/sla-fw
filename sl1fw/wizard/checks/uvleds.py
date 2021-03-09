@@ -5,7 +5,6 @@
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.functions.checks import check_uv_leds
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
@@ -27,19 +26,17 @@ class CheckData:
 
 
 class UVLEDsTest(SyncDangerousCheck):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(
             hw, WizardCheckType.UV_LEDS, Configuration(None, None), [Resource.UV],
         )
         self._hw = hw
-        self._hw_config = hw_config
-
         self._result_data = None
 
     def task_run(self, actions: UserActionBroker):
         self.wait_cover_closed_sync()
         row1, row2, row3 = check_uv_leds(self._hw, self._progress_callback)
-        self._result_data = CheckData(row1, row2, row3, self._hw_config.uvPwm)
+        self._result_data = CheckData(row1, row2, row3, self._hw.config.uvPwm)
 
     def _progress_callback(self, progress: float):
         self.progress = progress

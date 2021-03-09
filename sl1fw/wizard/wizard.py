@@ -269,7 +269,7 @@ class Wizard(Thread, UserActionBroker):
 
     def _check_cover_closed(self, closed: bool):
         self._logger.debug("Checking cover closed: %s", closed)
-        if self.dangerous_check_running and self._hw.hwConfig.coverCheck and not closed and not self._close_cover_state:
+        if self.dangerous_check_running and self._hw.config.coverCheck and not closed and not self._close_cover_state:
             self._logger.warning("Cover open and dangerous check running, pushing close cover state")
             self._close_cover_state = PushState(WizardState.CLOSE_COVER)
             self.push_state(self._close_cover_state, priority=True)

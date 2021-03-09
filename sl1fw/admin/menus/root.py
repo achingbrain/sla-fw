@@ -34,7 +34,7 @@ class RootMenu(AdminMenu):
         )
         self.add_item(AdminAction("Net update", lambda: self.enter(NetUpdate(self._control, self._printer))))
         self.add_item(
-            AdminAction("hardware.cfg", lambda: self.enter(HwConfigMenu(self._control, self._printer.hwConfig)))
+            AdminAction("hardware.cfg", lambda: self.enter(HwConfigMenu(self._control, self._printer.hw.config)))
         )
         self.add_item(AdminAction("Tests", lambda: self.enter(TestsMenu(self._control, self._printer))))
         self.add_item(AdminAction("Logging", lambda: self.enter(LoggingMenu(self._control))))

@@ -17,7 +17,6 @@ from sl1fw.errors.errors import (
 )
 from sl1fw.errors.exceptions import PrinterException
 from sl1fw.functions.checks import tilt_calib_start
-from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 from sl1fw.states.wizard import WizardState
@@ -120,12 +119,11 @@ class TiltRangeTest(DangerousCheck):
 
 
 class TiltTimingTest(DangerousCheck):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(
             hw, WizardCheckType.TILT_TIMING, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
         self._hw = hw
-        self._hw_config = hw_config
 
         self.tilt_slow_time_ms = Optional[int]
         self.tilt_fast_time_ms = Optional[int]
@@ -147,7 +145,7 @@ class TiltTimingTest(DangerousCheck):
 
     async def _get_tilt_time(self, slowMove):
         tilt_time = 0
-        total = self._hw_config.measuringMoves
+        total = self._hw.config.measuringMoves
         for i in range(total):
             if slowMove:
                 self.progress = i / total / 2
@@ -181,14 +179,13 @@ class TiltCalibrationStartTest(SyncDangerousCheck):
 
 
 class TiltAlignTest(SyncCheck):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(
             WizardCheckType.TILT_CALIBRATION,
             Configuration(TankSetup.REMOVED, None),
             [Resource.TILT, Resource.TOWER_DOWN],
         )
         self._hw = hw
-        self.hw_config = hw_config
         self._tilt_height = None
         self.tilt_aligned_event = Event()
 
@@ -208,7 +205,7 @@ class TiltAlignTest(SyncCheck):
             self._hw.beepAlarm(3)
             raise InvalidTiltAlignPosition(position)
         self._tilt_height = position
-        self.hw_config.tiltHeight = self._tilt_height
+        self._hw.config.tiltHeight = self._tilt_height
         self.tilt_aligned_event.set()
 
     def tilt_move(self, direction: int):

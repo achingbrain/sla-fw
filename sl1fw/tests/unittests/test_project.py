@@ -41,36 +41,36 @@ class TestProject(Sl1fwTestCase):
     def setUp(self):
         super().setUp()
         self.assertEqual.__self__.maxDiff = None
-        self.hwConfig = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
-        self.hwConfig.read_file()
-        self.hw = Hardware(self.hwConfig)
+        self.hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
+        self.hw_config.read_file()
+        self.hw = Hardware(self.hw_config)
         self.file2copy = self.SAMPLES_DIR / "Resin_calibration_object.sl1"
         (dummy, filename) = os.path.split(self.file2copy)
         self.destfile = Path(os.path.join(defines.previousPrints, filename))
 
     def test_notfound(self):
         with self.assertRaises(ProjectErrorNotFound):
-            Project(self.hwConfig, self.hw, "bad_file")
+            Project(self.hw, "bad_file")
 
     def test_empty(self):
         with self.assertRaises(ProjectErrorCantRead):
-            Project(self.hwConfig, self.hw, str(self.SAMPLES_DIR / "empty_file.sl1"))
+            Project(self.hw, str(self.SAMPLES_DIR / "empty_file.sl1"))
 
     def test_truncated(self):
         with self.assertRaises(ProjectErrorCantRead):
-            Project(self.hwConfig, self.hw, str(self.SAMPLES_DIR / "test_truncated.sl1"))
+            Project(self.hw, str(self.SAMPLES_DIR / "test_truncated.sl1"))
 
     def test_nolayers(self):
         with self.assertRaises(ProjectErrorNotEnoughLayers):
-            Project(self.hwConfig, self.hw, str(self.SAMPLES_DIR / "test_nolayer.sl1"))
+            Project(self.hw, str(self.SAMPLES_DIR / "test_nolayer.sl1"))
 
     def test_corrupted(self):
-        project = Project(self.hwConfig, self.hw, str(self.SAMPLES_DIR / "test_corrupted.sl1"))
+        project = Project(self.hw, str(self.SAMPLES_DIR / "test_corrupted.sl1"))
         with self.assertRaises(ProjectErrorCorrupted):
             project.copy_and_check()
 
     def test_copy_and_check(self):
-        project = Project(self.hwConfig, self.hw, str(self.file2copy))
+        project = Project(self.hw, str(self.file2copy))
         project.copy_and_check()
         self.assertFalse(PrintingDirectlyFromMedia() in project.warnings, "Printed directly warning issued")
         self.destfile.unlink()
@@ -79,7 +79,7 @@ class TestProject(Sl1fwTestCase):
         statvfs = os.statvfs(os.path.dirname(defines.previousPrints))
         backup = defines.internalReservedSpace
         defines.internalReservedSpace = statvfs.f_frsize * statvfs.f_bavail
-        project = Project(self.hwConfig, self.hw, str(self.file2copy))
+        project = Project(self.hw, str(self.file2copy))
         project.copy_and_check()
         self.assertTrue(PrintingDirectlyFromMedia() in project.warnings, "Printed directly warning not issued")
         defines.internalReservedSpace = backup
@@ -90,7 +90,7 @@ class TestProject(Sl1fwTestCase):
         backup2 = defines.internalProjectPath
         defines.internalReservedSpace = statvfs.f_frsize * statvfs.f_bavail
         defines.internalProjectPath = str(self.SAMPLES_DIR)
-        project = Project(self.hwConfig, self.hw, str(self.file2copy))
+        project = Project(self.hw, str(self.file2copy))
         project.copy_and_check()
         self.assertFalse(PrintingDirectlyFromMedia() in project.warnings, "Printed directly warning issued")
         self.destfile.unlink()
@@ -98,13 +98,13 @@ class TestProject(Sl1fwTestCase):
         defines.internalProjectPath = backup2
 
     def test_printer_model(self):
-        hw = Hardware(self.hwConfig)
+        hw = Hardware(self.hw_config)
         hw.printer_model = PrinterModel.NONE
         with self.assertRaises(ProjectErrorWrongPrinterModel):
-            Project(self.hwConfig, hw, str(self.SAMPLES_DIR / "numbers.sl1"))
+            Project(hw, str(self.SAMPLES_DIR / "numbers.sl1"))
 
     def test_read(self):
-        project = Project(self.hwConfig, self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
+        project = Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
         print(project)
 
         self.assertEqual(project.name, "numbers", "Check project name")
@@ -126,7 +126,7 @@ class TestProject(Sl1fwTestCase):
         #self.assertAlmostEqual(consumed_resin_slicer, project.used_material_nl / 1e6, delta=0.1, msg="Resin count")
 
     def test_read_calibration(self):
-        project = Project(self.hwConfig, self.hw, str(self.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"))
+        project = Project(self.hw, str(self.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"))
         print(project)
 
         self.assertEqual(project.total_layers, 20, "Check total layers count")
@@ -148,7 +148,7 @@ class TestProject(Sl1fwTestCase):
         # TODO analyze check
 
     def test_project_modification(self):
-        project = Project(self.hwConfig, self.hw, str(self.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"))
+        project = Project(self.hw, str(self.SAMPLES_DIR / "Resin_calibration_linear_object.sl1"))
         with self.assertRaises(ProjectErrorCalibrationInvalid):
             project.calibrate_regions = 3
 

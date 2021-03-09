@@ -43,11 +43,11 @@ class PageHome(Page):
 
     def printButtonRelease(self):
         # FIXME temporary disabled until it works perfectly on all printers
-        #       if self.display.hwConfig.showWizard:
+        #       if self.display.hw.config.showWizard:
         #           return PageWizardInit.Name
 
         try:
-            check_ready_to_print(self.display.hwConfig, self.display.hw.printer_model.calibration_parameters(self.display.hw.is500khz))
+            check_ready_to_print(self.display.hw.config, self.display.hw.printer_model.calibration_parameters(self.display.hw.is500khz))
         except NotUVCalibrated:
             return PageUvCalibrationStart.Name
         except NotMechanicallyCalibrated:

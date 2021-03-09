@@ -44,40 +44,40 @@ class TestWizardsMenu(AdminMenu):
     def api_unpacking_c(self):
         self._printer.action_manager.start_wizard(
             CompleteUnboxingWizard(
-                self._printer.hw, self._printer.hwConfig, self._printer.exposure_image, self._printer.runtime_config
+                self._printer.hw, self._printer.exposure_image, self._printer.runtime_config
             )
         )
 
     def api_unpacking_k(self):
         self._printer.action_manager.start_wizard(
             KitUnboxingWizard(
-                self._printer.hw, self._printer.hwConfig, self._printer.exposure_image, self._printer.runtime_config
+                self._printer.hw, self._printer.exposure_image, self._printer.runtime_config
             )
         )
 
     def api_self_test(self):
         self._printer.action_manager.start_wizard(
             SelfTestWizard(
-                self._printer.hw, self._printer.hwConfig, self._printer.exposure_image, self._printer.runtime_config
+                self._printer.hw, self._printer.exposure_image, self._printer.runtime_config
             )
         )
 
     def api_calibration(self):
         self._printer.action_manager.start_wizard(
             CalibrationWizard(
-                self._printer.hw, self._printer.hwConfig, self._printer.exposure_image, self._printer.runtime_config
+                self._printer.hw, self._printer.exposure_image, self._printer.runtime_config
             )
         )
 
     def api_packing(self):
         self._printer.action_manager.start_wizard(
-            PackingWizard(self._printer.hw, self._printer.hwConfig, self._printer.exposure_image, self._printer.runtime_config)
+            PackingWizard(self._printer.hw, self._printer.exposure_image, self._printer.runtime_config)
         )
 
     def api_factory_reset(self):
         self._printer.action_manager.start_wizard(
             FactoryResetWizard(
-                self._printer.hw, self._printer.hwConfig, self._printer.exposure_image, self._printer.runtime_config
+                self._printer.hw, self._printer.exposure_image, self._printer.runtime_config
             )
         )
 
@@ -100,7 +100,6 @@ class TestUVCalibrationWizardMenu(SafeAdminMenu):
         self._printer.action_manager.start_wizard(
             UVCalibrationWizard(
                 self._printer.hw,
-                self._printer.hwConfig,
                 self._printer.exposure_image,
                 self._printer.runtime_config,
                 display_replaced=self._lcd_replaced,

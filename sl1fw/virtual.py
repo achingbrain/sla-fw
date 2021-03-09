@@ -143,10 +143,10 @@ class Virtual:
             self.printer = libPrinter.Printer()
 
             print("Overriding printer settings")
-            self.printer.hwConfig.calibrated = True
-            self.printer.hwConfig.fanCheck = False
-            self.printer.hwConfig.coverCheck = False
-            self.printer.hwConfig.resinSensor = False
+            self.printer.hw.config.calibrated = True
+            self.printer.hw.config.fanCheck = False
+            self.printer.hw.config.coverCheck = False
+            self.printer.hw.config.resinSensor = False
 
             print("Publishing printer on D-Bus")
             self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))

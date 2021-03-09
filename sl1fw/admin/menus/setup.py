@@ -20,7 +20,7 @@ class SetupMenu(AdminMenu):
         super().__init__(control)
         self.logger = logging.getLogger(__name__)
         self._printer = printer
-        self._temp = self._printer.hwConfig.get_writer()
+        self._temp = self._printer.hw.config.get_writer()
         self.add_back()
         self.configure_items()
         self.add_item(AdminAction("save", self.save))
@@ -45,7 +45,7 @@ class SetupMenu(AdminMenu):
 
         try:
             usb_remount(config_file)
-            self._printer.hwConfig.write(file_path=config_file)
+            self._printer.hw.config.write(file_path=config_file)
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self._control.enter(Error(self._control, text="Cannot save configuration", pop=1))
@@ -64,12 +64,12 @@ class SetupMenu(AdminMenu):
             return
 
         try:
-            self._printer.hwConfig.read_file(config_file)
+            self._printer.hw.config.read_file(config_file)
         except ConfigException:
             self._control.enter(Error(self._control, text="Cannot import configuration", pop=1))
             return
         try:
-            self._printer.hwConfig.write()
+            self._printer.hw.config.write()
         except ConfigException:
             self._control.enter(Error(self._control, text="Cannot save configuration", pop=1))
         self._control.enter(Info(self._control, "Configuration imported"))
@@ -110,10 +110,10 @@ class ExposureSetupMenu(SetupMenu):
         self.add_item(AdminIntValue.from_value("Layer trigger [s]", self._temp, "trigger", 1))
 
         def set_layer_tower_hop(value):
-            self._temp.layerTowerHop = int(self._printer.hwConfig.nm_to_tower_microsteps(value * 1000))
+            self._temp.layerTowerHop = int(self._printer.hw.config.nm_to_tower_microsteps(value * 1000))
 
         def get_layer_tower_hop():
-            return self._printer.hwConfig.tower_microsteps_to_nm(self._temp.layerTowerHop) / 1000
+            return self._printer.hw.config.tower_microsteps_to_nm(self._temp.layerTowerHop) / 1000
 
         self.add_item(AdminIntValue("Layer tower hop [μm]", get_layer_tower_hop, set_layer_tower_hop, 100))
 
@@ -137,10 +137,10 @@ class ExposureSetupMenu(SetupMenu):
         self.add_item(AdminIntValue.from_value("Up&down every n-th l.", self._temp, "upanddowneverylayer", 1))
 
         def set_up_and_down_z_offset(value):
-            self._temp.upAndDownZoffset = int(self._printer.hwConfig.nm_to_tower_microsteps(value * 1000))
+            self._temp.upAndDownZoffset = int(self._printer.hw.config.nm_to_tower_microsteps(value * 1000))
 
         def get_up_and_down_z_offset():
-            return self._printer.hwConfig.tower_microsteps_to_nm(self._temp.upAndDownZoffset) / 1000
+            return self._printer.hw.config.tower_microsteps_to_nm(self._temp.upAndDownZoffset) / 1000
 
         self.add_item(AdminIntValue("Up&down Z offset [μm]", get_up_and_down_z_offset, set_up_and_down_z_offset, 10))
 

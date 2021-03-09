@@ -145,7 +145,7 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
 
     def test_print_start(self):
         # Fake calibration
-        self.printer.hwConfig.calibrated = True
+        self.printer.hw.config.calibrated = True
 
         # Test print start
         path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)
@@ -154,7 +154,7 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
 
     def test_exposure_gc(self):
         # Fake calibration
-        self.printer.hwConfig.calibrated = True
+        self.printer.hw.config.calibrated = True
 
         initial_exposure0 = self._get_num_instances(Exposure0)
         initial_exposure = self._get_num_instances(Exposure)

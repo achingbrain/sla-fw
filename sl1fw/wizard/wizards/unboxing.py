@@ -4,7 +4,6 @@
 
 from typing import Iterable
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
@@ -18,16 +17,16 @@ from sl1fw.wizard.wizard import Wizard
 
 
 class RemoveSafetyStickerCheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
-        super().__init__(Configuration(None, None), [MoveToFoam(hw, hw_config)])
+    def __init__(self, hw: Hardware):
+        super().__init__(Configuration(None, None), [MoveToFoam(hw)])
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(actions, actions.safety_sticker_removed, WizardState.REMOVE_SAFETY_STICKER)
 
 
 class RemoveSideFoamCheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
-        super().__init__(Configuration(None, None), [MoveToTank(hw, hw_config)])
+    def __init__(self, hw: Hardware):
+        super().__init__(Configuration(None, None), [MoveToTank(hw)])
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(actions, actions.side_foam_removed, WizardState.REMOVE_SIDE_FOAM)
@@ -56,12 +55,10 @@ class UnboxingWizard(Wizard):
         identifier,
         groups: Iterable[CheckGroup],
         hw: Hardware,
-        hw_config: HwConfig,
         exposure_image: ExposureImage,
         runtime_config: RuntimeConfig,
     ):
         super().__init__(identifier, groups, hw, exposure_image, runtime_config, cancelable=False)
-        self._hw_config = hw_config
 
     def run(self):
         try:
@@ -71,23 +68,22 @@ class UnboxingWizard(Wizard):
             raise
         if self.state == WizardState.DONE:
             self._logger.info("Unboxing wizard finished without errors, setting show unboxing to false")
-            writer = self._hw_config.get_writer()
+            writer = self._hw.config.get_writer()
             writer.showUnboxing = False
             writer.commit()
 
 
 class CompleteUnboxingWizard(UnboxingWizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.COMPLETE_UNBOXING,
             [
-                RemoveSafetyStickerCheckGroup(hw, hw_config),
-                RemoveSideFoamCheckGroup(hw, hw_config),
+                RemoveSafetyStickerCheckGroup(hw),
+                RemoveSideFoamCheckGroup(hw),
                 RemoveTankFoamCheckGroup(),
                 RemoveDisplayFoilCheckGroup(),
             ],
             hw,
-            hw_config,
             exposure_image,
             runtime_config,
         )
@@ -105,9 +101,9 @@ class CompleteUnboxingWizard(UnboxingWizard):
 
 
 class KitUnboxingWizard(UnboxingWizard):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         super().__init__(
-            WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup()], hw, hw_config, exposure_image, runtime_config
+            WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup()], hw, exposure_image, runtime_config
         )
 
     def run(self):

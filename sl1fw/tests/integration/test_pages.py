@@ -67,7 +67,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.test_turnoff()
 
     def uv_calibration_enter_exit(self):
-        self.printer.hwConfig.coverCheck = False
+        self.printer.hw.config.coverCheck = False
         self.switchPage("settings")
         self.switchPage("calibrationSubMenu")
 
@@ -79,12 +79,12 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.waitPage("calibrationSubMenu")
 
     def test_uv_calibration_no_uvmeter(self):
-        self.printer.hwConfig.coverCheck = False
+        self.printer.hw.config.coverCheck = False
         self.switchPage("settings")
         self.switchPage("calibrationSubMenu")
 
         with patch("sl1fw.test_runtime.test_uvmeter_present", False):
-            self.printer.hwConfig.coverCheck = False
+            self.printer.hw.config.coverCheck = False
             self.press("uvcalibration")
             self.waitPage("confirm")  # Welcome to UV calibration ...
             self.press("cont")
@@ -103,11 +103,11 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
     def test_uv_calibration_pass(self):
         with patch("sl1fw.test_runtime.test_fan_error_override", True):
-            self.printer.hwConfig.coverCheck = False
+            self.printer.hw.config.coverCheck = False
             self.switchPage("settings")
             self.switchPage("calibrationSubMenu")
 
-            self.printer.hwConfig.coverCheck = False
+            self.printer.hw.config.coverCheck = False
             self.press("uvcalibration")
             self.waitPage("confirm")  # Welcome to UV calibration ...
             self.press("cont")
@@ -130,11 +130,11 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
     def test_uv_calibration_pass_factory(self):
         with patch("sl1fw.test_runtime.test_fan_error_override", True):
-            self.printer.hwConfig.coverCheck = False
+            self.printer.hw.config.coverCheck = False
             self.switchPage("settings")
             self.switchPage("calibrationSubMenu")
 
-            self.printer.hwConfig.coverCheck = False
+            self.printer.hw.config.coverCheck = False
             self.press("uvcalibration")
             self.waitPage("confirm")  # Welcome to UV calibration ...
             self.press("cont")
@@ -157,11 +157,11 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
     def test_uv_calibration_pass_with_errors(self):
         with patch("sl1fw.test_runtime.test_fan_error_override", True), patch("sl1fw.test_runtime.uv_error_each", 3):
-            self.printer.hwConfig.coverCheck = False
+            self.printer.hw.config.coverCheck = False
             self.switchPage("settings")
             self.switchPage("calibrationSubMenu")
 
-            self.printer.hwConfig.coverCheck = False
+            self.printer.hw.config.coverCheck = False
             self.press("uvcalibration")
             self.waitPage("confirm")  # Welcome to UV calibration ...
             self.press("cont")
@@ -240,9 +240,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def _check_factory_reset(self, unboxing, factoryMode):
         self.assertFalse(os.path.exists(self.api_key_file), "apikey reset check")
         self.assertFalse(os.path.exists(self.uv_calib_data_file), "user UV calibration data reset check")
-        hwConfig = HwConfig(self.hardware_file)
-        hwConfig.read_file()
-        self.assertTrue(hwConfig.showUnboxing == unboxing, "config reset check")
+        hw_config = HwConfig(self.hardware_file)
+        hw_config.read_file()
+        self.assertTrue(hw_config.showUnboxing == unboxing, "config reset check")
         factoryConfig = TomlConfig(self.factory_config_file)
         factoryConfig.load()
         self.assertEqual(pydbus.SystemBus().get("org.freedesktop.NetworkManager").ListConnections(), ['ethernet']) # all wifi connections deleted
@@ -307,7 +307,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
         self.test_turnoff()
 
     def test_calibration(self):
-        self.printer.hwConfig.coverCheck = False
+        self.printer.hw.config.coverCheck = False
 
         self.switchPage("settings")
         self.switchPage("calibrationSubMenu")
@@ -353,10 +353,10 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
     def _fake_calibration(self):
         # Fake calibration
-        self.printer.hwConfig.calibrated = True
-        self.printer.hwConfig.fanCheck = False
-        self.printer.hwConfig.coverCheck = False
-        self.printer.hwConfig.resinSensor = False
+        self.printer.hw.config.calibrated = True
+        self.printer.hw.config.fanCheck = False
+        self.printer.hw.config.coverCheck = False
+        self.printer.hw.config.resinSensor = False
 
 
 if __name__ == "__main__":

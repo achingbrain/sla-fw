@@ -133,7 +133,7 @@ class PageSettings(Page):
     @property
     def tower_offset(self):
         if self._calibTowerOffset_mm is None:
-            self._calibTowerOffset_mm = self.display.hwConfig.calcMM(self.configwrapper.calibTowerOffset)
+            self._calibTowerOffset_mm = self.display.hw.config.calcMM(self.configwrapper.calibTowerOffset)
         #endif
         return self._calibTowerOffset_mm
     #enddef
@@ -143,7 +143,7 @@ class PageSettings(Page):
     @item_updater(str_func=lambda x: "%+.3f" % x)
     def tower_offset(self, value):
         self._calibTowerOffset_mm = value
-        self.configwrapper.calibTowerOffset = self.display.hwConfig.calcMicroSteps(value)
+        self.configwrapper.calibTowerOffset = self.display.hw.config.calcMicroSteps(value)
     #enddef
 
 
@@ -204,7 +204,7 @@ class PageSettings(Page):
         self.display.state = DisplayState.IDLE
 
         if self.configwrapper is None or not self.confirmReturnPending:
-            self.configwrapper = self.display.hwConfig.get_writer()
+            self.configwrapper = self.display.hw.config.get_writer()
         else:
             self.confirmReturnPending = False
         #endif
@@ -388,11 +388,11 @@ class PageSettings(Page):
                 #endif
                 if sensitivity_changed:
                     self.logger.info("Motor sensitivity changed. Updating profiles.")
-                    self.display.hw.updateMotorSensitivity(self.display.hwConfig.tiltSensitivity, self.display.hwConfig.towerSensitivity)
+                    self.display.hw.updateMotorSensitivity(self.display.hw.config.tiltSensitivity, self.display.hw.config.towerSensitivity)
                 #endif
             else:
                 # discard changes
-                self.display.hw.fans[2].targetRpm = self.display.hwConfig.fan3Rpm
+                self.display.hw.fans[2].targetRpm = self.display.hw.config.fan3Rpm
             #endif
         #endif
     #enddef

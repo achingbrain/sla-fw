@@ -121,7 +121,7 @@ class TestWizards(Sl1fwTestCase):
     def test_self_test_data(self):
         hw_config = HwConfig()
         hw_config.uvWarmUpTime = 0
-        wizard = SelfTestWizard(Hardware(), hw_config, Mock(), RuntimeConfig())
+        wizard = SelfTestWizard(Hardware(hw_config), Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_WIZARD_PART_1:
@@ -196,7 +196,7 @@ class TestWizards(Sl1fwTestCase):
 
     def test_unboxing_complete(self):
         wizard = CompleteUnboxingWizard(
-            Hardware(), HwConfig(defines.hwConfigPath, is_master=True), Mock(), RuntimeConfig()
+            Hardware(HwConfig(defines.hwConfigPath, is_master=True)), Mock(), RuntimeConfig()
         )
 
         def on_state_changed():
@@ -213,7 +213,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_unboxing_kit(self):
-        wizard = KitUnboxingWizard(Hardware(), HwConfig(defines.hwConfigPath, is_master=True), Mock(), RuntimeConfig())
+        wizard = KitUnboxingWizard(Hardware(HwConfig(defines.hwConfigPath, is_master=True)), Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
@@ -223,7 +223,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_calibration(self):
-        wizard = CalibrationWizard(Hardware(), HwConfig(), Mock(), RuntimeConfig())
+        wizard = CalibrationWizard(Hardware(), Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK:
@@ -257,13 +257,13 @@ class TestReset(TestWizards):
         self.hw_config_file = self.TEMP_DIR / "reset_config.toml"
         self.hw_config_factory_file = self.TEMP_DIR / "reset_config_factory.toml"
 
-        self.hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True,)
-        self.hw = Hardware(self.hw_config)
+        hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True,)
+        self.hw = Hardware(hw_config)
         self.runtime_config = RuntimeConfig()
 
         # Mock factory data
         defines.uvCalibDataPath = self.TEMP_DIR / defines.uvCalibDataFilename
-        self.hw_config.uvPwm = 210
+        self.hw.config.uvPwm = 210
         copyfile(self.SAMPLES_DIR / "uvcalib_data-60.toml", defines.uvCalibDataPathFactory)
         copyfile(self.SAMPLES_DIR / "self_test_data.json", defines.factoryMountPoint / "self_test_data.json")
 
@@ -300,30 +300,30 @@ class TestReset(TestWizards):
     def test_packing_complete(self):
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST complete", False)
-        self._run_wizard(PackingWizard(self.hw, self.hw_config, Mock(), self.runtime_config))
+        self._run_wizard(PackingWizard(self.hw, Mock(), self.runtime_config))
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_packing_kit(self):
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST kit", True)
-        self._run_wizard(PackingWizard(self.hw, self.hw_config, Mock(), self.runtime_config))
+        self._run_wizard(PackingWizard(self.hw, Mock(), self.runtime_config))
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_factory_reset_complete(self):
         self.runtime_config.factory_mode = False
         self.hw.boardData = ("TEST kit", False)
-        self._run_wizard(FactoryResetWizard(self.hw, self.hw_config, Mock(), self.runtime_config, True))
+        self._run_wizard(FactoryResetWizard(self.hw, Mock(), self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def test_factory_reset_kit(self):
         self.runtime_config.factory_mode = False
         self.hw.boardData = ("TEST kit", True)
-        self._run_wizard(FactoryResetWizard(self.hw, self.hw_config, Mock(), self.runtime_config, True))
+        self._run_wizard(FactoryResetWizard(self.hw, Mock(), self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def _check_factory_reset(self, unboxing: bool, factory_mode: bool):
         # Assert factory reset was performed
-        self.assertEqual(unboxing, self.hw_config.showUnboxing)
+        self.assertEqual(unboxing, self.hw.config.showUnboxing)
         self.assertFalse(defines.apikeyFile.exists(), "API-Key file deleted")
         self.assertFalse(defines.uvCalibDataPath.exists(), "User UV calibration data reset")
 
@@ -362,8 +362,8 @@ class TestUVCalibration(TestWizards):
         self.hw_config_factory_file = self.TEMP_DIR / "reset_config_factory.toml"
         defines.counterLog = self.TEMP_DIR / "counter.log"
 
-        self.hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True,)
-        self.hw = Hardware(self.hw_config)
+        hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True,)
+        self.hw = Hardware(hw_config)
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock()
         self.exposure_image.printer_model = PrinterModel.SL1
@@ -372,7 +372,7 @@ class TestUVCalibration(TestWizards):
     def test_uv_calibration_no_boost(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
             wizard = UVCalibrationWizard(
-                self.hw, self.hw_config, self.exposure_image, self.runtime_config, False, False
+                self.hw, self.exposure_image, self.runtime_config, False, False
             )
             self._run_uv_calibration(wizard)
 
@@ -397,7 +397,7 @@ class TestUVCalibration(TestWizards):
     def test_uv_calibration_boost(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
             wizard = UVCalibrationWizard(
-                self.hw, self.hw_config, self.exposure_image, self.runtime_config, False, False
+                self.hw, self.exposure_image, self.runtime_config, False, False
             )
             self.uv_meter.multiplier = 0.79
             self._run_uv_calibration(wizard)
@@ -406,9 +406,9 @@ class TestUVCalibration(TestWizards):
 
     def test_uv_calibration_boost_difference(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
-            self.hw_config.data_factory_values["uvPwm"] = 100
+            self.hw.config.data_factory_values["uvPwm"] = 100
             wizard = UVCalibrationWizard(
-                self.hw, self.hw_config, self.exposure_image, self.runtime_config, False, False
+                self.hw, self.exposure_image, self.runtime_config, False, False
             )
             self.uv_meter.multiplier = 0.85
             self._run_uv_calibration(wizard)
@@ -416,8 +416,8 @@ class TestUVCalibration(TestWizards):
 
     def test_uv_calibration_no_boost_replace_display(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
-            self.hw_config.data_factory_values["uvPwm"] = 100
-            wizard = UVCalibrationWizard(self.hw, self.hw_config, self.exposure_image, self.runtime_config, True, False)
+            self.hw.config.data_factory_values["uvPwm"] = 100
+            wizard = UVCalibrationWizard(self.hw, self.exposure_image, self.runtime_config, True, False)
             self.uv_meter.multiplier = 0.85
             self._run_uv_calibration(wizard)
             self.assertFalse(wizard.data["boost"])  # Not boosted despite difference from previous setup, setup changed
@@ -434,7 +434,7 @@ class TestUVCalibration(TestWizards):
 
     def test_uv_calibration_boost_replace_led(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
-            wizard = UVCalibrationWizard(self.hw, self.hw_config, self.exposure_image, self.runtime_config, False, True)
+            wizard = UVCalibrationWizard(self.hw, self.exposure_image, self.runtime_config, False, True)
             self.uv_meter.multiplier = 0.75
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Too weak needs boost even when changed
@@ -446,7 +446,7 @@ class TestUVCalibration(TestWizards):
     def test_uv_calibration_dim(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
             wizard = UVCalibrationWizard(
-                self.hw, self.hw_config, self.exposure_image, self.runtime_config, False, False
+                self.hw, self.exposure_image, self.runtime_config, False, False
             )
             self.uv_meter.multiplier = 0.1
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)
@@ -455,7 +455,7 @@ class TestUVCalibration(TestWizards):
     def test_uv_calibration_bright(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
             wizard = UVCalibrationWizard(
-                self.hw, self.hw_config, self.exposure_image, self.runtime_config, False, False
+                self.hw, self.exposure_image, self.runtime_config, False, False
             )
             self.uv_meter.multiplier = 10
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)
@@ -464,7 +464,7 @@ class TestUVCalibration(TestWizards):
     def test_uv_calibration_dev(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
             wizard = UVCalibrationWizard(
-                self.hw, self.hw_config, self.exposure_image, self.runtime_config, False, False
+                self.hw, self.exposure_image, self.runtime_config, False, False
             )
             self.uv_meter.noise = 70
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)

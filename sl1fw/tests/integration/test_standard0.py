@@ -34,10 +34,10 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
         super().setUp()
 
         # Fake calibration
-        self.printer.hwConfig.calibrated = True
-        self.printer.hwConfig.fanCheck = False
-        self.printer.hwConfig.coverCheck = False
-        self.printer.hwConfig.resinSensor = False
+        self.printer.hw.config.calibrated = True
+        self.printer.hw.config.fanCheck = False
+        self.printer.hw.config.coverCheck = False
+        self.printer.hw.config.resinSensor = False
 
         # dbus
         bus = SystemBus()

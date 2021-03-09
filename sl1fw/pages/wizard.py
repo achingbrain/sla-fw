@@ -173,7 +173,7 @@ class PageWizardInit(PageWizardBase):
 
         #tower home check
         pageWait.showItems(line1 = _("Tower home check"))
-        self.display.wizardData.towerSensitivity = self.display.hwConfig.towerSensitivity
+        self.display.wizardData.towerSensitivity = self.display.hw.config.towerSensitivity
         for i in range(3):
             if not self.display.hw.towerSyncWait():
                 if not self.display.doMenu("towersensitivity"):
@@ -324,7 +324,7 @@ class PageWizardTowerAxis(PageWizardBase):
         pageWait.show()
 
         try:
-            tower_axis(self.display.hw, self.display.hwConfig)
+            tower_axis(self.display.hw)
         except TowerAxisCheckFailed as e:
             self.display.pages['error'].setParams(
                 code=Sl1Codes.TOWER_AXIS_CHECK_FAILED.raw_code,
@@ -378,7 +378,7 @@ class PageWizardResinSensor(PageWizardBase):
         pageWait.show()
 
         try:
-            self.display.wizardData.wizardResinVolume = resin_sensor(self.display.hw, self.display.hwConfig, self.logger)
+            self.display.wizardData.wizardResinVolume = resin_sensor(self.display.hw, self.logger)
         except ResinFailed as exception:
             self.display.pages['error'].setParams(
                 code=Sl1Codes.RESIN_SENSOR_FAILED.raw_code,
@@ -386,9 +386,9 @@ class PageWizardResinSensor(PageWizardBase):
             )
             return "error"
 
-        self.display.hwConfig.showWizard = False
+        self.display.hw.config.showWizard = False
         try:
-            self.display.hwConfig.write()
+            self.display.hw.config.write()
         except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
@@ -400,9 +400,9 @@ class PageWizardResinSensor(PageWizardBase):
         self.display.wizardData.mcSerialNo = self.display.hw.mcSerialNo
         self.display.wizardData.mcFwVersion = self.display.hw.mcFwVersion
         self.display.wizardData.mcBoardRev = self.display.hw.mcBoardRevision
-        self.display.wizardData.towerHeight = self.display.hwConfig.towerHeight
-        self.display.wizardData.tiltHeight = self.display.hwConfig.tiltHeight
-        self.display.wizardData.uvPwm = self.display.hwConfig.uvPwm
+        self.display.wizardData.towerHeight = self.display.hw.config.towerHeight
+        self.display.wizardData.tiltHeight = self.display.hw.config.tiltHeight
+        self.display.wizardData.uvPwm = self.display.hw.config.uvPwm
 
         wizardConfig = TomlConfig(defines.wizardDataPath)
         wizardConfigFactory = TomlConfig(defines.wizardDataPathFactory)
@@ -552,9 +552,9 @@ class PageWizardSkip(Page):
 
     def yesButtonRelease(self):
         self.display.state = DisplayState.IDLE
-        self.display.hwConfig.showWizard = False
+        self.display.hw.config.showWizard = False
         try:
-            self.display.hwConfig.write()
+            self.display.hw.config.write()
         except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)

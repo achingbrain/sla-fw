@@ -46,15 +46,16 @@ class PageTowerSensitivity(Page):
             self.display.pages["error"].setParams(code=Sl1Codes.TOWER_HOME_FAILED.raw_code)
             return "error"
 
-        self.display.hwConfig.towerSensitivity = tower_sensitivity
+        self.display.hw.config.towerSensitivity = tower_sensitivity
         self.display.hw.setTowerPosition(self.display.hw.tower_end)
         if self.display.wizardData:
-            self.display.wizardData.towerSensitivity = self.display.hwConfig.towerSensitivity
+            self.display.wizardData.towerSensitivity = self.display.hw.config.towerSensitivity
 
-        self.display.hwConfig.towerSensitivity = self.display.hwConfig.towerSensitivity
+        # FIXME WTF?
+        self.display.hw.config.towerSensitivity = self.display.hw.config.towerSensitivity
 
         try:
-            self.display.hwConfig.write()
+            self.display.hw.config.write()
         except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)

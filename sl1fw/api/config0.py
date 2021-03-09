@@ -62,7 +62,7 @@ def wrap_property(func_name=None):
 
         @functools.wraps(f.fget)
         def getter(self):
-            return getattr(self.hw_config, name)
+            return getattr(self.hw.config, name)
 
         getter.__name__ = func.__name__
         getter.__doc__ = f.__doc__
@@ -70,7 +70,7 @@ def wrap_property(func_name=None):
         if f.fset:
             @functools.wraps(f.fset)
             def setter(self, value):
-                setattr(self.hw_config, name, value)
+                setattr(self.hw.config, name, value)
 
             return property(fget=getter, fset=setter)
 
@@ -94,10 +94,9 @@ class Config0:
 
     PropertiesChanged = signal()
 
-    def __init__(self, hw_config: HwConfig, hw: Hardware):
-        self.hw_config = hw_config
-        self._hw = hw
-        self.hw_config.add_onchange_handler(self._on_change)
+    def __init__(self, hw: Hardware):
+        self.hw = hw
+        self.hw.config.add_onchange_handler(self._on_change)
 
     @auto_dbus
     def save(self) -> None:
@@ -106,7 +105,7 @@ class Config0:
 
         :return: None
         """
-        self.hw_config.write()
+        self.hw.config.write()
 
     @auto_dbus
     def update_motor_sensitivity(self) -> None:
@@ -115,7 +114,7 @@ class Config0:
 
         :return: None
         """
-        self._hw.updateMotorSensitivity(self.hw_config.tiltSensitivity, self.hw_config.towerSensitivity)
+        self.hw.updateMotorSensitivity(self.hw.config.tiltSensitivity, self.hw.config.towerSensitivity)
 
     @auto_dbus
     @property
@@ -138,7 +137,7 @@ class Config0:
 
         :return: Config settings constraints as dictionary
         """
-        values = self.hw_config.get_values()
+        values = self.hw.config.get_values()
         return wrap_dict_data_recursive({
             name: self._process_value(value)
             for name, value in values.items()
@@ -162,7 +161,7 @@ class Config0:
     def _on_change(self, key: str, _: Any):
         if key in self.CHANGED_MAP:
             for changed in self.CHANGED_MAP[key]:
-                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.hw_config, changed)}, [])
+                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.hw.config, changed)}, [])
 
     CHANGED_MAP = {
         "screwMm": {"microStepsMM"},

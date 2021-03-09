@@ -13,7 +13,6 @@ from typing import Dict, Any
 import toml
 
 from sl1fw import defines, test_runtime
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.errors.errors import (
@@ -68,10 +67,9 @@ class CheckUVMeter(DangerousCheck):
 
 
 class UVWarmupCheck(DangerousCheck):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
         super().__init__(hw, WizardCheckType.UV_WARMUP, Configuration(None, None), [Resource.UV, Resource.FANS])
         self._hw = hw
-        self._hw_config = hw_config
         self._exposure_image = exposure_image
         self._uv_meter = uv_meter
 
@@ -82,8 +80,8 @@ class UVWarmupCheck(DangerousCheck):
         self._exposure_image.blank_screen()
         self._hw.uvLed(True)
 
-        for countdown in range(self._hw_config.uvWarmUpTime):
-            self.progress = countdown / self._hw_config.uvWarmUpTime
+        for countdown in range(self._hw.config.uvWarmUpTime):
+            self.progress = countdown / self._hw.config.uvWarmUpTime
             if test_runtime.testing:
                 await sleep(0.01)
             else:
@@ -93,12 +91,11 @@ class UVWarmupCheck(DangerousCheck):
 
 
 class CheckUVMeterPlacement(SyncDangerousCheck):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
+    def __init__(self, hw: Hardware, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
         super().__init__(
             hw, WizardCheckType.UV_METER_PLACEMENT, Configuration(None, None), [Resource.UV, Resource.FANS]
         )
         self._hw = hw
-        self._hw_config = hw_config
         self._exposure_image = exposure_image
         self._uv_meter = uv_meter
 
@@ -127,7 +124,6 @@ class UVCalibrate(SyncDangerousCheck, ABC):
         self,
         check_type: WizardCheckType,
         hw: Hardware,
-        hw_config: HwConfig,
         exposure_image: ExposureImage,
         uv_meter: UvLedMeterMulti,
         replacement: bool,
@@ -135,7 +131,6 @@ class UVCalibrate(SyncDangerousCheck, ABC):
     ):
         super().__init__(hw, check_type, Configuration(None, None), [Resource.UV])
         self._hw = hw
-        self._hw_config = hw_config
         self._exposure_image = exposure_image
         self._uv_meter = uv_meter
         self._calibration_params = self._hw.printer_model.calibration_parameters(self._hw.is500khz)
@@ -147,7 +142,7 @@ class UVCalibrate(SyncDangerousCheck, ABC):
         self.deviation = 2 * self.INTENSITY_DEVIATION_THRESHOLD
         self.result = None
 
-        self.factoryUvPwm = self._hw_config.data_factory_values["uvPwm"]
+        self.factoryUvPwm = self._hw.config.data_factory_values["uvPwm"]
         if not self.factoryUvPwm:
             self._logger.error("Factory UV PWM == 0, not set yet")
 
@@ -183,15 +178,15 @@ class UVCalibrateCenter(UVCalibrate):
             )
             self.calibrate()
 
-        boost_threshold = (self.factoryUvPwm / 100) * (100 + self._hw_config.uvCalibBoostTolerance)
+        boost_threshold = (self.factoryUvPwm / 100) * (100 + self._hw.config.uvCalibBoostTolerance)
         pwm_too_high = self.pwm > self.SECOND_PASS_THRESHOLD or self.pwm > boost_threshold
         if pwm_too_high and not self._result.boost and not self._uv_meter.sixty_points:
             self._result.boost = True
             self._logger.info(
                 "Boosted results applied due to bigger tolerance. Factory: %d, max: %f, tolerance: %d",
                 self.factoryUvPwm,
-                (self.factoryUvPwm / 100) * (100 + self._hw_config.uvCalibBoostTolerance),
-                self._hw_config.uvCalibBoostTolerance,
+                (self.factoryUvPwm / 100) * (100 + self._hw.config.uvCalibBoostTolerance),
+                self._hw.config.uvCalibBoostTolerance,
             )
             self._hw.beepAlarm(2)
             self.calibrate()
@@ -222,7 +217,7 @@ class UVCalibrateCenter(UVCalibrate):
             self._logger.info("New UV sensor data %s", str(data))
 
             # Calculate new error
-            error = self._hw_config.uvCalibIntensity - self.intensity
+            error = self._hw.config.uvCalibIntensity - self.intensity
             integrated_error += error
 
             self._logger.info(
@@ -264,12 +259,12 @@ class UVCalibrateCenter(UVCalibrate):
         if error > self._calibration_params.intensity_error_threshold:
             self._logger.error("UV intensity error: %f", error)
             raise UVTooDimm(
-                self.intensity, self._hw_config.uvCalibIntensity - self._calibration_params.intensity_error_threshold
+                self.intensity, self._hw.config.uvCalibIntensity - self._calibration_params.intensity_error_threshold
             )
         if error < -self._calibration_params.intensity_error_threshold:
             self._logger.error("UV intensity error: %f", error)
             raise UVTooBright(
-                self.intensity, self._hw_config.uvCalibIntensity + self._calibration_params.intensity_error_threshold
+                self.intensity, self._hw.config.uvCalibIntensity + self._calibration_params.intensity_error_threshold
             )
         if self.deviation > self.INTENSITY_DEVIATION_THRESHOLD:
             self._logger.error("UV deviation: %f", self.deviation)
@@ -312,10 +307,10 @@ class UVCalibrateEdge(UVCalibrate):
             self._logger.info("UV pwm tuning: pwm: %d, minValue: %f", self.pwm, self.min_value)
 
             # Compute progress based on threshold / value ratio
-            self.progress = min(1, self.min_value / self._hw_config.uvCalibMinIntEdge)
+            self.progress = min(1, self.min_value / self._hw.config.uvCalibMinIntEdge)
 
             # Break cycle when minimal intensity (on the edge) is ok
-            if self.min_value >= self._hw_config.uvCalibMinIntEdge:
+            if self.min_value >= self._hw.config.uvCalibMinIntEdge:
                 break
             self.pwm += 1
 
@@ -356,7 +351,6 @@ class UVCalibrateApply(Check):
     def __init__(
         self,
         hw: Hardware,
-        hw_config: HwConfig,
         runtime_config: RuntimeConfig,
         result: UVCalibrationResult,
         reset_display_counter: bool,
@@ -364,7 +358,6 @@ class UVCalibrateApply(Check):
     ):
         super().__init__(WizardCheckType.UV_CALIBRATION_APPLY_RESULTS)
         self._hw = hw
-        self._hw_config = hw_config
         self._runtime_config = runtime_config
         self._result = result
         self._reset_led_counter = reset_led_counter
@@ -399,17 +392,17 @@ class UVCalibrateApply(Check):
 
     async def apply_results(self):
         # Save HW config
-        previous_uv_pwm = self._hw_config.uvPwm
-        self._hw_config.uvPwm = self._result.data.uvFoundPwm
+        previous_uv_pwm = self._hw.config.uvPwm
+        self._hw.config.uvPwm = self._result.data.uvFoundPwm
         self._hw.uvLedPwm = self._result.data.uvFoundPwm
-        del self._hw_config.uvCurrent  # remove old value too
-        self._hw_config.write()
+        del self._hw.config.uvCurrent  # remove old value too
+        self._hw.config.write()
 
         # Save factory HW config
-        if self._runtime_config.factory_mode or not self._hw_config.data_factory_values["uvPwm"]:
+        if self._runtime_config.factory_mode or not self._hw.config.data_factory_values["uvPwm"]:
             try:
                 with FactoryMountedRW():
-                    self._hw_config.write_factory()
+                    self._hw.config.write_factory()
             except Exception as exception:
                 raise FailedToSaveFactoryConfig() from exception
 
@@ -432,7 +425,7 @@ class UVCalibrateApply(Check):
                     "resetDisplayCounter": self._reset_display_counter,
                     "resetUvLedCounter": self._reset_led_counter,
                     "previousUvPwm": previous_uv_pwm,
-                    "newUvPwm": self._hw_config.uvPwm,
+                    "newUvPwm": self._hw.config.uvPwm,
                 }
             }
             self._logger.info("counter data: %s", counters_data)

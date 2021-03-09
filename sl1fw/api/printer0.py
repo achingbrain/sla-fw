@@ -566,7 +566,7 @@ class Printer0:
         Get fast tilt time
         :return: Fast tilt time in seconds
         """
-        return self.printer.hwConfig.tiltFastTime
+        return self.printer.hw.config.tiltFastTime
 
     @auto_dbus
     @property
@@ -579,7 +579,7 @@ class Printer0:
 
         :return: Fast slow time in seconds
         """
-        return self.printer.hwConfig.tiltSlowTime
+        return self.printer.hw.config.tiltSlowTime
 
     @auto_dbus
     @last_error
@@ -723,7 +723,7 @@ class Printer0:
         :return: None
         """
         check_ready_to_print(
-            self.printer.hwConfig, self.printer.hw.printer_model.calibration_parameters(self.printer.hw.is500khz)
+            self.printer.hw.config, self.printer.hw.printer_model.calibration_parameters(self.printer.hw.is500khz)
         )
 
     @auto_dbus
@@ -739,7 +739,6 @@ class Printer0:
         :returns: Print task object
         """
         expo = self.printer.action_manager.new_exposure(
-            self.printer.hwConfig,
             self.printer.hw,
             self.printer.exposure_image,
             self.printer.runtime_config,
@@ -768,7 +767,6 @@ class Printer0:
         last_exposure = self.printer.action_manager.exposure
         exposure = self.printer.action_manager.reprint_exposure(
             last_exposure,
-            self.printer.hwConfig,
             self.printer.hw,
             self.printer.exposure_image,
             self.printer.runtime_config,
@@ -971,7 +969,7 @@ class Printer0:
     def run_unboxing_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             CompleteUnboxingWizard(
-                self.printer.hw, self.printer.hwConfig, self.printer.exposure_image, self.printer.runtime_config
+                self.printer.hw, self.printer.exposure_image, self.printer.runtime_config
             )
         )
 
@@ -979,7 +977,7 @@ class Printer0:
     @last_error
     def run_kit_unboxing_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
-            KitUnboxingWizard(self.printer.hw, self.printer.hwConfig, self.printer.exposure_image, self.printer.runtime_config)
+            KitUnboxingWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
         )
 
     @auto_dbus
@@ -987,7 +985,7 @@ class Printer0:
     def run_self_test_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             SelfTestWizard(
-                self.printer.hw, self.printer.hwConfig, self.printer.exposure_image, self.printer.runtime_config
+                self.printer.hw, self.printer.exposure_image, self.printer.runtime_config
             )
         )
 
@@ -995,7 +993,7 @@ class Printer0:
     @last_error
     def run_calibration_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
-            CalibrationWizard(self.printer.hw, self.printer.hwConfig, self.printer.exposure_image, self.printer.runtime_config)
+            CalibrationWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
         )
 
     @auto_dbus
@@ -1003,12 +1001,12 @@ class Printer0:
     def run_factory_reset_wizard(self) -> None:
         if self.printer.runtime_config.factory_mode:
             self.printer.action_manager.start_wizard(
-                PackingWizard(self.printer.hw, self.printer.hwConfig, self.printer.exposure_image, self.printer.runtime_config)
+                PackingWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
             )
         else:
             self.printer.action_manager.start_wizard(
                 FactoryResetWizard(
-                    self.printer.hw, self.printer.hwConfig, self.printer.exposure_image, self.printer.runtime_config
+                    self.printer.hw, self.printer.exposure_image, self.printer.runtime_config
                 )
             )
 
@@ -1018,7 +1016,6 @@ class Printer0:
         self.printer.action_manager.start_wizard(
             UVCalibrationWizard(
                 self.printer.hw,
-                self.printer.hwConfig,
                 self.printer.exposure_image,
                 self.printer.runtime_config,
                 display_replaced=display_replaced,

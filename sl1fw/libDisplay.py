@@ -19,7 +19,6 @@ from typing import Optional, List
 
 from PySignal import Signal
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.libHardware import Hardware
@@ -36,10 +35,9 @@ from sl1fw.states.display import DisplayState
 
 class Display:
 
-    def __init__(self, hwConfig: HwConfig, devices: List[VirtualDisplay], hw: Hardware, inet: Network,
+    def __init__(self, devices: List[VirtualDisplay], hw: Hardware, inet: Network,
                  exposure_image: ExposureImage, runtime_config: RuntimeConfig, action_manager: ActionManager):
         self.logger = logging.getLogger(__name__)
-        self.hwConfig = hwConfig
         self.devices = devices
         self.hw = hw
         self.inet = inet

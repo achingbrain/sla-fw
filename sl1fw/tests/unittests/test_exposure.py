@@ -20,7 +20,6 @@ from sl1fw.errors.errors import (
     ProjectErrorCantRead,
 )
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.states.exposure import ExposureState
@@ -53,7 +52,8 @@ class TestExposure(Sl1fwTestCase):
         defines.lastProjectConfigFile = self._change_dir(defines.lastProjectConfigFile)
         defines.lastProjectPickler = self._change_dir(defines.lastProjectPickler)
 
-        self.hw_config = HwConfig()
+        self.hw = Hardware()
+        self._fake_calibration(self.hw)
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock()
         self.exposure_image.__class__ = ExposureImage
@@ -62,33 +62,26 @@ class TestExposure(Sl1fwTestCase):
 
     def test_exposure_init_not_calibrated(self):
         with self.assertRaises(NotUVCalibrated):
-            exposure = Exposure(
-                0, self.hw_config, Hardware(), self.exposure_image, self.runtime_config
-            )
+            exposure = Exposure(0, Hardware(), self.exposure_image, self.runtime_config)
             exposure.read_project(TestExposure.PROJECT)
 
     def test_exposure_init(self):
-        self._fake_calibration()
-        exposure = Exposure(
-            0, self.hw_config, Hardware(), self.exposure_image, self.runtime_config
-        )
+        exposure = Exposure(0, self.hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
 
     def test_exposure_load(self):
-        self._fake_calibration()
-        exposure = Exposure(
-            0, self.hw_config, Hardware(), self.exposure_image, self.runtime_config
-        )
+        exposure = Exposure(0, self.hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
 
     def test_exposure_start_stop(self):
-        exposure = self._run_exposure(Hardware())
+        exposure = self._run_exposure(self.hw)
         self.assertNotEqual(exposure.state, ExposureState.FAILURE)
         self.assertIsNone(exposure.warning)
 
     def test_resin_enough(self):
         hw = Hardware()
+        self._fake_calibration(hw)
         hw.getResinVolume.return_value = defines.resinMaxVolume
         exposure = self._run_exposure(hw)
         self.assertNotEqual(exposure.state, ExposureState.FAILURE)
@@ -96,6 +89,7 @@ class TestExposure(Sl1fwTestCase):
 
     def test_resin_warning(self):
         hw = Hardware()
+        self._fake_calibration(hw)
         hw.getResinVolume.return_value = defines.resinMinVolume + 0.1
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.exception, WarningEscalation)
@@ -104,22 +98,21 @@ class TestExposure(Sl1fwTestCase):
 
     def test_resin_error(self):
         hw = Hardware()
+        self._fake_calibration(hw)
         hw.getResinVolume.return_value = defines.resinMinVolume - 0.1
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.exception, ResinTooLow)
 
     def test_broken_empty_project(self):
-        hw = Hardware()
-        self._fake_calibration()
-        exposure = Exposure(0, self.hw_config, hw, self.exposure_image, self.runtime_config)
+        exposure = Exposure(0, self.hw, self.exposure_image, self.runtime_config)
         exposure.read_project(self.BROKEN_EMPTY_PROJECT)
         self.assertIsInstance(exposure.exception, ProjectErrorCantRead)
 
     def test_stuck_recovery_success(self):
         hw = Hardware()
-        self._fake_calibration()
+        self._fake_calibration(hw)
         hw.tiltLayerDownWait = lambda _: False
-        exposure = Exposure(0, self.hw_config, hw, self.exposure_image, self.runtime_config)
+        exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
         exposure.confirm_print_start()
@@ -145,9 +138,9 @@ class TestExposure(Sl1fwTestCase):
 
     def test_stuck_recovery_fail(self):
         hw = Hardware()
-        self._fake_calibration()
+        self._fake_calibration(hw)
         hw.tiltLayerDownWait = lambda _: False
-        exposure = Exposure(0, self.hw_config, hw, self.exposure_image, self.runtime_config)
+        exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
         exposure.confirm_print_start()
@@ -172,8 +165,7 @@ class TestExposure(Sl1fwTestCase):
         raise TimeoutError("Waiting for exposure failed")
 
     def _run_exposure(self, hw) -> Exposure:
-        self._fake_calibration()
-        exposure = Exposure(0, self.hw_config, hw, self.exposure_image, self.runtime_config)
+        exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
         exposure.confirm_print_start()
@@ -200,9 +192,10 @@ class TestExposure(Sl1fwTestCase):
         exposure.waitDone()
         return exposure
 
-    def _fake_calibration(self):
-        self.hw_config.uvPwm = 250
-        self.hw_config.calibrated = True
+    @staticmethod
+    def _fake_calibration(hw: Hardware):
+        hw.config.uvPwm = 250
+        hw.config.calibrated = True
 
 
 if __name__ == "__main__":

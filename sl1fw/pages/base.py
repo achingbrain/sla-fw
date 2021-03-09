@@ -186,7 +186,7 @@ class Page:
 
 
     def ensureCoverIsClosed(self):
-        if not self.display.hwConfig.coverCheck or self.display.hw.isCoverClosed():
+        if not self.display.hw.config.coverCheck or self.display.hw.isCoverClosed():
             return
         #endif
         # TODO: Remove this once we do not need to do uvcalibration in factory on a kit
@@ -223,7 +223,7 @@ class Page:
 
     def saveDefaultsFile(self):
         try:
-            self.display.hwConfig.write_factory()
+            self.display.hw.config.write_factory()
         except ConfigException:
             self.logger.exception("Defaults were not saved!")
         #endtry
@@ -289,7 +289,7 @@ class Page:
 
 
     def _strOffset(self, value):
-        return "%+.3f" % self.display.hwConfig.calcMM(value)
+        return "%+.3f" % self.display.hw.config.calcMM(value)
     #enddef
 
 
@@ -383,7 +383,7 @@ class Page:
 
 
     def checkCoverCallback(self):
-        if not self.display.hwConfig.coverCheck or self.display.hw.isCoverClosed():
+        if not self.display.hw.config.coverCheck or self.display.hw.isCoverClosed():
             self.checkCoverBeepDelay = 2
             return
         #endif
@@ -464,7 +464,7 @@ class Page:
         #endif
 
         # fans test
-        if not self.display.hwConfig.fanCheck or self.display.runtime_config.fan_error_override \
+        if not self.display.hw.config.fanCheck or self.display.runtime_config.fan_error_override \
                 or test_runtime.test_fan_error_override:
             return
         #endif

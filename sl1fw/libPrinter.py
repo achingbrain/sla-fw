@@ -82,7 +82,7 @@ class Printer:
         self.logger.info("SL1 firmware initializing")
 
         self.logger.info("Initializing hwconfig")
-        self.hwConfig = HwConfig(
+        hw_config = HwConfig(
             file_path=Path(defines.hwConfigPath), factory_file_path=Path(defines.hwConfigPathFactory), is_master=True,
         )
         self.runtime_config = RuntimeConfig()
@@ -94,15 +94,15 @@ class Printer:
         self.logger.info("Factory mode: %s", self.runtime_config.factory_mode)
         self.runtime_config.show_admin = self.runtime_config.factory_mode
         try:
-            self.hwConfig.read_file()
+            hw_config.read_file()
         except ConfigException:
             self.logger.warning("Failed to read configuration file", exc_info=True)
 
-        self.logger.info(str(self.hwConfig))
+        self.logger.info(str(hw_config))
 
         self.logger.info("Initializing libHardware")
 
-        self.hw = Hardware(self.hwConfig)
+        self.hw = Hardware(hw_config)
 
         # needed before init of other components (display etc)
         # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
@@ -127,14 +127,14 @@ class Printer:
 
         self.logger.info("Registering config D-Bus services")
         self.system_bus = SystemBus()
-        self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hwConfig, self.hw))
+        self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hw))
 
         self.logger.info("registering log0 dbus interface")
         self.logs0_dbus = self.system_bus.publish(Logs0.__INTERFACE__, Logs0(self.hw))
 
         self.logger.info("Initializing libDisplay")
         self.display = Display(
-            self.hwConfig, devices, self.hw, self.inet, self.exposure_image, self.runtime_config, self.action_manager,
+            devices, self.hw, self.inet, self.exposure_image, self.runtime_config, self.action_manager,
         )
         try:
             TomlConfigStats(defines.statsData, self.hw).update_reboot_counter()
@@ -194,7 +194,7 @@ class Printer:
             except GLib.GError:
                 self.logger.exception("Failed to obtain current locale.")
 
-            if not self.hwConfig.is_factory_read() and not self.hw.isKit:
+            if not self.hw.config.is_factory_read() and not self.hw.isKit:
                 self.display.pages["error"].setParams(code=Sl1Codes.FAILED_TO_LOAD_FACTORY_LEDS_CALIBRATION.raw_code)
                 self.display.doMenu("error")
 
@@ -202,28 +202,28 @@ class Printer:
                 if not get_all_supported_files(self.hw.printer_model, Path(defines.internalProjectPath)):
                     self.display.pages["error"].setParams(code=Sl1Codes.MISSING_EXAMPLES.raw_code)
                     self.display.doMenu("error")
-            elif self.hwConfig.showUnboxing:
+            elif self.hw.config.showUnboxing:
                 if self.hw.isKit:
                     unboxing = self.action_manager.start_wizard(
-                        KitUnboxingWizard(self.hw, self.hwConfig, self.exposure_image, self.runtime_config)
+                        KitUnboxingWizard(self.hw, self.exposure_image, self.runtime_config)
                     )
                 else:
                     unboxing = self.action_manager.start_wizard(
-                        CompleteUnboxingWizard(self.hw, self.hwConfig, self.exposure_image, self.runtime_config)
+                        CompleteUnboxingWizard(self.hw, self.exposure_image, self.runtime_config)
                     )
                 self.logger.info("Running unboxing wizard")
                 unboxing.join()
                 self.logger.info("Unboxing finished")
 
-            if self.hwConfig.showWizard:
+            if self.hw.config.showWizard:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("wizardinit")
 
-            if self.display.hwConfig.uvPwm < self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm:
+            if self.hw.config.uvPwm < self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("uvcalibrationstart")
 
-            if not self.hwConfig.calibrated:
+            if not self.hw.config.calibrated:
                 self.hw.beepRepeat(1)
                 self.display.doMenu("calibrationstart")
 

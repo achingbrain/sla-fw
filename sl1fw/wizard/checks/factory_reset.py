@@ -197,20 +197,18 @@ class ResetHomingProfiles(ResetCheck):
     Set homing profiles to factory defaults
     """
 
-    def __init__(self, hw: Hardware, hw_config: HwConfig, *args, **kwargs):
+    def __init__(self, hw: Hardware, *args, **kwargs):
         super().__init__(WizardCheckType.RESET_HOMING_PROFILES, *args, **kwargs)
         self._hw = hw
-        self._hw_config = hw_config
 
     def reset_task_run(self, actions: UserActionBroker):
-        self._hw.updateMotorSensitivity(self._hw_config.tiltSensitivity, self._hw_config.towerSensitivity)
+        self._hw.updateMotorSensitivity(self._hw.config.tiltSensitivity, self._hw.config.towerSensitivity)
 
 
 class DisableFactory(SyncCheck):
-    def __init__(self, hw: Hardware, hw_config: HwConfig, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
         super().__init__(WizardCheckType.DISABLE_FACTORY)
         self._hw = hw
-        self._hw_config = hw_config
         self._runtime_config = runtime_config
 
     def task_run(self, actions: UserActionBroker):
@@ -224,28 +222,26 @@ class DisableFactory(SyncCheck):
 
 
 class SendPrinterData(SyncCheck):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(WizardCheckType.SEND_PRINTER_DATA)
         self._hw = hw
-        self._hw_config = hw_config
 
     def task_run(self, actions: UserActionBroker):
-        if self._hw_config.uvPwm == 0:
+        if self._hw.config.uvPwm == 0:
             self._logger.error("Cannot do factory reset UV PWM not set (== 0)")
             raise MissingUVPWM()
 
         try:
-            send_printer_data(self._hw, self._hw_config)
+            send_printer_data(self._hw)
         except PrinterDataSendError:
             self._logger.exception("Failed to send printer data to mqtt")
             raise
 
 
 class InitiatePackingMoves(Check):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(WizardCheckType.INITIATE_PACKING_MOVES)
         self._hw = hw
-        self._hw_config = hw_config
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.towerSync()
@@ -261,21 +257,20 @@ class InitiatePackingMoves(Check):
 
         self._hw.setTowerProfile("homingFast")
         # TODO: Constant in code !!!
-        self._hw.towerMoveAbsolute(self._hw_config.towerHeight - self._hw_config.calcMicroSteps(74))
+        self._hw.towerMoveAbsolute(self._hw.config.towerHeight - self._hw.config.calcMicroSteps(74))
         while self._hw.isTowerMoving():
             await sleep(0.25)
 
 
 class FinishPackingMoves(Check):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(WizardCheckType.FINISH_PACKING_MOVES)
         self._hw = hw
-        self._hw_config = hw_config
 
     async def async_task_run(self, actions: UserActionBroker):
         # slightly press the foam against printers base
         # TODO: Constant in code !!!
-        self._hw.towerMoveAbsolute(self._hw_config.towerHeight - self._hw_config.calcMicroSteps(93))
+        self._hw.towerMoveAbsolute(self._hw.config.towerHeight - self._hw.config.calcMicroSteps(93))
         while self._hw.isTowerMoving():
             await sleep(0.25)
 

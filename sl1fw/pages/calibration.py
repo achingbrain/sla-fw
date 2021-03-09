@@ -278,7 +278,7 @@ class PageCalibration5(MovePage):
             self.logger.error("Invalid tilt position to save!")
             self.display.hw.beepAlarm(3)
         else:
-            self.display.hwConfig.tiltHeight = position
+            self.display.hw.config.tiltHeight = position
         #endif
         return "calibration6"
     #endif
@@ -389,7 +389,7 @@ class PageCalibration8(PageCalibrationBase):
         pageWait = PageWait(self.display, line1=_("Platform calibration"))
         pageWait.show()
         try:
-            tower_calibrate(self.display.hw, self.display.hwConfig, self.logger)
+            tower_calibrate(self.display.hw, self.logger)
         except TowerBelowSurface:
             self.display.pages['confirm'].setParams(
                 continueFce=self.positionFailed,
@@ -481,9 +481,9 @@ class PageCalibration10(PageCalibrationBase):
         self.logger.debug("Resetting tilt")
         self.display.hw.tiltUpWait()
         self.logger.debug("Setting calibration data")
-        writer = self.display.hwConfig.get_writer()
-        writer.towerHeight = self.display.hwConfig.towerHeight  # TODO: This seems to just copy default to value
-        writer.tiltHeight = self.display.hwConfig.tiltHeight  # TODO: This seems to just copy default to value
+        writer = self.display.hw.config.get_writer()
+        writer.towerHeight = self.display.hw.config.towerHeight  # TODO: This seems to just copy default to value
+        writer.tiltHeight = self.display.hw.config.tiltHeight  # TODO: This seems to just copy default to value
         writer.tiltFastTime = tiltFastTime
         writer.tiltSlowTime = tiltSlowTime
         writer.calibrated = True
@@ -503,7 +503,7 @@ class PageCalibration10(PageCalibrationBase):
 
     def getTiltTime(self, pageWait, slowMove):
         tiltTime = 0
-        total = self.display.hwConfig.measuringMoves
+        total = self.display.hw.config.measuringMoves
         for i in range(total):
             pageWait.showItems(line2 = (_("Slow move %(count)d/%(total)d") if slowMove else _("Fast move %(count)d/%(total)d")) % { 'count' : i+1, 'total' : total })
             self.logger.debug("Measuring tilt time - start")
@@ -532,10 +532,10 @@ class PageCalibrationEnd(Page):
 
     def prepare(self):
         self.logger.debug("Setting calibrated to True")
-        self.display.hwConfig.calibrated = True
+        self.display.hw.config.calibrated = True
         try:
             self.logger.debug("Setting configuration")
-            self.display.hwConfig.write()
+            self.display.hw.config.write()
         except ConfigException as exception:
             self.logger.exception("Cannot save configuration")
             self.display.pages['error'].setParams(code=get_exception_code(exception).raw_code)
@@ -551,9 +551,9 @@ class PageCalibrationEnd(Page):
                 "Tilt time fast: %(fast).1f s\n"
                 "Tilt time slow: %(slow).1f s\n"
                 "Area fill: %(area)d %%") % {
-                'fast' : self.display.hwConfig.tiltFastTime,
-                'slow' : self.display.hwConfig.tiltSlowTime,
-                'area' : self.display.hwConfig.limit4fast },
+                'fast' : self.display.hw.config.tiltFastTime,
+                'slow' : self.display.hw.config.tiltSlowTime,
+                'area' : self.display.hw.config.limit4fast },
             'no_back' : True })
         super(PageCalibrationEnd, self).show()
     #enddef

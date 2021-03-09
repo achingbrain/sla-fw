@@ -18,7 +18,6 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.api.wizard0 import Wizard0
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.libHardware import Hardware
@@ -43,10 +42,10 @@ class ActionManager:
         self._wizard_registration = None
 
     def new_exposure(
-        self, config: HwConfig, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig, project: str
+        self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig, project: str
     ) -> Exposure:
         # Create new exposure object and apply passed settings
-        exposure = Exposure(self._get_job_id(), config, hw, exposure_image, runtime_config)
+        exposure = Exposure(self._get_job_id(), hw, exposure_image, runtime_config)
         exposure.read_project(project)
         self.logger.info("Created new exposure id: %s", exposure.instance_id)
 
@@ -72,9 +71,9 @@ class ActionManager:
         return exposure
 
     def reprint_exposure(
-        self, reference: Exposure, config: HwConfig, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig
+        self, reference: Exposure, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig
     ):
-        exposure = Exposure(self._get_job_id(), config, hw, exposure_image, runtime_config)
+        exposure = Exposure(self._get_job_id(), hw, exposure_image, runtime_config)
         exposure.read_project(reference.project.path)
         exposure.project.set_timings_reference(reference.project)
         self.logger.info("Created reprint exposure id: %s", exposure.instance_id)

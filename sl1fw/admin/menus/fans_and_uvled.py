@@ -17,7 +17,7 @@ class FansAndUVLedMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
         self._printer = printer
-        self._temp = self._printer.hwConfig.get_writer()
+        self._temp = self._printer.hw.config.get_writer()
         self._init_fans = self._printer.hw.getFans()
         self._override_fans = self._printer.hw.getFans()
         uv_led_state = self._printer.hw.getUvLedState()
@@ -112,18 +112,18 @@ class FansAndUVLedMenu(AdminMenu):
 
     def _do_reset_to_defaults(self) -> None:
         self.logger.info("Fans&LEDs - Resetting to defaults")
-        del self._printer.hwConfig.uvCurrent  # remove old value too
-        del self._printer.hwConfig.uvPwm
-        del self._printer.hwConfig.fan1Rpm
-        del self._printer.hwConfig.fan2Rpm
-        del self._printer.hwConfig.fan3Rpm
+        del self._printer.hw.config.uvCurrent  # remove old value too
+        del self._printer.hw.config.uvPwm
+        del self._printer.hw.config.fan1Rpm
+        del self._printer.hw.config.fan2Rpm
+        del self._printer.hw.config.fan3Rpm
         self._printer.hw.setFans(
-            {0: self._printer.hwConfig.fan1Rpm, 1: self._printer.hwConfig.fan2Rpm, 2: self._printer.hwConfig.fan3Rpm}
+            {0: self._printer.hw.config.fan1Rpm, 1: self._printer.hw.config.fan2Rpm, 2: self._printer.hw.config.fan3Rpm}
         )
-        self._printer.hw.uvLedPwm = self._printer.hwConfig.uvPwm
+        self._printer.hw.uvLedPwm = self._printer.hw.config.uvPwm
         self._temp.reset()
         try:
-            self._printer.hwConfig.write()
+            self._printer.hw.config.write()
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self._control.enter(Error(self._control, text="Cannot save configuration", pop=1))
@@ -137,11 +137,11 @@ class FansAndUVLedMenu(AdminMenu):
     def _do_save_as_defaults(self):
         self.logger.info("Fans&LEDs - Saving factory defaults")
         self._temp.commit()
-        self._printer.hwConfig.write()
+        self._printer.hw.config.write()
 
         try:
             with FactoryMountedRW():
-                self._printer.hwConfig.write_factory()
+                self._printer.hw.config.write_factory()
         except ConfigException:
             self._control.enter(Error(self._control, text="!!! Failed to save factory defaults !!!", pop=1))
         self._control.enter(Info(self._control, "Configuration saved as default"))

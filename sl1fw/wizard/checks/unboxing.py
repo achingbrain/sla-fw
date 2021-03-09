@@ -5,7 +5,6 @@
 from time import sleep
 from typing import Optional
 
-from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import WizardCheckType, SyncCheck
@@ -15,13 +14,12 @@ from sl1fw.wizard.setup import Configuration, Resource
 class MoveToFoam(SyncCheck):
     FOAM_TARGET_POSITION_NM = 30_000_000
 
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(
             WizardCheckType.MOVE_TO_FOAM, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
         )
         self.result: Optional[bool] = None
         self.hw = hw
-        self.hw_config = hw_config
 
     def task_run(self, actions: UserActionBroker):
         with actions.led_warn:
@@ -41,13 +39,12 @@ class MoveToFoam(SyncCheck):
 
 
 class MoveToTank(SyncCheck):
-    def __init__(self, hw: Hardware, hw_config: HwConfig):
+    def __init__(self, hw: Hardware):
         super().__init__(
             WizardCheckType.MOVE_TO_TANK, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
         )
         self.result: Optional[bool] = None
         self.hw = hw
-        self.hw_config = hw_config
 
     def task_run(self, actions: UserActionBroker):
         with actions.led_warn:
