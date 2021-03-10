@@ -38,10 +38,6 @@ class DisplayTest(DangerousCheck):
 
         self._logger.debug("Setting hardware positions for display test")
         await self.wait_cover_closed()
-        self.hw.tower_home()
-        await self.wait_cover_closed()
-        self.hw.tilt_home()
-        await self.wait_cover_closed()
         self.hw.startFans()
         self.runtime_config.fan_error_override = True
         self.exposure_image.show_system_image("logo.png")

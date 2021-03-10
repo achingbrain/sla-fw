@@ -10,6 +10,8 @@ from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.display import DisplayTest
+from sl1fw.wizard.checks.tilt import TiltLevelTest
+from sl1fw.wizard.checks.tower import TowerHomeTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup
 from sl1fw.wizard.wizard import Wizard
@@ -17,7 +19,10 @@ from sl1fw.wizard.wizard import Wizard
 
 class DisplayTestCheckGroup(CheckGroup):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
-        super().__init__(Configuration(TankSetup.REMOVED, None), [DisplayTest(hw, exposure_image, runtime_config)])
+        super().__init__(
+            Configuration(TankSetup.REMOVED, None),
+            [TowerHomeTest(hw, hw.hwConfig), TiltLevelTest(hw), DisplayTest(hw, exposure_image, runtime_config)],
+        )
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(actions, actions.prepare_displaytest_done, WizardState.PREPARE_DISPLAY_TEST)

@@ -37,9 +37,9 @@ class UVCalibrationPrepare(CheckGroup):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
-                DisplayTest(hw, exposure_image, runtime_config),
                 TowerHomeTest(hw, hw_config),
                 TiltLevelTest(hw),
+                DisplayTest(hw, exposure_image, runtime_config),
                 SystemInfoTest(hw),
             ],
         )
