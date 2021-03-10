@@ -15,6 +15,7 @@ from sl1fw.errors.errors import (
     TiltAxisCheckFailed,
     InvalidTiltAlignPosition,
 )
+from sl1fw.errors.exceptions import PrinterException
 from sl1fw.functions.checks import tilt_calib_start
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
@@ -58,7 +59,23 @@ class TiltLevelTest(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
+        # This just homes tilt
+        # TODO: We should have such a method in Hardware
         self._hw.setTiltProfile("homingFast")
+        self._hw.tiltSync()
+        home_status = self._hw.tiltHomingStatus
+        while home_status != 0:
+            if home_status == -2:
+                raise TiltEndstopNotReached()
+            if home_status == -3:
+                raise TiltHomeCheckFailed()
+            if home_status < 0:
+                raise PrinterException("Unknown printer home error")
+            await asyncio.sleep(0.25)
+            home_status = self._hw.tiltHomingStatus
+        self._hw.setTiltPosition(0)
+
+        # Set tilt to leveled position
         self._hw.tiltUp()
         while self._hw.isTiltMoving():
             await asyncio.sleep(0.25)

@@ -25,6 +25,7 @@ class Hardware:
         self.tower_position_nm = defines.defaultTowerHeight * 1000 * 1000 * 1000
 
         self.hw_config = hw_config
+        self.hwConfig = hw_config
         self.fans = {
             0: Fan("UV LED fan", defines.fanMaxRPM[0], self.hw_config.fan1Rpm, self.hw_config.fan1Enabled,),
             1: Fan("blower fan", defines.fanMaxRPM[1], self.hw_config.fan2Rpm, self.hw_config.fan2Enabled,),
@@ -61,6 +62,8 @@ class Hardware:
         self.getFansRpm = Mock(return_value=[self.hw_config.fan1Rpm, self.hw_config.fan2Rpm, self.hw_config.fan3Rpm,])
         self.isTowerMoving = Mock(return_value=False)
         self.getTowerPositionMicroSteps = Mock(return_value=self.tower_end)
+        self.tiltHomingStatus = 0
+        self.get_tower_sensitivity = Mock(return_value=0)
 
     def getUvStatistics(self):
         return self._led_stat_s, self._display_stat_s
