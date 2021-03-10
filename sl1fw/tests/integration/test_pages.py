@@ -94,7 +94,7 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("no")
             self.waitPage("wait")  # Start positions
             # Display test removed - needs to be skipped from this test
-            self.waitPage("confirm")  # Place the UV calibrator in and close lid ...
+            self.waitPage("confirm", timeout_sec=10)  # Place the UV calibrator in and close lid ...
             self.press("cont")
             self.waitPage("wait")  # Waiting for UV calibrator
             self.waitPage("error")  # No UV calibrator connected
@@ -119,9 +119,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("cont")
             self.waitPage("wait")  # Start positions
             # Display test removed - needs to be skipped from this test
-            self.waitPage("confirm")  # Place the UV meter in and close lid ...
+            self.waitPage("confirm", timeout_sec=10)  # Place the UV calibrator in and close lid ...
             self.press("cont")
-            self.waitPage("wait")  # Waiting for UV meter
+            self.waitPage("wait")  # Waiting for UV calibrator
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
             self.press("yes")
             self.waitPage("calibrationSubMenu")
@@ -146,9 +146,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("cont")
             self.waitPage("wait")  # Start positions
             # Display test removed - needs to be skipped from this test
-            self.waitPage("confirm")  # Place the UV meter in and close lid ...
+            self.waitPage("confirm", timeout_sec=10)  # Place the UV calibrator in and close lid ...
             self.press("cont")
-            self.waitPage("wait")  # Waiting for UV meter
+            self.waitPage("wait")  # Waiting for UV calibrator
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
             self.press("yes")
             self.waitPage("calibrationSubMenu")
@@ -171,9 +171,9 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
             self.press("no")
             self.waitPage("wait")  # Start positions
             # Display test removed - needs to be skipped from this test
-            self.waitPage("confirm")  # Place the UV meter in and close lid ...
+            self.waitPage("confirm", timeout_sec=10)  # Place the UV calibrator in and close lid ...
             self.press("cont")
-            self.waitPage("wait")  # Waiting for UV meter
+            self.waitPage("wait")  # Waiting for UV calibrator
             self.waitPage("yesno", timeout_sec=180)  # use new calibration
             self.press("yes")
             self.waitPage("calibrationSubMenu")
