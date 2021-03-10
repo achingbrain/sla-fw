@@ -109,6 +109,8 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
         self._wait_for_state(const.State.ATTENTION, 30)
         self.standard0.cmd_back()
         self._wait_for_state(const.State.PRINTING, 30)
+        # wait for end
+        self._wait_for_state(const.State.READY, 60)
 
     def _wait_for_state(self, state: str, timeout_s: int):
         printer_state = None
