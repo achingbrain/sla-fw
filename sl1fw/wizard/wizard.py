@@ -242,7 +242,8 @@ class Wizard(Thread, UserActionBroker):
 
             try:
                 # Store as current wizard result in factory (in case it is already not present i.e. from factory setup)
-                if not self._data_present_in_factory():
+                # Also store result in factory in case of active factory mode
+                if not self._data_present_in_factory() or self._runtime_config.factory_mode:
                     with FactoryMountedRW():
                         copyfile(temp.name, defines.factoryMountPoint / self.get_data_filename())
                         defines.wizardHistoryPathFactory.mkdir(parents=True, exist_ok=True)
