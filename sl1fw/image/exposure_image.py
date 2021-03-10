@@ -102,6 +102,7 @@ class ExposureImage:
         return img
 
     def new_project(self, project: Project):
+        # pylint: disable=too-many-statements
         # Remove live preview from last run
         if os.path.exists(defines.livePreviewImage):
             os.remove(defines.livePreviewImage)
@@ -123,6 +124,8 @@ class ExposureImage:
             except Exception:
                 self._logger.exception("per partes masks exception")
                 self._project.warnings.add(PerPartesPrintNotAvaiable())
+                # reset the flag for Exposure
+                self._project.per_partes = False
         try:
             mask = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
             mask.readonly = False
