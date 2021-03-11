@@ -208,6 +208,8 @@ class UVCalibrateCenter(UVCalibrate):
         data = None
 
         # Calibrate LED Power
+        self._hw.uvLed(True)
+        self._hw.startFans()
         for iteration in range(0, self.TUNING_ITERATIONS):
             self.progress = iteration / self.TUNING_ITERATIONS
             self._hw.uvLedPwm = int(self.pwm)
@@ -292,6 +294,8 @@ class UVCalibrateEdge(UVCalibrate):
         # check PWM value from previous step
         self.pwm = self._hw.uvLedPwm
         data = None
+        self._hw.uvLed(True)
+        self._hw.startFans()
         while self.pwm <= max_pwm:
             self._hw.uvLedPwm = self.pwm
             # Read new intensity value
