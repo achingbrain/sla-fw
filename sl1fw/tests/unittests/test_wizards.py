@@ -179,6 +179,21 @@ class TestWizards(Sl1fwTestCase):
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard)
 
+    def test_display_test_fail(self):
+        wizard = DisplayTestWizard(Hardware(), Mock(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.PREPARE_DISPLAY_TEST:
+                wizard.prepare_displaytest_done()
+            if wizard.state == WizardState.TEST_DISPLAY:
+                wizard.report_display(False)
+            if wizard.state == WizardState.STOPPED:
+                wizard.abort()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard, expected_state=WizardState.FAILED)
+        self.assertEqual("#10120", wizard.data["displaytest_exception"]["code"])
+
     def test_unboxing_complete(self):
         wizard = CompleteUnboxingWizard(
             Hardware(), HwConfig(defines.hwConfigPath, is_master=True), Mock(), RuntimeConfig()

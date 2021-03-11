@@ -164,8 +164,8 @@ class BaseCheck(ABC):
             raise
         except Exception as e:
             self._logger.exception("Exception: %s", type(self).__name__)
-            self.state = WizardCheckState.FAILURE
             self.exception = e
+            self.state = WizardCheckState.FAILURE
             raise
         finally:
             self._logger.info("Freeing resources: %s", type(self).__name__)
