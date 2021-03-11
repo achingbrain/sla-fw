@@ -211,7 +211,6 @@ class UVCalibrateCenter(UVCalibrate):
         self._hw.uvLed(True)
         self._hw.startFans()
         for iteration in range(0, self.TUNING_ITERATIONS):
-            self.progress = iteration / self.TUNING_ITERATIONS
             self._hw.uvLedPwm = int(self.pwm)
             # Read new intensity value
             data = self._uv_meter.read_data()
@@ -235,6 +234,9 @@ class UVCalibrateCenter(UVCalibrate):
                 iteration,
                 success_count,
             )
+
+            # Compute progress based on threshold / error ratio
+            self.progress = 1 if error == 0 else min(1, self._calibration_params.intensity_error_threshold / abs(error))
 
             # Break cycle when error is tolerable
             if abs(error) < self._calibration_params.intensity_error_threshold:
@@ -308,6 +310,9 @@ class UVCalibrateEdge(UVCalibrate):
             data.uvFoundPwm = -1  # for debug log
             self._logger.info("New UV sensor data %s", str(data))
             self._logger.info("UV pwm tuning: pwm: %d, minValue: %f", self.pwm, self.min_value)
+
+            # Compute progress based on threshold / value ratio
+            self.progress = min(1, self.min_value / self._hw_config.uvCalibMinIntEdge)
 
             # Break cycle when minimal intensity (on the edge) is ok
             if self.min_value >= self._hw_config.uvCalibMinIntEdge:
