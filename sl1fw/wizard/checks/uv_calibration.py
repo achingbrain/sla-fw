@@ -162,7 +162,8 @@ class UVCalibrateCenter(UVCalibrate):
     PARAM_I = 0.0025
     # TODO: Do not wait for fixed number of iterations. Check the results continuously.
     TUNING_ITERATIONS = 30
-    SUCCESS_ITERATIONS = 5
+    SUCCESS_ITERATIONS = 3
+    STALL_ITERATIONS = 5
 
     def __init__(self, *args, **kwargs):
         super().__init__(WizardCheckType.UV_CALIBRATE_CENTER, *args, **kwargs)
@@ -202,6 +203,8 @@ class UVCalibrateCenter(UVCalibrate):
         error = 0
         integrated_error = 0
         success_count = 0
+        stall_count = 0
+        last_pwm = self.pwm
         data = None
 
         # Calibrate LED Power
@@ -242,6 +245,16 @@ class UVCalibrateCenter(UVCalibrate):
             # Adjust PWM according to error, integrated error and operational limits
             self.pwm = self.pwm + self._calibration_params.param_p * error + self.PARAM_I * integrated_error
             self.pwm = max(self._calibration_params.min_pwm, min(self._calibration_params.max_pwm, self.pwm))
+
+            # Break cycle if calibration makes no progress
+            if last_pwm == self.pwm:
+                stall_count += 1
+                if stall_count > self.STALL_ITERATIONS:
+                    self._logger.warning("UV Calibration stall detected")
+                    break
+            else:
+                last_pwm = self.pwm
+                stall_count = 0
 
         # Report ranges and deviation errors
         if error > self._calibration_params.intensity_error_threshold:
