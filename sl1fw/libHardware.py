@@ -30,7 +30,6 @@ from sl1fw.errors.errors import TiltHomeFailed, TowerHomeFailed, TowerEndstopNot
 from sl1fw.errors.exceptions import MotionControllerException
 from sl1fw.configs.hw import HwConfig
 from sl1fw.motion_controller.controller import MotionController
-from sl1fw.motion_controller.states import MotConComState
 from sl1fw.utils.value_checker import ValueChecker
 from sl1fw.hardware.exposure_screen import ExposureScreen
 from sl1fw.hardware.printer_model import PrinterModel
@@ -215,7 +214,6 @@ class Hardware:
 
     def start(self):
         self.printer_model = self.exposure_screen.start()
-        self.mcc.start()
         self._value_refresh_thread.start()
 
     def exit(self):
@@ -224,26 +222,15 @@ class Hardware:
         self.mcc.exit()
         self.exposure_screen.exit()
 
-    def connectMC(self, force_flash=False):
-        if force_flash:
-            state = self.mcc.flash(self.config.MCBoardVersion)
-            if state != MotConComState.OK:
-                self.logger.error("Motion controller flash error: %s", state)
-                return state
-
-        state = self.mcc.connect(self.config.MCversionCheck)
-        if state != MotConComState.OK:
-            self.logger.error("Motion controller connect error: %s", state)
-            return state
-
-        if force_flash:
-            self.eraseEeprom()
-
+    def connect(self):
+        self.mcc.connect(self.hwConfig.MCversionCheck)
+        self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
+        self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
+        self.mcc.fans_state_changed.connect(lambda x: self.fans_changed.emit())
+        self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
+        self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
         self.initDefaults()
-
         self.mc_sw_version_changed.emit()
-
-        return state
 
     def _value_refresh_body(self):
         checkers = [
@@ -268,7 +255,7 @@ class Hardware:
         self.stopFans()
 
     def flashMC(self):
-        self.connectMC(force_flash=True)
+        self.mcc.flash(self.hwConfig.MCBoardVersion)
 
     @property
     def tilt_end(self) -> int:

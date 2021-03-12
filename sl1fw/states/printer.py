@@ -22,6 +22,7 @@ class Printer0State(Enum):
     UPDATE = 7
     ADMIN = 8
     EXCEPTION = 9
+    UPDATE_MC = 10
 
 
 @unique
@@ -35,6 +36,7 @@ class PrinterState(Enum):
     # Used to be "UNBOXING = 6", now unboxing is a wizard
     # Used to be "DISPLAY_TEST = 7", now display test is a wizard
     WIZARD = 8
+    UPDATING_MC = 9
 
     def to_state0(self):
         state = None
@@ -44,6 +46,8 @@ class PrinterState(Enum):
             state = Printer0State.EXCEPTION
         elif self == self.UPDATING:
             state = Printer0State.UPDATE
+        elif self == self.UPDATING_MC:
+            state = Printer0State.UPDATE_MC
         elif self == self.PRINTING:
             state = Printer0State.PRINTING
         elif self == self.WIZARD:

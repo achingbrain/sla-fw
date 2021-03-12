@@ -31,7 +31,7 @@ from prusaerrors.sl1.codes import Sl1Codes
 from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongRevision
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
@@ -44,12 +44,10 @@ from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
-from sl1fw.libHardware import MotConComState
 from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.hardware.printer_model import PrinterModel
-from sl1fw.pages.wait import PageWait
 from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.states.printer import PrinterState
@@ -242,6 +240,24 @@ class Printer:
         self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
         self.logger.info("System version: %s", distro.version())
         self.start_time = monotonic()
+
+        self.logger.info("Connecting to hardware components")
+        try:
+            self.hw.connect()
+        except MotionControllerWrongRevision as e:
+            raise e
+        except Exception as e:
+            self.state = PrinterState.UPDATING_MC
+            self.hw.flashMC()
+            try:
+                self.hw.connect()
+                self.hw.eraseEeprom()
+                self.state = PrinterState.INIT
+            except Exception as e:
+                self.exception = e
+                self.state = PrinterState.EXCEPTION
+                raise e
+
         self.logger.info("Starting libHardware")
         self.hw.start()
         self.logger.info("Starting ExposureImage")
@@ -259,18 +275,6 @@ class Printer:
             self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(weakref.proxy(self._rauc_changed))
             self.fs0_dbus.onMediaInserted = self._media_inserted
             self.fs0_dbus.onMediaEjected = self._media_ejected
-
-            self.logger.info("Connecting motion controller")
-            state = self.hw.connectMC()
-            if state != MotConComState.OK:
-                self.logger.info("Failed first motion controller connect attempt, state: %s", state)
-                wait_page = PageWait(self.display)
-                wait_page.fill(line1=_("Updating motion controller firmware"))
-                wait_page.show()
-                state = self.hw.connectMC(force_flash=True)
-
-            if state != MotConComState.OK:
-                raise Exception(f"Failed motion controller update attempt, state: {state}")
 
             if not self.runtime_config.factory_mode:
                 self.logger.info("Starting admin checker")

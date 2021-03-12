@@ -23,12 +23,11 @@ from evdev import UInput, ecodes
 from sl1fw import defines
 from sl1fw.motion_controller.queue_stream import QueueStream
 from sl1fw.motion_controller.states import (
-    MotConComState,
     ResetFlags,
     CommError,
     StatusBits,
 )
-from sl1fw.errors.exceptions import MotionControllerException, MotionControllerWrongRevision
+from sl1fw.errors.exceptions import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
 from sl1fw.motion_controller.trace import LineTrace, LineMarker, Trace
 
 
@@ -78,7 +77,7 @@ class MotionController:
         self.power_button_changed.connect(self._power_button_handler)
         self.cover_state_changed.connect(self._cover_state_handler)
 
-    def start(self):
+    def open(self):
         self._port = serial.Serial()
         self._port.port = self.device
         self._port.baudrate = self.BAUD_RATE_NORMAL
@@ -91,6 +90,7 @@ class MotionController:
         self._port.rtscts = False
         self._port.dsrdtr = False
         self._port.interCharTimeout = None
+
         self._port.open()
 
         # pylint: disable=no-member
@@ -204,8 +204,7 @@ class MotionController:
 
             if bootloader:
                 # A custom firmware was uploaded, lets reconnect with version check disabled
-                if self.connect(False) != MotConComState.OK:
-                    raise MotionControllerException("Reconnect after MC debug in bootloader mode failed", self.trace)
+                self.connect(False)
 
     def _debug_bootloader(self):
         self.logger.info("Starting bootloader debugging session")
@@ -261,16 +260,14 @@ class MotionController:
             except BrokenPipeError:
                 self.logger.exception("Attempt to send data to broken debug socket")
 
-    def connect(self, mc_version_check: bool) -> MotConComState:
-        try:
-            state = self.getStateBits(["fatal", "reset"])
-        except MotionControllerException:
-            self.logger.exception("Motion controller connect failed")
-            return MotConComState.COMMUNICATION_FAILED
+    def connect(self, mc_version_check: bool) -> None:
+        if not self.is_open:
+            self.open()
+
+        state = self.getStateBits(["fatal", "reset"])
 
         if state["fatal"]:
-            return MotConComState(self.doGetInt("?err"))
-
+            raise MotionControllerException("MC failed with fatal flag", None)
         if state["reset"]:
             reset_bits = self.doGetBoolList("?rst", bit_count=8)
             bit = 0
@@ -297,11 +294,11 @@ class MotionController:
                 self.fw['revision'],
                 self.board['revision'],
             )
-            return MotConComState.WRONG_FIRMWARE
+            raise MotionControllerWrongFw()
 
         self.fw['version'] = self.do("?ver")
         if mc_version_check and self.fw['version'] != defines.reqMcVersion:
-            return MotConComState.WRONG_FIRMWARE
+            raise MotionControllerWrongFw()
         self.logger.info("motion controller firmware version: %s", self.fw['version'])
 
         self.board['serial'] = self.do("?ser")
@@ -310,8 +307,6 @@ class MotionController:
         else:
             self.logger.warning("motion controller serial number is invalid")
             self.board.serial = "*INVALID*"
-
-        return MotConComState.OK
 
     def doGetInt(self, *args):
         return self.do(*args, return_process=int)
@@ -445,7 +440,7 @@ class MotionController:
         except Exception as e:
             raise MotionControllerException("Ready read failed", self.trace) from e
 
-    def flash(self, mc_board_version):
+    def flash(self, mc_board_version) -> None:
         with self._flash_lock:
             with self._raw_read_lock:
                 self.reset()
@@ -458,7 +453,10 @@ class MotionController:
                 )
                 while True:
                     line = process.stdout.readline()
-                    retc = process.poll()
+                    try:
+                        retc = process.poll()
+                    except Exception as e:
+                        raise MotionControllerException(f"Flashing MC failed with code {retc}", self.trace) from e
                     if line == "" and retc is not None:
                         break
                     if line:
@@ -467,12 +465,7 @@ class MotionController:
                             continue
                         self.logger.info("flashMC output: '%s'", line)
 
-                if retc:
-                    self.logger.error("%s failed with code %d", defines.flashMcCommand, retc)
-
             self._ensure_ready()
-
-        return MotConComState.UPDATE_FAILED if retc else MotConComState.OK
 
     def reset(self) -> None:
         """

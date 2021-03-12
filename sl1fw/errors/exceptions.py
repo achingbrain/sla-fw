@@ -69,6 +69,8 @@ class MotionControllerException(PrinterException):
         self.__trace = trace
         super().__init__(f"{message}, trace: {trace}")
 
+class MotionControllerWrongFw(PrinterException):
+    """Used to signal that MC has wrong FW and needs to be updated"""
 
 @with_code(Sl1Codes.NOT_AVAILABLE_IN_STATE)
 class NotAvailableInState(PrinterException):

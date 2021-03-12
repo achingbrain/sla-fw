@@ -13,7 +13,8 @@ from typing import Optional
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
-from sl1fw.libHardware import Hardware, MotConComState
+from sl1fw.libHardware import Hardware
+from sl1fw.errors.exceptions import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
 
 
 class TestLibHardwareConnect(Sl1fwTestCase):
@@ -33,15 +34,26 @@ class TestLibHardwareConnect(Sl1fwTestCase):
         super().tearDown()
 
     def test_mcc_connect_ok(self) -> None:
-        self.assertEqual(MotConComState.OK, self.hw.mcc.connect(mc_version_check=False))
+        self.assertIsNone(self.hw.mcc.connect(mc_version_check=False))
 
     def test_mcc_connect_wrong_version(self) -> None:
-        self.assertEqual(MotConComState.WRONG_FIRMWARE, self.hw.mcc.connect(mc_version_check=True))
+        with self.assertRaises(MotionControllerWrongFw):
+            self.hw.mcc.connect(mc_version_check=True)
 
-    def test_mcc_connect_fail(self) -> None:
+    def test_mcc_connect_fatal_fail(self) -> None:
         self.hw.mcc.getStateBits = lambda x: {'fatal': 1}
-        self.hw.mcc.doGetInt = lambda x: 42
-        self.assertEqual(MotConComState.UNKNOWN_ERROR, self.hw.mcc.connect(mc_version_check=False))
+        with self.assertRaises(MotionControllerException):
+            self.hw.mcc.connect(mc_version_check=False)
+
+    def test_mcc_connect_rev_fail(self) -> None:
+        self.hw.mcc.doGetIntList = lambda x: [5 ,5] # fw rev 5, board rev 5a
+        with self.assertRaises(MotionControllerWrongRevision):
+            self.hw.mcc.connect(mc_version_check=False)
+
+    def test_mcc_connect_board_rev_fail(self) -> None:
+        self.hw.mcc.doGetIntList = lambda x: [5 ,70] # fw rev 5, board rev 6c
+        with self.assertRaises(MotionControllerWrongFw):
+            self.hw.mcc.connect(mc_version_check=False)
 
 
 class TestLibHardware(Sl1fwTestCase):
@@ -50,7 +62,6 @@ class TestLibHardware(Sl1fwTestCase):
         self.hw_config = None
         self.config = None
         self.hw: Optional[Hardware] = None
-        self.hw_state = None
 
     def setUp(self):
         super().setUp()
@@ -63,8 +74,8 @@ class TestLibHardware(Sl1fwTestCase):
         self.hw = Hardware(self.hw_config)
 
         try:
+            self.hw.connect()
             self.hw.start()
-            self.hw_state = self.hw.connectMC()
         except Exception as exception:
             self.tearDown()
             raise exception
@@ -74,9 +85,6 @@ class TestLibHardware(Sl1fwTestCase):
         if self.EEPROM_FILE.exists():
             self.EEPROM_FILE.unlink()
         super().tearDown()
-
-    def test_connect(self):
-        self.assertEqual(MotConComState.OK, self.hw_state)
 
     def test_cpu_read(self):
         self.assertEqual("CZPX0819X009XC00151", self.hw.cpuSerialNo)
