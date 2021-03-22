@@ -460,6 +460,7 @@ class Standard0:
         except Exception:
             if not ignore_errors:
                 raise
+        return None # fix: pylint inconsistent-return-statements
 
     @auto_dbus
     @last_error

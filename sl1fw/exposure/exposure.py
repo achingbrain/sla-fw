@@ -488,7 +488,7 @@ class Exposure:
             logger.info("Last exposure data not present")
         except Exception:
             logger.exception("Last exposure data failed to load!")
-            return None
+        return None
 
     def check_and_clean_last_data(self) -> None:
         clear_all = self.project.path and not str(self.project.path).startswith(defines.previousPrints)

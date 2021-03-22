@@ -58,6 +58,7 @@ def create_summary(hw: Hardware, logger: logging.Logger, summary_path: Path):
             return summary_file.name
     except Exception:
         logger.exception("Printer summary failed to assemble")
+    return None # fix: pylint inconsistent-return-statements
 
 
 def log_hw(hw: Hardware) -> None:
