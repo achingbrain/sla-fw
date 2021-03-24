@@ -958,6 +958,7 @@ class Printer0:
         """
         return wrap_dict_data(TomlConfigStats(defines.statsData, self.printer.hw).load())
 
+    @auto_dbus
     @last_error
     def run_displaytest_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
