@@ -509,6 +509,8 @@ class Exposure:
             logger.debug("removing '%s'", project_file)
             try:
                 os.remove(project_file)
+            except FileNotFoundError:
+                logger.debug("No such file '%s'", project_file)
             except Exception:
                 logger.exception("cleanup_last_data() exception:")
 

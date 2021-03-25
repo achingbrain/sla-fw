@@ -387,8 +387,10 @@ class Project:
         origin_path = os.path.normpath(self.path)
         (dummy, filename) = os.path.split(origin_path)
         new_source = os.path.join(defines.previousPrints, filename)
-        if origin_path.startswith(defines.internalProjectPath):
-            self.logger.debug("Internal storage file, creating symlink '%s' -> '%s'", origin_path, new_source)
+        if origin_path == new_source:
+            self.logger.debug("Reprint of project '%s'", origin_path)
+        elif origin_path.startswith(defines.internalProjectPath):
+            self.logger.debug("Internal storage project, creating symlink '%s' -> '%s'", origin_path, new_source)
             os.symlink(origin_path, new_source)
             self.path = new_source
             self.path_changed.emit(self.path)
@@ -398,7 +400,7 @@ class Project:
             self.logger.debug("Internal storage available space: %d bytes", size_available)
             try:
                 filesize = os.path.getsize(self.path)
-                self.logger.debug("Project file size: %d bytes", filesize)
+                self.logger.debug("Project size: %d bytes", filesize)
             except Exception as e:
                 self.logger.exception("filesize exception: %s", str(e))
                 raise ProjectErrorCantRead from e
@@ -407,7 +409,7 @@ class Project:
                 self.warnings.add(PrintingDirectlyFromMedia())
             else:
                 try:
-                    self.logger.debug("Copying file to internal storage '%s' -> '%s'", origin_path, new_source)
+                    self.logger.debug("Copying project to internal storage '%s' -> '%s'", origin_path, new_source)
                     shutil.copyfile(origin_path, new_source)
                     self.path = new_source
                     self.path_changed.emit(self.path)
