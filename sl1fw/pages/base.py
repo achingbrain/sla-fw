@@ -280,7 +280,7 @@ class Page:
 
 
     def _syncTilt(self):
-        if not self.display.hw.tiltSyncWait(retries = 2):
+        if not self.display.hw.tilt.syncWait(retries = 2):
             self.display.pages['error'].setParams(code=Sl1Codes.TILT_HOME_FAILED.raw_code)
             return "error"
         #endif

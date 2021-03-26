@@ -17,7 +17,7 @@ from sl1fw.errors.errors import (
 )
 from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
-
+from sl1fw.hardware.tilt import TiltProfile
 
 def get_uv_check_pwms(hw: Hardware):
     if hw.is500khz:
@@ -125,7 +125,7 @@ def resin_sensor(hw: Hardware, logger: Logger):
         raise ResinFailed(volume_ml)
 
     hw.towerSync()
-    hw.tiltSyncWait()
+    hw.tilt.syncWait()
     while hw.isTowerMoving():
         sleep(0.25)
     hw.motorsRelease()
@@ -162,16 +162,15 @@ def tower_axis(hw: Hardware):
 
 
 def tilt_calib_start(hw: Hardware):
-    hw.setTiltProfile("homingFast")
-    hw.tiltMoveAbsolute(hw.tilt_calib_start)
-    while hw.isTiltMoving():
+    hw.tilt.profileId = TiltProfile.homingFast
+    hw.tilt.moveAbsolute(defines.tiltCalibrationStart)
+    while hw.tilt.moving:
+        print(hw.tilt.moving)
         sleep(0.25)
-
 
 def tower_calibrate(hw: Hardware, logger: Logger) -> int:
     logger.info("Starting platform calibration")
-    hw.setTiltProfile("homingFast")
-    hw.setTiltCurrent(defines.tiltCalibCurrent)
+    hw.tilt.profileId = TiltProfile.layerMoveSlow # set higher current
     hw.setTowerPosition(0)
     hw.setTowerProfile("homingFast")
 

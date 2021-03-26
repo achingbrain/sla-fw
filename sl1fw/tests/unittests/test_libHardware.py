@@ -9,6 +9,7 @@ import os
 import unittest
 from time import sleep
 from typing import Optional
+from unittest.mock import Mock
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
@@ -22,10 +23,15 @@ class TestLibHardwareConnect(Sl1fwTestCase):
         super().setUp()
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.reqMcVersion = "INVALID"
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
         self.hw = Hardware(self.hw_config)
-        self.hw.start()
+
+        try:
+            self.hw.connect()
+            self.hw.start()
+        except Exception as exception:
+            self.tearDown()
+            raise exception
 
     def tearDown(self) -> None:
         self.hw.exit()
@@ -37,11 +43,12 @@ class TestLibHardwareConnect(Sl1fwTestCase):
         self.assertIsNone(self.hw.mcc.connect(mc_version_check=False))
 
     def test_mcc_connect_wrong_version(self) -> None:
+        defines.reqMcVersion = "INVALID"
         with self.assertRaises(MotionControllerWrongFw):
             self.hw.mcc.connect(mc_version_check=True)
 
     def test_mcc_connect_fatal_fail(self) -> None:
-        self.hw.mcc.getStateBits = lambda x: {'fatal': 1}
+        self.hw.mcc.getStateBits = Mock(return_value={'fatal': 1})
         with self.assertRaises(MotionControllerException):
             self.hw.mcc.connect(mc_version_check=False)
 
@@ -119,29 +126,11 @@ class TestLibHardware(Sl1fwTestCase):
         self.hw.eraseEeprom()
 
     def test_profiles(self):
-        self.assertEqual(['homingFast',
-                          'homingSlow',
-                          'moveFast',
-                          'moveSlow',
-                          'layerMoveSlow',
-                          'layerRelease',
-                          'layerMoveFast',
-                          '<reserved2>'],
-                         self.hw.getTiltProfilesNames())
-
-        profiles = self.hw.getTiltProfiles()
-        self.assertEqual(type([]), type(profiles))
-
         tower_profiles = self.hw.getTowerProfiles()
         self.assertEqual(type([]), type(tower_profiles))
 
-        tilt_profiles = self.hw.getTiltProfiles()
-        self.assertEqual(type([]), type(tilt_profiles))
-
         # TODO: This just set the profiles, should be nice to set different value and check it is changed
-        self.hw.setTiltProfiles(tilt_profiles)
         self.hw.setTowerProfiles(tower_profiles)
-        self.hw.setTiltTempProfile(tilt_profiles[0])
         self.hw.setTowerTempProfile(tower_profiles[0])
 
     def test_stallguard_buffer(self):
@@ -207,7 +196,7 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertFalse(self.hw.getPowerswitchState())
 
     def test_fans(self):
-        self.assertFalse(self.hw.checkState('fans'))
+        self.assertFalse(self.hw.mcc.checkState('fans'))
 
         self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
 
@@ -281,97 +270,13 @@ class TestLibHardware(Sl1fwTestCase):
     def test_sensor_naming(self):
         self.assertEqual("UV LED temperature", self.hw.getSensorName(0))
 
-    def test_tilt_sync(self):
-        self.hw.tiltSync()
-        for _ in range(1, 100):
-            if self.hw.isTiltSynced():
-                break
-            sleep(0.1)
-        self.assertTrue(self.hw.isTiltSynced())
-
-    def test_tilt_sync_wait(self):
-        self.hw.tiltSyncWait()
-        self.assertTrue(self.hw.isTiltSynced())
-
-    def test_tilt_move(self):
-        position = 10000
-        self.hw.tiltMoveAbsolute(position)
-        while self.hw.isTiltMoving():
-            sleep(0.1)
-        self.assertFalse(self.hw.isTiltMoving())
-        self.assertTrue(self.hw.isTiltOnPosition())
-        self.assertEqual(position, self.hw.getTiltPosition())
-
-    def test_tilt_home(self):
-        self.hw.tiltHomeCalibrateWait()
-        while self.hw.isTiltMoving():
-            sleep(0.1)
-        self.assertLess(self.hw.getTiltPosition(), 1000)
-
-    def test_tilt_stop(self):
-        position = 1000000
-        self.hw.tiltMoveAbsolute(position)
-        self.hw.tiltStop()
-        self.assertFalse(self.hw.isTiltMoving())
-
-    def test_tilt_up(self):
-        self.hw.tiltUp()
-        while self.hw.isTiltMoving():
-            sleep(0.1)
-        self.assertTrue(self.hw.isTiltUp())
-
-    def test_tilt_up_wait(self):
-        self.hw.tiltUpWait()
-        self.assertTrue(self.hw.isTiltUp())
-
-    def test_tilt_down(self):
-        self.hw.tiltDown()
-        while self.hw.isTiltMoving():
-            sleep(0.1)
-        self.assertTrue(self.hw.isTiltDown())
-
-    def test_tilt_down_wait(self):
-        self.hw.tiltDownWait()
-        self.assertTrue(self.hw.isTiltDown())
-
-    def test_tilt_max(self):
-        self.hw.tiltToMax()
-        while self.hw.isTiltMoving():
-            sleep(0.1)
-        self.assertTrue(self.hw.isTiltOnMax())
-
-    def test_tilt_min(self):
-        self.hw.tiltToMin()
-        while self.hw.isTiltMoving():
-            sleep(0.1)
-        self.assertTrue(self.hw.isTiltOnMin())
-
-    def test_tilt_set_position(self):
-        position = 10000
-        self.hw.setTiltPosition(position)
-        self.assertEqual(position, self.hw.getTiltPosition())
-        self.assertEqual(position, self.hw.getTiltPositionMicroSteps())
-
-    def test_tilt_layer_up(self):
-        self.hw.tiltLayerUpWait()
-
-    def test_tilt_layer_down(self):
-        self.hw.tiltLayerDownWait()
-
-    def test_tilt_profile(self):
-        self.hw.setTiltProfile('homingFast')
-
-    def test_tilt_current(self):
-        self.hw.setTiltCurrent(32)
-        # TODO: test result
-
     def test_tower_hold_tilt_release(self):
         self.hw.towerHoldTiltRelease()
         # TODO: test result
 
     def test_tower_home_calibrate_wait(self):
         self.hw.towerHomeCalibrateWait()
-        self.assertEqual(0, self.hw.getTiltPositionMicroSteps())
+        # TODO: test result
 
     def test_tower_sync(self):
         self.hw.towerSync()
@@ -458,10 +363,6 @@ class TestLibHardware(Sl1fwTestCase):
         current = 32
         self.hw.setTowerCurrent(current)
         # TODO: test result
-
-    def test_resin_stir(self):
-        self.hw.stirResin()
-
 
 if __name__ == '__main__':
     unittest.main()

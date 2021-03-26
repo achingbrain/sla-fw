@@ -19,45 +19,22 @@ import re
 from math import ceil
 from threading import Thread
 from time import sleep
-from typing import Optional
 
 import bitstring
 import pydbus
 from PySignal import Signal
 
 from sl1fw import defines
-from sl1fw.errors.errors import TiltHomeFailed, TowerHomeFailed, TowerEndstopNotReached, TowerHomeCheckFailed
+from sl1fw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, TowerHomeCheckFailed
 from sl1fw.errors.exceptions import MotionControllerException
 from sl1fw.configs.hw import HwConfig
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.utils.value_checker import ValueChecker
 from sl1fw.hardware.exposure_screen import ExposureScreen
 from sl1fw.hardware.printer_model import PrinterModel
+from sl1fw.hardware.tilt import Tilt, TiltSL1
+from sl1fw.functions.decorators import safe_call
 
-
-def safe_call(default_value, exceptions):
-    """
-    Decorate method to be safe to call
-
-    Wraps method call in try-cache block, cache exceptions and in case of troubles log exception and return
-    safe default value.
-
-    :param default_value: Value to return if wrapped function fails
-    :param exceptions: Exceptions to catch
-    :return: Decorator
-    """
-
-    def decor(method):
-        def func(self, *args, **kwargs):
-            try:
-                return method(self, *args, **kwargs)
-            except exceptions:
-                self.logger.exception(f"Call to {method.__name__} failed, returning safe default")
-                return default_value
-
-        return func
-
-    return decor
 
 
 class Fan:
@@ -99,13 +76,10 @@ class Hardware:
         self.logger = logging.getLogger(__name__)
         self.config = hw_config
 
-        self._tiltSynced = False
         self._towerSynced = False
 
-        self._lastTiltProfile = None
         self._lastTowerProfile = None
 
-        self._tiltToPosition = 0
         self._towerToPosition = 0
 
         self._fanFailed = False
@@ -116,16 +90,7 @@ class Hardware:
         # (mode, speed)
         self._powerLedStates = {"normal": (1, 2), "warn": (2, 10), "error": (3, 15), "off": (3, 64)}
 
-        self._tiltProfiles = {
-            "homingFast": 0,
-            "homingSlow": 1,
-            "moveFast": 2,
-            "moveSlow": 3,
-            "layerMoveSlow": 4,
-            "layerRelease": 5,
-            "layerMoveFast": 6,
-            "<reserved2>": 7,
-        }
+
         self._towerProfiles = {
             "homingFast": 0,
             "homingSlow": 1,
@@ -137,15 +102,7 @@ class Hardware:
             "resinSensor": 7,
         }
 
-        # get sorted profiles names
-        self._tiltProfileNames = [x[0] for x in sorted(list(self._tiltProfiles.items()), key=lambda kv: kv[1])]
         self._towerProfileNames = [x[0] for x in sorted(list(self._towerProfiles.items()), key=lambda kv: kv[1])]
-
-        self.tiltAdjust = {
-            #               -2      -1      0     +1     +2
-            "homingFast": [[20, 5], [20, 6], [20, 7], [21, 9], [22, 12]],
-            "homingSlow": [[16, 3], [16, 5], [16, 7], [16, 9], [16, 11]],
-        }
 
         self.towerAdjust = {
             #               -2      -1      0     +1     +2
@@ -166,11 +123,6 @@ class Hardware:
             3: N_("<reserved2>"),
         }
 
-        # FIXME why here and not in defines.py?
-        self._tiltMin = -12800  # whole turn
-        self._tiltEnd = 6016  # top deadlock
-        self._tiltMax = self._tiltEnd
-        self._tiltCalibStart = 4352
         self._towerMin = -self.config.calcMicroSteps(155)
         self._towerAboveSurface = -self.config.calcMicroSteps(145)
         self._towerMax = self.config.calcMicroSteps(310)
@@ -180,12 +132,13 @@ class Hardware:
         self._towerResinEndPos = self.config.calcMicroSteps(1)
 
         self.mcc = MotionController(defines.motionControlDevice)
+
+        self.tilt: Tilt = None
+
         self.boardData = self.readCpuSerial()
         self._emmc_serial = self._read_emmc_serial()
 
         self._tower_moving = False
-        self._tilt_moving = False
-        self._tilt_move_last_position: Optional[int] = None
         self._towerPositionRetries = None
 
         self._value_refresh_run = True
@@ -214,6 +167,10 @@ class Hardware:
 
     def start(self):
         self.printer_model = self.exposure_screen.start()
+        print(self.printer_model)
+        if self.printer_model == PrinterModel.SL1:
+            self.tilt = TiltSL1(self.mcc,self.config)
+        self.initDefaults()
         self._value_refresh_thread.start()
 
     def exit(self):
@@ -223,13 +180,7 @@ class Hardware:
         self.exposure_screen.exit()
 
     def connect(self):
-        self.mcc.connect(self.hwConfig.MCversionCheck)
-        self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
-        self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
-        self.mcc.fans_state_changed.connect(lambda x: self.fans_changed.emit())
-        self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
-        self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
-        self.initDefaults()
+        self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
 
     def _value_refresh_body(self):
@@ -255,19 +206,7 @@ class Hardware:
         self.stopFans()
 
     def flashMC(self):
-        self.mcc.flash(self.hwConfig.MCBoardVersion)
-
-    @property
-    def tilt_end(self) -> int:
-        return self._tiltEnd
-
-    @property
-    def tilt_min(self) -> int:
-        return self._tiltMin
-
-    @property
-    def tilt_calib_start(self) -> int:
-        return self._tiltCalibStart
+        self.mcc.flash(self.config.MCBoardVersion)
 
     @property
     def tower_min(self) -> int:
@@ -445,20 +384,6 @@ class Hardware:
         self.mcc.do("!eecl")
         self.mcc.soft_reset()  # FIXME MC issue
 
-    def getTiltProfilesNames(self):
-        self.logger.debug(str(self._tiltProfileNames))
-        return list(self._tiltProfileNames)
-
-    def getTowerProfilesNames(self):
-        self.logger.debug(str(self._towerProfileNames))
-        return list(self._towerProfileNames)
-
-    def getTiltProfiles(self):
-        return self.getProfiles("?ticf")
-
-    def getTowerProfiles(self):
-        return self.getProfiles("?twcf")
-
     def getProfiles(self, getProfileDataCmd):
         profiles = []
         for profId in range(8):
@@ -471,19 +396,19 @@ class Hardware:
 
         return profiles
 
-    def setTiltProfiles(self, profiles):
-        return self.setProfiles(profiles, "!tics", "!ticf")
+    def getTowerProfilesNames(self):
+        return list(self._towerProfileNames)
 
-    def setTowerProfiles(self, profiles):
-        return self.setProfiles(profiles, "!twcs", "!twcf")
+    def getTowerProfiles(self):
+        return self.getProfiles("?twcf")
 
     def setProfiles(self, profiles, setProfileCmd, setProfileDataCmd):
         for profId in range(8):
             self.mcc.do(setProfileCmd, profId)
             self.mcc.do(setProfileDataCmd, *profiles[profId])
 
-    def setTiltTempProfile(self, profileData):
-        return self.setTempProfile(profileData, "!tics", "!ticf")
+    def setTowerProfiles(self, profiles):
+        return self.setProfiles(profiles, "!twcs", "!twcf")
 
     def setTowerTempProfile(self, profileData):
         return self.setTempProfile(profileData, "!twcs", "!twcf")
@@ -638,7 +563,7 @@ class Hardware:
 
     @safe_call(False, MotionControllerException)
     def isCoverClosed(self, check_for_updates: bool = True):
-        return self.checkState("cover", check_for_updates)
+        return self.mcc.checkState("cover", check_for_updates)
 
     def isCoverVirtuallyClosed(self, check_for_updates: bool = True):
         """
@@ -647,12 +572,7 @@ class Hardware:
         return self.isCoverClosed(check_for_updates=check_for_updates) or not self.config.coverCheck
 
     def getPowerswitchState(self):
-        return self.checkState("button")
-
-    @safe_call(False, MotionControllerException)
-    def checkState(self, name, check_for_updates: bool = True):
-        state = self.mcc.getStateBits([name], check_for_updates)
-        return state[name]
+        return self.mcc.checkState("button")
 
     def startFans(self):
         self.setFans(mask={0: True, 1: True, 2: True})
@@ -734,12 +654,10 @@ class Hardware:
 
     def motorsRelease(self):
         self.mcc.do("!motr")
-        self._tiltSynced = False
         self._towerSynced = False
 
     def towerHoldTiltRelease(self):
         self.mcc.do("!ena 1")
-        self._tiltSynced = False
 
     # --- tower ---
 
@@ -889,6 +807,9 @@ class Hardware:
     def setTowerPosition(self, position):
         self.mcc.do("!twpo", position)
 
+    # TODO: Get rid of this
+    # TODO: Fix inconsistency getTowerPosition returns formated string with mm
+    # TODO: Property could handle this a bit more consistently
     @safe_call("ERROR", Exception)
     def getTowerPosition(self):
         steps = self.getTowerPositionMicroSteps()
@@ -968,260 +889,8 @@ class Hardware:
     def calcPercVolume(volume_ml):
         return 10 * ceil(10 * volume_ml / defines.resinMaxVolume)
 
-    # --- tilt ---
-
-    def tiltHomeCalibrateWait(self):
-        self.mcc.do("!tihc")
-        homingStatus = 1
-        while homingStatus > 0:  # not done and not error
-            homingStatus = self.tiltHomingStatus
-            sleep(0.1)
-
-    @property
-    def tiltHomingStatus(self):
-        return self.mcc.doGetInt("?tiho")
-
-    def tiltSync(self):
-        """home at bottom position"""
-        self._tiltSynced = False
-        self.mcc.do("!tiho")
-
-    @safe_call(False, MotionControllerException)
-    def isTiltSynced(self):
-        """return tilt status. False if tilt is still homing or error occured"""
-        if not self._tiltSynced:
-            if self.tiltHomingStatus == 0:
-                self.setTiltPosition(0)
-                self._tiltSynced = True
-            else:
-                self._tiltSynced = False
-
-        return self._tiltSynced
-
-    @safe_call(False, MotionControllerException)
-    def tiltSyncWait(self, retries: int = 0):
-        """blocking method for tilt homing. retries = number of additional tries when homing fails"""
-        if not self.isTiltMoving():
-            self.tiltSync()
-
-        while True:
-            homingStatus = self.tiltHomingStatus
-            if homingStatus == 0:
-                self.setTiltPosition(0)
-                self._tiltSynced = True
-                return True
-
-            if homingStatus < 0:
-                self.logger.warning("Tilt homing failed! Status: %d", homingStatus)
-                if retries < 1:
-                    self.logger.error("Tilt homing max tries reached!")
-                    return False
-
-                retries -= 1
-                self.tiltSync()
-
-            sleep(0.25)
-
-    def tiltMoveAbsolute(self, position):
-        self._tiltToPosition = position
-        self.mcc.do("!tima", position)
-
-    def tiltStop(self):
-        self.mcc.do("!mot", 0)
-
-    def isTiltMoving(self):
-        if self.mcc.doGetInt("?mot") & 2:
-            return True
-
-        return False
-
-    def isTiltOnPosition(self):
-        if self.isTiltMoving():
-            return False
-
-        if self.getTiltPositionMicroSteps() != self._tiltToPosition:
-            self.logger.warning(
-                "Tilt is not on required position! Sync forced. Actual position: %d, Target position: %d ",
-                self.getTiltPositionMicroSteps(),
-                self._tiltToPosition,
-            )
-            profileBackup = self._lastTiltProfile
-            self.tiltSyncWait()
-            self.setTiltProfile(profileBackup)
-            self.tiltMoveAbsolute(self._tiltToPosition)
-            while self.isTiltMoving():
-                sleep(0.1)
-
-            if self.getTiltPositionMicroSteps() != self._tiltToPosition:
-                return False
-
-        return True
-
-    def tiltDown(self):
-        self.tiltMoveAbsolute(0)
-
-    def isTiltDown(self):
-        return self.isTiltOnPosition()
-
-    def tiltDownWait(self):
-        self.tiltDown()
-        while not self.isTiltDown():
-            sleep(0.1)
-
-    def tiltUp(self):
-        self.tiltMoveAbsolute(self.config.tiltHeight)
-
-    def isTiltUp(self):
-        return self.isTiltOnPosition()
-
-    def tiltUpWait(self):
-        self.tiltUp()
-        while not self.isTiltUp():
-            sleep(0.1)
-
-    def tiltToMax(self):
-        self.tiltMoveAbsolute(self._tiltMax)
-
-    def isTiltOnMax(self):
-        stopped = not self.isTiltMoving()
-        if stopped:
-            self.setTiltPosition(self._tiltEnd)
-
-        return stopped
-
-    def tiltToMin(self):
-        self.tiltMoveAbsolute(self._tiltMin)
-
-    def isTiltOnMin(self):
-        stopped = not self.isTiltMoving()
-        if stopped:
-            self.setTiltPosition(0)
-
-        return stopped
-
-    def tiltLayerDownWait(self, slowMove=False):
-        tiltProfile = self.config.tuneTilt[0] if slowMove else self.config.tuneTilt[1]
-
-        # initial release movement with optional sleep at the end
-        self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
-        if tiltProfile[1] > 0:
-            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - tiltProfile[1])
-            while self.isTiltMoving():
-                sleep(0.1)
-
-        sleep(tiltProfile[2] / 1000.0)
-
-        # next movement may be splited
-        self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
-        movePerCycle = int(self.getTiltPositionMicroSteps() / tiltProfile[4])
-        for _ in range(tiltProfile[4]):
-            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() - movePerCycle)
-            while self.isTiltMoving():
-                sleep(0.1)
-
-            sleep(tiltProfile[5] / 1000.0)
-
-        # if not already in endstop ensure we end up at defined bottom position
-        if not self.checkState("endstop"):
-            self.tiltMoveAbsolute(-defines.tiltHomingTolerance)
-            while self.isTiltMoving():
-                sleep(0.1)
-
-        # check if tilt is on endstop
-        if self.checkState("endstop"):
-            if -defines.tiltHomingTolerance <= self.getTiltPositionMicroSteps() <= defines.tiltHomingTolerance:
-                return True
-
-        # unstuck
-        self.logger.warning("Tilt unstucking")
-        self.setTiltProfile("layerRelease")
-        count = 0
-        step = 128
-        while count < self._tiltEnd and not self.checkState("endstop"):
-            self.setTiltPosition(step)
-            self.tiltMoveAbsolute(0)
-            while self.isTiltMoving():
-                sleep(0.1)
-
-            count += step
-
-        return self.tiltSyncWait(retries=1)
-
-    def tiltLayerUpWait(self, slowMove=False):
-        tiltProfile = self.config.tuneTilt[2] if slowMove else self.config.tuneTilt[3]
-
-        self.setTiltProfile(self._tiltProfileNames[tiltProfile[0]])
-        self.tiltMoveAbsolute(self.config.tiltHeight - tiltProfile[1])
-        while self.isTiltMoving():
-            sleep(0.1)
-
-        sleep(tiltProfile[2] / 1000.0)
-        self.setTiltProfile(self._tiltProfileNames[tiltProfile[3]])
-
-        # finish move may be also splited in multiple sections
-        movePerCycle = int((self.config.tiltHeight - self.getTiltPositionMicroSteps()) / tiltProfile[4])
-        for _ in range(tiltProfile[4]):
-            self.tiltMoveAbsolute(self.getTiltPositionMicroSteps() + movePerCycle)
-            while self.isTiltMoving():
-                sleep(0.1)
-
-            sleep(tiltProfile[5] / 1000.0)
-
-    def setTiltPosition(self, position):
-        self.mcc.do("!tipo", position)
-
-    # TODO: Get rid of this
-    # TODO: Fix inconsistency getTowerPosition returns formated string with mm
-    # TODO: Property could handle this a bit more consistently
-    @safe_call("ERROR", MotionControllerException)
-    def getTiltPosition(self):
-        return self.getTiltPositionMicroSteps()
-
-    def getTiltPositionMicroSteps(self):
-        steps = self.mcc.doGetInt("?tipo")
-        return steps
-
-    def setTiltProfile(self, profile):
-        self._lastTiltProfile = profile
-        profileId = self._tiltProfiles.get(profile, None)
-        if profileId is not None:
-            self.mcc.do("!tics", profileId)
-        else:
-            self.logger.error("Invalid tilt profile '%s'", profile)
-
-    @safe_call(None, (MotionControllerException, ValueError))
-    def setTiltCurrent(self, current):
-        if 0 <= current <= 63:
-            self.mcc.do("!ticu", current)
-        else:
-            self.logger.error("Invalid tilt current %d", current)
-
-    def tiltGotoFullstep(self, goUp: int = 0):
-        self.mcc.do("!tigf", goUp)
-
-    def stirResin(self):
-        for _ in range(self.config.stirringMoves):
-            self.setTiltProfile("homingFast")
-            # do not verify end positions
-            self.tiltUp()
-            while self.isTiltMoving():
-                sleep(0.1)
-
-            self.tiltDown()
-            while self.isTiltMoving():
-                sleep(0.1)
-
-            self.tiltSyncWait()
-
     def updateMotorSensitivity(self, tiltSensitivity=0, towerSensitivity=0):
-        # adjust tilt profiles
-        profiles = self.getTiltProfiles()
-        profiles[0][4] = self.tiltAdjust["homingFast"][tiltSensitivity + 2][0]
-        profiles[0][5] = self.tiltAdjust["homingFast"][tiltSensitivity + 2][1]
-        profiles[1][4] = self.tiltAdjust["homingSlow"][tiltSensitivity + 2][0]
-        profiles[1][5] = self.tiltAdjust["homingSlow"][tiltSensitivity + 2][1]
-        self.setTiltProfiles(profiles)
-        self.logger.info("tilt profiles changed to: %s", profiles)
+        self.tilt.sensitivity(tiltSensitivity)
 
         # adjust tower profiles
         profiles = self.getTowerProfiles()
@@ -1239,20 +908,6 @@ class Hardware:
         self.powerLed("warn")
         if not self.towerSyncWait():
             raise TowerHomeFailed()
-        self.powerLed("normal")
-
-    def tilt_home(self) -> None:
-        """
-        Home tilt axis
-        """
-        self.powerLed("warn")
-        # assume tilt is up (there may be error from print)
-        self.setTiltPosition(self.tilt_end)
-        self.tiltLayerDownWait(True)
-        if not self.tiltSyncWait():
-            raise TiltHomeFailed()
-        self.setTiltProfile("moveFast")
-        self.tiltLayerUpWait()
         self.powerLed("normal")
 
     def tower_move(self, speed: int, set_profiles: bool = True) -> bool:
@@ -1295,55 +950,6 @@ class Hardware:
         self._tower_moving = False
         return True
 
-    def tilt_move(self, speed: int, set_profiles: bool = True, fullstep=False) -> bool:
-        """
-        Start / stop tilt movement
-
-        TODO: This should be checked by heartbeat or the command should have limited ttl
-
-        :param: Movement speed
-
-           :-2: Fast down
-           :-1: Slow down
-           :0: Stop
-           :1: Slow up
-           :2: Fast up
-        :return: True on success, False otherwise
-        """
-        if not self._tilt_moving and set_profiles:
-            self.setTiltProfile("moveSlow" if abs(speed) < 2 else "homingFast")
-
-        if speed != 0:
-            self._tilt_move_last_position = self.tilt_position
-
-        if speed > 0:
-            if self._tilt_moving:
-                if self.isTiltOnMax():
-                    return False
-            else:
-                self._tilt_moving = True
-                self.tiltToMax()
-            return True
-
-        if speed < 0:
-            if self._tilt_moving:
-                if self.isTiltOnMin():
-                    return False
-            else:
-                self._tilt_moving = True
-                self.tiltToMin()
-            return True
-
-        self.tiltStop()
-        if fullstep:
-            if self._tilt_move_last_position < self.tilt_position:
-                self.tiltGotoFullstep(goUp=1)
-            elif self._tilt_move_last_position > self.tilt_position:
-                self.tiltGotoFullstep(goUp=0)
-        self._tilt_move_last_position = None
-        self._tilt_moving = False
-        return True
-
     @property
     def tower_position_nm(self) -> int:
         """
@@ -1357,19 +963,6 @@ class Hardware:
     def tower_position_nm(self, position_nm: int) -> None:
         # TODO: This needs some safety check
         self.towerToPosition(position_nm / 1000 / 1000)
-
-    @property
-    def tilt_position(self) -> int:
-        """
-        Read or set tilt position in micro-steps
-        """
-        # TODO: Raise exception if tilt not synced
-        return self.getTiltPositionMicroSteps()
-
-    @tilt_position.setter
-    def tilt_position(self, micro_steps: int):
-        # TODO: This needs some safety check
-        self.tiltMoveAbsolute(micro_steps)
 
     def get_tower_sensitivity(self) -> int:
         """

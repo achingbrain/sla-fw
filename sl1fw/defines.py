@@ -108,12 +108,16 @@ resinFeedWait = 50
 resinFilled = 200
 
 defaultTowerHeight = 120    # mm
-defaultTiltHeight = 4928    # usteps rounded to fullstep (phase 0)
 defaultTowerOffset = 0.05   # mm
-tiltHomingTolerance = 96    # tilt axis check has this tolerance
 towerHoldCurrent = 12
+
+tiltHomingTolerance = 96    # tilt axis check has this tolerance
 tiltHoldCurrent = 35
 tiltCalibCurrent = 40
+defaultTiltHeight = 4928    # rounded to fullstep (phase 0) [ustep]
+tiltMin = -12800            # whole turn [ustep]
+tiltMax = 6016              # top deadlock [ustep]
+tiltCalibrationStart = 4352 # bottom position where tilt calibration starts [ustep]
 
 fanStartStopTime = 10       # in secs
 fanWizardStabilizeTime = 30

@@ -34,6 +34,7 @@ from sl1fw.pages.uvcalibration import PageUvCalibration
 from sl1fw.pages.wait import PageWait
 from sl1fw.states.display import DisplayState
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
+from sl1fw.hardware.tilt import TiltProfile
 
 
 @page
@@ -251,14 +252,14 @@ class PageFactoryReset(Page):
 
         page_wait.showItems(line1=_("Printer is being set to packing positions"))
         self.display.hw.towerSync()
-        self.display.hw.tiltSyncWait(retries=3)
+        self.display.hw.tilt.syncWait(retries=3)
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
 
         # move tilt and tower to packing position
-        self.display.hw.setTiltProfile("homingFast")
-        self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
-        while self.display.hw.isTiltMoving():
+        self.display.hw.tilt.profileId = TiltProfile.homingFast
+        self.display.hw.tilt.moveAbsolute(defines.defaultTiltHeight)
+        while self.display.hw.tilt.moving:
             sleep(0.25)
 
         self.display.hw.setTowerProfile("homingFast")

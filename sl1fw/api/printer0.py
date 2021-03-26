@@ -266,7 +266,7 @@ class Printer0:
 
         :return: None
         """
-        self.printer.hw.tilt_home()
+        self.printer.hw.tilt.syncWait()
 
     @auto_dbus
     @last_error
@@ -321,7 +321,7 @@ class Printer0:
            :2: Fast up
         :return: True on success, False otherwise
         """
-        return self.printer.hw.tilt_move(speed)
+        return self.printer.hw.tilt.move(speed)
 
     @property
     @last_error
@@ -329,6 +329,7 @@ class Printer0:
         """
         Read or set tower position in nm
         """
+        print("tower get")
         return self.printer.hw.tower_position_nm
 
     @auto_dbus
@@ -336,6 +337,7 @@ class Printer0:
     @last_error
     @state_checked(Printer0State.IDLE)
     def tower_position_nm(self, position_nm: int) -> None:
+        print("tower set")
         self.printer.hw.tower_position_nm = position_nm
 
     @property
@@ -344,14 +346,17 @@ class Printer0:
         """
         Read or set tilt position in micro-steps
         """
-        return self.printer.hw.tilt_position
+        print("getter")
+        print(self.printer.hw.tilt.position)
+        return self.printer.hw.tilt.position
 
     @auto_dbus
     @tilt_position.setter
     @last_error
     @state_checked(Printer0State.IDLE)
     def tilt_position(self, micro_steps: int):
-        self.printer.hw.tilt_position = micro_steps
+        print("setter")
+        self.printer.hw.tilt.position = micro_steps
 
     @auto_dbus
     @last_error

@@ -27,6 +27,8 @@ class GeneralError(PrinterError):
 class TiltHomeFailed(GeneralError):
     pass
 
+class TiltPositionFailed(GeneralError):
+    pass
 
 @with_code(Sl1Codes.TOWER_HOME_FAILED)
 class TowerHomeFailed(GeneralError):
@@ -359,4 +361,12 @@ class UVDeviationTooHigh(UVCalibrationError):
 
 @with_code(Sl1Codes.FAILED_TO_SAVE_FACTORY_DEFAULTS)
 class FailedToSaveFactoryConfig(PrinterError):
+    pass
+
+@with_code(Sl1Codes.ALTERNATIVE_SLOT_BOOT)
+class BootedInAlternativeSlot(PrinterError):
+    pass
+
+@with_code(Sl1Codes.MISSING_EXAMPLES)
+class MissingExamples(PrinterError):
     pass

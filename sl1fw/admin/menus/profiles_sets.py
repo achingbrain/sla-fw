@@ -122,7 +122,7 @@ class ProfilesSetsMenu(SafeAdminMenu):
     def _set_profiles(self, profile_type, profiles):
         data = []
         names = (
-            self._printer.hw.getTiltProfilesNames()
+            self._printer.hw.tilt.profileNames
             if profile_type == "tilt"
             else self._printer.hw.getTowerProfilesNames()
         )
@@ -153,7 +153,7 @@ class ProfilesSetsMenu(SafeAdminMenu):
                 raise Exception("Missing profile '%s' in selected file!" % name)
 
         if profile_type == "tilt":
-            self._printer.hw.setTiltProfiles(data)
+            self._printer.hw.tilt.profiles(data)
         else:
             self._printer.hw.setTowerProfiles(data)
 

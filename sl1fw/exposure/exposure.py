@@ -58,6 +58,7 @@ from sl1fw.project.project import Project
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.utils.traceable_collections import TraceableDict
+from sl1fw.hardware.tilt import TiltProfile
 
 
 class ExposureCheckRunner:
@@ -171,17 +172,17 @@ class HardwareCheck(ExposureCheckRunner):
             raise TowerFailed()
 
         self.logger.info("Syncing tilt")
-        self.expo.hw.tiltSyncWait()
+        self.expo.hw.tilt.syncWait()
 
-        if not self.expo.hw.isTiltSynced():
+        if not self.expo.hw.tilt.synced:
             raise TiltFailed()
 
         self.logger.info("Tilting up")
-        self.expo.hw.setTiltProfile("homingFast")
-        self.expo.hw.tiltUp()
-        while self.expo.hw.isTiltMoving():
+        self.expo.hw.tilt.profileId = TiltProfile.homingFast
+        self.expo.hw.tilt.moveUp()
+        while self.expo.hw.tilt.moving:
             sleep(0.1)
-        if not self.expo.hw.isTiltOnPosition():
+        if not self.expo.hw.tilt.onTargetPosition:
             raise TiltFailed()
 
 
@@ -258,7 +259,7 @@ class StartPositionsCheck(ExposureCheckRunner):
         self.logger.info("Prepare tank and resin")
         if self.expo.hw.config.tilt:
             self.logger.info("Tilting down")
-            self.expo.hw.tiltDownWait()
+            self.expo.hw.tilt.moveDownWait()
 
         self.logger.info("Tower to print start position")
         self.expo.hw.setTowerProfile("homingFast")
@@ -284,7 +285,7 @@ class StirringCheck(ExposureCheckRunner):
     def run(self):
         if not self.expo.hw.config.tilt:
             raise ExposureCheckDisabled()
-        self.expo.hw.stirResin()
+        self.expo.hw.tilt.stirResin()
 
 
 class Exposure:
@@ -324,6 +325,7 @@ class Exposure:
         self.expoThread = Thread(target=self.run)
 
     def read_project(self, project_file: str):
+        print(self.hw.is500khz)
         check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
         try:
             # Read project
@@ -524,11 +526,11 @@ class Exposure:
         if self.hw.config.tilt:
             if self.hw.config.layerTowerHop and slow_move:
                 self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
-                self.hw.tiltLayerUpWait(slow_move)
+                self.hw.tilt.layerUpWait(slow_move)
                 self.hw.towerMoveAbsoluteWait(position_steps)
             else:
                 self.hw.towerMoveAbsoluteWait(position_steps)
-                self.hw.tiltLayerUpWait(slow_move)
+                self.hw.tilt.layerUpWait(slow_move)
         else:
             self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
             self.hw.towerMoveAbsoluteWait(position_steps)
@@ -585,7 +587,7 @@ class Exposure:
             slow_move = white_pixels > self.hw.white_pixels_threshold
             if slow_move:
                 self.slow_layers_done += 1
-            if not self.hw.tiltLayerDownWait(slow_move):
+            if not self.hw.tilt.layerDownWait(slow_move):
                 return False, white_pixels
 
         return True, white_pixels
@@ -614,7 +616,7 @@ class Exposure:
 
         if self.hw.config.tilt:
             self.state = ExposureState.STIRRING
-            self.hw.stirResin()
+            self.hw.tilt.stirResin()
 
         self.state = ExposureState.GOING_DOWN
         position = self.hw.config.upAndDownZoffset
@@ -659,12 +661,12 @@ class Exposure:
         self.hw.powerLed("warn")
         self.state = ExposureState.STUCK_RECOVERY
 
-        if not self.hw.tiltSyncWait(retries=1):
+        if not self.hw.tilt.syncWait(retries=1):
             self.logger.error("Stuck release failed")
             raise TiltFailed()
 
         self.state = ExposureState.STIRRING
-        self.hw.stirResin()
+        self.hw.tilt.stirResin()
         self.hw.powerLed("normal")
         self.state = ExposureState.PRINTING
 
@@ -791,7 +793,7 @@ class Exposure:
             if command == "feedme" or self.low_resin:
                 self.hw.powerLed("warn")
                 if self.hw.config.tilt:
-                    self.hw.tiltLayerUpWait()
+                    self.hw.tilt.layerUpWait()
                 self.state = ExposureState.FEED_ME
                 self.doWait(self.low_resin)
 
@@ -801,9 +803,9 @@ class Exposure:
                 # Stir resin before resuming print
                 if self.hw.config.tilt:
                     self.state = ExposureState.STIRRING
-                    self.hw.setTiltProfile("homingFast")
-                    self.hw.tiltDownWait()
-                    self.hw.stirResin()
+                    self.hw.tilt.profileId = TiltProfile.homingFast
+                    self.hw.tilt.moveDownWait()
+                    self.hw.tilt.stirResin()
                 was_stirring = True
 
                 # Resume print

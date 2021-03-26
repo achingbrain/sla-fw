@@ -283,21 +283,21 @@ class PageTiltProfiles(ProfilesPage):
     def __init__(self, display):
         super(PageTiltProfiles, self).__init__(display)
         self.profilesFilename = "tilt_profiles.json"
-        self.profilesNames = display.hw.getTiltProfilesNames()
         self.pageTitle = "Tilt Profiles"
     #enddef
 
 
     def show(self):
+        profilesNames = self.display.hw.tilt.profileNames
         self.items.update({
-                "label1g1" : self.profilesNames[0],
-                "label1g2" : self.profilesNames[1],
-                "label1g3" : self.profilesNames[2],
-                "label1g4" : self.profilesNames[3],
-                "label1g5" : self.profilesNames[4],
-                "label1g6" : self.profilesNames[5],
-                "label1g7" : self.profilesNames[6],
-                "label1g8" : self.profilesNames[7],
+                "label1g1" : profilesNames[0],
+                "label1g2" : profilesNames[1],
+                "label1g3" : profilesNames[2],
+                "label1g4" : profilesNames[3],
+                "label1g5" : profilesNames[4],
+                "label1g6" : profilesNames[5],
+                "label1g7" : profilesNames[6],
+                "label1g8" : profilesNames[7],
 
                 "label2g1" : "starting steprate",
                 "label2g2" : "maximum steprate",
@@ -312,7 +312,7 @@ class PageTiltProfiles(ProfilesPage):
                 })
         super(PageTiltProfiles, self).show()
         if not self.profiles:
-            self.profiles = self.display.hw.getTiltProfiles()
+            self.profiles = self.display.hw.tilt.profiles
         #endif
         self._setProfile()
         self.display.pages['tiltmove'].changeProfiles(False)
@@ -321,7 +321,7 @@ class PageTiltProfiles(ProfilesPage):
 
     def button3ButtonRelease(self):
         ''' test '''
-        self.display.hw.setTiltTempProfile(self.profiles[self.actualProfile])
+        self.display.hw.tilt.tempProfile(self.profiles[self.actualProfile])
         return "tiltmove"
     #endif
 
@@ -421,7 +421,6 @@ class PageTuneTilt(ProfilesPage):
     def __init__(self, display):
         super(PageTuneTilt, self).__init__(display)
         self.profilesFilename = "tilt_tune_profiles.json"
-        self.profilesNames = display.hw.getTiltProfilesNames()
         self.pageTitle = "Tilt Tune"
         self.nameIndexes = {0, 3}
         self.profileItems = 8
@@ -452,9 +451,10 @@ class PageTuneTilt(ProfilesPage):
 
     def __value(self, index, valmin, valmax, change):
         if valmin <= self.profiles[self.actualProfile][index] + change <= valmax:
+            profilesNames = self.display.hw.tilt.profileNames
             self.profiles[self.actualProfile][index] += change
             if index in self.nameIndexes:
-                self.showItems(**{ 'value2g%d' % (index + 1) : str(self.profilesNames[self.profiles[self.actualProfile][index]]) })
+                self.showItems(**{ 'value2g%d' % (index + 1) : str(profilesNames[self.profiles[self.actualProfile][index]]) })
             else:
                 self.showItems(**{ 'value2g%d' % (index + 1) : str(self.profiles[self.actualProfile][index]) })
             #endif

@@ -130,27 +130,27 @@ class PageTiltMove(MovePage):
 
 
     def show(self):
-        self.items["value"] = self.display.hw.getTiltPosition()
+        self.items["value"] = self.display.hw.tilt.position
         super().show()
     #enddef
 
 
     def _up(self, slowMoving: bool):
-        if not self.display.hw.tilt_move(1 if slowMoving else 2, set_profiles=self.setProfiles):
+        if not self.display.hw.tilt.move(1 if slowMoving else 2, set_profiles=self.setProfiles):
             self.display.hw.beepAlarm(1)
-        self.showItems(value=self.display.hw.getTiltPosition())
+        self.showItems(value=self.display.hw.tilt.position)
     #enddef
 
 
     def _down(self, slowMoving: bool):
-        if not self.display.hw.tilt_move(-1 if slowMoving else -2, set_profiles=self.setProfiles):
+        if not self.display.hw.tilt.move(-1 if slowMoving else -2, set_profiles=self.setProfiles):
             self.display.hw.beepAlarm(1)
-        self.showItems(value=self.display.hw.getTiltPosition())
+        self.showItems(value=self.display.hw.tilt.position)
     #enddef
 
 
     def _stop(self):
-        self.display.hw.tilt_move(0, set_profiles=self.setProfiles)
+        self.display.hw.tilt.move(0, set_profiles=self.setProfiles)
     #enddef
 
 

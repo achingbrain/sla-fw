@@ -18,6 +18,7 @@ from queue import Queue
 from readerwriterlock import rwlock
 
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw import test_runtime
 
 class BaseConfig(ABC):
     """
@@ -231,6 +232,8 @@ class Value(property, ABC):
         :param factory: Whenever to set factory value instead of normal value. Defaults to normal value
         :param dry_run: If set to true the value is not actually set. Used to check value consistency.
         """
+        if test_runtime.testing:
+            write_override = True
         try:
             if not config.is_master() and not write_override:
                 raise ConfigException("Cannot write to read-only config !!!")

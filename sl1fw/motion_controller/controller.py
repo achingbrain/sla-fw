@@ -29,7 +29,7 @@ from sl1fw.motion_controller.states import (
 )
 from sl1fw.errors.exceptions import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
 from sl1fw.motion_controller.trace import LineTrace, LineMarker, Trace
-
+from sl1fw.functions.decorators import safe_call
 
 class MotionController:
     fw = {
@@ -263,9 +263,7 @@ class MotionController:
     def connect(self, mc_version_check: bool) -> None:
         if not self.is_open:
             self.open()
-
-        state = self.getStateBits(["fatal", "reset"])
-
+        state = self.getStateBits(["fatal", "reset"], check_for_updates=False)
         if state["fatal"]:
             raise MotionControllerException("MC failed with fatal flag", None)
         if state["reset"]:
@@ -275,11 +273,13 @@ class MotionController:
                 if val:
                     self.logger.info("motion controller reset flag: %s", ResetFlags(bit).name)
                 bit += 1
-
         tmp = self.doGetIntList("?rev")
         self.fw['revision'] = tmp[0]
         self.board['revision'] = divmod(tmp[1], 32)[1]
         self.board['subRevision'] = chr(divmod(tmp[1], 32)[0] + ord("a"))
+        print(self.fw['revision'])
+        print(self.board['revision'])
+        print(self.board['subRevision'])
         self.logger.info(
             "motion controller board revision: %d%s",
             self.board['revision'],
@@ -287,7 +287,6 @@ class MotionController:
         )
         if self.board['revision'] != 6:
             raise MotionControllerWrongRevision()
-
         if self.fw['revision'] != self.board['revision']:
             self.logger.warning(
                 "Board and firmware revisions differ! Firmware: %d, board: %d!",
@@ -295,10 +294,10 @@ class MotionController:
                 self.board['revision'],
             )
             raise MotionControllerWrongFw()
-
         self.fw['version'] = self.do("?ver")
-        if mc_version_check and self.fw['version'] != defines.reqMcVersion:
-            raise MotionControllerWrongFw()
+        if mc_version_check:
+            if self.fw['version'] != defines.reqMcVersion:
+                raise MotionControllerWrongFw()
         self.logger.info("motion controller firmware version: %s", self.fw['version'])
 
         self.board['serial'] = self.do("?ser")
@@ -484,7 +483,6 @@ class MotionController:
             request = StatusBits.__members__.keys()
 
         bits = self.doGetBoolList("?", bit_count=16)
-
         if len(bits) != 16:
             raise ValueError(f"State bits count not match! ({bits})")
 
@@ -492,6 +490,11 @@ class MotionController:
             self._handle_updates(bits)
 
         return {name: bits[StatusBits.__members__[name.upper()].value] for name in request}
+
+    @safe_call(False, MotionControllerException)
+    def checkState(self, name, check_for_updates: bool = True):
+        state = self.getStateBits([name], check_for_updates)
+        return state[name]
 
     def _handle_updates(self, state_bits: List[bool]):
         # pylint: disable=no-member
@@ -510,7 +513,6 @@ class MotionController:
         fans_ids = StatusBits.FANS.value
         if not self._old_state_bits or state_bits[fans_ids] != self._old_state_bits[fans_ids]:
             self.fans_state_changed.emit(state_bits[fans_ids])
-
         self._old_state_bits = state_bits
 
     def _power_button_handler(self, state: bool):

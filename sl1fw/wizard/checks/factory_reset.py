@@ -26,6 +26,7 @@ from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
+from sl1fw.hardware.tilt import TiltProfile
 
 
 class ResetCheck(SyncCheck):
@@ -245,14 +246,14 @@ class InitiatePackingMoves(Check):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.towerSync()
-        self._hw.tiltSyncWait(retries=3)
+        self._hw.tilt.syncWait(retries=3)
         while not self._hw.isTowerSynced():
             await sleep(0.25)
 
         # move tilt and tower to packing position
-        self._hw.setTiltProfile("homingFast")
-        self._hw.tiltMoveAbsolute(defines.defaultTiltHeight)
-        while self._hw.isTiltMoving():
+        self._hw.tilt.profileId = TiltProfile.homingFast
+        self._hw.tilt.moveAbsolute(defines.defaultTiltHeight)
+        while self._hw.tilt.moving:
             await sleep(0.25)
 
         self._hw.setTowerProfile("homingFast")

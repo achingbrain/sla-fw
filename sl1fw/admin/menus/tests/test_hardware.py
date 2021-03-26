@@ -12,7 +12,7 @@ from sl1fw.libPrinter import Printer
 from sl1fw.pages.infinitetest import PageInfiniteTest
 from sl1fw.pages.uvcalibration import PageUvCalibrationBase
 from sl1fw.pages.uvfanstest import PageUvFansTest
-
+from sl1fw.hardware.tilt import TiltProfile
 
 class TestHardwareMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
@@ -154,11 +154,11 @@ class ResinSensorTestMenu(AdminMenu):
             self._control.enter(Error(self._control, text="Failed to sync tower", pop=2))
 
         self.status = "Homing tilt..."
-        if not self._printer.hw.tiltSyncWait(retries=2):
+        if not self._printer.hw.tilt.syncWait(retries=2):
             self._control.enter(Error(self._control, text="Failed to sync tilt", pop=2))
 
-        self._printer.hw.setTiltProfile("layerMoveSlow")
-        self._printer.hw.tiltUpWait()
+        self._printer.hw.tilt.profileId = TiltProfile.layerMoveSlow
+        self._printer.hw.tilt.moveUpWait()
 
         self.status = "Measuring...\nDo NOT TOUCH the printer"
         volume = self._printer.hw.get_precise_resin_volume_ml()

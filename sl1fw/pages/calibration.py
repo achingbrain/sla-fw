@@ -18,6 +18,7 @@ from sl1fw.pages.wait import PageWait
 from sl1fw.states.display import DisplayState
 from sl1fw.functions.files import save_wizard_history
 from sl1fw import defines
+from sl1fw.hardware.tilt import TiltProfile
 
 
 @page
@@ -101,8 +102,8 @@ class PageCalibration1(PageCalibrationBase):
         pageWait = PageWait(self.display, line1 = _("Tank axis homing"))
         pageWait.show()
 
-        self.display.hw.tiltSyncWait(retries = 2) # FIXME MC cant properly home tilt while tower is moving
-        self.display.hw.tiltHomeCalibrateWait()
+        self.display.hw.tilt.syncWait(retries = 2) # FIXME MC cant properly home tilt while tower is moving
+        self.display.hw.tilt.homeCalibrateWait()
         #tower home check
         pageWait.showItems(line1 = _("Tower axis homing check"))
         for __ in range(3):
@@ -224,21 +225,21 @@ class PageCalibration5(MovePage):
 
 
     def show(self):
-        self.display.hw.setTiltProfile('moveSlow')
-        self.items["value"] = self.display.hw.getTiltPosition()
+        self.display.hw.tilt.profileId = TiltProfile.moveSlow
+        self.items["value"] = self.display.hw.tilt.position
         self.moving = False
         super(PageCalibration5, self).show()
     #enddef
 
 
     def _up(self, slowMoving):
-        self.prevTiltHeight = self.display.hw.getTiltPosition()
+        self.prevTiltHeight = self.display.hw.tilt.position
         if not self.moving:
-            self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_end)
+            self.display.hw.tilt.moveAbsolute(self.display.hw.tilt.max)
             self.moving = True
         else:
-            self.showItems(value = self.display.hw.getTiltPosition())
-            if self.display.hw.getTiltPosition() == self.display.hw.tilt_end:
+            self.showItems(value = self.display.hw.tilt.position)
+            if self.display.hw.tilt.position == self.display.hw.tilt.max:
                 self.display.hw.beepAlarm(1)
             #endif
         #endif
@@ -246,13 +247,13 @@ class PageCalibration5(MovePage):
 
 
     def _down(self, slowMoving):
-        self.prevTiltHeight = self.display.hw.getTiltPosition()
+        self.prevTiltHeight = self.display.hw.tilt.position
         if not self.moving:
-            self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_calib_start)
+            self.display.hw.tilt.moveAbsolute(defines.tiltCalibrationStart)
             self.moving = True
         else:
-            self.showItems(value = self.display.hw.getTiltPosition())
-            if self.display.hw.getTiltPosition() == self.display.hw.tilt_calib_start:
+            self.showItems(value = self.display.hw.tilt.position)
+            if self.display.hw.tilt.position == defines.tiltCalibrationStart:
                 self.display.hw.beepAlarm(1)
             #endif
         #endif
@@ -260,20 +261,20 @@ class PageCalibration5(MovePage):
 
 
     def _stop(self):
-        self.display.hw.tiltStop()
-        if self.prevTiltHeight < self.display.hw.getTiltPosition():
-            self.display.hw.tiltGotoFullstep(goUp = 1)
-        elif self.prevTiltHeight > self.display.hw.getTiltPosition():
-            self.display.hw.tiltGotoFullstep(goUp = 0)
+        self.display.hw.tilt.stop()
+        if self.prevTiltHeight < self.display.hw.tilt.position:
+            self.display.hw.tilt.goToFullstep(goUp = 1)
+        elif self.prevTiltHeight > self.display.hw.tilt.position:
+            self.display.hw.tilt.goToFullstep(goUp = 0)
         #endif
 
-        self.showItems(value = self.display.hw.getTiltPosition())
+        self.showItems(value = self.display.hw.tilt.position)
         self.moving = False
     #enddef
 
 
     def okButtonRelease(self):
-        position = self.display.hw.getTiltPositionMicroSteps()
+        position = self.display.hw.tilt.position
         if position is None:
             self.logger.error("Invalid tilt position to save!")
             self.display.hw.beepAlarm(3)
@@ -469,7 +470,7 @@ class PageCalibration10(PageCalibrationBase):
             sleep(0.25)
         #endwhile
         self.logger.debug("Setting tilt to initial position")
-        self.display.hw.tiltSyncWait(2) # FIXME MC cant properly home tilt while tower is moving
+        self.display.hw.tilt.syncWait(2) # FIXME MC cant properly home tilt while tower is moving
         self.logger.info("Measuring slow tilt times")
         tiltSlowTime = self.getTiltTime(pageWait, slowMove = True)
         self.logger.info("Measuring fast tilt times")
@@ -477,9 +478,9 @@ class PageCalibration10(PageCalibrationBase):
         self.logger.debug("Resetting tower profile")
         self.display.hw.setTowerProfile('homingFast')
         self.logger.debug("Resetting tilt profile")
-        self.display.hw.setTiltProfile('homingFast')
+        self.display.hw.tilt.profileId = TiltProfile.homingFast
         self.logger.debug("Resetting tilt")
-        self.display.hw.tiltUpWait()
+        self.display.hw.tilt.moveUpWait()
         self.logger.debug("Setting calibration data")
         writer = self.display.hw.config.get_writer()
         writer.towerHeight = self.display.hw.config.towerHeight  # TODO: This seems to just copy default to value
@@ -508,8 +509,8 @@ class PageCalibration10(PageCalibrationBase):
             pageWait.showItems(line2 = (_("Slow move %(count)d/%(total)d") if slowMove else _("Fast move %(count)d/%(total)d")) % { 'count' : i+1, 'total' : total })
             self.logger.debug("Measuring tilt time - start")
             tiltStartTime = time()
-            self.display.hw.tiltLayerUpWait()
-            self.display.hw.tiltLayerDownWait(slowMove)
+            self.display.hw.tilt.layerUpWait()
+            self.display.hw.tilt.layerDownWait(slowMove)
             tiltTime += time() - tiltStartTime
             self.logger.debug("Measuring tilt time - end")
         #endfor

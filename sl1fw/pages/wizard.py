@@ -29,6 +29,7 @@ from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
 from sl1fw.states.display import DisplayState
+from sl1fw.hardware.tilt import TiltProfile
 
 
 @dataclass(init=False)
@@ -125,14 +126,13 @@ class PageWizardInit(PageWizardBase):
         pageWait = PageWait(self.display, line1 = _("Tank home check"))
         pageWait.show()
         for i in range(3):
-            self.display.hw.tiltSyncWait()
-            homeStatus = self.display.hw.tiltHomingStatus
+            self.display.hw.tilt.syncWait()
+            homeStatus = self.display.hw.tilt.homingStatus
             if homeStatus == -2:
                 self.display.pages['error'].setParams(code=Sl1Codes.TILT_ENDSTOP_NOT_REACHED.raw_code)
                 return "error"
             elif homeStatus == 0:
-                self.display.hw.tiltHomeCalibrateWait()
-                self.display.hw.setTiltPosition(0)
+                self.display.hw.tilt.homeCalibrateWait()
                 break
             #endif
         #endfor
@@ -143,31 +143,31 @@ class PageWizardInit(PageWizardBase):
 
         #tilt length measure
         pageWait.showItems(line1 = _("Tank axis check"))
-        self.display.hw.setTiltProfile("homingFast")
-        self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_end)
-        while self.display.hw.isTiltMoving():
+        self.display.hw.tilt.profileId = TiltProfile.homingFast
+        self.display.hw.tilt.moveAbsolute(self.display.hw.tilt.max)
+        while self.display.hw.tilt.moving:
             sleep(0.25)
         #endwhile
-        self.display.hw.tiltMoveAbsolute(512)   # go down fast before endstop
-        while self.display.hw.isTiltMoving():
+        self.display.hw.tilt.moveAbsolute(512)   # go down fast before endstop
+        while self.display.hw.tilt.moving:
             sleep(0.25)
         #endwhile
-        self.display.hw.setTiltProfile("homingSlow")    #finish measurement with slow profile (more accurate)
-        self.display.hw.tiltMoveAbsolute(self.display.hw.tilt_min)
-        while self.display.hw.isTiltMoving():
+        self.display.hw.tilt.profileId = TiltProfile.homingSlow    #finish measurement with slow profile (more accurate)
+        self.display.hw.tilt.moveAbsolute(self.display.hw.tilt.min)
+        while self.display.hw.tilt.moving:
             sleep(0.25)
         #endwhile
         #TODO make MC homing more accurate
-        if self.display.hw.getTiltPosition() < -defines.tiltHomingTolerance or self.display.hw.getTiltPosition() > defines.tiltHomingTolerance:
+        if self.display.hw.tilt.position < -defines.tiltHomingTolerance or self.display.hw.tilt.position > defines.tiltHomingTolerance:
             self.display.pages['error'].setParams(
                 code=Sl1Codes.TILT_AXIS_CHECK_FAILED.raw_code,
-                params={"position": self.display.hw.getTiltPosition()}
+                params={"position": self.display.hw.tilt.position}
             )
             return "error"
         #endif
-        self.display.hw.setTiltProfile("homingFast")
-        self.display.hw.tiltMoveAbsolute(defines.defaultTiltHeight)
-        while self.display.hw.isTiltMoving():
+        self.display.hw.tilt.profileId = TiltProfile.homingFast
+        self.display.hw.tilt.moveAbsolute(defines.defaultTiltHeight)
+        while self.display.hw.tilt.moving:
             sleep(0.25)
         #endwhile
 

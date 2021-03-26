@@ -32,7 +32,7 @@ from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongRevision
-from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
+from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated, BootedInAlternativeSlot, DisplayTestFailed, MissingExamples
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth
@@ -182,10 +182,12 @@ class Printer:
         if self.hw.checkFailedBoot():
             self.display.pages["error"].setParams(code=Sl1Codes.ALTERNATIVE_SLOT_BOOT.raw_code)
             self.display.doMenu("error")
+            self.exception = BootedInAlternativeSlot
 
         if self.hw.printer_model == PrinterModel.NONE:
             self.display.pages["error"].setParams(code=Sl1Codes.DISPLAY_TEST_FAILED.raw_code)
             self.display.doMenu("error")
+            self.exception = DisplayTestFailed
 
         if self.firstRun:
             try:
@@ -204,6 +206,7 @@ class Printer:
                 if not get_all_supported_files(self.hw.printer_model, Path(defines.internalProjectPath)):
                     self.display.pages["error"].setParams(code=Sl1Codes.MISSING_EXAMPLES.raw_code)
                     self.display.doMenu("error")
+                    self.exception = MissingExamples("Missing examples")
             elif self.hw.config.showUnboxing:
                 if self.hw.isKit:
                     unboxing = self.action_manager.start_wizard(

@@ -13,6 +13,7 @@ from time import sleep
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait
+from sl1fw.hardware.tilt import TiltProfile
 
 
 @page
@@ -73,9 +74,9 @@ class PageInfiniteTest(Page):
                     tower_status = 1
                 elif tower_status == 1:  # tower above the display
                     tilt_may_move = False
-                    if self.display.hw.isTiltOnPosition():
+                    if self.display.hw.tilt.onTargetPosition:
                         tower_status = 2
-                        self.display.hw.setTiltProfile("layerMoveSlow")
+                        self.display.hw.tilt.profileId = TiltProfile.layerMoveSlow
                         self.display.hw.setTowerProfile("homingSlow")
                         tower_target_position = self.display.hw.tower_min
                         self.display.hw.towerMoveAbsolute(tower_target_position)
@@ -86,12 +87,12 @@ class PageInfiniteTest(Page):
                     self.display.hw.towerMoveAbsolute(tower_target_position)
                     tower_status = 0
 
-            if not self.display.hw.isTiltMoving():
+            if not self.display.hw.tilt.moving:
                 # hack to force tilt to move. Needs MC FW fix. Tilt cannot move up when tower moving
-                if self.display.hw.getTiltPositionMicroSteps() < 128:
+                if self.display.hw.tilt.position < 128:
                     self.display.hw.towerStop()
-                    self.display.hw.setTiltProfile("homingFast")
-                    self.display.hw.tiltUp()
+                    self.display.hw.tilt.profileId = TiltProfile.homingFast
+                    self.display.hw.tilt.moveUp()
                     self.display.hw.setTowerProfile("homingFast")
                     self.display.hw.towerMoveAbsolute(tower_target_position)
                     sleep(1)
@@ -99,7 +100,7 @@ class PageInfiniteTest(Page):
                     if tilt_may_move:
                         tilt_counter += 1
                         page_wait.showItems(line3="Tilt cycles: %d" % tilt_counter)
-                        self.display.hw.setTiltProfile("homingFast")
-                        self.display.hw.tiltSyncWait()
+                        self.display.hw.tilt.profileId = TiltProfile.homingFast
+                        self.display.hw.tilt.syncWait()
 
             sleep(0.25)

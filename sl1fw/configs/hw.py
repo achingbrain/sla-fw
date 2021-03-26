@@ -85,18 +85,35 @@ class HwConfig(Config):
         """
         return (self.screwMm * 1000 * 1000) / (200 * 16)
 
-    tiltHeight = IntValue(defines.defaultTiltHeight, doc="Position of the leveled tilt. [microsteps]")
+    # tilt related
+    tilt = BoolValue(True, doc="Use tilt to tear off the layers.")
+    tiltSensitivity = IntValue(0, minimum=-2, maximum=2, doc="Tilt sensitivity adjustment")
+    tiltHeight = IntValue(defines.defaultTiltHeight, doc="Position of the leveled tilt. [ustep]")
+    tiltMax = IntValue(defines.tiltMax, doc="Max position allowed. It shoud corespond to the top deadlock of the axis. [ustep]")
+    tiltMin = IntValue(defines.tiltMin, doc="Position used to ensure the tilt ends at the bottom. [ustep]")
+    raw_tiltdownlargefill = IntListValue([5, 650, 1000, 4, 1, 0, 64, 3], length=8, key="tiltdownlargefill", doc="Definitions for tilt down where printed area > limit4fast. Profiles, offsets and wait times.")
+    raw_tiltdownsmallfill = IntListValue([5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill", doc="Definitions for tilt down where printed area < limit4fast. Profiles, offsets and wait times.")
+    raw_tiltuplargefill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltuplargefill", doc="Definitions for tilt up where printed area > limit4fast. Profiles, offsets and wait times.")
+    raw_tiltupsmallfill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltupsmallfill", doc="Definitions for tilt up where printed area < limit4fast. Profiles, offsets and wait times.")
+    limit4fast = IntValue(45, minimum=0, maximum=100, doc="Fast tearing is used if layer area is under this value. [%]")
+    tiltFastTime = FloatValue(5.5, doc="Time necessary to perform fast tear off.")
+    tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off.")
+
+    @property
+    def tuneTilt(self) -> List[List[int]]:
+        return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill]
+
+    @tuneTilt.setter
+    def tuneTilt(self, value: List[List[int]]):
+        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill] = value
+
+
     stirringMoves = IntValue(3, minimum=1, maximum=10, doc="Number of stirring moves")
     stirringDelay = IntValue(5, minimum=0, maximum=300)
     measuringMoves = IntValue(3, minimum=1, maximum=10)
     pwrLedPwm = IntValue(100, minimum=0, maximum=100, doc="Power LED brightness. [%]")
-
     MCBoardVersion = IntValue(6, minimum=5, maximum=6, doc="Motion controller board revision. Used to flash firmware.")
-
-    # Advanced settings
-    tiltSensitivity = IntValue(0, minimum=-2, maximum=2, doc="Tilt sensitivity adjustment")
     towerSensitivity = IntValue(0, minimum=-2, maximum=2, factory=True, doc="Tower sensitivity adjustment")
-    limit4fast = IntValue(45, minimum=0, maximum=100, doc="Fast tearing is used if layer area is under this value. [%]")
     vatRevision = IntValue(0, minimum=0, maximum=1, doc="Resin vat revision: 0 = metalic (SL1); 1 = plastic (SL1S);")
 
     calibTowerOffset = IntValue(
@@ -107,7 +124,6 @@ class HwConfig(Config):
     # Exposure setup
     blinkExposure = BoolValue(True, doc="If True the UV LED will be powered off when not used during print.")
     perPartes = BoolValue(False, doc="Expose areas larger than layerFill in two steps.")
-    tilt = BoolValue(True, doc="Use tilt to tear off the layers.")
     upAndDownUvOn = BoolValue(False)
 
     trigger = IntValue(
@@ -153,21 +169,7 @@ class HwConfig(Config):
     uvCalibMinIntEdge = IntValue(90, minimum=80, maximum=150, doc="UV LED calibration minimum intensity at the edge.")
     uvCalibBoostTolerance = IntValue(20, minimum=0, maximum=100, doc="Tolerance for allowing boosted results.")
 
-    # Tilt & Tower -> Tilt tune
-    raw_tiltdownlargefill = IntListValue([5, 650, 1000, 4, 1, 0, 64, 3], length=8, key="tiltdownlargefill")
-    raw_tiltdownsmallfill = IntListValue([5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill")
-    raw_tiltuplargefill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltuplargefill")
-    raw_tiltupsmallfill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltupsmallfill")
-
     currentProfilesSet = TextValue("n/a", doc="Last applied profiles set")
-
-    @property
-    def tuneTilt(self) -> List[List[int]]:
-        return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill]
-
-    @tuneTilt.setter
-    def tuneTilt(self, value: List[List[int]]):
-        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill] = value
 
     raw_calibrated = BoolValue(False, key="calibrated")
 
@@ -190,8 +192,6 @@ class HwConfig(Config):
     towerHeight = IntValue(
         lambda self: self.calcMicroSteps(defines.defaultTowerHeight), doc="Maximum tower height. [microsteps]"
     )
-    tiltFastTime = FloatValue(5.5, doc="Time necessary to perform fast tear off.")
-    tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off.")
     showWizard = BoolValue(True, doc="Display wizard at startup if True.")
     showUnboxing = BoolValue(True, doc="Display unboxing wizard at startup if True.")
     showI18nSelect = BoolValue(True, doc="Display language select dialog at startup if True.")
