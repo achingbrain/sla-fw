@@ -13,7 +13,7 @@ last = 0
 for line in sys.stdin:
     items = line.strip().split(" ")
     timeparts = items[0].split(":")
-    seconds = int(timeparts[0]) * 3600 + int(timeparts[1]) * 60 + int(timeparts[2])
+    seconds = int(int(timeparts[0]) * 3600 + int(timeparts[1]) * 60 + float(timeparts[2]))
     if seconds < last:
         seconds += 24 * 3600
     last = seconds
