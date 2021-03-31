@@ -68,7 +68,6 @@ class TestExposure(Sl1fwTestCase):
         return hw
 
     def tearDown(self):
-        print("aaaaaaaaaaaaaaaaaaaaaaaaaaa")
         self.hw.exit()
         super().tearDown()
 

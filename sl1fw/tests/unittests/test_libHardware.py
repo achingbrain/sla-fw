@@ -173,11 +173,6 @@ class TestLibHardware(Sl1fwTestCase):
         for voltage in voltages:
             self.assertEqual(float, type(voltage))
 
-    def test_camera_led(self):
-        self.assertFalse(self.hw.getCameraLedState())
-        self.hw.cameraLed(True)
-        self.assertTrue(self.hw.getCameraLedState())
-
     def test_resin_sensor(self):
         self.assertFalse(self.hw.getResinSensorState())
         self.hw.resinSensor(True)

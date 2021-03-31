@@ -19,7 +19,8 @@ from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.toml import TomlConfig
 
-
+# TODO: remove with pages
+@unittest.skip("websocket abondend. Pages are not used anymore")
 class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
     def test_turnoff(self):
         # Turn off

@@ -7,6 +7,7 @@ import unittest
 from shutil import copyfile
 from unittest.mock import Mock, AsyncMock, MagicMock, patch
 
+from pathlib import Path
 import pydbus
 import toml
 
@@ -117,55 +118,6 @@ class TestWizardInfrastructure(Sl1fwTestCase):
 
 
 class TestWizards(Sl1fwTestCase):
-    def test_self_test_data(self):
-        hw_config = HwConfig()
-        hw_config.uvWarmUpTime = 0
-        wizard = SelfTestWizard(Hardware(hw_config), Mock(), RuntimeConfig())
-
-        def on_state_changed():
-            if wizard.state == WizardState.PREPARE_WIZARD_PART_1:
-                wizard.prepare_wizard_part_1_done()
-            if wizard.state == WizardState.TEST_AUDIO:
-                wizard.report_audio(True)
-            if wizard.state == WizardState.TEST_DISPLAY:
-                wizard.report_display(True)
-            if wizard.state == WizardState.PREPARE_WIZARD_PART_2:
-                wizard.prepare_wizard_part_2_done()
-            if wizard.state == WizardState.PREPARE_WIZARD_PART_3:
-                wizard.prepare_wizard_part_3_done()
-
-        wizard.state_changed.connect(on_state_changed)
-        self._run_wizard(wizard)
-
-        wizard_data_path = defines.configDir / wizard.get_data_filename()
-        self.assertTrue(wizard_data_path.exists(), "Wizard data file exists")
-        print(f"Wizard data:\n{wizard_data_path.read_text()}")
-        with wizard_data_path.open("rt") as file:
-            data = serializer.load(file)
-
-        self.assertEqual("CZPX0819X009XC00151", data["a64SerialNo"])
-        self.assertIn("osVersion", data)
-        self.assertEqual("CZPX0619X678XC12345", data["mcSerialNo"])
-        self.assertEqual("1.0.0", data["mcFwVersion"])
-        self.assertEqual("6c", data["mcBoardRev"])
-
-        self.assertEqual(96000, data["towerHeight"])
-        self.assertEqual(4928, data["tiltHeight"])
-        self.assertIn("uvPwm", data)
-
-        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow1"])
-        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow2"])
-        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow3"])
-        self.assertListEqual(
-            [hw_config.fan1Rpm, hw_config.fan2Rpm, hw_config.fan3Rpm], data["wizardFanRpm"],
-        )
-        self.assertEqual(46.7, data["wizardTempUvInit"])
-        self.assertEqual(46.7, data["wizardTempUvWarm"])
-        self.assertEqual(26.1, data["wizardTempAmbient"])
-        self.assertEqual(53.5, data["wizardTempA64"])
-        self.assertEqual(defines.resinWizardMaxVolume, data["wizardResinVolume"])
-        self.assertEqual(0, data["towerSensitivity"])
-
     def test_display_test(self):
         wizard = DisplayTestWizard(Hardware(), Mock(), RuntimeConfig())
 
@@ -192,52 +144,6 @@ class TestWizards(Sl1fwTestCase):
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, expected_state=WizardState.FAILED)
         self.assertEqual("#10120", wizard.data["displaytest_exception"]["code"])
-
-    def test_unboxing_complete(self):
-        wizard = CompleteUnboxingWizard(
-            Hardware(HwConfig(defines.hwConfigPath, is_master=True)), Mock(), RuntimeConfig()
-        )
-
-        def on_state_changed():
-            if wizard.state == WizardState.REMOVE_SAFETY_STICKER:
-                wizard.safety_sticker_removed()
-            if wizard.state == WizardState.REMOVE_SIDE_FOAM:
-                wizard.side_foam_removed()
-            if wizard.state == WizardState.REMOVE_TANK_FOAM:
-                wizard.tank_foam_removed()
-            if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
-                wizard.display_foil_removed()
-
-        wizard.state_changed.connect(on_state_changed)
-        self._run_wizard(wizard)
-
-    def test_unboxing_kit(self):
-        wizard = KitUnboxingWizard(Hardware(HwConfig(defines.hwConfigPath, is_master=True)), Mock(), RuntimeConfig())
-
-        def on_state_changed():
-            if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
-                wizard.display_foil_removed()
-
-        wizard.state_changed.connect(on_state_changed)
-        self._run_wizard(wizard)
-
-    def test_calibration(self):
-        wizard = CalibrationWizard(Hardware(HwConfig(defines.hwConfigPath, is_master=True)), Mock(), RuntimeConfig())
-
-        def on_state_changed():
-            if wizard.state == WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK:
-                wizard.prepare_calibration_platform_tank_done()
-            if wizard.state == WizardState.PREPARE_CALIBRATION_TILT_ALIGN:
-                wizard.prepare_calibration_tilt_align_done()
-            if wizard.state == WizardState.LEVEL_TILT:
-                wizard.tilt_aligned()
-            if wizard.state == WizardState.PREPARE_CALIBRATION_PLATFORM_ALIGN:
-                wizard.prepare_calibration_platform_align_done()
-            if wizard.state == WizardState.PREPARE_CALIBRATION_FINISH:
-                wizard.prepare_calibration_finish_done()
-
-        wizard.state_changed.connect(on_state_changed)
-        self._run_wizard(wizard)
 
     def _run_wizard(self, wizard: Wizard, limit_s: int = 5, expected_state=WizardState.DONE):
         wizard.start()
@@ -296,6 +202,102 @@ class TestReset(TestWizards):
         ), patch("sl1fw.wizard.checks.factory_reset.ch_mode_owner"):
             super()._run_wizard(wizard, limit_s, expected_state)
 
+    def test_self_test_success(self):
+        self.hw.config.uvWarmUpTime = 0
+        wizard = SelfTestWizard(self.hw, Mock(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.PREPARE_WIZARD_PART_1:
+                wizard.prepare_wizard_part_1_done()
+            if wizard.state == WizardState.TEST_AUDIO:
+                wizard.report_audio(True)
+            if wizard.state == WizardState.TEST_DISPLAY:
+                wizard.report_display(True)
+            if wizard.state == WizardState.PREPARE_WIZARD_PART_2:
+                wizard.prepare_wizard_part_2_done()
+            if wizard.state == WizardState.PREPARE_WIZARD_PART_3:
+                wizard.prepare_wizard_part_3_done()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
+
+        wizard_data_path = defines.configDir / wizard.get_data_filename()
+        self.assertTrue(wizard_data_path.exists(), "Wizard data file exists")
+        print(f"Wizard data:\n{wizard_data_path.read_text()}")
+        with wizard_data_path.open("rt") as file:
+            data = serializer.load(file)
+
+        self.assertEqual("CZPX0819X009XC00151", data["a64SerialNo"])
+        self.assertIn("osVersion", data)
+        self.assertEqual("CZPX0619X678XC12345", data["mcSerialNo"])
+        self.assertEqual("1.0.0", data["mcFwVersion"])
+        self.assertEqual("6c", data["mcBoardRev"])
+
+        self.assertEqual(96000, data["towerHeight"])
+        self.assertEqual(4928, data["tiltHeight"])
+        self.assertIn("uvPwm", data)
+
+        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow1"])
+        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow2"])
+        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow3"])
+        self.assertListEqual(
+            [self.hw.config.fan1Rpm, self.hw.config.fan2Rpm, self.hw.config.fan3Rpm], data["wizardFanRpm"],
+        )
+        self.assertEqual(46.7, data["wizardTempUvInit"])
+        self.assertEqual(46.7, data["wizardTempUvWarm"])
+        self.assertEqual(26.1, data["wizardTempAmbient"])
+        self.assertEqual(53.5, data["wizardTempA64"])
+        self.assertEqual(defines.resinWizardMaxVolume, data["wizardResinVolume"])
+        self.assertEqual(0, data["towerSensitivity"])
+        self._assert_showWizard()
+
+    def test_self_test_fail(self):
+        self.hw.config.uvWarmUpTime = 0
+        wizard = SelfTestWizard(self.hw, Mock(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.PREPARE_WIZARD_PART_1:
+                wizard.state = WizardState.CANCELED
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard, limit_s=1, expected_state=WizardState.CANCELED)
+        self._assert_showWizard()
+
+    def _assert_showWizard(self):
+        hwConfig_path = Path(self.hw_config_file)
+        self.assertTrue(hwConfig_path.exists(), "HwConfig file exists")
+        with hwConfig_path.open("rt") as file:
+            data = toml.load(file)
+        self.assertFalse(data["showWizard"])
+
+    def test_unboxing_complete(self):
+        wizard = CompleteUnboxingWizard(
+            self.hw, Mock(), RuntimeConfig()
+        )
+
+        def on_state_changed():
+            if wizard.state == WizardState.REMOVE_SAFETY_STICKER:
+                wizard.safety_sticker_removed()
+            if wizard.state == WizardState.REMOVE_SIDE_FOAM:
+                wizard.side_foam_removed()
+            if wizard.state == WizardState.REMOVE_TANK_FOAM:
+                wizard.tank_foam_removed()
+            if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
+                wizard.display_foil_removed()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
+
+    def test_unboxing_kit(self):
+        wizard = KitUnboxingWizard(self.hw, Mock(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
+                wizard.display_foil_removed()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
+
     def test_packing_complete(self):
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST complete", False)
@@ -351,6 +353,24 @@ class TestReset(TestWizards):
         # Local time should be actualy replaced by default,
         # but the copyfile is mocked. This only checks successful delete.
         self.assertFalse(defines.local_time_path.exists(), "Timezone reset to default")
+
+    def test_calibration(self):
+        wizard = CalibrationWizard(self.hw, Mock(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK:
+                wizard.prepare_calibration_platform_tank_done()
+            if wizard.state == WizardState.PREPARE_CALIBRATION_TILT_ALIGN:
+                wizard.prepare_calibration_tilt_align_done()
+            if wizard.state == WizardState.LEVEL_TILT:
+                wizard.tilt_aligned()
+            if wizard.state == WizardState.PREPARE_CALIBRATION_PLATFORM_ALIGN:
+                wizard.prepare_calibration_platform_align_done()
+            if wizard.state == WizardState.PREPARE_CALIBRATION_FINISH:
+                wizard.prepare_calibration_finish_done()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
 
 
 class TestUVCalibration(TestWizards):

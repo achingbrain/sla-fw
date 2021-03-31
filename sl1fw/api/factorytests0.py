@@ -48,7 +48,7 @@ class FactoryTests0:
         return self._printer.hw.getUvLedState()[0]
 
     @auto_dbus
-    @state_checked(Printer0State.DISPLAY_TEST)
+    @state_checked(Printer0State.WIZARD)
     def set_uv(self, enable: bool) -> None:
         if enable:
             self._printer.hw.startFans()
@@ -59,17 +59,17 @@ class FactoryTests0:
         self._printer.hw.uvLed(enable)
 
     @auto_dbus
-    @state_checked(Printer0State.DISPLAY_TEST)
+    @state_checked(Printer0State.WIZARD)
     def display_image(self, filename: str) -> None:
         self._printer.screen.show_system_image(filename)
 
     @auto_dbus
-    @state_checked(Printer0State.DISPLAY_TEST)
+    @state_checked(Printer0State.WIZARD)
     def blank_screen(self) -> None:
         self._printer.screen.blank_screen()
 
     @auto_dbus
-    @state_checked(Printer0State.DISPLAY_TEST)
+    @state_checked(Printer0State.WIZARD)
     def invert_screen(self) -> None:
         self._printer.screen.inverse()
 

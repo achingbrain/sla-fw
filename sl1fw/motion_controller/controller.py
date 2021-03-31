@@ -277,9 +277,6 @@ class MotionController:
         self.fw['revision'] = tmp[0]
         self.board['revision'] = divmod(tmp[1], 32)[1]
         self.board['subRevision'] = chr(divmod(tmp[1], 32)[0] + ord("a"))
-        print(self.fw['revision'])
-        print(self.board['revision'])
-        print(self.board['subRevision'])
         self.logger.info(
             "motion controller board revision: %d%s",
             self.board['revision'],

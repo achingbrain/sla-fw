@@ -69,6 +69,8 @@ class CheckGroup(ABC):
         if self._future and self._loop:
             self._logger.debug("Canceling check group future")
             self._loop.call_soon_threadsafe(self._future.cancel)
+            for check in self.checks:
+                check.cancel()
 
     def _init_locks(self):
         self._locks = {resource: asyncio.Lock() for resource in Resource.__members__.values()}

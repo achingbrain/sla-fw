@@ -182,7 +182,7 @@ class TiltSL1(Tilt):
                 self.goToFullstep(goUp=1)
             elif self._lastPosition > self.position:
                 self.goToFullstep(goUp=0)
-        self._lastPosition = None
+            self._lastPosition = self._config.tiltMin
         return True
 
     @safe_call(False, MotionControllerException)
@@ -190,7 +190,6 @@ class TiltSL1(Tilt):
         if sensitivity < -2 or sensitivity > 2:
             raise ValueError("Sensitivity must be from -2 to +2")
         newProfiles = self.profiles
-        print(newProfiles)
         newProfiles[0][4] = self._tiltAdjust[TiltProfile.homingFast][sensitivity + 2][0]
         newProfiles[0][5] = self._tiltAdjust[TiltProfile.homingFast][sensitivity + 2][1]
         newProfiles[1][4] = self._tiltAdjust[TiltProfile.homingSlow][sensitivity + 2][0]

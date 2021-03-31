@@ -25,7 +25,8 @@ class ValueChecker:
             self.emit(new_value)
 
     def emit(self, value):
-        if self._pass_value:
-            self._signal.emit(value)
-        else:
-            self._signal.emit()
+        if self._signal is not None:
+            if self._pass_value:
+                self._signal.emit(value)
+            else:
+                self._signal.emit()

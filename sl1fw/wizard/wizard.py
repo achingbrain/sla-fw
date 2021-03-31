@@ -149,18 +149,20 @@ class Wizard(Thread, UserActionBroker):
                 for check in group.checks:
                     self._logger.debug("Running wizard finished for %s", type(check).__name__)
                     check.wizard_finished()
+            self.success_action()
             self._store_data()
         except CancelledError:
             self._logger.debug("Wizard group canceled successfully")
             self.state = WizardState.CANCELED
-            hw_all_off(self._hw, self._exposure_image)
         except Exception:
             self.state = WizardState.FAILED
             hw_all_off(self._hw, self._exposure_image)
+            self._exposure_image = None
             self._store_data()
             raise
 
         hw_all_off(self._hw, self._exposure_image)
+        self._exposure_image = None
         if self.state not in [WizardState.CANCELED, WizardState.FAILED]:
             self.state = WizardState.DONE
         self._logger.info("Wizard %s finished with state %s", type(self).__name__, self.state)
@@ -170,10 +172,17 @@ class Wizard(Thread, UserActionBroker):
             raise WizardNotCancelable()
 
         self._logger.info("Canceling wizard")
+        self.cancel_action()
 
         if self.__current_group:
             self._logger.debug("Canceling running wizard group")
             self.__current_group.cancel()
+
+    def cancel_action(self):
+        """custom wizard action which is called on wizard cancel"""
+
+    def success_action(self):
+        """custom wizard action which is called on wizard success"""
 
     def __run_group(self, group: CheckGroup):
         self._logger.debug("Running check group %s", type(group).__name__)

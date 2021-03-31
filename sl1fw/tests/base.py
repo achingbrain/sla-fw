@@ -133,7 +133,6 @@ class Sl1fwTestCase(DBusTestCase):
 
     def tearDown(self) -> None:
         logging.getLogger().removeHandler(self.stream_handler)
-        print("handler removed")
         self.ref_check_type(Printer0)
         self.ref_check_type(Printer)
         self.ref_check_type(Exposure)

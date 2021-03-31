@@ -26,13 +26,12 @@ from PySignal import Signal
 from gi.repository import GLib
 from pydbus import SystemBus
 
-from prusaerrors.sl1.codes import Sl1Codes
-
 from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongRevision
-from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated, BootedInAlternativeSlot, DisplayTestFailed, MissingExamples
+from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated, BootedInAlternativeSlot, \
+    DisplayTestFailed, MissingExamples, LanguageNotSet, NoFactoryUvCalib
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth
@@ -54,6 +53,9 @@ from sl1fw.states.printer import PrinterState
 from sl1fw.states.wizard import WizardState
 from sl1fw import test_runtime
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
+from sl1fw.wizard.wizards.self_test import SelfTestWizard
+from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
+from sl1fw.wizard.wizards.calibration import CalibrationWizard
 
 
 class Printer:
@@ -179,34 +181,28 @@ class Printer:
         self.hw.uvLed(False)
         self.hw.powerLed("normal")
 
+
         if self.hw.checkFailedBoot():
-            self.display.pages["error"].setParams(code=Sl1Codes.ALTERNATIVE_SLOT_BOOT.raw_code)
-            self.display.doMenu("error")
-            self.exception = BootedInAlternativeSlot
+            self.exception = BootedInAlternativeSlot()
 
         if self.hw.printer_model == PrinterModel.NONE:
-            self.display.pages["error"].setParams(code=Sl1Codes.DISPLAY_TEST_FAILED.raw_code)
-            self.display.doMenu("error")
-            self.exception = DisplayTestFailed
+            self.exception = DisplayTestFailed()
 
         if self.firstRun:
             try:
                 locale = pydbus.SystemBus().get("org.freedesktop.locale1")
                 if locale.Locale == ["LANG=C"]:
                     self.hw.beepRepeat(1)
-                    self.display.doMenu("setlanguage")
+                    self.exception = LanguageNotSet()
             except GLib.GError:
                 self.logger.exception("Failed to obtain current locale.")
 
             if not self.hw.config.is_factory_read() and not self.hw.isKit:
-                self.display.pages["error"].setParams(code=Sl1Codes.FAILED_TO_LOAD_FACTORY_LEDS_CALIBRATION.raw_code)
-                self.display.doMenu("error")
+                self.exception = NoFactoryUvCalib()
 
             if self.runtime_config.factory_mode:
                 if not get_all_supported_files(self.hw.printer_model, Path(defines.internalProjectPath)):
-                    self.display.pages["error"].setParams(code=Sl1Codes.MISSING_EXAMPLES.raw_code)
-                    self.display.doMenu("error")
-                    self.exception = MissingExamples("Missing examples")
+                    self.exception = MissingExamples()
             elif self.hw.config.showUnboxing:
                 if self.hw.isKit:
                     unboxing = self.action_manager.start_wizard(
@@ -218,19 +214,37 @@ class Printer:
                     )
                 self.logger.info("Running unboxing wizard")
                 unboxing.join()
-                self.logger.info("Unboxing finished")
+                self.logger.info("Unboxing wizard finished")
 
             if self.hw.config.showWizard:
-                self.hw.beepRepeat(1)
-                self.display.doMenu("wizardinit")
+                self.logger.info("Running selftest wizard")
+                selftest = self.action_manager.start_wizard(
+                    SelfTestWizard(self.hw, self.exposure_image, self.runtime_config)
+                )
+                selftest.join()
+                self.logger.info("Selftest wizard finished")
 
             if self.hw.config.uvPwm < self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm:
-                self.hw.beepRepeat(1)
-                self.display.doMenu("uvcalibrationstart")
+                # delete also both counters and save calibration to factory partition. It's new KIT or something went wrong.
+                self.logger.info("Running UV calibration wizard")
+                uvCalibration = self.action_manager.start_wizard(
+                    UVCalibrationWizard(
+                        self.hw,
+                        self.exposure_image,
+                        self.runtime_config,
+                        display_replaced=True,
+                        led_module_replaced = True)
+                )
+                uvCalibration.join()
+                self.logger.info("UV calibration wizard finished")
 
             if not self.hw.config.calibrated:
-                self.hw.beepRepeat(1)
-                self.display.doMenu("calibrationstart")
+                self.logger.info("Running calibration wizard")
+                calibration = self.action_manager.start_wizard(
+                    CalibrationWizard(self.hw, self.exposure_image, self.runtime_config)
+                )
+                calibration.join()
+                self.logger.info("Calibration wizard finished")
 
             save_all_remain_wizard_history()
 
@@ -312,8 +326,7 @@ class Printer:
         try:
             self.exited.clear()
             self.state = PrinterState.RUNNING
-            while self.state != PrinterState.EXIT:
-                self.printer_run()
+            self.printer_run()
 
             self.fs0_dbus.onMediaEjected = None
             self.fs0_dbus.onMediaInserted = None

@@ -167,7 +167,6 @@ class Hardware:
 
     def start(self):
         self.printer_model = self.exposure_screen.start()
-        print(self.printer_model)
         if self.printer_model == PrinterModel.SL1:
             self.tilt = TiltSL1(self.mcc,self.config)
         self.initDefaults()
@@ -191,6 +190,7 @@ class Hardware:
             ValueChecker(self.getVoltages, self.led_voltages_changed),
             ValueChecker(self.getResinSensorState, self.resin_sensor_state_changed),
             ValueChecker(self.getUvStatistics, self.uv_statistics_changed),
+            ValueChecker(self.mcc.getStateBits, None),
         ]
 
         while self._value_refresh_run:
@@ -537,12 +537,6 @@ class Hardware:
 
         return volts
 
-    def cameraLed(self, state):
-        self.mcc.do("!cled", 1 if state else 0)
-
-    def getCameraLedState(self):
-        return self.mcc.doGetBool("?cled")
-
     def resinSensor(self, state):
         """Enable/Disable resin sensor"""
         self.mcc.do("!rsen", 1 if state else 0)
@@ -659,6 +653,10 @@ class Hardware:
     def towerHoldTiltRelease(self):
         self.mcc.do("!ena 1")
 
+    @safe_call(False, MotionControllerException)
+    def motorsStop(self):
+        self.mcc.do("!mot", 0)
+
     # --- tower ---
 
     def towerHomeCalibrateWait(self):
@@ -727,7 +725,7 @@ class Hardware:
 
     # TODO use !brk instead. Motor might stall at !mot 0
     def towerStop(self):
-        self.mcc.do("!mot", 0)
+        self.mcc.do("!mot", 2)
 
     def isTowerMoving(self):
         if self.mcc.doGetInt("?mot") & 1:

@@ -165,7 +165,6 @@ def tilt_calib_start(hw: Hardware):
     hw.tilt.profileId = TiltProfile.homingFast
     hw.tilt.moveAbsolute(defines.tiltCalibrationStart)
     while hw.tilt.moving:
-        print(hw.tilt.moving)
         sleep(0.25)
 
 def tower_calibrate(hw: Hardware, logger: Logger) -> int:

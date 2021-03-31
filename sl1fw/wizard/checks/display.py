@@ -8,7 +8,7 @@ from sl1fw.errors.errors import DisplayTestFailed
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.image.exposure_image import ExposureImage
-from sl1fw.states.wizard import WizardState
+from sl1fw.states.wizard import WizardState, WizardCheckState
 from sl1fw.wizard.actions import UserActionBroker, PushState
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
 from sl1fw.wizard.setup import Configuration, TankSetup, Resource
@@ -72,3 +72,7 @@ class DisplayTest(DangerousCheck):
     def user_callback(self, result: bool):
         self.result = result
         self._logger.info("Use reported display status: %s", result)
+
+    def cancel(self):
+        self.exposure_image = None
+        self.state = WizardCheckState.CANCELED

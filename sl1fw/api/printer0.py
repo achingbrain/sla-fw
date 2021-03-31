@@ -283,13 +283,14 @@ class Printer0:
 
     @auto_dbus
     @last_error
-    @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
+    @state_checked([Printer0State.IDLE, Printer0State.WIZARD])
     def tower_move(self, speed: int) -> bool:
         """
         Start / stop tower movement
 
         TODO: This should be checked by heartbeat or the command should have limited ttl
         TODO: Allowed for calibration as calibration does not have dedicated control object, yet
+        TODO: Was limited only for calibration wizard. Now its allowed in all wizards. We may want to restrict it babck just for claibration.
 
         :param: Movement speed
 
@@ -304,13 +305,14 @@ class Printer0:
 
     @auto_dbus
     @last_error
-    @state_checked([Printer0State.IDLE, Printer0State.CALIBRATION])
+    @state_checked([Printer0State.IDLE, Printer0State.WIZARD])
     def tilt_move(self, speed: int) -> bool:
         """
         Start / stop tilt movement
 
         TODO: This should be checked by heartbeat or the command should have limited ttl
         TODO: Allowed for calibration as calibration does not have dedicated control object, yet
+        TODO: Was limited only for calibration wizard. Now its allowed in all wizards. We may want to restrict it babck just for claibration.
 
         :param: Movement speed
 
@@ -329,7 +331,6 @@ class Printer0:
         """
         Read or set tower position in nm
         """
-        print("tower get")
         return self.printer.hw.tower_position_nm
 
     @auto_dbus
@@ -337,7 +338,6 @@ class Printer0:
     @last_error
     @state_checked(Printer0State.IDLE)
     def tower_position_nm(self, position_nm: int) -> None:
-        print("tower set")
         self.printer.hw.tower_position_nm = position_nm
 
     @property
@@ -346,8 +346,6 @@ class Printer0:
         """
         Read or set tilt position in micro-steps
         """
-        print("getter")
-        print(self.printer.hw.tilt.position)
         return self.printer.hw.tilt.position
 
     @auto_dbus
@@ -355,7 +353,6 @@ class Printer0:
     @last_error
     @state_checked(Printer0State.IDLE)
     def tilt_position(self, micro_steps: int):
-        print("setter")
         self.printer.hw.tilt.position = micro_steps
 
     @auto_dbus

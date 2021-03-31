@@ -11,6 +11,7 @@ from pathlib import Path
 from queue import Empty
 from shutil import copyfile
 from threading import Thread
+from time import sleep
 
 # import cProfile
 from typing import Optional
@@ -23,6 +24,8 @@ from sl1fw import defines, test_runtime
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libPrinter import Printer
 from sl1fw.tests.mocks.display import TestDisplay
+from sl1fw.states.printer import PrinterState
+from sl1fw.states.wizard import WizardState
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
@@ -131,17 +134,24 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         try:
             self.thread.start()
 
-            # Skip wizard
-            self.waitPage("confirm", timeout_sec=10)
-            self.press("back")
-            self.waitPage("yesno")
-            self.press("yes")
-            # Skip calibration
-            self.waitPage("confirm")
-            self.press("back")
-            self.waitPage("yesno")
-            self.press("yes")
-            self.waitPage("home")
+            # skip selftest and calibration
+            expectedStates = [
+                WizardState.PREPARE_WIZARD_PART_1.value,
+                WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK.value
+            ]
+            for expectedState in expectedStates:
+                while self.printer.state != PrinterState.WIZARD:
+                    sleep(0.25)
+                wizard = SystemBus().get("cz.prusa3d.sl1.wizard0")
+                for _ in range(50):  # 5 second timeout
+                    if wizard.state == expectedState:
+                        break
+                    sleep(0.1)
+                if wizard.state != expectedState:
+                    raise Exception("Wizard not in expected state")
+                wizard.cancel()
+                wizard.abort()
+            sleep(0.5)    # FIXME: MC commands from canceling wizard are sent even when wizard.state is already CANCELED. It has effect on ongoing tests
         except Exception as exception:
             self.tearDown()
             raise Exception("Test setup failed") from exception
@@ -159,6 +169,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             del Printer0.PropertiesChanged.map[self._printer0]
 
         self.printer.exit()
+
         self.thread.join()
 
         # Make sure we are not leaving these behind.

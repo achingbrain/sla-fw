@@ -117,8 +117,7 @@ class TestTilt(Sl1fwTestCase):
         self.hw.tilt.stop()
         position = self.hw.tilt.position
         self.hw.tilt.move(speed=0, set_profiles=True, fullstep=True)
-        print(self.hw.tilt.position)
-        self.assertLess(position, self.hw.tilt.position)
+        self.assertLessEqual(position, self.hw.tilt.position)
         # TODO: ensure tilt is in fullstep
 
     def test_sensitivity(self):

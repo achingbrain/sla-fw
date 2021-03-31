@@ -14,10 +14,10 @@ class Printer0State(Enum):
 
     INITIALIZING = 0
     IDLE = 1
-    # Replaced by wizard, UNBOXING = 2
+    # Replaced by state WIZARD, UNBOXING = 2
     WIZARD = 3
-    CALIBRATION = 4
-    DISPLAY_TEST = 5  # Will be replaced by wizard
+    # Replaced by state WIZARD, CALIBRATION = 4
+    # Replaced by state WIZARD, DISPLAY_TEST = 5
     PRINTING = 6
     UPDATE = 7
     ADMIN = 8

@@ -231,7 +231,6 @@ class Config(ValueConfig):
         with self._lock.gen_rlock():
             if file_path is None:
                 file_path = self._file_path
-
             try:
                 self._write_file(file_path, factory=False)
             except Exception as exception:

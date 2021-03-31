@@ -55,7 +55,6 @@ def save_wizard_history(path: Path):
         wizard_history = defines.wizardHistoryPath / f"{path.stem}.{timestamp}{path.suffix}"
     else:
         wizard_history = defines.wizardHistoryPathFactory / f"{path.stem}.{timestamp}{path.suffix}"
-
     wizard_history.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(path, wizard_history)
 

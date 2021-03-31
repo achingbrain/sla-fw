@@ -19,7 +19,7 @@ class DisplayState(Enum):
     def to_state0(self):
         state = None
         if self == self.CALIBRATION:
-            state = Printer0State.CALIBRATION
+            state = Printer0State.WIZARD
         elif self == self.WIZARD:
             state = Printer0State.WIZARD
         elif self == self.FACTORY_RESET:
@@ -27,6 +27,6 @@ class DisplayState(Enum):
         elif self == self.ADMIN:
             state = Printer0State.ADMIN
         elif self == self.DISPLAY_TEST:
-            state = Printer0State.DISPLAY_TEST
+            state = Printer0State.WIZARD
 
         return state

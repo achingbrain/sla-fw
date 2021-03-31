@@ -25,6 +25,7 @@ from sl1fw.wizard.checks.uvleds import UVLEDsTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 from sl1fw.wizard.wizard import Wizard
+from sl1fw.errors.exceptions import ConfigException
 
 
 class SelfTestPart1CheckGroup(CheckGroup):
@@ -89,6 +90,7 @@ class SelfTestWizard(Wizard):
             exposure_image,
             runtime_config,
         )
+        self._hw = hw
         self._exposure_image = exposure_image
 
     @property
@@ -107,3 +109,14 @@ class SelfTestWizard(Wizard):
         except Exception:
             hw_all_off(self._hw, self._exposure_image)
             raise
+
+    def cancel_action(self):
+        writer = self._hw.config.get_writer()
+        writer.showWizard = False
+        try:
+            writer.commit()
+        except Exception as e:
+            raise ConfigException() from e
+
+    def success_action(self):
+        self.cancel_action()

@@ -194,6 +194,9 @@ class BaseCheck(ABC):
         Executed when on wizard successful finish. Useful to store obtained values.
         """
 
+    def cancel(self):
+        self.state = WizardCheckState.CANCELED
+
 
 class Check(BaseCheck):
     async def run_wrapper(self, actions: UserActionBroker):

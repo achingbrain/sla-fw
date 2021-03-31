@@ -13,6 +13,7 @@ from sl1fw.wizard.checks.tower import TowerAlignTest, TowerHomeTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 from sl1fw.wizard.wizard import Wizard
+from sl1fw.errors.exceptions import ConfigException
 
 
 class PlatformTankInsertCheckGroup(CheckGroup):
@@ -77,3 +78,11 @@ class CalibrationWizard(Wizard):
     @property
     def name(self) -> str:
         return "calibration"
+
+    def success_action(self):
+        writer = self._hw.config.get_writer()
+        writer.calibrated = True
+        try:
+            writer.commit()
+        except Exception as e:
+            raise ConfigException() from e
