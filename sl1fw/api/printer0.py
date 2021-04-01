@@ -798,6 +798,7 @@ class Printer0:
     @auto_dbus
     @property
     @last_error
+    @deprecated("use filemanager0")
     def project_config_file_name(self) -> str:
         """
         Name of the config file embedded in project files
@@ -820,6 +821,7 @@ class Printer0:
     @auto_dbus
     @property
     @last_error
+    @deprecated("use filemanager0")
     def persistent_storage_path(self) -> str:
         """
         Filesystem path of the persistent internal storage
@@ -831,6 +833,7 @@ class Printer0:
     @auto_dbus
     @property
     @last_error
+    @deprecated("use filemanager0")
     def internal_project_path(self) -> str:
         """
         Filesystem path to the projects root on the internal storage
@@ -841,6 +844,7 @@ class Printer0:
     @auto_dbus
     @property
     @last_error
+    @deprecated("use filemanager0")
     def media_root_path(self) -> str:
         """
         Filesystem path to the root of the mounted media
@@ -870,6 +874,7 @@ class Printer0:
     @auto_dbus
     @property
     @last_error
+    @deprecated("use filemanager0")
     def usb_path(self) -> str:
         """
         Read path to currently inserted USB drive
@@ -903,36 +908,10 @@ class Printer0:
         """
         return self.printer.runtime_config.show_admin
 
-    @auto_dbus
-    def add_usb(self) -> None:
-        try:
-            self.PropertiesChanged(self.__INTERFACE__, {"usb_path": self.usb_path}, [])
-            path = get_save_path()
-            if path:
-                projects = get_all_supported_files(self.printer.hw.printer_model, path)
-                newest_proj = sorted(projects, key=lambda proj: proj.stat().st_mtime).pop()
-                last_exposure = self.printer.action_manager.exposure
-                if last_exposure:
-                    last_exposure.try_cancel()
-                self.print(str(newest_proj), False)
-        except NotUVCalibrated:
-            self.printer.display.forcePage("uvcalibrationstart")
-        except NotMechanicallyCalibrated:
-            self.printer.display.forcePage("calibrationstart")
-        except Exception:
-            pass
-
-    @auto_dbus
-    def remove_usb(self) -> None:
-        try:
-            expo = self.printer.action_manager.exposure
-            if expo and Path(defines.mediaRootPath) in Path(expo.project.path).parents:
-                expo.try_cancel()
-        except Exception:
-            pass
 
     @auto_dbus
     @last_error
+    @deprecated("use standard0.cmd_select")
     def try_open_project(self, project_path: str) -> DBusObjectPath:
         last_exposure = self.printer.action_manager.exposure
         if last_exposure:

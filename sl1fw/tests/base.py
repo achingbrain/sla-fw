@@ -22,6 +22,7 @@ import sl1fw.tests.mocks.mc_port
 import sl1fw.tests.mocks.exposure_screen
 from sl1fw import defines, test_runtime
 from sl1fw.tests import samples
+from sl1fw.tests.mocks.dbus.filemanager0 import FileManager0
 from sl1fw.tests.mocks.dbus.hostname import Hostname
 from sl1fw.tests.mocks.dbus.locale import Locale
 from sl1fw.tests.mocks.dbus.networkmanager import NetworkManager
@@ -122,6 +123,7 @@ class Sl1fwTestCase(DBusTestCase):
                 ("wifi0", nm),
                 ("wifi1", nm),
             ),
+            bus.publish(FileManager0.__INTERFACE__, FileManager0()),
             bus.publish(Hostname.__INTERFACE__, self.hostname),
             bus.publish(Rauc.__OBJECT__, ("/", Rauc())),
             bus.publish(Locale.__INTERFACE__, self.locale),

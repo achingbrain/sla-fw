@@ -15,6 +15,7 @@ from gi.repository import GLib
 from psutil import NoSuchProcess
 
 from sl1fw.api.printer0 import Printer0State
+from sl1fw.tests.mocks.dbus.filemanager0 import FileManager0
 from sl1fw.tests.mocks.dbus.hostname import Hostname
 from sl1fw.tests.mocks.dbus.locale import Locale
 from sl1fw.tests.mocks.dbus.networkmanager import NetworkManager
@@ -47,6 +48,7 @@ class TestVirtualPrinter(DBusTestCase):
         bus = pydbus.SystemBus()
         nm = NetworkManager()
         self.dbus_mocks = [
+            bus.publish(FileManager0.__INTERFACE__, FileManager0()),
             bus.publish(
                 NetworkManager.__INTERFACE__, nm, ("Settings", nm), ("test1", nm), ("test2", nm), ("test3", nm),
             ),

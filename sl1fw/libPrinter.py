@@ -32,6 +32,7 @@ from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth
@@ -131,6 +132,9 @@ class Printer:
 
         self.logger.info("registering log0 dbus interface")
         self.logs0_dbus = self.system_bus.publish(Logs0.__INTERFACE__, Logs0(self.hw))
+
+        self.logger.info("connecting cz.prusa3d.sl1.filemanager0 dbus interface")
+        self.fs0_dbus = self.system_bus.get("cz.prusa3d.sl1.filemanager0")
 
         self.logger.info("Initializing libDisplay")
         self.display = Display(
@@ -253,6 +257,8 @@ class Printer:
                 weakref.proxy(self._locale_changed)
             )
             self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(weakref.proxy(self._rauc_changed))
+            self.fs0_dbus.onMediaInserted = self._media_inserted
+            self.fs0_dbus.onMediaEjected = self._media_ejected
 
             self.logger.info("Connecting motion controller")
             state = self.hw.connectMC()
@@ -302,6 +308,8 @@ class Printer:
             while self.state != PrinterState.EXIT:
                 self.printer_run()
 
+            self.fs0_dbus.onMediaEjected = None
+            self.fs0_dbus.onMediaInserted = None
         except Exception as exception:
             self.exception = exception
             self.state = PrinterState.EXCEPTION
@@ -435,3 +443,31 @@ class Printer:
             url = url + f"/{self.id}/{fw_version}"
 
         return url
+
+
+    def _media_inserted(self, path: str):
+        try:
+            if path:
+                self.logger.info("Opening project %s", path)
+                last_exposure = self.action_manager.exposure
+                if last_exposure:
+                    last_exposure.try_cancel()
+                self.action_manager.new_exposure(
+                    self.hw, self.exposure_image, self.runtime_config, path
+                )
+        except NotUVCalibrated:
+            self.display.forcePage("uvcalibrationstart")
+        except NotMechanicallyCalibrated:
+            self.display.forcePage("calibrationstart")
+        except Exception:
+            pass
+
+
+    def _media_ejected(self, root_path: str):
+        try:
+            self.logger.info("Media ejected: %s", root_path)
+            expo = self.action_manager.exposure
+            if expo and Path(root_path) in Path(expo.project.path).parents:
+                expo.try_cancel()
+        except Exception:
+            pass
