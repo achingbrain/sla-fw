@@ -107,6 +107,7 @@ class Sl1fwTestCase(DBusTestCase):
         defines.uvCalibDataPathFactory = self.TEMP_DIR / defines.uvCalibDataFilename
         defines.wizardDataPathFactory = self.TEMP_DIR / defines.wizardDataFilename
         defines.factoryConfigPath = self.TEMP_DIR / "factory_config.toml"
+        defines.hwConfigPath = self.TEMP_DIR / "hwconfig.toml"
 
         # DBus mocks
         nm = NetworkManager()

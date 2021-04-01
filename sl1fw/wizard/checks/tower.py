@@ -65,3 +65,8 @@ class TowerAlignTest(SyncDangerousCheck):
 
     def get_result_data(self) -> Dict[str, Any]:
         return {"towerHeight": self._tower_height}
+
+    def wizard_finished(self):
+        writer = self._hw.config.get_writer()
+        writer.towerHeight = self._tower_height
+        writer.commit()

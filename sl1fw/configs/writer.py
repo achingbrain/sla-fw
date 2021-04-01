@@ -9,6 +9,9 @@ from typing import Dict, Any
 
 from sl1fw.configs.value import ValueConfig
 
+# This is to avoid random false positives reported by pylint
+# pylint: disable = too-many-instance-attributes
+
 
 class ConfigWriter:
     """

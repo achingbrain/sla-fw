@@ -145,6 +145,10 @@ class Wizard(Thread, UserActionBroker):
                 self.__current_group = group
                 self.__run_group(group)
                 self.__current_group = None
+            for group in self.__groups:
+                for check in group.checks:
+                    self._logger.debug("Running wizard finished for %s", type(check).__name__)
+                    check.wizard_finished()
             self._store_data()
         except CancelledError:
             self._logger.debug("Wizard group canceled successfully")

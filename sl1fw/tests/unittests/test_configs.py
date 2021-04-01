@@ -207,9 +207,9 @@ class TestHardwareConfig(Sl1fwTestCase):
 
     def setUp(self):
         super().setUp()
-        defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory" / "factory.toml")
-        defines.hwConfigPathFactory = str(self.SAMPLES_DIR / "hardware.toml")
-        defines.hwConfigPath = str(self.SAMPLES_DIR / "hardware-toml.cfg")
+        defines.factoryConfigPath = self.SL1FW_DIR / ".." / "factory" / "factory.toml"
+        defines.hwConfigPathFactory = self.SAMPLES_DIR / "hardware.toml"
+        defines.hwConfigPath = self.SAMPLES_DIR / "hardware-toml.cfg"
         copyfile(defines.hwConfigPath, "hwconfig.test")
 
     def tearDown(self):

@@ -5,11 +5,10 @@
 import asyncio
 import unittest
 from shutil import copyfile
-from unittest.mock import Mock, AsyncMock, MagicMock
+from unittest.mock import Mock, AsyncMock, MagicMock, patch
 
 import pydbus
 import toml
-from mock import patch
 
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
@@ -223,7 +222,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_calibration(self):
-        wizard = CalibrationWizard(Hardware(), Mock(), RuntimeConfig())
+        wizard = CalibrationWizard(Hardware(HwConfig(defines.hwConfigPath, is_master=True)), Mock(), RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK:

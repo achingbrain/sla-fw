@@ -189,6 +189,11 @@ class BaseCheck(ABC):
     def get_result_data() -> Dict[str, Any]:
         return {}
 
+    def wizard_finished(self):
+        """
+        Executed when on wizard successful finish. Useful to store obtained values.
+        """
+
 
 class Check(BaseCheck):
     async def run_wrapper(self, actions: UserActionBroker):

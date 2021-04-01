@@ -143,6 +143,12 @@ class TiltTimingTest(DangerousCheck):
             while self._hw.isTiltMoving():
                 await asyncio.sleep(0.25)
 
+    def wizard_finished(self):
+        writer = self._hw.config.get_writer()
+        writer.tiltFastTime = self.tilt_fast_time_ms
+        writer.tiltSlowTime = self.tilt_slow_time_ms
+        writer.commit()
+
     async def _get_tilt_time(self, slowMove):
         tilt_time = 0
         total = self._hw.config.measuringMoves
@@ -164,6 +170,12 @@ class TiltTimingTest(DangerousCheck):
             tilt_time += time() - tilt_start_time
 
         return round(1000 * tilt_time / total)
+
+    def get_result_data(self) -> Dict[str, Any]:
+        return {
+            "tilt_slow_time_ms": self.tilt_slow_time_ms,
+            "tilt_fast_time_ms": self.tilt_fast_time_ms,
+        }
 
 
 class TiltCalibrationStartTest(SyncDangerousCheck):
@@ -205,8 +217,13 @@ class TiltAlignTest(SyncCheck):
             self._hw.beepAlarm(3)
             raise InvalidTiltAlignPosition(position)
         self._tilt_height = position
-        self._hw.config.tiltHeight = self._tilt_height
         self.tilt_aligned_event.set()
+
+    def wizard_finished(self):
+        writer = self._hw.config.get_writer()
+        writer.tiltHeight = self._tilt_height
+        writer.calibrated = True
+        writer.commit()
 
     def tilt_move(self, direction: int):
         self._logger.debug("Tilt move direction: %s", direction)
