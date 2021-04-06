@@ -41,10 +41,12 @@ class Hardware:
         self.exposure_screen.parameters = self.printer_model.exposure_screen_parameters
         self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 
+        self.led_temp_idx = 0
+        self.ambient_temp_idx = 1
         self.getUvLedState = Mock(return_value=(False, 0))
         self._led_stat_s = 6912
         self._display_stat_s = 3600
-        self.getMcTemperatures = Mock(return_value=[46.7, 26.1, 0, 0])
+        self.getMcTemperatures = Mock(return_value=[46.7, 26.1, 44.3, 0])
         self.getResinVolume = Mock(return_value=defines.resinWizardMaxVolume)
         self.towerPositonFailed = Mock(return_value=False)
         self.getFansError = Mock(return_value={0: False, 1: False, 2: False})

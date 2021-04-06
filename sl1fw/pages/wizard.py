@@ -200,7 +200,7 @@ class PageWizardInit(PageWizardBase):
         #endif
 
         temperatures = self.display.hw.getMcTemperatures()
-        for i in range(2):
+        for i in (self.display.hw.led_temp_idx, self.display.hw.ambient_temp_idx):
             if temperatures[i] < 0:
                 self.display.pages['error'].setParams(
                     code=Sl1Codes.TEMP_SENSOR_FAILED.raw_code,

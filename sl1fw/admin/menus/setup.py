@@ -107,8 +107,6 @@ class ExposureSetupMenu(SetupMenu):
         self.add_item(AdminBoolValue.from_value("Use tilt", self._temp, "tilt"))
         self.add_item(AdminBoolValue.from_value("Up&Down UV on", self._temp, "upAndDownUvOn"))
 
-        self.add_item(AdminIntValue.from_value("Layer trigger [s]", self._temp, "trigger", 1))
-
         def set_layer_tower_hop(value):
             self._temp.layerTowerHop = int(self._printer.hw.config.nm_to_tower_microsteps(value * 1000))
 

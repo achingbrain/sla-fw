@@ -86,8 +86,8 @@ class Hardware:
 
         self._fanFailed = False
         self._coolDownCounter = 0
-        self._ledTempIdx = 0
-        self._ambientTempIdx = 1
+        self.led_temp_idx = 0
+        self.ambient_temp_idx = 1
 
         # (mode, speed)
         self._powerLedStates = {"normal": (1, 2), "warn": (2, 10), "error": (3, 15), "off": (3, 64)}
@@ -119,9 +119,9 @@ class Hardware:
         }
 
         self._sensorsNames = {
-            0: N_("UV LED temperature"),
+            0: N_("UV LED temperature"),    # SL1
             1: N_("Ambient temperature"),
-            2: N_("<reserved1>"),
+            2: N_("UV LED temperature"),    # SL1S
             3: N_("<reserved2>"),
         }
 
@@ -172,6 +172,8 @@ class Hardware:
         if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
             self.tilt = TiltSL1(self.mcc,self.config)
         self.initDefaults()
+        if self.printer_model == PrinterModel.SL1S:
+            self.led_temp_idx = 2
         self._value_refresh_thread.start()
 
     def exit(self):
@@ -529,11 +531,11 @@ class Hardware:
         raise ValueError(f"UV data count not match! ({uvData})")
 
     @property
-    def uvLedPwm(self):
+    def uvLedPwm(self) -> int:
         return self.mcc.doGetInt("?upwm")
 
     @uvLedPwm.setter
-    def uvLedPwm(self, pwm):
+    def uvLedPwm(self, pwm) -> None:
         self.mcc.do("!upwm", int(pwm))
 
     @safe_call([0], (MotionControllerException, ValueError))
@@ -558,8 +560,7 @@ class Hardware:
         volts = self.mcc.doGetIntList("?volt", multiply=0.001)
         if len(volts) != 4:
             raise ValueError(f"Volts count not match! ({volts})")
-
-        return volts
+        return [round(volt, 1) for volt in volts]
 
     def resinSensor(self, state):
         """Enable/Disable resin sensor"""
@@ -665,13 +666,13 @@ class Hardware:
         if logTemps:
             self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
 
-        return temps
+        return [round(temp, 1) for temp in temps]
 
     def getUvLedTemperature(self):
-        return self.getMcTemperatures(logTemps=False)[self._ledTempIdx]
+        return self.getMcTemperatures(logTemps=False)[self.led_temp_idx]
 
     def getAmbientTemperature(self):
-        return self.getMcTemperatures(logTemps=False)[self._ambientTempIdx]
+        return self.getMcTemperatures(logTemps=False)[self.ambient_temp_idx]
 
     def getSensorName(self, sensorNumber):
         return _(self._sensorsNames.get(sensorNumber, N_("unknown sensor")))
@@ -1039,7 +1040,7 @@ class Hardware:
     def getTemperaturesDict(self):
         temps = self.getMcTemperatures(logTemps = False)
         return {
-            'temp_led': temps[self._ledTempIdx],
-            'temp_amb': temps[self._ambientTempIdx],
+            'temp_led': temps[self.led_temp_idx],
+            'temp_amb': temps[self.ambient_temp_idx],
             'cpu_temp': self.getCpuTemperature()
         }

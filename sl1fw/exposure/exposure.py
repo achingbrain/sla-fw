@@ -102,7 +102,7 @@ class TempsCheck(ExposureCheckRunner):
 
     def run(self):
         temperatures = self.expo.hw.getMcTemperatures()
-        failed = [i for i in range(2) if temperatures[i] < 0]
+        failed = [i for i in (self.expo.hw.led_temp_idx, self.expo.hw.ambient_temp_idx) if temperatures[i] < 0]
         if failed:
             failed_names = [self.expo.hw.getSensorName(i) for i in failed]
             raise TempSensorFailed(failed, failed_names)
@@ -576,7 +576,8 @@ class Exposure:
         self.exposure_image.preload_image(self.actual_layer + 1)
 
         temperatures = self.hw.getMcTemperatures()
-        self.logger.info("UV temperature [C]: %.1f  Ambient temperature [C]: %.1f", temperatures[0], temperatures[1])
+        self.logger.info("UV temperature [C]: %.1f  Ambient temperature [C]: %.1f",
+                temperatures[self.hw.led_temp_idx], temperatures[self.hw.ambient_temp_idx])
 
         if self.hw.config.delayAfterExposure:
             self.logger.info("delayAfterExposure [s]: %f", self.hw.config.delayAfterExposure / 10.0)
@@ -878,9 +879,8 @@ class Exposure:
             seconds = (datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds()
 
             if self.hw.config.trigger:
-                self.hw.cameraLed(True)
-                sleep(self.hw.config.trigger / 10.0)
-                self.hw.cameraLed(False)
+                self.logger.error("Trigger not implemented")
+                #sleep(self.hw.config.trigger / 10.0)
 
             self.actual_layer += 1
 

@@ -438,10 +438,15 @@ class Printer0:
     def temps(self) -> Dict[str, float]:
         """
         Get temperatures
+        temp0_celsius -> UV LED temperature
+        temp1_celsius -> Ambient temperature
+        temp2_celsius -> 0.0
+        temp3_celsius -> 0.0
 
         :return: Dictionary mapping from temp sensor name to temperature in celsius
         """
-        return self._format_temps(self.printer.hw.getMcTemperatures(False))
+        temps = self.printer.hw.getMcTemperatures(False)
+        return self._format_temps((temps[self.printer.hw.led_temp_idx], temps[self.printer.hw.ambient_temp_idx], 0.0, 0.0))
 
     @staticmethod
     def _format_temps(temps):

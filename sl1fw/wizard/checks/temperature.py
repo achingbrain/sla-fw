@@ -48,7 +48,7 @@ class TemperatureTest(SyncCheck):
         # Checking MC temperatures
         self._logger.info("Checking MC temperatures")
         temperatures = self._hw.getMcTemperatures()
-        for i in range(2):
+        for i in (self._hw.led_temp_idx, self._hw.ambient_temp_idx):
             if temperatures[i] < 0:
                 raise Exception(
                     "%s cannot be read.\n\nPlease check if temperature sensors are connected correctly."

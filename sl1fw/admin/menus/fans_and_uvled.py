@@ -37,7 +37,6 @@ class FansAndUVLedMenu(AdminMenu):
         self.add_item(rear_fan_rpm_item)
         self.add_item(AdminIntValue.from_value("Rear fan RPM", self._temp, "fan3Rpm", 100))
         self.add_item(AdminBoolValue.from_value("UV LED", self, "uv_led"))
-        self.add_item(AdminBoolValue.from_value("Trigger", self, "camera_led"))
         self.add_item(AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1))
         self.add_item(AdminIntValue.from_value("UV calib. warm-up [s]", self._temp, "uvWarmUpTime", 1))
         self.add_item(AdminIntValue.from_value("UV calib. intensity", self._temp, "uvCalibIntensity", 1))
@@ -90,16 +89,9 @@ class FansAndUVLedMenu(AdminMenu):
         self._printer.hw.uvLed(value)
         if value:
             self._printer.hw.startFans()
+            self._printer.hw.uvLedPwm = self._temp.uvPwm
         else:
             self._printer.hw.stopFans()
-
-    @property
-    def camera_led(self) -> bool:
-        return self._printer.hw.getCameraLedState()
-
-    @camera_led.setter
-    def camera_led(self, value: bool):
-        self._printer.hw.cameraLed(value)
 
     def save(self):
         self._printer.hw.saveUvStatistics()

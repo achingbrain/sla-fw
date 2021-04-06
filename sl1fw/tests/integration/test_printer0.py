@@ -104,13 +104,13 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
             self.printer0.fans
         )
         self.assertEqual(
-            {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 26.1, "temp3_celsius": 26.1},
+            {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0},
             self.printer0.temps
         )
         self.assertEqual(type(self.printer0.cpu_temp), float)
         self.assertEqual(
             self.printer0.leds,
-            {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0, "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.776},
+            {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0, "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.8},
         )
         # TODO: Chained dbus call ends in deadlock
         # self.assertEqual(self.printer0.devlist, {})
