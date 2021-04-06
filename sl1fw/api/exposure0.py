@@ -757,6 +757,8 @@ class Exposure0:
         "warning": {"exposure_warnings", "exposure_warning"},
         "check_results": {"checks_state"},
         "project": {"exposure_time_ms", "exposure_time_first_ms", "exposure_time_calibrate_ms", "calibration_regions"},
+        "printStartTime": {"print_start_timestamp"},
+        "printEndTime": {"print_end_timestamp"},
     }
 
     def _handle_change(self, key: str, _: Any):
