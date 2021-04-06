@@ -44,7 +44,8 @@ mount -o remount,ro /usr/share/factory/defaults; \
 mv -f \"$CFG\" \"$CFG.new\"; \
 cp \"$CFG.bak\" \"$CFG\"; \
 systemctl daemon-reload; \
-systemctl restart sl1fw
+systemctl restart sl1fw; \
+systemctl restart touch-ui
 "
 
 echo "Removing remote temp"
