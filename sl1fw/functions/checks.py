@@ -6,6 +6,8 @@ from logging import Logger
 from time import sleep
 from typing import Callable
 
+from deprecation import deprecated
+
 from sl1fw import defines
 from sl1fw.errors.errors import (
     UVLEDsVoltagesDifferTooMuch,
@@ -26,6 +28,7 @@ def get_uv_check_pwms(hw: Hardware):
     return [31, 94, 188, 219]  # board rev. < 0.6c
 
 
+@deprecated("Use wizard, code changed in wizard checks")
 def check_uv_leds(hw: Hardware, progress_callback: Callable[[float], None] = None):
     hw.uvLedPwm = 0
     hw.uvLed(True)
@@ -53,6 +56,7 @@ def check_uv_leds(hw: Hardware, progress_callback: Callable[[float], None] = Non
     return row1, row2, row3
 
 
+@deprecated("Use wizard, code changed in wizard checks")
 def check_uv_fans(hw: Hardware, logger: Logger, progress_callback: Callable[[float], None] = None):
     fan_diff = 200
     hw.startFans()
@@ -114,6 +118,7 @@ def check_uv_fans(hw: Hardware, logger: Logger, progress_callback: Callable[[flo
     return avg_rpms, uv_temp
 
 
+@deprecated("Use wizard, code changed in wizard checks")
 def resin_sensor(hw: Hardware, logger: Logger):
     hw.towerSyncWait()
     hw.setTowerPosition(hw.config.calcMicroSteps(defines.defaultTowerHeight))
@@ -134,6 +139,7 @@ def resin_sensor(hw: Hardware, logger: Logger):
     return volume_ml
 
 
+@deprecated("Use wizard, code changed in wizard checks")
 def tower_axis(hw: Hardware):
     hw.towerSyncWait()
     hw.setTowerPosition(hw.tower_end)
@@ -161,12 +167,15 @@ def tower_axis(hw: Hardware):
         raise TowerAxisCheckFailed(hw.config.tower_microsteps_to_nm(position_microsteps))
 
 
+@deprecated("Use wizard, code changed in wizard checks")
 def tilt_calib_start(hw: Hardware):
     hw.tilt.profile_id = TiltProfile.homingFast
     hw.tilt.move_absolute(defines.tiltCalibrationStart)
     while hw.tilt.moving:
         sleep(0.25)
 
+
+@deprecated("Use wizard, code changed in wizard checks")
 def tower_calibrate(hw: Hardware, logger: Logger) -> int:
     logger.info("Starting platform calibration")
     hw.tilt.profile_id = TiltProfile.layerMoveSlow # set higher current

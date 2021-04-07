@@ -2,7 +2,7 @@
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from unittest.mock import Mock
+from unittest.mock import Mock, AsyncMock
 
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
@@ -59,12 +59,15 @@ class Hardware:
         self.isTowerMoving = Mock(return_value=False)
         self.getTowerPositionMicroSteps = Mock(return_value=self.tower_end)
         self.get_tower_sensitivity = Mock(return_value=0)
+        self.towerSyncWaitAsync = AsyncMock()
 
         self.tilt = Mock()
         self.tilt.on_target_position = Mock(return_value=True)
         self.tilt.position = 5000
         self.tilt.moving = False
         self.tilt.homing_status = 0
+        self.tilt.sync_wait_coroutine = AsyncMock()
+        self.tilt.home_calibrate_wait_coroutine = AsyncMock()
 
     def getUvStatistics(self):
         return self._led_stat_s, self._display_stat_s

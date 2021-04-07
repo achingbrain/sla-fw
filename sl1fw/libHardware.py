@@ -12,6 +12,7 @@
 # pylint: disable=too-many-statements
 # pylint: disable=too-many-branches
 
+import asyncio
 import functools
 import logging
 import os
@@ -736,6 +737,11 @@ class Hardware:
     @safe_call(False, MotionControllerException)
     def towerSyncWait(self, retries: int = 0):
         """ blocking method for tower homing. retries = number of additional tries when homing failes """
+        return asyncio.run(self.towerSyncWaitAsync(retries=retries))
+
+    @safe_call(False, MotionControllerException)
+    async def towerSyncWaitAsync(self, retries: int = 0):
+        """ blocking method for tower homing. retries = number of additional tries when homing failes """
         if not self.isTowerMoving():
             self.towerSync()
 
@@ -755,7 +761,7 @@ class Hardware:
                 retries -= 1
                 self.towerSync()
 
-            sleep(0.25)
+            await asyncio.sleep(0.25)
 
     def towerMoveAbsoluteWait(self, position):
         self.towerMoveAbsolute(position)

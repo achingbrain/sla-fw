@@ -2,13 +2,16 @@
 # Copyright (C) 2020-2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from asyncio import sleep
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any
 
-from sl1fw.functions.checks import check_uv_leds
+from sl1fw import test_runtime
+from sl1fw.errors.errors import UVLEDsVoltagesDifferTooMuch
+from sl1fw.functions.checks import get_uv_check_pwms
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck
+from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource
 
 
@@ -25,7 +28,9 @@ class CheckData:
     uvPwm: int
 
 
-class UVLEDsTest(SyncDangerousCheck):
+class UVLEDsTest(DangerousCheck):
+    CHECK_UV_PWM_INDEXES = 3
+
     def __init__(self, hw: Hardware):
         super().__init__(
             hw, WizardCheckType.UV_LEDS, Configuration(None, None), [Resource.UV],
@@ -33,13 +38,36 @@ class UVLEDsTest(SyncDangerousCheck):
         self._hw = hw
         self._result_data = None
 
-    def task_run(self, actions: UserActionBroker):
-        self.wait_cover_closed_sync()
-        row1, row2, row3 = check_uv_leds(self._hw, self._progress_callback)
+    async def async_task_run(self, actions: UserActionBroker):
+        await self.wait_cover_closed()
+        row1, row2, row3 = await self.check_uv_leds()
         self._result_data = CheckData(row1, row2, row3, self._hw.config.uvPwm)
-
-    def _progress_callback(self, progress: float):
-        self.progress = progress
 
     def get_result_data(self) -> Dict[str, Any]:
         return asdict(self._result_data)
+
+    async def check_uv_leds(self):
+        await self.wait_cover_closed()
+        self._hw.uvLedPwm = 0
+        self._hw.uvLed(True)
+        uv_pwms = get_uv_check_pwms(self._hw)
+
+        diff = 0.55  # [mV] voltages in all rows cannot differ more than this limit
+        row1 = list()
+        row2 = list()
+        row3 = list()
+        for i in range(self.CHECK_UV_PWM_INDEXES):
+            self.progress = i / self.CHECK_UV_PWM_INDEXES
+            self._hw.uvLedPwm = uv_pwms[i]
+            if not test_runtime.testing:
+                await sleep(5)  # wait to refresh all voltages (board rev. 0.6+)
+            volts = list(self._hw.getVoltages())
+            del volts[-1]  # delete power supply voltage
+            if max(volts) - min(volts) > diff and not test_runtime.testing:
+                self._hw.uvLed(False)
+                raise UVLEDsVoltagesDifferTooMuch()
+            row1.append(int(volts[0] * 1000))
+            row2.append(int(volts[1] * 1000))
+            row3.append(int(volts[2] * 1000))
+
+        return row1, row2, row3

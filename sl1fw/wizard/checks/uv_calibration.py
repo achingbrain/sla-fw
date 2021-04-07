@@ -35,7 +35,7 @@ from sl1fw.libHardware import Hardware
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState, UVCalibrationResult
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
-from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck, SyncDangerousCheck, Check
+from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from sl1fw.wizard.setup import Configuration, Resource
 
 # pylint: disable = too-many-arguments
@@ -90,7 +90,7 @@ class UVWarmupCheck(DangerousCheck):
         self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).min_pwm
 
 
-class CheckUVMeterPlacement(SyncDangerousCheck):
+class CheckUVMeterPlacement(DangerousCheck):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
         super().__init__(
             hw, WizardCheckType.UV_METER_PLACEMENT, Configuration(None, None), [Resource.UV, Resource.FANS]
@@ -99,8 +99,8 @@ class CheckUVMeterPlacement(SyncDangerousCheck):
         self._exposure_image = exposure_image
         self._uv_meter = uv_meter
 
-    def task_run(self, actions: UserActionBroker):
-        self.wait_cover_closed_sync()
+    async def async_task_run(self, actions: UserActionBroker):
+        await self.wait_cover_closed()
         error = self._uv_meter.check_place(self._exposure_image.inverse)
         # TODO: Move raise to check_place ?
 
@@ -114,7 +114,7 @@ class CheckUVMeterPlacement(SyncDangerousCheck):
             raise UnknownUVMeasurementFailure(error)
 
 
-class UVCalibrate(SyncDangerousCheck, ABC):
+class UVCalibrate(DangerousCheck, ABC):
     # pylint: disable = too-many-instance-attributes
     INTENSITY_DEVIATION_THRESHOLD = 25
     SECOND_PASS_THRESHOLD = 240
@@ -163,9 +163,9 @@ class UVCalibrateCenter(UVCalibrate):
     def __init__(self, *args, **kwargs):
         super().__init__(WizardCheckType.UV_CALIBRATE_CENTER, *args, **kwargs)
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         try:
-            self.calibrate()
+            await self.calibrate()
         except UVCalibrationError:
             if self._result.boost or self._uv_meter.sixty_points:
                 raise
@@ -176,7 +176,7 @@ class UVCalibrateCenter(UVCalibrate):
                 " run second iteration with boosted results on (PWM=%d)",
                 self.pwm,
             )
-            self.calibrate()
+            await self.calibrate()
 
         boost_threshold = (self.factoryUvPwm / 100) * (100 + self._hw.config.uvCalibBoostTolerance)
         pwm_too_high = self.pwm > self.SECOND_PASS_THRESHOLD or self.pwm > boost_threshold
@@ -189,9 +189,9 @@ class UVCalibrateCenter(UVCalibrate):
                 self._hw.config.uvCalibBoostTolerance,
             )
             self._hw.beepAlarm(2)
-            self.calibrate()
+            await self.calibrate()
 
-    def calibrate(self):
+    async def calibrate(self):
         # Start UV led with minimal pwm
         self.pwm = self._calibration_params.min_pwm
 
@@ -278,13 +278,13 @@ class UVCalibrateEdge(UVCalibrate):
     def __init__(self, *args, **kwargs):
         super().__init__(WizardCheckType.UV_CALIBRATE_EDGE, *args, **kwargs)
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         try:
-            self.calibrate()
+            await self.calibrate()
         finally:
             self._exposure_image.blank_screen()
 
-    def calibrate(self):
+    async def calibrate(self):
         self._exposure_image.blank_screen()
         self._exposure_image.inverse()
         max_pwm = self._calibration_params.max_pwm

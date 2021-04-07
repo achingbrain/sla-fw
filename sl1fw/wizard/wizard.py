@@ -218,8 +218,6 @@ class Wizard(Thread, UserActionBroker):
                     data.update(check.get_result_data())
                 elif check.state == WizardCheckState.FAILURE:
                     data[f"{type(check).__name__.lower()}_exception"] = wrap_exception(check.exception)
-                else:
-                    self._logger.warning("Check %s in state %s during wizard data store", check, check.state)
         return data
 
     @classmethod

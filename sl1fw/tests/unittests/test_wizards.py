@@ -116,6 +116,22 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         with self.assertRaises(ValueError):
             TestGroup(Configuration(TankSetup.PRINT, PlatformSetup.PRINT), [check])
 
+    def test_check_progress(self):
+        class TestCheck(Check):
+            async def async_task_run(self, actions: UserActionBroker):
+                self.progress = 0.5
+
+        check = TestCheck(WizardCheckType.UNKNOWN, Mock(), [])
+        callback = Mock()
+        callback.__name__ = "callback"
+        check.data_changed.connect(lambda: callback(check.data["progress"]))
+
+        asyncio.run(check.run(Mock(), Mock(), Mock()))
+
+        callback.assert_any_call(0)
+        callback.assert_any_call(0.5)
+        callback.assert_any_call(1)
+
 
 class TestWizards(Sl1fwTestCase):
     def test_display_test(self):

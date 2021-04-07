@@ -1,10 +1,10 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import asyncio
 from abc import ABC, abstractmethod
 from enum import unique, Enum
-from typing import List
+from typing import List, Optional
 
 
 @unique
@@ -82,8 +82,12 @@ class Axis(ABC):
     def sync(self) -> bool:
         """start axis homing"""
 
+    def sync_wait(self, retries: Optional[int] = None) -> bool:
+        """blocking method for axis homing. retries = number of additional tries when homing fails"""
+        return asyncio.run(self.sync_wait_coroutine(retries=retries))
+
     @abstractmethod
-    def sync_wait(self, retries: int) -> bool:
+    async def sync_wait_coroutine(self, retries: Optional[int] = None) -> bool:
         """blocking method for axis homing. retries = number of additional tries when homing fails"""
 
 ########## profiles ##########

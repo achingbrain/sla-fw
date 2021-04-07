@@ -4,6 +4,7 @@
 
 import asyncio
 from abc import ABC
+from asyncio import sleep
 from threading import Event
 from time import time
 from typing import Optional, Dict, Any
@@ -16,34 +17,33 @@ from sl1fw.errors.errors import (
     InvalidTiltAlignPosition,
 )
 from sl1fw.errors.exceptions import PrinterException
-from sl1fw.functions.checks import tilt_calib_start
 from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
-from sl1fw.wizard.checks.base import WizardCheckType, SyncDangerousCheck, SyncCheck, DangerousCheck
+from sl1fw.wizard.checks.base import WizardCheckType, SyncCheck, DangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup
 from sl1fw.hardware.tilt import TiltProfile
 
 
-class TiltHomeTest(SyncDangerousCheck, ABC):
+class TiltHomeTest(DangerousCheck, ABC):
     def __init__(self, hw: Hardware):
         super().__init__(
             hw, WizardCheckType.TILT_HOME, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
         self.hw = hw
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         with actions.led_warn:
             home_status = self.hw.tilt.homing_status
             for _ in range(3):
-                self.hw.tilt.sync_wait()
+                await self.hw.tilt.sync_wait_coroutine()
                 home_status = self.hw.tilt.homing_status
                 if home_status == -2:
                     raise TiltEndstopNotReached()
 
                 if home_status == 0:
-                    self.hw.tilt.home_calibrate_wait()
+                    await self.hw.tilt.home_calibrate_wait_coroutine()
                     break
 
             if home_status == -3:
@@ -134,7 +134,7 @@ class TiltTimingTest(DangerousCheck):
             while not self._hw.isTowerSynced():
                 await asyncio.sleep(0.25)
 
-            self._hw.tilt.sync_wait(2)  # FIXME MC cant properly home tilt while tower is moving
+            await self._hw.tilt.sync_wait_coroutine(2)  # FIXME MC cant properly home tilt while tower is moving
             self.tilt_slow_time_ms = await self._get_tilt_time(slowMove=True)
             self.tilt_fast_time_ms = await self._get_tilt_time(slowMove=False)
             self._hw.setTowerProfile("homingFast")
@@ -178,16 +178,19 @@ class TiltTimingTest(DangerousCheck):
         }
 
 
-class TiltCalibrationStartTest(SyncDangerousCheck):
+class TiltCalibrationStartTest(DangerousCheck):
     def __init__(self, hw: Hardware):
         super().__init__(
             hw, WizardCheckType.TILT_CALIBRATION_START, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
-        self.hw = hw
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         with actions.led_warn:
-            tilt_calib_start(self.hw)
+            self._hw.tilt.profile_id = TiltProfile.homingFast
+            self._hw.tilt.move_absolute(defines.tiltCalibrationStart)
+            while self._hw.tilt.moving:
+                await sleep(0.25)
+
 
 class TiltAlignTest(SyncCheck):
     def __init__(self, hw: Hardware):

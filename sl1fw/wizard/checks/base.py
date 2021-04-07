@@ -114,6 +114,7 @@ class BaseCheck(ABC):
 
     @progress.setter
     def progress(self, value: float):
+        self._logger.debug("Check %s progress: %s", type(self).__name__, value)
         self._progress = value
         self.data_changed.emit()
 
@@ -232,7 +233,7 @@ class SyncCheck(BaseCheck):
         ...
 
 
-class DangerousCheckBase:
+class DangerousCheck(Check, ABC):
     """
     Dangerous checks require cover closed during operation
     """
@@ -247,13 +248,3 @@ class DangerousCheckBase:
         await asyncio.sleep(0)
         while not self._hw.isCoverVirtuallyClosed():
             await asyncio.sleep(0.5)
-
-
-class DangerousCheck(DangerousCheckBase, Check, ABC):
-    # This is just shortcut to inherit DangerousCheckBase, Check, and ABC
-    pass
-
-
-class SyncDangerousCheck(DangerousCheckBase, SyncCheck, ABC):
-    def wait_cover_closed_sync(self):
-        asyncio.run(super().wait_cover_closed())

@@ -1,11 +1,11 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import asyncio
 from abc import abstractmethod
 from time import sleep
 from enum import unique, Enum
-from typing import List
+from typing import List, Optional
 import logging
 
 from sl1fw import defines
@@ -63,8 +63,12 @@ class Tilt(Axis):
     def stir_resin(self):
         """mix the resin"""
 
-    @abstractmethod
     def home_calibrate_wait(self):
+        """test and save tilt motor phase for accurate homing"""
+        return asyncio.run(self.home_calibrate_wait_coroutine())
+
+    @abstractmethod
+    async def home_calibrate_wait_coroutine(self):
         """test and save tilt motor phase for accurate homing"""
 
     @property
@@ -329,7 +333,10 @@ class TiltSL1(Tilt):
         self._mcc.do("!tiho")
 
     @safe_call(False, (MotionControllerException, TiltHomeFailed))
-    def sync_wait(self, retries=0):
+    async def sync_wait_coroutine(self, retries: Optional[int] = None) -> bool:
+        if retries is None:
+            retries = 0
+
         self.sync()
 
         while True:
@@ -348,14 +355,14 @@ class TiltSL1(Tilt):
             sleep(0.25)
 
     @safe_call(False, MotionControllerException)
-    def home_calibrate_wait(self):
+    async def home_calibrate_wait_coroutine(self):
         self._mcc.do("!tihc")
         homing_status = 1
         while homing_status > 0:  # not done and not error
             homing_status = self.homing_status
             if homing_status < 0:
                 raise MotionControllerException("Tilt homing calibration failed", None)
-            sleep(0.1)
+            await asyncio.sleep(0.1)
         self.position = 0
 
 ########## profiles ##########
