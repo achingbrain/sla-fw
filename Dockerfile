@@ -9,7 +9,7 @@ git openssh-client build-essential xxd gawk gettext python3-coverage python3-net
 python3-pyinotify inotify-tools python3-aiohttp python3-yaml libwayland-dev pkg-config graphviz
 
 # Install python deps
-RUN pip3 install websocket-server gpio readerwriterlock pylint pysignal pywayland
+RUN pip3 install websocket-server gpio readerwriterlock pylint pysignal pywayland smbus2
 
 # Create use that will run the build
 RUN useradd --create-home --user-group appuser

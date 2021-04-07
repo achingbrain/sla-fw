@@ -36,6 +36,7 @@ from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.hardware.tilt import Tilt, TiltSL1
 from sl1fw.functions.decorators import safe_call
 from sl1fw.errors.exceptions import ConfigException
+from sl1fw.hardware.sl1s_uvled_booster import Booster
 
 
 
@@ -142,6 +143,7 @@ class Hardware:
 
         self._tower_moving = False
         self._towerPositionRetries = None
+        self._sl1s_booster = Booster()
 
         self._value_refresh_run = True
         self._value_refresh_thread = Thread(daemon=True, target=self._value_refresh_body)
@@ -167,13 +169,19 @@ class Hardware:
         self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
         self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
 
-    def start(self):
+    # MUST be called before start()
+    def connect(self):
         self.printer_model = self.exposure_screen.start()
+        self.mcc.connect(self.config.MCversionCheck)
+        self.mc_sw_version_changed.emit()
+        if self.printer_model == PrinterModel.SL1S:
+            self._sl1s_booster.connect()
+            self.led_temp_idx = 2
+
+    def start(self):
         if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
             self.tilt = TiltSL1(self.mcc,self.config)
         self.initDefaults()
-        if self.printer_model == PrinterModel.SL1S:
-            self.led_temp_idx = 2
         self._value_refresh_thread.start()
 
     def exit(self):
@@ -181,10 +189,6 @@ class Hardware:
         self._value_refresh_thread.join()
         self.mcc.exit()
         self.exposure_screen.exit()
-
-    def connect(self):
-        self.mcc.connect(self.config.MCversionCheck)
-        self.mc_sw_version_changed.emit()
 
     def _value_refresh_body(self):
         checkers = [
@@ -532,11 +536,16 @@ class Hardware:
 
     @property
     def uvLedPwm(self) -> int:
+        if self.printer_model == PrinterModel.SL1S:
+            return self._sl1s_booster.pwm
         return self.mcc.doGetInt("?upwm")
 
     @uvLedPwm.setter
     def uvLedPwm(self, pwm) -> None:
-        self.mcc.do("!upwm", int(pwm))
+        if self.printer_model == PrinterModel.SL1S:
+            self._sl1s_booster.pwm = int(pwm)
+        else:
+            self.mcc.do("!upwm", int(pwm))
 
     @safe_call([0], (MotionControllerException, ValueError))
     def getUvStatistics(self):

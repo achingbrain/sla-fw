@@ -69,8 +69,10 @@ class MotionControllerException(PrinterException):
         self.__trace = trace
         super().__init__(f"{message}, trace: {trace}")
 
+
 class MotionControllerWrongFw(PrinterException):
     """Used to signal that MC has wrong FW and needs to be updated"""
+
 
 @with_code(Sl1Codes.NOT_AVAILABLE_IN_STATE)
 class NotAvailableInState(PrinterException):
@@ -95,3 +97,9 @@ class AdminNotAvailable(PrinterException):
 
 class ExposureCheckDisabled(PrinterException):
     """Used to signal that exposure check is being skipped"""
+
+
+@with_code(Sl1Codes.BOOSTER_ERROR)
+class BoosterError(PrinterException):
+    def __init__(self, message: str):
+        super().__init__(f"{message}")
