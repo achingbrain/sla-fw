@@ -151,7 +151,7 @@ class BaseCheck(ABC):
         }
         return data
 
-    async def run(self, locks: Dict[Resource, asyncio.Lock], actions: UserActionBroker):
+    async def run(self, locks: Dict[Resource, asyncio.Lock], actions: UserActionBroker, sync_executor):
         self._logger.info("Locking resources: %s", type(self).__name__)
         for resource in self.resources:
             await locks[resource].acquire()
@@ -159,9 +159,10 @@ class BaseCheck(ABC):
 
         try:
             await sleep(0.1)  # This allows to break asyncio program in case the wizard is canceled
-            await self.run_wrapper(actions)
+            self._logger.info("Running check: %s", type(self).__name__)
+            await self.run_wrapper(actions, sync_executor)
         except CancelledError:
-            self._logger.warning("Check canceled")
+            self._logger.warning("Check canceled: %s", type(self).__name__)
             self.state = WizardCheckState.CANCELED
             raise
         except Exception as e:
@@ -183,7 +184,7 @@ class BaseCheck(ABC):
         self._logger.info("Done: %s", type(self).__name__)
 
     @abstractmethod
-    async def run_wrapper(self, actions: UserActionBroker):
+    async def run_wrapper(self, actions: UserActionBroker, sync_executor):
         ...
 
     @staticmethod
@@ -200,13 +201,13 @@ class BaseCheck(ABC):
 
 
 class Check(BaseCheck):
-    async def run_wrapper(self, actions: UserActionBroker):
+    async def run_wrapper(self, actions: UserActionBroker, sync_executor):
         self.state = WizardCheckState.RUNNING
-        self._logger.info("Running: %s", type(self).__name__)
+        self._logger.info("Running: %s (async)", type(self).__name__)
         self.progress = 0
         await self.async_task_run(actions)
         self.progress = 1
-        self._logger.info("Done: %s", type(self).__name__)
+        self._logger.info("Done: %s (async)", type(self).__name__)
 
     @abstractmethod
     async def async_task_run(self, actions: UserActionBroker):
@@ -214,19 +215,19 @@ class Check(BaseCheck):
 
 
 class SyncCheck(BaseCheck):
-    async def run_wrapper(self, actions: UserActionBroker):
+    async def run_wrapper(self, actions: UserActionBroker, sync_executor):
         loop = asyncio.get_running_loop()
         self._logger.debug("With thread pool executor: %s", type(self).__name__)
-        await loop.run_in_executor(actions.sync_executor, self.sync_run_wrapper, actions)
+        await loop.run_in_executor(sync_executor, self.sync_run_wrapper, actions)
         self._logger.debug("Done with thread pool executor: %s", type(self).__name__)
 
     def sync_run_wrapper(self, actions: UserActionBroker):
         self.state = WizardCheckState.RUNNING
-        self._logger.info("Running: %s", type(self).__name__)
+        self._logger.info("Running: %s (sync)", type(self).__name__)
         self.progress = 0
         self.task_run(actions)
         self.progress = 1
-        self._logger.info("Done: %s", type(self).__name__)
+        self._logger.info("Done: %s (sync)", type(self).__name__)
 
     @abstractmethod
     def task_run(self, actions: UserActionBroker):

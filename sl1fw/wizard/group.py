@@ -7,6 +7,7 @@ import functools
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Future, AbstractEventLoop
+from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Iterable, Optional, Dict
 
 from sl1fw.states.wizard import WizardState, WizardCheckState
@@ -16,6 +17,8 @@ from sl1fw.wizard.setup import Resource, Configuration
 
 
 class CheckGroup(ABC):
+    MAX_PARALLEL_SYNC_TASKS = 3
+
     def __init__(self, configuration: Configuration = Configuration(None, None), checks: Iterable[BaseCheck] = ()):
         self._logger = logging.getLogger(__name__)
         if not all([configuration.is_compatible(check.configuration) for check in checks]):
@@ -52,15 +55,16 @@ class CheckGroup(ABC):
 
     async def run(self, actions: UserActionBroker):
         self._loop = asyncio.get_running_loop()
-        self._future = asyncio.create_task(self.run_task(actions))
-        await self._future
+        with ThreadPoolExecutor(max_workers=self.MAX_PARALLEL_SYNC_TASKS) as sync_executor:
+            self._future = asyncio.create_task(self.run_tasks(actions, sync_executor))
+            await self._future
 
-    async def run_task(self, actions: UserActionBroker):
+    async def run_tasks(self, actions: UserActionBroker, sync_executor):
         self._init_locks()  # Locks has to be initialized from a running event loop
         self._logger.info("Running group setup")
         await self.setup(actions)
         self._logger.info("Running non-finished group tasks")
-        tasks = [check.run(self._locks, actions) for check in self._checks if check.state != WizardCheckState.SUCCESS]
+        tasks = [check.run(self._locks, actions, sync_executor) for check in self._checks if check.state != WizardCheckState.SUCCESS]
         await asyncio.gather(*tasks)
         self._logger.info("Group tasks done")
 
