@@ -18,12 +18,12 @@ class Axis(ABC):
     @property
     @abstractmethod
     def max(self) -> int:
-        """return max tilt position"""
+        """return max axis position"""
 
     @property
     @abstractmethod
     def min(self) -> int:
-        """return min tilt position"""
+        """return min axis position"""
 
     @property
     @abstractmethod
@@ -48,7 +48,7 @@ class Axis(ABC):
     @property
     @abstractmethod
     def moving(self) -> bool:
-        """determine if tilt is moving at the moment"""
+        """determine if axis is moving at the moment"""
 
     @abstractmethod
     def moveAbsolute(self, position) -> bool:
@@ -80,11 +80,11 @@ class Axis(ABC):
 
     @abstractmethod
     def sync(self) -> bool:
-        """start tilt homing"""
+        """start axis homing"""
 
     @abstractmethod
     def syncWait(self, retries: int) -> bool:
-        """blocking method for tilt homing. retries = number of additional tries when homing fails"""
+        """blocking method for axis homing. retries = number of additional tries when homing fails"""
 
 ########## profiles ##########
 

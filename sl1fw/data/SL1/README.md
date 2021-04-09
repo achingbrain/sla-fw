@@ -32,7 +32,7 @@
     4. set `finish profile`
     5. split rest of the distence to X `tilt cycles`
     6. wait `tilt delay` between `tilt cycles`
-    7. home (`homing cycles` defines number of retries) 
+    7. home (`homing cycles` defines number of retries)
 
 ## Structure of the file
 
