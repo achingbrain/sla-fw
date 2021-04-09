@@ -144,6 +144,8 @@ class TestExposure(Sl1fwTestCase):
             if exposure.state == ExposureState.STUCK:
                 hw.tilt.layer_down_wait = None
                 exposure.doContinue()
+            if exposure.state == ExposureState.POUR_IN_RESIN:
+                exposure.confirm_resin_in()
             sleep(1)
 
         raise TimeoutError("Waiting for exposure failed")
@@ -169,6 +171,8 @@ class TestExposure(Sl1fwTestCase):
             if exposure.state == ExposureState.STUCK:
                 hw.tilt.sync_wait.side_effect = TiltHomeFailed()
                 exposure.doContinue()
+            if exposure.state == ExposureState.POUR_IN_RESIN:
+                exposure.confirm_resin_in()
             sleep(1)
 
         raise TimeoutError("Waiting for exposure failed")
@@ -194,6 +198,8 @@ class TestExposure(Sl1fwTestCase):
             if exposure.state in ExposureState.finished_states():
                 self.assertNotEqual(exposure.state, ExposureState.FAILURE)
                 return
+            if exposure.state == ExposureState.POUR_IN_RESIN:
+                exposure.confirm_resin_in()
             sleep(0.5)
 
         raise TimeoutError("Waiting for exposure failed")
@@ -216,6 +222,8 @@ class TestExposure(Sl1fwTestCase):
                     self.assertLessEqual(fake_resin_volume, exposure.resin_volume)
             if exposure.state == ExposureState.FEED_ME:
                 exposure.doBack()
+            if exposure.state == ExposureState.POUR_IN_RESIN:
+                exposure.confirm_resin_in()
             if exposure.state in ExposureState.finished_states():
                 self.assertNotEqual(exposure.state, ExposureState.FAILURE)
                 return
@@ -286,6 +294,8 @@ class TestExposure(Sl1fwTestCase):
                     exposure.reject_print_warning()
             if exposure.state in ExposureState.finished_states():
                 return self._exposure_check(exposure)
+            if exposure.state == ExposureState.POUR_IN_RESIN:
+                exposure.confirm_resin_in()
             sleep(1)
 
         raise TimeoutError("Waiting for exposure failed")

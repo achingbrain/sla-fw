@@ -43,6 +43,8 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
 
     def test_print(self):
         self.exposure0.confirm_start()
+        self._wait_for_state(Exposure0State.POUR_IN_RESIN, 60)
+        self.exposure0.confirm_resin_in()
         self._wait_for_state(Exposure0State.CHECKS, 5)
         self._wait_for_state(Exposure0State.PRINTING, 60)
         self.assertEqual(Exposure0ProjectState.OK.value, self.exposure0.project_state)
@@ -54,12 +56,15 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
 
     def test_print_cancel(self):
         self.exposure0.confirm_start()
+        self._wait_for_state(Exposure0State.POUR_IN_RESIN, 60)
         self.exposure0.cancel()
         self._wait_for_state(Exposure0State.CANCELED, 60)
 
     def test_print_warning(self):
         with patch("sl1fw.test_runtime.injected_preprint_warning", AmbientTooHot(ambient_temperature=42.0)):
             self.exposure0.confirm_start()
+            self._wait_for_state(Exposure0State.POUR_IN_RESIN, 60)
+            self.exposure0.confirm_resin_in()
             self._wait_for_state(Exposure0State.CHECK_WARNING, 30)
 
             self.assertTrue(self.exposure0.exposure_warning)

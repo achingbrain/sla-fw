@@ -266,43 +266,46 @@ class TestIntegrationPages(Sl1FwIntegrationTestCaseBase):
 
         self.test_turnoff()
 
-    def test_print(self):
-        PROJECT_NAME = "numbers"
+    # def test_print(self):
+    #     PROJECT_NAME = "numbers"
+    #
+    #     self._fake_calibration()
+    #
+    #     self.press("print")
+    #     self.waitPage("sourceselect")
+    #     choice = None
+    #     for source in self.readItems()["sources"]:
+    #         if source["name"] == PROJECT_NAME:
+    #             choice = source["choice"]
+    #     self.assertIsNotNone(choice, f"Test project name ({PROJECT_NAME} in sources")
+    #     self.press("source", data={"choice": choice})
+    #     self.waitPage("wait")  # reading project data
+    #     self.waitPage("printpreviewswipe")
+    #     self.press("change")
+    #     self.waitPage("change")
+    #     self.press("expossubsecond")
+    #     # 1.0 -> 10.0
+    #     self.press("exposfirstaddsecond")
+    #     self.press("exposfirstaddsecond")
+    #     self.press("exposfirstaddsecond")
+    #     self.press("exposfirstaddsecond")
+    #     self.press("exposfirstaddsecond")
+    #     self.press("exposfirstaddsecond")
+    #     self.press("exposfirstaddsecond")
+    #     self.press("exposfirstaddsecond")
+    #     self.press("exposfirstaddsecond")
+    #     self.press("back")
+    #     self.waitPage("printpreviewswipe")
+    #     self.press("cont")
 
-        self._fake_calibration()
+    # Confirming resin poured in not implemented in pages
 
-        self.press("print")
-        self.waitPage("sourceselect")
-        choice = None
-        for source in self.readItems()["sources"]:
-            if source["name"] == PROJECT_NAME:
-                choice = source["choice"]
-        self.assertIsNotNone(choice, f"Test project name ({PROJECT_NAME} in sources")
-        self.press("source", data={"choice": choice})
-        self.waitPage("wait")  # reading project data
-        self.waitPage("printpreviewswipe")
-        self.press("change")
-        self.waitPage("change")
-        self.press("expossubsecond")
-        # 1.0 -> 10.0
-        self.press("exposfirstaddsecond")
-        self.press("exposfirstaddsecond")
-        self.press("exposfirstaddsecond")
-        self.press("exposfirstaddsecond")
-        self.press("exposfirstaddsecond")
-        self.press("exposfirstaddsecond")
-        self.press("exposfirstaddsecond")
-        self.press("exposfirstaddsecond")
-        self.press("exposfirstaddsecond")
-        self.press("back")
-        self.waitPage("printpreviewswipe")
-        self.press("cont")
-        self.waitPage("preprintchecks", timeout_sec=120)  # checks
-        self.waitPage("print", timeout_sec=60)  # printing
-        self.waitPage("wait", timeout_sec=240)  # moving platform to the top
-        self.printer.display.forcePage("home")
-        self.waitPage("home", timeout_sec=30)
-        # auto off enabled
+    #     self.waitPage("preprintchecks", timeout_sec=120)  # checks
+    #     self.waitPage("print", timeout_sec=60)  # printing
+    #     self.waitPage("wait", timeout_sec=240)  # moving platform to the top
+    #     self.printer.display.forcePage("home")
+    #     self.waitPage("home", timeout_sec=30)
+    #     # auto off enabled
 
     def test_wizard(self):
         self.test_turnoff()

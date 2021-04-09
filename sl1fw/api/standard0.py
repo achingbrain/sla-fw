@@ -218,7 +218,7 @@ class Standard0:
                 Exposure0State.CHECK_WARNING,
             ]:
                 result = Standard0State.PRINTING_ATTENTION
-            elif substate == Exposure0State.FEED_ME:
+            elif substate in [Exposure0State.FEED_ME, Exposure0State.POUR_IN_RESIN]:
                 result = Standard0State.REFILL
             elif substate == Exposure0State.CONFIRM:
                 result = Standard0State.SELECTED
@@ -522,6 +522,19 @@ class Standard0:
 
     @auto_dbus
     @last_error
+    @state_checked([Exposure0State.POUR_IN_RESIN])
+    def cmd_resin_in(self) -> None:
+        """
+        Confirm resin poured in
+
+        sl1: Confirm resin poured in
+
+        :return: None
+        """
+        self._current_expo.confirm_resin_in()
+
+    @auto_dbus
+    @last_error
     @state_checked([Exposure0State.PRINTING, Exposure0State.CHECKS, Exposure0State.CONFIRM, Exposure0State.COVER_OPEN])
     def cmd_cancel(self) -> None:
         """
@@ -555,12 +568,18 @@ class Standard0:
 
     @auto_dbus
     @last_error
-    @state_checked(Exposure0State.FEED_ME)
+    @state_checked([Exposure0State.FEED_ME, Exposure0State.POUR_IN_RESIN])
     def cmd_continue(self) -> None:
         """
         Continue printing after a pause
+
+        Standard0 cannot distinguish initial resin fill and refill during print. This fires appropriate action at
+        the current state.
         """
-        self._current_expo.doContinue()
+        if self._current_expo.state == ExposureState.POUR_IN_RESIN:
+            self._current_expo.confirm_resin_in()
+        else:
+            self._current_expo.doContinue()
 
     @auto_dbus
     @last_error
@@ -568,8 +587,14 @@ class Standard0:
     def cmd_back(self) -> None:
         """
         Useful to back manual, e.g.feedme
+
+        Standard0 cannot distinguish initial resin fill and refill during print. This fires appropriate action at
+        the current state.
         """
-        self._current_expo.doBack()
+        if self._current_expo.state == ExposureState.POUR_IN_RESIN:
+            self._current_expo.cancel()
+        else:
+            self._current_expo.doBack()
 
     ## NETWORK ##
 

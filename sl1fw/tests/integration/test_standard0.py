@@ -66,6 +66,8 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
 
     def test_cmds_print_pause_cont(self):
         self.standard0.cmd_confirm()
+        self._wait_for_state(Standard0State.REFILL, 60)
+        self.standard0.cmd_resin_in()
         self._wait_for_state(Standard0State.PRINTING_BUSY, 10)
         self._wait_for_state(Standard0State.PRINTING, 60)
         self.standard0.cmd_pause("feed_me")
@@ -77,7 +79,9 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
 
     def test_cmds_print_pause_back(self):
         self.standard0.cmd_confirm()
-        self._wait_for_state(Standard0State.PRINTING, 35)
+        self._wait_for_state(Standard0State.REFILL, 60)
+        self.standard0.cmd_resin_in()
+        self._wait_for_state(Standard0State.PRINTING, 60)
         # raise Exception(1)
         self.standard0.cmd_pause("feed_me")
         self._wait_for_state(Standard0State.REFILL, 30)
@@ -92,8 +96,10 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
             printer_state = self.standard0.state
             if printer_state == state.name:
                 break
+            print(f"Waiting for state: {state}, current state: {printer_state}")
             sleep(1)
         self.assertEqual(state.name, printer_state)
+        print(f"Finished waiting for state: {state}")
 
     def assertKeysIn(self, keys:list, container:dict):
         for key in keys:

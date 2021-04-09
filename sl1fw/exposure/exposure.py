@@ -356,6 +356,9 @@ class Exposure:
 
     def confirm_print_start(self):
         self.expoThread.start()
+        self.commands.put("pour_resin_in")
+
+    def confirm_resin_in(self):
         self.commands.put("checks")
 
     def confirm_print_warning(self):
@@ -719,13 +722,20 @@ class Exposure:
                 command = self.commands.get()
                 if command == "exit":
                     self.logger.info("Exiting exposure thread on exit command")
+                    if self.canceled:
+                        self.state = ExposureState.CANCELED
                     break
+
+                if command == "pour_resin_in":
+                    self._pour_in_resin()
+                    continue
 
                 if command == "checks":
                     asyncio.run(self._run_checks())
                     self.run_exposure()
-                else:
-                    self.logger.error('Undefined command: "%s" ignored', command)
+                    continue
+
+                self.logger.error('Undefined command: "%s" ignored', command)
 
             self.logger.info("Exiting exposure thread on state: %s", self.state)
         except Exception as exception:
@@ -738,6 +748,18 @@ class Exposure:
             self._print_end_hw_off()
         if self.project:
             self.project.data_close()
+
+    def _pour_in_resin(self):
+        while not self.hw.isCoverVirtuallyClosed(check_for_updates=False):
+            self.state = ExposureState.COVER_OPEN
+            sleep(0.1)
+        self.logger.info("Cover closed - Preparing printer to pour in resin")
+        self.state = ExposureState.GOING_UP
+        self.hw.towerSyncWait()
+        self.state = ExposureState.LEVELING_TILT
+        self.hw.tilt.sync_wait()
+        self.hw.tilt.layer_up_wait()
+        self.state = ExposureState.POUR_IN_RESIN
 
     def raise_preprint_warning(self, warning: Warning):
         self.logger.warning("Warning being raised in pre-print: %s", type(warning))

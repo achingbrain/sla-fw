@@ -68,6 +68,8 @@ class Exposure0State(Enum):
     CHECK_WARNING = 23
     DONE = 24
     OVERHEATING = 25
+    POUR_IN_RESIN = 26
+    LEVELING_TILT = 27
 
     @staticmethod
     def from_exposure(state: ExposureState) -> Exposure0State:
@@ -92,6 +94,8 @@ class Exposure0State(Enum):
             ExposureState.CHECK_WARNING: Exposure0State.CHECK_WARNING,
             ExposureState.DONE: Exposure0State.DONE,
             ExposureState.OVERHEATING: Exposure0State.OVERHEATING,
+            ExposureState.POUR_IN_RESIN: Exposure0State.POUR_IN_RESIN,
+            ExposureState.LEVELING_TILT: Exposure0State.LEVELING_TILT,
         }[state]
 
 
@@ -188,6 +192,17 @@ class Exposure0:
         :return: None
         """
         self.exposure.confirm_print_start()
+
+    @auto_dbus
+    @last_error
+    @state_checked(Exposure0State.POUR_IN_RESIN)
+    def confirm_resin_in(self) -> None:
+        """
+        Confirm resin poured in
+
+        :return: None
+        """
+        self.exposure.confirm_resin_in()
 
     @auto_dbus
     @last_error
@@ -656,7 +671,15 @@ class Exposure0:
 
     @auto_dbus
     @last_error
-    @state_checked([Exposure0State.PRINTING, Exposure0State.CHECKS, Exposure0State.CONFIRM, Exposure0State.COVER_OPEN])
+    @state_checked(
+        [
+            Exposure0State.PRINTING,
+            Exposure0State.CHECKS,
+            Exposure0State.CONFIRM,
+            Exposure0State.COVER_OPEN,
+            Exposure0State.POUR_IN_RESIN,
+        ]
+    )
     def cancel(self) -> None:
         """
         Cancel print

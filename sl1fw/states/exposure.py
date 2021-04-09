@@ -29,6 +29,8 @@ class ExposureState(Enum):
     CANCELED = 26
     DONE = 27
     OVERHEATING = 28
+    POUR_IN_RESIN = 29
+    LEVELING_TILT = 30
 
     @staticmethod
     def finished_states():
@@ -37,8 +39,9 @@ class ExposureState(Enum):
     @staticmethod
     def cancelable_states():
         cancelable_states = ExposureState.finished_states()
-        cancelable_states.append(ExposureState.CONFIRM)
+        cancelable_states.extend((ExposureState.CONFIRM, ExposureState.POUR_IN_RESIN))
         return cancelable_states
+
 
 @unique
 class ExposureCheck(Enum):
