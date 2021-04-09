@@ -3,7 +3,10 @@
 # Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from enum import unique, Enum
+from typing import Iterable
 
 
 @unique
@@ -31,26 +34,28 @@ class PrinterState(Enum):
     RUNNING = 1
     PRINTING = 2
     UPDATING = 3
-    EXIT = 4
-    EXCEPTION = 5
-    # Used to be "UNBOXING = 6", now unboxing is a wizard
-    # Used to be "DISPLAY_TEST = 7", now display test is a wizard
-    WIZARD = 8
-    UPDATING_MC = 9
+    ADMIN = 4
+    WIZARD = 5
+    UPDATING_MC = 6
+    EXCEPTION = 7
+    EXIT = 8
 
-    def to_state0(self):
-        state = None
-        if self == self.INIT:
-            state = Printer0State.INITIALIZING
-        elif self == self.EXCEPTION:
-            state = Printer0State.EXCEPTION
-        elif self == self.UPDATING:
-            state = Printer0State.UPDATE
-        elif self == self.UPDATING_MC:
-            state = Printer0State.UPDATE_MC
-        elif self == self.PRINTING:
-            state = Printer0State.PRINTING
-        elif self == self.WIZARD:
-            state = Printer0State.WIZARD
+    def to_state0(self) -> Printer0State:
+        return {
+            self.INIT: Printer0State.INITIALIZING,
+            self.RUNNING: Printer0State.IDLE,
+            self.EXCEPTION: Printer0State.EXCEPTION,
+            self.UPDATING: Printer0State.UPDATE,
+            self.PRINTING: Printer0State.PRINTING,
+            self.WIZARD: Printer0State.WIZARD,
+            self.UPDATING_MC: Printer0State.UPDATE_MC,
+            self.ADMIN: Printer0State.ADMIN,
+        }.get(self, None)
 
-        return state
+    @staticmethod
+    def get_most_important(states: Iterable[PrinterState]) -> PrinterState:
+        if not states:
+            return PrinterState.RUNNING
+
+        s = sorted(states, key=lambda state: state.value)[-1]
+        return s

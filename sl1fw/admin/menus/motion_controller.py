@@ -35,11 +35,11 @@ class MotionControllerMenu(SafeAdminMenu):
 
     def _do_flash_mc_body(self, status: AdminLabel):
         status.set("Forced update of the motion controller firmware")
-        self._printer.state = PrinterState.UPDATING_MC
+        self._printer.set_state(PrinterState.UPDATING_MC)
         self._printer.hw.flashMC()
         self._printer.hw.eraseEeprom()
         self._printer.hw.initDefaults()
-        self._printer.state = PrinterState.RUNNING
+        self._printer.set_state(PrinterState.UPDATING_MC, active=False)
         self._control.enter(Info(self._control, text="Motion controller flashed", pop=2))
 
     def erase_mc_eeprom(self):
@@ -56,10 +56,10 @@ class MotionControllerMenu(SafeAdminMenu):
 
     def _do_erase_mc_eeprom_body(self, status: AdminLabel):
         status.set("Erasing EEPROM")
-        self._printer.state = PrinterState.UPDATING_MC
+        self._printer.set_state(PrinterState.UPDATING_MC)
         self._printer.hw.eraseEeprom()
         self._printer.hw.initDefaults()
-        self._printer.state = PrinterState.RUNNING
+        self._printer.set_state(PrinterState.UPDATING_MC, active=False)
         self._control.enter(Info(self._control, text="Motion controller eeprom erased.", pop=2))
 
     def mc2net_boot(self):

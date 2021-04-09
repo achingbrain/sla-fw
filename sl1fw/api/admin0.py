@@ -190,7 +190,7 @@ class Admin0:
     """
 
     __INTERFACE__ = "cz.prusa3d.sl1.admin0"
-    ALLOWED_ENTER_PRINTER_STATES = [PrinterState.RUNNING, PrinterState.PRINTING]
+    ALLOWED_ENTER_STATES = [PrinterState.RUNNING, PrinterState.PRINTING, PrinterState.ADMIN]
 
     DBUS_NAME_REPLACE_PATTERN = re.compile(r"[^A-Za-z0-9_]")
 
@@ -224,8 +224,8 @@ class Admin0:
 
     @auto_dbus
     def enter(self) -> None:
-        if self._printer.state not in self.ALLOWED_ENTER_PRINTER_STATES:
-            raise NotAvailableInState(self._printer.state, self.ALLOWED_ENTER_PRINTER_STATES)
+        if self._printer.state not in self.ALLOWED_ENTER_STATES:
+            raise NotAvailableInState(self._printer.state, self.ALLOWED_ENTER_STATES)
         if not self._printer.runtime_config.show_admin:
             raise AdminNotAvailable()
         self._manager.enter(RootMenu(self._manager, self._printer))
@@ -245,6 +245,7 @@ class Admin0:
 
         self.PropertiesChanged(self.__INTERFACE__, {"children": self.children}, [])
         self._update_items()
+        self._printer.set_state(PrinterState.ADMIN, bool(self.children))
 
     def _update_items(self):
         bus = pydbus.SystemBus()

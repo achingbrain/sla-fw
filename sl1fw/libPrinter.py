@@ -18,7 +18,7 @@ import subprocess
 import weakref
 from pathlib import Path
 from time import monotonic
-from typing import Optional
+from typing import Optional, Set
 
 import distro
 from PySignal import Signal
@@ -67,7 +67,6 @@ class Printer:
         self.admin_check = None
         self.slicer_profile = None
         self.slicer_profile_updater = None
-        self._state = PrinterState.INIT
         self.state_changed = Signal()
         self.http_digest_changed = Signal()
         self.api_key_changed = Signal()
@@ -79,6 +78,7 @@ class Printer:
         self.exited = threading.Event()
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
+        self._states: Set[PrinterState] = {PrinterState.INIT}
 
         self.logger.info("Initializing hwconfig")
         hw_config = HwConfig(
@@ -147,13 +147,16 @@ class Printer:
 
     @property
     def state(self) -> PrinterState:
-        return self._state
+        return PrinterState.get_most_important(self._states)
 
-    @state.setter
-    def state(self, value: PrinterState):
-        if self._state != value:
-            self.logger.info("Printer state changed: %s -> %s", self._state, value)
-            self._state = value
+    def set_state(self, state: PrinterState, active: bool = True):
+        old = self.state
+        if active:
+            self._states.add(state)
+        else:
+            self._states.remove(state)
+        if old != self.state:
+            self.logger.info("Printer state changed: %s -> %s", old, self.state)
             self.state_changed.emit()
 
     @property
@@ -166,7 +169,7 @@ class Printer:
         self.exception_changed.emit()
 
     def exit(self):
-        self.state = PrinterState.EXIT
+        self.set_state(PrinterState.EXIT)
         self.display.exit()
         self.exposure_image.exit()
         self.exited.wait(timeout=60)
@@ -253,19 +256,19 @@ class Printer:
         try:
             self.hw.connect()
         except MotionControllerWrongFw as e:
-            self.state = PrinterState.UPDATING_MC
+            self.set_state(PrinterState.UPDATING_MC)
             self.hw.flashMC()
             try:
                 self.hw.connect()
                 self.hw.eraseEeprom()
-                self.state = PrinterState.INIT
+                self.set_state(PrinterState.UPDATING_MC, active=False)
             except Exception as e:
                 self.exception = e
-                self.state = PrinterState.EXCEPTION
+                self.set_state(PrinterState.EXCEPTION)
                 raise e
         except Exception as e:
             self.exception = e
-            self.state = PrinterState.EXCEPTION
+            self.set_state(PrinterState.EXCEPTION)
             raise e
 
         self.logger.info("Starting libHardware")
@@ -311,21 +314,21 @@ class Printer:
             self.logger.info("SL1 firmware started in %.03f seconds", monotonic() - self.start_time)
         except Exception as exception:
             self.exception = exception
-            self.state = PrinterState.EXCEPTION
+            self.set_state(PrinterState.EXCEPTION)
             if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("Printer run() init failed")
 
         try:
             self.exited.clear()
-            self.state = PrinterState.RUNNING
+            self.set_state(PrinterState.RUNNING)
             self.printer_run()
 
             self.fs0_dbus.onMediaEjected = None
             self.fs0_dbus.onMediaInserted = None
         except Exception as exception:
             self.exception = exception
-            self.state = PrinterState.EXCEPTION
+            self.set_state(PrinterState.EXCEPTION)
             if test_runtime.hard_exceptions:
                 raise exception
             self.logger.exception("run() exception:")
@@ -351,34 +354,17 @@ class Printer:
 
     def _rauc_changed(self, __, changed, ___):
         if "Operation" in changed:
-            if changed["Operation"] == "idle":
-                if self.state == PrinterState.UPDATING:
-                    self.state = PrinterState.RUNNING
-
-            else:
-                self.state = PrinterState.UPDATING
+            self.set_state(PrinterState.UPDATING, changed["Operation"] != "idle")
 
     def get_actual_page(self):
         return self.display.actualPage
 
     def _exposure_changed(self):
-        if self.state == PrinterState.PRINTING:
-            if not self.action_manager.exposure or self.action_manager.exposure.done:
-                self.state = PrinterState.RUNNING
-
-        else:
-            if self.action_manager.exposure and not self.action_manager.exposure.done:
-                self.state = PrinterState.PRINTING
+        self.set_state(PrinterState.PRINTING, self.action_manager.exposure and not self.action_manager.exposure.done)
 
     def _wizard_changed(self):
-        self.logger.debug("Wizard changed")
         wizard = self.action_manager.wizard
-        if self.state == PrinterState.WIZARD:
-            if not wizard or wizard.state in WizardState.finished_states():
-                self.state = PrinterState.RUNNING
-        else:
-            if wizard and wizard.state not in WizardState.finished_states():
-                self.state = PrinterState.WIZARD
+        self.set_state(PrinterState.WIZARD, wizard and wizard.state not in WizardState.finished_states())
 
     @property
     def id(self) -> str:
@@ -457,7 +443,6 @@ class Printer:
 
         return url
 
-
     def _media_inserted(self, path: str):
         try:
             if path:
@@ -465,16 +450,13 @@ class Printer:
                 last_exposure = self.action_manager.exposure
                 if last_exposure:
                     last_exposure.try_cancel()
-                self.action_manager.new_exposure(
-                    self.hw, self.exposure_image, self.runtime_config, path
-                )
+                self.action_manager.new_exposure(self.hw, self.exposure_image, self.runtime_config, path)
         except NotUVCalibrated:
             self.display.forcePage("uvcalibrationstart")
         except NotMechanicallyCalibrated:
             self.display.forcePage("calibrationstart")
         except Exception:
             pass
-
 
     def _media_ejected(self, root_path: str):
         try:
