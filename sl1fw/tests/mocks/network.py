@@ -46,6 +46,9 @@ class Network:
         progress_callback(99)
         progress_callback(100)
 
+    def force_refresh_state(self):
+        pass
+
 
 def fake_network_system_bus():
     mock = Mock()
