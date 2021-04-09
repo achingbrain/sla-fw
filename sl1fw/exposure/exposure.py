@@ -259,7 +259,7 @@ class StartPositionsCheck(ExposureCheckRunner):
         self.logger.info("Prepare tank and resin")
         if self.expo.hw.config.tilt:
             self.logger.info("Tilting down")
-            self.expo.hw.tilt.moveDownWait()
+            self.expo.hw.tilt.moveDown()
 
         self.logger.info("Tower to print start position")
         self.expo.hw.setTowerProfile("homingFast")
@@ -802,8 +802,7 @@ class Exposure:
                 # Stir resin before resuming print
                 if self.hw.config.tilt:
                     self.state = ExposureState.STIRRING
-                    self.hw.tilt.profileId = TiltProfile.homingFast
-                    self.hw.tilt.moveDownWait()
+                    self.hw.tilt.syncWait()
                     self.hw.tilt.stirResin()
                 was_stirring = True
 

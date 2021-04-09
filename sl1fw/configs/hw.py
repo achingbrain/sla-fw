@@ -195,3 +195,4 @@ class HwConfig(Config):
     showWizard = BoolValue(True, doc="Display wizard at startup if True.")
     showUnboxing = BoolValue(True, doc="Display unboxing wizard at startup if True.")
     showI18nSelect = BoolValue(True, doc="Display language select dialog at startup if True.")
+    lockProfiles = BoolValue(False, doc="Restrict overwrite of SL1/SL1s profiles on startup.")

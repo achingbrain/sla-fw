@@ -20,6 +20,7 @@ from math import ceil
 from threading import Thread
 from time import sleep
 
+import json
 import bitstring
 import pydbus
 from PySignal import Signal
@@ -34,6 +35,7 @@ from sl1fw.hardware.exposure_screen import ExposureScreen
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.hardware.tilt import Tilt, TiltSL1
 from sl1fw.functions.decorators import safe_call
+from sl1fw.errors.exceptions import ConfigException
 
 
 
@@ -167,7 +169,7 @@ class Hardware:
 
     def start(self):
         self.printer_model = self.exposure_screen.start()
-        if self.printer_model == PrinterModel.SL1:
+        if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
             self.tilt = TiltSL1(self.mcc,self.config)
         self.initDefaults()
         self._value_refresh_thread.start()
@@ -204,6 +206,28 @@ class Hardware:
         self.powerLedPwm = self.config.pwrLedPwm
         self.resinSensor(False)
         self.stopFans()
+        if self.config.lockProfiles:
+            self.logger.warning("Printer profiles will not be overwriten")
+        else:
+            if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
+                with open(os.path.join(defines.dataPath, self.printer_model.name, "default." + defines.tiltProfilesSuffix), "r") as f:
+                    defaultProfiles = json.loads(f.read())
+                    mcProfiles = self.tilt.profiles
+                    if mcProfiles != defaultProfiles:
+                        self.logger.info("Overwriting tilt profiles to: %s", defaultProfiles)
+                        self.tilt.profiles = defaultProfiles
+                        self.tilt.sensitivity(self.config.tiltSensitivity)
+                with open(os.path.join(defines.dataPath, self.printer_model.name, "default." + defines.tuneTiltProfilesSuffix), "r") as f:
+                    tuneTilt = json.loads(f.read())
+                    writer = self.config.get_writer()
+                    if tuneTilt != writer.tuneTilt:
+                        self.logger.info("Overwriting tune tilt profiles to: %s", tuneTilt)
+                        writer.tuneTilt = tuneTilt
+                        try:
+                            writer.commit()
+                        except Exception as e:
+                            raise ConfigException() from e
+
 
     def flashMC(self):
         self.mcc.flash(self.config.MCBoardVersion)

@@ -38,6 +38,10 @@ serial_service_service = "serial-getty@ttyS0.service"
 ssh_service_enabled = factoryMountPoint / "ssh_enabled"
 ssh_service_service = "sshd.socket"
 
+tiltProfilesSuffix = "tilt"
+tuneTiltProfilesSuffix = "tune_tilt"
+towerProfilesSuffix = "tower"
+
 # Deprecated. Used be calibration data show, but this does not respect new format used by API based wizards.
 # TODO: This needs to be fixed in order to be able to display recent wizard data properly.
 wizardDataFilename = "wizard_data.toml"  # deprecated

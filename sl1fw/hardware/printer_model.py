@@ -52,14 +52,6 @@ class PrinterModel(Enum):
     SL1S = 2
 
     @property
-    def name(self) -> str:
-        return {
-                self.NONE: "NONE",
-                self.SL1: "SL1",
-                self.SL1S: "SL1S",
-            }[self]
-
-    @property
     def extensions(self) -> set:
         return {
                 self.NONE: {""},
