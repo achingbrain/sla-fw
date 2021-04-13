@@ -29,7 +29,7 @@ from pydbus import SystemBus
 from sl1fw import defines
 from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
-from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongRevision
+from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongFw
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated, BootedInAlternativeSlot, \
     DisplayTestFailed, MissingExamples, LanguageNotSet, NoFactoryUvCalib
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
@@ -254,6 +254,7 @@ class Printer:
         self.firstRun = False
 
     def run(self):
+        # TODO: wrap everything within this method in try-catch
         self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
         self.logger.info("System version: %s", distro.version())
         self.start_time = monotonic()
@@ -261,9 +262,7 @@ class Printer:
         self.logger.info("Connecting to hardware components")
         try:
             self.hw.connect()
-        except MotionControllerWrongRevision as e:
-            raise e
-        except Exception as e:
+        except MotionControllerWrongFw as e:
             self.state = PrinterState.UPDATING_MC
             self.hw.flashMC()
             try:
@@ -274,6 +273,10 @@ class Printer:
                 self.exception = e
                 self.state = PrinterState.EXCEPTION
                 raise e
+        except Exception as e:
+            self.exception = e
+            self.state = PrinterState.EXCEPTION
+            raise e
 
         self.logger.info("Starting libHardware")
         self.hw.start()
