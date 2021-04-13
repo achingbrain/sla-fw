@@ -59,10 +59,10 @@ class Hardware:
         self.get_tower_sensitivity = Mock(return_value=0)
 
         self.tilt = Mock()
-        self.tilt.onTargetPosition = Mock(return_value=True)
+        self.tilt.on_target_position = Mock(return_value=True)
         self.tilt.position = 5000
         self.tilt.moving = False
-        self.tilt.homingStatus = 0
+        self.tilt.homing_status = 0
 
     def getUvStatistics(self):
         return self._led_stat_s, self._display_stat_s

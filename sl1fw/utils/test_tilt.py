@@ -17,8 +17,8 @@ logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message
 hw_config = HwConfig()
 hw = Hardware(hw_config)
 
-hw.tilt.syncWait()
-hw.tilt.moveAbsolute(5300)
+hw.tilt.sync_wait()
+hw.tilt.move_absolute(5300)
 while hw.tilt.moving:
     sleep(0.1)
 #endwhile
@@ -31,7 +31,7 @@ for sgt in range(10, 30):
     hw.mcc.do("!ticf", ' '.join(str(num) for num in profile))
     hw.mcc.do("?ticf")
     hw.mcc.do("!sgbd")
-    hw.tilt.moveAbsolute(0)
+    hw.tilt.move_absolute(0)
     while hw.tilt.moving:
         sgbd.extend(hw.getStallguardBuffer())
         sleep(0.1)
@@ -42,7 +42,7 @@ for sgt in range(10, 30):
             result[avg] = ' '.join(str(num) for num in profile)
 
     hw.mcc.do("!tics", 0)
-    hw.tilt.moveAbsolute(5300)
+    hw.tilt.move_absolute(5300)
     while hw.tilt.moving:
         sleep(0.1)
     #endwhile

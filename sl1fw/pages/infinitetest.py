@@ -74,9 +74,9 @@ class PageInfiniteTest(Page):
                     tower_status = 1
                 elif tower_status == 1:  # tower above the display
                     tilt_may_move = False
-                    if self.display.hw.tilt.onTargetPosition:
+                    if self.display.hw.tilt.on_target_position:
                         tower_status = 2
-                        self.display.hw.tilt.profileId = TiltProfile.layerMoveSlow
+                        self.display.hw.tilt.profile_id = TiltProfile.layerMoveSlow
                         self.display.hw.setTowerProfile("homingSlow")
                         tower_target_position = self.display.hw.tower_min
                         self.display.hw.towerMoveAbsolute(tower_target_position)
@@ -91,8 +91,8 @@ class PageInfiniteTest(Page):
                 # hack to force tilt to move. Needs MC FW fix. Tilt cannot move up when tower moving
                 if self.display.hw.tilt.position < 128:
                     self.display.hw.towerStop()
-                    self.display.hw.tilt.profileId = TiltProfile.homingFast
-                    self.display.hw.tilt.moveUp()
+                    self.display.hw.tilt.profile_id = TiltProfile.homingFast
+                    self.display.hw.tilt.move_up()
                     self.display.hw.setTowerProfile("homingFast")
                     self.display.hw.towerMoveAbsolute(tower_target_position)
                     sleep(1)
@@ -100,7 +100,7 @@ class PageInfiniteTest(Page):
                     if tilt_may_move:
                         tilt_counter += 1
                         page_wait.showItems(line3="Tilt cycles: %d" % tilt_counter)
-                        self.display.hw.tilt.profileId = TiltProfile.homingFast
-                        self.display.hw.tilt.syncWait()
+                        self.display.hw.tilt.profile_id = TiltProfile.homingFast
+                        self.display.hw.tilt.sync_wait()
 
             sleep(0.25)

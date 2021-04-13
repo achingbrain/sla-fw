@@ -122,7 +122,7 @@ class TestExposure(Sl1fwTestCase):
     def test_stuck_recovery_success(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.tilt.layerDownWait = lambda _: False
+        hw.tilt.layer_down_wait = lambda _: False
         exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
@@ -141,7 +141,7 @@ class TestExposure(Sl1fwTestCase):
                 self.assertEqual(exposure.state, ExposureState.FINISHED)
                 return
             if exposure.state == ExposureState.STUCK:
-                hw.tilt.layerDownWait = lambda _: True
+                hw.tilt.layer_down_wait = lambda _: True
                 exposure.doContinue()
             sleep(1)
 
@@ -150,7 +150,7 @@ class TestExposure(Sl1fwTestCase):
     def test_stuck_recovery_fail(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.tilt.layerDownWait = lambda _: False
+        hw.tilt.layer_down_wait = lambda _: False
         exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
@@ -169,7 +169,7 @@ class TestExposure(Sl1fwTestCase):
                 self.assertEqual(exposure.state, ExposureState.FAILURE)
                 return
             if exposure.state == ExposureState.STUCK:
-                hw.tilt.syncWait = lambda **_: False
+                hw.tilt.sync_wait = lambda **_: False
                 exposure.doContinue()
             sleep(1)
 

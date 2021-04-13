@@ -126,13 +126,13 @@ class PageWizardInit(PageWizardBase):
         pageWait = PageWait(self.display, line1 = _("Tank home check"))
         pageWait.show()
         for i in range(3):
-            self.display.hw.tilt.syncWait()
-            homeStatus = self.display.hw.tilt.homingStatus
+            self.display.hw.tilt.sync_wait()
+            homeStatus = self.display.hw.tilt.homing_status
             if homeStatus == -2:
                 self.display.pages['error'].setParams(code=Sl1Codes.TILT_ENDSTOP_NOT_REACHED.raw_code)
                 return "error"
             elif homeStatus == 0:
-                self.display.hw.tilt.homeCalibrateWait()
+                self.display.hw.tilt.home_calibrate_wait()
                 break
             #endif
         #endfor
@@ -143,17 +143,17 @@ class PageWizardInit(PageWizardBase):
 
         #tilt length measure
         pageWait.showItems(line1 = _("Tank axis check"))
-        self.display.hw.tilt.profileId = TiltProfile.homingFast
-        self.display.hw.tilt.moveAbsolute(self.display.hw.tilt.max)
+        self.display.hw.tilt.profile_id = TiltProfile.homingFast
+        self.display.hw.tilt.move_absolute(self.display.hw.tilt.max)
         while self.display.hw.tilt.moving:
             sleep(0.25)
         #endwhile
-        self.display.hw.tilt.moveAbsolute(512)   # go down fast before endstop
+        self.display.hw.tilt.move_absolute(512)   # go down fast before endstop
         while self.display.hw.tilt.moving:
             sleep(0.25)
         #endwhile
-        self.display.hw.tilt.profileId = TiltProfile.homingSlow    #finish measurement with slow profile (more accurate)
-        self.display.hw.tilt.moveAbsolute(self.display.hw.tilt.min)
+        self.display.hw.tilt.profile_id = TiltProfile.homingSlow    #finish measurement with slow profile (more accurate)
+        self.display.hw.tilt.move_absolute(self.display.hw.tilt.min)
         while self.display.hw.tilt.moving:
             sleep(0.25)
         #endwhile
@@ -165,8 +165,8 @@ class PageWizardInit(PageWizardBase):
             )
             return "error"
         #endif
-        self.display.hw.tilt.profileId = TiltProfile.homingFast
-        self.display.hw.tilt.moveAbsolute(defines.defaultTiltHeight)
+        self.display.hw.tilt.profile_id = TiltProfile.homingFast
+        self.display.hw.tilt.move_absolute(defines.defaultTiltHeight)
         while self.display.hw.tilt.moving:
             sleep(0.25)
         #endwhile

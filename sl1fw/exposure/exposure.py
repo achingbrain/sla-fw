@@ -172,17 +172,17 @@ class HardwareCheck(ExposureCheckRunner):
             raise TowerFailed()
 
         self.logger.info("Syncing tilt")
-        self.expo.hw.tilt.syncWait()
+        self.expo.hw.tilt.sync_wait()
 
         if not self.expo.hw.tilt.synced:
             raise TiltFailed()
 
         self.logger.info("Tilting up")
-        self.expo.hw.tilt.profileId = TiltProfile.homingFast
-        self.expo.hw.tilt.moveUp()
+        self.expo.hw.tilt.profile_id = TiltProfile.homingFast
+        self.expo.hw.tilt.move_up()
         while self.expo.hw.tilt.moving:
             sleep(0.1)
-        if not self.expo.hw.tilt.onTargetPosition:
+        if not self.expo.hw.tilt.on_target_position:
             raise TiltFailed()
 
 
@@ -259,7 +259,7 @@ class StartPositionsCheck(ExposureCheckRunner):
         self.logger.info("Prepare tank and resin")
         if self.expo.hw.config.tilt:
             self.logger.info("Tilting down")
-            self.expo.hw.tilt.moveDown()
+            self.expo.hw.tilt.move_down()
 
         self.logger.info("Tower to print start position")
         self.expo.hw.setTowerProfile("homingFast")
@@ -285,7 +285,7 @@ class StirringCheck(ExposureCheckRunner):
     def run(self):
         if not self.expo.hw.config.tilt:
             raise ExposureCheckDisabled()
-        self.expo.hw.tilt.stirResin()
+        self.expo.hw.tilt.stir_resin()
 
 
 class Exposure:
@@ -525,11 +525,11 @@ class Exposure:
         if self.hw.config.tilt:
             if self.hw.config.layerTowerHop and slow_move:
                 self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
-                self.hw.tilt.layerUpWait(slow_move)
+                self.hw.tilt.layer_up_wait(slow_move)
                 self.hw.towerMoveAbsoluteWait(position_steps)
             else:
                 self.hw.towerMoveAbsoluteWait(position_steps)
-                self.hw.tilt.layerUpWait(slow_move)
+                self.hw.tilt.layer_up_wait(slow_move)
         else:
             self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
             self.hw.towerMoveAbsoluteWait(position_steps)
@@ -586,7 +586,7 @@ class Exposure:
             slow_move = white_pixels > self.hw.white_pixels_threshold
             if slow_move:
                 self.slow_layers_done += 1
-            if not self.hw.tilt.layerDownWait(slow_move):
+            if not self.hw.tilt.layer_down_wait(slow_move):
                 return False, white_pixels
 
         return True, white_pixels
@@ -615,7 +615,7 @@ class Exposure:
 
         if self.hw.config.tilt:
             self.state = ExposureState.STIRRING
-            self.hw.tilt.stirResin()
+            self.hw.tilt.stir_resin()
 
         self.state = ExposureState.GOING_DOWN
         position = self.hw.config.upAndDownZoffset
@@ -660,12 +660,12 @@ class Exposure:
         self.hw.powerLed("warn")
         self.state = ExposureState.STUCK_RECOVERY
 
-        if not self.hw.tilt.syncWait(retries=1):
+        if not self.hw.tilt.sync_wait(retries=1):
             self.logger.error("Stuck release failed")
             raise TiltFailed()
 
         self.state = ExposureState.STIRRING
-        self.hw.tilt.stirResin()
+        self.hw.tilt.stir_resin()
         self.hw.powerLed("normal")
         self.state = ExposureState.PRINTING
 
@@ -792,7 +792,7 @@ class Exposure:
             if command == "feedme" or self.low_resin:
                 self.hw.powerLed("warn")
                 if self.hw.config.tilt:
-                    self.hw.tilt.layerUpWait()
+                    self.hw.tilt.layer_up_wait()
                 self.state = ExposureState.FEED_ME
                 self.doWait(self.low_resin)
 
@@ -802,8 +802,8 @@ class Exposure:
                 # Stir resin before resuming print
                 if self.hw.config.tilt:
                     self.state = ExposureState.STIRRING
-                    self.hw.tilt.syncWait()
-                    self.hw.tilt.stirResin()
+                    self.hw.tilt.sync_wait()
+                    self.hw.tilt.stir_resin()
                 was_stirring = True
 
                 # Resume print

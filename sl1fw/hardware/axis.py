@@ -37,12 +37,12 @@ class Axis(ABC):
 
     @property
     @abstractmethod
-    def targetPosition(self) -> int:
+    def target_position(self) -> int:
         """return last target position which has to be set before every move"""
 
     @property
     @abstractmethod
-    def onTargetPosition(self) -> bool:
+    def on_target_position(self) -> bool:
         """return if axis has completed the movement and is on expected position"""
 
     @property
@@ -51,7 +51,7 @@ class Axis(ABC):
         """determine if axis is moving at the moment"""
 
     @abstractmethod
-    def moveAbsolute(self, position) -> bool:
+    def move_absolute(self, position) -> bool:
         """initiate movement of the axis"""
 
     @abstractmethod
@@ -75,7 +75,7 @@ class Axis(ABC):
 
     @property
     @abstractmethod
-    def homingStatus(self) -> int:
+    def homing_status(self) -> int:
         """get actual state of axis homing"""
 
     @abstractmethod
@@ -83,24 +83,24 @@ class Axis(ABC):
         """start axis homing"""
 
     @abstractmethod
-    def syncWait(self, retries: int) -> bool:
+    def sync_wait(self, retries: int) -> bool:
         """blocking method for axis homing. retries = number of additional tries when homing fails"""
 
 ########## profiles ##########
 
     @property
     @abstractmethod
-    def profileNames(self) -> List[str]:
+    def profile_names(self) -> List[str]:
         """list of all profile names of given axis"""
 
     @property
     @abstractmethod
-    def profileId(self) -> AxisProfile:
+    def profile_id(self) -> AxisProfile:
         """return selected profile"""
 
-    @profileId.setter
+    @profile_id.setter
     @abstractmethod
-    def profileId(self, profileId: AxisProfile):
+    def profile_id(self, profile_id: AxisProfile):
         """select profile"""
 
     @property

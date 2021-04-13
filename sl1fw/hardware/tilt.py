@@ -32,43 +32,43 @@ class TiltProfile(Enum):
 
 class Tilt(Axis):
     @abstractmethod
-    def goToFullstep(self, goUp: int):
+    def go_to_fullstep(self, goUp: int):
         """move axis to the fullstep (stable position) in given direction"""
 
     @abstractmethod
-    def moveDown(self):
+    def move_down(self):
         """move tilt to zero"""
 
     @abstractmethod
-    def moveDownWait(self):
+    def move_down_wait(self):
         """move tilt to zero (synchronous)"""
 
     @abstractmethod
-    def moveUp(self):
+    def move_up(self):
         """move tilt to max"""
 
     @abstractmethod
-    def moveUpWait(self):
+    def move_up_wait(self):
         """move tilt to max (synchronous)"""
 
     @abstractmethod
-    def layerUpWait(self, slowMove: bool = False):
+    def layer_up_wait(self, slowMove: bool = False):
         """tilt up during the print"""
 
     @abstractmethod
-    def layerDownWait(self, slowMove: bool = False) -> bool:
+    def layer_down_wait(self, slowMove: bool = False) -> bool:
         """tilt up during the print"""
 
     @abstractmethod
-    def stirResin(self):
+    def stir_resin(self):
         """mix the resin"""
 
     @abstractmethod
-    def homeCalibrateWait(self):
+    def home_calibrate_wait(self):
         """test and save tilt motor phase for accurate homing"""
 
     @property
-    def profileNames(self) -> List[str]:
+    def profile_names(self) -> List[str]:
         names = list()
         for profile in TiltProfile:
             names.append(profile.name)
@@ -117,12 +117,12 @@ class TiltSL1(Tilt):
         self._targetPosition = position_ustep
 
     @property
-    def targetPosition(self) -> int:
+    def target_position(self) -> int:
         return self._targetPosition
 
     @property
     @safe_call(False, MotionControllerException)
-    def onTargetPosition(self):
+    def on_target_position(self):
         if self.moving:
             return False
         if self.position != self._targetPosition:
@@ -142,7 +142,7 @@ class TiltSL1(Tilt):
         return False
 
     @safe_call(False, MotionControllerException)
-    def moveAbsolute(self, position):
+    def move_absolute(self, position):
         self._targetPosition = position
         self._mcc.do("!tima", position)
 
@@ -163,15 +163,15 @@ class TiltSL1(Tilt):
         :return: True on success, False otherwise
         """
         if not self.moving and set_profiles:
-            self.profileId = TiltProfile.moveSlow if abs(speed) < 2 else TiltProfile.homingFast
+            self.profile_id = TiltProfile.moveSlow if abs(speed) < 2 else TiltProfile.homingFast
 
         if speed != 0:
             self._lastPosition = self.position
             if self.moving:
-                if self.onTargetPosition:
+                if self.on_target_position:
                     return False
             else:
-                self.moveAbsolute(
+                self.move_absolute(
                     self._config.tiltMax if speed > 0 else self._config.tiltMin
                 )
             return True
@@ -179,9 +179,9 @@ class TiltSL1(Tilt):
         self.stop()
         if fullstep:
             if self._lastPosition < self.position:
-                self.goToFullstep(goUp=1)
+                self.go_to_fullstep(goUp=1)
             elif self._lastPosition > self.position:
-                self.goToFullstep(goUp=0)
+                self.go_to_fullstep(goUp=0)
             self._lastPosition = self._config.tiltMin
         return True
 
@@ -194,9 +194,9 @@ class TiltSL1(Tilt):
         newProfiles[0][5] = self._tiltAdjust[TiltProfile.homingFast][sensitivity + 2][1]
         newProfiles[1][4] = self._tiltAdjust[TiltProfile.homingSlow][sensitivity + 2][0]
         newProfiles[1][5] = self._tiltAdjust[TiltProfile.homingSlow][sensitivity + 2][1]
-        self.profileId = TiltProfile.homingFast
+        self.profile_id = TiltProfile.homingFast
         self.profile = newProfiles[TiltProfile.homingFast.value]
-        self.profileId = TiltProfile.homingSlow
+        self.profile_id = TiltProfile.homingSlow
         self.profile = newProfiles[TiltProfile.homingSlow.value]
         self.logger.info("tilt profiles changed to: %s", newProfiles)
 
@@ -205,54 +205,54 @@ class TiltSL1(Tilt):
         self._mcc.do("!mot", 1)
 
     @safe_call(False, MotionControllerException)
-    def goToFullstep(self, goUp: int = 0):
+    def go_to_fullstep(self, goUp: int = 0):
         self._mcc.do("!tigf", goUp)
 
     @safe_call(False, MotionControllerException)
-    def moveDown(self):
-        self.moveAbsolute(0)
+    def move_down(self):
+        self.move_absolute(0)
 
     @safe_call(False, MotionControllerException)
-    def moveDownWait(self):
-        self.moveDown()
-        while not self.onTargetPosition:
+    def move_down_wait(self):
+        self.move_down()
+        while not self.on_target_position:
             sleep(0.1)
 
     @safe_call(False, MotionControllerException)
-    def moveUp(self):
-        self.moveAbsolute(self._config.tiltHeight)
+    def move_up(self):
+        self.move_absolute(self._config.tiltHeight)
 
     @safe_call(False, MotionControllerException)
-    def moveUpWait(self):
-        self.moveUp()
-        while not self.onTargetPosition:
+    def move_up_wait(self):
+        self.move_up()
+        while not self.on_target_position:
             sleep(0.1)
 
 
     @safe_call(False, MotionControllerException)
-    def layerDownWait(self, slowMove: bool = False):
+    def layer_down_wait(self, slowMove: bool = False):
         profile = self._config.tuneTilt[0] if slowMove else self._config.tuneTilt[1]
 
         # initial release movement with optional sleep at the end
-        self.profileId = TiltProfile(profile[0])
+        self.profile_id = TiltProfile(profile[0])
         if profile[1] > 0:
-            self.moveAbsolute(self.position - profile[1])
+            self.move_absolute(self.position - profile[1])
             while self.moving:
                 sleep(0.1)
         sleep(profile[2] / 1000.0)
 
         # next movement may be splited
-        self.profileId = TiltProfile(profile[3])
+        self.profile_id = TiltProfile(profile[3])
         movePerCycle = int(self.position / profile[4])
         for _ in range(profile[4]):
-            self.moveAbsolute(self.position - movePerCycle)
+            self.move_absolute(self.position - movePerCycle)
             while self.moving:
                 sleep(0.1)
             sleep(profile[5] / 1000.0)
 
         # if not already in endstop ensure we end up at defined bottom position
         if not self._mcc.checkState("endstop"):
-            self.moveAbsolute(-defines.tiltHomingTolerance)
+            self.move_absolute(-defines.tiltHomingTolerance)
             while self.moving:
                 sleep(0.1)
 
@@ -267,61 +267,61 @@ class TiltSL1(Tilt):
 
         # unstuck
         self.logger.warning("Tilt unstucking")
-        self.profileId = TiltProfile.layerRelease
+        self.profile_id = TiltProfile.layerRelease
         count = 0
         step = 128
         while count < self._config.tiltMax and not self._mcc.checkState("endstop"):
             self.position = step
-            self.moveAbsolute(0)
+            self.move_absolute(0)
             while self.moving:
                 sleep(0.1)
             count += step
-        return self.syncWait(retries=1)
+        return self.sync_wait(retries=1)
 
     @safe_call(False, MotionControllerException)
-    def layerUpWait(self, slowMove: bool = False):
+    def layer_up_wait(self, slowMove: bool = False):
         profile = self._config.tuneTilt[2] if slowMove else self._config.tuneTilt[3]
 
-        self.profileId = TiltProfile(profile[0])
-        self.moveAbsolute(self._config.tiltHeight - profile[1])
+        self.profile_id = TiltProfile(profile[0])
+        self.move_absolute(self._config.tiltHeight - profile[1])
         while self.moving:
             sleep(0.1)
         sleep(profile[2] / 1000.0)
-        self.profileId = TiltProfile(profile[3])
+        self.profile_id = TiltProfile(profile[3])
 
         # finish move may be also splited in multiple sections
         movePerCycle = int((self._config.tiltHeight - self.position) / profile[4])
         for _ in range(profile[4]):
-            self.moveAbsolute(self.position + movePerCycle)
+            self.move_absolute(self.position + movePerCycle)
             while self.moving:
                 sleep(0.1)
             sleep(profile[5] / 1000.0)
 
     @safe_call(False, MotionControllerException)
-    def stirResin(self):
+    def stir_resin(self):
         for _ in range(self._config.stirringMoves):
-            self.profileId = TiltProfile.homingFast
+            self.profile_id = TiltProfile.homingFast
             # do not verify end positions
-            self.moveUp()
+            self.move_up()
             while self.moving:
                 sleep(0.1)
 
-            self.moveDown()
+            self.move_down()
             while self.moving:
                 sleep(0.1)
 
-            self.syncWait()
+            self.sync_wait()
 
 
 ########## homing ##########
 
     @property
     def synced(self) -> bool:
-        return self.homingStatus == 0
+        return self.homing_status == 0
 
     @property
     @safe_call(-1, MotionControllerException)
-    def homingStatus(self) -> int:
+    def homing_status(self) -> int:
         return self._mcc.doGetInt("?tiho")
 
     @safe_call(False, MotionControllerException)
@@ -329,17 +329,17 @@ class TiltSL1(Tilt):
         self._mcc.do("!tiho")
 
     @safe_call(False, (MotionControllerException, TiltHomeFailed))
-    def syncWait(self, retries=0):
+    def sync_wait(self, retries=0):
         self.sync()
 
         while True:
-            homingStatus = self.homingStatus
-            if homingStatus == 0:
+            homing_status = self.homing_status
+            if homing_status == 0:
                 self.position = 0
                 return True
 
-            if homingStatus < 0:
-                self.logger.warning("Tilt homing failed! Status: %d", homingStatus)
+            if homing_status < 0:
+                self.logger.warning("Tilt homing failed! Status: %d", homing_status)
                 if retries < 1:
                     self.logger.error("Tilt homing max tries reached!")
                     raise TiltHomeFailed()
@@ -348,12 +348,12 @@ class TiltSL1(Tilt):
             sleep(0.25)
 
     @safe_call(False, MotionControllerException)
-    def homeCalibrateWait(self):
+    def home_calibrate_wait(self):
         self._mcc.do("!tihc")
-        homingStatus = 1
-        while homingStatus > 0:  # not done and not error
-            homingStatus = self.homingStatus
-            if homingStatus < 0:
+        homing_status = 1
+        while homing_status > 0:  # not done and not error
+            homing_status = self.homing_status
+            if homing_status < 0:
                 raise MotionControllerException("Tilt homing calibration failed", None)
             sleep(0.1)
         self.position = 0
@@ -362,19 +362,19 @@ class TiltSL1(Tilt):
 
     @property
     @safe_call(False, MotionControllerException)
-    def profileId(self) -> TiltProfile:
+    def profile_id(self) -> TiltProfile:
         """return selected profile"""
         return TiltProfile(self._mcc.doGetInt("?tics"))
 
-    @profileId.setter
+    @profile_id.setter
     @safe_call(False, MotionControllerException)
-    def profileId(self, profileId: TiltProfile):
+    def profile_id(self, profile_id: TiltProfile):
         """select profile"""
         if self.moving:
             raise MotionControllerException(
                 "Cannot change profiles while tilt is moving.", None
             )
-        self._mcc.do("!tics", profileId.value)
+        self._mcc.do("!tics", profile_id.value)
 
     @property
     @safe_call(False, MotionControllerException)
@@ -397,24 +397,24 @@ class TiltSL1(Tilt):
     def profiles(self) -> List[List[int]]:
         """get all profiles from MC"""
         profiles = list()
-        currentProfile = self.profileId
-        for profileId in range(8):
+        currentProfile = self.profile_id
+        for profile_id in range(8):
             try:
-                self.profileId = TiltProfile(profileId)
+                self.profile_id = TiltProfile(profile_id)
                 profiles.append(self.profile)
             finally:
-                self.profileId = currentProfile
+                self.profile_id = currentProfile
         return profiles
 
     @profiles.setter
     @safe_call(False, MotionControllerException)
     def profiles(self, profiles: List[List[int]]):
         """save all profiles to MC"""
-        currentProfile = self.profileId
+        currentProfile = self.profile_id
         if len(profiles) != 8:
             raise MotionControllerException("Wrong number of profiles passed", None)
-        currentProfile = self.profileId
-        for profileId in range(8):
-            self.profileId = TiltProfile(profileId)
-            self.profile = profiles[profileId]
-        self.profileId = currentProfile
+        currentProfile = self.profile_id
+        for profile_id in range(8):
+            self.profile_id = TiltProfile(profile_id)
+            self.profile = profiles[profile_id]
+        self.profile_id = currentProfile

@@ -37,7 +37,7 @@ class PageControl(Page):
         pageWait = PageWait(self.display, line1 = _("Tank reset"))
         pageWait.show()
         try:
-            self.display.hw.tilt.syncWait()
+            self.display.hw.tilt.sync_wait()
         except TiltHomeFailed:
             self.logger.exception("Tank homing failed")
             self.display.pages['error'].setParams(code=Sl1Codes.TILT_HOME_FAILED.raw_code)

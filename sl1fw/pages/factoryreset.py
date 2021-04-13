@@ -252,13 +252,13 @@ class PageFactoryReset(Page):
 
         page_wait.showItems(line1=_("Printer is being set to packing positions"))
         self.display.hw.towerSync()
-        self.display.hw.tilt.syncWait(retries=3)
+        self.display.hw.tilt.sync_wait(retries=3)
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
 
         # move tilt and tower to packing position
-        self.display.hw.tilt.profileId = TiltProfile.homingFast
-        self.display.hw.tilt.moveAbsolute(defines.defaultTiltHeight)
+        self.display.hw.tilt.profile_id = TiltProfile.homingFast
+        self.display.hw.tilt.move_absolute(defines.defaultTiltHeight)
         while self.display.hw.tilt.moving:
             sleep(0.25)
 

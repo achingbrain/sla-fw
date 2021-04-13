@@ -40,7 +40,7 @@ class TiltAndTowerMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def _sync_tilt(self, status: AdminLabel):
         status.set("Tilt home")
-        if not self._printer.hw.tilt.syncWait(retries=2):
+        if not self._printer.hw.tilt.sync_wait(retries=2):
             self._control.enter(Error(self._control, text="Failed to sync tilt", pop=2))
         self._printer.hw.powerLed("normal")
         status.set("Tilt home done")
@@ -57,15 +57,15 @@ class TiltAndTowerMenu(SafeAdminMenu):
         self._printer.hw.beepEcho()
         sleep(1)
         status.set("Tilt up")
-        self._printer.hw.tilt.layerUpWait()
+        self._printer.hw.tilt.layer_up_wait()
         self._printer.hw.beepEcho()
         sleep(1)
         status.set("Tilt down")
-        self._printer.hw.tilt.layerDownWait()
+        self._printer.hw.tilt.layer_down_wait()
         self._printer.hw.beepEcho()
         sleep(1)
         status.set("Tilt up")
-        self._printer.hw.tilt.layerUpWait()
+        self._printer.hw.tilt.layer_up_wait()
         self._printer.hw.beepEcho()
         self._printer.hw.powerLed("normal")
 
@@ -81,7 +81,7 @@ class TiltAndTowerMenu(SafeAdminMenu):
     def _do_tilt_home_calib(self, status: AdminLabel):
         self._printer.hw.powerLed("warn")
         status.set("Tilt home calibration")
-        self._printer.hw.tilt.homeCalibrateWait()
+        self._printer.hw.tilt.home_calibrate_wait()
         self._printer.hw.motorsRelease()
         self._printer.hw.powerLed("normal")
 

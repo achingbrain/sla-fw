@@ -309,13 +309,13 @@ class PageUvCalibrationPrepare(PageUvCalibrationBase):
                 self.display.pages['error'].setParams(code=Sl1Codes.TOWER_HOME_FAILED.raw_code)
                 return "error"
             #endif
-            self.display.hw.tilt.syncWait()
+            self.display.hw.tilt.sync_wait()
             if not self.display.hw.tilt.synced:
                 self.display.state = DisplayState.IDLE
                 self.display.pages['error'].setParams(code=Sl1Codes.TILT_HOME_FAILED.raw_code)
                 return "error"
             #endif
-            self.display.hw.tilt.layerUpWait()
+            self.display.hw.tilt.layer_up_wait()
 
 
     def show(self):

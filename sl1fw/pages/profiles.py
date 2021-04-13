@@ -288,7 +288,7 @@ class PageTiltProfiles(ProfilesPage):
 
 
     def show(self):
-        profilesNames = self.display.hw.tilt.profileNames
+        profilesNames = self.display.hw.tilt.profile_names
         self.items.update({
                 "label1g1" : profilesNames[0],
                 "label1g2" : profilesNames[1],
@@ -451,7 +451,7 @@ class PageTuneTilt(ProfilesPage):
 
     def __value(self, index, valmin, valmax, change):
         if valmin <= self.profiles[self.actualProfile][index] + change <= valmax:
-            profilesNames = self.display.hw.tilt.profileNames
+            profilesNames = self.display.hw.tilt.profile_names
             self.profiles[self.actualProfile][index] += change
             if index in self.nameIndexes:
                 self.showItems(**{ 'value2g%d' % (index + 1) : str(profilesNames[self.profiles[self.actualProfile][index]]) })

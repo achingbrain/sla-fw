@@ -102,8 +102,8 @@ class PageCalibration1(PageCalibrationBase):
         pageWait = PageWait(self.display, line1 = _("Tank axis homing"))
         pageWait.show()
 
-        self.display.hw.tilt.syncWait(retries = 2) # FIXME MC cant properly home tilt while tower is moving
-        self.display.hw.tilt.homeCalibrateWait()
+        self.display.hw.tilt.sync_wait(retries = 2) # FIXME MC cant properly home tilt while tower is moving
+        self.display.hw.tilt.home_calibrate_wait()
         #tower home check
         pageWait.showItems(line1 = _("Tower axis homing check"))
         for __ in range(3):
@@ -225,7 +225,7 @@ class PageCalibration5(MovePage):
 
 
     def show(self):
-        self.display.hw.tilt.profileId = TiltProfile.moveSlow
+        self.display.hw.tilt.profile_id = TiltProfile.moveSlow
         self.items["value"] = self.display.hw.tilt.position
         self.moving = False
         super(PageCalibration5, self).show()
@@ -235,7 +235,7 @@ class PageCalibration5(MovePage):
     def _up(self, slowMoving):
         self.prevTiltHeight = self.display.hw.tilt.position
         if not self.moving:
-            self.display.hw.tilt.moveAbsolute(self.display.hw.tilt.max)
+            self.display.hw.tilt.move_absolute(self.display.hw.tilt.max)
             self.moving = True
         else:
             self.showItems(value = self.display.hw.tilt.position)
@@ -249,7 +249,7 @@ class PageCalibration5(MovePage):
     def _down(self, slowMoving):
         self.prevTiltHeight = self.display.hw.tilt.position
         if not self.moving:
-            self.display.hw.tilt.moveAbsolute(defines.tiltCalibrationStart)
+            self.display.hw.tilt.move_absolute(defines.tiltCalibrationStart)
             self.moving = True
         else:
             self.showItems(value = self.display.hw.tilt.position)
@@ -263,9 +263,9 @@ class PageCalibration5(MovePage):
     def _stop(self):
         self.display.hw.tilt.stop()
         if self.prevTiltHeight < self.display.hw.tilt.position:
-            self.display.hw.tilt.goToFullstep(goUp = 1)
+            self.display.hw.tilt.go_to_fullstep(goUp = 1)
         elif self.prevTiltHeight > self.display.hw.tilt.position:
-            self.display.hw.tilt.goToFullstep(goUp = 0)
+            self.display.hw.tilt.go_to_fullstep(goUp = 0)
         #endif
 
         self.showItems(value = self.display.hw.tilt.position)
@@ -470,7 +470,7 @@ class PageCalibration10(PageCalibrationBase):
             sleep(0.25)
         #endwhile
         self.logger.debug("Setting tilt to initial position")
-        self.display.hw.tilt.syncWait(2) # FIXME MC cant properly home tilt while tower is moving
+        self.display.hw.tilt.sync_wait(2) # FIXME MC cant properly home tilt while tower is moving
         self.logger.info("Measuring slow tilt times")
         tiltSlowTime = self.getTiltTime(pageWait, slowMove = True)
         self.logger.info("Measuring fast tilt times")
@@ -478,9 +478,9 @@ class PageCalibration10(PageCalibrationBase):
         self.logger.debug("Resetting tower profile")
         self.display.hw.setTowerProfile('homingFast')
         self.logger.debug("Resetting tilt profile")
-        self.display.hw.tilt.profileId = TiltProfile.homingFast
+        self.display.hw.tilt.profile_id = TiltProfile.homingFast
         self.logger.debug("Resetting tilt")
-        self.display.hw.tilt.moveUpWait()
+        self.display.hw.tilt.move_up_wait()
         self.logger.debug("Setting calibration data")
         writer = self.display.hw.config.get_writer()
         writer.towerHeight = self.display.hw.config.towerHeight  # TODO: This seems to just copy default to value
@@ -509,8 +509,8 @@ class PageCalibration10(PageCalibrationBase):
             pageWait.showItems(line2 = (_("Slow move %(count)d/%(total)d") if slowMove else _("Fast move %(count)d/%(total)d")) % { 'count' : i+1, 'total' : total })
             self.logger.debug("Measuring tilt time - start")
             tiltStartTime = time()
-            self.display.hw.tilt.layerUpWait()
-            self.display.hw.tilt.layerDownWait(slowMove)
+            self.display.hw.tilt.layer_up_wait()
+            self.display.hw.tilt.layer_down_wait(slowMove)
             tiltTime += time() - tiltStartTime
             self.logger.debug("Measuring tilt time - end")
         #endfor

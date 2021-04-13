@@ -56,56 +56,56 @@ class TestTilt(Sl1fwTestCase):
         for position in positions:
             self.hw.tilt.position = position
             self.assertEqual(position, self.hw.tilt.position)
-        self.hw.tilt.moveAbsolute(self.hw.tilt.max)
+        self.hw.tilt.move_absolute(self.hw.tilt.max)
         with self.assertRaises(TiltPositionFailed):
             self.hw.tilt.position = position
 
     def test_movement(self):
         self.assertFalse(self.hw.tilt.moving)
-        self.hw.tilt.moveAbsolute(self.hw.tilt.max)
+        self.hw.tilt.move_absolute(self.hw.tilt.max)
         self.assertTrue(self.hw.tilt.moving)
         while self.hw.tilt.moving:
             sleep(0.1)
         self.assertFalse(self.hw.tilt.moving)
-        self.assertTrue(self.hw.tilt.onTargetPosition)
+        self.assertTrue(self.hw.tilt.on_target_position)
         self.assertEqual(self.hw.tilt.max, self.hw.tilt.position)
 
     #TODO: test all possible scenarios
     def test_move(self):
         # nothing
         self.hw.tilt.position = 0
-        self.hw.tilt.profileId = TiltProfile.temp
+        self.hw.tilt.profile_id = TiltProfile.temp
         self.hw.tilt.move(speed=0, set_profiles=False, fullstep=False)
         self.assertFalse(self.hw.tilt.moving)
         self.assertEqual(0, self.hw.tilt.position)
-        self.assertEqual(TiltProfile.temp, self.hw.tilt.profileId)
+        self.assertEqual(TiltProfile.temp, self.hw.tilt.profile_id)
         self.hw.tilt.stop()
 
         # move up without profile change
         self.hw.tilt.position = 0
-        self.hw.tilt.profileId = TiltProfile.temp
+        self.hw.tilt.profile_id = TiltProfile.temp
         self.hw.tilt.move(speed=1, set_profiles=False, fullstep=False)
         self.assertTrue(self.hw.tilt.moving)
         self.assertLess(0, self.hw.tilt.position)
-        self.assertEqual(TiltProfile.temp, self.hw.tilt.profileId)
+        self.assertEqual(TiltProfile.temp, self.hw.tilt.profile_id)
         self.hw.tilt.stop()
 
         # move up slow with profile change
         self.hw.tilt.position = 0
-        self.hw.tilt.profileId = TiltProfile.temp
+        self.hw.tilt.profile_id = TiltProfile.temp
         self.hw.tilt.move(speed=1, set_profiles=True, fullstep=False)
         self.assertTrue(self.hw.tilt.moving)
         self.assertLess(0, self.hw.tilt.position)
-        self.assertEqual(TiltProfile.moveSlow, self.hw.tilt.profileId)
+        self.assertEqual(TiltProfile.moveSlow, self.hw.tilt.profile_id)
         self.hw.tilt.stop()
 
         # move up fast with profile change
         self.hw.tilt.position = 0
-        self.hw.tilt.profileId = TiltProfile.temp
+        self.hw.tilt.profile_id = TiltProfile.temp
         self.hw.tilt.move(speed=2, set_profiles=True, fullstep=False)
         self.assertTrue(self.hw.tilt.moving)
         self.assertLess(0, self.hw.tilt.position)
-        self.assertEqual(TiltProfile.homingFast, self.hw.tilt.profileId)
+        self.assertEqual(TiltProfile.homingFast, self.hw.tilt.profile_id)
         self.hw.tilt.stop()
 
         # move up, stop and go to fullstep
@@ -140,32 +140,32 @@ class TestTilt(Sl1fwTestCase):
             self.assertEqual(homingFast, newProfiles[TiltProfile.homingFast.value])
             self.assertEqual(homingSlow, newProfiles[TiltProfile.homingSlow.value])
 
-    #FIXME: test goToFullstep. Simulator behaves differently from real HW ()
+    #FIXME: test go_to_fullstep. Simulator behaves differently from real HW ()
 
     def test_stir_resin(self):
-        self.hw.tilt.stirResin()
+        self.hw.tilt.stir_resin()
         self.assertTrue(self.hw.tilt.synced)
         self.assertEqual(0, self.hw.tilt.position)
 
     def test_sync(self):
         self.hw.tilt.sync()
-        self.assertLess(0, self.hw.tilt.homingStatus)
+        self.assertLess(0, self.hw.tilt.homing_status)
         for _ in range(1, 100):
             if self.hw.tilt.synced:
                 break
             sleep(0.1)
-        self.assertEqual(0, self.hw.tilt.homingStatus)
+        self.assertEqual(0, self.hw.tilt.homing_status)
         self.assertTrue(self.hw.tilt.synced)
         self.hw.motorsRelease()
         self.assertFalse(self.hw.tilt.synced)
 
     def test_sync_wait(self):
-        self.hw.tilt.syncWait()
+        self.hw.tilt.sync_wait()
         self.assertTrue(self.hw.tilt.synced)
         self.assertEqual(0, self.hw.tilt.position)
-        self.assertTrue(self.hw.tilt.onTargetPosition)
+        self.assertTrue(self.hw.tilt.on_target_position)
 
-    def test_profileNames(self):
+    def test_profile_names(self):
         self.assertEqual(
             [
                 "temp",
@@ -178,18 +178,18 @@ class TestTilt(Sl1fwTestCase):
                 "layerMoveFast",
                 "reserved2",
             ],
-            self.hw.tilt.profileNames,
+            self.hw.tilt.profile_names,
         )
 
-    def test_profileId(self):
+    def test_profile_id(self):
         profiles = [TiltProfile.layerMoveFast, TiltProfile.layerMoveSlow]
         for profile in profiles:
-            self.hw.tilt.profileId = profile
-            self.assertEqual(profile, self.hw.tilt.profileId)
+            self.hw.tilt.profile_id = profile
+            self.assertEqual(profile, self.hw.tilt.profile_id)
 
     def test_profile(self):
         testProfile = [12345, 23456, 234, 345, 28, 8, 1234]
-        self.hw.tilt.profileId = TiltProfile.reserved2
+        self.hw.tilt.profile_id = TiltProfile.reserved2
         self.assertNotEqual(testProfile, self.hw.tilt.profile)
         self.hw.tilt.profile = testProfile
         self.assertEqual(testProfile, self.hw.tilt.profile)
@@ -201,13 +201,13 @@ class TestTilt(Sl1fwTestCase):
         for profile in profiles:
             self.assertEqual(7, len(profile))
             self.assertEqual(type([int]), type(profile))
-        for profileId, data in enumerate(profiles):
-            self.hw.tilt.profileId = TiltProfile(profileId)
-            self.assertEqual(TiltProfile(profileId), self.hw.tilt.profileId)
+        for profile_id, data in enumerate(profiles):
+            self.hw.tilt.profile_id = TiltProfile(profile_id)
+            self.assertEqual(TiltProfile(profile_id), self.hw.tilt.profile_id)
             self.assertEqual(data, self.hw.tilt.profile)
 
     def test_home(self):
-        self.hw.tilt.homeCalibrateWait()
+        self.hw.tilt.home_calibrate_wait()
         while self.hw.tilt.moving:
             sleep(0.1)
         self.assertEqual(0, self.hw.tilt.position)
@@ -215,38 +215,38 @@ class TestTilt(Sl1fwTestCase):
 
     def test_stop(self):
         self.hw.tilt.position = 0
-        self.hw.tilt.moveAbsolute(self.hw_config.tiltMax)
+        self.hw.tilt.move_absolute(self.hw_config.tiltMax)
         self.hw.tilt.stop()
         self.assertFalse(self.hw.tilt.moving)
         self.assertLess(0, self.hw.tilt.position)
         self.assertGreater(self.hw_config.tiltMax, self.hw.tilt.position)
-        self.assertFalse(self.hw.tilt.onTargetPosition)
+        self.assertFalse(self.hw.tilt.on_target_position)
 
     def test_up(self):
-        self.hw.tilt.moveUp()
+        self.hw.tilt.move_up()
         while self.hw.tilt.moving:
             sleep(0.1)
-        self.assertTrue(self.hw.tilt.onTargetPosition)
+        self.assertTrue(self.hw.tilt.on_target_position)
 
     def test_up_wait(self):
-        self.hw.tilt.moveUpWait()
-        self.assertTrue(self.hw.tilt.onTargetPosition)
+        self.hw.tilt.move_up_wait()
+        self.assertTrue(self.hw.tilt.on_target_position)
 
     def test_down(self):
-        self.hw.tilt.moveDown()
+        self.hw.tilt.move_down()
         while self.hw.tilt.moving:
             sleep(0.1)
-        self.assertTrue(self.hw.tilt.onTargetPosition)
+        self.assertTrue(self.hw.tilt.on_target_position)
 
     def test_down_wait(self):
-        self.hw.tilt.moveDownWait()
-        self.assertTrue(self.hw.tilt.onTargetPosition)
+        self.hw.tilt.move_down_wait()
+        self.assertTrue(self.hw.tilt.on_target_position)
 
     def test_layer_up(self):
-        self.hw.tilt.layerUpWait()
+        self.hw.tilt.layer_up_wait()
 
     def test_layer_down(self):
-        self.hw.tilt.layerDownWait()
+        self.hw.tilt.layer_down_wait()
 
 if __name__ == "__main__":
     unittest.main()

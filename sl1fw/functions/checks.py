@@ -125,7 +125,7 @@ def resin_sensor(hw: Hardware, logger: Logger):
         raise ResinFailed(volume_ml)
 
     hw.towerSync()
-    hw.tilt.syncWait()
+    hw.tilt.sync_wait()
     while hw.isTowerMoving():
         sleep(0.25)
     hw.motorsRelease()
@@ -162,14 +162,14 @@ def tower_axis(hw: Hardware):
 
 
 def tilt_calib_start(hw: Hardware):
-    hw.tilt.profileId = TiltProfile.homingFast
-    hw.tilt.moveAbsolute(defines.tiltCalibrationStart)
+    hw.tilt.profile_id = TiltProfile.homingFast
+    hw.tilt.move_absolute(defines.tiltCalibrationStart)
     while hw.tilt.moving:
         sleep(0.25)
 
 def tower_calibrate(hw: Hardware, logger: Logger) -> int:
     logger.info("Starting platform calibration")
-    hw.tilt.profileId = TiltProfile.layerMoveSlow # set higher current
+    hw.tilt.profile_id = TiltProfile.layerMoveSlow # set higher current
     hw.setTowerPosition(0)
     hw.setTowerProfile("homingFast")
 

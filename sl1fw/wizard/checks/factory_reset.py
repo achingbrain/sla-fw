@@ -246,13 +246,13 @@ class InitiatePackingMoves(Check):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.towerSync()
-        self._hw.tilt.syncWait(retries=3)
+        self._hw.tilt.sync_wait(retries=3)
         while not self._hw.isTowerSynced():
             await sleep(0.25)
 
         # move tilt and tower to packing position
-        self._hw.tilt.profileId = TiltProfile.homingFast
-        self._hw.tilt.moveAbsolute(defines.defaultTiltHeight)
+        self._hw.tilt.profile_id = TiltProfile.homingFast
+        self._hw.tilt.move_absolute(defines.defaultTiltHeight)
         while self._hw.tilt.moving:
             await sleep(0.25)
 

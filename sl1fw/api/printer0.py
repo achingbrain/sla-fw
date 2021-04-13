@@ -266,7 +266,7 @@ class Printer0:
 
         :return: None
         """
-        self.printer.hw.tilt.syncWait()
+        self.printer.hw.tilt.sync_wait()
 
     @auto_dbus
     @last_error
