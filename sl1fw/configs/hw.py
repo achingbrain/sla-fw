@@ -168,6 +168,11 @@ class HwConfig(Config):
     uvCalibIntensity = IntValue(140, minimum=90, maximum=200, doc="UV LED calibration intensity.")
     uvCalibMinIntEdge = IntValue(90, minimum=80, maximum=150, doc="UV LED calibration minimum intensity at the edge.")
     uvCalibBoostTolerance = IntValue(20, minimum=0, maximum=100, doc="Tolerance for allowing boosted results.")
+    rpmControlUvLedMinTemp = IntValue(defines.minAmbientTemp, minimum=0, maximum=80, doc="At this temperature UV LED fan will spin at the minimum RPM.")
+    rpmControlUvLedMaxTemp = IntValue(defines.maxUVTemp - 5, minimum=0, maximum=80, doc="At this temperature UV LED fan will spin at the maximum RPM.")
+    rpmControlUvFanMinRpm = IntValue(defines.fanMinRPM, minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[0], doc="RPM is lineary mapped to UV LED temp. This is the lower limit..")
+    rpmControlUvFanMaxRpm = IntValue(defines.fanMaxRPM[0], minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[0], doc="RPM is lineary mapped to UV LED temp. This is the upper limit.")
+    rpmControlOverride = BoolValue(False, doc="Overide UV FAN RPM control with UV LED temp. Force the RPM set in this config.")
 
     currentProfilesSet = TextValue("n/a", doc="Last applied profiles set")
 

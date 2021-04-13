@@ -10,7 +10,7 @@ from pathlib import Path
 import sl1fw
 from sl1fw import test_runtime
 
-reqMcVersion = "1.1.1"
+reqMcVersion = "1.1.2"
 
 printerVariant = "default"
 

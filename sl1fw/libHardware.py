@@ -605,9 +605,8 @@ class Hardware:
                 out.append(True)
             else:
                 out.append(False)
-
-        self.mcc.do("!frpm", " ".join(str(fan.targetRpm) for fan in self.fans.values()))
         self.mcc.doSetBoolList("!fans", out)
+        self.mcc.do("!frpm", " ".join(str(fan.targetRpm) for fan in self.fans.values()))
 
     def getFans(self, request=(0, 1, 2)):
         return self.getFansBits("?fans", request)
@@ -642,6 +641,20 @@ class Hardware:
         except (MotionControllerException, ValueError):
             self.logger.exception("getFansRpm failed")
             return dict.fromkeys(request, 0)
+
+
+    def uvFanRpmControl(self):
+        if self.config.rpmControlOverride:
+            return
+        uvLedTemperature = self.getUvLedTemperature()
+        mapConstant = (self.config.rpmControlUvFanMaxRpm - self.config.rpmControlUvFanMinRpm) / (self.config.rpmControlUvLedMaxTemp - self.config.rpmControlUvLedMinTemp)
+        uvFanTempRpm = round((uvLedTemperature - self.config.rpmControlUvLedMinTemp) * mapConstant + self.config.rpmControlUvFanMinRpm)
+        if uvFanTempRpm > defines.fanMaxRPM[0]:
+            uvFanTempRpm = defines.fanMaxRPM[0]
+        elif uvFanTempRpm < defines.fanMinRPM:
+            uvFanTempRpm = defines.fanMinRPM
+        fansRpm = [uvFanTempRpm, self.fans[1].targetRpm, self.fans[2].targetRpm]
+        self.mcc.do("!frpm", " ".join(str(fan) for fan in fansRpm))
 
     @safe_call([-273.2, -273.2, -273.2, -273.2], (MotionControllerException, ValueError))
     def getMcTemperatures(self, logTemps=True):

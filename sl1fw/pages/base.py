@@ -499,6 +499,7 @@ class Page:
                         "%(addText)s") % { 'what' : ", ".join(failedFans), 'addText' : addText })
             return "confirm"
         #endif
+        self.display.hw.uvFanRpmControl()
     #enddef
 
 

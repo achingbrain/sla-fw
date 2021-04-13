@@ -890,6 +890,7 @@ class Exposure:
         self._final_go_up()
 
         self.hw.stopFans()
+        self.runtime_config.check_cooling_expo = False
         self.hw.motorsRelease()
 
         self.printEndTime = datetime.now(tz=timezone.utc)

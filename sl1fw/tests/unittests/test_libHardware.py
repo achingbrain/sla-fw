@@ -77,7 +77,7 @@ class TestLibHardware(Sl1fwTestCase):
         defines.factoryConfigPath = str(self.SL1FW_DIR / ".." / "factory/factory.toml")
         defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
 
-        self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
+        self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg", is_master=True)
         self.hw = Hardware(self.hw_config)
 
         try:
@@ -208,10 +208,12 @@ class TestLibHardware(Sl1fwTestCase):
         # self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
 
         # RPMs
-        # FIXME RPMs are not simulated
-        # rpms = { 0:1000, 1:500, 2:800 }
-        # self.hw.setFansRpm(rpms)
-        # self.assertEqual(rpms, self.hw.getFansRpm())
+        rpms = [0, 0, 0]
+        self.assertEqual(rpms, self.hw.getFansRpm())
+        fans = {0: True, 1: True, 2: True}
+        self.hw.setFans(fans)
+        rpms = [self.hw.config.fan1Rpm, self.hw.config.fan2Rpm, self.hw.config.fan3Rpm]
+        self.assertLessEqual(rpms, self.hw.getFansRpm()) # due to rounding
 
         # setters
         self.assertEqual(len(fans), len(self.hw.fans))
@@ -242,16 +244,27 @@ class TestLibHardware(Sl1fwTestCase):
         self.hw.startFans()
         self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
 
-        # RPMs
-        rpms = self.hw.getFansRpm()
-        for key, rpm in enumerate(rpms):
-            self.assertGreaterEqual(rpm, 0)
-            # TODO: This is weak test, The simulated value seems random 0 - 20
-
         # Names
         self.assertEqual("UV LED fan", self.hw.fans[0].name)
         self.assertEqual("blower fan", self.hw.fans[1].name)
         self.assertEqual("rear fan", self.hw.fans[2].name)
+
+    def test_uv_fan_rpm_control(self):
+        fans = {0: True, 1: True, 2: True}
+        self.hw.setFans(fans)
+        rpms = self.hw.getFansRpm()
+        self.hw_config.rpmControlOverride = True
+        self.hw.uvFanRpmControl()
+        self.assertEqual(rpms, self.hw.getFansRpm())
+        self.hw_config.rpmControlOverride = False
+        self.hw.getUvLedTemperature = Mock(return_value=self.hw_config.rpmControlUvLedMinTemp)
+        self.hw.uvFanRpmControl()
+        rpms = self.hw.getFansRpm()
+        self.assertLessEqual(self.hw_config.rpmControlUvFanMinRpm , rpms[0])
+        self.hw.getUvLedTemperature = Mock(return_value=self.hw_config.rpmControlUvLedMaxTemp) #due to rounding in MC
+        self.hw.uvFanRpmControl()
+        rpms = self.hw.getFansRpm()
+        self.assertLessEqual(self.hw_config.rpmControlUvFanMaxRpm , rpms[0])  #due to rounding in MC
 
     def test_temperatures(self):
         temps = self.hw.getMcTemperatures()
