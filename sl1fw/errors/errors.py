@@ -371,10 +371,6 @@ class BootedInAlternativeSlot(PrinterError):
 class MissingExamples(PrinterError):
     pass
 
-@with_code(Sl1Codes.LANGUAGE_ERROR)
-class LanguageNotSet(PrinterError):
-    pass
-
 @with_code(Sl1Codes.FAILED_TO_LOAD_FACTORY_LEDS_CALIBRATION)
 class NoFactoryUvCalib(PrinterError):
     pass

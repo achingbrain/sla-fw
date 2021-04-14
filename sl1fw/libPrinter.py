@@ -21,9 +21,7 @@ from time import monotonic
 from typing import Optional
 
 import distro
-import pydbus
 from PySignal import Signal
-from gi.repository import GLib
 from pydbus import SystemBus
 
 from sl1fw import defines
@@ -31,7 +29,7 @@ from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongFw
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated, BootedInAlternativeSlot, \
-    DisplayTestFailed, MissingExamples, LanguageNotSet, NoFactoryUvCalib
+    DisplayTestFailed, MissingExamples, NoFactoryUvCalib
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth
@@ -189,14 +187,6 @@ class Printer:
             self.exception = DisplayTestFailed()
 
         if self.firstRun:
-            try:
-                locale = pydbus.SystemBus().get("org.freedesktop.locale1")
-                if locale.Locale == ["LANG=C"]:
-                    self.hw.beepRepeat(1)
-                    self.exception = LanguageNotSet()
-            except GLib.GError:
-                self.logger.exception("Failed to obtain current locale.")
-
             if not self.hw.config.is_factory_read() and not self.hw.isKit:
                 self.exception = NoFactoryUvCalib()
 
