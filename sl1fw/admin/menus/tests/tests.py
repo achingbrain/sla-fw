@@ -24,7 +24,7 @@ class TestsMenu(SafeAdminMenu):
         self.logger = logging.getLogger(__name__)
         self._printer = printer
 
-        self.add_item(AdminAction("Back", self._control.pop))
+        self.add_back()
         self.add_item(AdminAction("Error types", lambda: self.enter(TestErrorTypesMenu(self._control, self._printer))))
         self.add_item(AdminAction("Errors", lambda: self.enter(TestErrorsMenu(self._control, self._printer))))
         self.add_item(AdminAction("Wizards", lambda: self.enter(TestWizardsMenu(self._control, self._printer))))

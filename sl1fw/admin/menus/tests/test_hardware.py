@@ -19,7 +19,7 @@ class TestHardwareMenu(AdminMenu):
         super().__init__(control)
         self._printer = printer
 
-        self.add_item(AdminAction("Back", self._control.pop))
+        self.add_back()
 
         self.add_item(AdminAction("Resin sensor test", self.resin_sensor_test))
         self.add_item(AdminAction("UV & Fan test", self.uv_and_fan_test))

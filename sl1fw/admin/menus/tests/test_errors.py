@@ -36,7 +36,7 @@ class TestErrorsMenu(AdminMenu):
         super().__init__(control)
         self._printer = printer
 
-        self.add_item(AdminAction("Back", self._control.pop))
+        self.add_back()
         self.add_error_items()
 
     def add_error_items(self):

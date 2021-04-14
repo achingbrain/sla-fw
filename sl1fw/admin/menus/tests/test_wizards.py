@@ -20,7 +20,7 @@ class TestWizardsMenu(AdminMenu):
         super().__init__(control)
         self._printer = printer
 
-        self.add_item(AdminAction("back", self._control.pop))
+        self.add_back()
 
         self.add_item(AdminAction("Display test", self.api_display_test))
         self.add_item(AdminAction("Unpacking (C)", self.api_unpacking_c))
@@ -79,6 +79,7 @@ class TestUVCalibrationWizardMenu(SafeAdminMenu):
         self._led_replaced = False
         self._printer = printer
 
+        self.add_back()
         self.add_item(AdminLabel("UV Calibration wizard setup"))
         self.add_item(AdminBoolValue.from_value("LCD replaced", self, "_lcd_replaced"))
         self.add_item(AdminBoolValue.from_value("LED replaced", self, "_led_replaced"))

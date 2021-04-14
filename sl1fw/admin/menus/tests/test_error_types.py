@@ -15,7 +15,7 @@ class TestErrorTypesMenu(AdminMenu):
         super().__init__(control)
         self._printer = printer
 
-        self.add_item(AdminAction("Back", self._control.pop))
+        self.add_back()
 
         self.add_item(AdminAction("Error-code+float,str", self.error_code_float_str))
         self.add_item(AdminAction("Error-code+int", self.error_code_int))
