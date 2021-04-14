@@ -94,6 +94,10 @@ class UserActionBroker:
         self.uv_apply_result = UserAction()
         self.uv_discard_results = UserAction()
 
+        # SL1S upgrade
+        self.sl1s_confirm_upgrade = UserAction()
+        self.sl1s_reject_upgrade = UserAction()
+
     def push_state(self, state: PushState, priority: bool = False):
         if priority:
             self._states.appendleft(state)

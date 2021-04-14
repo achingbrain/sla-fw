@@ -1,0 +1,10 @@
+[Unit]
+Description=Instruct a64-fw to detect initial printer model
+ConditionFirstBoot=yes
+
+[Service]
+Type=simple
+ExecStart=/bin/touch /tmp/detect-sla-model
+
+[Install]
+WantedBy=multi-user.target

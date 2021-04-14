@@ -5,6 +5,8 @@
 from pathlib import Path
 from unittest.mock import Mock, AsyncMock
 
+from PySignal import Signal
+
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Fan
@@ -70,6 +72,11 @@ class Hardware:
         self.tilt.sync_wait_coroutine = AsyncMock()
         self.tilt.home_calibrate_wait_coroutine = AsyncMock()
         self.tilt.layer_down_wait_coroutine = AsyncMock()
+
+        self.cover_state_changed = Signal()
+
+    def exit(self):
+        self.cover_state_changed.clear()
 
     def getUvStatistics(self):
         return self._led_stat_s, self._display_stat_s

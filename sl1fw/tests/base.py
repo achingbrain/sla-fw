@@ -118,6 +118,12 @@ class Sl1fwTestCase(DBusTestCase):
         defines.wizardDataPathFactory = self.TEMP_DIR / defines.wizardDataFilename
         defines.factoryConfigPath = self.TEMP_DIR / "factory_config.toml"
         defines.hwConfigPath = self.TEMP_DIR / "hwconfig.toml"
+        defines.printer_model = self.TEMP_DIR / "model"
+        defines.sl1_model_file = defines.printer_model / "sl1"
+        defines.sl1s_model_file = defines.printer_model / "sl1s"
+        defines.detect_sla_model_file = self.TEMP_DIR / "detect-sla-model"
+        defines.printer_model.mkdir()
+        defines.sl1_model_file.touch()  # Set SL1 as the current model
 
         # DBus mocks
         nm = NetworkManager()

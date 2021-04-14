@@ -15,6 +15,7 @@ from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.errors.errors import UVTooDimm, UVTooBright, UVDeviationTooHigh
+from sl1fw.functions.system import get_configured_printer_model
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.states.wizard import WizardState, WizardId
 from sl1fw.tests.base import Sl1fwTestCase
@@ -30,6 +31,7 @@ from sl1fw.wizard.wizards.calibration import CalibrationWizard
 from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
 from sl1fw.wizard.wizards.factory_reset import FactoryResetWizard, PackingWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
+from sl1fw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
@@ -143,6 +145,25 @@ class TestWizardsBase(Sl1fwTestCase):
         super().setUp()
         self.exposure_image = Mock() # wizards use weakly-reference to exposure_image
 
+    def _run_wizard(self, wizard: Wizard, limit_s: int = 5, expected_state=WizardState.DONE):
+        wizard.start()
+        wizard.join(limit_s)
+
+        while wizard.is_alive() and wizard.state not in WizardState.finished_states():
+            if wizard.state == WizardState.STOPPED:
+                wizard.abort()
+            else:
+                try:
+                    wizard.force_cancel()
+                except RuntimeError:
+                    pass  # Wizard might have reached stopped in the meantime
+
+        wizard.join(limit_s * 3)
+        self.assertFalse(wizard.is_alive())
+        self.assertEqual(expected_state, wizard.state)
+
+
+class TestDisplayTest(TestWizardsBase):
     def test_display_test(self):
         wizard = DisplayTestWizard(Hardware(), self.exposure_image, RuntimeConfig())
 
@@ -174,22 +195,43 @@ class TestWizardsBase(Sl1fwTestCase):
         self._run_wizard(wizard, expected_state=WizardState.FAILED)
         self.assertEqual("#10120", wizard.data["displaytest_exception"]["code"])
 
-    def _run_wizard(self, wizard: Wizard, limit_s: int = 5, expected_state=WizardState.DONE):
-        wizard.start()
-        wizard.join(limit_s)
 
-        while wizard.is_alive() and wizard.state not in WizardState.finished_states():
-            if wizard.state == WizardState.STOPPED:
+class TestUpgradeWizard(TestWizardsBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.hw = Hardware()
+
+    def tearDown(self) -> None:
+        del self.hw
+        super().tearDown()
+
+    def test_sl1s_upgrade_confirm(self):
+        wizard = SL1SUpgradeWizard(self.hw, Mock(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.SL1S_CONFIRM_UPGRADE:
+                wizard.sl1s_confirm_upgrade()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard)
+        self.assertEqual(1, self.hw.config.vatRevision)
+        self.assertEqual(PrinterModel.SL1S, get_configured_printer_model())
+
+    def test_sl1s_upgrade_reject(self):
+        wizard = SL1SUpgradeWizard(self.hw, Mock(), RuntimeConfig())
+
+        def on_state_changed():
+            if wizard.state == WizardState.SL1S_CONFIRM_UPGRADE:
+                print("Rejecting upgrade")
+                wizard.sl1s_reject_upgrade()
+            if wizard.state == WizardState.CANCELED:
+                print("aborting")
                 wizard.abort()
-            else:
-                try:
-                    wizard.cancel()
-                except RuntimeError:
-                    pass  # Wizard might have reached stopped in the meantime
 
-        wizard.join(limit_s * 3)
-        self.assertFalse(wizard.is_alive())
-        self.assertEqual(expected_state, wizard.state)
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard, expected_state=WizardState.CANCELED)
+        self.assertEqual(0, self.hw.config.vatRevision)
+        self.assertEqual(PrinterModel.SL1, get_configured_printer_model())
 
 
 class TestWizards(TestWizardsBase):
@@ -465,9 +507,7 @@ class TestUVCalibration(TestWizardsBase):
 
     def test_uv_calibration_no_boost(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
-            wizard = UVCalibrationWizard(
-                self.hw, self.exposure_image, self.runtime_config, False, False
-            )
+            wizard = UVCalibrationWizard(self.hw, self.exposure_image, self.runtime_config, False, False)
             self._run_uv_calibration(wizard)
 
         # Check wizard data
@@ -491,9 +531,7 @@ class TestUVCalibration(TestWizardsBase):
 
     def test_uv_calibration_boost(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
-            wizard = UVCalibrationWizard(
-                self.hw, self.exposure_image, self.runtime_config, False, False
-            )
+            wizard = UVCalibrationWizard(self.hw, self.exposure_image, self.runtime_config, False, False)
             self.uv_meter.multiplier = 0.79
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Boosted as led+display too weak
@@ -503,9 +541,7 @@ class TestUVCalibration(TestWizardsBase):
     def test_uv_calibration_boost_difference(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
             self.hw.config.data_factory_values["uvPwm"] = 100
-            wizard = UVCalibrationWizard(
-                self.hw, self.exposure_image, self.runtime_config, False, False
-            )
+            wizard = UVCalibrationWizard(self.hw, self.exposure_image, self.runtime_config, False, False)
             self.uv_meter.multiplier = 0.85
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Boosted as PWM differs too much from previous setup
@@ -544,9 +580,7 @@ class TestUVCalibration(TestWizardsBase):
 
     def test_uv_calibration_dim(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
-            wizard = UVCalibrationWizard(
-                self.hw, self.exposure_image, self.runtime_config, False, False
-            )
+            wizard = UVCalibrationWizard(self.hw, self.exposure_image, self.runtime_config, False, False)
             self.uv_meter.multiplier = 0.1
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)
             self.assertIsInstance(wizard.exception, UVTooDimm)
@@ -554,9 +588,7 @@ class TestUVCalibration(TestWizardsBase):
 
     def test_uv_calibration_bright(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
-            wizard = UVCalibrationWizard(
-                self.hw, self.exposure_image, self.runtime_config, False, False
-            )
+            wizard = UVCalibrationWizard(self.hw, self.exposure_image, self.runtime_config, False, False)
             self.uv_meter.multiplier = 10
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)
             self.assertIsInstance(wizard.exception, UVTooBright)
@@ -564,9 +596,7 @@ class TestUVCalibration(TestWizardsBase):
 
     def test_uv_calibration_dev(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
-            wizard = UVCalibrationWizard(
-                self.hw, self.exposure_image, self.runtime_config, False, False
-            )
+            wizard = UVCalibrationWizard(self.hw, self.exposure_image, self.runtime_config, False, False)
             self.uv_meter.noise = 70
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)
             self.assertIsInstance(wizard.exception, UVDeviationTooHigh)

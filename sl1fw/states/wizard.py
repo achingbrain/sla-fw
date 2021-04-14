@@ -45,6 +45,8 @@ class WizardState(Enum):
     UV_CALIBRATION_REMOVE_UV_METER = 2202
     UV_CALIBRATION_APPLY_RESULTS = 2203
 
+    SL1S_CONFIRM_UPGRADE = 2300
+
     @staticmethod
     def finished_states():
         return [WizardState.FAILED, WizardState.DONE, WizardState.CANCELED]
@@ -61,6 +63,8 @@ class WizardId(Enum):
     FACTORY_RESET = 6
     PACKING = 7
     UV_CALIBRATION = 8
+    SL1S_UPGRADE = 9
+    SL1_DOWNGRADE = 10
 
 
 @unique

@@ -15,6 +15,7 @@ from sl1fw.wizard.setup import Configuration
 
 @dataclass
 class CheckData:
+    # pylint: disable = too-many-instance-attributes
     # following values are for quality monitoring systems
     osVersion: str
     a64SerialNo: str
@@ -23,6 +24,7 @@ class CheckData:
     mcBoardRev: str
     uvLedCounter_s: int
     displayCounter_s: int
+    model: str
 
 
 class SystemInfoTest(Check):
@@ -42,7 +44,8 @@ class SystemInfoTest(Check):
             self._hw.mcSerialNo,
             self._hw.mcFwVersion,
             self._hw.mcBoardRevision,
-            *self._hw.getUvStatistics()
+            *self._hw.getUvStatistics(),
+            self._hw.printer_model.name,
         )
 
     def get_result_data(self) -> Dict[str, Any]:

@@ -42,7 +42,7 @@ from sl1fw.errors.errors import (
 from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongFw
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
-from sl1fw.functions.system import get_octoprint_auth
+from sl1fw.functions.system import get_octoprint_auth, get_configured_printer_model, set_configured_printer_model
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libAsync import AdminCheck
@@ -57,6 +57,7 @@ from sl1fw.states.printer import PrinterState
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.wizards.calibration import CalibrationWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
+from sl1fw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard, SL1DowngradeWizard
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
@@ -200,6 +201,25 @@ class Printer:
             self.exception = BootedInAlternativeSlot()
 
         if self.firstRun:
+            # This is supposed to run on new printers detect_sla_model file is provided by a service configured to run
+            # the on firstboot. The firmware does not know whether the printer has been manufactured as SL1 or SL1S it
+            # has to detect its initial HW configuration on first start.
+            if defines.detect_sla_model_file.exists():
+                set_configured_printer_model(self.hw.printer_model)
+                defines.detect_sla_model_file.unlink()
+
+            config_model = get_configured_printer_model()
+            if self.hw.printer_model != config_model:
+                self.logger.info('Printer model change detected from "%s" to "%s"', config_model, self.hw.printer_model)
+                if self.hw.printer_model == PrinterModel.SL1S:
+                    self.action_manager.start_wizard(
+                        SL1SUpgradeWizard(self.hw, self.exposure_image, self.runtime_config)
+                    ).join()
+                elif self.hw.printer_model == PrinterModel.SL1:
+                    self.action_manager.start_wizard(
+                        SL1DowngradeWizard(self.hw, self.exposure_image, self.runtime_config)
+                    ).join()
+
             if not self.hw.config.is_factory_read() and not self.hw.isKit:
                 self.exception = NoFactoryUvCalib()
             if self.runtime_config.factory_mode and not get_all_supported_files(
@@ -219,6 +239,7 @@ class Printer:
 
     def run(self):
         # TODO: wrap everything within this method in try-catch
+        # TODO: Drop self.firstRun it does seem to make no more sense
         self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
         self.logger.info("System version: %s", distro.version())
         self.start_time = monotonic()

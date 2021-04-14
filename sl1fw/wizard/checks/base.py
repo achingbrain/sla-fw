@@ -69,6 +69,10 @@ class WizardCheckType(Enum):
     UV_METER_REMOVED = 66
     TILT_LEVEL = 67
     RESET_TOUCH_UI = 68
+    ERASE_UV_PWM = 69
+    RESET_SELF_TEST = 70
+    RESET_MECHANICAL_CALIBRATION = 71
+    MARK_PRINTER_MODEL = 72
 
 
 class BaseCheck(ABC):

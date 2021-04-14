@@ -228,6 +228,16 @@ class Wizard0:
     def uv_discard_results(self):
         self._wizard.uv_discard_results()
 
+    @auto_dbus
+    @last_error
+    def sl1s_confirm_upgrade(self):
+        self._wizard.sl1s_confirm_upgrade()
+
+    @auto_dbus
+    @last_error
+    def sl1s_reject_upgrade(self):
+        self._wizard.sl1s_reject_upgrade()
+
     def _started_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"identifier": self.identifier}, [])
         self.PropertiesChanged(self.__INTERFACE__, {"cancelable": self.cancelable}, [])

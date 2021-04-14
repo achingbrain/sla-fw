@@ -2,6 +2,8 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from sl1fw.wizard.checks.sysinfo import SystemInfoTest
+
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId
@@ -28,6 +30,7 @@ class PlatformTankInsertCheckGroup(CheckGroup):
                 TiltHomeTest(package.hw),
                 TowerHomeTest(package.hw, package.config_writer),
                 TiltCalibrationStartTest(package.hw),
+                SystemInfoTest(package.hw),
             ],
         )
 

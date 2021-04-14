@@ -23,6 +23,7 @@ from sl1fw.errors.errors import (
 )
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.configs.toml import TomlConfig
+from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.libHardware import Hardware
 from sl1fw.image.exposure_image import ExposureImage
 
@@ -145,3 +146,38 @@ class FactoryMountedRW:
             self.logger.warning("Skipping factory RW remount due to testing")
         else:
             subprocess.check_call(["/usr/bin/mount", "-o", "remount,ro", str(defines.factoryMountPoint)])
+
+
+def set_configured_printer_model(model: PrinterModel):
+    """
+    Adjust printer model definition files to match new printer model
+
+    :param model: New printer model
+    :raises ValueError: Raised on unknown model - no modification is done
+    """
+
+    # Obtain new model file before clearing existing definitions (just in case this raises an exception)
+    if model == PrinterModel.SL1:
+        model_file = defines.sl1_model_file
+    elif model == PrinterModel.SL1S:
+        model_file = defines.sl1s_model_file
+    else:
+        raise ValueError(f"No file defined for model: {model}")
+
+    # Clear existing model definitions
+    for file in defines.printer_model.glob("*"):
+        if file.is_file():
+            file.unlink()
+
+    # Add new model definition
+    model_file.parent.mkdir(exist_ok=True)
+    model_file.touch()
+
+def get_configured_printer_model() -> PrinterModel:
+    if defines.sl1s_model_file.exists():
+        return PrinterModel.SL1S
+
+    if defines.sl1_model_file.exists():
+        return PrinterModel.SL1
+
+    return PrinterModel.NONE
