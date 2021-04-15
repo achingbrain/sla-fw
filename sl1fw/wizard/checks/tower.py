@@ -5,13 +5,12 @@
 from asyncio import sleep
 from typing import Optional, Dict, Any
 
-from sl1fw import defines
 from sl1fw.errors.errors import TowerBelowSurface, TowerAxisCheckFailed
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup, PlatformSetup
-
+from sl1fw.hardware.tilt import TiltProfile
 
 class TowerHomeTest(DangerousCheck):
     def __init__(self, hw: Hardware):
@@ -88,8 +87,7 @@ class TowerAlignTest(DangerousCheck):
         await self.wait_cover_closed()
         with actions.led_warn:
             self._logger.info("Starting platform calibration")
-            self.hw.setTiltProfile("homingFast")
-            self.hw.setTiltCurrent(defines.tiltCalibCurrent)
+            self.hw.tilt.profile_id = TiltProfile.layerMoveSlow # set higher current
             self.hw.setTowerPosition(0)
             self.hw.setTowerProfile("homingFast")
 

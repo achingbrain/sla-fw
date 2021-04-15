@@ -329,7 +329,7 @@ class PageTiltProfiles(ProfilesPage):
     def button4ButtonRelease(self):
         ''' save '''
         self.display.pages['tiltmove'].changeProfiles(True)
-        self.display.hw.setTiltProfiles(self.profiles)
+        self.display.hw.tilt.profiles = self.profiles
         self.profiles = None
         self.reset_current_profiles_set()
         return super(PageTiltProfiles, self).backButtonRelease()
