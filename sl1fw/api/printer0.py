@@ -463,7 +463,9 @@ class Printer0:
         :return: Dictionary mapping from temp sensor name to temperature in celsius
         """
         temps = self.printer.hw.getMcTemperatures(False)
-        return self._format_temps((temps[self.printer.hw.led_temp_idx], temps[self.printer.hw.ambient_temp_idx], 0.0, 0.0))
+        return self._format_temps(
+            (temps[self.printer.hw.led_temp_idx], temps[self.printer.hw.ambient_temp_idx], 0.0, 0.0)
+        )
 
     @staticmethod
     def _format_temps(temps):
@@ -715,7 +717,9 @@ class Printer0:
         Pass-through to Rauc install. Only works when printer in idle state.
         """
         # pylint: disable=no-self-use
-        pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"].Install(fw_file)
+        pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"].InstallBundle(
+            fw_file, dict()
+        )
 
     @auto_dbus
     @last_error
@@ -763,10 +767,7 @@ class Printer0:
         :returns: Print task object
         """
         expo = self.printer.action_manager.new_exposure(
-            self.printer.hw,
-            self.printer.exposure_image,
-            self.printer.runtime_config,
-            project_path,
+            self.printer.hw, self.printer.exposure_image, self.printer.runtime_config, project_path,
         )
         if auto_advance:
             expo.confirm_print_start()
@@ -790,10 +791,7 @@ class Printer0:
 
         last_exposure = self.printer.action_manager.exposure
         exposure = self.printer.action_manager.reprint_exposure(
-            last_exposure,
-            self.printer.hw,
-            self.printer.exposure_image,
-            self.printer.runtime_config,
+            last_exposure, self.printer.hw, self.printer.exposure_image, self.printer.runtime_config,
         )
         if auto_advance:
             exposure.confirm_print_start()
@@ -932,7 +930,6 @@ class Printer0:
         """
         return self.printer.runtime_config.show_admin
 
-
     @auto_dbus
     @last_error
     @deprecated("use standard0.cmd_select")
@@ -988,9 +985,7 @@ class Printer0:
     @last_error
     def run_self_test_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
-            SelfTestWizard(
-                self.printer.hw, self.printer.exposure_image, self.printer.runtime_config
-            )
+            SelfTestWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
         )
 
     @auto_dbus
