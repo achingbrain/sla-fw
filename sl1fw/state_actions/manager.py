@@ -173,3 +173,15 @@ class ActionManager:
 
     def _on_wizard_state_change(self):
         self.wizard_changed.emit()
+
+    def try_cancel_by_path(self, path:str) -> None:
+        """
+        Cancel exposure if the paths are equals
+        This check if there is a exposure is running before delete the file
+
+        :return: None
+        raise NotAvailableInState
+        """
+        exposure = self.exposure
+        if exposure and not exposure.canceled and path == exposure.project.path:
+            exposure.try_cancel()

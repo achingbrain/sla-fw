@@ -176,6 +176,10 @@ class ProjectErrorCalibrationInvalid(ExposureError):
 class ProjectErrorWrongPrinterModel(ExposureError):
     pass
 
+@with_code(Sl1Codes.PROJECT_ERROR_CANT_REMOVE)
+class ProjectErrorCantRemove(ExposureError):
+    pass
+
 
 @with_code(Sl1Codes.TEMP_SENSOR_FAILED)
 @dataclass

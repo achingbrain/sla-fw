@@ -17,10 +17,11 @@ import threading
 import subprocess
 import weakref
 from pathlib import Path
-from time import monotonic
+from time import monotonic, sleep
 from typing import Optional, Set
 
 import distro
+from gi.repository import GLib
 from PySignal import Signal
 from pydbus import SystemBus
 
@@ -126,13 +127,11 @@ class Printer:
 
         self.logger.info("Registering config D-Bus services")
         self.system_bus = SystemBus()
+        self.fs0_dbus = None
         self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hw))
 
         self.logger.info("registering log0 dbus interface")
         self.logs0_dbus = self.system_bus.publish(Logs0.__INTERFACE__, Logs0(self.hw))
-
-        self.logger.info("connecting cz.prusa3d.sl1.filemanager0 dbus interface")
-        self.fs0_dbus = self.system_bus.get("cz.prusa3d.sl1.filemanager0")
 
         self.logger.info("Initializing libDisplay")
         self.display = Display(
@@ -280,6 +279,16 @@ class Printer:
 
         # Since display is initialized we can catch exceptions and report problems to display
         try:
+            timeout_s = 30
+            self.logger.info("connecting cz.prusa3d.sl1.filemanager0 dbus interface")
+            for _ in range(timeout_s):
+                try:
+                    self.fs0_dbus = self.system_bus.get("cz.prusa3d.sl1.filemanager0")
+                    break
+                except GLib.GError:
+                    sleep(1)
+            if self.fs0_dbus is None:
+                raise Exception("Failed connect cz.prusa3d.sl1.filemanager0 dbus interface")
             self.logger.info("Registering event handlers")
             self.inet.register_events()
             self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(
@@ -336,6 +345,7 @@ class Printer:
         if self.action_manager.exposure and self.action_manager.exposure.in_progress:
             self.action_manager.exposure.waitDone()
 
+        self.fs0_dbus = None
         self.exited.set()
 
     def _locale_changed(self, __, changed, ___):

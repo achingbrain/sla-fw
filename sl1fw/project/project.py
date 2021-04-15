@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import functools
 from zipfile import ZipFile
 from datetime import datetime, timezone
 from io import BytesIO
@@ -452,6 +453,7 @@ class Project:
         if self._zf:
             self._zf.close()
 
+    @functools.lru_cache(maxsize=5)
     def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0) -> int:
         time_remain_ms = sum(sum(x.times_ms) for x in self.layers[layers_done:])
         total_layers = len(self.layers)

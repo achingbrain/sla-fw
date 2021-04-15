@@ -1026,3 +1026,13 @@ class Printer0:
     @last_error
     def help_page_url(self) -> str:
         return self.printer.help_page_url
+
+    @auto_dbus
+    @last_error
+    def cmd_try_cancel_by_path(self, path:str) -> None:
+        """
+        Cancel exposure if the paths are equals
+
+        :return: None
+        """
+        self.printer.action_manager.try_cancel_by_path(path)

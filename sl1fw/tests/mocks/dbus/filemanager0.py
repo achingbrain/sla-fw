@@ -1,9 +1,13 @@
 # This file is part of the SL1 firmware
-# Copyright (C) 2014-2018 Futur3d - www.futur3d.net
-# Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2021 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# pylint: disable = unused-argument, no-self-use
+
+from typing import Dict, Any
+
 from pydbus.generic import signal
+from pydbus import Variant
 
 from sl1fw.api.decorators import dbus_api, auto_dbus, auto_dbus_signal
 
@@ -28,3 +32,17 @@ class FileManager0:
     @auto_dbus
     def remove(self, path: str) -> None:
         pass
+
+    @auto_dbus
+    def get_metadata(self, path: str, thumbnail: bool) -> Dict[str, Any]:
+        return {
+            "files": Variant("a{sv}", {
+                "mtime": Variant("i", 1321321),
+                "origin": Variant("s", "local"),
+                "size": Variant("i", 1231321),
+            })
+        }
+
+    @auto_dbus
+    def get_all(self, maxdepth: int) -> Dict[str, Any]:
+        return Variant("a{sv}", {})

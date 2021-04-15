@@ -79,6 +79,9 @@ class ResinNotEnough(ExposureWarning):
     measured_resin_ml: float
     required_resin_ml: float
 
+@with_code(Sl1Codes.RESIN_LOW)
+class ResinLow(ExposureWarning):
+    ...
 
 @with_code(Sl1Codes.PROJECT_SETTINGS_MODIFIED_WARNING)
 @exception_dataclass

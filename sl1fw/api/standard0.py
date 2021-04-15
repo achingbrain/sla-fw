@@ -7,12 +7,14 @@
 
 # pylint: disable=too-many-public-methods
 # pylint: disable=protected-access
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-instance-attributes
 
 from __future__ import annotations
 
 import functools
 import weakref
-from enum import Enum
+from enum import unique, Enum
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List, Union, TYPE_CHECKING
 import hashlib
@@ -22,9 +24,20 @@ from pydbus import SystemBus
 from pydbus.generic import signal
 
 from sl1fw.states.printer import PrinterState, Printer0State
+from sl1fw.states.exposure import ExposureState
 from sl1fw.api.exposure0 import Exposure0, Exposure0State
+from sl1fw.errors.warnings import ResinLow
 from sl1fw.errors.exceptions import NotAvailableInState
-from sl1fw.api.decorators import auto_dbus, dbus_api, last_error, wrap_dict_data, wrap_exception, DBusObjectPath
+from sl1fw.api.decorators import (
+    auto_dbus,
+    dbus_api,
+    last_error,
+    wrap_dict_data,
+    wrap_exception,
+    wrap_warning,
+    DBusObjectPath,
+    auto_dbus_signal,
+)
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
@@ -56,6 +69,23 @@ def state_checked(allowed_state: Union[Enum, List[Enum]]):
         return func
 
     return decor
+
+
+@unique
+class Standard0State(Enum):
+    """
+    General printer state enumeration
+    """
+    READY = 0
+    SELECTED = 1
+    PRINTING = 2
+    ATTENTION = 3
+    PRINTING_ATTENTION = 4
+    PRINTING_BUSY = 5
+    REFILL = 6
+    BUSY = 7
+    FINISHED = 8
+    ERROR = 9
 
 
 @dbus_api
@@ -93,10 +123,17 @@ class Standard0:
         self.__info_uuid = None
         self._last_state = None
         self._printer.display.state_changed.connect(self._state_update)
+        self._printer.exception_changed.connect(self._on_exception_changed)
         self._printer.state_changed.connect(self._state_update)
-        self._printer.action_manager.exposure_change.connect(self._state_update)
+        self._printer.action_manager.exposure_change.connect(self._exposure_changed)
         self._printer.http_digest_changed.connect(self._on_http_digest_changed)
         self._printer.api_key_changed.connect(self._on_api_key_changed)
+        self._old_expo = None
+        self._last_error_or_warn = None
+
+    @auto_dbus_signal
+    def LastErrorOrWarn(self, value) -> Dict[str, Any]:
+        pass
 
     def _on_http_digest_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"net_authorization": self.net_authorization}, [])
@@ -107,8 +144,33 @@ class Standard0:
     def _state_update(self, *args):  # pylint: disable=unused-argument
         state = self._state
         if self._last_state != state:
-            self.PropertiesChanged(self.__INTERFACE__, {"state": state}, [])
+            self.PropertiesChanged(self.__INTERFACE__, {"state": state.name}, [])
             self._last_state = state
+
+    def _exposure_changed(self, *args):
+        """Exposure change, It might connect/disconnect a handle for property change"""
+        self._state_update(*args)
+        if id(self._old_expo) != id(self._printer.action_manager.exposure):
+            if self._old_expo:
+                self._old_expo.change.disconnect(self._exposure_values_changed)
+            self._old_expo = weakref.proxy(self._printer.action_manager.exposure)
+            self._old_expo.change.connect(self._exposure_values_changed)
+
+    def _exposure_values_changed(self, key, value):
+        """Property value change in Exposure it should check if are warnings or errors"""
+        if key == "exception":
+            self.LastErrorOrWarn(wrap_dict_data(wrap_exception(value)))
+        if key == "warning":
+            self.LastErrorOrWarn(wrap_dict_data(wrap_warning(value)))
+        if key =='warn_resin':
+            if value:
+                warn = ResinLow()
+                self.LastErrorOrWarn(wrap_dict_data(wrap_warning(warn)))
+            else:
+                self.LastErrorOrWarn(wrap_dict_data(wrap_warning(None)))
+
+    def _on_exception_changed(self):
+        self.LastErrorOrWarn(wrap_dict_data(wrap_exception(self._printer.exception)))
 
     @property
     def _printer_state(self) -> Printer0State:
@@ -133,36 +195,39 @@ class Standard0:
         raise NotAvailableInState(self._printer_state, [Printer0State.PRINTING])
 
     @property
-    def _state(self) -> str:
+    def _state(self) -> Standard0State:
         state = self._printer_state
+        exposure = self._printer.action_manager.exposure
+        substate = None
+        if exposure:
+            substate = Exposure0State.from_exposure(exposure.state)
 
-        try:
-            substate = Exposure0State.from_exposure(self._printer.action_manager.exposure.state)
-        except Exception:
-            substate = None
-
-        result = "BUSY"
+        result = Standard0State.BUSY
         if state == Printer0State.IDLE:
             if substate in [Exposure0State.FAILURE, Exposure0State.STUCK]:
-                result = "ATTENTION"
+                result = Standard0State.ATTENTION
             else:
-                result = "READY"
+                result = Standard0State.READY
         elif state == Printer0State.PRINTING:
             if substate == Exposure0State.PRINTING:
-                result = "PRINTING"
+                result = Standard0State.PRINTING
             elif substate in [
                 Exposure0State.COVER_OPEN,
-                Exposure0State.FEED_ME,
                 Exposure0State.CHECK_WARNING,
-                Exposure0State.CONFIRM,
             ]:
-                result = "ATTENTION"
+                result = Standard0State.PRINTING_ATTENTION
+            elif substate == Exposure0State.FEED_ME:
+                result = Standard0State.REFILL
+            elif substate == Exposure0State.CONFIRM:
+                result = Standard0State.SELECTED
             elif substate in [Exposure0State.DONE, Exposure0State.CANCELED, Exposure0State.FINISHED]:
-                result = "FINISHED"
+                result = Standard0State.FINISHED
             elif substate in [Exposure0State.FAILURE, Exposure0State.STUCK]:
-                result = "ERROR"
+                result = Standard0State.ERROR
+            else:
+                result = Standard0State.PRINTING_BUSY
         elif state == Printer0State.EXCEPTION:
-            result = "ERROR"
+            result = Standard0State.ERROR
 
         return result
 
@@ -202,7 +267,7 @@ class Standard0:
         """
         Return a generic state
         """
-        return self._state
+        return self._state.name
 
     @auto_dbus
     @property
@@ -245,7 +310,7 @@ class Standard0:
     @auto_dbus
     @property
     @last_error
-    def job(self) -> Dict[str, float]:
+    def job(self) -> Dict[str, Any]:
         """
         Printing progress.
 
@@ -263,20 +328,27 @@ class Standard0:
             }
         """
         exposure = self._current_expo
+        project = exposure.project
         data = {
-            "current_layer": exposure.actual_layer,
-            "total_layers": exposure.project.total_layers,
+            "current_layer": exposure.actual_layer + 1,
+            "total_layers": project.total_layers,
             "remaining_material": exposure.remain_resin_ml if exposure.remain_resin_ml else -1,
             "consumed_material": exposure.resin_count,
-            "progress": 100 * exposure.progress,
-            "remaining_time": exposure.countRemainTime() * 60000,
+            "progress": exposure.progress,
+            "estimatedPrintTime": project.count_remain_time() * 60,
+            "remaining_time": exposure.countRemainTime() * 60,
+            "exposureTime": project.exposure_time_ms,
+            "exposureTimeFirst": project.exposure_time_first_ms,
+            "path": str(project.path),
         }
         if exposure.printStartTime.microsecond == 0:
             data["time_elapsed"] = 0
         else:
             data["time_elapsed"] = (datetime.now(tz=timezone.utc) - exposure.printStartTime).total_seconds()
+        if project.calibrate_regions > 0:
+            data["exposureTimeCalibration"] = project.calibrate_time_ms
 
-        return data
+        return wrap_dict_data(data)
 
     @auto_dbus
     @property
@@ -311,11 +383,21 @@ class Standard0:
                 "cover_closed": self._printer.hw.isCoverClosed(),
                 "temperatures": self._printer.hw.getTemperaturesDict(),
                 "fans": self._printer.hw.getFansRpmDict(),
-                "state": self._state,
+                "state": self._state.name,
             }
         )
 
     ## PROJECT PROPERTIES ##
+    @auto_dbus
+    @property
+    @last_error
+    def project_extensions(self) -> List[str]:
+        """
+        Set of supported project extensions
+
+        :return: Set of extension strings
+        """
+        return list(self._printer.hw.printer_model.extensions)
 
     @auto_dbus
     @property
@@ -385,37 +467,6 @@ class Standard0:
             else:
                 raise KeyError(f"key: {p} has no defined for write in the project.")
 
-    @auto_dbus
-    @property
-    @last_error
-    def project_selected(self) -> Dict[str, Any]:
-        """
-        return a dictionary to show on confirming screen
-
-        .. code-block:: python
-
-            sl1:
-            {
-                "path": "path/to/project.sl1",
-                "exposure_times": "1.5/1.5/1.5 s",
-                "last_modified": 123132132132,       # ms
-                "total_layers": 20
-            }
-        """
-        exposure = self._current_expo
-        return wrap_dict_data(
-            {
-                "path": str(exposure.project.path),
-                "exposure_times": "{0:.3g}/{1:.3g}/{2:.3g} s".format(
-                    exposure.project.exposure_time_first_ms / 1000,
-                    exposure.project.exposure_time_ms / 1000,
-                    exposure.project.calibrate_time_ms / 1000,
-                ),
-                "last_modified": exposure.project.modification_time * 1000,
-                "total_layers": exposure.project.total_layers,
-            }
-        )
-
     ## PRINTER COMMANDS ##
 
     @auto_dbus
@@ -452,6 +503,9 @@ class Standard0:
                 project_path,
             )
 
+            if expo.state == ExposureState.FAILURE:
+                raise expo.exception
+
             # start print automaticaly
             if auto_advance:
                 expo.confirm_print_start()
@@ -460,7 +514,7 @@ class Standard0:
         except Exception:
             if not ignore_errors:
                 raise
-        return None # fix: pylint inconsistent-return-statements
+        return DBusObjectPath("/")
 
     @auto_dbus
     @last_error
@@ -485,6 +539,16 @@ class Standard0:
         :return: None
         """
         self._current_expo.cancel()
+
+    @auto_dbus
+    @last_error
+    def cmd_try_cancel_by_path(self, path:str) -> None:
+        """
+        Cancel exposure if the paths are equals
+
+        :return: None
+        """
+        self._printer.action_manager.try_cancel_by_path(path)
 
     @auto_dbus
     @last_error
@@ -517,6 +581,12 @@ class Standard0:
         self._current_expo.doBack()
 
     ## NETWORK ##
+
+    @auto_dbus
+    @property
+    @last_error
+    def help_page_url(self) -> str:
+        return self._printer.help_page_url
 
     @auto_dbus
     @property
