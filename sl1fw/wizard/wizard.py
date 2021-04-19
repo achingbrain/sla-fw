@@ -16,7 +16,7 @@ import json as serializer
 from PySignal import Signal
 
 from sl1fw import defines
-from sl1fw.api.decorators import wrap_exception
+from sl1fw.api.decorators import wrap_exception, state_checked
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.errors.errors import WizardNotCancelable, FailedToSerializeWizardData, FailedToSaveWizardData
 from sl1fw.errors.exceptions import PrinterException
@@ -198,10 +198,12 @@ class Wizard(Thread, UserActionBroker):
                     raise
                 self.state = WizardState.RUNNING
 
+    @state_checked(WizardState.STOPPED)
     def abort(self):
         self._logger.info("Aborting wizard")
         self.unstop_result.put(False)
 
+    @state_checked(WizardState.STOPPED)
     def retry(self):
         self._logger.info("Retrying wizard")
         self.unstop_result.put(True)

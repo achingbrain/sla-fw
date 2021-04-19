@@ -164,10 +164,18 @@ class TestWizards(Sl1fwTestCase):
     def _run_wizard(self, wizard: Wizard, limit_s: int = 5, expected_state=WizardState.DONE):
         wizard.start()
         wizard.join(limit_s)
-        if wizard.is_alive():
-            wizard.cancel()
-            wizard.abort()
-            wizard.join()
+
+        while wizard.is_alive() and wizard.state not in WizardState.finished_states():
+            if wizard.state == WizardState.STOPPED:
+                wizard.abort()
+            else:
+                try:
+                    wizard.cancel()
+                except RuntimeError:
+                    pass  # Wizard might have reached stopped in the meantime
+
+        wizard.join(limit_s * 3)
+        self.assertFalse(wizard.is_alive())
         self.assertEqual(expected_state, wizard.state)
 
 
@@ -273,7 +281,7 @@ class TestReset(TestWizards):
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_WIZARD_PART_1:
-                wizard.state = WizardState.CANCELED
+                wizard.cancel()
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, limit_s=1, expected_state=WizardState.CANCELED)
