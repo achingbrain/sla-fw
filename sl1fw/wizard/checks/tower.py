@@ -12,6 +12,7 @@ from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup, PlatformSetup
 from sl1fw.hardware.tilt import TiltProfile
 
+
 class TowerHomeTest(DangerousCheck):
     def __init__(self, hw: Hardware):
         super().__init__(
@@ -27,7 +28,7 @@ class TowerHomeTest(DangerousCheck):
                 await sleep(0.1)
                 if not await self.hw.towerSyncWaitAsync():
                     await sleep(0.1)
-                    self.wizard_tower_sensitivity = self.hw.get_tower_sensitivity()
+                    self.wizard_tower_sensitivity = await self.hw.get_tower_sensitivity_async()
 
     def get_result_data(self) -> Dict[str, Any]:
         return {

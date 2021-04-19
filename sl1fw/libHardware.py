@@ -1021,12 +1021,20 @@ class Hardware:
 
         :return: Sensitivity value
         """
+        return asyncio.run(self.get_tower_sensitivity_async())
+
+    async def get_tower_sensitivity_async(self) -> int:
+        """
+        Obtain tower sensitivity
+
+        :return: Sensitivity value
+        """
 
         tower_sensitivity = 0  # use default sensitivity first
         self.updateMotorSensitivity(self.config.tiltSensitivity, tower_sensitivity)
         tries = 3
         while tries > 0:
-            self.towerSyncWait()
+            await self.towerSyncWaitAsync()
             home_status = self.towerHomingStatus
             if home_status == -2:
                 raise TowerEndstopNotReached()
