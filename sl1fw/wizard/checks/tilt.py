@@ -4,8 +4,7 @@
 
 import asyncio
 from abc import ABC
-from asyncio import sleep
-from threading import Event
+from asyncio import sleep, AbstractEventLoop, Event
 from time import time
 from typing import Optional, Dict, Any
 
@@ -21,7 +20,7 @@ from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
-from sl1fw.wizard.checks.base import WizardCheckType, SyncCheck, DangerousCheck
+from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup
 from sl1fw.hardware.tilt import TiltProfile
 
@@ -192,7 +191,7 @@ class TiltCalibrationStartTest(DangerousCheck):
                 await sleep(0.25)
 
 
-class TiltAlignTest(SyncCheck):
+class TiltAlignTest(Check):
     def __init__(self, hw: Hardware):
         super().__init__(
             WizardCheckType.TILT_CALIBRATION,
@@ -201,16 +200,19 @@ class TiltAlignTest(SyncCheck):
         )
         self._hw = hw
         self._tilt_height = None
-        self.tilt_aligned_event = Event()
+        self.tilt_aligned_event: Optional[Event] = None
+        self._loop: Optional[AbstractEventLoop] = None
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
+        self.tilt_aligned_event = Event()
+        self._loop = asyncio.get_running_loop()
         with actions.led_warn:
             actions.tilt_aligned.register_callback(self.tilt_aligned)
             actions.tilt_move.register_callback(self.tilt_move)
 
             level_tilt_state = PushState(WizardState.LEVEL_TILT)
             actions.push_state(level_tilt_state)
-            self.tilt_aligned_event.wait()
+            await self.tilt_aligned_event.wait()
             actions.drop_state(level_tilt_state)
 
     def tilt_aligned(self):
@@ -219,7 +221,7 @@ class TiltAlignTest(SyncCheck):
             self._hw.beepAlarm(3)
             raise InvalidTiltAlignPosition(position)
         self._tilt_height = position
-        self.tilt_aligned_event.set()
+        self._loop.call_soon_threadsafe(self.tilt_aligned_event.set)
 
     def wizard_finished(self):
         writer = self._hw.config.get_writer()
