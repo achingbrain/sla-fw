@@ -17,7 +17,7 @@ from pywayland.protocol.xdg_shell import XdgWmBase
 from pywayland.protocol.presentation_time import WpPresentation
 from pywayland.utils import AnonymousFile
 
-from sl1fw.hardware.printer_model import PrinterModel
+from sl1fw.hardware.printer_model import PrinterModel, ExposurePanel
 
 
 class ExposureScreen:
@@ -172,20 +172,14 @@ class ExposureScreen:
 
     def _detect_model(self):
         self._logger.debug("got resolution %s", str(self._detected_size))
-        detected_model = PrinterModel.NONE
-        for model in PrinterModel:
-            parameters = model.exposure_screen_parameters
-            if parameters.detected_size_px == self._detected_size:
-                detected_model = model
-                self.parameters = parameters
-                break
-        if detected_model == PrinterModel.NONE:
+        model = ExposurePanel.printer_model()
+        self.parameters = model.exposure_screen_parameters
+        if model == PrinterModel.NONE:
             self._logger.error("Unknown printer model (detected resolution: %s)", str(self._detected_size))
         else:
-            self._logger.info("Detected printer model: %s", detected_model.name)
+            self._logger.info("Detected printer model: %s", model.name)
             self._referesh_delay_s = self.parameters.referesh_delay_ms / 1000
-        return detected_model
-
+        return model
 
     def _create_buffer(self):
         stride = self._detected_size[0] * 4

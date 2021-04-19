@@ -6,6 +6,8 @@
 
 from enum import unique, Enum
 
+from sl1fw import defines
+
 
 class ExposureScreenParameters:
     # pylint: disable=too-many-arguments
@@ -73,3 +75,33 @@ class PrinterModel(Enum):
                 self.SL1: CalibrationParameters((150, 250) if is500khz else (125, 218), 1, 0.75),
                 self.SL1S: CalibrationParameters((150, 250), 1, 0.75),
             }[self]
+
+
+class ExposurePanel:
+    @staticmethod
+    def _of_node():
+        return defines.exposure_panel_of_node
+
+    @classmethod
+    def panel_name(cls):
+        path = cls._of_node() / "panel-name"
+        return path.read_text()[:-1] if path.exists() else None
+
+    @classmethod
+    def serial_number(cls):
+        path = cls._of_node() / "serial-number"
+        return path.read_text()[:-1] if path.exists() else None
+
+    @classmethod
+    def transmittance(cls):
+        path = cls._of_node() / "transmittance"
+        return int.from_bytes(path.read_bytes(), byteorder='big') / 10000.0 \
+            if path.exists() else 1.0
+
+    @classmethod
+    def printer_model(cls):
+        return {
+            None: PrinterModel.NONE,
+            "ls055r1sx04": PrinterModel.SL1,
+            "rv059fbb": PrinterModel.SL1S
+        }[cls.panel_name()]

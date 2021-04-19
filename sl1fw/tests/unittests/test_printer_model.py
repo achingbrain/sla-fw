@@ -2,9 +2,9 @@
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+from sl1fw import defines
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.hardware.printer_model import PrinterModel
+from sl1fw.hardware.printer_model import PrinterModel, ExposurePanel
 
 
 class TestPrinterModel(Sl1fwTestCase):
@@ -54,3 +54,11 @@ class TestPrinterModel(Sl1fwTestCase):
         self.assertEqual(calibration_parameters.param_p, 0.75)
         self.assertEqual(calibration_parameters.min_pwm, 150)
         self.assertEqual(calibration_parameters.max_pwm, 250)
+
+    def test_exposure_panel(self):
+        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / "sl1"
+        self.assertEqual(ExposurePanel.printer_model(), PrinterModel.SL1)
+        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / "sl1s"
+        self.assertEqual(ExposurePanel.printer_model(), PrinterModel.SL1S)
+        self.assertEqual(ExposurePanel.transmittance(), 0.9999)
+        self.assertEqual(ExposurePanel.serial_number(), "CZPX0712X004X061939")
