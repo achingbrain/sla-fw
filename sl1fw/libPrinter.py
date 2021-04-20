@@ -18,7 +18,7 @@ import subprocess
 import weakref
 from pathlib import Path
 from time import monotonic, sleep
-from typing import Optional, Set
+from typing import Optional, Set, Any
 
 import distro
 from PySignal import Signal
@@ -80,10 +80,17 @@ class Printer:
         self.logger.info("SL1 firmware initializing")
         self._states: Set[PrinterState] = {PrinterState.INIT}
         self._fs0_subscriptions = []
+        self.unboxed_changed = Signal()
+        self.mechanically_calibrated_changed = Signal()
+        self.uv_calibrated_changed = Signal()
+        self.self_tested_changed = Signal()
+
         self.logger.info("Initializing hwconfig")
         hw_config = HwConfig(
             file_path=Path(defines.hwConfigPath), factory_file_path=Path(defines.hwConfigPathFactory), is_master=True,
         )
+        hw_config.add_onchange_handler(weakref.WeakMethod(self._config_changed))
+
         self.runtime_config = RuntimeConfig()
         self.runtime_config.factory_mode = defines.factory_enable.exists() or TomlConfig(
             defines.factoryConfigPath
@@ -194,58 +201,11 @@ class Printer:
         if self.firstRun:
             if not self.hw.config.is_factory_read() and not self.hw.isKit:
                 self.exception = NoFactoryUvCalib()
-
-            if self.runtime_config.factory_mode:
-                if not get_all_supported_files(self.hw.printer_model, Path(defines.internalProjectPath)):
-                    self.exception = MissingExamples()
-            elif self.hw.config.showUnboxing:
-                self.set_state(PrinterState.WIZARD, active=True)
-                if self.hw.isKit:
-                    unboxing = self.action_manager.start_wizard(
-                        KitUnboxingWizard(self.hw, self.runtime_config), handle_state_transitions=False
-                    )
-                else:
-                    unboxing = self.action_manager.start_wizard(
-                        CompleteUnboxingWizard(self.hw, self.runtime_config), handle_state_transitions=False
-                    )
-                self.logger.info("Running unboxing wizard")
-                unboxing.join()
-                self.logger.info("Unboxing wizard finished")
-
-            if self.hw.config.showWizard:
-                self.logger.info("Running selftest wizard")
-                self.set_state(PrinterState.WIZARD, active=True)
-                selftest = self.action_manager.start_wizard(
-                    SelfTestWizard(self.hw, self.exposure_image, self.runtime_config), handle_state_transitions=False
-                )
-                selftest.join()
-                self.logger.info("Selftest wizard finished")
-
-            if self.hw.config.uvPwm < self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm:
-                # delete also both counters and save calibration to factory partition. It's new KIT or something went wrong.
-                self.logger.info("Running UV calibration wizard")
-                self.set_state(PrinterState.WIZARD, active=True)
-                uvCalibration = self.action_manager.start_wizard(
-                    UVCalibrationWizard(
-                        self.hw,
-                        self.exposure_image,
-                        self.runtime_config,
-                        display_replaced=True,
-                        led_module_replaced = True), handle_state_transitions=False
-                )
-                uvCalibration.join()
-                self.logger.info("UV calibration wizard finished")
-
-            if not self.hw.config.calibrated:
-                self.logger.info("Running calibration wizard")
-                self.set_state(PrinterState.WIZARD, active=True)
-                calibration = self.action_manager.start_wizard(
-                    CalibrationWizard(self.hw, self.runtime_config), handle_state_transitions=False
-                )
-                calibration.join()
-                self.logger.info("Calibration wizard finished")
-
-            self.set_state(PrinterState.WIZARD, active=False)
+            if self.runtime_config.factory_mode and not get_all_supported_files(
+                    self.hw.printer_model, Path(defines.internalProjectPath)
+            ):
+                self.exception = MissingExamples()
+            self._make_ready_to_print()
             save_all_remain_wizard_history()
 
         self.action_manager.load_exposure(self.hw)
@@ -486,3 +446,90 @@ class Printer:
                 expo.try_cancel()
         except Exception:
             self.logger.exception("Error handling media ejected event")
+
+    @property
+    def unboxed(self):
+        return not self.hw.config.showUnboxing
+
+    @property
+    def mechanically_calibrated(self):
+        return self.hw.config.calibrated
+
+    @property
+    def uv_calibrated(self):
+        return self.hw.config.uvPwm >= self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm
+
+    @property
+    def self_tested(self):
+        return not self.hw.config.showWizard
+
+    def run_make_ready_to_print(self):
+        threading.Thread(target=self._make_ready_to_print, daemon=True).start()
+
+    def _make_ready_to_print(self):
+        if not self.runtime_config.factory_mode and self.hw.config.showUnboxing:
+            if self.hw.isKit:
+                unboxing = self.action_manager.start_wizard(
+                    KitUnboxingWizard(self.hw, self.runtime_config), handle_state_transitions=False
+                )
+            else:
+                unboxing = self.action_manager.start_wizard(
+                    CompleteUnboxingWizard(self.hw, self.runtime_config),
+                    handle_state_transitions=False
+                )
+            self.logger.info("Running unboxing wizard")
+            self.set_state(PrinterState.WIZARD, active=True)
+            unboxing.join()
+            self.logger.info("Unboxing wizard finished")
+
+        if self.hw.config.showWizard:
+            self.logger.info("Running selftest wizard")
+            selftest = self.action_manager.start_wizard(
+                SelfTestWizard(self.hw, self.exposure_image, self.runtime_config), handle_state_transitions=False
+            )
+            self.set_state(PrinterState.WIZARD, active=True)
+            selftest.join()
+            self.logger.info("Selftest wizard finished")
+
+        if self.hw.config.uvPwm < self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm:
+            # delete also both counters and save calibration to factory partition. It's new KIT or something went wrong.
+            self.logger.info("Running UV calibration wizard")
+            uv_calibration = self.action_manager.start_wizard(
+                UVCalibrationWizard(
+                    self.hw,
+                    self.exposure_image,
+                    self.runtime_config,
+                    display_replaced=True,
+                    led_module_replaced=True), handle_state_transitions=False
+            )
+            self.set_state(PrinterState.WIZARD, active=True)
+            uv_calibration.join()
+            self.logger.info("UV calibration wizard finished")
+
+        if not self.hw.config.calibrated:
+            self.logger.info("Running calibration wizard")
+            calibration = self.action_manager.start_wizard(
+                CalibrationWizard(self.hw, self.runtime_config), handle_state_transitions=False
+            )
+            self.set_state(PrinterState.WIZARD, active=True)
+            calibration.join()
+            self.logger.info("Calibration wizard finished")
+
+        self.set_state(PrinterState.WIZARD, active=False)
+
+    def _config_changed(self, key: str, _: Any):
+        if key.lower() == "showunboxing":
+            self.unboxed_changed.emit()
+            return
+
+        if key.lower() == "showwizard":
+            self.self_tested_changed.emit()
+            return
+
+        if key.lower() == "calibrated":
+            self.mechanically_calibrated_changed.emit()
+            return
+
+        if key.lower() == "uvpwm":
+            self.uv_calibrated_changed.emit()
+            return

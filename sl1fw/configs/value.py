@@ -484,7 +484,7 @@ class ValueConfig(BaseConfig):
                 lock.release()
 
     def add_onchange_handler(self, handler: Callable[[str, Any], None]):
-        self._on_change.add(weakref.ref(handler))
+        self._on_change.add(handler)
 
     def get_values(self):
         return self._values

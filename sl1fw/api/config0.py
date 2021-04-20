@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import functools
+import weakref
 from typing import Any, Dict
 from typing import TYPE_CHECKING
 
@@ -96,8 +97,7 @@ class Config0:
 
     def __init__(self, hw: Hardware):
         self.hw = hw
-        self._bound_on_change = self._on_change  # methods are temp objects, weak refs to these do not hold
-        self.hw.config.add_onchange_handler(self._bound_on_change)
+        self.hw.config.add_onchange_handler(weakref.WeakMethod(self._on_change))
 
     @auto_dbus
     def save(self) -> None:

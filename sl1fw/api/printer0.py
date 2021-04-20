@@ -109,6 +109,11 @@ class Printer0:
         self.printer.runtime_config.show_admin_changed.connect(self._on_admin_enabled_changed)
         self.printer.hw.tower_position_changed.connect(self._on_tower_position_changed)
         self.printer.hw.tilt_position_changed.connect(self._on_tilt_position_changed)
+        self.printer.unboxed_changed.connect(self._on_unboxed_changed)
+        self.printer.self_tested_changed.connect(self._on_self_tested_changed)
+        self.printer.mechanically_calibrated_changed.connect(self._on_mechanically_calibrated_changed)
+        self.printer.uv_calibrated_changed.connect(self._on_uv_calibrated_changed)
+
 
     def _on_state_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
@@ -168,6 +173,18 @@ class Printer0:
 
     def _on_tilt_position_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"tilt_position": self.tilt_position}, [])
+
+    def _on_unboxed_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"unboxed": self.unboxed}, [])
+
+    def _on_self_tested_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"self_tested": self.self_tested}, [])
+
+    def _on_mechanically_calibrated_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"mechanically_calibrated": self.mechanically_calibrated}, [])
+
+    def _on_uv_calibrated_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"uv_calibrated": self.uv_calibrated}, [])
 
     @auto_dbus
     @property
@@ -1036,3 +1053,28 @@ class Printer0:
         :return: None
         """
         self.printer.action_manager.try_cancel_by_path(path)
+
+    @auto_dbus
+    @property
+    def unboxed(self) -> bool:
+        return self.printer.unboxed
+
+    @auto_dbus
+    @property
+    def mechanically_calibrated(self) -> bool:
+        return self.printer.mechanically_calibrated
+
+    @auto_dbus
+    @property
+    def uv_calibrated(self) -> bool:
+        return self.printer.uv_calibrated
+
+    @auto_dbus
+    @property
+    def self_tested(self) -> bool:
+        return self.printer.self_tested
+
+    @auto_dbus
+    @state_checked(Printer0State.IDLE)
+    def make_ready_to_print(self):
+        return self.printer.run_make_ready_to_print()
