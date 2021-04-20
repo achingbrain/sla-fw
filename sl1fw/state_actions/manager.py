@@ -141,7 +141,7 @@ class ActionManager:
     def exposure(self) -> Optional[Exposure]:
         return self._current_exposure
 
-    def start_wizard(self, wizard: Wizard) -> Wizard:
+    def start_wizard(self, wizard: Wizard, handle_state_transitions: bool = True) -> Wizard:
         if self._exited:
             raise Exception("Attempt to start wizard after exit")
         if self._wizard and self._wizard.state in WizardState.finished_states():
@@ -151,7 +151,8 @@ class ActionManager:
             raise Exception("Wizard already running")
 
         self._wizard = wizard
-        self._wizard.state_changed.connect(self._on_wizard_state_change)
+        if handle_state_transitions:
+            self._wizard.state_changed.connect(self._on_wizard_state_change)
 
         # The request_name and register object can be replaced by simpler publish, but publish keeps reference to
         # API object internals preventing it from gargabe collection

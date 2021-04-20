@@ -199,13 +199,14 @@ class Printer:
                 if not get_all_supported_files(self.hw.printer_model, Path(defines.internalProjectPath)):
                     self.exception = MissingExamples()
             elif self.hw.config.showUnboxing:
+                self.set_state(PrinterState.WIZARD, active=True)
                 if self.hw.isKit:
                     unboxing = self.action_manager.start_wizard(
-                        KitUnboxingWizard(self.hw, self.runtime_config)
+                        KitUnboxingWizard(self.hw, self.runtime_config), handle_state_transitions=False
                     )
                 else:
                     unboxing = self.action_manager.start_wizard(
-                        CompleteUnboxingWizard(self.hw, self.runtime_config)
+                        CompleteUnboxingWizard(self.hw, self.runtime_config), handle_state_transitions=False
                     )
                 self.logger.info("Running unboxing wizard")
                 unboxing.join()
@@ -213,8 +214,9 @@ class Printer:
 
             if self.hw.config.showWizard:
                 self.logger.info("Running selftest wizard")
+                self.set_state(PrinterState.WIZARD, active=True)
                 selftest = self.action_manager.start_wizard(
-                    SelfTestWizard(self.hw, self.exposure_image, self.runtime_config)
+                    SelfTestWizard(self.hw, self.exposure_image, self.runtime_config), handle_state_transitions=False
                 )
                 selftest.join()
                 self.logger.info("Selftest wizard finished")
@@ -222,25 +224,28 @@ class Printer:
             if self.hw.config.uvPwm < self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm:
                 # delete also both counters and save calibration to factory partition. It's new KIT or something went wrong.
                 self.logger.info("Running UV calibration wizard")
+                self.set_state(PrinterState.WIZARD, active=True)
                 uvCalibration = self.action_manager.start_wizard(
                     UVCalibrationWizard(
                         self.hw,
                         self.exposure_image,
                         self.runtime_config,
                         display_replaced=True,
-                        led_module_replaced = True)
+                        led_module_replaced = True), handle_state_transitions=False
                 )
                 uvCalibration.join()
                 self.logger.info("UV calibration wizard finished")
 
             if not self.hw.config.calibrated:
                 self.logger.info("Running calibration wizard")
+                self.set_state(PrinterState.WIZARD, active=True)
                 calibration = self.action_manager.start_wizard(
-                    CalibrationWizard(self.hw, self.runtime_config)
+                    CalibrationWizard(self.hw, self.runtime_config), handle_state_transitions=False
                 )
                 calibration.join()
                 self.logger.info("Calibration wizard finished")
 
+            self.set_state(PrinterState.WIZARD, active=False)
             save_all_remain_wizard_history()
 
         self.action_manager.load_exposure(self.hw)
