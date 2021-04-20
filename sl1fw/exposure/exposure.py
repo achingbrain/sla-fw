@@ -409,6 +409,7 @@ class Exposure:
 
         self.exposure_image.blank_screen()
         self.hw.uvLedPwm = self.hw.config.uvPwm
+        self.hw.uvDisplayCounter(True)
         if not self.hw.config.blinkExposure:
             self.hw.uvLed(True)
 
@@ -693,9 +694,8 @@ class Exposure:
             if not isinstance(exception, (TiltFailed, TowerFailed)):
                 self._final_go_up()
             self.state = ExposureState.FAILURE
-            self.hw.uvLed(False)
-            self.hw.stopFans()
-            self.hw.motorsRelease()
+
+            self._print_end_hw_off()
         if self.project:
             self.project.data_close()
 
@@ -884,16 +884,8 @@ class Exposure:
 
             self.actual_layer += 1
 
-        self.hw.saveUvStatistics()
-        self.hw.uvLed(False)
-
         self._final_go_up()
-
-        self.hw.stopFans()
-        self.runtime_config.check_cooling_expo = False
-        self.hw.motorsRelease()
-
-        self.printEndTime = datetime.now(tz=timezone.utc)
+        self._print_end_hw_off()
 
         is_finished = not self.canceled
         if is_finished:
@@ -965,3 +957,12 @@ class Exposure:
         self.hw.towerToTop()
         while not self.hw.isTowerOnTop():
             sleep(0.25)
+
+    def _print_end_hw_off(self):
+        self.hw.uvLed(False)
+        self.hw.stopFans()
+        self.runtime_config.check_cooling_expo = False
+        self.hw.motorsRelease()
+        self.hw.uvDisplayCounter(False)
+        self.hw.saveUvStatistics()
+        self.printEndTime = datetime.now(tz=timezone.utc)

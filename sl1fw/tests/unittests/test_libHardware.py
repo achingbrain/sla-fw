@@ -160,12 +160,34 @@ class TestLibHardware(Sl1fwTestCase):
         self.assertEqual(10, self.hw.powerLedSpeed)
 
     def test_uv_statistics(self):
-        # TODO: getUvStatistics simulator seems to return random garbage 4294967295
-        # self.assertEqual([0], self.hw.getUvStatistics())
         # clear any garbage
         self.hw.clearUvStatistics()
         self.hw.clearDisplayStatistics()
+
         self.assertEqual([0, 0], self.hw.getUvStatistics())
+        self.hw.uvLed(1, 1000)
+        sleep(1)
+        self.assertEqual([1, 1], self.hw.getUvStatistics())
+        self.hw.clearUvStatistics()
+        self.assertEqual([0, 1], self.hw.getUvStatistics())
+        self.hw.clearDisplayStatistics()
+        self.assertEqual([0, 0], self.hw.getUvStatistics())
+
+    def test_uv_display_counter(self):
+        self.hw.uvLed(0)
+        # clear any garbage
+        self.hw.clearUvStatistics()
+        self.hw.clearDisplayStatistics()
+
+        self.assertEqual([0, 0], self.hw.getUvStatistics())
+        stats = self.hw.getUvStatistics()
+        sleep(1)
+        self.assertEqual(0, stats[0])
+        self.assertGreater(1, stats[1])
+        self.hw.uvDisplayCounter(False)
+        stats = self.hw.getUvStatistics()
+        sleep(1)
+        self.assertEqual(stats, self.hw.getUvStatistics())
 
     def test_voltages(self):
         voltages = self.hw.getVoltages()

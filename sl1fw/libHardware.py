@@ -565,6 +565,10 @@ class Hardware:
     def clearDisplayStatistics(self):  # call if print display was replaced
         self.mcc.do("!usta", 2)
 
+    @safe_call(None, MotionControllerException)
+    def uvDisplayCounter(self, mask) -> None:
+        self.mcc.do("!ulcd", int(mask))
+
     @safe_call([0, 0, 0, 0], (ValueError, MotionControllerException))
     def getVoltages(self):
         volts = self.mcc.doGetIntList("?volt", multiply=0.001)
