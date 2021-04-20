@@ -149,7 +149,7 @@ class Printer:
         old = self.state
         if active:
             self._states.add(state)
-        else:
+        elif state in self._states:
             self._states.remove(state)
         if old != self.state:
             self.logger.info("Printer state changed: %s -> %s", old, self.state)
