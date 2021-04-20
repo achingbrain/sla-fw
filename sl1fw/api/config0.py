@@ -96,7 +96,8 @@ class Config0:
 
     def __init__(self, hw: Hardware):
         self.hw = hw
-        self.hw.config.add_onchange_handler(self._on_change)
+        self._bound_on_change = self._on_change  # methods are temp objects, weak refs to these do not hold
+        self.hw.config.add_onchange_handler(self._bound_on_change)
 
     @auto_dbus
     def save(self) -> None:

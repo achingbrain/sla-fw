@@ -478,8 +478,10 @@ class ValueConfig(BaseConfig):
         self.schedule_on_change(key, value)
         lock = self._lock.gen_rlock()
         if lock.acquire(blocking=False):
-            self.run_stored_callbacks()
-            lock.release()
+            try:
+                self.run_stored_callbacks()
+            finally:
+                lock.release()
 
     def add_onchange_handler(self, handler: Callable[[str, Any], None]):
         self._on_change.add(weakref.ref(handler))

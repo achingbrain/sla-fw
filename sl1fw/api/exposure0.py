@@ -148,7 +148,9 @@ class Exposure0:
         if self.exposure.hw:
             self.exposure.hw.cover_state_changed.connect(self._handle_cover_change_param)
         if self.exposure.hw.config:
-            self.exposure.hw.config.add_onchange_handler(self._handle_config_change)
+            self._bound_handle_config_change = self._handle_config_change
+            # methods are temp objects, weak refs to these do not hold
+            self.exposure.hw.config.add_onchange_handler(self._bound_handle_config_change)
         if self.exposure.project and self.exposure.project.path_changed:
             self.exposure.project.path_changed.connect(self._handle_path_changed_param)
 
