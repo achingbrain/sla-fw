@@ -15,7 +15,7 @@ echo "${LOG_PATH}"
 (
         for i in $(journalctl --list-boots | awk '{print $1}'); do
                 echo "########## REBOOT: ${i} ##########";
-                journalctl --no-pager --boot "${i}";
+                journalctl --output=short-precise --no-pager --boot "${i}";
         done;
 ) > "${LOG_PATH}"
 sync "${LOG_PATH}"

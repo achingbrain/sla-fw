@@ -89,6 +89,7 @@ cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 
 scriptDir = "/usr/share/sl1fw/scripts"
 flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
+TruncLogsCommand = os.path.join(scriptDir, "truncate_logs.sh")
 
 qtDisplayPort = 32768
 templates = '/srv/http/intranet/templates'
