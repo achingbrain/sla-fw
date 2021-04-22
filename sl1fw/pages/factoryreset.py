@@ -170,14 +170,15 @@ class PageFactoryReset(Page):
 
         # Reset remote config (don't delete it)
         try:
-            with open(defines.remoteConfig, 'w') as fp:
-                fp.truncate(0)
+            if os.path.exists(defines.remoteConfig):
+                os.remove(defines.remoteConfig)
         except FileNotFoundError:
             self.logger.exception("Failed to clean remoteConfig.toml")
 
         # Reset http_digest
         try:
-            subprocess.check_call([defines.htDigestCommand, "enable"])
+            defines.nginx_enabled.unlink()
+            defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
         except (subprocess.CalledProcessError, FileNotFoundError):
             self.logger.exception("Failed to reset http digest config")
 

@@ -214,6 +214,12 @@ class TestReset(TestWizards):
         defines.serial_service_enabled.touch()
         defines.ssh_service_enabled = self.TEMP_DIR / "ssh"
         defines.ssh_service_enabled.touch()
+        defines.nginx_api_key = self.TEMP_DIR / "nginx_api_key"
+        defines.nginx_http_digest = self.TEMP_DIR / "nginx_http_digest"
+        defines.nginx_enabled = self.TEMP_DIR / "nginx_enabled"
+        defines.nginx_api_key.touch()
+        defines.nginx_http_digest.touch()
+        defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
 
         # Mock changed settings
         self.time_date.SetNTP(not self.time_date.DEFAULT_NTP, False)
@@ -368,7 +374,7 @@ class TestReset(TestWizards):
             pydbus.SystemBus().get("org.freedesktop.NetworkManager").ListConnections(), ["ethernet"],
         )  # all wifi connections deleted
 
-        self.assertEqual("", defines.remoteConfig.read_text())
+        self.assertEqual(False, defines.remoteConfig.exists())
         self.assertTrue(self.hostname.hostname_set, "Hostname changed by factory reset")
         self.assertTrue(self.time_date.is_default_ntp(), "NTP reset to default")
         print(self.locale.Locale)

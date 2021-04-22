@@ -2,6 +2,7 @@
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import subprocess
 from abc import abstractmethod
 from asyncio import sleep
@@ -90,8 +91,9 @@ class ResetRemoteConfig(ResetCheck):
         """
         Reset remote config (don't delete it)
         """
-        with open(defines.remoteConfig, "w") as fp:
-            fp.truncate(0)
+        if os.path.exists(defines.remoteConfig):
+            os.remove(defines.remoteConfig)
+
 
 
 class ResetHttpDigest(ResetCheck):
@@ -100,7 +102,8 @@ class ResetHttpDigest(ResetCheck):
 
     def reset_task_run(self, actions: UserActionBroker):
         try:
-            subprocess.check_call([defines.htDigestCommand, "enable"])
+            defines.nginx_enabled.unlink()
+            defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
         except (subprocess.CalledProcessError, FileNotFoundError):
             self._logger.exception("Failed to reset http digest config")
 

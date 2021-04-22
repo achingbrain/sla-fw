@@ -400,20 +400,25 @@ class Printer:
 
     @property
     def http_digest(self) -> bool:
-        return TomlConfig(defines.remoteConfig).load().get("http_digest", True)
+        return defines.nginx_enabled.resolve() == defines.nginx_http_digest
 
     @http_digest.setter
     def http_digest(self, enabled: bool) -> None:
-        remote_config = TomlConfig(defines.remoteConfig)
-        new_data = remote_config.load()
-        new_data["http_digest"] = enabled
-        if not remote_config.save(data=new_data):
-            raise ConfigException("Octoprint API key change failed")
+        is_enabled = self.http_digest
         if enabled:
-            subprocess.check_call([defines.htDigestCommand, "enable"])
+            if not is_enabled:
+                defines.nginx_enabled.unlink()
+                defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
+                systemd1 = SystemBus().get("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
+                systemd1.RestartUnit("nginx.service", "replace")
+                self.http_digest_changed.emit()
         else:
-            subprocess.check_call([defines.htDigestCommand, "disable"])
-        self.http_digest_changed.emit()
+            if is_enabled:
+                defines.nginx_enabled.unlink()
+                defines.nginx_enabled.symlink_to(defines.nginx_api_key)
+                systemd1 = SystemBus().get("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
+                systemd1.RestartUnit("nginx.service", "replace")
+                self.http_digest_changed.emit()
 
     @property
     def api_key(self) -> str:

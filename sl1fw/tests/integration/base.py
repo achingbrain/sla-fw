@@ -127,6 +127,13 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.counterLog = self.counter_log
         defines.wizardDataPathFactory = str(self.wizard_data_file)
 
+        defines.nginx_api_key = self.TEMP_DIR / "nginx_api_key"
+        defines.nginx_http_digest = self.TEMP_DIR / "nginx_http_digest"
+        defines.nginx_enabled = self.TEMP_DIR / "nginx_enabled"
+        defines.nginx_api_key.touch()
+        defines.nginx_http_digest.touch()
+        defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
+
     def _change_dir(self, path) -> str:
         return self.temp_dir_project.name + "/" + os.path.basename(path)
 

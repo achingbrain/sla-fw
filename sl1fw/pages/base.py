@@ -29,7 +29,6 @@ from sl1fw.state_actions.examples import Examples
 from sl1fw.functions import files
 from sl1fw.functions.system import shut_down, FactoryMountedRW, get_octoprint_auth, hw_all_off
 from sl1fw.errors.exceptions import ConfigException
-from sl1fw.configs.toml import TomlConfig
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -72,11 +71,6 @@ class Page:
     @property
     def octoprintAuth(self):
         return get_octoprint_auth(self.logger)
-    #enddef
-
-    @property
-    def httpDigest(self):
-        return TomlConfig(defines.remoteConfig).load().get('htdigest', True)
     #enddef
 
     def prepare(self):
