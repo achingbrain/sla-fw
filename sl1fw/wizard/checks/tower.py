@@ -13,6 +13,22 @@ from sl1fw.wizard.setup import Configuration, Resource, TankSetup, PlatformSetup
 from sl1fw.hardware.tilt import TiltProfile
 
 
+class TowerHome(DangerousCheck):
+    """
+    Just async tower homing for other tests
+    """
+    def __init__(self, hw: Hardware):
+        super().__init__(
+            hw, WizardCheckType.TOWER_HOME, Configuration(None, None), [Resource.TOWER, Resource.TOWER_DOWN],
+        )
+        self.hw = hw
+
+    async def async_task_run(self, actions: UserActionBroker):
+        with actions.led_warn:
+            if not await self.hw.towerSyncWaitAsync():
+                await sleep(0.1)
+
+
 class TowerHomeTest(DangerousCheck):
     def __init__(self, hw: Hardware):
         super().__init__(

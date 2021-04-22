@@ -19,10 +19,8 @@ from sl1fw import defines
 from sl1fw.api.decorators import wrap_exception, state_checked
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.errors.errors import WizardNotCancelable, FailedToSerializeWizardData, FailedToSaveWizardData
-from sl1fw.errors.exceptions import PrinterException
 from sl1fw.errors.warnings import PrinterWarning
-from sl1fw.functions.system import FactoryMountedRW, hw_all_off
-from sl1fw.image.exposure_image import ExposureImage
+from sl1fw.functions.system import FactoryMountedRW
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardState, WizardCheckState, WizardId
 from sl1fw.wizard.actions import UserActionBroker, PushState
@@ -38,14 +36,12 @@ class Wizard(Thread, UserActionBroker):
         identifier: WizardId,
         groups: Iterable[CheckGroup],
         hw: Hardware,
-        exposure_image: ExposureImage,
         runtime_config: RuntimeConfig,
         cancelable=True,
     ):
         self._logger = logging.getLogger(__name__)
         Thread.__init__(self)
         UserActionBroker.__init__(self, hw)
-        self._exposure_image = exposure_image
         self.__state = WizardState.INIT
         self.__cancelable = cancelable
         self.__groups = groups
@@ -67,7 +63,6 @@ class Wizard(Thread, UserActionBroker):
 
         for check in self.checks:
             check.state_changed.connect(self.check_states_changed.emit)
-            check.state_changed.connect(self.state_changed.emit)
             check.state_changed.connect(self._update_data)
             check.exception_changed.connect(self.exception_changed.emit)
             check.warnings_changed.connect(self.warnings_changed.emit)
@@ -156,13 +151,10 @@ class Wizard(Thread, UserActionBroker):
             self.state = WizardState.CANCELED
         except Exception:
             self.state = WizardState.FAILED
-            hw_all_off(self._hw, self._exposure_image)
-            self._exposure_image = None
             self._store_data()
-            raise
+            # do not raise exception, this is the top of the thread
 
-        hw_all_off(self._hw, self._exposure_image)
-        self._exposure_image = None
+        self._hw.motorsRelease()
         if self.state not in [WizardState.CANCELED, WizardState.FAILED]:
             self.state = WizardState.DONE
         self._logger.info("Wizard %s finished with state %s", type(self).__name__, self.state)
@@ -186,17 +178,20 @@ class Wizard(Thread, UserActionBroker):
 
     def __run_group(self, group: CheckGroup):
         self._logger.debug("Running check group %s", type(group).__name__)
-        while True:
-            try:
-                asyncio.run(group.run(self))
-                break
-            except (CancelledError, PrinterException):
-                self.state = WizardState.STOPPED
-                hw_all_off(self._hw, self._exposure_image)
-                self._logger.exception("Wizard group stopped by exception")
-                if not self.unstop_result.get():
-                    raise
-                self.state = WizardState.RUNNING
+        asyncio.run(group.run(self))
+
+# retry implementation
+#        while True:
+#            try:
+#                asyncio.run(group.run(self))
+#                break
+#            except (CancelledError, PrinterException):
+#                self.state = WizardState.STOPPED
+#                self._hw.motorsRelease()
+#                self._logger.exception("Wizard group stopped by exception")
+#                if not self.unstop_result.get():
+#                    raise
+#                self.state = WizardState.RUNNING
 
     @state_checked(WizardState.STOPPED)
     def abort(self):

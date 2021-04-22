@@ -97,11 +97,12 @@ class UserActionBroker:
             self._states.appendleft(state)
         else:
             self._states.append(state)
+        self._logger.debug("Pushing wizard state: %s", state)
         self.states_changed.emit()
-        self._logger.debug("Wizard state pushed: %s", state)
 
     def drop_state(self, state: PushState):
         self._states.remove(state)
+        self._logger.debug("Removing wizard state: %s", state)
         self.states_changed.emit()
 
     @property

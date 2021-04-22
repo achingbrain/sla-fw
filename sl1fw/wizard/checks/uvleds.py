@@ -56,18 +56,20 @@ class UVLEDsTest(DangerousCheck):
         row1 = list()
         row2 = list()
         row3 = list()
-        for i in range(self.CHECK_UV_PWM_INDEXES):
-            self.progress = i / self.CHECK_UV_PWM_INDEXES
-            self._hw.uvLedPwm = uv_pwms[i]
-            if not test_runtime.testing:
-                await sleep(5)  # wait to refresh all voltages (board rev. 0.6+)
-            volts = list(self._hw.getVoltages())
-            del volts[-1]  # delete power supply voltage
-            if max(volts) - min(volts) > diff and not test_runtime.testing:
-                self._hw.uvLed(False)
-                raise UVLEDsVoltagesDifferTooMuch()
-            row1.append(int(volts[0] * 1000))
-            row2.append(int(volts[1] * 1000))
-            row3.append(int(volts[2] * 1000))
+        try: # check may be interrupted by another check or canceled
+            for i in range(self.CHECK_UV_PWM_INDEXES):
+                self.progress = i / self.CHECK_UV_PWM_INDEXES
+                self._hw.uvLedPwm = uv_pwms[i]
+                if not test_runtime.testing:
+                    await sleep(5)  # wait to refresh all voltages (board rev. 0.6+)
+                volts = list(self._hw.getVoltages())
+                del volts[-1]  # delete power supply voltage
+                if max(volts) - min(volts) > diff and not test_runtime.testing:
+                    raise UVLEDsVoltagesDifferTooMuch()
+                row1.append(int(volts[0] * 1000))
+                row2.append(int(volts[1] * 1000))
+                row3.append(int(volts[2] * 1000))
+        finally:
+            self._hw.uvLed(False)
 
         return row1, row2, row3

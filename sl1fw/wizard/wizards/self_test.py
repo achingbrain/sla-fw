@@ -5,7 +5,6 @@
 from typing import Iterable
 
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.functions.system import hw_all_off
 from sl1fw.libHardware import Hardware
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.states.wizard import WizardId
@@ -87,11 +86,8 @@ class SelfTestWizard(Wizard):
                 SelfTestPart3CheckGroup(hw),
             ],
             hw,
-            exposure_image,
             runtime_config,
         )
-        self._hw = hw
-        self._exposure_image = exposure_image
 
     @property
     def name(self) -> str:
@@ -102,13 +98,6 @@ class SelfTestWizard(Wizard):
         names = ["wizard_data.toml", "thewizard_data.toml", "wizard_data"]
         names.extend(super().get_alt_names())
         return names
-
-    def run(self):
-        try:
-            super().run()
-        except Exception:
-            hw_all_off(self._hw, self._exposure_image)
-            raise
 
     def cancel_action(self):
         writer = self._hw.config.get_writer()

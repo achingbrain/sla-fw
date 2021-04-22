@@ -123,7 +123,6 @@ class Printer:
 
         self.logger.info("Initializing ExposureImage")
         self.exposure_image = ExposureImage(self.hw)
-        test_runtime.exposure_image = self.exposure_image
 
         self.logger.info("Registering config D-Bus services")
         self.system_bus = SystemBus()
@@ -198,11 +197,11 @@ class Printer:
             elif self.hw.config.showUnboxing:
                 if self.hw.isKit:
                     unboxing = self.action_manager.start_wizard(
-                        KitUnboxingWizard(self.hw, self.exposure_image, self.runtime_config)
+                        KitUnboxingWizard(self.hw, self.runtime_config)
                     )
                 else:
                     unboxing = self.action_manager.start_wizard(
-                        CompleteUnboxingWizard(self.hw, self.exposure_image, self.runtime_config)
+                        CompleteUnboxingWizard(self.hw, self.runtime_config)
                     )
                 self.logger.info("Running unboxing wizard")
                 unboxing.join()
@@ -233,7 +232,7 @@ class Printer:
             if not self.hw.config.calibrated:
                 self.logger.info("Running calibration wizard")
                 calibration = self.action_manager.start_wizard(
-                    CalibrationWizard(self.hw, self.exposure_image, self.runtime_config)
+                    CalibrationWizard(self.hw, self.runtime_config)
                 )
                 calibration.join()
                 self.logger.info("Calibration wizard finished")

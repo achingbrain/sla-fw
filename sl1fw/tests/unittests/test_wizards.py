@@ -134,8 +134,12 @@ class TestWizardInfrastructure(Sl1fwTestCase):
 
 
 class TestWizards(Sl1fwTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.exposure_image = Mock() # wizards use weakly-reference to exposure_image
+
     def test_display_test(self):
-        wizard = DisplayTestWizard(Hardware(), Mock(), RuntimeConfig())
+        wizard = DisplayTestWizard(Hardware(), self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_DISPLAY_TEST:
@@ -147,7 +151,7 @@ class TestWizards(Sl1fwTestCase):
         self._run_wizard(wizard)
 
     def test_display_test_fail(self):
-        wizard = DisplayTestWizard(Hardware(), Mock(), RuntimeConfig())
+        wizard = DisplayTestWizard(Hardware(), self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_DISPLAY_TEST:
@@ -189,6 +193,7 @@ class TestReset(TestWizards):
         hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True,)
         self.hw = Hardware(hw_config)
         self.runtime_config = RuntimeConfig()
+        self.exposure_image = Mock() # wizards use weakly-reference to exposure_image
 
         # Mock factory data
         defines.uvCalibDataPath = self.TEMP_DIR / defines.uvCalibDataFilename
@@ -234,7 +239,7 @@ class TestReset(TestWizards):
 
     def test_self_test_success(self):
         self.hw.config.uvWarmUpTime = 0
-        wizard = SelfTestWizard(self.hw, Mock(), RuntimeConfig())
+        wizard = SelfTestWizard(self.hw, self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_WIZARD_PART_1:
@@ -283,7 +288,7 @@ class TestReset(TestWizards):
 
     def test_self_test_fail(self):
         self.hw.config.uvWarmUpTime = 0
-        wizard = SelfTestWizard(self.hw, Mock(), RuntimeConfig())
+        wizard = SelfTestWizard(self.hw, self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_WIZARD_PART_1:
@@ -301,9 +306,7 @@ class TestReset(TestWizards):
         self.assertFalse(data["showWizard"])
 
     def test_unboxing_complete(self):
-        wizard = CompleteUnboxingWizard(
-            self.hw, Mock(), RuntimeConfig()
-        )
+        wizard = CompleteUnboxingWizard(self.hw, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.REMOVE_SAFETY_STICKER:
@@ -319,7 +322,7 @@ class TestReset(TestWizards):
         self._run_wizard(wizard)
 
     def test_unboxing_kit(self):
-        wizard = KitUnboxingWizard(self.hw, Mock(), RuntimeConfig())
+        wizard = KitUnboxingWizard(self.hw, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
@@ -331,25 +334,25 @@ class TestReset(TestWizards):
     def test_packing_complete(self):
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST complete", False)
-        self._run_wizard(PackingWizard(self.hw, Mock(), self.runtime_config))
+        self._run_wizard(PackingWizard(self.hw, self.runtime_config))
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_packing_kit(self):
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST kit", True)
-        self._run_wizard(PackingWizard(self.hw, Mock(), self.runtime_config))
+        self._run_wizard(PackingWizard(self.hw, self.runtime_config))
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_factory_reset_complete(self):
         self.runtime_config.factory_mode = False
         self.hw.boardData = ("TEST kit", False)
-        self._run_wizard(FactoryResetWizard(self.hw, Mock(), self.runtime_config, True))
+        self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def test_factory_reset_kit(self):
         self.runtime_config.factory_mode = False
         self.hw.boardData = ("TEST kit", True)
-        self._run_wizard(FactoryResetWizard(self.hw, Mock(), self.runtime_config, True))
+        self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def _check_factory_reset(self, unboxing: bool, factory_mode: bool):
@@ -385,7 +388,7 @@ class TestReset(TestWizards):
         self.assertFalse(defines.local_time_path.exists(), "Timezone reset to default")
 
     def test_calibration(self):
-        wizard = CalibrationWizard(self.hw, Mock(), RuntimeConfig())
+        wizard = CalibrationWizard(self.hw, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK:

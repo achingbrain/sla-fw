@@ -31,10 +31,12 @@ class UVFansTest(DangerousCheck):
         self._check_data = None
 
     async def async_task_run(self, actions: UserActionBroker):
+        # pylint: disable=too-many-branches
         await self.wait_cover_closed()
 
         fan_diff = 200
         self._hw.startFans()
+        self._hw.uvLed(True)
         rpm = [[], [], []]
         fans_wait_time = defines.fanWizardStabilizeTime + defines.fanStartStopTime
 
@@ -42,23 +44,26 @@ class UVFansTest(DangerousCheck):
         self._hw.uvLedPwm = get_uv_check_pwms(self._hw)[3]
 
         uv_temp = self._hw.getUvLedTemperature()
-        for countdown in range(self._hw.config.uvWarmUpTime, 0, -1):
-            self.progress = 1 - countdown / self._hw.config.uvWarmUpTime
+        try: # check may be interrupted by another check or canceled
+            for countdown in range(self._hw.config.uvWarmUpTime, 0, -1):
+                self.progress = 1 - countdown / self._hw.config.uvWarmUpTime
 
-            uv_temp = self._hw.getUvLedTemperature()
-            if uv_temp > defines.maxUVTemp:
-                self._logger.error("Skipping UV Fan check due to overheat")
-                break
-            if any(self._hw.getFansError().values()):
-                self._logger.error("Skipping UV Fan check due to fan failure")
-                break
+                uv_temp = self._hw.getUvLedTemperature()
+                if uv_temp > defines.maxUVTemp:
+                    self._logger.error("Skipping UV Fan check due to overheat")
+                    break
+                if any(self._hw.getFansError().values()):
+                    self._logger.error("Skipping UV Fan check due to fan failure")
+                    break
 
-            if fans_wait_time < self._hw.config.uvWarmUpTime - countdown:
-                actual_rpm = self._hw.getFansRpm()
-                for i in self._hw.fans:
-                    rpm[i].append(actual_rpm[i])
-            await sleep(1)
-        self._hw.uvLed(False)
+                if fans_wait_time < self._hw.config.uvWarmUpTime - countdown:
+                    actual_rpm = self._hw.getFansRpm()
+                    for i in self._hw.fans:
+                        rpm[i].append(actual_rpm[i])
+                await sleep(1)
+        finally:
+            self._hw.uvLed(False)
+            self._hw.stopFans()
 
         # evaluate fans data
         avg_rpms = list()

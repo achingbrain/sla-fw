@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
@@ -61,7 +60,7 @@ class CalibrationFinishCheckGroup(CheckGroup):
 
 
 class CalibrationWizard(Wizard):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.CALIBRATION,
             [
@@ -71,7 +70,6 @@ class CalibrationWizard(Wizard):
                 CalibrationFinishCheckGroup(hw),
             ],
             hw,
-            exposure_image,
             runtime_config,
         )
 

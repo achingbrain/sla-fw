@@ -5,7 +5,6 @@
 from typing import Iterable
 
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
@@ -55,17 +54,12 @@ class UnboxingWizard(Wizard):
         identifier,
         groups: Iterable[CheckGroup],
         hw: Hardware,
-        exposure_image: ExposureImage,
         runtime_config: RuntimeConfig,
     ):
-        super().__init__(identifier, groups, hw, exposure_image, runtime_config, cancelable=False)
+        super().__init__(identifier, groups, hw, runtime_config, cancelable=False)
 
     def run(self):
-        try:
-            super().run()
-        except Exception:
-            self._hw.motorsRelease()
-            raise
+        super().run()
         if self.state == WizardState.DONE:
             self._logger.info("Unboxing wizard finished without errors, setting show unboxing to false")
             writer = self._hw.config.get_writer()
@@ -74,7 +68,7 @@ class UnboxingWizard(Wizard):
 
 
 class CompleteUnboxingWizard(UnboxingWizard):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.COMPLETE_UNBOXING,
             [
@@ -84,16 +78,8 @@ class CompleteUnboxingWizard(UnboxingWizard):
                 RemoveDisplayFoilCheckGroup(),
             ],
             hw,
-            exposure_image,
             runtime_config,
         )
-
-    def run(self):
-        try:
-            super().run()
-        except Exception:
-            self._hw.motorsRelease()
-            raise
 
     @property
     def name(self) -> str:
@@ -101,17 +87,10 @@ class CompleteUnboxingWizard(UnboxingWizard):
 
 
 class KitUnboxingWizard(UnboxingWizard):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
         super().__init__(
-            WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup()], hw, exposure_image, runtime_config
+            WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup()], hw, runtime_config
         )
-
-    def run(self):
-        try:
-            super().run()
-        except Exception:
-            self._hw.motorsRelease()
-            raise
 
     @property
     def name(self) -> str:

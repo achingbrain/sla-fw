@@ -4,7 +4,6 @@
 
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.functions.system import shut_down
-from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId, WizardState
 from sl1fw.wizard.actions import UserActionBroker
@@ -102,7 +101,6 @@ class FactoryResetWizard(Wizard):
     def __init__(
         self,
         hw: Hardware,
-        exposure_image: ExposureImage,
         runtime_config: RuntimeConfig,
         erase_projects: bool = False,
     ):
@@ -110,7 +108,6 @@ class FactoryResetWizard(Wizard):
             WizardId.FACTORY_RESET,
             [ResetSettingsGroup(hw, True, erase_projects)],
             hw,
-            exposure_image,
             runtime_config,
         )
 
@@ -120,7 +117,7 @@ class FactoryResetWizard(Wizard):
 
 
 class PackingWizard(Wizard):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
         groups = [
             SendPrinterDataGroup(hw),
             ResetSettingsGroup(hw, disable_unboxing=False, erase_projects=False, hard_errors=True),
@@ -131,7 +128,7 @@ class PackingWizard(Wizard):
             groups.append(PackStage1(hw, runtime_config, True))
             groups.append(PackStage2(hw))
 
-        super().__init__(WizardId.FACTORY_RESET, groups, hw, exposure_image, runtime_config)
+        super().__init__(WizardId.FACTORY_RESET, groups, hw, runtime_config)
 
     def run(self):
         super().run()

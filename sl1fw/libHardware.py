@@ -570,11 +570,11 @@ class Hardware:
         self.mcc.do("!ulcd", int(mask))
 
     @safe_call([0, 0, 0, 0], (ValueError, MotionControllerException))
-    def getVoltages(self):
+    def getVoltages(self, precision = 3):
         volts = self.mcc.doGetIntList("?volt", multiply=0.001)
         if len(volts) != 4:
             raise ValueError(f"Volts count not match! ({volts})")
-        return [round(volt, 1) for volt in volts]
+        return [round(volt, precision) for volt in volts]
 
     def resinSensor(self, state):
         """Enable/Disable resin sensor"""

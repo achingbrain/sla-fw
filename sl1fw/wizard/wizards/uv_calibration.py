@@ -134,19 +134,6 @@ class UVCalibrationWizard(Wizard):
             exposure_image,
             runtime_config,
         )
-        self._display_replaced = display_replaced
-        self._led_module_replaced = led_module_replaced
-        self._hw = hw
-        self._exposure_image = exposure_image
-
-    def run(self):
-        try:
-            super().run()
-        finally:
-            self._hw.uvLed(False)
-            self._hw.motorsRelease()
-            self._hw.stopFans()
-            self._exposure_image.blank_screen()
 
     @classmethod
     def get_alt_names(cls) -> Iterable[str]:

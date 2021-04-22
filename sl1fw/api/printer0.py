@@ -474,7 +474,7 @@ class Printer0:
 
         :return: Dictionary mapping from LED channel name to voltage value
         """
-        return self._format_leds(self.printer.hw.getVoltages())
+        return self._format_leds(self.printer.hw.getVoltages(1))
 
     @staticmethod
     def _format_leds(leds):
@@ -956,7 +956,7 @@ class Printer0:
     def run_unboxing_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             CompleteUnboxingWizard(
-                self.printer.hw, self.printer.exposure_image, self.printer.runtime_config
+                self.printer.hw, self.printer.runtime_config
             )
         )
 
@@ -964,7 +964,7 @@ class Printer0:
     @last_error
     def run_kit_unboxing_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
-            KitUnboxingWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
+            KitUnboxingWizard(self.printer.hw, self.printer.runtime_config)
         )
 
     @auto_dbus
@@ -980,7 +980,7 @@ class Printer0:
     @last_error
     def run_calibration_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
-            CalibrationWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
+            CalibrationWizard(self.printer.hw, self.printer.runtime_config)
         )
 
     @auto_dbus
@@ -988,12 +988,12 @@ class Printer0:
     def run_factory_reset_wizard(self) -> None:
         if self.printer.runtime_config.factory_mode:
             self.printer.action_manager.start_wizard(
-                PackingWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
+                PackingWizard(self.printer.hw, self.printer.runtime_config)
             )
         else:
             self.printer.action_manager.start_wizard(
                 FactoryResetWizard(
-                    self.printer.hw, self.printer.exposure_image, self.printer.runtime_config
+                    self.printer.hw, self.printer.runtime_config
                 )
             )
 

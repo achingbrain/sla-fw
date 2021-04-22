@@ -100,7 +100,7 @@ class SystemInfoMenu(AdminMenu):
             self.temp2.set(f"Temperature2 (SL1S UV LED): {temps[2]}")
             self.temp3.set(f"Temperature3 (extra): {temps[3]}")
             self.fans.set(f"Fan: {self._printer.hw.getFansRpmDict()} RPM")
-            self.uv_led.set(f"UV LED voltages: {self._printer.hw.getVoltages()}")
+            self.uv_led.set(f"UV LED voltages: {self._printer.hw.getVoltages(1)}")
             uv_stats = self._printer.hw.getUvStatistics()
             self.uv_counter.set(f"UV LED counter: {timedelta(seconds=uv_stats[0])}")
             self.display_counter.set(f"Display counter: {timedelta(seconds=uv_stats[1])}")

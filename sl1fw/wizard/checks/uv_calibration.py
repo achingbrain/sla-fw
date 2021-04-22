@@ -9,6 +9,7 @@ from dataclasses import asdict
 from datetime import datetime
 from functools import partial
 from typing import Dict, Any
+import weakref
 
 import toml
 
@@ -46,7 +47,6 @@ class CheckUVMeter(DangerousCheck):
         super().__init__(
             hw, WizardCheckType.UV_METER_PRESENT, Configuration(None, None), [Resource.UV],
         )
-        self._hw = hw
         self._uv_meter = uv_meter
 
     async def async_task_run(self, actions: UserActionBroker):
@@ -69,8 +69,7 @@ class CheckUVMeter(DangerousCheck):
 class UVWarmupCheck(DangerousCheck):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
         super().__init__(hw, WizardCheckType.UV_WARMUP, Configuration(None, None), [Resource.UV, Resource.FANS])
-        self._hw = hw
-        self._exposure_image = exposure_image
+        self._exposure_image = weakref.proxy(exposure_image)
         self._uv_meter = uv_meter
 
     async def async_task_run(self, actions: UserActionBroker):
@@ -95,8 +94,7 @@ class CheckUVMeterPlacement(DangerousCheck):
         super().__init__(
             hw, WizardCheckType.UV_METER_PLACEMENT, Configuration(None, None), [Resource.UV, Resource.FANS]
         )
-        self._hw = hw
-        self._exposure_image = exposure_image
+        self._exposure_image = weakref.proxy(exposure_image)
         self._uv_meter = uv_meter
 
     async def async_task_run(self, actions: UserActionBroker):
@@ -130,8 +128,7 @@ class UVCalibrate(DangerousCheck, ABC):
         result: UVCalibrationResult,
     ):
         super().__init__(hw, check_type, Configuration(None, None), [Resource.UV])
-        self._hw = hw
-        self._exposure_image = exposure_image
+        self._exposure_image = weakref.proxy(exposure_image)
         self._uv_meter = uv_meter
         self._calibration_params = self._hw.printer_model.calibration_parameters(self._hw.is500khz)
         self._result: UVCalibrationResult = result

@@ -157,7 +157,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
                 if wizard.state != expectedState:
                     raise Exception("Wizard not in expected state")
                 wizard.cancel()
-                wizard.abort()
             sleep(0.5)    # FIXME: MC commands from canceling wizard are sent even when wizard.state is already CANCELED. It has effect on ongoing tests
         except Exception as exception:
             self.tearDown()
