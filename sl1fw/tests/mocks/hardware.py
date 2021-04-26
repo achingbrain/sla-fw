@@ -68,6 +68,7 @@ class Hardware:
         self.tilt.homing_status = 0
         self.tilt.sync_wait_coroutine = AsyncMock()
         self.tilt.home_calibrate_wait_coroutine = AsyncMock()
+        self.tilt.layer_down_wait_coroutine = AsyncMock()
 
     def getUvStatistics(self):
         return self._led_stat_s, self._display_stat_s

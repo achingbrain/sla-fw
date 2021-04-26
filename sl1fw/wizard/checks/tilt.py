@@ -165,7 +165,7 @@ class TiltTimingTest(DangerousCheck):
             tilt_start_time = time()
             self._hw.tilt.layer_up_wait()
             await asyncio.sleep(0)
-            self._hw.tilt.layer_down_wait(slowMove)
+            await self._hw.tilt.layer_down_wait_coroutine(slowMove)
             tilt_time += time() - tilt_start_time
 
         return round(1000 * tilt_time / total)

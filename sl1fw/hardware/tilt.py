@@ -55,8 +55,12 @@ class Tilt(Axis):
     def layer_up_wait(self, slowMove: bool = False):
         """tilt up during the print"""
 
-    @abstractmethod
     def layer_down_wait(self, slowMove: bool = False) -> bool:
+        """tilt up during the print"""
+        return asyncio.run(self.layer_down_wait_coroutine(slowMove=slowMove))
+
+    @abstractmethod
+    async def layer_down_wait_coroutine(self, slowMove: bool = False) -> bool:
         """tilt up during the print"""
 
     @abstractmethod
@@ -234,7 +238,7 @@ class TiltSL1(Tilt):
 
 
     @safe_call(False, MotionControllerException)
-    def layer_down_wait(self, slowMove: bool = False):
+    async def layer_down_wait_coroutine(self, slowMove: bool = False):
         profile = self._config.tuneTilt[0] if slowMove else self._config.tuneTilt[1]
 
         # initial release movement with optional sleep at the end
@@ -242,8 +246,8 @@ class TiltSL1(Tilt):
         if profile[1] > 0:
             self.move_absolute(self.position - profile[1])
             while self.moving:
-                sleep(0.1)
-        sleep(profile[2] / 1000.0)
+                await asyncio.sleep(0.1)
+        await asyncio.sleep(profile[2] / 1000.0)
 
         # next movement may be splited
         self.profile_id = TiltProfile(profile[3])
@@ -251,14 +255,14 @@ class TiltSL1(Tilt):
         for _ in range(profile[4]):
             self.move_absolute(self.position - movePerCycle)
             while self.moving:
-                sleep(0.1)
-            sleep(profile[5] / 1000.0)
+                await asyncio.sleep(0.1)
+            await asyncio.sleep(profile[5] / 1000.0)
 
         # if not already in endstop ensure we end up at defined bottom position
         if not self._mcc.checkState("endstop"):
             self.move_absolute(-defines.tiltHomingTolerance)
             while self.moving:
-                sleep(0.1)
+                await asyncio.sleep(0.1)
 
         # check if tilt is on endstop
         if self._mcc.checkState("endstop"):
@@ -278,9 +282,9 @@ class TiltSL1(Tilt):
             self.position = step
             self.move_absolute(0)
             while self.moving:
-                sleep(0.1)
+                await asyncio.sleep(0.1)
             count += step
-        return self.sync_wait(retries=1)
+        return await self.sync_wait_coroutine(retries=1)
 
     @safe_call(False, MotionControllerException)
     def layer_up_wait(self, slowMove: bool = False):
