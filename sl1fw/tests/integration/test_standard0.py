@@ -55,7 +55,7 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
         self.assertDictEqual(
             {
                 'exposure_time_ms': 1000,
-                'exposure_time_calibrate_ms':1000,
+                'calibrate_time_ms':1000,
                 'calibration_regions': 0,
                 'exposure_time_first_ms': 1000
             },

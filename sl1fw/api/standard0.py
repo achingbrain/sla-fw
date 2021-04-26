@@ -103,7 +103,7 @@ class Standard0:
         "exposure_time_ms": True,
         "exposure_time_first_ms": True,
         "calibration_regions": False,
-        "exposure_time_calibrate_ms": True,
+        "calibrate_time_ms": True,
     }
 
     PROPERTIES_GROUP = {
@@ -111,7 +111,7 @@ class Standard0:
             "exposure_time_ms",
             "exposure_time_first_ms",
             "calibration_regions",
-            "exposure_time_calibrate_ms",
+            "calibrate_time_ms",
         }
     }
 
@@ -388,17 +388,6 @@ class Standard0:
         )
 
     ## PROJECT PROPERTIES ##
-    @auto_dbus
-    @property
-    @last_error
-    def project_extensions(self) -> List[str]:
-        """
-        Set of supported project extensions
-
-        :return: Set of extension strings
-        """
-        return list(self._printer.hw.printer_model.extensions)
-
     @auto_dbus
     @property
     @last_error
