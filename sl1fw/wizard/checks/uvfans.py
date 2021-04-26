@@ -44,15 +44,17 @@ class UVFansTest(DangerousCheck):
         self._hw.uvLedPwm = get_uv_check_pwms(self._hw)[3]
 
         uv_temp = self._hw.getUvLedTemperature()
+        fan_error = self._hw.getFansError()
         try: # check may be interrupted by another check or canceled
             for countdown in range(self._hw.config.uvWarmUpTime, 0, -1):
                 self.progress = 1 - countdown / self._hw.config.uvWarmUpTime
 
                 uv_temp = self._hw.getUvLedTemperature()
+                fan_error = self._hw.getFansError()
                 if uv_temp > defines.maxUVTemp:
                     self._logger.error("Skipping UV Fan check due to overheat")
                     break
-                if any(self._hw.getFansError().values()):
+                if any(fan_error.values()):
                     self._logger.error("Skipping UV Fan check due to fan failure")
                     break
 
@@ -67,9 +69,7 @@ class UVFansTest(DangerousCheck):
 
         # evaluate fans data
         avg_rpms = list()
-        if not test_runtime.testing:
-            fan_error = self._hw.getFansError()
-        else:
+        if test_runtime.testing:
             fan_error = {0: False, 1: False, 2: False}
 
         for i, fan in self._hw.fans.items():  # iterate over fans
