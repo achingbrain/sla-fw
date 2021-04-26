@@ -6,7 +6,6 @@
 
 import logging
 from logging.handlers import QueueHandler
-from os import getpid
 from signal import signal, SIGTERM
 from enum import unique, IntEnum, IntFlag
 from multiprocessing import Process, shared_memory, Event, Queue
@@ -94,10 +93,10 @@ class Preloader(Process):
 
     def run(self):
         queue_handler = QueueHandler(self._log_queue)
-        logging.getLogger().addHandler(queue_handler)
-        self._logger = logging.getLogger(__name__)
+        logging.getLogger().handlers.clear()            # drop journald handler
+        logging.getLogger().addHandler(queue_handler)   # log via main process logger
         self._logger.info("process started")
-        self._logger.debug("process PID: %d", getpid())
+        self._logger.debug("process PID: %d", self.pid)
         signal(SIGTERM, self.signal_handler)
 
         while not self._stoprequest.is_set():
