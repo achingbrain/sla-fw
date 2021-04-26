@@ -167,8 +167,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         # cProfile.runctx('self.printer.start()', globals=globals(), locals=locals())
 
     def tearDown(self):
-        self.printer.fs0_dbus.onMediaEjected = None
-        self.printer.fs0_dbus.onMediaInserted = None
         self.printer0_dbus.unpublish()
         print(Printer0.PropertiesChanged.map)
         if self._printer0 in Printer0.PropertiesChanged.map:

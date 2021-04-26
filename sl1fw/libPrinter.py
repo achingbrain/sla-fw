@@ -17,11 +17,10 @@ import threading
 import subprocess
 import weakref
 from pathlib import Path
-from time import monotonic, sleep
+from time import monotonic
 from typing import Optional, Set
 
 import distro
-from gi.repository import GLib
 from PySignal import Signal
 from pydbus import SystemBus
 
@@ -80,7 +79,7 @@ class Printer:
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
         self._states: Set[PrinterState] = {PrinterState.INIT}
-
+        self._fs0_subscriptions = []
         self.logger.info("Initializing hwconfig")
         hw_config = HwConfig(
             file_path=Path(defines.hwConfigPath), factory_file_path=Path(defines.hwConfigPathFactory), is_master=True,
@@ -126,7 +125,6 @@ class Printer:
 
         self.logger.info("Registering config D-Bus services")
         self.system_bus = SystemBus()
-        self.fs0_dbus = None
         self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hw))
 
         self.logger.info("registering log0 dbus interface")
@@ -175,6 +173,8 @@ class Printer:
         self.action_manager.exit()
         self.config0_dbus.unpublish()
         self.logs0_dbus.unpublish()
+        for subscription in self._fs0_subscriptions:
+            subscription.unsubscribe()
 
     def printer_run(self):
         self.hw.uvLed(False)
@@ -278,24 +278,23 @@ class Printer:
 
         # Since display is initialized we can catch exceptions and report problems to display
         try:
-            timeout_s = 30
-            self.logger.info("connecting cz.prusa3d.sl1.filemanager0 dbus interface")
-            for _ in range(timeout_s):
-                try:
-                    self.fs0_dbus = self.system_bus.get("cz.prusa3d.sl1.filemanager0")
-                    break
-                except GLib.GError:
-                    sleep(1)
-            if self.fs0_dbus is None:
-                raise Exception("Failed connect cz.prusa3d.sl1.filemanager0 dbus interface")
             self.logger.info("Registering event handlers")
             self.inet.register_events()
             self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(
                 weakref.proxy(self._locale_changed)
             )
             self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(weakref.proxy(self._rauc_changed))
-            self.fs0_dbus.onMediaInserted = self._media_inserted
-            self.fs0_dbus.onMediaEjected = self._media_ejected
+            self.logger.info("connecting cz.prusa3d.sl1.filemanager0 DBus signals")
+            self._fs0_subscriptions.append(
+                self.system_bus.subscribe(
+                    object="/cz/prusa3d/sl1/filemanager0", signal="MediaInserted", signal_fired=self._media_inserted
+                )
+            )
+            self._fs0_subscriptions.append(
+                self.system_bus.subscribe(
+                    object="/cz/prusa3d/sl1/filemanager0", signal="MediaEjected", signal_fired=self._media_ejected
+                )
+            )
 
             if not self.runtime_config.factory_mode:
                 self.logger.info("Starting admin checker")
@@ -331,9 +330,6 @@ class Printer:
             self.exited.clear()
             self.set_state(PrinterState.RUNNING)
             self.printer_run()
-
-            self.fs0_dbus.onMediaEjected = None
-            self.fs0_dbus.onMediaInserted = None
         except Exception as exception:
             self.exception = exception
             self.set_state(PrinterState.EXCEPTION)
@@ -344,7 +340,6 @@ class Printer:
         if self.action_manager.exposure and self.action_manager.exposure.in_progress:
             self.action_manager.exposure.waitDone()
 
-        self.fs0_dbus = None
         self.exited.set()
 
     def _locale_changed(self, __, changed, ___):
@@ -457,8 +452,9 @@ class Printer:
 
         return url
 
-    def _media_inserted(self, path: str):
+    def _media_inserted(self, _, __, ___, ____, params):
         try:
+            path = params[0]
             if path:
                 self.logger.info("Opening project %s", path)
                 last_exposure = self.action_manager.exposure
@@ -470,13 +466,14 @@ class Printer:
         except NotMechanicallyCalibrated:
             self.display.forcePage("calibrationstart")
         except Exception:
-            pass
+            self.logger.exception("Error handling media inserted event")
 
-    def _media_ejected(self, root_path: str):
+    def _media_ejected(self, _, __, ___, ____, params):
         try:
+            root_path = params[0]
             self.logger.info("Media ejected: %s", root_path)
             expo = self.action_manager.exposure
             if expo and Path(root_path) in Path(expo.project.path).parents:
                 expo.try_cancel()
         except Exception:
-            pass
+            self.logger.exception("Error handling media ejected event")
