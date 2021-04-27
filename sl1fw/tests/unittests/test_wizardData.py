@@ -52,6 +52,10 @@ class TestSelfTestWizardDataPresent(Sl1fwTestCase):
         defines.factoryMountPoint.mkdir(parents=True)
         self.wizard = SelfTestWizard(Mock(), Mock(), Mock())
 
+    def tearDown(self) -> None:
+        del self.wizard
+        super().tearDown()
+
     def test_data_nothing(self):
         self.assertFalse(self.wizard._data_present_in_factory())
 

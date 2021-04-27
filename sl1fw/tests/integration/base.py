@@ -168,7 +168,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
     def tearDown(self):
         self.printer0_dbus.unpublish()
-        print(Printer0.PropertiesChanged.map)
         if self._printer0 in Printer0.PropertiesChanged.map:
             del Printer0.PropertiesChanged.map[self._printer0]
 

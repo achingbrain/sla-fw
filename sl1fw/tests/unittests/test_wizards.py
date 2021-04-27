@@ -35,7 +35,12 @@ from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
 
 class TestGroup(CheckGroup):
-    setup = AsyncMock()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setup_mock = AsyncMock()
+
+    async def setup(self, actions: UserActionBroker):
+        self.setup_mock(actions)
 
 
 class TestWizardInfrastructure(Sl1fwTestCase):
@@ -99,7 +104,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         test = TestGroup(Mock(), [])
         actions = Mock()
         asyncio.run(test.run(actions))
-        test.setup.assert_called()
+        test.setup_mock.assert_called()
 
     def test_check_execution(self):
         check = AsyncMock()
@@ -230,6 +235,10 @@ class TestReset(TestWizards):
         self.time_date.SetNTP(not self.time_date.DEFAULT_NTP, False)
         self.time_date.SetTimezone("Europe/Prague", False)
         self.locale.SetLocale("en_US.utf-8", False)
+
+    def tearDown(self) -> None:
+        del self.hw
+        super().tearDown()
 
     def _run_wizard(self, wizard: Wizard, limit_s: int = 5, expected_state=WizardState.DONE):
         with patch("sl1fw.wizard.checks.factory_reset.copyfile"), patch(
@@ -420,6 +429,11 @@ class TestUVCalibration(TestWizards):
         self.exposure_image = Mock()
         self.exposure_image.printer_model = PrinterModel.SL1
         self.uv_meter = UVMeterMock(self.hw)
+
+    def tearDown(self) -> None:
+        del self.hw
+        del self.uv_meter
+        super().tearDown()
 
     def test_uv_calibration_no_boost(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):

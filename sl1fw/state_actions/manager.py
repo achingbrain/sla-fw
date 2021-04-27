@@ -40,6 +40,8 @@ class ActionManager:
         self._exposure_bus_name = None
         self._wizard: Optional[Wizard] = None
         self._wizard_registration = None
+        self._wizard_registered_object = None
+        self._wizard_dbus_name = None
         self._exited = False
 
     def new_exposure(
@@ -143,19 +145,37 @@ class ActionManager:
         if self._exited:
             raise Exception("Attempt to start wizard after exit")
         if self._wizard and self._wizard.state in WizardState.finished_states():
-            self._wizard = None
-            self._wizard_registration.unpublish()
+            self._unregister_wizard()
 
         if self._wizard:
             raise Exception("Wizard already running")
 
         self._wizard = wizard
         self._wizard.state_changed.connect(self._on_wizard_state_change)
-        self._wizard_registration = self._system_bus.publish(
-            Wizard0.__INTERFACE__, (Wizard0.DBUS_PATH, Wizard0(self._wizard))
+
+        # The request_name and register object can be replaced by simpler publish, but publish keeps reference to
+        # API object internals preventing it from gargabe collection
+        if not self._wizard_dbus_name:
+            self._wizard_dbus_name = self._system_bus.request_name(Wizard0.__INTERFACE__)
+        self._wizard_registered_object = Wizard0(weakref.proxy(self._wizard))
+        weak_wizard0 = weakref.proxy(self._wizard_registered_object)
+        # pylint: disable=no-member
+        self._wizard_registration = self._system_bus.register_object(
+            self._wizard_registered_object.DBUS_PATH, weak_wizard0, self._wizard_registered_object.dbus
         )
+
         self._wizard.start()
         return self._wizard
+
+    def _unregister_wizard(self):
+        if self._wizard_registration:
+            self._wizard_registration.unregister()
+            # TODO: it is not nice to touch pydbus signal internals, we would better fix the library
+            # The map holds strong reference to the Wizard0 instance preventing release of the wizard from RAM.
+            del Wizard0.PropertiesChanged.map[self._wizard_registered_object]
+            self._wizard_registration = None
+            self._wizard_registered_object = None
+        self._wizard = None
 
     @property
     def wizard(self) -> Optional[Wizard]:
@@ -163,15 +183,17 @@ class ActionManager:
 
     def exit(self):
         self._exited = True
-        if self._wizard:
+        if self._wizard and self._wizard.state not in WizardState.finished_states():
             self.logger.warning("Force canceling wizard on action manager exit")
             self._wizard.force_cancel()
 
         self._shrink_exposures_to(0)
         if self._exposure_bus_name:
             self._exposure_bus_name.unown()
-        if self._wizard_registration:
-            self._wizard_registration.unpublish()
+        self._unregister_wizard()
+        if self._wizard_dbus_name:
+            self._wizard_dbus_name.unown()
+
         # Throw away reference to let exposure garbage collect
         self._current_exposure = None
 
@@ -182,7 +204,7 @@ class ActionManager:
     def _on_wizard_state_change(self):
         self.wizard_changed.emit()
 
-    def try_cancel_by_path(self, path:str) -> None:
+    def try_cancel_by_path(self, path: str) -> None:
         """
         Cancel exposure if the paths are equals
         This check if there is a exposure is running before delete the file

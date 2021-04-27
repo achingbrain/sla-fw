@@ -45,6 +45,9 @@ from sl1fw.libPrinter import Printer
 from sl1fw.api.printer0 import Printer0
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.image.exposure_image import ExposureImage
+from sl1fw.wizard.wizard import Wizard
+from sl1fw.api.exposure0 import Exposure0
+from sl1fw.api.wizard0 import Wizard0
 
 
 class Sl1fwTestCase(DBusTestCase):
@@ -139,7 +142,10 @@ class Sl1fwTestCase(DBusTestCase):
         logging.getLogger().removeHandler(self.stream_handler)
         self.ref_check_type(Printer0)
         self.ref_check_type(Printer)
+        self.ref_check_type(Exposure0)
         self.ref_check_type(Exposure)
+        self.ref_check_type(Wizard0)
+        self.ref_check_type(Wizard)
         self.ref_check_type(ExposureImage)
 
         self.temp_dir_obj.cleanup()
@@ -163,7 +169,7 @@ class Sl1fwTestCase(DBusTestCase):
                         if isinstance(ref, list) and len(ref) > 100:
                             print(f"Referrer {num}: <100+ LONG LIST>")
                         else:
-                            print(f"Referrers {num}: {ref} - {type(ref)}")
+                            print(f"Referrer {num}: {ref} - {type(ref)}")
             except ReferenceError:
                 # Weak reference no longer valid
                 pass
