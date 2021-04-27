@@ -53,6 +53,8 @@ from sl1fw.api.wizard0 import Wizard0
 class Sl1fwTestCase(DBusTestCase):
     LOGGER_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 
+    LOGGER_STREAM_HANDLER_NAME = "a64-fw custom stream handler"
+
     SL1FW_DIR = Path(sl1fw.__file__).parent
     SAMPLES_DIR = Path(samples.__file__).parent
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
@@ -88,9 +90,10 @@ class Sl1fwTestCase(DBusTestCase):
 
         # Set stream handler here in order to use stdout already captured by unittest
         self.stream_handler = logging.StreamHandler(sys.stdout)
+        self.stream_handler.name = self.LOGGER_STREAM_HANDLER_NAME
         self.stream_handler.setFormatter(logging.Formatter(self.LOGGER_FORMAT))
         logger = logging.getLogger()
-        if logger.hasHandlers():
+        if any([handler.name == self.LOGGER_STREAM_HANDLER_NAME for handler in logger.handlers]):
             raise RuntimeError("Handler already installed !!! Failed to run super().tearDown in previous test ???")
         logger.addHandler(self.stream_handler)
         logger.setLevel(logging.DEBUG)
