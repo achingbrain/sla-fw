@@ -9,7 +9,7 @@ import os
 import unittest
 from time import sleep
 from typing import Optional
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
@@ -43,8 +43,7 @@ class TestLibHardwareConnect(Sl1fwTestCase):
         self.assertIsNone(self.hw.mcc.connect(mc_version_check=False))
 
     def test_mcc_connect_wrong_version(self) -> None:
-        defines.reqMcVersion = "INVALID"
-        with self.assertRaises(MotionControllerWrongFw):
+        with patch("sl1fw.defines.reqMcVersion", "INVALID"), self.assertRaises(MotionControllerWrongFw):
             self.hw.mcc.connect(mc_version_check=True)
 
     def test_mcc_connect_fatal_fail(self) -> None:
