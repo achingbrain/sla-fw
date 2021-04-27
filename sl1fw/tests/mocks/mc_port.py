@@ -144,10 +144,11 @@ class MCSerial:
 
         :return: None
         """
-        self.process.terminate()
-        self.process.wait(timeout=3)
-        self.process.stdin.close()
-        self.process.stdout.close()
+        if self.process:
+            self.process.terminate()
+            self.process.wait(timeout=3)
+            self.process.stdin.close()
+            self.process.stdout.close()
 
     def write(self, data: bytes):
         """

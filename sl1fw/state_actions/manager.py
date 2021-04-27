@@ -38,8 +38,9 @@ class ActionManager:
         self.exposure_change = Signal()
         self.wizard_changed = Signal()
         self._exposure_bus_name = None
-        self._wizard: Optional[Wizard0] = None
+        self._wizard: Optional[Wizard] = None
         self._wizard_registration = None
+        self._exited = False
 
     def new_exposure(
         self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig, project: str
@@ -139,6 +140,8 @@ class ActionManager:
         return self._current_exposure
 
     def start_wizard(self, wizard: Wizard) -> Wizard:
+        if self._exited:
+            raise Exception("Attempt to start wizard after exit")
         if self._wizard and self._wizard.state in WizardState.finished_states():
             self._wizard = None
             self._wizard_registration.unpublish()
@@ -155,10 +158,15 @@ class ActionManager:
         return self._wizard
 
     @property
-    def wizard(self) -> Optional[Wizard0]:
+    def wizard(self) -> Optional[Wizard]:
         return self._wizard
 
     def exit(self):
+        self._exited = True
+        if self._wizard:
+            self.logger.warning("Force canceling wizard on action manager exit")
+            self._wizard.force_cancel()
+
         self._shrink_exposures_to(0)
         if self._exposure_bus_name:
             self._exposure_bus_name.unown()

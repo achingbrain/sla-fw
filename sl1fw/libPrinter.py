@@ -17,7 +17,7 @@ import threading
 import subprocess
 import weakref
 from pathlib import Path
-from time import monotonic
+from time import monotonic, sleep
 from typing import Optional, Set
 
 import distro
@@ -165,12 +165,16 @@ class Printer:
         self.exception_changed.emit()
 
     def exit(self):
+        while self.state == PrinterState.INIT:
+            print("Waiting for printer to leave init")
+            sleep(1)
+
         self.set_state(PrinterState.EXIT)
         self.display.exit()
+        self.action_manager.exit()
         self.exposure_image.exit()
         self.exited.wait(timeout=60)
         self.hw.exit()
-        self.action_manager.exit()
         self.config0_dbus.unpublish()
         self.logs0_dbus.unpublish()
         for subscription in self._fs0_subscriptions:

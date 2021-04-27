@@ -31,6 +31,8 @@ from sl1fw.wizard.group import CheckGroup
 class Wizard(Thread, UserActionBroker):
     # pylint: disable=too-many-instance-attributes
     # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-public-methods
+
     def __init__(
         self,
         identifier: WizardId,
@@ -162,7 +164,9 @@ class Wizard(Thread, UserActionBroker):
     def cancel(self):
         if not self.cancelable:
             raise WizardNotCancelable()
+        self.force_cancel()
 
+    def force_cancel(self):
         self._logger.info("Canceling wizard")
         self.cancel_action()
 

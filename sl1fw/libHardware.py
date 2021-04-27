@@ -187,7 +187,8 @@ class Hardware:
 
     def exit(self):
         self._value_refresh_run = False
-        self._value_refresh_thread.join()
+        if self._value_refresh_thread.is_alive():
+            self._value_refresh_thread.join()
         self.mcc.exit()
         self.exposure_screen.exit()
 
