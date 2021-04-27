@@ -759,6 +759,7 @@ class Exposure0:
         "project": {"exposure_time_ms", "exposure_time_first_ms", "exposure_time_calibrate_ms", "calibration_regions"},
         "printStartTime": {"print_start_timestamp"},
         "printEndTime": {"print_end_timestamp"},
+        "exception": {"exposure_exception"},
     }
 
     def _handle_change(self, key: str, _: Any):
