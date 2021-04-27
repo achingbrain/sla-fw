@@ -58,7 +58,7 @@ class PrinterModel(Enum):
         return {
                 self.NONE: {""},
                 self.SL1: {".sl1"},
-                self.SL1S: {".sl1", ".sl1s"},
+                self.SL1S: {".sl1s"},
             }[self]
 
     @property
