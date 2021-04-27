@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import gc
+import importlib
 import logging
 import sys
 import tempfile
@@ -78,6 +79,9 @@ class Sl1fwTestCase(DBusTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+
+        # Make sure we use unmodified defines
+        importlib.reload(defines)
 
         # Set stream handler here in order to use stdout already captured by unittest
         self.stream_handler = logging.StreamHandler(sys.stdout)
