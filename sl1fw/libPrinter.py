@@ -400,7 +400,10 @@ class Printer:
 
     @property
     def data_privacy(self) -> bool:
-        return TomlConfig(defines.remoteConfig).load().get("data_privacy", True)
+        default = True
+        if not defines.remoteConfig.is_file():
+            return default
+        return TomlConfig(defines.remoteConfig).load().get("data_privacy", default)
 
     @data_privacy.setter
     def data_privacy(self, enabled: bool) -> None:
@@ -415,7 +418,7 @@ class Printer:
     @property
     def help_page_url(self) -> str:
         url = ""
-        if TomlConfig(defines.remoteConfig).load().get("data_privacy", True):
+        if self.data_privacy:
             fw_version = re.sub(r"(\d*)\.(\d*)\.(\d*)-.*", r"\g<1>\g<2>\g<3>", distro.version())
             url = url + f"/{self.id}/{fw_version}"
 
@@ -424,7 +427,7 @@ class Printer:
     def _media_inserted(self, _, __, ___, ____, params):
         try:
             path = params[0]
-            if path:
+            if path and os.path.isfile(path):
                 self.logger.info("Opening project %s", path)
                 last_exposure = self.action_manager.exposure
                 if last_exposure:
