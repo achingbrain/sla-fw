@@ -213,31 +213,28 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self.add_item(uv_pwm_item)
         self.add_item(AdminAction("Save", self.save))
 
-    # TODO start UVLED after tilt align is done
     def on_enter(self):
-        self.logger.debug("on enter called")
-        self.enter(Wait(self._control, self._do_tilt_align))
-        self._printer.hw.startFans()
-        self._printer.hw.uvLedPwm = self._temp.uvPwm
-        self._printer.hw.uvLed(True)
-        self._printer.exposure_image.blank_screen()
-        self._printer.exposure_image.inverse()
+        self.enter(Wait(self._control, self._do_prepare))
 
     def on_leave(self):
-        self.logger.debug("on leave called")
         if self._temp.changed():
             self._control.enter(Info(self._control, "Configuration has been changed but NOT saved."))
         self._printer.hw.saveUvStatistics()
         hw_all_off(self._printer.hw, self._printer.exposure_image)
 
     @SafeAdminMenu.safe_call
-    def _do_tilt_align(self, status: AdminLabel):
+    def _do_prepare(self, status: AdminLabel):
         self._printer.hw.powerLed("warn")
         status.set("Tilt is going to level")
         self._printer.hw.tilt.sync_wait()
         self._printer.hw.tilt.move_up_wait()
         self._printer.hw.powerLed("normal")
         status.set("Tilt leveled")
+        self._printer.hw.startFans()
+        self._printer.hw.uvLedPwm = self._temp.uvPwm
+        self._printer.hw.uvLed(True)
+        self._printer.exposure_image.blank_screen()
+        self._printer.exposure_image.inverse()
 
     @property
     def uv_led(self) -> bool:
@@ -258,7 +255,6 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._printer.exposure_image.inverse()
 
     def save(self):
-        self.logger.debug("save called")
         self._temp.commit(write=True)
         self._control.enter(Info(self._control, "Configuration saved"))
 
