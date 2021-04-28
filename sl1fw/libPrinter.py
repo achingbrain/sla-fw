@@ -445,7 +445,7 @@ class Printer:
             root_path = params[0]
             self.logger.info("Media ejected: %s", root_path)
             expo = self.action_manager.exposure
-            if expo and Path(root_path) in Path(expo.project.path).parents:
+            if expo and expo.project and Path(root_path) in Path(expo.project.path).parents:
                 expo.try_cancel()
         except Exception:
             self.logger.exception("Error handling media ejected event")
