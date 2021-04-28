@@ -5,9 +5,9 @@
 from datetime import timedelta
 
 from sl1fw.admin.control import AdminControl
-from sl1fw.admin.items import AdminAction, AdminBoolValue
+from sl1fw.admin.items import AdminAction, AdminBoolValue, AdminIntValue, AdminLabel
 from sl1fw.admin.menu import AdminMenu
-from sl1fw.admin.menus.dialogs import Info, Confirm
+from sl1fw.admin.menus.dialogs import Info, Confirm, Wait
 from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.functions import files
 from sl1fw.functions.system import hw_all_off
@@ -29,6 +29,11 @@ class DisplayRootMenu(AdminMenu):
         self.add_item(
             AdminAction(
                 "Display control", lambda: self._control.enter(DisplayControlMenu(self._control, self._printer))
+            )
+        )
+        self.add_item(
+            AdminAction(
+                "Direct UV PWM settings", lambda: self._control.enter(DirectPwmSetMenu(self._control, self._printer))
             )
         )
 
@@ -191,3 +196,71 @@ class DisplayControlMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def invert(self):
         self._printer.exposure_image.inverse()
+
+
+class DirectPwmSetMenu(SafeAdminMenu):
+    def __init__(self, control: AdminControl, printer: Printer):
+        super().__init__(control)
+        self._printer = printer
+        self._temp = self._printer.hw.config.get_writer()
+
+        self.add_back()
+
+        self.add_item(AdminBoolValue.from_value("UV LED", self, "uv_led"))
+        self.add_item(AdminAction("Inverse", self.invert))
+        uv_pwm_item = AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1)
+        uv_pwm_item.changed.connect(self._uv_pwm_changed)
+        self.add_item(uv_pwm_item)
+        self.add_item(AdminAction("Save", self.save))
+
+    # TODO start UVLED after tilt align is done
+    def on_enter(self):
+        self.logger.debug("on enter called")
+        self.enter(Wait(self._control, self._do_tilt_align))
+        self._printer.hw.startFans()
+        self._printer.hw.uvLedPwm = self._temp.uvPwm
+        self._printer.hw.uvLed(True)
+        self._printer.exposure_image.blank_screen()
+        self._printer.exposure_image.inverse()
+
+    def on_leave(self):
+        self.logger.debug("on leave called")
+        if self._temp.changed():
+            self._control.enter(Info(self._control, "Configuration has been changed but NOT saved."))
+        self._printer.hw.saveUvStatistics()
+        hw_all_off(self._printer.hw, self._printer.exposure_image)
+
+    @SafeAdminMenu.safe_call
+    def _do_tilt_align(self, status: AdminLabel):
+        self._printer.hw.powerLed("warn")
+        status.set("Tilt is going to level")
+        self._printer.hw.tilt.sync_wait()
+        self._printer.hw.tilt.move_up_wait()
+        self._printer.hw.powerLed("normal")
+        status.set("Tilt leveled")
+
+    @property
+    def uv_led(self) -> bool:
+        uv_led_state = self._printer.hw.getUvLedState()
+        return uv_led_state[0]
+
+    @uv_led.setter
+    def uv_led(self, value: bool):
+        if value:
+            self._printer.hw.startFans()
+            self._printer.hw.uvLedPwm = self._temp.uvPwm
+        else:
+            self._printer.hw.stopFans()
+        self._printer.hw.uvLed(value)
+
+    @SafeAdminMenu.safe_call
+    def invert(self):
+        self._printer.exposure_image.inverse()
+
+    def save(self):
+        self.logger.debug("save called")
+        self._temp.commit(write=True)
+        self._control.enter(Info(self._control, "Configuration saved"))
+
+    def _uv_pwm_changed(self):
+        self._printer.hw.uvLedPwm = self._temp.uvPwm
