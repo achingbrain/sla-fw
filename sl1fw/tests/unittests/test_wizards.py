@@ -149,6 +149,8 @@ class TestWizardsBase(Sl1fwTestCase):
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_DISPLAY_TEST:
                 wizard.prepare_displaytest_done()
+            if wizard.state == WizardState.SHOW_RESULTS:
+                wizard.show_results_done()
             if wizard.state == WizardState.TEST_DISPLAY:
                 wizard.report_display(True)
 
@@ -165,6 +167,8 @@ class TestWizardsBase(Sl1fwTestCase):
                 wizard.report_display(False)
             if wizard.state == WizardState.STOPPED:
                 wizard.abort()
+            if wizard.state == WizardState.SHOW_RESULTS:
+                wizard.show_results_done()
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, expected_state=WizardState.FAILED)
@@ -261,6 +265,8 @@ class TestWizards(TestWizardsBase):
                 wizard.prepare_wizard_part_2_done()
             if wizard.state == WizardState.PREPARE_WIZARD_PART_3:
                 wizard.prepare_wizard_part_3_done()
+            if wizard.state == WizardState.SHOW_RESULTS:
+                wizard.show_results_done()
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard)
@@ -331,6 +337,8 @@ class TestWizards(TestWizardsBase):
                 wizard.tank_foam_removed()
             if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
                 wizard.display_foil_removed()
+            if wizard.state == WizardState.SHOW_RESULTS:
+                wizard.show_results_done()
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard)
@@ -341,6 +349,8 @@ class TestWizards(TestWizardsBase):
         def on_state_changed():
             if wizard.state == WizardState.REMOVE_DISPLAY_FOIL:
                 wizard.display_foil_removed()
+            if wizard.state == WizardState.SHOW_RESULTS:
+                wizard.show_results_done()
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard)
@@ -415,6 +425,8 @@ class TestWizards(TestWizardsBase):
                 wizard.prepare_calibration_platform_align_done()
             if wizard.state == WizardState.PREPARE_CALIBRATION_FINISH:
                 wizard.prepare_calibration_finish_done()
+            if wizard.state == WizardState.SHOW_RESULTS:
+                wizard.show_results_done()
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard)
@@ -572,6 +584,8 @@ class TestUVCalibration(TestWizardsBase):
                 wizard.uv_apply_result()
             if wizard.state == WizardState.STOPPED:
                 wizard.abort()
+            if wizard.state == WizardState.SHOW_RESULTS:
+                wizard.show_results_done()
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, limit_s=15, expected_state=expected_state)

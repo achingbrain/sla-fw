@@ -155,6 +155,11 @@ class Wizard0:
 
     @auto_dbus
     @last_error
+    def show_results_done(self):
+        self._wizard.show_results_done()
+
+    @auto_dbus
+    @last_error
     def prepare_displaytest_done(self):
         self._wizard.prepare_displaytest_done()
 

@@ -17,7 +17,7 @@ from sl1fw.wizard.checks.uvleds import UVLEDsTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
-
+from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
 class DisplayTestCheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
@@ -39,7 +39,10 @@ class DisplayTestWizard(Wizard):
         )
         super().__init__(
             WizardId.DISPLAY,
-            [DisplayTestCheckGroup(self._package)],
+            [
+                DisplayTestCheckGroup(self._package),
+                ShowResultsGroup(),
+            ],
             self._package
         )
 

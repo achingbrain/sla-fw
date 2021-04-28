@@ -64,6 +64,7 @@ class UserActionBroker:
         self.prepare_calibration_platform_align_done = UserAction()
         self.prepare_calibration_tilt_align_done = UserAction()
         self.prepare_calibration_finish_done = UserAction()
+
         self.prepare_displaytest_done = UserAction()
         self.prepare_calibration_platform_tank_done = UserAction()
 
@@ -71,6 +72,7 @@ class UserActionBroker:
         self.report_audio = UserAction()
         self.tilt_move = UserAction()
         self.tilt_aligned = UserAction()
+        self.show_results_done = UserAction()
 
         # Unboxing
         self.safety_sticker_removed = UserAction()

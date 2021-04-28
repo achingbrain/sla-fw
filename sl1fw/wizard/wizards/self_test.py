@@ -24,6 +24,7 @@ from sl1fw.wizard.checks.uvleds import UVLEDsTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
+from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
 
 class SelfTestPart1CheckGroup(CheckGroup):
@@ -89,6 +90,7 @@ class SelfTestWizard(Wizard):
                 SelfTestPart1CheckGroup(self._package),
                 SelfTestPart2CheckGroup(self._package),
                 SelfTestPart3CheckGroup(self._package),
+                ShowResultsGroup(),
             ],
             self._package
         )

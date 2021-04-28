@@ -17,6 +17,7 @@ from sl1fw.wizard.checks.tower import TowerAlignTest, TowerHomeTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
+from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
 
 class PlatformTankInsertCheckGroup(CheckGroup):
@@ -101,6 +102,7 @@ class CalibrationWizard(Wizard):
                 TiltAlignCheckGroup(self._package),
                 PlatformAlignCheckGroup(self._package),
                 CalibrationFinishCheckGroup(self._package),
+                ShowResultsGroup()
             ],
             self._package
         )

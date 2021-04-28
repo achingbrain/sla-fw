@@ -13,7 +13,7 @@ from sl1fw.wizard.checks.unboxing import MoveToTank, MoveToFoam
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
-
+from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
 class RemoveSafetyStickerCheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
@@ -76,6 +76,7 @@ class CompleteUnboxingWizard(UnboxingWizard):
                 RemoveSideFoamCheckGroup(self._package),
                 RemoveTankFoamCheckGroup(),
                 RemoveDisplayFoilCheckGroup(),
+                ShowResultsGroup()
             ],
             self._package
         )
