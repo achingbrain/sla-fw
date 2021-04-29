@@ -378,3 +378,15 @@ class MissingExamples(PrinterError):
 @with_code(Sl1Codes.FAILED_TO_LOAD_FACTORY_LEDS_CALIBRATION)
 class NoFactoryUvCalib(PrinterError):
     pass
+
+@with_code(Sl1Codes.UV_LEDS_DISCONNECTED)
+class UVLEDsDisconnected(PrinterError):
+    pass
+
+@with_code(Sl1Codes.UV_LEDS_ROW_FAILED)
+class UVLEDsRowFailed(PrinterError):
+    pass
+
+@with_code(Sl1Codes.UNKNOWN_PRINTER_MODEL)
+class UnknownPrinterModel(PrinterError):
+    pass

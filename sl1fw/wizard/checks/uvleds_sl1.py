@@ -28,14 +28,13 @@ class CheckData:
     uvPwm: int
 
 
-class UVLEDsTest(DangerousCheck):
+class UVLEDsTest_SL1(DangerousCheck):
     CHECK_UV_PWM_INDEXES = 3
 
     def __init__(self, hw: Hardware):
         super().__init__(
             hw, WizardCheckType.UV_LEDS, Configuration(None, None), [Resource.UV],
         )
-        self._hw = hw
         self._result_data = None
 
     async def async_task_run(self, actions: UserActionBroker):

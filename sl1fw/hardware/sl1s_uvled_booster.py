@@ -55,28 +55,29 @@ class Booster:
 
         # DAC
         try:
-            status = self._dac_read(self.DAC_STATUS)
+            DAC_status = self._dac_read(self.DAC_STATUS)
         except Exception as e:
             raise BoosterError("DAC read status") from e
-        if (status & 0x3F) != 0x14:
-            raise BoosterError("DAC wrong status (0x%04X)" % status)
+        if (DAC_status & 0x3F) != 0x14:
+            raise BoosterError("DAC wrong status (0x%04X)" % DAC_status)
         # Spock! TODO something!
-        if status & (1 << 12):
+        if DAC_status & (1 << 12):
             self._logger.warning("DAC_UPDATE_BUSY")
-        if status & (1 << 13):
+        if DAC_status & (1 << 13):
             self._logger.warning("DAC_NVM_BUSY")
-        if status & (1 << 14):
+        if DAC_status & (1 << 14):
             self._logger.warning("DAC_NVM_CRC_ALARM_INTERNAL")
-        if status & (1 << 15):
+        if DAC_status & (1 << 15):
             self._logger.warning("DAC_NVM_CRC_ALARM_USER")
         # power-up the output, enable internal reference with 2x output span
         self._dac_write(self.DAC_GENERAL_CONFIG, 0x1E5)
 
         # GPIO
         try:
-            self.status()
+            # inverse unused inputs and LED statuses
+            self._bus.write_byte_data(self.GPIO_ADDR, 2, 0xF7)
         except Exception as e:
-            raise BoosterError("GPIO read") from e
+            raise BoosterError("GPIO write") from e
 
     def disconnect(self) -> None:
         if self._bus:
@@ -117,14 +118,19 @@ class Booster:
             self._bus.write_i2c_block_data(self.EEPROM_ADDR, address, values[size:])
             sleep(self.EEPROM_WRITE_CYCLE_TIME)
 
-    # TODO return something to check OK/NOK
-    def status(self) -> None:
-        status = self._bus.read_byte_data(self.GPIO_ADDR, 0)
-        self._logger.debug("GPIO reg0: 0x%02X", status)
-        self._logger.info("LED channel 0 is %s", "ON" if status & 1 else "OFF")
-        self._logger.info("LED channel 1 is %s", "ON" if status & (1 << 1) else "OFF")
-        self._logger.info("LED channel 2 is %s", "ON" if status & (1 << 2) else "OFF")
-        self._logger.info("DAC is %s", "ON" if status & (1 << 3) else "OFF")
+    def status(self) -> (bool, list):
+        # LED statuses are valid only when LED is turned on by MC, not only by DAC value
+        # and with low DAC value (cca 20) only
+        status_byte = self._bus.read_byte_data(self.GPIO_ADDR, 0)
+        self._logger.debug("GPIO reg0: 0x%02X", status_byte)
+        dac_state = status_byte & (1 << 3)
+        self._logger.info("DAC OUT is %s", "ON" if dac_state else "OFF")
+        led_states = []
+        for i in range(3):
+            result = status_byte & (1 << i)
+            self._logger.info("LED channel %d: %s", i, "DISCONNECTED" if result else "OK")
+            led_states.append(result)
+        return dac_state, led_states
 
     @property
     def pwm(self) -> int:
@@ -133,8 +139,6 @@ class Booster:
     @pwm.setter
     def pwm(self, pwm: int) -> None:
         self._dac_write(self.DAC_DATA, pwm << 4)
-        # TODO should be here?
-        self.status()
 
     @property
     def board_serial_no(self) -> str:

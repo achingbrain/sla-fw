@@ -144,7 +144,7 @@ class Hardware:
 
         self._tower_moving = False
         self._towerPositionRetries = None
-        self._sl1s_booster = Booster()
+        self.sl1s_booster = Booster()
 
         self._value_refresh_run = True
         self._value_refresh_thread = Thread(daemon=True, target=self._value_refresh_body)
@@ -176,7 +176,7 @@ class Hardware:
         self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
         if self.printer_model == PrinterModel.SL1S:
-            self._sl1s_booster.connect()
+            self.sl1s_booster.connect()
             self.led_temp_idx = 2
 
     def start(self):
@@ -539,13 +539,13 @@ class Hardware:
     @property
     def uvLedPwm(self) -> int:
         if self.printer_model == PrinterModel.SL1S:
-            return self._sl1s_booster.pwm
+            return self.sl1s_booster.pwm
         return self.mcc.doGetInt("?upwm")
 
     @uvLedPwm.setter
     def uvLedPwm(self, pwm) -> None:
         if self.printer_model == PrinterModel.SL1S:
-            self._sl1s_booster.pwm = int(pwm)
+            self.sl1s_booster.pwm = int(pwm)
         else:
             self.mcc.do("!upwm", int(pwm))
 

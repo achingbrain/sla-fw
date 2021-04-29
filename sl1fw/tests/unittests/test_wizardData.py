@@ -10,6 +10,7 @@ from sl1fw import defines
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.pages.wizard import WizardData
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
+from sl1fw.tests.mocks.hardware import Hardware
 
 
 class TestWizardData(Sl1fwTestCase):
@@ -50,7 +51,7 @@ class TestSelfTestWizardDataPresent(Sl1fwTestCase):
         except FileNotFoundError:
             pass
         defines.factoryMountPoint.mkdir(parents=True)
-        self.wizard = SelfTestWizard(Mock(), Mock(), Mock())
+        self.wizard = SelfTestWizard(Hardware(), Mock(), Mock())
 
     def tearDown(self) -> None:
         del self.wizard

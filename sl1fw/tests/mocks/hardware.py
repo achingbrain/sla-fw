@@ -2,6 +2,7 @@
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from pathlib import Path
 from unittest.mock import Mock, AsyncMock
 
 from sl1fw import defines
@@ -13,7 +14,7 @@ class Hardware:
     # pylint: disable = too-many-instance-attributes
     def __init__(self, config: HwConfig = None):
         if config is None:
-            config = HwConfig()
+            config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)    # TODO better!
 
         self.is500khz = True
 

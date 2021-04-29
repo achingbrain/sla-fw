@@ -29,7 +29,7 @@ from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
 from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongFw
 from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated, BootedInAlternativeSlot, \
-    DisplayTestFailed, MissingExamples, NoFactoryUvCalib
+    UnknownPrinterModel, MissingExamples, NoFactoryUvCalib
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth
@@ -196,7 +196,7 @@ class Printer:
             self.exception = BootedInAlternativeSlot()
 
         if self.hw.printer_model == PrinterModel.NONE:
-            self.exception = DisplayTestFailed()
+            self.exception = UnknownPrinterModel()
 
         if self.firstRun:
             if not self.hw.config.is_factory_read() and not self.hw.isKit:
