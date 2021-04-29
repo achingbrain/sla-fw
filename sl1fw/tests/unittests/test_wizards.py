@@ -51,7 +51,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         group.checks = []
         # group.setup.return_value = None
 
-        wizard = Wizard(WizardId.SELF_TEST, [group], Mock(), Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [group], Mock(), Mock())
         self.assertEqual(WizardState.INIT, wizard.state)
         wizard.start()
         wizard.join()
@@ -75,7 +75,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         task_body = AsyncMock()
         task_body.side_effect = exception
         check.async_task_run = task_body
-        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), Mock())
         wizard.start()
         wizard.join()
 
@@ -93,7 +93,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
                 super().__init__(WizardCheckType.UNKNOWN, Mock(), [])
 
         check = Test()
-        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), Mock(), RuntimeConfig())
+        wizard = Wizard(WizardId.SELF_TEST, [TestGroup(Mock(), [check])], Mock(), Mock())
         wizard.start()
         wizard.join()
 
@@ -138,7 +138,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
         callback.assert_any_call(1)
 
 
-class TestWizards(Sl1fwTestCase):
+class TestWizardsBase(Sl1fwTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.exposure_image = Mock() # wizards use weakly-reference to exposure_image
@@ -188,7 +188,7 @@ class TestWizards(Sl1fwTestCase):
         self.assertEqual(expected_state, wizard.state)
 
 
-class TestReset(TestWizards):
+class TestWizards(TestWizardsBase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -293,7 +293,7 @@ class TestReset(TestWizards):
         self.assertEqual(53.5, data["wizardTempA64"])
         self.assertEqual(defines.resinWizardMaxVolume, data["wizardResinVolume"])
         self.assertEqual(0, data["towerSensitivity"])
-        self._assert_showWizard()
+        self._assert_final_state("showWizard", expected_value=False)
 
     def test_self_test_fail(self):
         self.hw.config.uvWarmUpTime = 0
@@ -305,14 +305,19 @@ class TestReset(TestWizards):
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, limit_s=1, expected_state=WizardState.CANCELED)
-        self._assert_showWizard()
+        self._assert_final_state("showWizard", expected_value=None)
 
-    def _assert_showWizard(self):
+    def _assert_final_state(self, item: str, expected_value: bool):
         hwConfig_path = Path(self.hw_config_file)
         self.assertTrue(hwConfig_path.exists(), "HwConfig file exists")
         with hwConfig_path.open("rt") as file:
             data = toml.load(file)
-        self.assertFalse(data["showWizard"])
+        if expected_value is None:
+            self.assertRaises(KeyError, data.__getitem__, item)
+        elif expected_value is False:
+            self.assertFalse(data[item])
+        else:
+            self.assertTrue(data[item])
 
     def test_unboxing_complete(self):
         wizard = CompleteUnboxingWizard(self.hw, RuntimeConfig())
@@ -396,7 +401,7 @@ class TestReset(TestWizards):
         # but the copyfile is mocked. This only checks successful delete.
         self.assertFalse(defines.local_time_path.exists(), "Timezone reset to default")
 
-    def test_calibration(self):
+    def test_calibration_success(self):
         wizard = CalibrationWizard(self.hw, RuntimeConfig())
 
         def on_state_changed():
@@ -413,9 +418,20 @@ class TestReset(TestWizards):
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard)
+        self._assert_final_state(item="calibrated", expected_value=True)
 
+    def test_calibration_fail(self):
+        wizard = CalibrationWizard(self.hw, RuntimeConfig())
 
-class TestUVCalibration(TestWizards):
+        def on_state_changed():
+            if wizard.state == WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK:
+                wizard.cancel()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard, limit_s=1, expected_state=WizardState.CANCELED)
+        self._assert_final_state(item="calibrated", expected_value=None)
+
+class TestUVCalibration(TestWizardsBase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -459,6 +475,7 @@ class TestUVCalibration(TestWizards):
         self.assertEqual(140.0, wizard.data["uvMinValue"])
         self.assertEqual(140.0, wizard.data["uvMaxValue"])
         self.assertEqual(200, wizard.data["uvFoundPwm"])
+        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
 
     def test_uv_calibration_boost(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -469,6 +486,7 @@ class TestUVCalibration(TestWizards):
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Boosted as led+display too weak
             self.assertFalse(defines.counterLog.exists())  # Counter log not written as nothing was reset
+        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
 
     def test_uv_calibration_boost_difference(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -479,6 +497,7 @@ class TestUVCalibration(TestWizards):
             self.uv_meter.multiplier = 0.85
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Boosted as PWM differs too much from previous setup
+        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
 
     def test_uv_calibration_no_boost_replace_display(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -497,6 +516,7 @@ class TestUVCalibration(TestWizards):
                     # Log record contains original counter values
                     self.assertEqual(6912, data["uvLed_seconds"])
                     self.assertEqual(3600, data["display_seconds"])
+        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
 
     def test_uv_calibration_boost_replace_led(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -508,6 +528,7 @@ class TestUVCalibration(TestWizards):
             self.assertEqual(3600, self.hw.getUvStatistics()[1])  # Display stays
             self.assertEqual(0, self.hw.getUvStatistics()[0])  # UV LED replaced
             self.assertTrue(defines.counterLog.exists())  # Counter log written as UV LED was replaced
+        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
 
     def test_uv_calibration_dim(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -517,6 +538,7 @@ class TestUVCalibration(TestWizards):
             self.uv_meter.multiplier = 0.1
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)
             self.assertIsInstance(wizard.exception, UVTooDimm)
+        self._assert_final_uv_pwm(0)
 
     def test_uv_calibration_bright(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -526,6 +548,7 @@ class TestUVCalibration(TestWizards):
             self.uv_meter.multiplier = 10
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)
             self.assertIsInstance(wizard.exception, UVTooBright)
+        self._assert_final_uv_pwm(0)
 
     def test_uv_calibration_dev(self):
         with patch("sl1fw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -535,6 +558,7 @@ class TestUVCalibration(TestWizards):
             self.uv_meter.noise = 70
             self._run_uv_calibration(wizard, expected_state=WizardState.FAILED)
             self.assertIsInstance(wizard.exception, UVDeviationTooHigh)
+        self._assert_final_uv_pwm(0)
 
     def _run_uv_calibration(self, wizard: UVCalibrationWizard, expected_state=WizardState.DONE):
         def on_state_changed():
@@ -552,6 +576,15 @@ class TestUVCalibration(TestWizards):
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, limit_s=15, expected_state=expected_state)
 
+    def _assert_final_uv_pwm(self, expected_value: int):
+        hwConfig_path = Path(self.hw_config_file)
+        self.assertTrue(hwConfig_path.exists(), "HwConfig file exists")
+        with hwConfig_path.open("rt") as file:
+            data = toml.load(file)
+        if expected_value == 0:
+            self.assertRaises(KeyError, data.__getitem__, "uvPwm")
+        else:
+            self.assertGreater(data["uvPwm"], expected_value)
 
 if __name__ == "__main__":
     unittest.main()

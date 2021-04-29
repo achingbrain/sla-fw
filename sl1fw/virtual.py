@@ -130,6 +130,8 @@ class Virtual:
             "sl1fw.functions.files.get_save_path", self.fake_save_path
         ), patch(
             "sl1fw.libHardware.ExposureScreen", ExposureScreen
+        ), patch(
+            "sl1fw.libHardware.Hardware.isCoverClosed", Mock(return_value=True)
         ):
             print("Resolving system bus")
             bus = pydbus.SystemBus()

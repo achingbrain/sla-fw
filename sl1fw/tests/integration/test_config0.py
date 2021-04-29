@@ -18,7 +18,7 @@ class TestIntegrationConfig0(Sl1FwIntegrationTestCaseBase):
 
     def test_value_read(self):
         self.assertEqual(6, self.config0.MCBoardVersion)
-        self.assertFalse(self.config0.showWizard)
+        self.assertTrue(self.config0.showWizard) # selftest is skipped in setUp so this flag is set to True forcing user to successfully pass it before print
         self.assertFalse(self.config0.MCversionCheck)
         self.assertEqual(5, self.config0.stirringDelay)
         self.assertTrue(self.config0.autoOff)

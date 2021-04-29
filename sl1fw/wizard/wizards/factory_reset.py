@@ -31,13 +31,13 @@ from sl1fw.wizard.checks.factory_reset import (
 )
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration
-from sl1fw.wizard.wizard import Wizard
+from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 
 
 class ResetSettingsGroup(CheckGroup):
     def __init__(
         self,
-        hw: Hardware,
+        package: WizardDataPackage,
         disable_unboxing: bool,
         erase_projects: bool = False,
         hard_errors: bool = False,
@@ -53,9 +53,9 @@ class ResetSettingsGroup(CheckGroup):
             ResetLocale(hard_errors=hard_errors),
             ResetUVCalibrationData(hard_errors=hard_errors),
             RemoveSlicerProfiles(hard_errors=hard_errors),
-            ResetHWConfig(hw.config, disable_unboxing=disable_unboxing, hard_errors=hard_errors),
-            EraseMCEeprom(hw, hard_errors=hard_errors),
-            ResetHomingProfiles(hw, hard_errors=hard_errors),
+            ResetHWConfig(package.hw.config, disable_unboxing=disable_unboxing, hard_errors=hard_errors),
+            EraseMCEeprom(package.hw, hard_errors=hard_errors),
+            ResetHomingProfiles(package.hw, hard_errors=hard_errors),
             DisableAccess(),
             ResetTouchUI(),
         ]
@@ -68,8 +68,8 @@ class ResetSettingsGroup(CheckGroup):
 
 
 class SendPrinterDataGroup(CheckGroup):
-    def __init__(self, hw: Hardware):
-        super().__init__(Configuration(None, None), [SendPrinterData(hw)])
+    def __init__(self, package: WizardDataPackage):
+        super().__init__(Configuration(None, None), [SendPrinterData(package.hw)])
 
     async def setup(self, actions: UserActionBroker):
         pass
@@ -77,11 +77,11 @@ class SendPrinterDataGroup(CheckGroup):
 
 class PackStage1(CheckGroup):
     def __init__(
-        self, hw: Hardware, runtime_config: RuntimeConfig, packs_moves: bool = True,
+        self, package: WizardDataPackage, packs_moves: bool = True,
     ):
-        checks = [DisableFactory(hw, runtime_config)]
+        checks = [DisableFactory(package.hw, package.runtime_config)]
         if packs_moves:
-            checks.append(InitiatePackingMoves(hw))
+            checks.append(InitiatePackingMoves(package.hw))
         super().__init__(Configuration(None, None), checks)
 
     async def setup(self, actions: UserActionBroker):
@@ -89,8 +89,8 @@ class PackStage1(CheckGroup):
 
 
 class PackStage2(CheckGroup):
-    def __init__(self, hw: Hardware):
-        super().__init__(Configuration(None, None), [FinishPackingMoves(hw)])
+    def __init__(self, package: WizardDataPackage):
+        super().__init__(Configuration(None, None), [FinishPackingMoves(package.hw)])
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(actions, actions.foam_inserted, WizardState.INSERT_FOAM)
@@ -104,11 +104,14 @@ class FactoryResetWizard(Wizard):
         runtime_config: RuntimeConfig,
         erase_projects: bool = False,
     ):
+        self._package = WizardDataPackage(
+            hw=hw,
+            runtime_config=runtime_config
+        )
         super().__init__(
             WizardId.FACTORY_RESET,
-            [ResetSettingsGroup(hw, True, erase_projects)],
-            hw,
-            runtime_config,
+            [ResetSettingsGroup(self._package, True, erase_projects)],
+            self._package
         )
 
     def run(self):
@@ -118,17 +121,21 @@ class FactoryResetWizard(Wizard):
 
 class PackingWizard(Wizard):
     def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+        self._package = WizardDataPackage(
+            hw=hw,
+            runtime_config=runtime_config
+        )
         groups = [
-            SendPrinterDataGroup(hw),
-            ResetSettingsGroup(hw, disable_unboxing=False, erase_projects=False, hard_errors=True),
+            SendPrinterDataGroup(self._package),
+            ResetSettingsGroup(self._package, disable_unboxing=False, erase_projects=False, hard_errors=True),
         ]
-        if hw.isKit:
-            groups.append(PackStage1(hw, runtime_config, False))
+        if self._package.hw.isKit:
+            groups.append(PackStage1(self._package, False))
         else:
-            groups.append(PackStage1(hw, runtime_config, True))
-            groups.append(PackStage2(hw))
+            groups.append(PackStage1(self._package, True))
+            groups.append(PackStage2(self._package))
 
-        super().__init__(WizardId.FACTORY_RESET, groups, hw, runtime_config)
+        super().__init__(WizardId.FACTORY_RESET, groups, self._package)
 
     def run(self):
         super().run()

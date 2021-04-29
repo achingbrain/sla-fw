@@ -4,7 +4,6 @@
 
 from typing import Optional
 from asyncio import sleep
-import weakref
 
 from sl1fw.errors.errors import DisplayTestFailed
 from sl1fw.configs.runtime import RuntimeConfig
@@ -27,7 +26,7 @@ class DisplayTest(DangerousCheck):
             Configuration(TankSetup.REMOVED, None),
             [Resource.UV, Resource.TILT, Resource.TOWER_DOWN, Resource.TOWER],
         )
-        self._exposure_image = weakref.proxy(exposure_image)
+        self._exposure_image = exposure_image
         self._runtime_config = runtime_config
 
         self.result: Optional[bool] = None

@@ -390,6 +390,7 @@ class UVCalibrateApply(Check):
     async def apply_results(self):
         # Save HW config
         previous_uv_pwm = self._hw.config.uvPwm
+        #TODO: use config_writer instead
         self._hw.config.uvPwm = self._result.data.uvFoundPwm
         self._hw.uvLedPwm = self._result.data.uvFoundPwm
         del self._hw.config.uvCurrent  # remove old value too

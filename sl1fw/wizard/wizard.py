@@ -11,6 +11,7 @@ from shutil import copyfile
 from tempfile import NamedTemporaryFile
 from threading import Thread
 from typing import Iterable, Optional, Dict, Any
+from dataclasses import dataclass
 
 import json as serializer
 from PySignal import Signal
@@ -26,7 +27,22 @@ from sl1fw.states.wizard import WizardState, WizardCheckState, WizardId
 from sl1fw.wizard.actions import UserActionBroker, PushState
 from sl1fw.wizard.checks.base import Check, WizardCheckType, DangerousCheck
 from sl1fw.wizard.group import CheckGroup
+from sl1fw.configs.writer import ConfigWriter
+from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UVCalibrationResult
+from sl1fw.image.exposure_image import ExposureImage
 
+@dataclass
+class WizardDataPackage:
+    """
+    Data getting passed to the wizard groups and wizard checks for their initialization
+    """
+    hw: Hardware = None
+    config_writer: ConfigWriter = None
+    runtime_config: RuntimeConfig = None
+    exposure_image: ExposureImage = None
+    uv_meter: UvLedMeterMulti = None
+    uv_result: UVCalibrationResult = None
+    #TODO: use this in other wizards like self-test, unboxing, uv calibration, factory reset, SL1/SL1s config reset
 
 class Wizard(Thread, UserActionBroker):
     # pylint: disable=too-many-instance-attributes
@@ -37,13 +53,13 @@ class Wizard(Thread, UserActionBroker):
         self,
         identifier: WizardId,
         groups: Iterable[CheckGroup],
-        hw: Hardware,
-        runtime_config: RuntimeConfig,
+        package: WizardDataPackage,
         cancelable=True,
     ):
         self._logger = logging.getLogger(__name__)
         Thread.__init__(self)
-        UserActionBroker.__init__(self, hw)
+        UserActionBroker.__init__(self, package.hw)
+        self._config_writer = package.config_writer
         self.__state = WizardState.INIT
         self.__cancelable = cancelable
         self.__groups = groups
@@ -56,7 +72,7 @@ class Wizard(Thread, UserActionBroker):
         self.warnings_changed = Signal()
         self.__current_group: Optional[CheckGroup] = None
         self.unstop_result = Queue()
-        self._runtime_config = runtime_config
+        self._runtime_config = package.runtime_config
         self.started = datetime.now()
         self._dangerous_running = False
         self._close_cover_state: Optional[PushState] = None
@@ -145,8 +161,9 @@ class Wizard(Thread, UserActionBroker):
             for group in self.__groups:
                 for check in group.checks:
                     self._logger.debug("Running wizard finished for %s", type(check).__name__)
-                    check.wizard_finished()
-            self.success_action()
+            self.wizard_finished()
+            if self._config_writer is not None:
+                self._config_writer.commit()
             self._store_data()
         except CancelledError:
             self._logger.debug("Wizard group canceled successfully")
@@ -168,16 +185,12 @@ class Wizard(Thread, UserActionBroker):
 
     def force_cancel(self):
         self._logger.info("Canceling wizard")
-        self.cancel_action()
 
         if self.__current_group:
             self._logger.debug("Canceling running wizard group")
             self.__current_group.cancel()
 
-    def cancel_action(self):
-        """custom wizard action which is called on wizard cancel"""
-
-    def success_action(self):
+    def wizard_finished(self):
         """custom wizard action which is called on wizard success"""
 
     def __run_group(self, group: CheckGroup):

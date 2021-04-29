@@ -191,11 +191,6 @@ class BaseCheck(ABC):
     def get_result_data() -> Dict[str, Any]:
         return {}
 
-    def wizard_finished(self):
-        """
-        Executed when on wizard successful finish. Useful to store obtained values.
-        """
-
     def cancel(self):
         self.state = WizardCheckState.CANCELED
 

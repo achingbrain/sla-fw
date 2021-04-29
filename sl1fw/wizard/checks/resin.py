@@ -21,7 +21,6 @@ class ResinSensorTest(DangerousCheck):
             Configuration(TankSetup.PRINT, PlatformSetup.RESIN_TEST),
             [Resource.TOWER, Resource.TOWER_DOWN],
         )
-        self._hw = hw
 
         self.volume_ml: Optional[float] = None
 

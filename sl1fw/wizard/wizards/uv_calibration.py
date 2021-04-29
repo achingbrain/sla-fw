@@ -26,20 +26,20 @@ from sl1fw.wizard.checks.uv_calibration import (
 )
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
-from sl1fw.wizard.wizard import Wizard
+from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 
 # pylint: disable = too-many-arguments
 
 
 class UVCalibrationPrepare(CheckGroup):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, package: WizardDataPackage):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
-                TowerHomeTest(hw),
-                TiltLevelTest(hw),
-                DisplayTest(hw, exposure_image, runtime_config),
-                SystemInfoTest(hw),
+                TowerHomeTest(package.hw, package.config_writer),
+                TiltLevelTest(package.hw),
+                DisplayTest(package.hw, package.exposure_image, package.runtime_config),
+                SystemInfoTest(package.hw),
             ],
         )
 
@@ -48,13 +48,13 @@ class UVCalibrationPrepare(CheckGroup):
 
 
 class UVCalibrationPlaceUVMeter(CheckGroup):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
+    def __init__(self, package: WizardDataPackage):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
-                CheckUVMeter(hw, uv_meter),
-                UVWarmupCheck(hw, exposure_image, uv_meter),
-                CheckUVMeterPlacement(hw, exposure_image, uv_meter),
+                CheckUVMeter(package.hw, package.uv_meter),
+                UVWarmupCheck(package.hw, package.exposure_image, package.uv_meter),
+                CheckUVMeterPlacement(package.hw, package.exposure_image, package.uv_meter),
             ],
         )
 
@@ -65,17 +65,14 @@ class UVCalibrationPlaceUVMeter(CheckGroup):
 class UVCalibrationCalibrate(CheckGroup):
     def __init__(
         self,
-        hw: Hardware,
-        exposure_image: ExposureImage,
-        uv_meter: UvLedMeterMulti,
-        replacement: bool,
-        result: UVCalibrationResult,
+        package: WizardDataPackage,
+        replacement: bool
     ):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
-                UVCalibrateCenter(hw, exposure_image, uv_meter, replacement, result),
-                UVCalibrateEdge(hw, exposure_image, uv_meter, replacement, result),
+                UVCalibrateCenter(package.hw, package.exposure_image, package.uv_meter, replacement, package.uv_result),
+                UVCalibrateEdge(package.hw, package.exposure_image, package.uv_meter, replacement, package.uv_result),
             ],
         )
 
@@ -87,18 +84,15 @@ class UVCalibrationCalibrate(CheckGroup):
 class UVCalibrationFinish(CheckGroup):
     def __init__(
         self,
-        hw: Hardware,
-        runtime_config: RuntimeConfig,
-        result: UVCalibrationResult,
+        package: WizardDataPackage,
         display_replaced: bool,
-        led_module_replaced: bool,
-        uv_meter: UvLedMeterMulti,
+        led_module_replaced: bool
     ):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
-                UVRemoveCalibrator(hw, uv_meter),
-                UVCalibrateApply(hw, runtime_config, result, display_replaced, led_module_replaced),
+                UVRemoveCalibrator(package.hw, package.uv_meter),
+                UVCalibrateApply(package.hw, package.runtime_config, package.uv_result, display_replaced, led_module_replaced),
             ],
         )
 
@@ -116,24 +110,31 @@ class UVCalibrationWizard(Wizard):
         display_replaced: bool,
         led_module_replaced: bool,
     ):
-        self._uv_meter = UvLedMeterMulti()
-        self._result = UVCalibrationResult()
+        #TODO: use config_writer instead
+        self._package = WizardDataPackage(
+            hw=hw,
+            config_writer=hw.config.get_writer(),
+            exposure_image=exposure_image,
+            runtime_config=runtime_config,
+            uv_meter = UvLedMeterMulti(),
+            uv_result = UVCalibrationResult()
+        )
         super().__init__(
             WizardId.UV_CALIBRATION,
             [
-                UVCalibrationPrepare(hw, exposure_image, runtime_config),
-                UVCalibrationPlaceUVMeter(hw, exposure_image, self._uv_meter),
+                UVCalibrationPrepare(self._package),
+                UVCalibrationPlaceUVMeter(self._package),
                 UVCalibrationCalibrate(
-                    hw, exposure_image, self._uv_meter, display_replaced or led_module_replaced, self._result
+                    self._package, display_replaced or led_module_replaced
                 ),
                 UVCalibrationFinish(
-                    hw, runtime_config, self._result, display_replaced, led_module_replaced, self._uv_meter
+                    self._package, display_replaced, led_module_replaced
                 ),
             ],
-            hw,
-            exposure_image,
-            runtime_config,
+            self._package
         )
+        self._package.config_writer.uvPwm = 0
+        self._package.config_writer.commit()
 
     @classmethod
     def get_alt_names(cls) -> Iterable[str]:

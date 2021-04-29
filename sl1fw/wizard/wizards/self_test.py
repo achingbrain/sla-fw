@@ -23,26 +23,25 @@ from sl1fw.wizard.checks.uvfans import UVFansTest
 from sl1fw.wizard.checks.uvleds import UVLEDsTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
-from sl1fw.wizard.wizard import Wizard
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 
 
 class SelfTestPart1CheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, package: WizardDataPackage):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
-                SerialNumberTest(hw),
-                SystemInfoTest(hw),
-                TemperatureTest(hw),
+                SerialNumberTest(package.hw),
+                SystemInfoTest(package.hw),
+                TemperatureTest(package.hw),
                 SpeakerTest(),
-                TiltHomeTest(hw),
-                TiltRangeTest(hw),
-                TowerHomeTest(hw),
-                UVLEDsTest(hw),
-                UVFansTest(hw),
-                DisplayTest(hw, exposure_image, runtime_config),
-                CalibrationInfo(hw.config),
+                TiltHomeTest(package.hw),
+                TiltRangeTest(package.hw),
+                TowerHomeTest(package.hw, package.config_writer),
+                UVLEDsTest(package.hw),
+                UVFansTest(package.hw),
+                DisplayTest(package.hw, package.exposure_image, package.runtime_config),
+                CalibrationInfo(package.hw.config),
             ],
         )
 
@@ -51,11 +50,11 @@ class SelfTestPart1CheckGroup(CheckGroup):
 
 
 class SelfTestPart2CheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware):
+    def __init__(self, package: WizardDataPackage):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.RESIN_TEST),
             [
-                ResinSensorTest(hw)
+                ResinSensorTest(package.hw)
             ]
         )
 
@@ -64,11 +63,11 @@ class SelfTestPart2CheckGroup(CheckGroup):
 
 
 class SelfTestPart3CheckGroup(CheckGroup):
-    def __init__(self, hw: Hardware):
+    def __init__(self, package: WizardDataPackage):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
-                TowerRangeTest(hw)
+                TowerRangeTest(package.hw)
             ]
         )
 
@@ -78,16 +77,23 @@ class SelfTestPart3CheckGroup(CheckGroup):
 
 class SelfTestWizard(Wizard):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+        self._package = WizardDataPackage(
+            hw=hw,
+            config_writer=hw.config.get_writer(),
+            exposure_image=exposure_image,
+            runtime_config=runtime_config
+        )
         super().__init__(
             WizardId.SELF_TEST,
             [
-                SelfTestPart1CheckGroup(hw, exposure_image, runtime_config),
-                SelfTestPart2CheckGroup(hw),
-                SelfTestPart3CheckGroup(hw),
+                SelfTestPart1CheckGroup(self._package),
+                SelfTestPart2CheckGroup(self._package),
+                SelfTestPart3CheckGroup(self._package),
             ],
-            hw,
-            runtime_config,
+            self._package
         )
+        self._package.config_writer.showWizard = True
+        self._package.config_writer.commit()
 
     @property
     def name(self) -> str:
@@ -99,13 +105,5 @@ class SelfTestWizard(Wizard):
         names.extend(super().get_alt_names())
         return names
 
-    def cancel_action(self):
-        writer = self._hw.config.get_writer()
-        writer.showWizard = False
-        try:
-            writer.commit()
-        except Exception as e:
-            raise ConfigException() from e
-
-    def success_action(self):
-        self.cancel_action()
+    def wizard_finished(self):
+        self._package.config_writer.showWizard = False
