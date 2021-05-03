@@ -34,7 +34,7 @@ class ExposureScreen:
         self._output = None
         self._presentation = None
         self._format_available = False
-        self._detected_size = (0, 0)
+        self._resolution = (320, 200)
         self._referesh_delay_s = 0.0
         self._surface = None
         self._shm_data = None
@@ -147,12 +147,11 @@ class ExposureScreen:
 
 
     def _output_mode_handler(self, wl_output, flags, width, height, referesh):
-        self._logger.debug("flags:%d width:%d height:%d referesh:%d", flags, width, height, referesh)
-        if  self._detected_size[0] * self._detected_size[1] < width * height:
-            self._detected_size = (width, height)
+        self._logger.debug("got output mode - flags:%d width:%d height:%d referesh:%d", flags, width, height, referesh)
 
 
     def _xdg_surface_configure_handler(self, xdg_surface, serial):
+        self._logger.debug("xdg_surface configure")
         xdg_surface.ack_configure(serial)
         self._create_buffer()
         self._fill_buffer()
@@ -166,28 +165,32 @@ class ExposureScreen:
 
 
     def _xdg_toplevel_configure_handler(self, xdg_toplevel, width, height, states):
-        if width != self._detected_size[0] or height != self._detected_size[1]:
-            self._logger.warning("resolution change request to %dx%d", width, height)
+        self._logger.debug("resolution change request to %dx%d", width, height)
+        if width != self._resolution[0] or height != self._resolution[1]:
+            self._resolution = (width, height)
 
 
     def _detect_model(self):
-        self._logger.debug("got resolution %s", str(self._detected_size))
-        model = ExposurePanel.printer_model()
+        panel = ExposurePanel
+        model = panel.printer_model()
         self.parameters = model.exposure_screen_parameters
         if model == PrinterModel.NONE:
-            self._logger.error("Unknown printer model (detected resolution: %s)", str(self._detected_size))
+            self._logger.error("Unknown printer model (panel name: '%s')", panel.panel_name())
         else:
             self._logger.info("Detected printer model: %s", model.name)
+            self._logger.info("Exposure panel serial number: %s", panel.serial_number())
+            self._logger.info("Exposure panel transmittance: %s", panel.transmittance())
             self._referesh_delay_s = self.parameters.referesh_delay_ms / 1000
         return model
 
+
     def _create_buffer(self):
-        stride = self._detected_size[0] * 4
-        size = stride * self._detected_size[1]
+        stride = self._resolution[0] * 4
+        size = stride * self._resolution[1]
         with AnonymousFile(size) as fd:
             self._shm_data = mmap.mmap(fd, size, prot=mmap.PROT_READ | mmap.PROT_WRITE, flags=mmap.MAP_SHARED)
             pool = self._shm.create_pool(fd, size)
-            self._buffer = pool.create_buffer(0, self._detected_size[0], self._detected_size[1], stride, WlShm.format.xrgb8888.value)
+            self._buffer = pool.create_buffer(0, self._resolution[0], self._resolution[1], stride, WlShm.format.xrgb8888.value)
             pool.destroy()
         self._new_image = True
 
@@ -196,7 +199,7 @@ class ExposureScreen:
         if self._new_image and self._image:
             self._shm_data.seek(0)
             self._shm_data.write(self._image)
-            self._surface.damage_buffer(0, 0, self._detected_size[0], self._detected_size[1])
+            self._surface.damage_buffer(0, 0, self._resolution[0], self._resolution[1])
             self._presentation_feedback = self._presentation.feedback(self._surface)
             self._presentation_feedback.dispatcher["presented"] = self._feedback_presented_handler
             self._presentation_feedback.dispatcher["discarded"] = self._feedback_discarded_handler
@@ -226,7 +229,7 @@ class ExposureScreen:
             self._logger.error("Invalid image size %s. Output is %s", str(image.size), str(self.parameters.size_px))
             return
         if self.parameters.monochromatic:
-            bit24 = Image.frombytes("RGB", self._detected_size, image.tobytes())
+            bit24 = Image.frombytes("RGB", self._resolution, image.tobytes())
             if self.parameters.backwards:
                 bit32 = bit24.convert("BGR;32")
             else:

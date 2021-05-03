@@ -64,7 +64,7 @@ class PrinterModel(Enum):
     @property
     def exposure_screen_parameters(self) -> ExposureScreenParameters:
         return {
-                self.NONE: ExposureScreenParameters((1024, 768), 50000, 0, False, False),
+                self.NONE: ExposureScreenParameters((320, 200), 50000, 0, False, False),
                 self.SL1: ExposureScreenParameters((1440, 2560), 46875, 30, False, False),
                 self.SL1S: ExposureScreenParameters((1620, 2560), 50000, 20, True, False),
             }[self]
@@ -101,7 +101,6 @@ class ExposurePanel:
     @classmethod
     def printer_model(cls):
         return {
-            None: PrinterModel.NONE,
             "ls055r1sx04": PrinterModel.SL1,
             "rv059fbb": PrinterModel.SL1S
-        }[cls.panel_name()]
+        }.get(cls.panel_name(), PrinterModel.NONE)

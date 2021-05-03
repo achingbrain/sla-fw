@@ -180,8 +180,9 @@ class Hardware:
             self.led_temp_idx = 2
 
     def start(self):
-        if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
-            self.tilt = TiltSL1(self.mcc,self.config)
+        # FIXME this cause hard exception when printer model is not detected and tilt member is accessed
+#        if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
+        self.tilt = TiltSL1(self.mcc,self.config)
         self.initDefaults()
         self._value_refresh_thread.start()
 
