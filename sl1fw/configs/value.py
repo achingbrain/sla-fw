@@ -457,7 +457,7 @@ class ValueConfig(BaseConfig):
     def schedule_on_change(self, key: str, value: Any) -> None:
         for handler in self._on_change:
             self._logger.debug("Postponing property changed callback, key: %s", key)
-            if isinstance(handler, weakref.ref):
+            if isinstance(handler, weakref.WeakMethod):
                 deref_handler = handler()
             else:
                 deref_handler = handler
@@ -484,7 +484,7 @@ class ValueConfig(BaseConfig):
                 lock.release()
 
     def add_onchange_handler(self, handler: Callable[[str, Any], None]):
-        self._on_change.add(handler)
+        self._on_change.add(weakref.WeakMethod(handler))
 
     def get_values(self):
         return self._values

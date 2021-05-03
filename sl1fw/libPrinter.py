@@ -89,7 +89,7 @@ class Printer:
         hw_config = HwConfig(
             file_path=Path(defines.hwConfigPath), factory_file_path=Path(defines.hwConfigPathFactory), is_master=True,
         )
-        hw_config.add_onchange_handler(weakref.WeakMethod(self._config_changed))
+        hw_config.add_onchange_handler(self._config_changed)
 
         self.runtime_config = RuntimeConfig()
         self.runtime_config.factory_mode = defines.factory_enable.exists() or TomlConfig(

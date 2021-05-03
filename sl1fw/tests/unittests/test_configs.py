@@ -376,6 +376,9 @@ class TestConfigHelper(Sl1fwTestCase):
 
     def test_on_change(self):
         on_change = mock.MagicMock()
+        on_change.__self__ = mock.Mock(name='self')
+        on_change.__func__ = mock.Mock(name='func')
+        on_change("calibrated", True)
         self.hw_config.add_onchange_handler(on_change)
         self.helper.calibrated = True
         self.helper.commit()
