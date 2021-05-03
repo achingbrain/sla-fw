@@ -178,7 +178,7 @@ log_url = "https://prusa3d.link/wp-json/p3d/v1/logserver"
 emmc_serial_path = Path("/sys/block/mmcblk2/device/cid")
 log_upload_token = "84U83mUQ"
 local_time_path = Path("/etc/localtime")
-touch_ui_config = configDir / "touch-ui" / "touch-ui.conf"
+touch_ui_config = Path("/etc/touch-ui/touch-ui.conf")
 exposure_panel_of_node = Path("/sys/bus/i2c/devices/1-000f/of_node")
 
 nginx_api_key = Path("/etc/nginx/sites-available/sl1fw")
