@@ -195,9 +195,6 @@ class Printer:
         if self.hw.checkFailedBoot():
             self.exception = BootedInAlternativeSlot()
 
-        if self.hw.printer_model == PrinterModel.NONE:
-            self.exception = UnknownPrinterModel()
-
         if self.firstRun:
             if not self.hw.config.is_factory_read() and not self.hw.isKit:
                 self.exception = NoFactoryUvCalib()
@@ -205,8 +202,11 @@ class Printer:
                     self.hw.printer_model, Path(defines.internalProjectPath)
             ):
                 self.exception = MissingExamples()
-            self._make_ready_to_print()
-            save_all_remain_wizard_history()
+            if self.hw.printer_model == PrinterModel.NONE:
+                self.exception = UnknownPrinterModel()
+            else:
+                self._make_ready_to_print()
+                save_all_remain_wizard_history()
 
         self.action_manager.load_exposure(self.hw)
         self.display.doMenu("home")
