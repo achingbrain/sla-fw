@@ -253,7 +253,7 @@ class PageFactoryReset(Page):
 
         page_wait.showItems(line1=_("Printer is being set to packing positions"))
         self.display.hw.towerSync()
-        self.display.hw.tilt.sync_wait(retries=3)
+        self.display.hw.tilt.sync_wait()
         while not self.display.hw.isTowerSynced():
             sleep(0.25)
 

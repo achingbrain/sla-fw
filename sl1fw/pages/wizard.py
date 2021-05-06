@@ -126,7 +126,7 @@ class PageWizardInit(PageWizardBase):
         pageWait = PageWait(self.display, line1 = _("Tank home check"))
         pageWait.show()
         for i in range(3):
-            self.display.hw.tilt.sync_wait()
+            self.display.hw.tilt.sync_wait()    # FIXME throws exception
             homeStatus = self.display.hw.tilt.homing_status
             if homeStatus == -2:
                 self.display.pages['error'].setParams(code=Sl1Codes.TILT_ENDSTOP_NOT_REACHED.raw_code)

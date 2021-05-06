@@ -5,13 +5,13 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from asyncio import CancelledError, sleep
 from enum import unique, Enum
 from typing import Optional, List, Iterable, Dict, Any
 
 from PySignal import Signal
 
 from sl1fw.libHardware import Hardware
+from sl1fw.hardware.tilt import TiltProfile
 from sl1fw.states.wizard import WizardCheckState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.setup import Resource, Configuration
@@ -162,10 +162,10 @@ class BaseCheck(ABC):
         self._logger.info("Locked resources: %s", type(self).__name__)
 
         try:
-            await sleep(0.1)  # This allows to break asyncio program in case the wizard is canceled
+            await asyncio.sleep(0.1)  # This allows to break asyncio program in case the wizard is canceled
             self._logger.info("Running check: %s", type(self).__name__)
             await self.run_wrapper(actions, sync_executor)
-        except CancelledError:
+        except asyncio.CancelledError:
             self._logger.warning("Check canceled: %s", type(self).__name__)
             self.state = WizardCheckState.CANCELED
             raise
@@ -238,8 +238,6 @@ class DangerousCheck(Check, ABC):
     Dangerous checks require cover closed during operation
     """
 
-    # pylint: disable = too-few-public-methods
-
     def __init__(self, hw: Hardware, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._hw = hw
@@ -248,3 +246,25 @@ class DangerousCheck(Check, ABC):
         await asyncio.sleep(0)
         while not self._hw.isCoverVirtuallyClosed():
             await asyncio.sleep(0.5)
+
+    async def verify_tower(self):
+        if not self._hw.towerSynced:
+            self._hw.setTowerProfile("homingFast")
+            await self._hw.towerSyncWaitAsync()
+        else:
+            self._hw.setTowerProfile("moveFast")
+            self._hw.towerToTop()
+            while not self._hw.isTowerOnPosition():
+                await asyncio.sleep(0.25)
+
+    async def verify_tilt(self):
+        if not self._hw.tilt.synced:
+            # FIXME MC cant properly home tilt while tower is moving
+            while self._hw.isTowerMoving():
+                await asyncio.sleep(0.25)
+            self._hw.tilt.profile_id = TiltProfile.homingFast
+            await self._hw.tilt.sync_wait_async()
+        self._hw.tilt.profile_id = TiltProfile.moveFast
+        self._hw.tilt.move_up()
+        while not self._hw.tilt.on_target_position:
+            await asyncio.sleep(0.25)

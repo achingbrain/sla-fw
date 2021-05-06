@@ -4,7 +4,6 @@
 
 import asyncio
 from abc import ABC
-from asyncio import sleep, AbstractEventLoop, Event
 from time import time
 from typing import Optional, Dict, Any
 
@@ -36,13 +35,13 @@ class TiltHomeTest(DangerousCheck, ABC):
         with actions.led_warn:
             home_status = self._hw.tilt.homing_status
             for _ in range(3):
-                await self._hw.tilt.sync_wait_coroutine()
+                await self._hw.tilt.sync_wait_async()
                 home_status = self._hw.tilt.homing_status
                 if home_status == -2:
                     raise TiltEndstopNotReached()
 
                 if home_status == 0:
-                    await self._hw.tilt.home_calibrate_wait_coroutine()
+                    await self._hw.tilt.home_calibrate_wait_async()
                     break
 
             if home_status == -3:
@@ -73,6 +72,7 @@ class TiltLevelTest(DangerousCheck):
         self._hw.tilt.position = 0
 
         # Set tilt to leveled position
+        self._hw.tilt.profile_id = TiltProfile.moveFast
         self._hw.tilt.move_up()
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
@@ -86,7 +86,7 @@ class TiltRangeTest(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         with actions.led_warn:
-            self._hw.tilt.profile_id = TiltProfile.homingFast
+            self._hw.tilt.profile_id = TiltProfile.moveFast
             self._hw.tilt.move_absolute(self._hw.tilt.max)
             while self._hw.tilt.moving:
                 await asyncio.sleep(0.25)
@@ -109,7 +109,7 @@ class TiltRangeTest(DangerousCheck):
                 or self._hw.tilt.position > defines.tiltHomingTolerance
             ) and not test_runtime.testing:
                 raise TiltAxisCheckFailed(self._hw.tilt.position)
-            self._hw.tilt.profile_id = TiltProfile.homingFast
+            self._hw.tilt.profile_id = TiltProfile.moveFast
             self._hw.tilt.move_absolute(defines.defaultTiltHeight)
             while self._hw.tilt.moving:
                 await asyncio.sleep(0.25)
@@ -128,11 +128,11 @@ class TiltTimingTest(DangerousCheck):
             while not self._hw.isTowerSynced():
                 await asyncio.sleep(0.25)
 
-            await self._hw.tilt.sync_wait_coroutine(2)  # FIXME MC cant properly home tilt while tower is moving
+            await self._hw.tilt.sync_wait_async()  # FIXME MC cant properly home tilt while tower is moving
             self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(slow_move=True)
             self._config_writer.tiltFastTime = await self._get_tilt_time_sec(slow_move=False)
             self._hw.setTowerProfile("homingFast")
-            self._hw.tilt.profile_id = TiltProfile.homingFast
+            self._hw.tilt.profile_id = TiltProfile.moveFast
             self.progress = 1
             self._hw.tilt.move_up()
             while self._hw.tilt.moving:
@@ -157,7 +157,7 @@ class TiltTimingTest(DangerousCheck):
             tilt_start_time = time()
             self._hw.tilt.layer_up_wait()
             await asyncio.sleep(0)
-            await self._hw.tilt.layer_down_wait_coroutine(slow_move)
+            await self._hw.tilt.layer_down_wait_async(slow_move)
             tilt_time += time() - tilt_start_time
 
         return tilt_time / total
@@ -180,7 +180,7 @@ class TiltCalibrationStartTest(DangerousCheck):
             self._hw.tilt.profile_id = TiltProfile.homingFast
             self._hw.tilt.move_absolute(defines.tiltCalibrationStart)
             while self._hw.tilt.moving:
-                await sleep(0.25)
+                await asyncio.sleep(0.25)
 
 
 class TiltAlignTest(Check):
@@ -192,11 +192,11 @@ class TiltAlignTest(Check):
         )
         self._hw = hw
         self._config_writer = config_writer
-        self.tilt_aligned_event: Optional[Event] = None
-        self._loop: Optional[AbstractEventLoop] = None
+        self.tilt_aligned_event: Optional[asyncio.Event] = None
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
 
     async def async_task_run(self, actions: UserActionBroker):
-        self.tilt_aligned_event = Event()
+        self.tilt_aligned_event = asyncio.Event()
         self._loop = asyncio.get_running_loop()
         with actions.led_warn:
             actions.tilt_aligned.register_callback(self.tilt_aligned)

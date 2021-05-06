@@ -274,7 +274,7 @@ class Page:
 
 
     def _syncTilt(self):
-        if not self.display.hw.tilt.sync_wait(retries = 2):
+        if not self.display.hw.tilt.sync_wait(): # FIXME throws exception
             self.display.pages['error'].setParams(code=Sl1Codes.TILT_HOME_FAILED.raw_code)
             return "error"
         #endif

@@ -4,7 +4,7 @@
 import asyncio
 from abc import ABC, abstractmethod
 from enum import unique, Enum
-from typing import List, Optional
+from typing import List
 
 
 @unique
@@ -82,12 +82,12 @@ class Axis(ABC):
     def sync(self) -> bool:
         """start axis homing"""
 
-    def sync_wait(self, retries: Optional[int] = None) -> bool:
+    def sync_wait(self, retries: int = 2) -> None:
         """blocking method for axis homing. retries = number of additional tries when homing fails"""
-        return asyncio.run(self.sync_wait_coroutine(retries=retries))
+        asyncio.run(self.sync_wait_async(retries=retries))
 
     @abstractmethod
-    async def sync_wait_coroutine(self, retries: Optional[int] = None) -> bool:
+    async def sync_wait_async(self, retries: int = 2) -> None:
         """blocking method for axis homing. retries = number of additional tries when homing fails"""
 
 ########## profiles ##########

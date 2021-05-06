@@ -677,7 +677,7 @@ class Exposure0:
 
     @auto_dbus
     @last_error
-    @state_checked(Exposure0State.FEED_ME)
+    @state_checked([Exposure0State.FEED_ME, Exposure0State.STUCK])
     def back(self) -> None:
         """
         Do legacy back

@@ -2,7 +2,7 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from asyncio import sleep
+from asyncio import sleep, gather
 from typing import Dict, Any
 
 from sl1fw.errors.errors import TowerBelowSurface, TowerAxisCheckFailed
@@ -12,22 +12,6 @@ from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource, TankSetup, PlatformSetup
 from sl1fw.hardware.tilt import TiltProfile
 from sl1fw.configs.writer import ConfigWriter
-
-
-class TowerHome(DangerousCheck):
-    """
-    Just async tower homing for other tests
-    """
-    def __init__(self, hw: Hardware):
-        super().__init__(
-            hw, WizardCheckType.TOWER_HOME, Configuration(None, None), [Resource.TOWER, Resource.TOWER_DOWN],
-        )
-        self.hw = hw
-
-    async def async_task_run(self, actions: UserActionBroker):
-        with actions.led_warn:
-            if not await self.hw.towerSyncWaitAsync():
-                await sleep(0.1)
 
 
 class TowerHomeTest(DangerousCheck):
@@ -61,7 +45,7 @@ class TowerRangeTest(DangerousCheck):
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
         with actions.led_warn:
-            await self._hw.towerSyncWaitAsync()
+            await gather(self.verify_tower(), self.verify_tilt())
             self._hw.setTowerPosition(self._hw.tower_end)
             self._hw.setTowerProfile("homingFast")
             self._hw.towerMoveAbsolute(0)

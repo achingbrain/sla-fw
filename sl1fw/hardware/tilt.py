@@ -5,7 +5,7 @@ import asyncio
 from abc import abstractmethod
 from time import sleep
 from enum import unique, Enum
-from typing import List, Optional
+from typing import List
 import logging
 
 from sl1fw import defines
@@ -52,15 +52,15 @@ class Tilt(Axis):
         """move tilt to max (synchronous)"""
 
     @abstractmethod
-    def layer_up_wait(self, slowMove: bool = False):
+    def layer_up_wait(self, slowMove: bool = False) -> None:
         """tilt up during the print"""
 
-    def layer_down_wait(self, slowMove: bool = False) -> bool:
+    def layer_down_wait(self, slowMove: bool = False) -> None:
         """tilt up during the print"""
-        return asyncio.run(self.layer_down_wait_coroutine(slowMove=slowMove))
+        asyncio.run(self.layer_down_wait_async(slowMove=slowMove))
 
     @abstractmethod
-    async def layer_down_wait_coroutine(self, slowMove: bool = False) -> bool:
+    async def layer_down_wait_async(self, slowMove: bool = False) -> None:
         """tilt up during the print"""
 
     @abstractmethod
@@ -69,10 +69,10 @@ class Tilt(Axis):
 
     def home_calibrate_wait(self):
         """test and save tilt motor phase for accurate homing"""
-        return asyncio.run(self.home_calibrate_wait_coroutine())
+        return asyncio.run(self.home_calibrate_wait_async())
 
     @abstractmethod
-    async def home_calibrate_wait_coroutine(self):
+    async def home_calibrate_wait_async(self):
         """test and save tilt motor phase for accurate homing"""
 
     @property
@@ -236,11 +236,9 @@ class TiltSL1(Tilt):
         while not self.on_target_position:
             sleep(0.1)
 
-
     @safe_call(False, MotionControllerException)
-    async def layer_down_wait_coroutine(self, slowMove: bool = False):
+    async def layer_down_wait_async(self, slowMove: bool = False) -> None:
         profile = self._config.tuneTilt[0] if slowMove else self._config.tuneTilt[1]
-
         # initial release movement with optional sleep at the end
         self.profile_id = TiltProfile(profile[0])
         if profile[1] > 0:
@@ -248,7 +246,6 @@ class TiltSL1(Tilt):
             while self.moving:
                 await asyncio.sleep(0.1)
         await asyncio.sleep(profile[2] / 1000.0)
-
         # next movement may be splited
         self.profile_id = TiltProfile(profile[3])
         movePerCycle = int(self.position / profile[4])
@@ -257,22 +254,16 @@ class TiltSL1(Tilt):
             while self.moving:
                 await asyncio.sleep(0.1)
             await asyncio.sleep(profile[5] / 1000.0)
-
+        tolerance = defines.tiltHomingTolerance
         # if not already in endstop ensure we end up at defined bottom position
         if not self._mcc.checkState("endstop"):
-            self.move_absolute(-defines.tiltHomingTolerance)
+            self.move_absolute(-tolerance)
+            # tilt will stop moving on endstop OR by stallguard
             while self.moving:
                 await asyncio.sleep(0.1)
-
-        # check if tilt is on endstop
-        if self._mcc.checkState("endstop"):
-            if (
-                -defines.tiltHomingTolerance
-                <= self.position
-                <= defines.tiltHomingTolerance
-            ):
-                return True
-
+        # check if tilt is on endstop and within tolerance
+        if self._mcc.checkState("endstop") and -tolerance <= self.position <= tolerance:
+            return
         # unstuck
         self.logger.warning("Tilt unstucking")
         self.profile_id = TiltProfile.layerRelease
@@ -284,10 +275,10 @@ class TiltSL1(Tilt):
             while self.moving:
                 await asyncio.sleep(0.1)
             count += step
-        return await self.sync_wait_coroutine(retries=1)
+        await self.sync_wait_async(retries=0)
 
     @safe_call(False, MotionControllerException)
-    def layer_up_wait(self, slowMove: bool = False):
+    def layer_up_wait(self, slowMove: bool = False) -> None:
         profile = self._config.tuneTilt[2] if slowMove else self._config.tuneTilt[3]
 
         self.profile_id = TiltProfile(profile[0])
@@ -306,20 +297,25 @@ class TiltSL1(Tilt):
             sleep(profile[5] / 1000.0)
 
     @safe_call(False, MotionControllerException)
-    def stir_resin(self):
+    def stir_resin(self) -> None:
         for _ in range(self._config.stirringMoves):
             self.profile_id = TiltProfile.homingFast
             # do not verify end positions
             self.move_up()
             while self.moving:
                 sleep(0.1)
-
             self.move_down()
             while self.moving:
                 sleep(0.1)
-
             self.sync_wait()
 
+    @safe_call(False, MotionControllerException)
+    def level(self) -> None:
+        # assume tilt is up (there may be error from print)
+        self.position = self.max
+        self.layer_down_wait()
+        self.profile_id = TiltProfile.moveFast
+        self.layer_up_wait()
 
 ########## homing ##########
 
@@ -337,18 +333,13 @@ class TiltSL1(Tilt):
         self._mcc.do("!tiho")
 
     @safe_call(False, (MotionControllerException, TiltHomeFailed))
-    async def sync_wait_coroutine(self, retries: Optional[int] = None) -> bool:
-        if retries is None:
-            retries = 0
-
+    async def sync_wait_async(self, retries: int = 2) -> None:
         self.sync()
-
         while True:
             homing_status = self.homing_status
             if homing_status == 0:
                 self.position = 0
-                return True
-
+                return
             if homing_status < 0:
                 self.logger.warning("Tilt homing failed! Status: %d", homing_status)
                 if retries < 1:
@@ -356,10 +347,10 @@ class TiltSL1(Tilt):
                     raise TiltHomeFailed()
                 retries -= 1
                 self.sync()
-            sleep(0.25)
+            await asyncio.sleep(0.25)
 
     @safe_call(False, MotionControllerException)
-    async def home_calibrate_wait_coroutine(self):
+    async def home_calibrate_wait_async(self):
         self._mcc.do("!tihc")
         homing_status = 1
         while homing_status > 0:  # not done and not error

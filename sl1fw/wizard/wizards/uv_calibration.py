@@ -13,8 +13,6 @@ from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.display import DisplayTest
 from sl1fw.wizard.checks.sysinfo import SystemInfoTest
-from sl1fw.wizard.checks.tilt import TiltLevelTest
-from sl1fw.wizard.checks.tower import TowerHomeTest
 from sl1fw.wizard.checks.uv_calibration import (
     CheckUVMeter,
     UVWarmupCheck,
@@ -36,8 +34,6 @@ class UVCalibrationPrepare(CheckGroup):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
-                TowerHomeTest(package.hw, package.config_writer),
-                TiltLevelTest(package.hw),
                 DisplayTest(package.hw, package.exposure_image, package.runtime_config),
                 SystemInfoTest(package.hw),
             ],

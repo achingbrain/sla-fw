@@ -11,8 +11,6 @@ from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.display import DisplayTest
-from sl1fw.wizard.checks.tilt import TiltLevelTest
-from sl1fw.wizard.checks.tower import TowerHome
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.wizard.checks.uvleds_sl1 import UVLEDsTest_SL1
 from sl1fw.wizard.checks.uvleds_sl1s import UVLEDsTest_SL1S
@@ -32,7 +30,7 @@ class DisplayTestCheckGroup(CheckGroup):
             raise UnknownPrinterModel()
         super().__init__(
             Configuration(TankSetup.REMOVED, None),
-            [uvled_test, TowerHome(package.hw), TiltLevelTest(package.hw), DisplayTest(package.hw, package.exposure_image, package.runtime_config)],
+            [uvled_test, DisplayTest(package.hw, package.exposure_image, package.runtime_config)],
         )
 
     async def setup(self, actions: UserActionBroker):

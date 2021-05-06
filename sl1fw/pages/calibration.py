@@ -102,7 +102,7 @@ class PageCalibration1(PageCalibrationBase):
         pageWait = PageWait(self.display, line1 = _("Tank axis homing"))
         pageWait.show()
 
-        self.display.hw.tilt.sync_wait(retries = 2) # FIXME MC cant properly home tilt while tower is moving
+        self.display.hw.tilt.sync_wait() # FIXME MC cant properly home tilt while tower is moving
         self.display.hw.tilt.home_calibrate_wait()
         #tower home check
         pageWait.showItems(line1 = _("Tower axis homing check"))
@@ -470,7 +470,7 @@ class PageCalibration10(PageCalibrationBase):
             sleep(0.25)
         #endwhile
         self.logger.debug("Setting tilt to initial position")
-        self.display.hw.tilt.sync_wait(2) # FIXME MC cant properly home tilt while tower is moving
+        self.display.hw.tilt.sync_wait() # FIXME MC cant properly home tilt while tower is moving
         self.logger.info("Measuring slow tilt times")
         tiltSlowTime = self.getTiltTime(pageWait, slowMove = True)
         self.logger.info("Measuring fast tilt times")

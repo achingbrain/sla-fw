@@ -249,7 +249,7 @@ class InitiatePackingMoves(Check):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.towerSync()
-        self._hw.tilt.sync_wait(retries=3)
+        self._hw.tilt.sync_wait()
         while not self._hw.isTowerSynced():
             await sleep(0.25)
 

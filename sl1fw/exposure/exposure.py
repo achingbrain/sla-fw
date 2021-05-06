@@ -174,10 +174,6 @@ class HardwareCheck(ExposureCheckRunner):
 
         self.logger.info("Syncing tilt")
         self.expo.hw.tilt.sync_wait()
-
-        if not self.expo.hw.tilt.synced:
-            raise TiltFailed()
-
         self.logger.info("Tilting up")
         self.expo.hw.tilt.profile_id = TiltProfile.homingFast
         self.expo.hw.tilt.move_up()
@@ -589,7 +585,9 @@ class Exposure:
             slow_move = white_pixels > self.hw.white_pixels_threshold
             if slow_move:
                 self.slow_layers_done += 1
-            if not self.hw.tilt.layer_down_wait(slow_move):
+            try:
+                self.hw.tilt.layer_down_wait(slow_move)
+            except Exception:
                 return False, white_pixels
 
         return True, white_pixels
@@ -662,11 +660,7 @@ class Exposure:
 
         self.hw.powerLed("warn")
         self.state = ExposureState.STUCK_RECOVERY
-
-        if not self.hw.tilt.sync_wait(retries=1):
-            self.logger.error("Stuck release failed")
-            raise TiltFailed()
-
+        self.hw.tilt.sync_wait()
         self.state = ExposureState.STIRRING
         self.hw.tilt.stir_resin()
         self.hw.powerLed("normal")
@@ -964,6 +958,8 @@ class Exposure:
         self.state = ExposureState.GOING_UP
         self.hw.setTowerProfile("homingFast")
         self.hw.towerToTop()
+        if self.hw.config.tilt:
+            self.hw.tilt.layer_up_wait()
         while not self.hw.isTowerOnTop():
             sleep(0.25)
 

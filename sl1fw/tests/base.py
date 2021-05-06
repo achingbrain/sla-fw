@@ -13,6 +13,7 @@ import warnings
 import weakref
 from pathlib import Path
 from unittest.mock import Mock
+from types import FrameType
 
 import pydbus
 from PIL import Image, ImageChops
@@ -172,12 +173,15 @@ class Sl1fwTestCase(DBusTestCase):
                 if isinstance(obj, (weakref.ProxyTypes, Mock)):
                     continue
                 if isinstance(obj, t):
-                    instances += 1
                     print(f"Referrers to {t}:")
                     for num, ref in enumerate(gc.get_referrers(obj)):
-                        if isinstance(ref, list) and len(ref) > 100:
-                            print(f"Referrer {num}: <100+ LONG LIST>")
+                        # do NOT count "global" and "class 'frame'" referrers
+                        if isinstance(ref, FrameType):
+                            print(f"Not counted 'frame' referrer {num}: {ref}")
+                        elif isinstance(ref, list) and len(ref) > 100:
+                            print(f"Not counted 'global' referrer {num}: <100+ LONG LIST>")
                         else:
+                            instances += 1
                             print(f"Referrer {num}: {ref} - {type(ref)}")
             except ReferenceError:
                 # Weak reference no longer valid

@@ -13,6 +13,7 @@ from sl1fw.functions import files
 from sl1fw.functions.system import hw_all_off
 from sl1fw.libPrinter import Printer
 from sl1fw.pages.uvcalibration import PageUvCalibration, PageUvDataShowFactory, PageUvDataShow
+from sl1fw.hardware.tilt import TiltProfile
 
 
 class DisplayRootMenu(AdminMenu):
@@ -226,7 +227,9 @@ class DirectPwmSetMenu(SafeAdminMenu):
     def _do_prepare(self, status: AdminLabel):
         self._printer.hw.powerLed("warn")
         status.set("Tilt is going to level")
+        self._printer.hw.tilt.profile_id = TiltProfile.homingFast
         self._printer.hw.tilt.sync_wait()
+        self._printer.hw.tilt.profile_id = TiltProfile.moveFast
         self._printer.hw.tilt.move_up_wait()
         self._printer.hw.powerLed("normal")
         status.set("Tilt leveled")

@@ -80,7 +80,7 @@ class Hardware:
         self.logger = logging.getLogger(__name__)
         self.config = hw_config
 
-        self._towerSynced = False
+        self.towerSynced = False
 
         self._lastTowerProfile = None
 
@@ -702,7 +702,7 @@ class Hardware:
 
     def motorsRelease(self):
         self.mcc.do("!motr")
-        self._towerSynced = False
+        self.towerSynced = False
 
     def towerHoldTiltRelease(self):
         self.mcc.do("!ena 1")
@@ -726,19 +726,19 @@ class Hardware:
 
     def towerSync(self):
         """ home is at top position """
-        self._towerSynced = False
+        self.towerSynced = False
         self.mcc.do("!twho")
 
     def isTowerSynced(self):
         """ return tower status. False if tower is still homing or error occured """
-        if not self._towerSynced:
+        if not self.towerSynced:
             if self.towerHomingStatus == 0:
                 self.setTowerPosition(self.config.towerHeight)
-                self._towerSynced = True
+                self.towerSynced = True
             else:
-                self._towerSynced = False
+                self.towerSynced = False
 
-        return self._towerSynced
+        return self.towerSynced
 
     @safe_call(False, MotionControllerException)
     def towerSyncWait(self, retries: int = 0):
@@ -755,7 +755,7 @@ class Hardware:
             homingStatus = self.towerHomingStatus
             if homingStatus == 0:
                 self.setTowerPosition(self.config.towerHeight)
-                self._towerSynced = True
+                self.towerSynced = True
                 return True
 
             if homingStatus < 0:
@@ -789,7 +789,6 @@ class Hardware:
     def isTowerMoving(self):
         if self.mcc.doGetInt("?mot") & 1:
             return True
-
         return False
 
     @safe_call(False, MotionControllerException)
@@ -810,11 +809,11 @@ class Hardware:
                     self._towerToPosition,
                 )
                 profileBackup = self._lastTowerProfile
-                self.towerSyncWait()
+                self.towerSyncWaitAsync()
                 self.setTowerProfile(profileBackup)
                 self.towerMoveAbsolute(self._towerToPosition)
                 while self.isTowerMoving():
-                    sleep(0.1)
+                    asyncio.sleep(0.1)
 
             else:
                 self.logger.error("Tower position max tries reached!")

@@ -2,9 +2,8 @@
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import asyncio
 from abc import ABC
-from asyncio import sleep, Queue, AbstractEventLoop, CancelledError
+from asyncio import sleep, Queue, AbstractEventLoop, CancelledError, get_running_loop
 from dataclasses import asdict
 from datetime import datetime
 from functools import partial
@@ -79,12 +78,15 @@ class UVWarmupCheck(DangerousCheck):
         self._exposure_image.blank_screen()
         self._hw.uvLed(True)
 
-        for countdown in range(self._hw.config.uvWarmUpTime):
-            self.progress = countdown / self._hw.config.uvWarmUpTime
-            if test_runtime.testing:
-                await sleep(0.01)
-            else:
-                await sleep(1)
+        try:
+            for countdown in range(self._hw.config.uvWarmUpTime):
+                self.progress = countdown / self._hw.config.uvWarmUpTime
+                if test_runtime.testing:
+                    await sleep(0.01)
+                else:
+                    await sleep(1)
+        finally:
+            self._hw.uvLed(False)
 
         self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).min_pwm
 
@@ -99,17 +101,21 @@ class CheckUVMeterPlacement(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
-        error = self._uv_meter.check_place(self._exposure_image.inverse)
-        # TODO: Move raise to check_place ?
+        self._hw.uvLed(True)
+        try:
+            error = self._uv_meter.check_place(self._exposure_image.inverse)
+            # TODO: Move raise to check_place ?
 
-        if error == UvMeterState.ERROR_COMMUNICATION:
-            raise UVMeterCommunicationFailed()
-        if error == UvMeterState.ERROR_TRANSLUCENT:
-            raise ScreenTranslucent()
-        if error == UvMeterState.ERROR_INTENSITY:
-            raise UnexpectedUVIntensity()
-        if error:
-            raise UnknownUVMeasurementFailure(error)
+            if error == UvMeterState.ERROR_COMMUNICATION:
+                raise UVMeterCommunicationFailed()
+            if error == UvMeterState.ERROR_TRANSLUCENT:
+                raise ScreenTranslucent()
+            if error == UvMeterState.ERROR_INTENSITY:
+                raise UnexpectedUVIntensity()
+            if error:
+                raise UnknownUVMeasurementFailure(error)
+        finally:
+            self._hw.uvLed(False)
 
 
 class UVCalibrate(DangerousCheck, ABC):
@@ -161,32 +167,36 @@ class UVCalibrateCenter(UVCalibrate):
         super().__init__(WizardCheckType.UV_CALIBRATE_CENTER, *args, **kwargs)
 
     async def async_task_run(self, actions: UserActionBroker):
+        self._hw.uvLed(True)
         try:
-            await self.calibrate()
-        except UVCalibrationError:
-            if self._result.boost or self._uv_meter.sixty_points:
-                raise
-            # Possibly the UV sensor does not match UV LED wavelength, lets try with corrected readings
-            self._result.boost = True
-            self._logger.info(
-                "Requested intensity cannot be reached by max. allowed PWM,"
-                " run second iteration with boosted results on (PWM=%d)",
-                self.pwm,
-            )
-            await self.calibrate()
+            try:
+                await self.calibrate()
+            except UVCalibrationError:
+                if self._result.boost or self._uv_meter.sixty_points:
+                    raise
+                # Possibly the UV sensor does not match UV LED wavelength, lets try with corrected readings
+                self._result.boost = True
+                self._logger.info(
+                    "Requested intensity cannot be reached by max. allowed PWM,"
+                    " run second iteration with boosted results on (PWM=%d)",
+                    self.pwm,
+                )
+                await self.calibrate()
 
-        boost_threshold = (self.factoryUvPwm / 100) * (100 + self._hw.config.uvCalibBoostTolerance)
-        pwm_too_high = self.pwm > self.SECOND_PASS_THRESHOLD or self.pwm > boost_threshold
-        if pwm_too_high and not self._result.boost and not self._uv_meter.sixty_points:
-            self._result.boost = True
-            self._logger.info(
-                "Boosted results applied due to bigger tolerance. Factory: %d, max: %f, tolerance: %d",
-                self.factoryUvPwm,
-                (self.factoryUvPwm / 100) * (100 + self._hw.config.uvCalibBoostTolerance),
-                self._hw.config.uvCalibBoostTolerance,
-            )
-            self._hw.beepAlarm(2)
-            await self.calibrate()
+            boost_threshold = (self.factoryUvPwm / 100) * (100 + self._hw.config.uvCalibBoostTolerance)
+            pwm_too_high = self.pwm > self.SECOND_PASS_THRESHOLD or self.pwm > boost_threshold
+            if pwm_too_high and not self._result.boost and not self._uv_meter.sixty_points:
+                self._result.boost = True
+                self._logger.info(
+                    "Boosted results applied due to bigger tolerance. Factory: %d, max: %f, tolerance: %d",
+                    self.factoryUvPwm,
+                    (self.factoryUvPwm / 100) * (100 + self._hw.config.uvCalibBoostTolerance),
+                    self._hw.config.uvCalibBoostTolerance,
+                )
+                self._hw.beepAlarm(2)
+                await self.calibrate()
+        finally:
+            self._hw.uvLed(False)
 
     async def calibrate(self):
         # Start UV led with minimal pwm
@@ -200,7 +210,6 @@ class UVCalibrateCenter(UVCalibrate):
         data = None
 
         # Calibrate LED Power
-        self._hw.uvLed(True)
         self._hw.startFans()
         for iteration in range(0, self.TUNING_ITERATIONS):
             self._hw.uvLedPwm = int(self.pwm)
@@ -276,9 +285,11 @@ class UVCalibrateEdge(UVCalibrate):
         super().__init__(WizardCheckType.UV_CALIBRATE_EDGE, *args, **kwargs)
 
     async def async_task_run(self, actions: UserActionBroker):
+        self._hw.uvLed(True)
         try:
             await self.calibrate()
         finally:
+            self._hw.uvLed(False)
             self._exposure_image.blank_screen()
 
     async def calibrate(self):
@@ -288,7 +299,6 @@ class UVCalibrateEdge(UVCalibrate):
         # check PWM value from previous step
         self.pwm = self._hw.uvLedPwm
         data = None
-        self._hw.uvLed(True)
         self._hw.startFans()
         while self.pwm <= max_pwm:
             self._hw.uvLedPwm = self.pwm
@@ -333,7 +343,6 @@ class UVRemoveCalibrator(Check):
         self._uv_meter = uv_meter
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.uvLed(False)
         state = PushState(WizardState.UV_CALIBRATION_REMOVE_UV_METER)
         actions.push_state(state)
         self._logger.info("Waiting for user to remove UV calibrator")
@@ -369,8 +378,8 @@ class UVCalibrateApply(Check):
         def apply(loop: AbstractEventLoop):
             loop.call_soon_threadsafe(partial(result.put_nowait, True))
 
-        actions.uv_discard_results.register_callback(partial(discard, asyncio.get_running_loop()))
-        actions.uv_apply_result.register_callback(partial(apply, asyncio.get_running_loop()))
+        actions.uv_discard_results.register_callback(partial(discard, get_running_loop()))
+        actions.uv_apply_result.register_callback(partial(apply, get_running_loop()))
         state = PushState(WizardState.UV_CALIBRATION_APPLY_RESULTS)
         actions.push_state(state)
         self._logger.info("Waiting for result apply resolve")

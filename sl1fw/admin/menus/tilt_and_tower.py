@@ -9,6 +9,7 @@ from sl1fw.admin.menus.dialogs import Wait, Error
 from sl1fw.admin.menus.profiles_sets import ProfilesSetsMenu
 from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.libPrinter import Printer
+from sl1fw.errors.errors import TiltHomeFailed
 
 
 class TiltAndTowerMenu(SafeAdminMenu):
@@ -40,7 +41,9 @@ class TiltAndTowerMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def _sync_tilt(self, status: AdminLabel):
         status.set("Tilt home")
-        if not self._printer.hw.tilt.sync_wait(retries=2):
+        try:
+            self._printer.hw.tilt.sync_wait()
+        except TiltHomeFailed:
             self._control.enter(Error(self._control, text="Failed to sync tilt", pop=2))
         self._printer.hw.powerLed("normal")
         status.set("Tilt home done")

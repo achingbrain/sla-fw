@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from typing import Optional
-from asyncio import sleep
+from asyncio import sleep, gather
 
 from sl1fw.errors.errors import DisplayTestFailed
 from sl1fw.configs.runtime import RuntimeConfig
@@ -13,7 +13,6 @@ from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
 from sl1fw.wizard.setup import Configuration, TankSetup, Resource
-from sl1fw.functions.system import hw_all_off
 
 
 class DisplayTest(DangerousCheck):
@@ -36,14 +35,12 @@ class DisplayTest(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         self.reset()
-
-        self._logger.debug("Setting hardware positions for display test")
         await self.wait_cover_closed()
-        old_state = False     # turn on for first time
+        await gather(self.verify_tower(), self.verify_tilt())
+        old_state = False     # turn LEDs on for first time
         self._hw.startFans()
         self._runtime_config.fan_error_override = True
         self._exposure_image.show_system_image("logo.png")
-
         self._logger.debug("Registering display test user resolution callback")
         actions.report_display.register_callback(self.user_callback)
         display_check_state = PushState(WizardState.TEST_DISPLAY)
@@ -65,7 +62,9 @@ class DisplayTest(DangerousCheck):
             self._logger.debug("Finishing display test")
             self._runtime_config.fan_error_override = False
             self._hw.saveUvStatistics()
-            hw_all_off(self._hw, self._exposure_image)
+            self._hw.uvLed(False)
+            self._hw.stopFans()
+            self._exposure_image.blank_screen()
 
         if not self.result:
             self._logger.error("Display test failed")

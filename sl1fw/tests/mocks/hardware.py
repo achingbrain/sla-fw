@@ -69,9 +69,9 @@ class Hardware:
         self.tilt.position = 5000
         self.tilt.moving = False
         self.tilt.homing_status = 0
-        self.tilt.sync_wait_coroutine = AsyncMock()
-        self.tilt.home_calibrate_wait_coroutine = AsyncMock()
-        self.tilt.layer_down_wait_coroutine = AsyncMock()
+        self.tilt.sync_wait_async = AsyncMock()
+        self.tilt.home_calibrate_wait_async = AsyncMock()
+        self.tilt.layer_down_wait_async = AsyncMock()
 
         self.cover_state_changed = Signal()
 
