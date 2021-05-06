@@ -786,9 +786,7 @@ class Exposure:
                     self.hw.uvLed(True)
 
             if self.resin_volume:
-                self.remain_resin_ml = self.resin_volume - int(self.resin_count)
-                self.warn_resin = self.remain_resin_ml < defines.resinLowWarn
-                self.low_resin = self.remain_resin_ml < defines.resinFeedWait
+                self._update_resin()
 
             if command == "feedme" or self.low_resin:
                 self.hw.powerLed("warn")
@@ -806,6 +804,11 @@ class Exposure:
                     self.hw.tilt.sync_wait()
                     self.hw.tilt.stir_resin()
                 was_stirring = True
+
+                # update resin volume
+                # ps: this expect the user always refill with 100% or up
+                self.setResinVolume(defines.resinMaxVolume)
+                self._update_resin()
 
                 # Resume print
                 self.hw.powerLed("normal")
@@ -928,6 +931,11 @@ class Exposure:
                 shut_down(self.hw)
 
         self.logger.debug("Exposure ended")
+
+    def _update_resin(self):
+        self.remain_resin_ml = self.resin_volume - int(self.resin_count)
+        self.warn_resin = self.remain_resin_ml < defines.resinLowWarn
+        self.low_resin = self.remain_resin_ml < defines.resinFeedWait
 
     def _wait_cover_close(self) -> bool:
         """
