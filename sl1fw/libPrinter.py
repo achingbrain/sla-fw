@@ -15,7 +15,6 @@ import re
 import hashlib
 import threading
 import subprocess
-import weakref
 from pathlib import Path
 from time import monotonic, sleep
 from typing import Optional, Set, Any
@@ -79,7 +78,7 @@ class Printer:
         self.exited.set()
         self.logger.info("SL1 firmware initializing")
         self._states: Set[PrinterState] = {PrinterState.INIT}
-        self._fs0_subscriptions = []
+        self._dbus_subscriptions = []
         self.unboxed_changed = Signal()
         self.mechanically_calibrated_changed = Signal()
         self.uv_calibrated_changed = Signal()
@@ -184,7 +183,7 @@ class Printer:
         self.hw.exit()
         self.config0_dbus.unpublish()
         self.logs0_dbus.unpublish()
-        for subscription in self._fs0_subscriptions:
+        for subscription in self._dbus_subscriptions:
             subscription.unsubscribe()
 
     def printer_run(self):
@@ -249,17 +248,19 @@ class Printer:
         try:
             self.logger.info("Registering event handlers")
             self.inet.register_events()
-            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(
-                weakref.proxy(self._locale_changed)
+            self._dbus_subscriptions.append(
+                self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(self._locale_changed)
             )
-            self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(weakref.proxy(self._rauc_changed))
+            self._dbus_subscriptions.append(
+                self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
+            )
             self.logger.info("connecting cz.prusa3d.sl1.filemanager0 DBus signals")
-            self._fs0_subscriptions.append(
+            self._dbus_subscriptions.append(
                 self.system_bus.subscribe(
                     object="/cz/prusa3d/sl1/filemanager0", signal="MediaInserted", signal_fired=self._media_inserted
                 )
             )
-            self._fs0_subscriptions.append(
+            self._dbus_subscriptions.append(
                 self.system_bus.subscribe(
                     object="/cz/prusa3d/sl1/filemanager0", signal="MediaEjected", signal_fired=self._media_ejected
                 )
