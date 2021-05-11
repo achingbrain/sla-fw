@@ -143,6 +143,7 @@ class Virtual:
 
             print("Initializing printer")
             self.printer = libPrinter.Printer()
+            test_runtime.exposure_image = self.printer.exposure_image
 
             print("Overriding printer settings")
             self.printer.hw.config.calibrated = True
