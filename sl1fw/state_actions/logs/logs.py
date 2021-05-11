@@ -28,6 +28,7 @@ from sl1fw.states.logs import LogsState, StoreType
 from sl1fw.state_actions.logs.summary import create_summary
 from sl1fw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace
 
+
 def get_logs_file_name(hw: Hardware) -> str:
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     serial = re.sub("[^a-zA-Z0-9]", "_", hw.cpuSerialNo)
@@ -35,8 +36,14 @@ def get_logs_file_name(hw: Hardware) -> str:
 
 
 def export_configs(temp_dir: Path):
-    shutil.copytree(defines.wizardHistoryPath, temp_dir / defines.wizardHistoryPath.name)
-    shutil.copytree(defines.wizardHistoryPathFactory, temp_dir / defines.wizardHistoryPathFactory.name)
+    if defines.wizardHistoryPath.is_dir():
+        shutil.copytree(defines.wizardHistoryPath, temp_dir / defines.wizardHistoryPath.name)
+    if defines.wizardHistoryPathFactory.is_dir():
+        shutil.copytree(defines.wizardHistoryPathFactory, temp_dir / defines.wizardHistoryPathFactory.name)
+    if defines.configDir.exists():
+        shutil.copytree(defines.configDir, temp_dir / defines.configDir.name)
+    if defines.factoryMountPoint.exists():
+        shutil.copytree(defines.factoryMountPoint, temp_dir / defines.factoryMountPoint.name)
 
 
 class LogsExport(ABC, Thread):
@@ -226,7 +233,10 @@ class LogsExport(ABC, Thread):
             self._logger.error(error)
 
         self._logger.debug("Waiting for configs export to finish")
-        export_configs(logs_dir)
+        try:
+            export_configs(logs_dir)
+        except Exception:
+            self._logger.exception("Config export exception")
 
         log_tar_file = tmpdir_path / get_logs_file_name(self._hw)
         self.proc = await asyncio.create_subprocess_shell(
