@@ -9,12 +9,12 @@
 # pylint: disable=too-many-branches
 
 import gettext
+import hashlib
 import logging
 import os
 import re
-import hashlib
-import threading
 import subprocess
+import threading
 from pathlib import Path
 from time import monotonic, sleep
 from typing import Optional, Set, Any
@@ -24,35 +24,41 @@ from PySignal import Signal
 from pydbus import SystemBus
 
 from sl1fw import defines
+from sl1fw import test_runtime
 from sl1fw.api.config0 import Config0
 from sl1fw.api.logs0 import Logs0
+from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.runtime import RuntimeConfig
+from sl1fw.configs.stats import TomlConfigStats
+from sl1fw.configs.toml import TomlConfig
+from sl1fw.errors.errors import (
+    NotUVCalibrated,
+    NotMechanicallyCalibrated,
+    BootedInAlternativeSlot,
+    UnknownPrinterModel,
+    MissingExamples,
+    NoFactoryUvCalib,
+)
 from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongFw
-from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated, BootedInAlternativeSlot, \
-    UnknownPrinterModel, MissingExamples, NoFactoryUvCalib
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth
+from sl1fw.hardware.printer_model import PrinterModel
+from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
-from sl1fw.configs.hw import HwConfig
-from sl1fw.configs.toml import TomlConfig
-from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
 from sl1fw.libQtDisplay import QtDisplay
-from sl1fw.image.exposure_image import ExposureImage
-from sl1fw.hardware.printer_model import PrinterModel
-from sl1fw.state_actions.manager import ActionManager
 from sl1fw.slicer.slicer_profile import SlicerProfile
+from sl1fw.state_actions.manager import ActionManager
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.wizard import WizardState
-from sl1fw import test_runtime
-from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
-from sl1fw.wizard.wizards.self_test import SelfTestWizard
-from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 from sl1fw.wizard.wizards.calibration import CalibrationWizard
+from sl1fw.wizard.wizards.self_test import SelfTestWizard
+from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
+from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
 
 class Printer:
@@ -190,7 +196,6 @@ class Printer:
         self.hw.uvLed(False)
         self.hw.powerLed("normal")
 
-
         if self.hw.checkFailedBoot():
             self.exception = BootedInAlternativeSlot()
 
@@ -198,7 +203,7 @@ class Printer:
             if not self.hw.config.is_factory_read() and not self.hw.isKit:
                 self.exception = NoFactoryUvCalib()
             if self.runtime_config.factory_mode and not get_all_supported_files(
-                    self.hw.printer_model, Path(defines.internalProjectPath)
+                self.hw.printer_model, Path(defines.internalProjectPath)
             ):
                 self.exception = MissingExamples()
             if self.hw.printer_model == PrinterModel.NONE:
@@ -478,8 +483,7 @@ class Printer:
                 )
             else:
                 unboxing = self.action_manager.start_wizard(
-                    CompleteUnboxingWizard(self.hw, self.runtime_config),
-                    handle_state_transitions=False
+                    CompleteUnboxingWizard(self.hw, self.runtime_config), handle_state_transitions=False
                 )
             self.logger.info("Running unboxing wizard")
             self.set_state(PrinterState.WIZARD, active=True)
@@ -500,11 +504,9 @@ class Printer:
             self.logger.info("Running UV calibration wizard")
             uv_calibration = self.action_manager.start_wizard(
                 UVCalibrationWizard(
-                    self.hw,
-                    self.exposure_image,
-                    self.runtime_config,
-                    display_replaced=True,
-                    led_module_replaced=True), handle_state_transitions=False
+                    self.hw, self.exposure_image, self.runtime_config, display_replaced=True, led_module_replaced=True
+                ),
+                handle_state_transitions=False,
             )
             self.set_state(PrinterState.WIZARD, active=True)
             uv_calibration.join()
