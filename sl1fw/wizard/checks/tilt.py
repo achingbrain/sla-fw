@@ -129,8 +129,8 @@ class TiltTimingTest(DangerousCheck):
                 await asyncio.sleep(0.25)
 
             await self._hw.tilt.sync_wait_coroutine(2)  # FIXME MC cant properly home tilt while tower is moving
-            self._config_writer.tiltSlowTime = await self._get_tilt_time(slowMove=True)
-            self._config_writer.tiltFastTime = await self._get_tilt_time(slowMove=False)
+            self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(slow_move=True)
+            self._config_writer.tiltFastTime = await self._get_tilt_time_sec(slow_move=False)
             self._hw.setTowerProfile("homingFast")
             self._hw.tilt.profile_id = TiltProfile.homingFast
             self.progress = 1
@@ -138,29 +138,34 @@ class TiltTimingTest(DangerousCheck):
             while self._hw.tilt.moving:
                 await asyncio.sleep(0.25)
 
-    async def _get_tilt_time(self, slowMove):
+    async def _get_tilt_time_sec(self, slow_move: bool) -> float:
+        """
+        Get tilt time in seconds
+        :param slow_move: Whenever to do slow tilts
+        :return: Tilt time in seconds
+        """
         tilt_time = 0
         total = self._hw.config.measuringMoves
         for i in range(total):
-            self.progress = (i + (3 * (1 - slowMove))) / total / 2
+            self.progress = (i + (3 * (1 - slow_move))) / total / 2
             self._logger.info(
                 "Slow move %(count)d/%(total)d" % {"count": i + 1, "total": total}
-                if slowMove
+                if slow_move
                 else "Fast move %(count)d/%(total)d" % {"count": i + 1, "total": total}
             )
             await asyncio.sleep(0)
             tilt_start_time = time()
             self._hw.tilt.layer_up_wait()
             await asyncio.sleep(0)
-            await self._hw.tilt.layer_down_wait_coroutine(slowMove)
+            await self._hw.tilt.layer_down_wait_coroutine(slow_move)
             tilt_time += time() - tilt_start_time
 
-        return round(1000 * tilt_time / total)
+        return tilt_time / total
 
     def get_result_data(self) -> Dict[str, Any]:
         return {
-            "tilt_slow_time_ms": self._config_writer.tiltSlowTime,
-            "tilt_fast_time_ms": self._config_writer.tiltFastTime,
+            "tilt_slow_time_ms": int(self._config_writer.tiltSlowTime * 1000),
+            "tilt_fast_time_ms": int(self._config_writer.tiltFastTime * 1000),
         }
 
 
