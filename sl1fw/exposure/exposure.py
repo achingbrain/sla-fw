@@ -105,7 +105,8 @@ class TempsCheck(ExposureCheckRunner):
         failed = [i for i in (self.expo.hw.led_temp_idx, self.expo.hw.ambient_temp_idx) if temperatures[i] < 0]
         if failed:
             failed_names = [self.expo.hw.getSensorName(i) for i in failed]
-            raise TempSensorFailed(failed, failed_names)
+            failed_names = ', '.join(failed_names)
+            raise TempSensorFailed(failed_names)
 
         if temperatures[1] < defines.minAmbientTemp:
             self.raise_warning(AmbientTooCold(temperatures[1]))

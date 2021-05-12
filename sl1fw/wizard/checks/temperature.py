@@ -13,6 +13,7 @@ from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType
 from sl1fw.wizard.setup import Configuration
+from sl1fw.errors.errors import A64Overheat, TempSensorFailed, TempSensorNotInRange
 
 
 @dataclass
@@ -41,29 +42,22 @@ class TemperatureTest(SyncCheck):
         a64_temperature = self._hw.getCpuTemperature()
         if a64_temperature > defines.maxA64Temp:
             Thread(target=self._overheat, daemon=True).start()
-            raise Exception(
-                "A64 temperature is too high. Measured: %.1f °C!\n\n" "Shutting down in 10 seconds..." % a64_temperature
-            )
+            raise A64Overheat(a64_temperature)
 
         # Checking MC temperatures
         self._logger.info("Checking MC temperatures")
         temperatures = self._hw.getMcTemperatures()
         for i in (self._hw.led_temp_idx, self._hw.ambient_temp_idx):
             if temperatures[i] < 0:
-                raise Exception(
-                    "%s cannot be read.\n\nPlease check if temperature sensors are connected correctly."
-                    % self._hw.getSensorName(i)
-                )
+                raise TempSensorFailed(self._hw.getSensorName(i))
             if i == 0:
                 max_temp = defines.maxUVTemp
             else:
                 max_temp = defines.maxAmbientTemp
             if not defines.minAmbientTemp < temperatures[i] < max_temp:
-                raise Exception(
-                    "%(sensor)s not in range!\n\n"
-                    "Measured temperature: %(temp).1f °C.\n\n"
-                    "Keep the printer out of direct sunlight at room temperature (18 - 32 °C)."
-                    % {"sensor": self._hw.getSensorName(i), "temp": temperatures[i]}
+                raise TempSensorNotInRange(
+                    self._hw.getSensorName(i),
+                    temperatures[i]
                 )
 
         self._check_data = CheckData(temperatures[0], temperatures[1], a64_temperature)

@@ -184,9 +184,18 @@ class ProjectErrorCantRemove(ExposureError):
 @with_code(Sl1Codes.TEMP_SENSOR_FAILED)
 @dataclass
 class TempSensorFailed(ExposureError):
-    failed_sensors: List[int]
-    failed_sensor_names: List[str]
+    sensor: str
 
+@with_code(Sl1Codes.TEMPERATURE_OUT_OF_RANGE)
+@dataclass()
+class TempSensorNotInRange(GeneralError):
+    sensor: str
+    temperature: float
+
+@with_code(Sl1Codes.A64_OVERHEAT)
+@dataclass()
+class A64Overheat(GeneralError):
+    temperature: float
 
 @with_code(Sl1Codes.FAN_FAILED)
 @dataclass

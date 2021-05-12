@@ -70,6 +70,8 @@ class TestExceptions(unittest.TestCase):
         "intensity: float": 150,
         "threshold: float": 125,
         "unknown_code: int": 42,
+        "temperature: float": 36.8,
+        "sensor: str": "Ambient temperature",
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}
