@@ -94,7 +94,12 @@ class KitUnboxingWizard(UnboxingWizard):
             runtime_config=runtime_config
         )
         super().__init__(
-            WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup()], self._package
+            WizardId.KIT_UNBOXING,
+            [
+                RemoveDisplayFoilCheckGroup(),
+                ShowResultsGroup()
+            ],
+            self._package
         )
 
     @property
