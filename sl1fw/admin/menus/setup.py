@@ -49,6 +49,8 @@ class SetupMenu(AdminMenu):
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self._control.enter(Error(self._control, text="Cannot save configuration", pop=1))
+            return
+
         self._control.enter(Info(self._control, "Configuration exported"))
 
     def import_config(self):
@@ -72,6 +74,8 @@ class SetupMenu(AdminMenu):
             self._printer.hw.config.write()
         except ConfigException:
             self._control.enter(Error(self._control, text="Cannot save configuration", pop=1))
+            return
+
         self._control.enter(Info(self._control, "Configuration imported"))
 
 

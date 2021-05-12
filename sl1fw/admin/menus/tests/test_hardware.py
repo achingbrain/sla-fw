@@ -111,12 +111,14 @@ class InfiniteUVCalibratorMenu(AdminMenu):
             self.logger.info("Connecting UV calibrator")
             if not PageUvCalibrationBase.uvmeter.connect():
                 self._control.enter(Error(self._control, text="Failed to connect UV calibrator", pop=2))
+                return
 
             for _ in range(5):
                 self.logger.info("Reading UV calibrator data")
                 self.status = "Reading data"
                 if not PageUvCalibrationBase.uvmeter.read():
                     self._control.enter(Error(self._control, text="Failed to read UV calibrator data", pop=2))
+                    return
 
                 uv_mean = PageUvCalibrationBase.uvmeter.get_data().uvMean
                 self.logger.info("Red data: UVMean: %s", uv_mean)
@@ -153,12 +155,14 @@ class ResinSensorTestMenu(AdminMenu):
 
         if not self._printer.hw.towerSyncWait(retries=2):
             self._control.enter(Error(self._control, text="Failed to sync tower", pop=2))
+            return
 
         self.status = "Homing tilt..."
         try:
             self._printer.hw.tilt.sync_wait()
         except TiltHomeFailed:
             self._control.enter(Error(self._control, text="Failed to sync tilt", pop=2))
+            return
 
         self._printer.hw.tilt.profile_id = TiltProfile.moveFast
         self._printer.hw.tilt.move_up_wait()
@@ -168,5 +172,6 @@ class ResinSensorTestMenu(AdminMenu):
         self._printer.hw.powerLed("normal")
         if not volume:
             self._control.enter(Error(self._control, text="Measurement failed", pop=2))
+            return
 
         self._control.enter(Info(self._control, f"Measured resin volume: {volume} ml", pop=3))

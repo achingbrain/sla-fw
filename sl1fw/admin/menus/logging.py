@@ -36,6 +36,7 @@ class LoggingMenu(AdminMenu):
         except FailedToSetLogLevel:
             self.logger.exception("Failed to set loglevel from admin")
             self._control.enter(Error(self._control, text="Failed to set log level", pop=2))
+            return
 
         # force all forked processes to reload logging settings is overkill, let user do it
         self._control.enter(Info(self._control, "The setting become active after the printer's restart."))

@@ -118,6 +118,7 @@ class FansAndUVLedMenu(AdminMenu):
         except ConfigException:
             self.logger.exception("Cannot save configuration")
             self._control.enter(Error(self._control, text="Cannot save configuration", pop=1))
+            return
         self._control.enter(Info(self._control, "Configuration reset to defaults"))
 
     def save_as_defaults(self):
@@ -135,6 +136,7 @@ class FansAndUVLedMenu(AdminMenu):
                 self._printer.hw.config.write_factory()
         except ConfigException:
             self._control.enter(Error(self._control, text="!!! Failed to save factory defaults !!!", pop=1))
+            return
         self._control.enter(Info(self._control, "Configuration saved as default"))
 
     def _uv_led_fan_changed(self):

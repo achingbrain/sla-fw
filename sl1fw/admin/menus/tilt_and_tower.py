@@ -37,16 +37,17 @@ class TiltAndTowerMenu(SafeAdminMenu):
     def tilt_home(self):
         self._printer.hw.powerLed("warn")
         self._control.enter(Wait(self._control, self._sync_tilt))
+        self._printer.hw.powerLed("normal")
 
-    @SafeAdminMenu.safe_call
     def _sync_tilt(self, status: AdminLabel):
         status.set("Tilt home")
         try:
             self._printer.hw.tilt.sync_wait()
         except TiltHomeFailed:
             self._control.enter(Error(self._control, text="Failed to sync tilt", pop=2))
-        self._printer.hw.powerLed("normal")
+            return False
         status.set("Tilt home done")
+        return True
 
     @SafeAdminMenu.safe_call
     def tilt_test(self):
@@ -56,20 +57,20 @@ class TiltAndTowerMenu(SafeAdminMenu):
     def _do_tilt_test(self, status: AdminLabel):
         self._printer.hw.powerLed("warn")
         status.set("Tilt sync")
-        self._sync_tilt(status)
-        self._printer.hw.beepEcho()
-        sleep(1)
-        status.set("Tilt up")
-        self._printer.hw.tilt.layer_up_wait()
-        self._printer.hw.beepEcho()
-        sleep(1)
-        status.set("Tilt down")
-        self._printer.hw.tilt.layer_down_wait()
-        self._printer.hw.beepEcho()
-        sleep(1)
-        status.set("Tilt up")
-        self._printer.hw.tilt.layer_up_wait()
-        self._printer.hw.beepEcho()
+        if self._sync_tilt(status):
+            self._printer.hw.beepEcho()
+            sleep(1)
+            status.set("Tilt up")
+            self._printer.hw.tilt.layer_up_wait()
+            self._printer.hw.beepEcho()
+            sleep(1)
+            status.set("Tilt down")
+            self._printer.hw.tilt.layer_down_wait()
+            self._printer.hw.beepEcho()
+            sleep(1)
+            status.set("Tilt up")
+            self._printer.hw.tilt.layer_up_wait()
+            self._printer.hw.beepEcho()
         self._printer.hw.powerLed("normal")
 
     @SafeAdminMenu.safe_call
@@ -90,15 +91,17 @@ class TiltAndTowerMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def tower_home(self):
+        self._printer.hw.powerLed("warn")
         self.enter(Wait(self._control, self._sync_tower))
+        self._printer.hw.powerLed("normal")
 
-    @SafeAdminMenu.safe_call
     def _sync_tower(self, status: AdminLabel):
         status.set("Tower home")
         if not self._printer.hw.towerSyncWait(retries=2):
             self._control.enter(Error(self._control, text="Failed to sync tower", pop=2))
-        self._printer.hw.powerLed("normal")
+            return False
         status.set("Tower home done")
+        return True
 
     @SafeAdminMenu.safe_call
     def tower_test(self):
@@ -108,13 +111,13 @@ class TiltAndTowerMenu(SafeAdminMenu):
     def _do_tower_test(self, status: AdminLabel):
         self._printer.hw.powerLed("warn")
         status.set("Moving platform to the top")
-        self._sync_tower(status)
-        status.set("Moving platform to zero")
-        self._printer.hw.towerToZero()
-        status2 = self.add_label()
-        while not self._printer.hw.isTowerOnZero():
-            sleep(0.25)
-            status2.set(self._printer.hw.getTowerPosition())
+        if self._sync_tower(status):
+            status.set("Moving platform to zero")
+            self._printer.hw.towerToZero()
+            status2 = self.add_label()
+            while not self._printer.hw.isTowerOnZero():
+                sleep(0.25)
+                status2.set(self._printer.hw.getTowerPosition())
         self._printer.hw.powerLed("normal")
 
     @SafeAdminMenu.safe_call
