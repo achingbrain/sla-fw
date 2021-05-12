@@ -139,4 +139,5 @@ class PackingWizard(Wizard):
 
     def run(self):
         super().run()
-        shut_down(self._hw)
+        if self.state == WizardState.DONE:
+            shut_down(self._hw)
