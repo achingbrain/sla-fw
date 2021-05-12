@@ -9,6 +9,7 @@ from sl1fw.admin.menus.dialogs import Confirm, Error, Info
 from sl1fw.errors.exceptions import ConfigException
 from sl1fw.functions.system import FactoryMountedRW
 from sl1fw.libPrinter import Printer
+from sl1fw.hardware.printer_model import PrinterModel
 
 
 class FansAndUVLedMenu(AdminMenu):
@@ -44,6 +45,7 @@ class FansAndUVLedMenu(AdminMenu):
         self.add_item(AdminAction("Save", self.save))
         self.add_item(AdminAction("Reset to defaults", self.reset_to_defaults))
         self.add_item(AdminAction("Save & save as defaults", self.save_as_defaults))
+        self.add_item(AdminAction("Save to boostV2 board", self.save_to_booster))
 
     def on_leave(self):
         self._printer.hw.setFans(self._init_fans)
@@ -138,6 +140,21 @@ class FansAndUVLedMenu(AdminMenu):
             self._control.enter(Error(self._control, text="!!! Failed to save factory defaults !!!", pop=1))
             return
         self._control.enter(Info(self._control, "Configuration saved as default"))
+
+    def save_to_booster(self):
+        if self._printer.hw.printer_model == PrinterModel.SL1S:
+            self._control.enter(
+                Confirm(self._control, self._do_save_to_booster, text="Save current PWM to boosterV2 board?")
+            )
+        else:
+            self._control.enter(Error(self._control, text="Works only on SL1S!", pop=1))
+
+    def _do_save_to_booster(self):
+        try:
+            self._printer.hw.uvLedPwm = self._temp.uvPwm
+            self._printer.hw.sl1s_booster.save_permanently()
+        except Exception:
+            self._control.enter(Error(self._control, text="!!! Failed to save PWM to boosterV2 board !!!", pop=1))
 
     def _uv_led_fan_changed(self):
         self.uv_led_fan = True

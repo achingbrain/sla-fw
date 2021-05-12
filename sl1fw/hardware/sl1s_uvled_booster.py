@@ -144,6 +144,14 @@ class Booster:
     def board_serial_no(self) -> str:
         return self._sn
 
+    def save_permanently(self):
+        self._dac_write(self.DAC_TRIGGER, 0x18)
+        if not self._dac_read(self.DAC_STATUS) & (1 << 13):
+            raise BoosterError("DAC NVM writing was not started")
+        sleep(0.25)
+        if self._dac_read(self.DAC_STATUS) & (1 << 13):
+            raise BoosterError("DAC NVM writing is not finished")
+
     def _dac_read(self, register: int) -> int:
         msb, lsb = self._bus.read_i2c_block_data(self.DAC_ADDR, register, 2)
         value = msb * 256 + lsb
