@@ -319,6 +319,7 @@ class Exposure:
         self.warning_dismissed = Event()
         self.warning_result: Optional[Exception] = None
         self.pending_warning = Lock()
+        self.estimate_total_time_ms = -1
         self.expoThread = Thread(target=self.run)
 
     def read_project(self, project_file: str):
@@ -326,6 +327,7 @@ class Exposure:
         try:
             # Read project
             self.project = Project(self.hw, project_file)
+            self.estimate_total_time_ms = self.estimate_remain_time_ms()
             self.state = ExposureState.CONFIRM
             # Signal project change on its parameter change. This lets Exposure0 emit
             # property changed on properties bound to project parameters.
@@ -459,11 +461,20 @@ class Exposure:
         else:
             self.resin_volume = volume + int(self.resin_count)
 
-    def countRemainTime(self):
+    def estimate_remain_time_ms(self) -> int:
         if self.project:
             return self.project.count_remain_time(self.actual_layer, self.slow_layers_done)
         self.logger.warning("No active project to get remaining time")
         return -1
+
+    def expected_finish_timestamp(self) -> float:
+        """
+        Get timestamp of expected print end
+
+        :return: Timestamp as float
+        """
+        end = datetime.now(tz=timezone.utc) + timedelta(milliseconds=self.estimate_remain_time_ms())
+        return end.timestamp()
 
     def write_last_exposure(self):
         if self.hw.config.autoOff and not self.canceled:
@@ -829,7 +840,7 @@ class Exposure:
                 " 'slow_layers_done': %d,"
                 " 'height [mm]': '%.3f/%.3f',"
                 " 'elapsed [min]': %d,"
-                " 'remain [min]': %d,"
+                " 'remain [ms]': %d,"
                 " 'used [ml]': %d,"
                 " 'remaining [ml]': %d,"
                 " 'RAM': '%.1f%%',"
@@ -843,7 +854,7 @@ class Exposure:
                 self.tower_position_nm / 1e6,
                 project.total_height_nm / 1e6,
                 int(round((datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds() / 60)),
-                self.countRemainTime(),
+                self.estimate_remain_time_ms(),
                 self.resin_count,
                 self.remain_resin_ml if self.remain_resin_ml else -1,
                 psutil.virtual_memory().percent,

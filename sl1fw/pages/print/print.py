@@ -51,7 +51,7 @@ class PagePrint(PagePrintBase):
         self.lastLayer = expo.actual_layer
         project = self.display.expo.project
 
-        time_remain_min = expo.countRemainTime()
+        time_remain_min = expo.estimate_remain_time_ms()/60000
         time_elapsed_min = int(round((datetime.now(tz=timezone.utc) - expo.printStartTime).total_seconds() / 60))
         percent = int(100 * self.display.expo.progress)
 

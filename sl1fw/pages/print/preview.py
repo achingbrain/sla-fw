@@ -45,7 +45,7 @@ class PagePrintPreviewSwipe(PagePrintBase):
             "exposure_time_first_sec": project.exposure_time_first_ms / 1e3,
             "exposure_time_sec": project.exposure_time_ms / 1e3,
             "calibrate_time_sec": project.calibrate_time_ms / 1e3,
-            "print_time_min": self.display.expo.countRemainTime(),
+            "print_time_min": self.display.expo.estimate_remain_time_ms(),
             "text": resinVolumeText,
         }
 

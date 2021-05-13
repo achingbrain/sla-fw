@@ -453,7 +453,7 @@ class Project:
         if self._zf:
             self._zf.close()
 
-    @functools.lru_cache(maxsize=5)
+    @functools.lru_cache(maxsize=1)
     def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0) -> int:
         time_remain_ms = sum(sum(x.times_ms) for x in self.layers[layers_done:])
         total_layers = len(self.layers)
@@ -461,14 +461,14 @@ class Project:
         if slow_layers < 0:
             slow_layers = 0
         fast_layers = total_layers - layers_done - slow_layers
-        time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
-        time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
+        time_remain_ms += fast_layers * self._hw.config.tiltFastTime
+        time_remain_ms += slow_layers * self._hw.config.tiltSlowTime
         time_remain_ms += (total_layers - layers_done) * (
                 self.layer_height_nm * 5000 / 1000 / 1000  # tower move
                 + self._hw.config.delayBeforeExposure * 100
                 + self._hw.config.delayAfterExposure * 100)
         self.logger.debug("time_remain_ms: %f", time_remain_ms)
-        return int(round(time_remain_ms / 60 / 1000))
+        return int(time_remain_ms)
 
     def set_timings_reference(self, project: Project):
         """

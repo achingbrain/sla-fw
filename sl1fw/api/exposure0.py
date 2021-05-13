@@ -289,14 +289,22 @@ class Exposure0:
     @auto_dbus
     @property
     @last_error
-    @deprecated("Use expected_finish_timestamp")
-    def time_remain_min(self) -> int:
+    def time_remain_ms(self) -> int:
         """
         Remaining print time
 
         :return: Remaining time in minutes
         """
-        return self.exposure.countRemainTime()
+        return self.exposure.estimate_remain_time_ms()
+
+    @auto_dbus
+    @property
+    @last_error
+    def total_time_ms(self) -> int:
+        """
+        Estimated total print time in ms
+        """
+        return self.exposure.estimate_total_time_ms
 
     @auto_dbus
     @property
@@ -307,20 +315,7 @@ class Exposure0:
 
         :return: Timestamp as float
         """
-        end = datetime.now(tz=timezone.utc) + timedelta(minutes=self.exposure.countRemainTime())
-        return end.timestamp()
-
-    @auto_dbus
-    @property
-    @last_error
-    @deprecated("Use print_start_timestamp")
-    def time_elapsed_min(self) -> int:
-        """
-        Return time spent printing
-
-        :return: Time spent printing in minutes
-        """
-        return int(round((datetime.now(tz=timezone.utc) - self.exposure.printStartTime).total_seconds() / 60))
+        return self.exposure.expected_finish_timestamp()
 
     @auto_dbus
     @property
@@ -742,8 +737,7 @@ class Exposure0:
         "actual_layer": {
             "current_layer",
             "progress",
-            "time_remain_min",
-            "time_elapsed_min",
+            "time_remain_ms",
             "position_mm",
             "position_nm",
             "expected_finish_timestamp",
