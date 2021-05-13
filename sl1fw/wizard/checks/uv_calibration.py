@@ -290,6 +290,7 @@ class UVCalibrateEdge(UVCalibrate):
             await self.calibrate()
         finally:
             self._hw.uvLed(False)
+            self._hw.stopFans()
             self._exposure_image.blank_screen()
 
     async def calibrate(self):
