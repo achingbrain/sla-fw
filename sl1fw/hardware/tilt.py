@@ -12,8 +12,7 @@ from sl1fw import defines
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.configs.hw import HwConfig
 from sl1fw.functions.decorators import safe_call
-from sl1fw.errors.errors import TiltPositionFailed, TiltHomeFailed
-from sl1fw.errors.exceptions import MotionControllerException
+from sl1fw.errors.errors import TiltPositionFailed, TiltHomeFailed, MotionControllerException
 from sl1fw.hardware.axis import Axis
 
 

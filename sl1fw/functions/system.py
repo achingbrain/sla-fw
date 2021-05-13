@@ -20,8 +20,8 @@ from sl1fw.errors.errors import (
     ErrorSendingDataToMQTT,
     FailedUpdateChannelSet,
     FailedUpdateChannelGet,
+    ConfigException,
 )
-from sl1fw.errors.exceptions import ConfigException
 from sl1fw.configs.toml import TomlConfig
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.libHardware import Hardware

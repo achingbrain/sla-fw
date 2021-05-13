@@ -27,7 +27,7 @@ from sl1fw.states.printer import PrinterState, Printer0State
 from sl1fw.states.exposure import ExposureState
 from sl1fw.api.exposure0 import Exposure0, Exposure0State
 from sl1fw.errors.warnings import ResinLow
-from sl1fw.errors.exceptions import NotAvailableInState
+from sl1fw.errors.errors import NotAvailableInState
 from sl1fw.api.decorators import (
     auto_dbus,
     dbus_api,

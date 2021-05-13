@@ -15,7 +15,7 @@ from sl1fw.admin.menus.dialogs import Info, Confirm
 from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.libPrinter import Printer
 from sl1fw.functions.files import get_save_path
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.errors import ConfigException
 from sl1fw.hardware.printer_model import PrinterModel
 
 

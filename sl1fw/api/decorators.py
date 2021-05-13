@@ -16,7 +16,7 @@ from pydbus.generic import signal
 from gi.repository import GLib
 from prusaerrors.sl1.codes import Sl1Codes
 
-from sl1fw.errors.exceptions import NotAvailableInState, DBusMappingException, PrinterException
+from sl1fw.errors.errors import NotAvailableInState, DBusMappingException, PrinterException
 from sl1fw.errors.warnings import PrinterWarning
 
 

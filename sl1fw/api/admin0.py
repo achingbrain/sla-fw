@@ -14,7 +14,7 @@ from sl1fw.admin.manager import AdminManager
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.root import RootMenu
 from sl1fw.api.decorators import DBusObjectPath, dbus_api, auto_dbus, auto_dbus_signal
-from sl1fw.errors.exceptions import NotAvailableInState, AdminNotAvailable
+from sl1fw.errors.errors import NotAvailableInState, AdminNotAvailable
 from sl1fw.libPrinter import Printer
 from sl1fw.states.printer import PrinterState
 

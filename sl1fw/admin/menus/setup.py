@@ -10,7 +10,7 @@ from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminIntValue, AdminBoolValue, AdminAction, AdminFloatValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error, Info
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.errors import ConfigException
 from sl1fw.functions.files import get_save_path, usb_remount
 from sl1fw.libPrinter import Printer
 

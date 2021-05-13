@@ -13,7 +13,7 @@ from prusaerrors.sl1.codes import Sl1Codes
 
 import sl1fw
 from sl1fw.api.decorators import wrap_dict_data, wrap_exception
-from sl1fw.errors import errors, exceptions, warnings
+from sl1fw.errors import errors, warnings
 from sl1fw.errors.warnings import AmbientTooHot
 from sl1fw.motion_controller.trace import Trace
 from sl1fw.states.printer import PrinterState
@@ -75,9 +75,6 @@ class TestExceptions(unittest.TestCase):
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}
-
-    def test_exceptions(self):
-        self.do_test(inspect.getmembers(exceptions))
 
     def test_errors(self):
         self.do_test(inspect.getmembers(errors))

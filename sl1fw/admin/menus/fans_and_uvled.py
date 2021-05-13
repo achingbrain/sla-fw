@@ -6,7 +6,7 @@ from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminIntValue, AdminBoolValue, AdminAction
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Confirm, Error, Info
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.errors import ConfigException
 from sl1fw.functions.system import FactoryMountedRW
 from sl1fw.libPrinter import Printer
 from sl1fw.hardware.printer_model import PrinterModel

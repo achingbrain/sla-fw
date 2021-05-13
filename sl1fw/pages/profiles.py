@@ -17,7 +17,7 @@ from copy import deepcopy
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
-from sl1fw.errors.exceptions import ConfigException, get_exception_code
+from sl1fw.errors.errors import ConfigException, get_exception_code
 from sl1fw.functions.files import usb_remount
 from sl1fw.pages import page
 from sl1fw.pages.base import Page

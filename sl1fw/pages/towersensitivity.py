@@ -6,8 +6,7 @@
 
 from prusaerrors.sl1.codes import Sl1Codes
 
-from sl1fw.errors.errors import TowerEndstopNotReached, TowerHomeCheckFailed
-from sl1fw.errors.exceptions import ConfigException, get_exception_code
+from sl1fw.errors.errors import TowerEndstopNotReached, TowerHomeCheckFailed, ConfigException, get_exception_code
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
 from sl1fw.pages.wait import PageWait

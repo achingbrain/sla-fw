@@ -11,7 +11,7 @@ import toml
 
 from sl1fw.configs.value import ValueConfig, Value, BoolValue, ListValue, TextValue
 from sl1fw.configs.writer import ConfigWriter
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.errors import ConfigException
 
 
 class Config(ValueConfig):

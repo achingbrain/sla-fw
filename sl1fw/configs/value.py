@@ -17,7 +17,7 @@ from typing import Optional, List, Dict, Type, Union, Any, Callable, Set
 from queue import Queue
 from readerwriterlock import rwlock
 
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.errors import ConfigException
 from sl1fw import test_runtime
 
 class BaseConfig(ABC):

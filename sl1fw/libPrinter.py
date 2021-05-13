@@ -38,8 +38,9 @@ from sl1fw.errors.errors import (
     UnknownPrinterModel,
     MissingExamples,
     NoFactoryUvCalib,
+    ConfigException,
+    MotionControllerWrongFw,
 )
-from sl1fw.errors.exceptions import ConfigException, MotionControllerWrongFw
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth, get_configured_printer_model, set_configured_printer_model

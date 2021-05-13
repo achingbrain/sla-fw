@@ -4,11 +4,106 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass
-from typing import List, Dict, Optional
+from enum import Enum
+from functools import partial
+from typing import Dict, Optional
+from typing import List
 
+from prusaerrors.shared.codes import Code
 from prusaerrors.sl1.codes import Sl1Codes
 
-from sl1fw.errors.exceptions import PrinterException, with_code
+from sl1fw.motion_controller.trace import Trace
+
+
+def with_code(code: str):
+    """
+    Class decorator used to add CODE to an Exception
+
+    :param code: Exception error code
+    :return: Decorated class
+    """
+
+    def decor(cls):
+        cls.CODE = code
+        cls.MESSAGE = code.message
+        if not isinstance(code, Code):
+            raise ValueError(f'with_code requires valid error code string i.e "#10108", got: "{code}"')
+        cls.__name__ = f"e{code.raw_code}.{cls.__name__}"
+        return cls
+
+    return decor
+
+
+def get_exception_code(exception: Exception) -> Code:
+    return getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN
+
+
+exception_dataclass = partial(dataclass, frozen=True, eq=True)
+
+
+@with_code(Sl1Codes.UNKNOWN)
+class PrinterException(Exception):
+    """
+    General exception for printers
+    """
+
+    CODE = Sl1Codes.UNKNOWN
+
+
+@with_code(Sl1Codes.CONFIG_EXCEPTION)
+class ConfigException(PrinterException):
+    """
+    Exception used to signal problems with configuration
+    """
+
+
+@with_code(Sl1Codes.MOTION_CONTROLLER_WRONG_REVISION)
+class MotionControllerWrongRevision(PrinterException):
+    """
+    Used when MC does not have correct revision
+    """
+
+
+@with_code(Sl1Codes.MOTION_CONTROLLER_EXCEPTION)
+class MotionControllerException(PrinterException):
+    def __init__(self, message: str, trace: Trace):
+        self.__trace = trace
+        super().__init__(f"{message}, trace: {trace}")
+
+
+class MotionControllerWrongFw(PrinterException):
+    """Used to signal that MC has wrong FW and needs to be updated"""
+
+
+@with_code(Sl1Codes.NOT_AVAILABLE_IN_STATE)
+class NotAvailableInState(PrinterException):
+    def __init__(self, current_state: Enum, allowed_states: List[Enum]):
+        super().__init__(f"Only available in {allowed_states}, currently in {current_state}")
+
+
+@with_code(Sl1Codes.DBUS_MAPPING_ERROR)
+class DBusMappingException(PrinterException):
+    pass
+
+
+@with_code(Sl1Codes.REPRINT_WITHOUT_HISTORY)
+class ReprintWithoutHistory(PrinterException):
+    pass
+
+
+@with_code(Sl1Codes.ADMIN_NOT_AVAILABLE)
+class AdminNotAvailable(PrinterException):
+    pass
+
+
+class ExposureCheckDisabled(PrinterException):
+    """Used to signal that exposure check is being skipped"""
+
+
+@with_code(Sl1Codes.BOOSTER_ERROR)
+class BoosterError(PrinterException):
+    def __init__(self, message: str):
+        super().__init__(f"{message}")
 
 
 class PrinterError(PrinterException):
@@ -27,8 +122,10 @@ class GeneralError(PrinterError):
 class TiltHomeFailed(GeneralError):
     pass
 
+
 class TiltPositionFailed(GeneralError):
     pass
+
 
 @with_code(Sl1Codes.TOWER_HOME_FAILED)
 class TowerHomeFailed(GeneralError):
@@ -176,6 +273,7 @@ class ProjectErrorCalibrationInvalid(ExposureError):
 class ProjectErrorWrongPrinterModel(ExposureError):
     pass
 
+
 @with_code(Sl1Codes.PROJECT_ERROR_CANT_REMOVE)
 class ProjectErrorCantRemove(ExposureError):
     pass
@@ -186,16 +284,19 @@ class ProjectErrorCantRemove(ExposureError):
 class TempSensorFailed(ExposureError):
     sensor: str
 
+
 @with_code(Sl1Codes.TEMPERATURE_OUT_OF_RANGE)
 @dataclass()
 class TempSensorNotInRange(GeneralError):
     sensor: str
     temperature: float
 
+
 @with_code(Sl1Codes.A64_OVERHEAT)
 @dataclass()
 class A64Overheat(GeneralError):
     temperature: float
+
 
 @with_code(Sl1Codes.FAN_FAILED)
 @dataclass
@@ -376,25 +477,31 @@ class UVDeviationTooHigh(UVCalibrationError):
 class FailedToSaveFactoryConfig(PrinterError):
     pass
 
+
 @with_code(Sl1Codes.ALTERNATIVE_SLOT_BOOT)
 class BootedInAlternativeSlot(PrinterError):
     pass
+
 
 @with_code(Sl1Codes.MISSING_EXAMPLES)
 class MissingExamples(PrinterError):
     pass
 
+
 @with_code(Sl1Codes.FAILED_TO_LOAD_FACTORY_LEDS_CALIBRATION)
 class NoFactoryUvCalib(PrinterError):
     pass
+
 
 @with_code(Sl1Codes.UV_LEDS_DISCONNECTED)
 class UVLEDsDisconnected(PrinterError):
     pass
 
+
 @with_code(Sl1Codes.UV_LEDS_ROW_FAILED)
 class UVLEDsRowFailed(PrinterError):
     pass
+
 
 @with_code(Sl1Codes.UNKNOWN_PRINTER_MODEL)
 class UnknownPrinterModel(PrinterError):

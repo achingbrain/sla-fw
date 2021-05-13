@@ -19,8 +19,7 @@ from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
 from sl1fw.api.decorators import wrap_exception
-from sl1fw.errors.errors import ResinFailed, TowerAxisCheckFailed
-from sl1fw.errors.exceptions import ConfigException, get_exception_code
+from sl1fw.errors.errors import ResinFailed, TowerAxisCheckFailed, ConfigException, get_exception_code
 from sl1fw.functions.checks import resin_sensor, tower_axis
 from sl1fw.functions.system import shut_down
 from sl1fw.functions.files import save_wizard_history

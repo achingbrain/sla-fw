@@ -11,10 +11,10 @@ from time import sleep
 from typing import Optional
 from smbus2 import SMBus, i2c_msg
 
-from sl1fw.errors.exceptions import BoosterError
+from sl1fw.errors.errors import BoosterError
+
 
 class Booster:
-
     I2C_BUS_ID = 3
     DAC_ADDR = 0x48
     GPIO_ADDR = 0x41

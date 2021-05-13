@@ -4,12 +4,12 @@
 
 from asyncio import sleep
 
-from sl1fw.errors.errors import UVLEDsDisconnected, UVLEDsRowFailed
-from sl1fw.errors.exceptions import BoosterError
+from sl1fw.errors.errors import UVLEDsDisconnected, UVLEDsRowFailed, BoosterError
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource
+
 
 class UVLEDsTest_SL1S(DangerousCheck):
 

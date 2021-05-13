@@ -47,8 +47,9 @@ from sl1fw.errors.errors import (
     ResinTooLow,
     ResinTooHigh,
     WarningEscalation,
+    NotAvailableInState,
+    ExposureCheckDisabled,
 )
-from sl1fw.errors.exceptions import NotAvailableInState, ExposureCheckDisabled
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough
 from sl1fw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from sl1fw.functions.system import shut_down

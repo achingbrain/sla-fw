@@ -13,8 +13,8 @@ from sl1fw.errors.errors import (
     TiltEndstopNotReached,
     TiltAxisCheckFailed,
     InvalidTiltAlignPosition,
+    PrinterException,
 )
-from sl1fw.errors.exceptions import PrinterException
 from sl1fw.libHardware import Hardware
 from sl1fw import test_runtime
 from sl1fw.states.wizard import WizardState

@@ -27,9 +27,10 @@ from sl1fw.motion_controller.states import (
     CommError,
     StatusBits,
 )
-from sl1fw.errors.exceptions import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
+from sl1fw.errors.errors import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
 from sl1fw.motion_controller.trace import LineTrace, LineMarker, Trace
 from sl1fw.functions.decorators import safe_call
+
 
 class MotionController:
     fw = {

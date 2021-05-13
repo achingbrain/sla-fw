@@ -27,8 +27,8 @@ import pydbus
 from PySignal import Signal
 
 from sl1fw import defines
-from sl1fw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, TowerHomeCheckFailed
-from sl1fw.errors.exceptions import MotionControllerException
+from sl1fw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, TowerHomeCheckFailed,\
+    MotionControllerException, ConfigException
 from sl1fw.configs.hw import HwConfig
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.utils.value_checker import ValueChecker
@@ -36,7 +36,6 @@ from sl1fw.hardware.exposure_screen import ExposureScreen
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.hardware.tilt import Tilt, TiltSL1
 from sl1fw.functions.decorators import safe_call
-from sl1fw.errors.exceptions import ConfigException
 from sl1fw.hardware.sl1s_uvled_booster import Booster
 
 

@@ -7,7 +7,7 @@ from typing import Dict, Tuple, Any
 
 from prusaerrors.sl1.codes import Sl1Codes
 
-from sl1fw.errors.exceptions import with_code, exception_dataclass
+from sl1fw.errors.errors import with_code, exception_dataclass
 
 
 @with_code(Sl1Codes.UNKNOWN)

@@ -28,7 +28,7 @@ from sl1fw.states.examples import ExamplesState
 from sl1fw.state_actions.examples import Examples
 from sl1fw.functions import files
 from sl1fw.functions.system import shut_down, FactoryMountedRW, get_octoprint_auth, hw_all_off
-from sl1fw.errors.exceptions import ConfigException
+from sl1fw.errors.errors import ConfigException
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display

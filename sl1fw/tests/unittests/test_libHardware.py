@@ -15,7 +15,7 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Hardware
-from sl1fw.errors.exceptions import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
+from sl1fw.errors.errors import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
 
 
 class TestLibHardwareConnect(Sl1fwTestCase):

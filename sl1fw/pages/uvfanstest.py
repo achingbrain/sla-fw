@@ -10,8 +10,7 @@
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.api.decorators import wrap_exception
-from sl1fw.errors.errors import UVLEDHeatsinkFailed, FanRPMOutOfTestRange
-from sl1fw.errors.exceptions import get_exception_code
+from sl1fw.errors.errors import UVLEDHeatsinkFailed, FanRPMOutOfTestRange, get_exception_code
 from sl1fw.functions.checks import check_uv_leds, check_uv_fans
 from sl1fw.pages import page
 from sl1fw.pages.base import Page

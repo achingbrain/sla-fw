@@ -8,8 +8,7 @@
 
 from time import time, sleep
 
-from sl1fw.errors.errors import TowerBelowSurface
-from sl1fw.errors.exceptions import ConfigException, get_exception_code
+from sl1fw.errors.errors import TowerBelowSurface, ConfigException, get_exception_code
 from sl1fw.functions.checks import tilt_calib_start, tower_calibrate
 from sl1fw.pages import page
 from sl1fw.pages.base import Page
