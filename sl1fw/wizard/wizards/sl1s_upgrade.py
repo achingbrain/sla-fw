@@ -20,7 +20,7 @@ from sl1fw.wizard.actions import UserActionBroker, PushState
 from sl1fw.wizard.checks.upgrade import ResetUVPWM, ResetSelfTest, ResetMechanicalCalibration, MarkPrinterModel
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
-
+from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
 class SL1SUpgradeCleanup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
@@ -109,7 +109,7 @@ class SL1SUpgradeWizard(UpgradeWizardBase):
         return WizardId.SL1S_UPGRADE
 
     def get_groups(self):
-        return SL1SUpgradeCleanup(self._package), SL1SUpgradeFinish(self._package)
+        return SL1SUpgradeCleanup(self._package), ShowResultsGroup(), SL1SUpgradeFinish(self._package)
 
 
 class SL1DowngradeWizard(UpgradeWizardBase):
@@ -117,4 +117,4 @@ class SL1DowngradeWizard(UpgradeWizardBase):
         return WizardId.SL1_DOWNGRADE
 
     def get_groups(self):
-        return SL1SUpgradeCleanup(self._package), SL1DowngradeFinish(self._package)
+        return SL1SUpgradeCleanup(self._package), ShowResultsGroup(), SL1DowngradeFinish(self._package)

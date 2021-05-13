@@ -211,6 +211,9 @@ class TestUpgradeWizard(TestWizardsBase):
         def on_state_changed():
             if wizard.state == WizardState.SL1S_CONFIRM_UPGRADE:
                 wizard.sl1s_confirm_upgrade()
+            if wizard.state == WizardState.SHOW_RESULTS:
+                wizard.show_results_done()
+
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard)
