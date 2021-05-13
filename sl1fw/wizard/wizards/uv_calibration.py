@@ -26,6 +26,7 @@ from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 
+
 # pylint: disable = too-many-arguments
 
 
@@ -33,10 +34,7 @@ class UVCalibrationPrepare(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
-            [
-                DisplayTest(package.hw, package.exposure_image, package.runtime_config),
-                SystemInfoTest(package.hw),
-            ],
+            [DisplayTest(package.hw, package.exposure_image, package.runtime_config), SystemInfoTest(package.hw)],
         )
 
     async def setup(self, actions: UserActionBroker):
@@ -44,6 +42,9 @@ class UVCalibrationPrepare(CheckGroup):
 
 
 class UVCalibrationPlaceUVMeter(CheckGroup):
+    # TODO: Checks are run in parallel within the group. This group would make a use of strict serial execution.
+    # TODO: Currently this is achieved as a side effect of locking the resources. Explicit serial execution is
+    # TODO: appreciated.
     def __init__(self, package: WizardDataPackage):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
@@ -59,11 +60,10 @@ class UVCalibrationPlaceUVMeter(CheckGroup):
 
 
 class UVCalibrationCalibrate(CheckGroup):
-    def __init__(
-        self,
-        package: WizardDataPackage,
-        replacement: bool
-    ):
+    # TODO: Checks are run in parallel within the group. This group would make a use of strict serial execution.
+    # TODO: Currently this is achieved as a side effect of locking the resources. Explicit serial execution is
+    # TODO: appreciated.
+    def __init__(self, package: WizardDataPackage, replacement: bool):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
@@ -78,17 +78,14 @@ class UVCalibrationCalibrate(CheckGroup):
 
 
 class UVCalibrationFinish(CheckGroup):
-    def __init__(
-        self,
-        package: WizardDataPackage,
-        display_replaced: bool,
-        led_module_replaced: bool
-    ):
+    def __init__(self, package: WizardDataPackage, display_replaced: bool, led_module_replaced: bool):
         super().__init__(
             Configuration(TankSetup.PRINT, PlatformSetup.PRINT),
             [
                 UVRemoveCalibrator(package.hw, package.uv_meter),
-                UVCalibrateApply(package.hw, package.runtime_config, package.uv_result, display_replaced, led_module_replaced),
+                UVCalibrateApply(
+                    package.hw, package.runtime_config, package.uv_result, display_replaced, led_module_replaced
+                ),
             ],
         )
 
@@ -106,28 +103,24 @@ class UVCalibrationWizard(Wizard):
         display_replaced: bool,
         led_module_replaced: bool,
     ):
-        #TODO: use config_writer instead
+        # TODO: use config_writer instead
         self._package = WizardDataPackage(
             hw=hw,
             config_writer=hw.config.get_writer(),
             exposure_image=exposure_image,
             runtime_config=runtime_config,
-            uv_meter = UvLedMeterMulti(),
-            uv_result = UVCalibrationResult()
+            uv_meter=UvLedMeterMulti(),
+            uv_result=UVCalibrationResult(),
         )
         super().__init__(
             WizardId.UV_CALIBRATION,
             [
                 UVCalibrationPrepare(self._package),
                 UVCalibrationPlaceUVMeter(self._package),
-                UVCalibrationCalibrate(
-                    self._package, display_replaced or led_module_replaced
-                ),
-                UVCalibrationFinish(
-                    self._package, display_replaced, led_module_replaced
-                ),
+                UVCalibrationCalibrate(self._package, display_replaced or led_module_replaced),
+                UVCalibrationFinish(self._package, display_replaced, led_module_replaced),
             ],
-            self._package
+            self._package,
         )
         self._package.config_writer.uvPwm = 0
         self._package.config_writer.commit()

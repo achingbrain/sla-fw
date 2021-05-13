@@ -73,20 +73,23 @@ class UVWarmupCheck(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
-        self._hw.startFans()
-        self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).max_pwm
-        self._exposure_image.blank_screen()
-        self._hw.uvLed(True)
 
         try:
+            self._hw.startFans()
+            self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).max_pwm
+            self._exposure_image.blank_screen()
+            self._hw.uvLed(True)
+
             for countdown in range(self._hw.config.uvWarmUpTime):
                 self.progress = countdown / self._hw.config.uvWarmUpTime
                 if test_runtime.testing:
                     await sleep(0.01)
                 else:
                     await sleep(1)
-        finally:
+        except (Exception, CancelledError):
+            self._hw.stopFans()
             self._hw.uvLed(False)
+            raise
 
         self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).min_pwm
 
@@ -101,8 +104,8 @@ class CheckUVMeterPlacement(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
-        self._hw.uvLed(True)
         try:
+            # NOTE: Fans and UV already started by previous check
             error = self._uv_meter.check_place(self._exposure_image.inverse)
             # TODO: Move raise to check_place ?
 
@@ -114,8 +117,10 @@ class CheckUVMeterPlacement(DangerousCheck):
                 raise UnexpectedUVIntensity()
             if error:
                 raise UnknownUVMeasurementFailure(error)
-        finally:
+        except (Exception, CancelledError):
+            self._hw.stopFans()
             self._hw.uvLed(False)
+            raise
 
 
 class UVCalibrate(DangerousCheck, ABC):
@@ -167,8 +172,8 @@ class UVCalibrateCenter(UVCalibrate):
         super().__init__(WizardCheckType.UV_CALIBRATE_CENTER, *args, **kwargs)
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.uvLed(True)
         try:
+            # NOTE: Fans and UV already started by previous check
             try:
                 await self.calibrate()
             except UVCalibrationError:
@@ -195,8 +200,10 @@ class UVCalibrateCenter(UVCalibrate):
                 )
                 self._hw.beepAlarm(2)
                 await self.calibrate()
-        finally:
+        except (Exception, CancelledError):
+            self._hw.stopFans()
             self._hw.uvLed(False)
+            raise
 
     async def calibrate(self):
         # Start UV led with minimal pwm
@@ -285,11 +292,13 @@ class UVCalibrateEdge(UVCalibrate):
         super().__init__(WizardCheckType.UV_CALIBRATE_EDGE, *args, **kwargs)
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.uvLed(True)
         try:
+            # NOTE: Fans and UV already started by previous check
             await self.calibrate()
         finally:
             self._hw.uvLed(False)
+            # All the previous checks stop fans in case of exception as the fans are supposed to run for the whole
+            # group of checks. This one is run the last so it is supposed to turn the fans off.
             self._hw.stopFans()
             self._exposure_image.blank_screen()
 
@@ -300,7 +309,6 @@ class UVCalibrateEdge(UVCalibrate):
         # check PWM value from previous step
         self.pwm = self._hw.uvLedPwm
         data = None
-        self._hw.startFans()
         while self.pwm <= max_pwm:
             self._hw.uvLedPwm = self.pwm
             # Read new intensity value
@@ -400,7 +408,7 @@ class UVCalibrateApply(Check):
     async def apply_results(self):
         # Save HW config
         previous_uv_pwm = self._hw.config.uvPwm
-        #TODO: use config_writer instead
+        # TODO: use config_writer instead
         self._hw.config.uvPwm = self._result.data.uvFoundPwm
         self._hw.uvLedPwm = self._result.data.uvFoundPwm
         del self._hw.config.uvCurrent  # remove old value too
