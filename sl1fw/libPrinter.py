@@ -520,6 +520,15 @@ class Printer:
             selftest.join()
             self.logger.info("Selftest wizard finished")
 
+        if not self.hw.config.calibrated:
+            self.logger.info("Running calibration wizard")
+            calibration = self.action_manager.start_wizard(
+                CalibrationWizard(self.hw, self.runtime_config), handle_state_transitions=False
+            )
+            self.set_state(PrinterState.WIZARD, active=True)
+            calibration.join()
+            self.logger.info("Calibration wizard finished")
+
         if self.hw.config.uvPwm < self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm:
             # delete also both counters and save calibration to factory partition. It's new KIT or something went wrong.
             self.logger.info("Running UV calibration wizard")
@@ -532,15 +541,6 @@ class Printer:
             self.set_state(PrinterState.WIZARD, active=True)
             uv_calibration.join()
             self.logger.info("UV calibration wizard finished")
-
-        if not self.hw.config.calibrated:
-            self.logger.info("Running calibration wizard")
-            calibration = self.action_manager.start_wizard(
-                CalibrationWizard(self.hw, self.runtime_config), handle_state_transitions=False
-            )
-            self.set_state(PrinterState.WIZARD, active=True)
-            calibration.join()
-            self.logger.info("Calibration wizard finished")
 
         self.set_state(PrinterState.WIZARD, active=False)
 
