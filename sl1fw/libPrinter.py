@@ -207,6 +207,9 @@ class Printer:
             if defines.detect_sla_model_file.exists():
                 set_configured_printer_model(self.hw.printer_model)
                 defines.detect_sla_model_file.unlink()
+            # Also omit running upgrade/downgrade wizard if printer is SL1 and model was not set before.
+            if self.hw.printer_model == PrinterModel.SL1 and not defines.printer_model.exists():
+                set_configured_printer_model(self.hw.printer_model)
 
             config_model = get_configured_printer_model()
             if self.hw.printer_model != config_model:
