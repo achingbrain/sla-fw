@@ -189,7 +189,7 @@ class InvalidTiltAlignPosition(GeneralError):
 @with_code(Sl1Codes.FAN_RPM_OUT_OF_TEST_RANGE)
 @dataclass()
 class FanRPMOutOfTestRange(GeneralError):
-    name: str
+    fan: str
     rpm: Optional[int]
     avg: Optional[int]
     fanError: Dict[int, bool]
@@ -446,7 +446,7 @@ class UnexpectedUVIntensity(PrinterError):
 @with_code(Sl1Codes.UNKNOWN_UV_MEASUREMENT_ERROR)
 @dataclass()
 class UnknownUVMeasurementFailure(PrinterError):
-    unknown_code: int
+    code: int
 
 
 class UVCalibrationError(PrinterError):

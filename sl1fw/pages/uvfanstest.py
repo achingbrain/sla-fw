@@ -59,7 +59,7 @@ class PageUvFansTest(Page):
             self.display.pages["error"].setParams(
                 code=Sl1Codes.FAN_RPM_OUT_OF_TEST_RANGE.raw_code,
                 params={
-                    "fan": e.name,
+                    "fan": e.fan,
                     "rpm": e.rpm if e.rpm else "NA",
                     "avg": e.avg if e.avg else "NA",
                     "fanError": e.fanError,

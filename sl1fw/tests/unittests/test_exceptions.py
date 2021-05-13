@@ -5,8 +5,10 @@
 import inspect
 import re
 import unittest
+from dataclasses import fields, is_dataclass
 from glob import glob
 from pathlib import Path
+from typing import Collection
 
 from gi.repository.GLib import Variant
 from prusaerrors.sl1.codes import Sl1Codes
@@ -51,6 +53,7 @@ class TestExceptions(unittest.TestCase):
         "required_resin_ml: float": 23.4,
         "warning: Warning": AmbientTooHot(ambient_temperature=42.0),
         "name: str": "fan1",
+        "fan: str": "fan1",
         "rpm: Union[int, NoneType]": 1234,
         "rpm: Optional[int]": 1234,
         "avg: Union[int, NoneType]": 1234,
@@ -64,25 +67,25 @@ class TestExceptions(unittest.TestCase):
         "tower_position_nm: int": 100000000,
         "sn: str": "123456789",
         "min_resin_ml: float": 10,
-        "failed_fans_text: str": "[\"UV LED Fan\"]",
+        "failed_fans_text: str": '["UV LED Fan"]',
+        "fans: List[str]": '["UV LED Fan"]',
         "found: float": 240,
         "allowed: float": 250,
         "intensity: float": 150,
         "threshold: float": 125,
-        "unknown_code: int": 42,
+        "code: int": 42,
         "temperature: float": 36.8,
         "sensor: str": "Ambient temperature",
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}
 
-    def test_errors(self):
-        self.do_test(inspect.getmembers(errors))
+    @staticmethod
+    def _get_classes() -> Collection[Exception]:
+        classes = []
+        classes.extend(inspect.getmembers(errors))
+        classes.extend(inspect.getmembers(warnings))
 
-    def test_warning(self):
-        self.do_test(inspect.getmembers(warnings))
-
-    def do_test(self, classes):
         for name, cls in classes:
             if not isinstance(cls, type):
                 continue
@@ -90,11 +93,16 @@ class TestExceptions(unittest.TestCase):
             if not issubclass(cls, Exception):
                 continue
 
+            yield name, cls
+
+    def test_instantiation(self):
+        for name, cls in self._get_classes():
             print(f"Testing dbus wrapping for class: {name}")
 
             parameters = inspect.signature(cls.__init__).parameters
             args = [self.MOCK_ARGS[str(param)] for name, param in parameters.items() if name not in self.IGNORED_ARGS]
-
+            print(parameters)
+            print(args)
             instance = cls(*args)
 
             wrapped_exception = wrap_exception(instance)
@@ -103,6 +111,26 @@ class TestExceptions(unittest.TestCase):
             for key, value in wrapped_dict.items():
                 self.assertIsInstance(key, str)
                 self.assertIsInstance(value, Variant)
+
+    def test_string_substitution(self):
+        for name, cls in self._get_classes():
+            print(f"\nTesting string substitution for class: {name}.")
+
+            message = cls.CODE.message
+            print(f'Source text:\n"{message}"')
+
+            arguments = dict()
+            if is_dataclass(cls):
+                for field in fields(cls):
+                    type_name: str = getattr(field.type, "__name__", str(field.type))
+                    type_name = type_name.replace("typing.", "")
+                    field_type = f"{field.name}: {type_name}"
+                    arguments[field.name] = self.MOCK_ARGS[field_type]
+            print(f"Arguments:{arguments}")
+
+            # Note simplified processing in the UI does not have problems with standalone '%' character.
+            substituted = re.sub(r"%(?!\()", "%%", message) % arguments
+            print(f'Substituted text:\n"{substituted}"')
 
     def test_error_codes_dummy(self):
         """This is a stupid test that checks all attempts to use Sl1Codes.UNKNOWN likes are valid. Pylint cannot do
