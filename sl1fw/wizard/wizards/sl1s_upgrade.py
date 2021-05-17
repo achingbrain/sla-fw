@@ -22,6 +22,7 @@ from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
+
 class SL1SUpgradeCleanup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         super().__init__(
@@ -95,12 +96,8 @@ class UpgradeWizardBase(Wizard):
     def get_id(self):
         ...
 
-    def success_action(self):
+    def wizard_finished(self):
         self._logger.info("Rebooting after SL1S upgrade, the printer will autoconfigure on the next boot")
-        shut_down(self._hw, reboot=True)
-
-    def run(self):
-        super().run()
         shut_down(self._hw, reboot=True)
 
 
