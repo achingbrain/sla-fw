@@ -20,6 +20,9 @@ def check_ready_to_print(config: HwConfig, calibration_parameters: CalibrationPa
     """
     This raises exceptions when printer is not ready to print
 
+    TODO: Make this consistent with Printer._make_ready_to_print
+    TODO: Avoid duplicated condition code
+
     :return: None
     """
     if config.uvPwm < calibration_parameters.min_pwm:

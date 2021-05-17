@@ -533,7 +533,7 @@ class Printer:
             calibration.join()
             self.logger.info("Calibration wizard finished")
 
-        if self.hw.config.uvPwm < self.hw.printer_model.calibration_parameters(self.hw.is500khz).min_pwm:
+        if not self.uv_calibrated:
             # delete also both counters and save calibration to factory partition. It's new KIT or something went wrong.
             self.logger.info("Running UV calibration wizard")
             uv_calibration = self.action_manager.start_wizard(
