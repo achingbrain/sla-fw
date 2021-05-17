@@ -230,6 +230,10 @@ class Printer:
                 self.hw.printer_model, Path(defines.internalProjectPath)
             ):
                 self.exception = MissingExamples()
+
+            if self.hw.printer_model == PrinterModel.SL1S:
+                self.hw.config.uvPwm = self._compute_sl1s_uv_pwm()
+
             if self.hw.printer_model == PrinterModel.NONE:
                 self.exception = UnknownPrinterModel()
             else:
@@ -564,3 +568,11 @@ class Printer:
         if key.lower() == "uvpwm":
             self.uv_calibrated_changed.emit()
             return
+
+    def _compute_sl1s_uv_pwm(self) -> int:
+        # TODO: This is temporary to allow setting pwm by hand.
+        if self.uv_calibrated:
+            return self.hw.config.uvPwm
+
+        # TODO: This is temporary until the correct formula is available.
+        return 208
