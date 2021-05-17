@@ -461,14 +461,11 @@ class Printer0:
 
         :return: Dictionary mapping from temp sensor name to temperature in celsius
         """
-        temps = self.printer.hw.getMcTemperatures(False)
-        return self._format_temps(
-            (temps[self.printer.hw.led_temp_idx], temps[self.printer.hw.ambient_temp_idx], 0.0, 0.0)
-        )
+        return self._format_temps(self.printer.hw.getMcTemperatures(False))
 
-    @staticmethod
-    def _format_temps(temps):
-        return {"temp%d_celsius" % i: v for i, v in enumerate(temps)}
+    def _format_temps(self, temps):
+        t = (temps[self.printer.hw.led_temp_idx], temps[self.printer.hw.ambient_temp_idx], 0.0, 0.0)
+        return {"temp%d_celsius" % i: v for i, v in enumerate(t)}
 
     @auto_dbus
     @property
