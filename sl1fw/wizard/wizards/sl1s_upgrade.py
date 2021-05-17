@@ -45,7 +45,12 @@ class SL1SUpgradeCleanup(CheckGroup):
 
         def reject(loop: AbstractEventLoop, task: Task):
             self._logger.info("Shutting down to let user remove SL1S components as the user has rejected upgrade")
-            shut_down(self._package.hw, reboot=False)
+
+            # TODO: This is commented out to let development printer to keep their configuration and be still usable
+            # TODO: after installing the sl1s upgrade.
+            # TODO: This should be uncommented in beta/public release
+            # shut_down(self._package.hw, reboot=False)
+
             loop.call_soon_threadsafe(task.cancel)
 
         try:
