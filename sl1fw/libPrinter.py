@@ -468,10 +468,8 @@ class Printer:
                 if last_exposure:
                     last_exposure.try_cancel()
                 self.action_manager.new_exposure(self.hw, self.exposure_image, self.runtime_config, path)
-        except NotUVCalibrated:
-            self.display.forcePage("uvcalibrationstart")
-        except NotMechanicallyCalibrated:
-            self.display.forcePage("calibrationstart")
+        except (NotUVCalibrated, NotMechanicallyCalibrated):
+            self.run_make_ready_to_print()
         except Exception:
             self.logger.exception("Error handling media inserted event")
 
