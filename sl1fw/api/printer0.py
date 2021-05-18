@@ -892,6 +892,12 @@ class Printer0:
     @auto_dbus
     @property
     @last_error
+    def printer_model(self) -> int:
+        return self.printer.hw.printer_model.value
+
+    @auto_dbus
+    @property
+    @last_error
     @deprecated("use filemanager0")
     def usb_path(self) -> str:
         """
