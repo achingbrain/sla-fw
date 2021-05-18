@@ -50,7 +50,7 @@ class TemperatureTest(SyncCheck):
         for i in (self._hw.led_temp_idx, self._hw.ambient_temp_idx):
             if temperatures[i] < 0:
                 raise TempSensorFailed(self._hw.getSensorName(i))
-            if i == 0:
+            if i == self._hw.led_temp_idx:
                 max_temp = defines.maxUVTemp
             else:
                 max_temp = defines.maxAmbientTemp
