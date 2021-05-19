@@ -560,11 +560,21 @@ class Hardware:
     def saveUvStatistics(self):
         self.mcc.do("!usta", 0)
 
-    def clearUvStatistics(self):  # call if UV led was replaced
+    def clearUvStatistics(self):
+        """
+        Call if UV led was replaced
+        """
         self.mcc.do("!usta", 1)
 
-    def clearDisplayStatistics(self):  # call if print display was replaced
+    def clearDisplayStatistics(self):
+        """
+        Call if print display was replaced
+        """
         self.mcc.do("!usta", 2)
+        try:
+            os.remove(defines.displayUsageData)
+        except Exception:
+            self.logger.exception("Display usage data file was not deleted.")
 
     @safe_call(None, MotionControllerException)
     def uvDisplayCounter(self, mask) -> None:

@@ -17,7 +17,13 @@ from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId, WizardState
 from sl1fw.wizard.actions import UserActionBroker, PushState
-from sl1fw.wizard.checks.upgrade import ResetUVPWM, ResetSelfTest, ResetMechanicalCalibration, MarkPrinterModel
+from sl1fw.wizard.checks.upgrade import (
+    ResetUVPWM,
+    ResetSelfTest,
+    ResetMechanicalCalibration,
+    ResetHwCounters,
+    MarkPrinterModel,
+)
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
@@ -30,7 +36,7 @@ class SL1SUpgradeCleanup(CheckGroup):
                 ResetUVPWM(package.config_writer),
                 ResetSelfTest(package.config_writer),
                 ResetMechanicalCalibration(package.config_writer),
-                SystemInfoTest(package.hw),
+                ResetHwCounters(package.hw),
             )
         )
         self._package = package
@@ -67,6 +73,19 @@ class SL1SUpgradeCleanup(CheckGroup):
             actions.drop_state(wait_state)
 
 
+class SL1SUpgradePrepare(CheckGroup):
+    """ Just save system info BEFORE any cleanups """
+    def __init__(self, package: WizardDataPackage):
+        super().__init__(
+            checks=(
+                SystemInfoTest(package.hw),
+            )
+        )
+
+    async def setup(self, actions: UserActionBroker):
+        pass
+
+
 class SL1SUpgradeFinish(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         super().__init__(checks=(MarkPrinterModel(PrinterModel.SL1S, package.hw.config),))
@@ -101,9 +120,11 @@ class UpgradeWizardBase(Wizard):
     def get_id(self):
         ...
 
-    def wizard_finished(self):
-        self._logger.info("Rebooting after SL1S upgrade, the printer will autoconfigure on the next boot")
-        shut_down(self._hw, reboot=True)
+    def run(self):
+        super().run()
+        if self.state == WizardState.DONE:
+            self._logger.info("Rebooting after SL1S upgrade, the printer will autoconfigure on the next boot")
+            shut_down(self._hw, reboot=True)
 
 
 class SL1SUpgradeWizard(UpgradeWizardBase):
@@ -111,7 +132,7 @@ class SL1SUpgradeWizard(UpgradeWizardBase):
         return WizardId.SL1S_UPGRADE
 
     def get_groups(self):
-        return SL1SUpgradeCleanup(self._package), ShowResultsGroup(), SL1SUpgradeFinish(self._package)
+        return SL1SUpgradePrepare(self._package), SL1SUpgradeCleanup(self._package), ShowResultsGroup(), SL1SUpgradeFinish(self._package)
 
 
 class SL1DowngradeWizard(UpgradeWizardBase):
@@ -119,4 +140,4 @@ class SL1DowngradeWizard(UpgradeWizardBase):
         return WizardId.SL1_DOWNGRADE
 
     def get_groups(self):
-        return SL1SUpgradeCleanup(self._package), ShowResultsGroup(), SL1DowngradeFinish(self._package)
+        return SL1SUpgradePrepare(self._package), SL1SUpgradeCleanup(self._package), ShowResultsGroup(), SL1DowngradeFinish(self._package)

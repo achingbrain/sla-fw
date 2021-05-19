@@ -4,6 +4,7 @@
 
 from sl1fw.configs.hw import HwConfig
 
+from sl1fw.libHardware import Hardware
 from sl1fw.configs.writer import ConfigWriter
 from sl1fw.functions.system import set_configured_printer_model
 from sl1fw.hardware.printer_model import PrinterModel
@@ -42,6 +43,15 @@ class ResetMechanicalCalibration(Check):
         del self._writer.towerHeight
         del self._writer.tiltHeight
         self._writer.calibrated = False
+
+class ResetHwCounters(Check):
+    def __init__(self, hw: Hardware):
+        super().__init__(WizardCheckType.RESET_HW_COUNTERS)
+        self._hw = hw
+
+    async def async_task_run(self, actions: UserActionBroker):
+        self._hw.clearUvStatistics()
+        self._hw.clearDisplayStatistics()
 
 
 class MarkPrinterModel(Check):

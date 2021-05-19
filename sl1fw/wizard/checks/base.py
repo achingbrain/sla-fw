@@ -73,6 +73,7 @@ class WizardCheckType(Enum):
     RESET_SELF_TEST = 70
     RESET_MECHANICAL_CALIBRATION = 71
     MARK_PRINTER_MODEL = 72
+    RESET_HW_COUNTERS = 73
 
 
 class BaseCheck(ABC):
