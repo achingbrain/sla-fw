@@ -40,7 +40,7 @@ class TestExceptions(unittest.TestCase):
         "failed_sensors: List[int]": [2],
         "failed_sensor_names: List[str]": ["UV LED temperature"],
         "message: str": "Error occurred",
-        "trace: sl1fw.motion_controller.trace.Trace": Trace(10),
+        "trace: sl1fw.motion_controller.trace.Trace = None": Trace(10),
         "current_state: enum.Enum": PrinterState.PRINTING,
         "allowed_states: List[enum.Enum]": [PrinterState.PRINTING],
         "ambient_temperature: float": 42,
@@ -76,6 +76,7 @@ class TestExceptions(unittest.TestCase):
         "code: int": 42,
         "temperature: float": 36.8,
         "sensor: str": "Ambient temperature",
+        "message: str = ''": "Exception message string",
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}

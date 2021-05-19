@@ -57,21 +57,33 @@ class ConfigException(PrinterException):
     """
 
 
+@with_code(Sl1Codes.MOTION_CONTROLLER_EXCEPTION)
+class MotionControllerException(PrinterException):
+    def __init__(self, message: str = "", trace: Trace = None):
+        self.__trace = trace
+        super().__init__(f"{message}, trace: {trace}")
+
+
 @with_code(Sl1Codes.MOTION_CONTROLLER_WRONG_REVISION)
-class MotionControllerWrongRevision(PrinterException):
+class MotionControllerWrongRevision(MotionControllerException):
     """
     Used when MC does not have correct revision
     """
 
 
-@with_code(Sl1Codes.MOTION_CONTROLLER_EXCEPTION)
-class MotionControllerException(PrinterException):
-    def __init__(self, message: str, trace: Trace):
-        self.__trace = trace
-        super().__init__(f"{message}, trace: {trace}")
+class MotionControllerNotResponding(MotionControllerException):
+    """
+    Cannot read data from motion controller UART. Motion controller dead?
+    """
 
 
-class MotionControllerWrongFw(PrinterException):
+class MotionControllerWrongResponse(MotionControllerException):
+    """
+    Cannot parse data from motion controller UART. Motion controller corrupted?
+    """
+
+
+class MotionControllerWrongFw(MotionControllerException):
     """Used to signal that MC has wrong FW and needs to be updated"""
 
 

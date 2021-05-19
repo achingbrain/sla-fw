@@ -39,7 +39,7 @@ from sl1fw.errors.errors import (
     MissingExamples,
     NoFactoryUvCalib,
     ConfigException,
-    MotionControllerWrongFw,
+    MotionControllerWrongFw, MotionControllerNotResponding, MotionControllerWrongResponse,
 )
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
@@ -255,7 +255,7 @@ class Printer:
         self.logger.info("Connecting to hardware components")
         try:
             self.hw.connect()
-        except MotionControllerWrongFw as e:
+        except (MotionControllerWrongFw, MotionControllerNotResponding, MotionControllerWrongResponse):
             self.set_state(PrinterState.UPDATING_MC)
             self.hw.flashMC()
             try:

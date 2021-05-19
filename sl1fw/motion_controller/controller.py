@@ -27,7 +27,8 @@ from sl1fw.motion_controller.states import (
     CommError,
     StatusBits,
 )
-from sl1fw.errors.errors import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
+from sl1fw.errors.errors import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw, \
+    MotionControllerNotResponding, MotionControllerWrongResponse
 from sl1fw.motion_controller.trace import LineTrace, LineMarker, Trace
 from sl1fw.functions.decorators import safe_call
 
@@ -266,7 +267,7 @@ class MotionController:
             self.open()
         state = self.getStateBits(["fatal", "reset"], check_for_updates=False)
         if state["fatal"]:
-            raise MotionControllerException("MC failed with fatal flag", None)
+            raise MotionControllerException("MC failed with fatal flag", self.trace)
         if state["reset"]:
             reset_bits = self.doGetBoolList("?rst", bit_count=8)
             bit = 0
@@ -284,18 +285,18 @@ class MotionController:
             self.board['subRevision'],
         )
         if self.board['revision'] != 6:
-            raise MotionControllerWrongRevision()
+            raise MotionControllerWrongRevision(trace=self.trace)
         if self.fw['revision'] != self.board['revision']:
             self.logger.warning(
                 "Board and firmware revisions differ! Firmware: %d, board: %d!",
                 self.fw['revision'],
                 self.board['revision'],
             )
-            raise MotionControllerWrongFw()
+            raise MotionControllerWrongFw(trace=self.trace)
         self.fw['version'] = self.do("?ver")
         if mc_version_check:
             if self.fw['version'] != defines.reqMcVersion:
-                raise MotionControllerWrongFw()
+                raise MotionControllerWrongFw(trace=self.trace)
         self.logger.info("motion controller firmware version: %s", self.fw['version'])
 
         self.board['serial'] = self.do("?ser")
@@ -383,7 +384,7 @@ class MotionController:
             try:
                 line = self.read_port_text()
             except Exception as e:
-                raise MotionControllerException("Failed to read line from MC", self.trace) from e
+                raise MotionControllerNotResponding("Failed to read line from MC", self.trace) from e
 
             ok_match = self.commOKStr.match(line)
 
@@ -392,7 +393,7 @@ class MotionController:
                 try:
                     return return_process(response)
                 except Exception as e:
-                    raise MotionControllerException("Failed to process MC response", self.trace) from e
+                    raise MotionControllerWrongResponse("Failed to process MC response", self.trace) from e
 
             err_match = self.commErrStr.match(line)
             if err_match is not None:
