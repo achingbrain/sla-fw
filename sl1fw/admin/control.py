@@ -46,3 +46,9 @@ class AdminControl(ABC):
         """
         Enter touchscreen test - implemented by touch UI
         """
+
+    @abstractmethod
+    def fullscreen_image(self) -> None:
+        """
+        Enter fullscreen image
+        """

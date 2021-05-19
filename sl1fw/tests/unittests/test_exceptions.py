@@ -78,6 +78,7 @@ class TestExceptions(unittest.TestCase):
         "temperature: float": 36.8,
         "sensor: str": "Ambient temperature",
         "message: str = ''": "Exception message string",
+        "reason: str": "Everything is broken",
     }
 
     IGNORED_ARGS = {"self", "args", "kwargs"}

@@ -58,7 +58,6 @@ class SystemInfoMenu(AdminMenu):
         self.total_print_time = self.add_label()
         self.total_resin = self.add_label()
 
-        self.add_item(AdminAction("Display usage heatmap", self._display_usage_heatmap))
         self.add_item(AdminAction("User sysinfo", self._control.sysinfo))
 
         self._running = True
@@ -113,6 +112,3 @@ class SystemInfoMenu(AdminMenu):
             sleep(1)
 
         self._printer.hw.resinSensor(False)
-
-    def _display_usage_heatmap(self):
-        self._printer.display.forcePage("displayusage")

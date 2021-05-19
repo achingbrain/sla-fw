@@ -4,17 +4,18 @@
 
 from datetime import timedelta
 
+from sl1fw import defines
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction, AdminBoolValue, AdminIntValue, AdminLabel
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Info, Confirm, Wait
 from sl1fw.admin.safe_menu import SafeAdminMenu
-from sl1fw.functions import files
+from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import hw_all_off
+from sl1fw.functions.generate import display_usage_heatmap
 from sl1fw.libPrinter import Printer
-from sl1fw.pages.uvcalibration import PageUvCalibration, PageUvDataShowFactory, PageUvDataShow
+from sl1fw.pages.uvcalibration import PageUvDataShowFactory, PageUvDataShow
 from sl1fw.hardware.tilt import TiltProfile
-
 
 class DisplayRootMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
@@ -50,7 +51,7 @@ class DisplayServiceMenu(SafeAdminMenu):
                 AdminAction("Erase Display counter", self.erase_display_counter),
                 AdminAction("Show factory UV calibration data", self.show_factory_calibration),
                 AdminAction("Show UV calibration data", self.show_calibration),
-                AdminAction("UV (re)calibration", self.recalibrate),
+                AdminAction("Display usage heatmap", self.display_usage_heatmap),
             )
         )
 
@@ -120,9 +121,13 @@ class DisplayServiceMenu(SafeAdminMenu):
         self._printer.display.forcePage(PageUvDataShow.Name)
 
     @SafeAdminMenu.safe_call
-    def recalibrate(self):
-        self._printer.hw.saveUvStatistics()
-        self._printer.display.forcePage(PageUvCalibration.Name)
+    def display_usage_heatmap(self):
+        display_usage_heatmap(
+                self._printer.exposure_image,
+                defines.displayUsageData,
+                defines.displayUsagePalette,
+                defines.fullscreenImage)
+        self._control.fullscreen_image()
 
 
 class DisplayControlMenu(SafeAdminMenu):
@@ -184,7 +189,7 @@ class DisplayControlMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def usb_test(self):
-        save_path = files.get_save_path()
+        save_path = get_save_path()
         if save_path is None:
             raise ValueError("No USB path")
         test_file = save_path / "test.png"

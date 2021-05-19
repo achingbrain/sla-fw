@@ -496,6 +496,12 @@ class FailedToSaveFactoryConfig(PrinterError):
     pass
 
 
+@with_code(Sl1Codes.NO_DISPLAY_USAGE_DATA)
+@dataclass()
+class DisplayUsageError(PrinterError):
+    reason: str
+
+
 @with_code(Sl1Codes.ALTERNATIVE_SLOT_BOOT)
 class BootedInAlternativeSlot(PrinterError):
     pass

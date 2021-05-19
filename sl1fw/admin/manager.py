@@ -19,6 +19,7 @@ class AdminManager(AdminControl):
         self.menu_changed = Signal()
         self.enter_sysinfo = Signal()
         self.enter_touchscreen_test = Signal()
+        self.enter_fullscreen_image = Signal()
 
     @property
     def current_menu(self) -> Optional[AdminMenu]:
@@ -56,3 +57,6 @@ class AdminManager(AdminControl):
 
     def touchscreen_test(self):
         self.enter_touchscreen_test.emit()
+
+    def fullscreen_image(self):
+        self.enter_fullscreen_image.emit()

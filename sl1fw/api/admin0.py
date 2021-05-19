@@ -204,6 +204,10 @@ class Admin0:
     def enter_touchscreen_test(self):
         pass
 
+    @auto_dbus_signal
+    def enter_fullscreen_image(self):
+        pass
+
     def __init__(self, manager: AdminManager, printer: Printer):
         self._logger = logging.getLogger(__name__)
         self._manager = manager
@@ -215,12 +219,16 @@ class Admin0:
         manager.menu_changed.connect(self._on_menu_change)
         manager.enter_sysinfo.connect(self._on_enter_sysinfo)
         manager.enter_touchscreen_test.connect(self._on_enter_touchscreen_test)
+        manager.enter_fullscreen_image.connect(self._on_enter_fullscreen_image)
 
     def _on_enter_sysinfo(self):
         self.enter_sysinfo()
 
     def _on_enter_touchscreen_test(self):
         self.enter_touchscreen_test()
+
+    def _on_enter_fullscreen_image(self):
+        self.enter_fullscreen_image()
 
     @auto_dbus
     def enter(self) -> None:
