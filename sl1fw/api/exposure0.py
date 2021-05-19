@@ -23,6 +23,7 @@ from sl1fw.api.decorators import (
     last_error,
     wrap_dict_data,
     wrap_warning,
+    auto_dbus_signal,
 )
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.states.exposure import ExposureState
@@ -151,6 +152,15 @@ class Exposure0:
             self.exposure.hw.config.add_onchange_handler(self._handle_config_change)
         if self.exposure.project and self.exposure.project.path_changed:
             self.exposure.project.path_changed.connect(self._handle_path_changed_param)
+
+
+    @auto_dbus_signal
+    def Warning(self, value) -> Dict[str, Any]:
+        pass
+
+    @auto_dbus_signal
+    def Error(self, value) -> Dict[str, Any]:
+        pass
 
     @auto_dbus
     @property
@@ -732,6 +742,10 @@ class Exposure0:
         """
         return self.exposure.project.calibrate_regions
 
+    @property
+    def _last_warn(self):
+        return wrap_dict_data(wrap_warning(self.exposure.last_warn))
+
     _CHANGE_MAP = {
         "state": {"state"},
         "actual_layer": {
@@ -756,10 +770,18 @@ class Exposure0:
         "exception": {"exposure_exception"},
     }
 
+    _SIGNAL_MAP = {
+        "last_warn": {"Warning": "_last_warn"},
+        "exception": {"Error": "exposure_exception"},
+    }
+
     def _handle_change(self, key: str, _: Any):
         if key in self._CHANGE_MAP:
             for changed in self._CHANGE_MAP[key]:
                 self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self, changed)}, [])
+        if key in self._SIGNAL_MAP:
+            for signal_name, get_change in self._SIGNAL_MAP[key].items():
+                getattr(self, signal_name)(getattr(self, get_change))
 
     def _handle_cover_change(self):
         self.PropertiesChanged(self.__INTERFACE__, {"close_cover_warning": self.close_cover_warning}, [])

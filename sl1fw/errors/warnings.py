@@ -105,3 +105,13 @@ class WrongMCSerialFormat(PrinterWarning):
 @exception_dataclass
 class FactoryResetCheckFailure(PrinterWarning):
     message: str
+
+@with_code(Sl1Codes.FAN_WARNING)
+@exception_dataclass
+class FanWarning(ExposureWarning):
+    failed_fans_text: str
+
+@with_code(Sl1Codes.EXPECT_OVERHEATING)
+@exception_dataclass
+class ExpectOverheating(ExposureWarning):
+    failed_fans_text: str

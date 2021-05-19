@@ -136,6 +136,8 @@ class ActionManager:
             # TODO: it is not nice to touch pydbus signal internals, we would better fix the library
             # The map holds strong reference to the Exposure0 preventing release of the exposure from RAM.
             del Exposure0.PropertiesChanged.map[exposure0]
+            del Exposure0.Warning.map[exposure0] # pylint: disable=no-member
+            del Exposure0.Error.map[exposure0] # pylint: disable=no-member
 
     @property
     def exposure(self) -> Optional[Exposure]:

@@ -168,6 +168,8 @@ class Standard0:
                 self.LastErrorOrWarn(wrap_dict_data(wrap_warning(warn)))
             else:
                 self.LastErrorOrWarn(wrap_dict_data(wrap_warning(None)))
+        if key == "last_warn":
+            self.LastErrorOrWarn(wrap_dict_data(wrap_warning(value)))
 
     def _on_exception_changed(self):
         self.LastErrorOrWarn(wrap_dict_data(wrap_exception(self._printer.exception)))

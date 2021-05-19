@@ -506,3 +506,7 @@ class UVLEDsRowFailed(PrinterError):
 @with_code(Sl1Codes.UNKNOWN_PRINTER_MODEL)
 class UnknownPrinterModel(PrinterError):
     pass
+
+@with_code(Sl1Codes.UV_TEMP_SENSOR_FAILED)
+class UvTempSensorFailed(PrinterError):
+    pass

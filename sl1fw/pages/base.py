@@ -28,7 +28,8 @@ from sl1fw.states.examples import ExamplesState
 from sl1fw.state_actions.examples import Examples
 from sl1fw.functions import files
 from sl1fw.functions.system import shut_down, FactoryMountedRW, get_octoprint_auth, hw_all_off
-from sl1fw.errors.errors import ConfigException
+from sl1fw.errors.errors import ConfigException, UvTempSensorFailed
+from sl1fw.errors.warnings import FanWarning, ExpectOverheating
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -407,7 +408,7 @@ class Page:
     #enddef
 
 
-    def checkCoolingCallback(self, expoInProgress):
+    def checkCoolingCallback(self, expoInProgress): # pylint: disable=too-many-statements
         if self.checkCooligSkip < 20:
             self.checkCooligSkip += 1
             return
@@ -420,17 +421,12 @@ class Page:
             if expoInProgress:
                 self.display.expo.doPause()
                 self.display.runtime_config.check_cooling_expo = False
-                backFce = self.exitPrint
             else:
                 self.display.hw.uvLed(False)
-                backFce = self.backButtonRelease
             #endif
 
             self.logger.error("UV temperature reading failed")
-            self.display.pages['error'].setParams(
-                code=Sl1Codes.UV_TEMP_SENSOR_FAILED.raw_code,
-                backFce = backFce
-            )
+            self.display.expo.exception = UvTempSensorFailed()
             return "error"
         #endif
 
@@ -475,22 +471,12 @@ class Page:
 
             self.display.runtime_config.fan_error_override = True
 
+            failed_fans_text = ", ".join(failedFans)
             if expoInProgress:
-                backFce = self.exitPrint
-                addText = _("Expect overheating, but the print may continue.\n\n"
-                        "If you don't want to continue, please press the Back button on top of the screen and the current job will be canceled.")
+                self.display.expo.last_warn = ExpectOverheating(failed_fans_text=failed_fans_text)
             else:
-                backFce = self.backButtonRelease
-                addText = ""
+                self.display.expo.last_warn = FanWarning(failed_fans_text=failed_fans_text)
             #endif
-
-            self.display.pages['confirm'].setParams(
-                    backFce = backFce,
-                    continueFce = self.backButtonRelease,
-                    beep = True,
-                    text = _("Failed: %(what)s\n\n"
-                        "Please contact tech support!\n\n"
-                        "%(addText)s") % { 'what' : ", ".join(failedFans), 'addText' : addText })
             return "confirm"
         #endif
         self.display.hw.uvFanRpmControl()

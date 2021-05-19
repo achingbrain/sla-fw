@@ -322,6 +322,7 @@ class Exposure:
         self.pending_warning = Lock()
         self.estimate_total_time_ms = -1
         self.expoThread = Thread(target=self.run)
+        self.last_warn = None
 
     def read_project(self, project_file: str):
         check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
