@@ -28,6 +28,7 @@ class ExposureState(Enum):
     TILTING_DOWN = 24
     CANCELED = 26
     DONE = 27
+    OVERHEATING = 28
 
     @staticmethod
     def finished_states():

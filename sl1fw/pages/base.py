@@ -10,6 +10,7 @@
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-public-methods
+# pylint: disable=too-many-statements
 
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from prusaerrors.sl1.codes import Sl1Codes
 from sl1fw import defines, test_runtime
 from sl1fw.states.exposure import ExposureState
 from sl1fw.states.examples import ExamplesState
+from sl1fw.states.display import DisplayState
 from sl1fw.state_actions.examples import Examples
 from sl1fw.functions import files
 from sl1fw.functions.system import shut_down, FactoryMountedRW, get_octoprint_auth, hw_all_off
@@ -431,25 +433,29 @@ class Page:
         #endif
 
         if temp > defines.maxUVTemp:
+            old_state = None
             if expoInProgress:
                 self.display.expo.doPause()
+                old_state = self.display.expo.state
+                self.display.expo.state = ExposureState.OVERHEATING
             else:
+                old_state = self.display.state
+                self.display.state = DisplayState.OVERHEATING
                 self.display.hw.uvLed(False)
             #enddef
             self.display.hw.powerLed("error")
             self.logger.error("UV LED overheating: %s", temp)
-            pageWait = self.display.makeWait(self.display, line1 = _("UV LED OVERHEAT!"), line2 = _("Cooling down"))
-            pageWait.show()
             self.display.hw.beepAlarm(3)
             while temp > defines.maxUVTemp - 10: # hystereze
-                pageWait.showItems(line3 = _("Temperature is %.1f C") % temp)
                 sleep(10)
                 temp = self.display.hw.getUvLedTemperature()
             #endwhile
             self.display.hw.powerLed("normal")
-            self.show()
             if expoInProgress:
+                self.display.expo.state = old_state if old_state else ExposureState.PRINTING
                 self.display.expo.doContinue()
+            else:
+                self.display.state = old_state if old_state else DisplayState.IDLE
             #enddef
         #endif
 

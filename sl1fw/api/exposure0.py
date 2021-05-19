@@ -58,6 +58,7 @@ class Exposure0State(Enum):
     CANCELED = 20
     CHECK_WARNING = 23
     DONE = 24
+    OVERHEATING = 25
 
     @staticmethod
     def from_exposure(state: ExposureState) -> Exposure0State:
@@ -81,6 +82,7 @@ class Exposure0State(Enum):
             ExposureState.CANCELED: Exposure0State.CANCELED,
             ExposureState.CHECK_WARNING: Exposure0State.CHECK_WARNING,
             ExposureState.DONE: Exposure0State.DONE,
+            ExposureState.OVERHEATING: Exposure0State.OVERHEATING,
         }[state]
 
 

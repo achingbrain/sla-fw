@@ -26,6 +26,7 @@ class Printer0State(Enum):
     ADMIN = 8
     EXCEPTION = 9
     UPDATE_MC = 10
+    OVERHEATING = 11
 
 
 @unique

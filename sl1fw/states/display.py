@@ -15,18 +15,14 @@ class DisplayState(Enum):
     FACTORY_RESET = 4
     ADMIN = 5
     DISPLAY_TEST = 6
+    OVERHEATING = 7
 
     def to_state0(self):
-        state = None
-        if self == self.CALIBRATION:
-            state = Printer0State.WIZARD
-        elif self == self.WIZARD:
-            state = Printer0State.WIZARD
-        elif self == self.FACTORY_RESET:
-            state = Printer0State.INITIALIZING
-        elif self == self.ADMIN:
-            state = Printer0State.ADMIN
-        elif self == self.DISPLAY_TEST:
-            state = Printer0State.WIZARD
-
-        return state
+        return {
+            self.CALIBRATION: Printer0State.WIZARD,
+            self.WIZARD: Printer0State.WIZARD,
+            self.FACTORY_RESET: Printer0State.INITIALIZING,
+            self.ADMIN: Printer0State.ADMIN,
+            self.DISPLAY_TEST: Printer0State.WIZARD,
+            self.OVERHEATING: Printer0State.OVERHEATING,
+        }.get(self, None)
