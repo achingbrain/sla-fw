@@ -2,11 +2,15 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from pathlib import Path
+import json
 import numpy
 from PIL import Image
 
-from sl1fw.errors.errors import DisplayUsageError
+from sl1fw.errors.errors import DisplayUsageError, NoUvCalibrationData, DataFromUnknownUvSensor
 from sl1fw.image.exposure_image import ExposureImage
+from sl1fw.configs.toml import TomlConfig
+from sl1fw.libUvLedMeterMulti import UvLedMeterMulti
 
 def display_usage_heatmap(
         exposure_image: ExposureImage,
@@ -41,3 +45,19 @@ def display_usage_heatmap(
     output.putpalette(palette)
     output.paste(image, (2, 2))
     output.save(output_filename)
+
+
+def uv_calibration_result(data_filename: Path, output_filename: str) -> None:
+    if data_filename.suffix == ".toml":
+        data = TomlConfig(data_filename).load()
+    elif data_filename.suffix == ".json":
+        with open(data_filename, "r") as jf:
+            data = json.load(jf)
+    else:
+        raise NoUvCalibrationData
+    if not data:
+        raise NoUvCalibrationData
+    if data.get('uvSensorType', None) == 0:
+        UvLedMeterMulti().save_pic(800, 480, "PWM: %d" % data['uvFoundPwm'], output_filename, data)
+    else:
+        raise DataFromUnknownUvSensor

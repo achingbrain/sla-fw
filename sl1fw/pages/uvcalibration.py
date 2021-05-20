@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import functools
-import os
 from dataclasses import asdict
 from threading import Thread
 from time import sleep
@@ -36,61 +35,6 @@ from sl1fw.pages.wait import PageWait
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
-
-
-@page
-class PageUvDataShow(Page):
-    Name = "uvdatashow"
-
-    def __init__(self, display):
-        super(PageUvDataShow, self).__init__(display)
-        self.pageUI = "picture"
-        self.pageTitle = N_("UV calibration data")
-    #enddef
-
-
-    def prepare(self):
-        data = TomlConfig(defines.uvCalibDataPath).load()
-        if not data:
-            data = TomlConfig(defines.uvCalibDataPathFactory).load()
-        #endif
-        return self.showData(data)
-    #enddef
-
-
-    def showData(self, data):
-        if not data:
-            self.display.pages['error'].setParams(code=Sl1Codes.NO_UV_CALIBRATION_DATA.raw_code)
-            return "error"
-        #enddef
-        self.logger.info("Generating picture from: %s", str(data))
-        imagePath = os.path.join(defines.ramdiskPath, "uvcalib.png")
-        if data['uvSensorType'] == 0:
-            UvLedMeterMulti().save_pic(800, 400, "PWM: %d" % data['uvFoundPwm'], imagePath, data)
-            self.setItems(image_path = "file://%s" % imagePath)
-        else:
-            self.display.pages['error'].setParams(code=Sl1Codes.DATA_FROM_UNKNOWN_UV_SENSOR.raw_code)
-            return "error"
-        #endif
-    #enddef
-
-    def networkButtonRelease(self):
-        self.logger.debug("Network control disabled in uvcalibration")
-    #enddef
-
-#endclass
-
-
-@page
-class PageUvDataShowFactory(PageUvDataShow):
-    Name = "uvdatashowfactory"
-
-    def prepare(self):
-        data = TomlConfig(defines.uvCalibDataPathFactory).load()
-        return self.showData(data)
-    #enddef
-
-#endclass
 
 
 class PageUvCalibrationBase(Page):

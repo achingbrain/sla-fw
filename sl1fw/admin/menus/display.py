@@ -2,7 +2,9 @@
 # Copyright (C) 2021 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import functools
 from datetime import timedelta
+from itertools import chain
 
 from sl1fw import defines
 from sl1fw.admin.control import AdminControl
@@ -10,11 +12,9 @@ from sl1fw.admin.items import AdminAction, AdminBoolValue, AdminIntValue, AdminL
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Info, Confirm, Wait
 from sl1fw.admin.safe_menu import SafeAdminMenu
-from sl1fw.functions.files import get_save_path
 from sl1fw.functions.system import hw_all_off
-from sl1fw.functions.generate import display_usage_heatmap
+from sl1fw.functions import files, generate
 from sl1fw.libPrinter import Printer
-from sl1fw.pages.uvcalibration import PageUvDataShowFactory, PageUvDataShow
 from sl1fw.hardware.tilt import TiltProfile
 
 class DisplayRootMenu(AdminMenu):
@@ -26,14 +26,16 @@ class DisplayRootMenu(AdminMenu):
         self.add_items(
             (
                 AdminAction(
-                    "Display service", lambda: self._control.enter(DisplayServiceMenu(self._control, self._printer))
+                    "Display service",
+                    lambda: self._control.enter(DisplayServiceMenu(self._control, self._printer))
                 ),
                 AdminAction(
-                    "Display control", lambda: self._control.enter(DisplayControlMenu(self._control, self._printer))
+                    "Display control",
+                    lambda: self._control.enter(DisplayControlMenu(self._control, self._printer))
                 ),
                 AdminAction(
                     "Direct UV PWM settings",
-                    lambda: self._control.enter(DirectPwmSetMenu(self._control, self._printer)),
+                    lambda: self._control.enter(DirectPwmSetMenu(self._control, self._printer))
                 ),
             )
         )
@@ -49,8 +51,10 @@ class DisplayServiceMenu(SafeAdminMenu):
             (
                 AdminAction("Erase UV LED counter", self.erase_uv_led_counter),
                 AdminAction("Erase Display counter", self.erase_display_counter),
-                AdminAction("Show factory UV calibration data", self.show_factory_calibration),
-                AdminAction("Show UV calibration data", self.show_calibration),
+                AdminAction(
+                    "Show UV calibration data",
+                    lambda: self._control.enter(ShowCalibrationMenu(self._control, self._printer))
+                ),
                 AdminAction("Display usage heatmap", self.display_usage_heatmap),
             )
         )
@@ -111,22 +115,40 @@ class DisplayServiceMenu(SafeAdminMenu):
         )
 
     @SafeAdminMenu.safe_call
-    def show_factory_calibration(self):
-        self._printer.hw.saveUvStatistics()
-        self._printer.display.forcePage(PageUvDataShowFactory.Name)
-
-    @SafeAdminMenu.safe_call
-    def show_calibration(self):
-        self._printer.hw.saveUvStatistics()
-        self._printer.display.forcePage(PageUvDataShow.Name)
-
-    @SafeAdminMenu.safe_call
     def display_usage_heatmap(self):
-        display_usage_heatmap(
+        generate.display_usage_heatmap(
                 self._printer.exposure_image,
                 defines.displayUsageData,
                 defines.displayUsagePalette,
                 defines.fullscreenImage)
+        self._control.fullscreen_image()
+
+
+class ShowCalibrationMenu(SafeAdminMenu):
+    def __init__(self, control: AdminControl, printer: Printer):
+        super().__init__(control)
+        self._printer = printer
+
+        self.add_back()
+        data_paths = (
+                defines.wizardHistoryPathFactory.glob("uvcalib_data.*"),
+                defines.wizardHistoryPathFactory.glob("uvcalibrationwizard_data.*"),
+                defines.wizardHistoryPathFactory.glob("uv_calibration_data.*"),
+                defines.wizardHistoryPath.glob("uvcalib_data.*"),
+                defines.wizardHistoryPath.glob("uvcalibrationwizard_data.*"),
+                defines.wizardHistoryPath.glob("uv_calibration_data.*"),
+                )
+        filenames = sorted(list(chain(*data_paths)), key=lambda path: path.stat().st_mtime, reverse=True)
+        if filenames:
+            for fn in filenames:
+                prefix = "F:" if fn.parent == defines.wizardHistoryPathFactory else "U:"
+                self.add_item(AdminAction(prefix + fn.name, functools.partial(self.show_calibration, fn)))
+        else:
+            self.add_label("(no data)")
+
+    @SafeAdminMenu.safe_call
+    def show_calibration(self, filename):
+        generate.uv_calibration_result(filename, defines.fullscreenImage)
         self._control.fullscreen_image()
 
 
@@ -189,7 +211,7 @@ class DisplayControlMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def usb_test(self):
-        save_path = get_save_path()
+        save_path = files.get_save_path()
         if save_path is None:
             raise ValueError("No USB path")
         test_file = save_path / "test.png"

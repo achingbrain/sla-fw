@@ -496,6 +496,16 @@ class FailedToSaveFactoryConfig(PrinterError):
     pass
 
 
+@with_code(Sl1Codes.NO_UV_CALIBRATION_DATA)
+class NoUvCalibrationData(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.DATA_FROM_UNKNOWN_UV_SENSOR)
+class DataFromUnknownUvSensor(PrinterError):
+    pass
+
+
 @with_code(Sl1Codes.NO_DISPLAY_USAGE_DATA)
 @dataclass()
 class DisplayUsageError(PrinterError):

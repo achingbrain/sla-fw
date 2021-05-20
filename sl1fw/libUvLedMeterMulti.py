@@ -268,7 +268,7 @@ class UvLedMeterMulti:
         text_color = (255, 255, 255)
         perc_plus_color = (0, 255, 0)
         perc_minus_color = (255, 0, 0)
-        font_size = height // 15
+        font_size = height // 16
         font_small_size = height // 30
 
         values = data.get("uvSensorData", None)
@@ -303,7 +303,7 @@ class UvLedMeterMulti:
         surf = ImageDraw.Draw(image)
 
         surf.rectangle(((0, 0), (width, text_size)), bg_color)
-        status = "ø %.1f   σ %.1f   %.1f °C   %s" % (
+        status = "ø %.1f  σ %.1f  %.1f°C  %s" % (
             data["uvMean"],
             data["uvStdDev"],
             data["uvTemperature"],
@@ -321,7 +321,7 @@ class UvLedMeterMulti:
                 pos_y = text_size + (row * step_y)
                 surf.rectangle(((pos_x, pos_y), (pos_x + step_x, pos_y + step_y)), (0, 0, color))
 
-                val = str(values[i])
+                val = str(int(values[i]))
                 rect = font.getsize(val)
                 offset_x = int((step_x - rect[0]) / 2)
                 offset_y = int((step_y - rect[1]) / 2)
