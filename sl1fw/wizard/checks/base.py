@@ -255,7 +255,7 @@ class DangerousCheck(Check, ABC):
         else:
             self._hw.setTowerProfile("moveFast")
             self._hw.towerToTop()
-            while not self._hw.isTowerOnPosition():
+            while not self._hw.isTowerOnPosition(retries=3):
                 await asyncio.sleep(0.25)
 
     async def verify_tilt(self):
