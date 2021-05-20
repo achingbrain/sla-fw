@@ -94,7 +94,7 @@ class TestExposure(Sl1fwTestCase):
     def test_resin_enough(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.getResinVolume.return_value = defines.resinMaxVolume
+        hw.get_resin_volume.return_value = defines.resinMaxVolume
         exposure = self._run_exposure(hw)
         self.assertNotEqual(exposure.state, ExposureState.FAILURE)
         self.assertIsNone(exposure.warning)
@@ -102,7 +102,7 @@ class TestExposure(Sl1fwTestCase):
     def test_resin_warning(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.getResinVolume.return_value = defines.resinMinVolume + 0.1
+        hw.get_resin_volume.return_value = defines.resinMinVolume + 0.1
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.exception, WarningEscalation)
         # pylint: disable=no-member
@@ -111,7 +111,7 @@ class TestExposure(Sl1fwTestCase):
     def test_resin_error(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.getResinVolume.return_value = defines.resinMinVolume - 0.1
+        hw.get_resin_volume.return_value = defines.resinMinVolume - 0.1
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.exception, ResinTooLow)
 

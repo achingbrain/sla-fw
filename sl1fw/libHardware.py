@@ -779,9 +779,12 @@ class Hardware:
             await asyncio.sleep(0.25)
 
     def towerMoveAbsoluteWait(self, position):
+        return asyncio.run(self.towerMoveAbsoluteWaitAsync(position))
+
+    async def towerMoveAbsoluteWaitAsync(self, position):
         self.towerMoveAbsolute(position)
         while not self.isTowerOnPosition():
-            sleep(0.1)
+            await asyncio.sleep(0.1)
 
     @safe_call(None, MotionControllerException)
     def towerMoveAbsolute(self, position):
@@ -916,19 +919,24 @@ class Hardware:
     # 35 % -  70 % : 1.0 mm = 14.65 ml
     # 70 % - 100 % : 1.0 mm = 14.85 ml
 
-    @safe_call(0, MotionControllerException)
-    def get_precise_resin_volume_ml(self):
-        self.setTowerProfile("homingFast")
-        self.towerMoveAbsoluteWait(self._towerResinStartPos)  # move quickly to safe distance
-        self.resinSensor(True)
-        sleep(1)
-        self.setTowerProfile("resinSensor")
-        self.mcc.do("!rsme", self._towerResinStartPos - self._towerResinEndPos)  # relative movement!
-        while self.isTowerMoving():
-            sleep(0.1)
+    def get_precise_resin_volume_ml(self) -> float:
+        return asyncio.run(self.get_precise_resin_volume_ml_async())
 
-        position = self.getTowerPositionMicroSteps()
-        self.resinSensor(False)
+    @safe_call(0, MotionControllerException)
+    async def get_precise_resin_volume_ml_async(self) -> float:
+        self.setTowerProfile("homingFast")
+        await self.towerMoveAbsoluteWaitAsync(self._towerResinStartPos)  # move quickly to safe distance
+        try:
+            self.resinSensor(True)
+            await asyncio.sleep(1)
+            self.setTowerProfile("resinSensor")
+            self.mcc.do("!rsme", self._towerResinStartPos - self._towerResinEndPos)  # relative movement!
+            while self.isTowerMoving():
+                await asyncio.sleep(0.1)
+
+            position = self.getTowerPositionMicroSteps()
+        finally:
+            self.resinSensor(False)
         if position == self._towerResinEndPos:
             return 0
 
@@ -939,16 +947,19 @@ class Hardware:
             self.logger.debug("Using METALIC vat values")
             resin_constant = (13.7, 14.0)
 
-        posMM = self.config.calcMM(position)
-        if posMM < 10.0:
-            volume = posMM * resin_constant[0]
+        pos_mm = self.config.calcMM(position)
+        if pos_mm < 10.0:
+            volume = pos_mm * resin_constant[0]
         else:
-            volume = posMM * resin_constant[1]
+            volume = pos_mm * resin_constant[1]
 
         return volume
 
-    def getResinVolume(self):
-        return int(round(self.get_precise_resin_volume_ml() / 10.0) * 10)
+    def get_resin_volume(self) -> int:
+        return asyncio.run(self.get_resin_volume_async())
+
+    async def get_resin_volume_async(self) -> int:
+        return int(round(await self.get_precise_resin_volume_ml_async() / 10.0) * 10)
 
     @staticmethod
     def calcPercVolume(volume_ml):

@@ -28,7 +28,7 @@ class ResinSensorTest(DangerousCheck):
         with actions.led_warn:
             await gather(self.verify_tower(), self.verify_tilt())
             self._hw.setTowerPosition(self._hw.config.calcMicroSteps(defines.defaultTowerHeight))
-            volume_ml = self._hw.getResinVolume()
+            volume_ml = await self._hw.get_resin_volume_async()
             self._logger.debug("resin volume: %s", volume_ml)
             if (
                 not defines.resinWizardMinVolume <= volume_ml <= defines.resinWizardMaxVolume

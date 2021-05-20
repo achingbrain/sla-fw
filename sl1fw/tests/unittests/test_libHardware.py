@@ -201,7 +201,7 @@ class TestLibHardware(Sl1fwTestCase):
 
         self.assertFalse(self.hw.getResinSensorState())
 
-        # self.assertEqual(42, self.hw.getResinVolume())
+        # self.assertEqual(42, self.hw.get_resin_volume())
 
         self.assertEqual(80, self.hw.calcPercVolume(150))
 

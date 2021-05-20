@@ -122,7 +122,7 @@ def check_uv_fans(hw: Hardware, logger: Logger, progress_callback: Callable[[flo
 def resin_sensor(hw: Hardware, logger: Logger):
     hw.towerSyncWait()
     hw.setTowerPosition(hw.config.calcMicroSteps(defines.defaultTowerHeight))
-    volume_ml = hw.getResinVolume()
+    volume_ml = hw.get_resin_volume()
     logger.debug("resin volume: %s", volume_ml)
     if (
         not defines.resinWizardMinVolume <= volume_ml <= defines.resinWizardMaxVolume

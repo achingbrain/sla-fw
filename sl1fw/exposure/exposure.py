@@ -221,7 +221,7 @@ class ResinCheck(ExposureCheckRunner):
         if not self.expo.hw.config.resinSensor:
             raise ExposureCheckDisabled()
 
-        volume_ml = self.expo.hw.getResinVolume()
+        volume_ml = self.expo.hw.get_resin_volume()
         self.expo.setResinVolume(volume_ml)
 
         try:
