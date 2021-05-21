@@ -63,8 +63,9 @@ class UVLEDsTest_SL1(DangerousCheck):
                     await sleep(5)  # wait to refresh all voltages (board rev. 0.6+)
                 volts = list(self._hw.getVoltages())
                 del volts[-1]  # delete power supply voltage
+                self._logger.info("UV voltages: %s", volts)
                 if max(volts) - min(volts) > diff and not test_runtime.testing:
-                    raise UVLEDsVoltagesDifferTooMuch()
+                    raise UVLEDsVoltagesDifferTooMuch(f"{max(volts) - min(volts)} (max - min) > {diff}")
                 row1.append(int(volts[0] * 1000))
                 row2.append(int(volts[1] * 1000))
                 row3.append(int(volts[2] * 1000))
