@@ -101,6 +101,10 @@ class ConfigWriter:
 
         :param: write Whenever to write configuration file
         """
+        # Skip everything in case of no changes
+        if not self.changed:
+            return
+
         # Update values with write lock
         with self._config.lock.gen_wlock():
             for key, val in self._changed.items():

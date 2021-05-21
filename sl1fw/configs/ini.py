@@ -262,12 +262,16 @@ class Config(ValueConfig):
         return obj
 
     def _write_file(self, file_path: Path, factory: bool = False):
-        self._logger.info("Writting config to %s", file_path)
+        self._logger.info("Writing config to %s", file_path)
         if not self._is_master:
             raise ConfigException("Cannot safe config that is not master")
         try:
-            with file_path.open("w") as f:
-                toml.dump(self.as_dictionary(nondefault=False, factory=factory), f)
+            data = toml.dumps(self.as_dictionary(nondefault=False, factory=factory))
+            if not file_path.exists() or file_path.read_text() != data:
+                file_path.write_text(data)
+            else:
+                self._logger.info("Skipping config update as no change is to be written")
+
         except Exception as exception:
             raise ConfigException("Failed to write config file") from exception
 
