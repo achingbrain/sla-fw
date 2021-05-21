@@ -376,13 +376,24 @@ class TestConfigHelper(Sl1fwTestCase):
 
     def test_on_change(self):
         on_change = mock.MagicMock()
-        on_change.__self__ = mock.Mock(name='self')
-        on_change.__func__ = mock.Mock(name='func')
+        on_change.__self__ = mock.Mock(name="self")
+        on_change.__func__ = mock.Mock(name="func")
         on_change("calibrated", True)
         self.hw_config.add_onchange_handler(on_change)
         self.helper.calibrated = True
         self.helper.commit()
         on_change.assert_called_with("calibrated", True)
+
+    def test_delete(self):
+        default = self.hw_config.uvPwm
+        self.hw_config.uvPwm = 123
+        self.assertEqual(123, self.helper.uvPwm)
+        self.assertEqual(123, self.hw_config.uvPwm)
+        del self.helper.uvPwm
+        self.assertEqual(default, self.helper.uvPwm)
+        self.assertEqual(123, self.hw_config.uvPwm)
+        self.helper.commit()
+        self.assertEqual(default, self.hw_config.uvPwm)
 
 
 class TestPrintConfig(Sl1fwTestCase):

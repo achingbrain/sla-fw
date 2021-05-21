@@ -52,6 +52,11 @@ class ConfigWriter:
         if item in self._changed:
             return self._changed[item]
         if item in self._deleted:
+            if item in self._config.get_values():
+                value = self._config.get_values()[item]
+                if value.get_factory_value(self._config) is not None:
+                    return value.get_factory_value(self._config)
+                return value.get_default_value(self._config)
             return None
         return getattr(self._config, item)
 
@@ -103,6 +108,8 @@ class ConfigWriter:
                     self._config.get_values()[key].value_setter(self._config, val)
                 else:
                     setattr(self._config, key, val)
+            for key in self._deleted:
+                delattr(self._config, key)
 
         if write:
             self._config.write()
@@ -122,8 +129,8 @@ class ConfigWriter:
         :return: True if changed, false otherwise
         """
         if key is None:
-            return bool(self._changed)
-        return key in self._changed
+            return bool(self._changed) or bool(self._deleted)
+        return key in self._changed or key in self._deleted
 
     def reset(self):
         """
