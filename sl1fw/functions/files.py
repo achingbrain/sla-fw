@@ -48,40 +48,34 @@ def get_all_supported_files(printer_model: PrinterModel, path: Path) -> list:
     return files
 
 
-def save_wizard_history(path: Path):
+def save_wizard_history(filename: Path):
     # TODO: Limit history size
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    if path.parent == defines.factoryMountPoint:
-        wizard_history = defines.wizardHistoryPath / f"{path.stem}.{timestamp}{path.suffix}"
+    timestamp = datetime.fromtimestamp(filename.stat().st_mtime).strftime("%Y-%m-%d_%H-%M-%S")
+    if filename.parent == defines.factoryMountPoint:
+        wizard_history = defines.wizardHistoryPath / f"{filename.stem}.{timestamp}{filename.suffix}"
     else:
-        wizard_history = defines.wizardHistoryPathFactory / f"{path.stem}.{timestamp}{path.suffix}"
+        wizard_history = defines.wizardHistoryPathFactory / f"{filename.stem}.{timestamp}{filename.suffix}"
     wizard_history.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(path, wizard_history)
+    if not wizard_history.is_file():
+        shutil.copyfile(filename, wizard_history)
 
 
-def _save_wizard_history_bach(files: dict, src: Path, dest: Path):
-    saved_files = set()
-    for file_name in dest.glob("**/*"):
-        saved_files.add(file_name.stem)
-    for prefix, names in files.items():
-        for name in names:
-            if name not in saved_files:
-                path = src / (name + prefix)
-                if path.is_file():
-                    save_wizard_history(path)
+def _save_wizard_history_bach(files: dict, source_path: Path):
+    for name in files:
+        filename = source_path / name
+        if filename.is_file():
+            save_wizard_history(filename)
 
 
 def save_all_remain_wizard_history():
     _save_wizard_history_bach(
-        {".toml": ["factory", "hardware", "uvcalib_data", "wizard_data"]},
-        defines.factoryMountPoint,
-        defines.wizardHistoryPathFactory,
+        ("factory.toml", "hardware.toml", "uvcalib_data.toml", "wizard_data.toml"),
+        defines.factoryMountPoint
     )
 
     _save_wizard_history_bach(
-        {".toml": ["uvcalib_data", "wizard_data"], ".cfg": ["hardware"]},
-        defines.configDir,
-        defines.wizardHistoryPath,
+        ("uvcalib_data.toml", "wizard_data.toml", "hardware.cfg"),
+        defines.configDir
     )
 
 
