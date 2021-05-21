@@ -11,7 +11,7 @@ from sl1fw import defines
 from sl1fw.functions.system import shut_down
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import SyncCheck, WizardCheckType
+from sl1fw.wizard.checks.base import WizardCheckType, Check
 from sl1fw.wizard.setup import Configuration
 from sl1fw.errors.errors import A64Overheat, TempSensorFailed, TempSensorNotInRange
 
@@ -26,7 +26,7 @@ class CheckData:
     wizardTempA64: float
 
 
-class TemperatureTest(SyncCheck):
+class TemperatureTest(Check):
     def __init__(self, hw: Hardware):
         super().__init__(
             WizardCheckType.TEMPERATURE, Configuration(None, None), [],
@@ -34,7 +34,7 @@ class TemperatureTest(SyncCheck):
         self._hw = hw
         self._check_data = None
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         self._logger.debug("Checking temperatures")
 
         # A64 overheat check

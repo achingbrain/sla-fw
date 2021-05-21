@@ -2,16 +2,16 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from time import sleep
+from asyncio import sleep
 from typing import Optional
 
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import WizardCheckType, SyncCheck
+from sl1fw.wizard.checks.base import WizardCheckType, Check
 from sl1fw.wizard.setup import Configuration, Resource
 
 
-class MoveToFoam(SyncCheck):
+class MoveToFoam(Check):
     FOAM_TARGET_POSITION_NM = 30_000_000
 
     def __init__(self, hw: Hardware):
@@ -21,7 +21,7 @@ class MoveToFoam(SyncCheck):
         self.result: Optional[bool] = None
         self.hw = hw
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         with actions.led_warn:
             self.hw.setTowerPosition(0)
             self.hw.setTowerProfile("homingFast")
@@ -34,11 +34,11 @@ class MoveToFoam(SyncCheck):
                     )
                 else:
                     self.progress = 1
-                sleep(0.5)
+                await sleep(0.5)
             self.hw.motorsRelease()
 
 
-class MoveToTank(SyncCheck):
+class MoveToTank(Check):
     def __init__(self, hw: Hardware):
         super().__init__(
             WizardCheckType.MOVE_TO_TANK, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
@@ -46,7 +46,7 @@ class MoveToTank(SyncCheck):
         self.result: Optional[bool] = None
         self.hw = hw
 
-    def task_run(self, actions: UserActionBroker):
+    async def async_task_run(self, actions: UserActionBroker):
         with actions.led_warn:
-            self.hw.towerSyncWait(retries=3)  # Let this fail fast, allow for proper tower synced check
+            await self.hw.towerSyncWaitAsync(retries=3)  # Let this fail fast, allow for proper tower synced check
             self.hw.motorsRelease()
