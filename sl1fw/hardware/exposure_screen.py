@@ -34,6 +34,7 @@ class ExposureScreen:
         self._shm = None
         self._output = None
         self._presentation = None
+        self._format = None
         self._format_available = False
         self._resolution = (0, 0)
         self._referesh_delay_s = 0.0
@@ -147,7 +148,7 @@ class ExposureScreen:
 
 
     def _shm_format_handler(self, shm, format_):
-        if format_ == WlShm.format.xrgb8888.value:
+        if format_ == self._format:
             self._logger.debug("got shm format")
             self._format_available = True
 
@@ -176,10 +177,19 @@ class ExposureScreen:
             self._resolution = (width, height)
 
 
+    def _find_format(self):
+        if self.parameters.bytes_per_pixel == 1:
+            return WlShm.format.r8.value
+        if self.parameters.backwards:
+            return WlShm.format.bgr888.value
+        return WlShm.format.rgb888.value
+
+
     def _detect_model(self):
         self.panel = ExposurePanel
         model = self.panel.printer_model()
         self.parameters = model.exposure_screen_parameters
+        self._format = self._find_format()
         if model == PrinterModel.NONE:
             self._logger.error("Unknown printer model (panel name: '%s')", self.panel.panel_name())
         else:
@@ -191,12 +201,14 @@ class ExposureScreen:
 
 
     def _create_buffer(self):
-        stride = self._resolution[0] * 4
-        size = stride * self._resolution[1]
+        stride = self.parameters.width_px
+        width = self.parameters.apparent_width_px
+        height = self.parameters.height_px
+        size = stride * height
         with AnonymousFile(size) as fd:
             self._shm_data = mmap.mmap(fd, size, prot=mmap.PROT_READ | mmap.PROT_WRITE, flags=mmap.MAP_SHARED)
             pool = self._shm.create_pool(fd, size)
-            self._buffer = pool.create_buffer(0, self._resolution[0], self._resolution[1], stride, WlShm.format.xrgb8888.value)
+            self._buffer = pool.create_buffer(0, width, height, stride, self._format)
             pool.destroy()
         self._new_image = True
 
@@ -205,7 +217,7 @@ class ExposureScreen:
         if self._new_image and self._image:
             self._shm_data.seek(0)
             self._shm_data.write(self._image)
-            self._surface.damage_buffer(0, 0, self._resolution[0], self._resolution[1])
+            self._surface.damage_buffer(*self.parameters.surface_area_px)
             self._presentation_feedback = self._presentation.feedback(self._surface)
             self._presentation_feedback.dispatcher["presented"] = self._feedback_presented_handler
             self._presentation_feedback.dispatcher["discarded"] = self._feedback_discarded_handler
@@ -234,15 +246,10 @@ class ExposureScreen:
         if image.size != self.parameters.size_px:
             self._logger.error("Invalid image size %s. Output is %s", str(image.size), str(self.parameters.size_px))
             return
-        if self.parameters.monochromatic:
-            bit24 = Image.frombytes("RGB", self._resolution, image.tobytes())
-            if self.parameters.backwards:
-                bit32 = bit24.convert("BGR;32")
-            else:
-                bit32 = bit24.convert("RGBX")
-        else:
-            bit32 = image.convert("RGBX")
-        self._image = bit32.tobytes()
+        if image.mode != "L":
+            self._logger.error("Invalid pixel format %s. 'L' is required.", image.mode)
+            return
+        self._image = image.tobytes()
         self._new_image = True
         if sync:
             self.sync()
