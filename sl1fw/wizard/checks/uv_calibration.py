@@ -59,6 +59,7 @@ class CheckUVMeter(DangerousCheck):
 
         if not self._uv_meter.present:
             raise FailedToDetectUVMeter()
+        self._logger.info("UV meter device found")
 
         if not self._uv_meter.connect():
             # TODO: Move exception raise to connect

@@ -134,3 +134,9 @@ class UVCalibrationWizard(Wizard):
     @property
     def name(self) -> str:
         return "uv_calibration"
+
+    def run(self):
+        try:
+            super().run()
+        finally:
+            self._package.uv_meter.close()
