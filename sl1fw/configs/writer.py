@@ -102,7 +102,8 @@ class ConfigWriter:
         :param: write Whenever to write configuration file
         """
         # Skip everything in case of no changes
-        if not self.changed:
+        if not self.changed():
+            self._logger.info("Skipping update with empty changes")
             return
 
         # Update values with write lock

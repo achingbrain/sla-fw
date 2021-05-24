@@ -4,16 +4,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
-from unittest import mock
 from pathlib import Path
 from shutil import copyfile
+from unittest.mock import Mock, MagicMock
 
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.ini import Config
-from sl1fw.configs.writer import ConfigWriter
-from sl1fw.configs.value import FloatValue, IntListValue, IntValue, BoolValue, FloatListValue, TextValue
 from sl1fw.configs.project import ProjectConfig
+from sl1fw.configs.value import FloatValue, IntListValue, IntValue, BoolValue, FloatListValue, TextValue
+from sl1fw.configs.writer import ConfigWriter
 from sl1fw.tests.base import Sl1fwTestCase
 
 
@@ -349,7 +349,7 @@ class TestConfigHelper(Sl1fwTestCase):
 
         self.helper.autoOff = False
 
-        # Underling valus is intact before commit
+        # Underling values is intact before commit
         self.assertTrue(self.hw_config.autoOff)
 
         # Changed behaviour before commit
@@ -374,10 +374,16 @@ class TestConfigHelper(Sl1fwTestCase):
         self.helper.autoOff = not self.helper.autoOff
         self.assertFalse(self.helper.changed(), "After modify revert the config is not changed")
 
+    def test_empty_commit(self):
+        self.hw_config.write = Mock()
+        writer = ConfigWriter(self.hw_config)
+        writer.commit()
+        self.hw_config.write.assert_not_called()
+
     def test_on_change(self):
-        on_change = mock.MagicMock()
-        on_change.__self__ = mock.Mock(name="self")
-        on_change.__func__ = mock.Mock(name="func")
+        on_change = MagicMock()
+        on_change.__self__ = Mock(name="self")
+        on_change.__func__ = Mock(name="func")
         on_change("calibrated", True)
         self.hw_config.add_onchange_handler(on_change)
         self.helper.calibrated = True

@@ -7,7 +7,6 @@ import unittest
 from shutil import copyfile
 from unittest.mock import Mock, AsyncMock, MagicMock, patch
 
-from pathlib import Path
 import pydbus
 import toml
 
@@ -244,7 +243,7 @@ class TestWizards(TestWizardsBase):
         self.hw_config_file = self.TEMP_DIR / "reset_config.toml"
         self.hw_config_factory_file = self.TEMP_DIR / "reset_config_factory.toml"
 
-        hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True,)
+        hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True)
         self.hw = Hardware(hw_config)
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock() # wizards use weakly-reference to exposure_image
@@ -359,16 +358,12 @@ class TestWizards(TestWizardsBase):
         self._assert_final_state("showWizard", expected_value=None)
 
     def _assert_final_state(self, item: str, expected_value: bool):
-        hwConfig_path = Path(self.hw_config_file)
-        self.assertTrue(hwConfig_path.exists(), "HwConfig file exists")
-        with hwConfig_path.open("rt") as file:
-            data = toml.load(file)
+        conf = HwConfig(self.hw_config_file)
+        conf.read_file()
         if expected_value is None:
-            self.assertRaises(KeyError, data.__getitem__, item)
-        elif expected_value is False:
-            self.assertFalse(data[item])
+            self.assertTrue(conf.get_values().get(item).is_default(conf))
         else:
-            self.assertTrue(data[item])
+            self.assertEqual(expected_value, getattr(conf, item))
 
     def test_unboxing_complete(self):
         wizard = CompleteUnboxingWizard(self.hw, RuntimeConfig())
@@ -465,6 +460,7 @@ class TestWizards(TestWizardsBase):
             if wizard.state == WizardState.PREPARE_CALIBRATION_TILT_ALIGN:
                 wizard.prepare_calibration_tilt_align_done()
             if wizard.state == WizardState.LEVEL_TILT:
+                self.hw.tilt.position = 4992
                 wizard.tilt_aligned()
             if wizard.state == WizardState.PREPARE_CALIBRATION_PLATFORM_ALIGN:
                 wizard.prepare_calibration_platform_align_done()
@@ -486,7 +482,8 @@ class TestWizards(TestWizardsBase):
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, limit_s=1, expected_state=WizardState.CANCELED)
-        self._assert_final_state(item="calibrated", expected_value=None)
+        self._assert_final_state(item="calibrated", expected_value=False)
+
 
 class TestUVCalibration(TestWizardsBase):
     def setUp(self) -> None:
@@ -496,7 +493,7 @@ class TestUVCalibration(TestWizardsBase):
         self.hw_config_factory_file = self.TEMP_DIR / "reset_config_factory.toml"
         defines.counterLog = self.TEMP_DIR / "counter.log"
 
-        hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True,)
+        hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True)
         self.hw = Hardware(hw_config)
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock()
@@ -624,14 +621,10 @@ class TestUVCalibration(TestWizardsBase):
         self._run_wizard(wizard, limit_s=15, expected_state=expected_state)
 
     def _assert_final_uv_pwm(self, expected_value: int):
-        hwConfig_path = Path(self.hw_config_file)
-        self.assertTrue(hwConfig_path.exists(), "HwConfig file exists")
-        with hwConfig_path.open("rt") as file:
-            data = toml.load(file)
-        if expected_value == 0:
-            self.assertRaises(KeyError, data.__getitem__, "uvPwm")
-        else:
-            self.assertGreater(data["uvPwm"], expected_value)
+        conf = HwConfig(self.hw_config_file)
+        conf.read_file()
+        self.assertLessEqual(expected_value, conf.uvPwm)
+
 
 if __name__ == "__main__":
     unittest.main()
