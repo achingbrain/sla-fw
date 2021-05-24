@@ -139,4 +139,6 @@ class UVCalibrationWizard(Wizard):
         try:
             super().run()
         finally:
+            self._package.hw.uvLed(False)
+            self._package.hw.stopFans()
             self._package.uv_meter.close()

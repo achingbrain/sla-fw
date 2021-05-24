@@ -88,8 +88,8 @@ class UVWarmupCheck(DangerousCheck):
                 else:
                     await sleep(1)
         except (Exception, CancelledError):
-            self._hw.stopFans()
             self._hw.uvLed(False)
+            self._hw.stopFans()
             raise
 
         self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).min_pwm
@@ -119,8 +119,8 @@ class CheckUVMeterPlacement(DangerousCheck):
             if error:
                 raise UnknownUVMeasurementFailure(error)
         except (Exception, CancelledError):
-            self._hw.stopFans()
             self._hw.uvLed(False)
+            self._hw.stopFans()
             raise
 
 
@@ -202,8 +202,8 @@ class UVCalibrateCenter(UVCalibrate):
                 self._hw.beepAlarm(2)
                 await self.calibrate()
         except (Exception, CancelledError):
-            self._hw.stopFans()
             self._hw.uvLed(False)
+            self._hw.stopFans()
             raise
 
     async def calibrate(self):
