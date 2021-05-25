@@ -302,7 +302,7 @@ class Exposure:
         self.tower_position_nm = 0
         self.actual_layer = 0
         self.slow_layers_done = 0
-        self.printStartTime = datetime.fromtimestamp(0, tz=timezone.utc)
+        self.printStartTime = datetime.now(tz=timezone.utc)
         self.printEndTime = datetime.fromtimestamp(0, tz=timezone.utc)
         self.state = ExposureState.READING_DATA
         self.remaining_wait_sec = 0
