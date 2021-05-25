@@ -18,7 +18,9 @@ class BuildPyWithLocalesCommand(setuptools.command.build_py.build_py):
 
 data_files = [
     ('/usr/share/sl1fw/scripts', glob('sl1fw/scripts/*')),
-    ('/usr/share/sl1fw/multimedia', glob('sl1fw/multimedia/*')),
+    ('/usr/share/sl1fw/multimedia', glob('sl1fw/multimedia/*.xm')),
+    ('/usr/share/sl1fw/multimedia/SL1', glob('sl1fw/multimedia/SL1/*')),
+    ('/usr/share/sl1fw/multimedia/SL1S', glob('sl1fw/multimedia/SL1S/*')),
     ('/etc/sl1fw', ['sl1fw/hardware.cfg']),
     ('/etc/sl1fw', ['sl1fw/loggerConfig.json']),
     ('/usr/lib/systemd/system', glob('systemd/*.service')),
