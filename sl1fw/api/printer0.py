@@ -1075,3 +1075,11 @@ class Printer0:
     @state_checked(Printer0State.IDLE)
     def make_ready_to_print(self):
         return self.printer.run_make_ready_to_print()
+
+    @auto_dbus
+    def add_oneclick_inhibitor(self, name: str) -> None:
+        self.printer.add_oneclick_inhibitor(name)
+
+    @auto_dbus
+    def remove_oneclick_inhibitor(self, name: str) -> None:
+        self.printer.remove_oneclick_inhibitor(name)

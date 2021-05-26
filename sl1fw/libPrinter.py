@@ -91,6 +91,7 @@ class Printer:
         self.mechanically_calibrated_changed = Signal()
         self.uv_calibrated_changed = Signal()
         self.self_tested_changed = Signal()
+        self._oneclick_inhibitors: Set[str] = set()
 
         self.logger.info("Initializing hwconfig")
         hw_config = HwConfig(
@@ -460,6 +461,10 @@ class Printer:
         return url
 
     def _media_inserted(self, _, __, ___, ____, params):
+        if self._oneclick_inhibitors:
+            self.logger.info("Oneclick inhibited by: %s", self._oneclick_inhibitors)
+            return
+
         try:
             path = params[0]
             if path and os.path.isfile(path):
@@ -482,6 +487,19 @@ class Printer:
                 expo.try_cancel()
         except Exception:
             self.logger.exception("Error handling media ejected event")
+
+    def add_oneclick_inhibitor(self, name: str):
+        if name in self._oneclick_inhibitors:
+            self.logger.warning("One click inhibitor %s already registered", name)
+            return
+
+        self._oneclick_inhibitors.add(name)
+
+    def remove_oneclick_inhibitor(self, name: str):
+        if name in self._oneclick_inhibitors:
+            self._oneclick_inhibitors.remove(name)
+        else:
+            self.logger.warning("One click inhibitor %s not registered", name)
 
     @property
     def unboxed(self):
