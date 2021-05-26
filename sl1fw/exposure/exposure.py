@@ -43,7 +43,7 @@ from sl1fw.errors.errors import (
     TowerMoveFailed,
     TempSensorFailed,
     FanFailed,
-    ResinFailed,
+    ResinMeasureFailed,
     ResinTooLow,
     ResinTooHigh,
     WarningEscalation,
@@ -226,14 +226,14 @@ class ResinCheck(ExposureCheckRunner):
 
         try:
             if not volume_ml:
-                raise ResinFailed(volume_ml)
+                raise ResinMeasureFailed(volume_ml)
 
             if volume_ml < defines.resinMinVolume:
                 raise ResinTooLow(volume_ml, defines.resinMinVolume)
 
             if volume_ml > defines.resinMaxVolume:
                 raise ResinTooHigh(volume_ml)
-        except ResinFailed:
+        except ResinMeasureFailed:
             self.expo.hw.setTowerProfile("homingFast")
             self.expo.hw.towerToTop()
             while not self.expo.hw.isTowerOnTop():

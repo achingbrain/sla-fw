@@ -5,8 +5,7 @@
 from asyncio import gather
 from typing import Optional, Dict, Any
 
-from sl1fw import test_runtime, defines
-from sl1fw.errors.errors import ResinFailed
+from sl1fw.errors.errors import ResinSensorFailed
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
@@ -21,22 +20,21 @@ class ResinSensorTest(DangerousCheck):
             Configuration(TankSetup.PRINT, PlatformSetup.RESIN_TEST),
             [Resource.TOWER, Resource.TOWER_DOWN],
         )
-        self.volume_ml: Optional[float] = None
+        self.position_mm: Optional[float] = None
 
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
         with actions.led_warn:
             await gather(self.verify_tower(), self.verify_tilt())
-            self._hw.setTowerPosition(self._hw.config.calcMicroSteps(defines.defaultTowerHeight))
-            volume_ml = await self._hw.get_resin_volume_async()
-            self._logger.debug("resin volume: %s", volume_ml)
-            if (
-                not defines.resinWizardMinVolume <= volume_ml <= defines.resinWizardMaxVolume
-            ) and not test_runtime.testing:  # to work properly even with loosen rocker bearing
-                raise ResinFailed(volume_ml)
-            self.volume_ml = volume_ml
+            self._hw.setTowerPosition(self._hw.config.calcMicroSteps(120))
+            position_mm = await self._hw.get_resin_sensor_position_mm()
+            self._logger.debug("resin triggered at %s mm", position_mm)
+            # to work properly even with loosen rocker bearing
+            if not 4 <= position_mm <= 16:
+                raise ResinSensorFailed(position_mm)
+            self.position_mm = position_mm
             # FIXME move tower up for next group (tower range test)
             await self.verify_tower()
 
     def get_result_data(self) -> Dict[str, Any]:
-        return {"wizardResinVolume": self.volume_ml}
+        return {"wizardResinTriggeredMM": self.position_mm}

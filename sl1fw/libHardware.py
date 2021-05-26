@@ -922,37 +922,18 @@ class Hardware:
     def get_precise_resin_volume_ml(self) -> float:
         return asyncio.run(self.get_precise_resin_volume_ml_async())
 
-    @safe_call(0, MotionControllerException)
     async def get_precise_resin_volume_ml_async(self) -> float:
-        self.setTowerProfile("homingFast")
-        await self.towerMoveAbsoluteWaitAsync(self._towerResinStartPos)  # move quickly to safe distance
-        try:
-            self.resinSensor(True)
-            await asyncio.sleep(1)
-            self.setTowerProfile("resinSensor")
-            self.mcc.do("!rsme", self._towerResinStartPos - self._towerResinEndPos)  # relative movement!
-            while self.isTowerMoving():
-                await asyncio.sleep(0.1)
-
-            position = self.getTowerPositionMicroSteps()
-        finally:
-            self.resinSensor(False)
-        if position == self._towerResinEndPos:
-            return 0
-
         if self.config.vatRevision == 1:
             self.logger.debug("Using PLASTIC vat values")
             resin_constant = (14.65, 14.85)
         else:
             self.logger.debug("Using METALIC vat values")
             resin_constant = (13.7, 14.0)
-
-        pos_mm = self.config.calcMM(position)
+        pos_mm = await self.get_resin_sensor_position_mm()
         if pos_mm < 10.0:
             volume = pos_mm * resin_constant[0]
         else:
             volume = pos_mm * resin_constant[1]
-
         return volume
 
     def get_resin_volume(self) -> int:
@@ -964,6 +945,24 @@ class Hardware:
     @staticmethod
     def calcPercVolume(volume_ml):
         return 10 * ceil(10 * volume_ml / defines.resinMaxVolume)
+
+    @safe_call(0, MotionControllerException)
+    async def get_resin_sensor_position_mm(self) -> float:
+        self.setTowerProfile("homingFast")
+        await self.towerMoveAbsoluteWaitAsync(self._towerResinStartPos)  # move quickly to safe distance
+        try:
+            self.resinSensor(True)
+            await asyncio.sleep(1)
+            self.setTowerProfile("resinSensor")
+            self.mcc.do("!rsme", self._towerResinStartPos - self._towerResinEndPos)  # relative movement!
+            while self.isTowerMoving():
+                await asyncio.sleep(0.1)
+            if not self.getResinSensorState():
+                self.logger.error("Resin sensor was not triggered")
+                return 0.0
+        finally:
+            self.resinSensor(False)
+        return self.config.calcMM(self.getTowerPositionMicroSteps())
 
     def updateMotorSensitivity(self, tiltSensitivity=0, towerSensitivity=0):
         self.tilt.sensitivity(tiltSensitivity)

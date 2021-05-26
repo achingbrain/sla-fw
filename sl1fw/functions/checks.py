@@ -13,7 +13,6 @@ from sl1fw.errors.errors import (
     UVLEDsVoltagesDifferTooMuch,
     UVLEDHeatsinkFailed,
     FanRPMOutOfTestRange,
-    ResinFailed,
     TowerAxisCheckFailed,
     TowerBelowSurface,
 )
@@ -116,27 +115,6 @@ def check_uv_fans(hw: Hardware, logger: Logger, progress_callback: Callable[[flo
         raise UVLEDHeatsinkFailed(uv_temp)
 
     return avg_rpms, uv_temp
-
-
-@deprecated("Use wizard, code changed in wizard checks")
-def resin_sensor(hw: Hardware, logger: Logger):
-    hw.towerSyncWait()
-    hw.setTowerPosition(hw.config.calcMicroSteps(defines.defaultTowerHeight))
-    volume_ml = hw.get_resin_volume()
-    logger.debug("resin volume: %s", volume_ml)
-    if (
-        not defines.resinWizardMinVolume <= volume_ml <= defines.resinWizardMaxVolume
-    ) and not test_runtime.testing:  # to work properly even with loosen rocker bearing
-        raise ResinFailed(volume_ml)
-
-    hw.towerSync()
-    hw.tilt.sync_wait()
-    while hw.isTowerMoving():
-        sleep(0.25)
-    hw.motorsRelease()
-    hw.stopFans()
-
-    return volume_ml
 
 
 @deprecated("Use wizard, code changed in wizard checks")

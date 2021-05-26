@@ -62,6 +62,7 @@ class TestExceptions(unittest.TestCase):
         "uv_temp_deg_c: float": 42.42,
         "position_nm: int": 123450,
         "position: int": 12345,
+        "position_mm: float": 48.128,
         "tilt_position: Union[int, NoneType]": 5000,
         "tilt_position: Optional[int]": 5000,
         "tower_position_nm: int": 100000000,

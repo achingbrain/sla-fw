@@ -318,21 +318,27 @@ class FanFailed(ExposureError):
     failed_fans_text: str
 
 
-@with_code(Sl1Codes.RESIN_SENSOR_FAILED)
+@with_code(Sl1Codes.RESIN_MEASURE_FAILED)
 @dataclass
-class ResinFailed(ExposureError):
+class ResinMeasureFailed(ExposureError):
     volume_ml: float
 
 
 @with_code(Sl1Codes.RESIN_TOO_LOW)
 @dataclass
-class ResinTooLow(ResinFailed):
+class ResinTooLow(ResinMeasureFailed):
     min_resin_ml: float
 
 
 @with_code(Sl1Codes.RESIN_TOO_HIGH)
-class ResinTooHigh(ResinFailed):
+class ResinTooHigh(ResinMeasureFailed):
     pass
+
+
+@with_code(Sl1Codes.RESIN_SENSOR_FAILED)
+@dataclass
+class ResinSensorFailed(ExposureError):
+    position_mm: float
 
 
 @with_code(Sl1Codes.WARNING_ESCALATION)

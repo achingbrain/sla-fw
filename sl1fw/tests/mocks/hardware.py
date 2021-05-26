@@ -50,7 +50,9 @@ class Hardware:
         self._led_stat_s = 6912
         self._display_stat_s = 3600
         self.getMcTemperatures = Mock(return_value=[46.7, 26.1, 44.3, 0])
-        self.get_resin_volume = Mock(return_value=defines.resinWizardMaxVolume)
+        self.get_resin_volume = Mock(return_value=defines.resinMaxVolume)
+        self.get_resin_volume_async = AsyncMock(return_value=defines.resinMaxVolume)
+        self.get_resin_sensor_position_mm = AsyncMock(return_value=12.8)
         self.towerPositonFailed = Mock(return_value=False)
         self.getFansError = Mock(return_value={0: False, 1: False, 2: False})
         self.getCpuTemperature = Mock(return_value=53.5)
@@ -72,7 +74,6 @@ class Hardware:
         self.tilt.sync_wait_async = AsyncMock()
         self.tilt.home_calibrate_wait_async = AsyncMock()
         self.tilt.layer_down_wait_async = AsyncMock()
-        self.get_resin_volume_async = AsyncMock(return_value=defines.resinWizardMaxVolume)
 
         self.cover_state_changed = Signal()
 

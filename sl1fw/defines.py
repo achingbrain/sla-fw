@@ -103,10 +103,9 @@ wifiSetupFile = "/etc/hostapd.secrets.json"
 octoprintURI = ":8000"
 octoprintAuthFile = configDir / "slicer-upload-api.key"
 
+# all resin* in ml
 resinMinVolume = 68.5
 resinMaxVolume = 200.0
-resinWizardMinVolume = 50.0
-resinWizardMaxVolume = 130.0
 resinLowWarn = 60
 resinFeedWait = 50
 resinFilled = 200

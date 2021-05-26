@@ -19,8 +19,8 @@ from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw import defines
 from sl1fw.api.decorators import wrap_exception
-from sl1fw.errors.errors import ResinFailed, TowerAxisCheckFailed, ConfigException, get_exception_code
-from sl1fw.functions.checks import resin_sensor, tower_axis
+from sl1fw.errors.errors import TowerAxisCheckFailed, ConfigException, get_exception_code
+from sl1fw.functions.checks import tower_axis
 from sl1fw.functions.system import shut_down
 from sl1fw.functions.files import save_wizard_history
 from sl1fw.configs.toml import TomlConfig
@@ -376,14 +376,15 @@ class PageWizardResinSensor(PageWizardBase):
             line2 = _("DO NOT touch the printer"))
         pageWait.show()
 
-        try:
-            self.display.wizardData.wizardResinVolume = resin_sensor(self.display.hw, self.logger)
-        except ResinFailed as exception:
-            self.display.pages['error'].setParams(
-                code=Sl1Codes.RESIN_SENSOR_FAILED.raw_code,
-                params=wrap_exception(exception)
-            )
-            return "error"
+# REMOVED
+#        try:
+#            self.display.wizardData.wizardResinVolume = resin_sensor(self.display.hw, self.logger)
+#        except ResinMeasureFailed as exception:
+#            self.display.pages['error'].setParams(
+#                code=Sl1Codes.RESIN_SENSOR_FAILED.raw_code,
+#                params=wrap_exception(exception)
+#            )
+#            return "error"
 
         self.display.hw.config.showWizard = False
         try:
