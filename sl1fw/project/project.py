@@ -411,7 +411,8 @@ class Project:
             else:
                 try:
                     self.logger.debug("Copying project to internal storage '%s' -> '%s'", origin_path, new_source)
-                    shutil.copyfile(origin_path, new_source)
+                    shutil.copyfile(origin_path, new_source + "~")
+                    shutil.move(new_source + "~", new_source)
                     self.path = new_source
                     self.path_changed.emit(self.path)
                 except Exception as e:
