@@ -260,7 +260,8 @@ class Wizard(Thread, UserActionBroker):
                 if not self.data:
                     self._logger.info("Not saving empty wizard data")
                     return
-                serializer.dump(self.data, temp)
+                # TODO variable options for serializer different from json
+                serializer.dump(self.data, temp, indent=2, sort_keys=True)
                 temp.flush()
             except Exception as exception:
                 raise FailedToSerializeWizardData() from exception

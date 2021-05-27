@@ -47,10 +47,12 @@ class TemperatureTest(Check):
         # Checking MC temperatures
         self._logger.info("Checking MC temperatures")
         temperatures = self._hw.getMcTemperatures()
-        for i in (self._hw.led_temp_idx, self._hw.ambient_temp_idx):
+        led_idx = self._hw.led_temp_idx
+        ambient_idx = self._hw.ambient_temp_idx
+        for i in (led_idx, ambient_idx):
             if temperatures[i] < 0:
                 raise TempSensorFailed(self._hw.getSensorName(i))
-            if i == self._hw.led_temp_idx:
+            if i == led_idx:
                 max_temp = defines.maxUVTemp
             else:
                 max_temp = defines.maxAmbientTemp
@@ -60,7 +62,7 @@ class TemperatureTest(Check):
                     temperatures[i]
                 )
 
-        self._check_data = CheckData(temperatures[0], temperatures[1], a64_temperature)
+        self._check_data = CheckData(temperatures[led_idx], temperatures[ambient_idx], a64_temperature)
 
     def _overheat(self):
         for _ in range(10):
