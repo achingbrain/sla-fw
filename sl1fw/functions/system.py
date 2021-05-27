@@ -13,6 +13,7 @@ import distro
 import paho.mqtt.publish as mqtt
 
 from sl1fw import defines, test_runtime
+from sl1fw.configs.hw import HwConfig
 from sl1fw.errors.errors import (
     MissingWizardData,
     MissingCalibrationData,
@@ -173,6 +174,7 @@ def set_configured_printer_model(model: PrinterModel):
     model_file.parent.mkdir(exist_ok=True)
     model_file.touch()
 
+
 def get_configured_printer_model() -> PrinterModel:
     if defines.sl1s_model_file.exists():
         return PrinterModel.SL1S
@@ -181,3 +183,14 @@ def get_configured_printer_model() -> PrinterModel:
         return PrinterModel.SL1
 
     return PrinterModel.NONE
+
+
+def set_factory_uvpwm(pwm: int) -> None:
+    """
+    This is supposed to read current factory config, set the new uvPWM and save factory config
+    """
+    config = HwConfig(file_path=defines.hwConfigPath, factory_file_path=defines.hwConfigPathFactory, is_master=True)
+    config.read_file()
+    config.uvPwm = pwm
+    with FactoryMountedRW():
+        config.write_factory()

@@ -76,6 +76,13 @@ class PrinterModel(Enum):
                 self.SL1S: CalibrationParameters((150, 250), 1, 0.75),
             }[self]
 
+    def default_uvpwm(self) -> int:
+        return {
+            self.NONE: 0,
+            self.SL1: 0,
+            self.SL1S: 208,
+        }[self]
+
 
 class ExposurePanel:
     @staticmethod

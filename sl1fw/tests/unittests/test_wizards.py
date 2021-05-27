@@ -198,7 +198,7 @@ class TestDisplayTest(TestWizardsBase):
 class TestUpgradeWizard(TestWizardsBase):
     def setUp(self) -> None:
         super().setUp()
-        self.hw = Hardware()
+        self.hw = Hardware(HwConfig(defines.hwConfigPath, defines.hwConfigPathFactory, is_master=True))
 
     def tearDown(self) -> None:
         del self.hw
@@ -213,11 +213,15 @@ class TestUpgradeWizard(TestWizardsBase):
             if wizard.state == WizardState.SHOW_RESULTS:
                 wizard.show_results_done()
 
-
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard)
         self.assertEqual(1, self.hw.config.vatRevision)
         self.assertEqual(PrinterModel.SL1S, get_configured_printer_model())
+        config = HwConfig(defines.hwConfigPath, defines.hwConfigPathFactory)
+        config.read_file()
+        self.assertEqual(1, config.vatRevision)
+        self.assertEqual(208, config.uvPwm)
+        self.assertEqual(208, config.get_values()["uvPwm"].get_factory_value(config))
 
     def test_sl1s_upgrade_reject(self):
         wizard = SL1SUpgradeWizard(self.hw, Mock(), RuntimeConfig())

@@ -119,6 +119,7 @@ class Sl1fwTestCase(DBusTestCase):
         defines.wizardDataPathFactory = self.TEMP_DIR / defines.wizardDataFilename
         defines.factoryConfigPath = self.TEMP_DIR / "factory_config.toml"
         defines.hwConfigPath = self.TEMP_DIR / "hwconfig.toml"
+        defines.hwConfigPathFactory = self.TEMP_DIR / "hwconfig-factory.toml"
         defines.printer_model = self.TEMP_DIR / "model"
         defines.sl1_model_file = defines.printer_model / "sl1"
         defines.sl1s_model_file = defines.printer_model / "sl1s"

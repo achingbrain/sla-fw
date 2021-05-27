@@ -43,7 +43,8 @@ from sl1fw.errors.errors import (
 )
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
-from sl1fw.functions.system import get_octoprint_auth, get_configured_printer_model, set_configured_printer_model
+from sl1fw.functions.system import get_octoprint_auth, get_configured_printer_model, set_configured_printer_model, \
+    set_factory_uvpwm
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libAsync import AdminCheck
@@ -208,6 +209,9 @@ class Printer:
             # has to detect its initial HW configuration on first start.
             if defines.detect_sla_model_file.exists():
                 set_configured_printer_model(self.hw.printer_model)
+                if self.hw.printer_model == PrinterModel.SL1S:
+                    self.hw.config.vatRevision = 1  # Configure SL1S vat revision
+                    set_factory_uvpwm(self.hw.printer_model.default_uvpwm())
                 defines.detect_sla_model_file.unlink()
             # Also omit running upgrade/downgrade wizard if printer is SL1 and model was not set before.
             if self.hw.printer_model == PrinterModel.SL1 and not defines.printer_model.exists():
