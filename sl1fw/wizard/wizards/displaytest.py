@@ -20,6 +20,7 @@ from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
 from sl1fw.errors.errors import UnknownPrinterModel
 
+
 class DisplayTestCheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         if package.hw.printer_model == PrinterModel.SL1:
@@ -40,9 +41,7 @@ class DisplayTestCheckGroup(CheckGroup):
 class DisplayTestWizard(Wizard):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(
-            hw=hw,
-            exposure_image=weakref.proxy(exposure_image),
-            runtime_config=runtime_config
+            hw=hw, exposure_image=weakref.proxy(exposure_image), runtime_config=runtime_config
         )
         super().__init__(
             WizardId.DISPLAY,
@@ -50,9 +49,9 @@ class DisplayTestWizard(Wizard):
                 DisplayTestCheckGroup(self._package),
                 ShowResultsGroup(),
             ],
-            self._package
+            self._package,
         )
 
-    @property
-    def name(self) -> str:
+    @classmethod
+    def get_name(cls) -> str:
         return "display_test"

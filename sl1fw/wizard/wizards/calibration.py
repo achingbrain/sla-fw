@@ -88,16 +88,8 @@ class CalibrationFinishCheckGroup(CheckGroup):
 
 
 class CalibrationWizard(Wizard):
-    def __init__(
-        self,
-        hw: Hardware,
-        runtime_config: RuntimeConfig
-    ):
-        self._package = WizardDataPackage(
-            hw=hw,
-            config_writer=hw.config.get_writer(),
-            runtime_config=runtime_config
-        )
+    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+        self._package = WizardDataPackage(hw=hw, config_writer=hw.config.get_writer(), runtime_config=runtime_config)
         super().__init__(
             WizardId.CALIBRATION,
             [
@@ -105,15 +97,15 @@ class CalibrationWizard(Wizard):
                 TiltAlignCheckGroup(self._package),
                 PlatformAlignCheckGroup(self._package),
                 CalibrationFinishCheckGroup(self._package),
-                ShowResultsGroup()
+                ShowResultsGroup(),
             ],
-            self._package
+            self._package,
         )
         self._package.config_writer.calibrated = False
         self._package.config_writer.commit()
 
-    @property
-    def name(self) -> str:
+    @classmethod
+    def get_name(cls) -> str:
         return "calibration"
 
     def wizard_finished(self):

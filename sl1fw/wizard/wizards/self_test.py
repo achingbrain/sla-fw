@@ -106,8 +106,8 @@ class SelfTestWizard(Wizard):
         self._package.config_writer.showWizard = True
         self._package.config_writer.commit()
 
-    @property
-    def name(self) -> str:
+    @classmethod
+    def get_name(cls) -> str:
         return "self_test"
 
     @classmethod

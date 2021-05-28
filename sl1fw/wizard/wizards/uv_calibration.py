@@ -131,8 +131,8 @@ class UVCalibrationWizard(Wizard):
         names.extend(super().get_alt_names())
         return names
 
-    @property
-    def name(self) -> str:
+    @classmethod
+    def get_name(cls) -> str:
         return "uv_calibration"
 
     def run(self):

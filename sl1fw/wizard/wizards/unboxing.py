@@ -15,6 +15,7 @@ from sl1fw.wizard.setup import Configuration
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
+
 class RemoveSafetyStickerCheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         super().__init__(Configuration(None, None), [MoveToFoam(package.hw)])
@@ -49,12 +50,7 @@ class RemoveDisplayFoilCheckGroup(CheckGroup):
 
 class UnboxingWizard(Wizard):
     # pylint: disable = too-many-arguments
-    def __init__(
-        self,
-        identifier,
-        groups: Iterable[CheckGroup],
-        package: WizardDataPackage
-    ):
+    def __init__(self, identifier, groups: Iterable[CheckGroup], package: WizardDataPackage):
         self._package = package
         super().__init__(identifier, groups, self._package, cancelable=False)
 
@@ -64,11 +60,7 @@ class UnboxingWizard(Wizard):
 
 class CompleteUnboxingWizard(UnboxingWizard):
     def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
-        self._package = WizardDataPackage(
-            hw=hw,
-            config_writer=hw.config.get_writer(),
-            runtime_config=runtime_config
-        )
+        self._package = WizardDataPackage(hw=hw, config_writer=hw.config.get_writer(), runtime_config=runtime_config)
         super().__init__(
             WizardId.COMPLETE_UNBOXING,
             [
@@ -76,32 +68,21 @@ class CompleteUnboxingWizard(UnboxingWizard):
                 RemoveSideFoamCheckGroup(self._package),
                 RemoveTankFoamCheckGroup(),
                 RemoveDisplayFoilCheckGroup(),
-                ShowResultsGroup()
+                ShowResultsGroup(),
             ],
-            self._package
+            self._package,
         )
 
-    @property
-    def name(self) -> str:
+    @classmethod
+    def get_name(cls) -> str:
         return "complete_unboxing"
 
 
 class KitUnboxingWizard(UnboxingWizard):
     def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
-        self._package = WizardDataPackage(
-            hw=hw,
-            config_writer=hw.config.get_writer(),
-            runtime_config=runtime_config
-        )
-        super().__init__(
-            WizardId.KIT_UNBOXING,
-            [
-                RemoveDisplayFoilCheckGroup(),
-                ShowResultsGroup()
-            ],
-            self._package
-        )
+        self._package = WizardDataPackage(hw=hw, config_writer=hw.config.get_writer(), runtime_config=runtime_config)
+        super().__init__(WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup(), ShowResultsGroup()], self._package)
 
-    @property
-    def name(self) -> str:
+    @classmethod
+    def get_name(cls) -> str:
         return "kit_unboxing"
