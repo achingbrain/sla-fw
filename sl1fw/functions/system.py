@@ -4,29 +4,21 @@
 # Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import json
 import logging
 import os
 import subprocess
 
-import distro
-import paho.mqtt.publish as mqtt
-
 from sl1fw import defines, test_runtime
 from sl1fw.configs.hw import HwConfig
+from sl1fw.configs.toml import TomlConfig
 from sl1fw.errors.errors import (
-    MissingWizardData,
-    MissingCalibrationData,
-    MissingUVCalibrationData,
-    ErrorSendingDataToMQTT,
     FailedUpdateChannelSet,
     FailedUpdateChannelGet,
     ConfigException,
 )
-from sl1fw.configs.toml import TomlConfig
 from sl1fw.hardware.printer_model import PrinterModel
-from sl1fw.libHardware import Hardware
 from sl1fw.image.exposure_image import ExposureImage
+from sl1fw.libHardware import Hardware
 
 
 def shut_down(hw: Hardware, reboot=False):
@@ -53,51 +45,6 @@ def save_factory_mode(enable: bool):
     :return: True if successful, false otherwise
     """
     return TomlConfig(defines.factoryConfigPath).save(data={"factoryMode": enable})
-
-
-def send_printer_data(hw: Hardware):
-    logger = logging.getLogger(__name__)
-
-    # Get wizard data
-    try:
-        # TODO: Reference SelfTestWizard.data_filename once this does not cause circular import
-        with (defines.factoryMountPoint / "self_test_data.json").open("rt") as file:
-            wizard_dict = json.load(file)
-        if not wizard_dict and not hw.isKit:
-            raise MissingWizardData()
-    except Exception as exception:
-        raise MissingWizardData from exception
-
-    if not hw.config.calibrated and not hw.isKit:
-        raise MissingCalibrationData()
-
-    # Get UV calibration data
-    calibration_dict = TomlConfig(defines.uvCalibDataPathFactory).load()
-    if not calibration_dict:
-        raise MissingUVCalibrationData()
-
-    # Compose data to single dict, ensure basic data are present
-    mqtt_data = {
-        "osVersion": distro.version(),
-        "a64SerialNo": hw.cpuSerialNo,
-        "mcSerialNo": hw.mcSerialNo,
-        "mcFwVersion": hw.mcFwVersion,
-        "mcBoardRev": hw.mcBoardRevision,
-    }
-    mqtt_data.update(wizard_dict)
-    mqtt_data.update(calibration_dict)
-
-    # Send data to MQTT
-    topic = "prusa/sl1/factoryConfig"
-    logger.info("Sending mqtt data: %s", mqtt_data)
-    try:
-        if not test_runtime.testing:
-            mqtt.single(topic, json.dumps(mqtt_data), qos=2, retain=True, hostname=defines.mqtt_prusa_host)
-        else:
-            logger.debug("Testing mode, not sending MQTT data")
-    except Exception as e:
-        logger.error("mqtt message not delivered. %s", e)
-        raise ErrorSendingDataToMQTT() from e
 
 
 def get_update_channel() -> str:

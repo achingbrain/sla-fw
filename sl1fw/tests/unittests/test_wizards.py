@@ -142,7 +142,7 @@ class TestWizardInfrastructure(Sl1fwTestCase):
 class TestWizardsBase(Sl1fwTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.exposure_image = Mock() # wizards use weakly-reference to exposure_image
+        self.exposure_image = Mock()  # wizards use weakly-reference to exposure_image
 
     def _run_wizard(self, wizard: Wizard, limit_s: int = 5, expected_state=WizardState.DONE):
         wizard.start()
@@ -250,13 +250,18 @@ class TestWizards(TestWizardsBase):
         hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True)
         self.hw = Hardware(hw_config)
         self.runtime_config = RuntimeConfig()
-        self.exposure_image = Mock() # wizards use weakly-reference to exposure_image
+        self.exposure_image = Mock()  # wizards use weakly-reference to exposure_image
 
         # Mock factory data
         defines.uvCalibDataPath = self.TEMP_DIR / defines.uvCalibDataFilename
         self.hw.config.uvPwm = 210
-        copyfile(self.SAMPLES_DIR / "uvcalib_data-60.toml", defines.uvCalibDataPathFactory)
-        copyfile(self.SAMPLES_DIR / "self_test_data.json", defines.factoryMountPoint / "self_test_data.json")
+        copyfile(
+            self.SAMPLES_DIR / "uv_calibration_data.json",
+            defines.factoryMountPoint / UVCalibrationWizard.get_data_filename(),
+        )
+        copyfile(
+            self.SAMPLES_DIR / "self_test_data.json", defines.factoryMountPoint / SelfTestWizard.get_data_filename()
+        )
 
         # Setup files that are touched by packing wizard
         defines.apikeyFile = self.TEMP_DIR / "apikey"
@@ -339,7 +344,8 @@ class TestWizards(TestWizardsBase):
         self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow2"])
         self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow3"])
         self.assertListEqual(
-            [self.hw.config.fan1Rpm, self.hw.config.fan2Rpm, self.hw.config.fan3Rpm], data["wizardFanRpm"],
+            [self.hw.config.fan1Rpm, self.hw.config.fan2Rpm, self.hw.config.fan3Rpm],
+            data["wizardFanRpm"],
         )
         self.assertEqual(46.7, data["wizardTempUvInit"])
         self.assertEqual(46.7, data["wizardTempUvWarm"])
@@ -432,7 +438,9 @@ class TestWizards(TestWizardsBase):
         self.assertFalse(defines.slicerProfilesFile.exists(), "Slicer profiles removed")
 
         self.assertEqual(
-            factory_mode, bool(list(defines.internalProjectPath.glob("*"))), "Internal projects removed",
+            factory_mode,
+            bool(list(defines.internalProjectPath.glob("*"))),
+            "Internal projects removed",
         )
 
         hw_config = HwConfig(self.hw_config_file)
@@ -442,7 +450,8 @@ class TestWizards(TestWizardsBase):
         self.assertFalse(defines.serial_service_enabled.exists(), "serial is disabled check")
         self.assertFalse(defines.ssh_service_enabled.exists(), "ssh is disabled check")
         self.assertEqual(
-            pydbus.SystemBus().get("org.freedesktop.NetworkManager").ListConnections(), ["ethernet"],
+            pydbus.SystemBus().get("org.freedesktop.NetworkManager").ListConnections(),
+            ["ethernet"],
         )  # all wifi connections deleted
 
         self.assertEqual(False, defines.remoteConfig.exists())

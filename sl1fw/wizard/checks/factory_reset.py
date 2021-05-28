@@ -2,30 +2,37 @@
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import json
 import os
 import subprocess
 from abc import abstractmethod
 from asyncio import sleep
 from pathlib import Path
 from shutil import rmtree, copyfile
+
+import distro
 from gi.repository import GLib
 
 import pydbus
+import paho.mqtt.publish as mqtt
 
-from sl1fw import defines
+from sl1fw import defines, test_runtime
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.errors.errors import MissingUVPWM, PrinterDataSendError
+from sl1fw.errors.errors import (
+    MissingUVPWM,
+    MissingWizardData,
+    MissingCalibrationData,
+    MissingUVCalibrationData,
+    ErrorSendingDataToMQTT,
+)
 from sl1fw.errors.warnings import FactoryResetCheckFailure
 from sl1fw.functions.files import ch_mode_owner
-from sl1fw.functions.system import (
-    FactoryMountedRW,
-    save_factory_mode,
-    send_printer_data,
-)
+from sl1fw.functions.system import FactoryMountedRW, save_factory_mode
 from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck
+from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 from sl1fw.hardware.tilt import TiltProfile
 
@@ -95,7 +102,6 @@ class ResetRemoteConfig(ResetCheck):
             os.remove(defines.remoteConfig)
 
 
-
 class ResetHttpDigest(ResetCheck):
     def __init__(self, *args, **kwargs):
         super().__init__(WizardCheckType.RESET_HTTP_DIGEST, *args, **kwargs)
@@ -134,7 +140,9 @@ class ResetTimezone(ResetCheck):
     def reset_task_run(self, actions: UserActionBroker):
         Path(defines.local_time_path).unlink(missing_ok=True)
         copyfile(
-            "/usr/share/factory/etc/localtime", "/etc/localtime", follow_symlinks=False,
+            "/usr/share/factory/etc/localtime",
+            "/etc/localtime",
+            follow_symlinks=False,
         )
 
 
@@ -235,11 +243,49 @@ class SendPrinterData(SyncCheck):
             self._logger.error("Cannot do factory reset UV PWM not set (== 0)")
             raise MissingUVPWM()
 
+        # Get wizard data
         try:
-            send_printer_data(self._hw)
-        except PrinterDataSendError:
-            self._logger.exception("Failed to send printer data to mqtt")
-            raise
+            with (defines.factoryMountPoint / SelfTestWizard.get_data_filename()).open("rt") as file:
+                wizard_dict = json.load(file)
+            if not wizard_dict and not self._hw.isKit:
+                raise ValueError("Wizard data dictionary is empty")
+        except Exception as exception:
+            raise MissingWizardData from exception
+
+        if not self._hw.config.calibrated and not self._hw.isKit:
+            raise MissingCalibrationData()
+
+        # Get UV calibration data
+        try:
+            with (defines.factoryMountPoint / UVCalibrationWizard.get_data_filename()).open("rt") as file:
+                calibration_dict = json.load(file)
+            if not calibration_dict:
+                raise ValueError("UV Calibration dictionary is empty")
+        except Exception as exception:
+            raise MissingUVCalibrationData() from exception
+
+        # Compose data to single dict, ensure basic data are present
+        mqtt_data = {
+            "osVersion": distro.version(),
+            "a64SerialNo": self._hw.cpuSerialNo,
+            "mcSerialNo": self._hw.mcSerialNo,
+            "mcFwVersion": self._hw.mcFwVersion,
+            "mcBoardRev": self._hw.mcBoardRevision,
+        }
+        mqtt_data.update(wizard_dict)
+        mqtt_data.update(calibration_dict)
+
+        # Send data to MQTT
+        topic = "prusa/sl1/factoryConfig"
+        self._logger.info("Sending mqtt data: %s", mqtt_data)
+        try:
+            if not test_runtime.testing:
+                mqtt.single(topic, json.dumps(mqtt_data), qos=2, retain=True, hostname=defines.mqtt_prusa_host)
+            else:
+                self._logger.debug("Testing mode, not sending MQTT data")
+        except Exception as exception:
+            self._logger.error("mqtt message not delivered. %s", exception)
+            raise ErrorSendingDataToMQTT() from exception
 
 
 class InitiatePackingMoves(Check):

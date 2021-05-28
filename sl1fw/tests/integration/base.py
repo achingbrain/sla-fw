@@ -77,9 +77,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.printer = Printer(debug_display=self.display)
         test_runtime.exposure_image = self.printer.exposure_image
 
-        # overide writeToFactory function
-        self.printer.display.pages["factoryreset"].writeToFactory = self.call
-
         self._printer0 = Printer0(self.printer)
         # pylint: disable = no-member
         self.printer0_dbus = SystemBus().publish(

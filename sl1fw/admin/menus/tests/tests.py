@@ -7,15 +7,37 @@ import logging
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction
 from sl1fw.admin.menus.admin_api_test import TestMenu
-from sl1fw.admin.menus.dialogs import Info
 from sl1fw.admin.menus.tests.test_error_types import TestErrorTypesMenu
 from sl1fw.admin.menus.tests.test_errors import TestErrorsMenu
-
 from sl1fw.admin.menus.tests.test_hardware import TestHardwareMenu
 from sl1fw.admin.menus.tests.test_wizards import TestWizardsMenu
 from sl1fw.admin.safe_menu import SafeAdminMenu
+from sl1fw.configs.runtime import RuntimeConfig
+from sl1fw.libHardware import Hardware
 from sl1fw.libPrinter import Printer
-from sl1fw.functions.system import send_printer_data
+from sl1fw.states.wizard import WizardId
+from sl1fw.wizard.actions import UserActionBroker
+from sl1fw.wizard.checks.factory_reset import SendPrinterData
+from sl1fw.wizard.group import CheckGroup
+from sl1fw.wizard.setup import Configuration
+from sl1fw.wizard.wizard import Wizard, WizardDataPackage
+
+
+class SendPrinterDataGroup(CheckGroup):
+    async def setup(self, actions: UserActionBroker):
+        pass
+
+    def __init__(self, hw: Hardware):
+        super().__init__(Configuration(None, None), (SendPrinterData(hw),))
+
+
+class SendPrinterDataWizard(Wizard):
+    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+        super().__init__(
+            WizardId.PACKING,
+            (SendPrinterDataGroup(hw),),
+            WizardDataPackage(hw, hw.config.get_writer(), runtime_config),
+        )
 
 
 class TestsMenu(SafeAdminMenu):
@@ -35,5 +57,4 @@ class TestsMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def send_printer_data(self):
-        send_printer_data(self._printer.hw)
-        self._control.enter(Info(self._control, "Data send"))
+        self._printer.action_manager.start_wizard(SendPrinterDataWizard(self._printer.hw, self._printer.runtime_config))
