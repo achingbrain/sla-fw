@@ -53,9 +53,12 @@ class NetUpdate(AdminMenu):
 
         with open(defines.firmwareListTemp) as list_file:
             firmwares = json.load(list_file)
-            for firmware in firmwares:
-                item = AdminAction(firmware["version"], functools.partial(self._install_fw, firmware))
-                self.add_item(item)
+            self.add_items(
+                [
+                    AdminAction(firmware["version"], functools.partial(self._install_fw, firmware))
+                    for firmware in firmwares
+                ]
+            )
         self.del_item(self.items["status"])
 
     def _download_callback(self, progress: float):

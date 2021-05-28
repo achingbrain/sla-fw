@@ -25,27 +25,33 @@ class FansAndUVLedMenu(AdminMenu):
         self._init_uv_led = uv_led_state[0] and uv_led_state[1] == 0
 
         self.add_back()
-        self.add_item(AdminBoolValue.from_value("UV LED fan", self, "uv_led_fan"))
+
         uv_led_fan_rpm_item = AdminIntValue.from_value("UV LED fan RPM", self._temp, "fan1Rpm", 100)
         uv_led_fan_rpm_item.changed.connect(self._uv_led_fan_changed)
-        self.add_item(uv_led_fan_rpm_item)
-        self.add_item(AdminBoolValue.from_value("Blower fan", self, "blower_fan"))
         blower_fan_rpm_item = AdminIntValue.from_value("Blower fan RPM", self._temp, "fan2Rpm", 100)
         blower_fan_rpm_item.changed.connect(self._blower_fan_changed)
-        self.add_item(blower_fan_rpm_item)
         rear_fan_rpm_item = AdminBoolValue.from_value("Rear fan", self, "rear_fan")
         rear_fan_rpm_item.changed.connect(self._rear_fan_changed)
-        self.add_item(rear_fan_rpm_item)
-        self.add_item(AdminIntValue.from_value("Rear fan RPM", self._temp, "fan3Rpm", 100))
-        self.add_item(AdminBoolValue.from_value("UV LED", self, "uv_led"))
-        self.add_item(AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1))
-        self.add_item(AdminIntValue.from_value("UV calib. warm-up [s]", self._temp, "uvWarmUpTime", 1))
-        self.add_item(AdminIntValue.from_value("UV calib. intensity", self._temp, "uvCalibIntensity", 1))
-        self.add_item(AdminIntValue.from_value("UV cal. min. int. edge", self._temp, "uvCalibMinIntEdge", 1))
-        self.add_item(AdminAction("Save", self.save))
-        self.add_item(AdminAction("Reset to defaults", self.reset_to_defaults))
-        self.add_item(AdminAction("Save & save as defaults", self.save_as_defaults))
-        self.add_item(AdminAction("Save to boostV2 board", self.save_to_booster))
+
+        self.add_items(
+            (
+                AdminBoolValue.from_value("UV LED fan", self, "uv_led_fan"),
+                uv_led_fan_rpm_item,
+                AdminBoolValue.from_value("Blower fan", self, "blower_fan"),
+                blower_fan_rpm_item,
+                rear_fan_rpm_item,
+                AdminIntValue.from_value("Rear fan RPM", self._temp, "fan3Rpm", 100),
+                AdminBoolValue.from_value("UV LED", self, "uv_led"),
+                AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1),
+                AdminIntValue.from_value("UV calib. warm-up [s]", self._temp, "uvWarmUpTime", 1),
+                AdminIntValue.from_value("UV calib. intensity", self._temp, "uvCalibIntensity", 1),
+                AdminIntValue.from_value("UV cal. min. int. edge", self._temp, "uvCalibMinIntEdge", 1),
+                AdminAction("Save", self.save),
+                AdminAction("Reset to defaults", self.reset_to_defaults),
+                AdminAction("Save & save as defaults", self.save_as_defaults),
+                AdminAction("Save to boostV2 board", self.save_to_booster),
+            )
+        )
 
     def on_leave(self):
         self._printer.hw.setFans(self._init_fans)

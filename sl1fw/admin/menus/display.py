@@ -22,19 +22,18 @@ class DisplayRootMenu(AdminMenu):
         self._printer = printer
 
         self.add_back()
-        self.add_item(
-            AdminAction(
-                "Display service", lambda: self._control.enter(DisplayServiceMenu(self._control, self._printer))
-            )
-        )
-        self.add_item(
-            AdminAction(
-                "Display control", lambda: self._control.enter(DisplayControlMenu(self._control, self._printer))
-            )
-        )
-        self.add_item(
-            AdminAction(
-                "Direct UV PWM settings", lambda: self._control.enter(DirectPwmSetMenu(self._control, self._printer))
+        self.add_items(
+            (
+                AdminAction(
+                    "Display service", lambda: self._control.enter(DisplayServiceMenu(self._control, self._printer))
+                ),
+                AdminAction(
+                    "Display control", lambda: self._control.enter(DisplayControlMenu(self._control, self._printer))
+                ),
+                AdminAction(
+                    "Direct UV PWM settings",
+                    lambda: self._control.enter(DirectPwmSetMenu(self._control, self._printer)),
+                ),
             )
         )
 
@@ -45,11 +44,15 @@ class DisplayServiceMenu(SafeAdminMenu):
         self._printer = printer
 
         self.add_back()
-        self.add_item(AdminAction("Erase UV LED counter", self.erase_uv_led_counter))
-        self.add_item(AdminAction("Erase Display counter", self.erase_display_counter))
-        self.add_item(AdminAction("Show factory UV calibration data", self.show_factory_calibration))
-        self.add_item(AdminAction("Show UV calibration data", self.show_calibration))
-        self.add_item(AdminAction("UV (re)calibration", self.recalibrate))
+        self.add_items(
+            (
+                AdminAction("Erase UV LED counter", self.erase_uv_led_counter),
+                AdminAction("Erase Display counter", self.erase_display_counter),
+                AdminAction("Show factory UV calibration data", self.show_factory_calibration),
+                AdminAction("Show UV calibration data", self.show_calibration),
+                AdminAction("UV (re)calibration", self.recalibrate),
+            )
+        )
 
     @SafeAdminMenu.safe_call
     def erase_uv_led_counter(self):
@@ -128,17 +131,20 @@ class DisplayControlMenu(SafeAdminMenu):
         self._printer = printer
 
         self.add_back()
-
-        self.add_item(AdminBoolValue("UV", self.get_uv, self.set_uv))
-        self.add_item(AdminAction("Chess 8", self.chess_8))
-        self.add_item(AdminAction("Chess 16", self.chess_16))
-        self.add_item(AdminAction("Grid 8", self.grid_8))
-        self.add_item(AdminAction("Grid 16", self.grid_16))
-        self.add_item(AdminAction("Maze", self.maze))
-        self.add_item(AdminAction("USB:/test.png", self.usb_test))
-        self.add_item(AdminAction("Prusa logo", self.prusa))
-        self.add_item(AdminAction("Black", self.black))
-        self.add_item(AdminAction("Inverse", self.invert))
+        self.add_items(
+            (
+                AdminBoolValue("UV", self.get_uv, self.set_uv),
+                AdminAction("Chess 8", self.chess_8),
+                AdminAction("Chess 16", self.chess_16),
+                AdminAction("Grid 8", self.grid_8),
+                AdminAction("Grid 16", self.grid_16),
+                AdminAction("Maze", self.maze),
+                AdminAction("USB:/test.png", self.usb_test),
+                AdminAction("Prusa logo", self.prusa),
+                AdminAction("Black", self.black),
+                AdminAction("Inverse", self.invert),
+            )
+        )
 
     def on_leave(self):
         self._printer.hw.saveUvStatistics()

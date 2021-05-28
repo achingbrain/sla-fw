@@ -5,7 +5,7 @@
 import logging
 from collections import OrderedDict
 from functools import partial
-from typing import Dict, Optional
+from typing import Dict, Optional, Iterable
 
 from PySignal import Signal
 
@@ -51,10 +51,16 @@ class AdminMenu(AdminMenuBase):
     def exit(self):
         self._control.exit()
 
-    def add_item(self, item: AdminItem):
+    def add_item(self, item: AdminItem, emit_changed=True):
         if isinstance(item, AdminValue):
             item.changed.connect(self.value_changed.emit)
         self._items[item.name] = item
+        if emit_changed:
+            self.items_changed.emit()
+
+    def add_items(self, items: Iterable[AdminItem]):
+        for item in items:
+            self.add_item(item, emit_changed=False)
         self.items_changed.emit()
 
     def add_label(self, initial_text: Optional[str] = None):

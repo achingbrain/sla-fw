@@ -18,20 +18,23 @@ class TiltAndTowerMenu(SafeAdminMenu):
         self._printer = printer
 
         self.add_back()
-
-        self.add_item(AdminAction("Tilt home", self.tilt_home))
-        self.add_item(AdminAction("Tilt test", self.tilt_test))
-        self.add_item(AdminAction("Tilt profiles", self.tilt_profiles))
-        self.add_item(AdminAction("Tilt home calib.", self.tilt_home_calib))
-        self.add_item(AdminAction("Tower home", self.tower_home))
-        self.add_item(AdminAction("Tower test", self.tower_test))
-        self.add_item(AdminAction("Tower profiles", self.tower_profiles))
-        self.add_item(AdminAction("Tower home calib.", self.tower_home_calib))
-        self.add_item(AdminAction("Turn motors off", self.turn_off_motors))
-        self.add_item(AdminAction("Tune tilt", self.tune_tilt))
-        self.add_item(AdminAction("Tower sensitivity", self.tower_sensitivity))
-        self.add_item(AdminAction("Tower offset", self.tower_offset))
-        self.add_item(AdminAction("Profiles sets", lambda: self.enter(ProfilesSetsMenu(self._control, self._printer))))
+        self.add_items(
+            (
+                AdminAction("Tilt home", self.tilt_home),
+                AdminAction("Tilt test", self.tilt_test),
+                AdminAction("Tilt profiles", self.tilt_profiles),
+                AdminAction("Tilt home calib.", self.tilt_home_calib),
+                AdminAction("Tower home", self.tower_home),
+                AdminAction("Tower test", self.tower_test),
+                AdminAction("Tower profiles", self.tower_profiles),
+                AdminAction("Tower home calib.", self.tower_home_calib),
+                AdminAction("Turn motors off", self.turn_off_motors),
+                AdminAction("Tune tilt", self.tune_tilt),
+                AdminAction("Tower sensitivity", self.tower_sensitivity),
+                AdminAction("Tower offset", self.tower_offset),
+                AdminAction("Profiles sets", lambda: self.enter(ProfilesSetsMenu(self._control, self._printer))),
+            )
+        )
 
     @SafeAdminMenu.safe_call
     def tilt_home(self):
