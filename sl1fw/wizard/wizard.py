@@ -31,18 +31,21 @@ from sl1fw.configs.writer import ConfigWriter
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UVCalibrationResult
 from sl1fw.image.exposure_image import ExposureImage
 
+
 @dataclass
 class WizardDataPackage:
     """
     Data getting passed to the wizard groups and wizard checks for their initialization
     """
+
     hw: Hardware = None
     config_writer: ConfigWriter = None
     runtime_config: RuntimeConfig = None
     exposure_image: ExposureImage = None
     uv_meter: UvLedMeterMulti = None
     uv_result: UVCalibrationResult = None
-    #TODO: use this in other wizards like self-test, unboxing, uv calibration, factory reset, SL1/SL1s config reset
+    # TODO: use this in other wizards like self-test, unboxing, uv calibration, factory reset, SL1/SL1s config reset
+
 
 class Wizard(Thread, UserActionBroker):
     # pylint: disable=too-many-instance-attributes
@@ -78,6 +81,7 @@ class Wizard(Thread, UserActionBroker):
         self._close_cover_state: Optional[PushState] = None
         self._data = {}
         self.data_changed = Signal()
+        self._exception: Optional[Exception] = None
 
         for check in self.checks:
             check.state_changed.connect(self.check_states_changed.emit)
@@ -119,6 +123,9 @@ class Wizard(Thread, UserActionBroker):
 
     @property
     def exception(self) -> Optional[Exception]:
+        if self._exception:
+            return self._exception
+
         for check in self.checks:
             if check.exception:
                 return check.exception
@@ -168,15 +175,17 @@ class Wizard(Thread, UserActionBroker):
         except CancelledError:
             self._logger.debug("Wizard group canceled successfully")
             self.state = WizardState.CANCELED
-        except Exception:
+        except Exception as exception:
+            self._exception = exception
+            self.exception_changed.emit()
             self.state = WizardState.FAILED
             self._store_data()
-            # do not raise exception, this is the top of the thread
-
-        self._hw.motorsRelease()
-        if self.state not in [WizardState.CANCELED, WizardState.FAILED]:
-            self.state = WizardState.DONE
-        self._logger.info("Wizard %s finished with state %s", type(self).__name__, self.state)
+            raise
+        finally:
+            self._hw.motorsRelease()
+            if self.state not in [WizardState.CANCELED, WizardState.FAILED]:
+                self.state = WizardState.DONE
+            self._logger.info("Wizard %s finished with state %s", type(self).__name__, self.state)
 
     def cancel(self):
         if not self.cancelable:
