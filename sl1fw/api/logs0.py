@@ -13,6 +13,7 @@ from sl1fw.api.decorators import dbus_api, auto_dbus, wrap_dict_data, wrap_excep
 from sl1fw.libHardware import Hardware
 from sl1fw.state_actions.logs import LogsExport, UsbExport, ServerUpload
 from sl1fw.states.logs import LogsState, StoreType
+from sl1fw import defines
 
 
 @dbus_api
@@ -41,7 +42,7 @@ class Logs0:
             self._logger.warning("No starting another log export as it is already running")
             return
 
-        self._start_exporter(ServerUpload(self._hw))
+        self._start_exporter(ServerUpload(self._hw, defines.log_url))
 
     def _start_exporter(self, exporter: LogsExport):
         self._exporter = exporter

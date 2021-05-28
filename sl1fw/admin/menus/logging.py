@@ -4,30 +4,42 @@
 
 import logging
 import subprocess
+from typing import Optional
+from time import sleep
 
-from sl1fw.defines import TruncLogsCommand
+from sl1fw import defines
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminBoolValue, AdminAction, AdminLabel
-from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error, Info, Wait
 from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.errors.errors import FailedToSetLogLevel
 from sl1fw.logger_config import get_log_level, set_log_level
+from sl1fw.libPrinter import Printer
+from sl1fw.state_actions.logs import ServerUpload
+from sl1fw.states.logs import LogsState
 
 
-class LoggingMenu(AdminMenu):
-    def __init__(self, control: AdminControl):
+class LoggingMenu(SafeAdminMenu):
+    def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
+        self._printer = printer
+        self._status: Optional[AdminLabel] = None
+        self._upload_state: Optional[LogsState] = None
 
         self.add_back()
-        self.add_item(AdminBoolValue("Debug logging", self.get_debug_enabled, self.set_debug_enabled))
-        self.add_item(AdminAction("Truncate logs", self._truncate_logs))
+        self.add_items(
+            (
+                AdminBoolValue("Debug logging", self._get_debug_enabled, self._set_debug_enabled),
+                AdminAction("Truncate logs", self._truncate_logs),
+                AdminAction("Upload to Cucek", self._upload_dev),
+            )
+        )
 
     @staticmethod
-    def get_debug_enabled() -> bool:
+    def _get_debug_enabled() -> bool:
         return get_log_level() == logging.DEBUG
 
-    def set_debug_enabled(self, value: bool) -> None:
+    def _set_debug_enabled(self, value: bool) -> None:
         try:
             if value:
                 set_log_level(logging.DEBUG)
@@ -51,7 +63,7 @@ class LoggingMenu(AdminMenu):
         # FIXME copy&paste from controller.py, create method/function for calling shell
         try:
             process = subprocess.Popen(
-                [TruncLogsCommand, "60s"],
+                [defines.TruncLogsCommand, "60s"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
@@ -66,6 +78,31 @@ class LoggingMenu(AdminMenu):
                         continue
                     self.logger.info("truncate_logs: '%s'", line)
             status.set("Done")
+            self._control.enter(Info(self._control, "Logs was truncated successfully", pop=2))
         except Exception as e:
             self.logger.exception("truncate_logs exception: %s", str(e))
             self._control.enter(Error(self._control, text="Failed to truncate logs"))
+
+    def _upload_dev(self):
+        self.enter(Wait(self._control, self._do_upload_dev))
+
+    def _do_upload_dev(self, status: AdminLabel):
+        self._status = status
+        exporter = ServerUpload(self._printer.hw, defines.log_url_dev)
+        exporter.state_changed.connect(self._state_callback)
+        exporter.store_progress_changed.connect(self._store_progress_callback)
+        exporter.start()
+        while self._upload_state not in LogsState.finished_states():
+            sleep(0.5)
+        self._printer.hw.beepEcho()
+        if self._upload_state == LogsState.FINISHED:
+            self._control.enter(Info(self._control, "Logs was uploaded successfully", pop=2))
+        else:
+            self._control.enter(Error(self._control, text="Failed to upload logs"))
+
+    def _state_callback(self, state: LogsState):
+        self._upload_state = state
+        self._status.set(state.name)
+
+    def _store_progress_callback(self, value: float):
+        self._status.set("SAVING: %d %%" % int(value * 100))

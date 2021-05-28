@@ -312,6 +312,10 @@ class FileReader(BufferedReader):
 
 
 class ServerUpload(LogsExport):
+    def __init__(self, hw: Hardware, url: str):
+        super().__init__(hw)
+        self._url = url
+
     async def store_log(self, src: Path):
 
         self._logger.info("Uploading temporary log file to the server")
@@ -331,7 +335,7 @@ class ServerUpload(LogsExport):
                 data.add_field("serial", self._hw.cpuSerialNo)
 
                 try:
-                    async with session.post(url=defines.log_url, data=data) as response:
+                    async with session.post(url=self._url, data=data) as response:
                         if response.status == 200:
                             self._logger.debug("aiohttp post done")
                             response = await response.text()
@@ -340,7 +344,7 @@ class ServerUpload(LogsExport):
                             self.log_upload_identifier = response_data["id"] if "id" in response_data else response_data["url"]
                             self.log_upload_url = response_data["url"]
                         else:
-                            strerror = f"Cannot connect to host {defines.log_url} [status code: {response.status}]"
+                            strerror = f"Cannot connect to host {self._url} [status code: {response.status}]"
                             self._logger.error(strerror)
                             raise ConnectionFailed(strerror)
                 except ClientConnectorError as exception:

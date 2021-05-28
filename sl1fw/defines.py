@@ -174,6 +174,7 @@ set_update_channel_bin = "/usr/sbin/set-update-channel.sh"
 update_channel = Path("/etc/update_channel")
 
 log_url = "https://prusa3d.link/wp-json/p3d/v1/logserver"
+log_url_dev = "http://cucek.prusa/api/upload"
 emmc_serial_path = Path("/sys/block/mmcblk2/device/cid")
 log_upload_token = "84U83mUQ"
 local_time_path = Path("/etc/localtime")

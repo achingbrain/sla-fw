@@ -33,7 +33,7 @@ class RootMenu(AdminMenu):
                 AdminAction("Net update", lambda: self.enter(NetUpdate(self._control, self._printer))),
                 AdminAction("hardware.cfg", lambda: self.enter(HwConfigMenu(self._control, self._printer.hw.config))),
                 AdminAction("Tests", lambda: self.enter(TestsMenu(self._control, self._printer))),
-                AdminAction("Logging", lambda: self.enter(LoggingMenu(self._control))),
+                AdminAction("Logging", lambda: self.enter(LoggingMenu(self._control, self._printer))),
                 AdminAction("System tools", lambda: self.enter(SystemToolsMenu(self._control, self._printer))),
                 AdminAction("System information", lambda: self.enter(SystemInfoMenu(self._control, self._printer))),
                 AdminAction("Display", lambda: self.enter(DisplayRootMenu(self._control, self._printer))),
