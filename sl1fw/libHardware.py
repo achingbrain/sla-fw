@@ -17,11 +17,15 @@ import functools
 import logging
 import os
 import re
+from asyncio import Task, CancelledError
+from datetime import timedelta
 from math import ceil
 from threading import Thread
 from time import sleep
 
 import json
+from typing import Optional
+
 import bitstring
 import pydbus
 from PySignal import Signal
@@ -31,7 +35,7 @@ from sl1fw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, TowerHo
     MotionControllerException, ConfigException
 from sl1fw.configs.hw import HwConfig
 from sl1fw.motion_controller.controller import MotionController
-from sl1fw.utils.value_checker import ValueChecker
+from sl1fw.utils.value_checker import ValueChecker, UpdateInterval
 from sl1fw.hardware.exposure_screen import ExposureScreen
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.hardware.tilt import Tilt, TiltSL1
@@ -145,8 +149,8 @@ class Hardware:
         self._towerPositionRetries = None
         self.sl1s_booster = Booster()
 
-        self._value_refresh_run = True
         self._value_refresh_thread = Thread(daemon=True, target=self._value_refresh_body)
+        self._value_refresh_task: Optional[Task] = None
 
         self.exposure_screen = ExposureScreen()
         self.printer_model = PrinterModel.NONE
@@ -169,6 +173,21 @@ class Hardware:
         self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
         self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
 
+        self._tilt_position_checker = ValueChecker(
+            lambda: self.tilt.position,
+            self.tilt_position_changed,
+            UpdateInterval.seconds(5),
+            pass_value=False,
+        )
+        self._tower_position_checker = ValueChecker(
+            lambda: self.tower_position_nm,
+            self.tower_position_changed,
+            UpdateInterval.seconds(5),
+            pass_value=False,
+        )
+        self.mcc.tilt_status_changed.connect(self._tilt_position_checker.set_rapid_update)
+        self.mcc.tower_status_changed.connect(self._tower_position_checker.set_rapid_update)
+
     # MUST be called before start()
     def connect(self):
         self.printer_model = self.exposure_screen.start()
@@ -186,27 +205,42 @@ class Hardware:
         self._value_refresh_thread.start()
 
     def exit(self):
-        self._value_refresh_run = False
         if self._value_refresh_thread.is_alive():
+            while not self._value_refresh_task:
+                sleep(0.1)
+            self._value_refresh_task.cancel()
             self._value_refresh_thread.join()
         self.mcc.exit()
         self.exposure_screen.exit()
 
-    def _value_refresh_body(self):
+    async def _value_refresh_task_body(self):
         checkers = [
-            ValueChecker(self.getFansRpm, self.fans_changed, False),
-            ValueChecker(functools.partial(self.getMcTemperatures, False), self.mc_temps_changed),
-            ValueChecker(self.getCpuTemperature, self.cpu_temp_changed),
-            ValueChecker(self.getVoltages, self.led_voltages_changed),
+            ValueChecker(self.getFansRpm, self.fans_changed, UpdateInterval.seconds(3), pass_value=False),
+            ValueChecker(
+                functools.partial(self.getMcTemperatures, False), self.mc_temps_changed, UpdateInterval.seconds(3),
+            ),
+            ValueChecker(self.getCpuTemperature, self.cpu_temp_changed, UpdateInterval.seconds(3)),
+            ValueChecker(self.getVoltages, self.led_voltages_changed, UpdateInterval.seconds(5)),
             ValueChecker(self.getResinSensorState, self.resin_sensor_state_changed),
-            ValueChecker(self.getUvStatistics, self.uv_statistics_changed),
-            ValueChecker(self.mcc.getStateBits, None),
+            ValueChecker(self.getUvStatistics, self.uv_statistics_changed, UpdateInterval.seconds(30)),
+            self._tilt_position_checker,
+            self._tower_position_checker,
+            ValueChecker(self.mcc.getStateBits, None, UpdateInterval(timedelta(milliseconds=500))),
         ]
 
-        while self._value_refresh_run:
-            for checker in checkers:
-                checker.check()
-                sleep(0.5)
+        self._value_refresh_task = asyncio.gather(*[checker.check() for checker in checkers])
+        await self._value_refresh_task
+
+    def _value_refresh_body(self):
+        try:
+            asyncio.run(self._value_refresh_task_body())
+        except CancelledError:
+            pass # This is normal printer shutdown
+        except Exception:
+            self.logger.exception("Value checker thread crashed")
+            raise
+        finally:
+            self.logger.info("Value refresh checker thread ended")
 
     def initDefaults(self):
         self.motorsRelease()
@@ -235,7 +269,7 @@ class Hardware:
                             writer.commit()
                         except Exception as e:
                             raise ConfigException() from e
-
+            self.tilt.movement_ended.connect(lambda: self._tilt_position_checker.set_rapid_update(False))
 
     def flashMC(self):
         self.mcc.flash(self.config.MCBoardVersion)

@@ -8,6 +8,8 @@ from enum import unique, Enum
 from typing import List
 import logging
 
+from PySignal import Signal
+
 from sl1fw import defines
 from sl1fw.motion_controller.controller import MotionController
 from sl1fw.configs.hw import HwConfig
@@ -30,6 +32,10 @@ class TiltProfile(Enum):
 
 
 class Tilt(Axis):
+    def __init__(self):
+        super().__init__()
+        self.movement_ended = Signal()
+
     @abstractmethod
     def go_to_fullstep(self, goUp: int):
         """move axis to the fullstep (stable position) in given direction"""
@@ -190,6 +196,7 @@ class TiltSL1(Tilt):
             elif self._lastPosition > self.position:
                 self.go_to_fullstep(goUp=0)
             self._lastPosition = self._config.tiltMin
+        self.movement_ended.emit()
         return True
 
     @safe_call(False, MotionControllerException)
