@@ -478,9 +478,10 @@ class Project:
         Used for reprint. As we load times from projects without checking there needs to be a way how to reprint using
         the same settings.
         """
-        self._exposure_time_ms = project.exposure_time_ms
-        self._exposure_time_first_ms = project.exposure_time_first_ms
-        self._calibrate_time_ms = project.calibrate_time_ms
+        self.logger.debug("Passing exposure times for reprint: %f, %f, %f", project.exposure_time_ms, project.exposure_time_first_ms, project.calibrate_time_ms)
+        self.exposure_time_ms = project.exposure_time_ms
+        self.exposure_time_first_ms = project.exposure_time_first_ms
+        self.calibrate_time_ms = project.calibrate_time_ms
 
     @property
     def is_open(self):
