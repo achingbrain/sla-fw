@@ -51,7 +51,7 @@ class Tilt(Axis):
         """move tilt to max (synchronous)"""
 
     @abstractmethod
-    def layer_up_wait(self, slowMove: bool = False) -> None:
+    def layer_up_wait(self, tiltHeight: int = 0, slowMove: bool = False) -> None:
         """tilt up during the print"""
 
     def layer_down_wait(self, slowMove: bool = False) -> None:
@@ -277,18 +277,22 @@ class TiltSL1(Tilt):
         await self.sync_wait_async(retries=0)
 
     @safe_call(False, MotionControllerException)
-    def layer_up_wait(self, slowMove: bool = False) -> None:
+    def layer_up_wait(self, tiltHeight: int = 0, slowMove: bool = False) -> None:
+        if tiltHeight == 0: # use self._config.tiltHeight by default
+            _tiltHeight = self._config.tiltHeight
+        else: # in case of calibration there is need to force new unstored tiltHeight
+            _tiltHeight = tiltHeight
         profile = self._config.tuneTilt[2] if slowMove else self._config.tuneTilt[3]
 
         self.profile_id = TiltProfile(profile[0])
-        self.move_absolute(self._config.tiltHeight - profile[1])
+        self.move_absolute(_tiltHeight - profile[1])
         while self.moving:
             sleep(0.1)
         sleep(profile[2] / 1000.0)
         self.profile_id = TiltProfile(profile[3])
 
         # finish move may be also splited in multiple sections
-        movePerCycle = int((self._config.tiltHeight - self.position) / profile[4])
+        movePerCycle = int((_tiltHeight - self.position) / profile[4])
         for _ in range(profile[4]):
             self.move_absolute(self.position + movePerCycle)
             while self.moving:
