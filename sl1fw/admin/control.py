@@ -3,13 +3,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from abc import abstractmethod, ABC
+from typing import Optional
 
 from sl1fw.admin.base_menu import AdminMenuBase
 
 
 class AdminControl(ABC):
     @abstractmethod
-    def pop(self, count=1) -> None:
+    def pop(self, count=1, poping_menu: Optional[AdminMenuBase] = None) -> None:
         """
         Return to previous admin menu
         """

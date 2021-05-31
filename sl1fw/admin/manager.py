@@ -29,19 +29,23 @@ class AdminManager(AdminControl):
     def enter(self, menu: AdminMenu) -> None:
         self._logger.info("Entering admin menu: %s", menu)
         self._menus.append(menu)
-        menu.on_enter()
         self.menu_changed.emit()
+        menu.on_enter()
 
     def exit(self) -> None:
         self.pop(len(self._menus))
 
-    def pop(self, count=1) -> None:
+    def pop(self, count=1, poping_menu: Optional[AdminMenu] = None) -> None:
+        current_menu = self.current_menu
+        if poping_menu and current_menu != poping_menu:
+            self._logger.info("Not poping non-active menu.")
+            return
         for _ in range(count):
             left = self._menus.pop()
             self._logger.info("Levaing admin menu: %s", left)
             left.on_leave()
-        if self.current_menu:
-            self.current_menu.on_reenter()
+        if current_menu:
+            current_menu.on_reenter()
         self.menu_changed.emit()
 
     def root(self) -> None:

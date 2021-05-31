@@ -35,7 +35,7 @@ class LoggingMenu(AdminMenu):
                 set_log_level(logging.INFO)
         except FailedToSetLogLevel:
             self.logger.exception("Failed to set loglevel from admin")
-            self._control.enter(Error(self._control, text="Failed to set log level", pop=2))
+            self._control.enter(Error(self._control, text="Failed to set log level"))
             return
 
         # force all forked processes to reload logging settings is overkill, let user do it
@@ -65,7 +65,7 @@ class LoggingMenu(AdminMenu):
                     if line == "":
                         continue
                     self.logger.info("truncate_logs: '%s'", line)
-                    status.set("Done")
+            status.set("Done")
         except Exception as e:
             self.logger.exception("truncate_logs exception: %s", str(e))
-            self._control.enter(Error(self._control, text="Failed to truncate logs", pop=2))
+            self._control.enter(Error(self._control, text="Failed to truncate logs"))

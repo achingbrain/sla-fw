@@ -49,7 +49,7 @@ class Info(AdminMenu):
 
 
 class Wait(AdminMenu):
-    def __init__(self, control: AdminControl, body: Callable[[AdminLabel], None], pop = 1):
+    def __init__(self, control: AdminControl, body: Callable[[AdminLabel], None], pop=1):
         super().__init__(control)
         self._body = body
         self._thread = Thread(target=self._run)
@@ -66,4 +66,4 @@ class Wait(AdminMenu):
 
     def _run(self):
         self._body(self.status)
-        self._control.pop(self._num_pop)
+        self._control.pop(self._num_pop, self)

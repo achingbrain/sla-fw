@@ -110,14 +110,14 @@ class InfiniteUVCalibratorMenu(AdminMenu):
             self.status = "Connecting UV calibrator"
             self.logger.info("Connecting UV calibrator")
             if not PageUvCalibrationBase.uvmeter.connect():
-                self._control.enter(Error(self._control, text="Failed to connect UV calibrator", pop=2))
+                self._control.enter(Error(self._control, text="Failed to connect UV calibrator"))
                 return
 
             for _ in range(5):
                 self.logger.info("Reading UV calibrator data")
                 self.status = "Reading data"
                 if not PageUvCalibrationBase.uvmeter.read():
-                    self._control.enter(Error(self._control, text="Failed to read UV calibrator data", pop=2))
+                    self._control.enter(Error(self._control, text="Failed to read UV calibrator data"))
                     return
 
                 uv_mean = PageUvCalibrationBase.uvmeter.get_data().uvMean
@@ -154,14 +154,14 @@ class ResinSensorTestMenu(AdminMenu):
         self.status = "Moving platform to the top..."
 
         if not self._printer.hw.towerSyncWait(retries=2):
-            self._control.enter(Error(self._control, text="Failed to sync tower", pop=2))
+            self._control.enter(Error(self._control, text="Failed to sync tower"))
             return
 
         self.status = "Homing tilt..."
         try:
             self._printer.hw.tilt.sync_wait()
         except TiltHomeFailed:
-            self._control.enter(Error(self._control, text="Failed to sync tilt", pop=2))
+            self._control.enter(Error(self._control, text="Failed to sync tilt"))
             return
 
         self._printer.hw.tilt.profile_id = TiltProfile.moveFast
@@ -171,7 +171,7 @@ class ResinSensorTestMenu(AdminMenu):
         volume = round(self._printer.hw.get_precise_resin_volume_ml())
         self._printer.hw.powerLed("normal")
         if not volume:
-            self._control.enter(Error(self._control, text="Measurement failed", pop=2))
+            self._control.enter(Error(self._control, text="Measurement failed"))
             return
 
         self._control.enter(Info(self._control, f"Measured resin volume: {volume} ml", pop=3))
