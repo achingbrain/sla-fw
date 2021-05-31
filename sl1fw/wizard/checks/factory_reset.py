@@ -6,7 +6,7 @@ import json
 import os
 import subprocess
 from abc import abstractmethod
-from asyncio import sleep
+from asyncio import sleep, gather
 from pathlib import Path
 from shutil import rmtree, copyfile
 
@@ -31,7 +31,7 @@ from sl1fw.functions.files import ch_mode_owner
 from sl1fw.functions.system import FactoryMountedRW, save_factory_mode
 from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck
+from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck, DangerousCheck
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 from sl1fw.hardware.tilt import TiltProfile
@@ -288,16 +288,13 @@ class SendPrinterData(SyncCheck):
             raise ErrorSendingDataToMQTT() from exception
 
 
-class InitiatePackingMoves(Check):
+class InitiatePackingMoves(DangerousCheck):
     def __init__(self, hw: Hardware):
-        super().__init__(WizardCheckType.INITIATE_PACKING_MOVES)
+        super().__init__(hw, WizardCheckType.INITIATE_PACKING_MOVES)
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.towerSync()
-        self._hw.tilt.sync_wait()
-        while not self._hw.isTowerSynced():
-            await sleep(0.25)
+        await gather(self.verify_tower(), self.verify_tilt())
 
         # move tilt and tower to packing position
         self._hw.tilt.profile_id = TiltProfile.homingFast
