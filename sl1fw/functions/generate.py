@@ -2,6 +2,7 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from typing import Optional
 from pathlib import Path
 import json
 import numpy
@@ -47,14 +48,15 @@ def display_usage_heatmap(
     output.save(output_filename)
 
 
-def uv_calibration_result(data_filename: Path, output_filename: str) -> None:
-    if data_filename.suffix == ".toml":
-        data = TomlConfig(data_filename).load()
-    elif data_filename.suffix == ".json":
-        with open(data_filename, "r") as jf:
-            data = json.load(jf)
-    else:
-        raise NoUvCalibrationData
+def uv_calibration_result(data: Optional[dict], data_filename: Optional[Path], output_filename: str) -> None:
+    if not data and data_filename:
+        if data_filename.suffix == ".toml":
+            data = TomlConfig(data_filename).load()
+        elif data_filename.suffix == ".json":
+            with open(data_filename, "r") as jf:
+                data = json.load(jf)
+        else:
+            raise NoUvCalibrationData
     if not data:
         raise NoUvCalibrationData
     if data.get('uvSensorType', None) == 0:

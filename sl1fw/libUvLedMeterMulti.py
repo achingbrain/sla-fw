@@ -212,7 +212,7 @@ class UvLedMeterMulti:
                 self.logger.error("Too many UV calibrator read retries")
                 raise e
 
-    def get_data(self):
+    def get_data(self, plain_mean=False):
         data = UvCalibrationData()
         data.uvSensorType = self.uvSensorType
         if self.np is None:
@@ -226,7 +226,10 @@ class UvLedMeterMulti:
             data.uvPercDiff = None
         else:
             # float and int type conversions from numpy data types are required for toml save algorithm
-            mean = numpy.average(self.np, weights=self.WEIGHTS60 if len(self.np) == 60 else self.WEIGHTS15)
+            if plain_mean:
+                mean = numpy.average(self.np)
+            else:
+                mean = numpy.average(self.np, weights=self.WEIGHTS60 if len(self.np) == 60 else self.WEIGHTS15)
             data.uvSensorData = self.np.tolist()
             data.uvTemperature = round(self.temp, self.ndigits)
             data.uvDateTime = self.datetime

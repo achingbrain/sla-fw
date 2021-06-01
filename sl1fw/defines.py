@@ -68,6 +68,7 @@ counterLogFilename = "counters-log.toml"
 counterLog = factoryMountPoint / counterLogFilename
 last_job = Path(persistentStorage) / "last_job"
 last_log_token = Path(persistentStorage) / "last_log_token"
+manual_uvc_filename = "manual_uv_calibration_data"
 
 # for live preview AND display usage heatmap
 thumbnail_factor = 5

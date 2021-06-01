@@ -3,8 +3,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
-from datetime import timedelta
+import json
+from datetime import timedelta, datetime
 from itertools import chain
+from threading import Thread
+from dataclasses import asdict
 
 from sl1fw import defines
 from sl1fw.admin.control import AdminControl
@@ -16,6 +19,7 @@ from sl1fw.functions.system import hw_all_off
 from sl1fw.functions import files, generate
 from sl1fw.libPrinter import Printer
 from sl1fw.hardware.tilt import TiltProfile
+from sl1fw.libUvLedMeterMulti import UvLedMeterMulti
 
 class DisplayRootMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
@@ -134,6 +138,7 @@ class ShowCalibrationMenu(SafeAdminMenu):
                 defines.wizardHistoryPathFactory.glob("uvcalib_data.*"),
                 defines.wizardHistoryPathFactory.glob("uvcalibrationwizard_data.*"),
                 defines.wizardHistoryPathFactory.glob("uv_calibration_data.*"),
+                defines.wizardHistoryPathFactory.glob(f"{defines.manual_uvc_filename}.*"),
                 defines.wizardHistoryPath.glob("uvcalib_data.*"),
                 defines.wizardHistoryPath.glob("uvcalibrationwizard_data.*"),
                 defines.wizardHistoryPath.glob("uv_calibration_data.*"),
@@ -148,7 +153,7 @@ class ShowCalibrationMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def show_calibration(self, filename):
-        generate.uv_calibration_result(filename, defines.fullscreenImage)
+        generate.uv_calibration_result(None, filename, defines.fullscreenImage)
         self._control.fullscreen_image()
 
 
@@ -237,35 +242,81 @@ class DirectPwmSetMenu(SafeAdminMenu):
         super().__init__(control)
         self._printer = printer
         self._temp = self._printer.hw.config.get_writer()
+        self._run = True
+        self._status = "<h3>UV meter disconnected<h3>"
+        self._data = None
 
         self.add_back()
-
-        self.add_item(AdminBoolValue.from_value("UV LED", self, "uv_led"))
-        self.add_item(AdminAction("Inverse", self.invert))
         uv_pwm_item = AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1)
         uv_pwm_item.changed.connect(self._uv_pwm_changed)
-        self.add_item(uv_pwm_item)
-        self.add_item(AdminAction("Save", self.save))
+        self.add_items(
+            (
+                AdminBoolValue.from_value("UV LED", self, "uv_led"),
+                AdminAction("Inverse", self.invert),
+                uv_pwm_item,
+                AdminLabel.from_property(self, DirectPwmSetMenu.status),
+                AdminAction("Show measured data", functools.partial(self.show_calibration)),
+                AdminAction("Save", self.save),
+            )
+        )
+        self._thread = Thread(target=self._measure)
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, value: str):
+        self._status = value
 
     def on_enter(self):
+        self._thread.start()
         self.enter(Wait(self._control, self._do_prepare))
 
     def on_leave(self):
+        self._run = False
+        hw_all_off(self._printer.hw, self._printer.exposure_image)
+        self._printer.hw.saveUvStatistics()
         if self._temp.changed():
             self._control.enter(Info(self._control, "Configuration has been changed but NOT saved."))
-        self._printer.hw.saveUvStatistics()
-        hw_all_off(self._printer.hw, self._printer.exposure_image)
+        self._thread.join()
+
+    def _measure(self):
+        meter = UvLedMeterMulti()
+        connected = False
+        while self._run:
+            if connected:
+                if meter.read():
+                    self._data = meter.get_data(plain_mean=True)
+                    self._data.uvFoundPwm = self._temp.uvPwm
+                    self.status = "<h3>ø:%.1f σ:%.1f %.1f°C<h3>" % (
+                        self._data.uvMean,
+                        self._data.uvStdDev,
+                        self._data.uvTemperature,
+                    )
+                else:
+                    self.status = "<h3>UV meter disconnected<h3>"
+                    connected = False
+            elif meter.connect():
+                self.status = "<h3>UV meter connected<h3>"
+                connected = True
+        meter.close()
+
+    @SafeAdminMenu.safe_call
+    def show_calibration(self):
+        generate.uv_calibration_result(asdict(self._data) if self._data else None, None, defines.fullscreenImage)
+        self._control.fullscreen_image()
 
     @SafeAdminMenu.safe_call
     def _do_prepare(self, status: AdminLabel):
         self._printer.hw.powerLed("warn")
-        status.set("Tilt is going to level")
+        status.set("<h3>Tilt is going to level<h3>")
         self._printer.hw.tilt.profile_id = TiltProfile.homingFast
         self._printer.hw.tilt.sync_wait()
         self._printer.hw.tilt.profile_id = TiltProfile.moveFast
         self._printer.hw.tilt.move_up_wait()
         self._printer.hw.powerLed("normal")
-        status.set("Tilt leveled")
+        status.set("<h3>Tilt leveled<h3>")
         self._printer.hw.startFans()
         self._printer.hw.uvLedPwm = self._temp.uvPwm
         self._printer.hw.uvLed(True)
@@ -290,8 +341,13 @@ class DirectPwmSetMenu(SafeAdminMenu):
     def invert(self):
         self._printer.exposure_image.inverse()
 
+    @SafeAdminMenu.safe_call
     def save(self):
         self._temp.commit(write=True)
+        if self._data:
+            file_path = defines.wizardHistoryPathFactory / f"{defines.manual_uvc_filename}.{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+            with file_path.open("w") as file:
+                json.dump(asdict(self._data), file, indent=2, sort_keys=True)
         self._control.enter(Info(self._control, "Configuration saved"))
 
     def _uv_pwm_changed(self):
