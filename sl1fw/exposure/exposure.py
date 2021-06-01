@@ -971,8 +971,6 @@ class Exposure:
         self.state = ExposureState.GOING_UP
         self.hw.setTowerProfile("homingFast")
         self.hw.towerToTop()
-        if self.hw.config.tilt:
-            self.hw.tilt.layer_up_wait()
         while not self.hw.isTowerOnTop():
             sleep(0.25)
 
