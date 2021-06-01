@@ -275,7 +275,7 @@ class MotionController:
                 if val:
                     self.logger.info("motion controller reset flag: %s", ResetFlags(bit).name)
                 bit += 1
-        tmp = self.doGetIntList("?rev")
+        tmp = self._get_board_revision()
         self.fw['revision'] = tmp[0]
         self.board['revision'] = divmod(tmp[1], 32)[1]
         self.board['subRevision'] = chr(divmod(tmp[1], 32)[0] + ord("a"))
@@ -523,3 +523,6 @@ class MotionController:
         # pylint: disable=no-member
         self.u_input.write(ecodes.EV_KEY, ecodes.KEY_CLOSE, 1 if state else 0)
         self.u_input.syn()
+
+    def _get_board_revision(self):
+        return self.doGetIntList("?rev")

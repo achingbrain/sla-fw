@@ -47,19 +47,23 @@ class TestLibHardwareConnect(Sl1fwTestCase):
             self.hw.mcc.connect(mc_version_check=True)
 
     def test_mcc_connect_fatal_fail(self) -> None:
-        self.hw.mcc.getStateBits = Mock(return_value={'fatal': 1})
-        with self.assertRaises(MotionControllerException):
-            self.hw.mcc.connect(mc_version_check=False)
+        with patch("sl1fw.motion_controller.controller.MotionController.getStateBits", Mock(return_value={'fatal': 1})):
+            with self.assertRaises(MotionControllerException):
+                self.hw.mcc.connect(mc_version_check=False)
 
     def test_mcc_connect_rev_fail(self) -> None:
-        self.hw.mcc.doGetIntList = lambda x: [5 ,5] # fw rev 5, board rev 5a
-        with self.assertRaises(MotionControllerWrongRevision):
-            self.hw.mcc.connect(mc_version_check=False)
+        with patch(
+                "sl1fw.motion_controller.controller.MotionController._get_board_revision", Mock(return_value=[5, 5])
+        ):  # fw rev 5, board rev 5a
+            with self.assertRaises(MotionControllerWrongRevision):
+                self.hw.mcc.connect(mc_version_check=False)
 
     def test_mcc_connect_board_rev_fail(self) -> None:
-        self.hw.mcc.doGetIntList = lambda x: [5 ,70] # fw rev 5, board rev 6c
-        with self.assertRaises(MotionControllerWrongFw):
-            self.hw.mcc.connect(mc_version_check=False)
+        with patch(
+                "sl1fw.motion_controller.controller.MotionController._get_board_revision", Mock(return_value=[5, 70])
+        ):  # fw rev 5, board rev 6c
+            with self.assertRaises(MotionControllerWrongFw):
+                self.hw.mcc.connect(mc_version_check=False)
 
 
 class TestLibHardware(Sl1fwTestCase):
