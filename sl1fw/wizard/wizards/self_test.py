@@ -32,6 +32,7 @@ from sl1fw.errors.errors import UnknownPrinterModel
 
 class SelfTestPart1CheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
+        self._package = package
         if package.hw.printer_model == PrinterModel.SL1:
             uvled_test = UVLEDsTest_SL1(package.hw)
         elif package.hw.printer_model == PrinterModel.SL1S:
@@ -103,8 +104,6 @@ class SelfTestWizard(Wizard):
             ],
             self._package
         )
-        self._package.config_writer.showWizard = True
-        self._package.config_writer.commit()
 
     @classmethod
     def get_name(cls) -> str:
@@ -118,3 +117,8 @@ class SelfTestWizard(Wizard):
 
     def wizard_finished(self):
         self._package.config_writer.showWizard = False
+
+    def wizard_failed(self):
+        writer = self._package.hw.config.get_writer()
+        writer.showWizard = True
+        writer.commit()

@@ -179,6 +179,7 @@ class Wizard(Thread, UserActionBroker):
             self._exception = exception
             self.exception_changed.emit()
             self.state = WizardState.FAILED
+            self.wizard_failed()
             self._store_data()
             raise
         finally:
@@ -201,6 +202,9 @@ class Wizard(Thread, UserActionBroker):
 
     def wizard_finished(self):
         """custom wizard action which is called on wizard success"""
+
+    def wizard_failed(self):
+        """custom wizard action which is called on wizard failure"""
 
     def __run_group(self, group: CheckGroup):
         self._logger.debug("Running check group %s", type(group).__name__)

@@ -33,6 +33,7 @@ class PlatformTankInsertCheckGroup(CheckGroup):
                 SystemInfoTest(package.hw),
             ],
         )
+        self._package = package
 
     async def setup(self, actions: UserActionBroker):
         await self.wait_for_user(
@@ -101,8 +102,6 @@ class CalibrationWizard(Wizard):
             ],
             self._package,
         )
-        self._package.config_writer.calibrated = False
-        self._package.config_writer.commit()
 
     @classmethod
     def get_name(cls) -> str:
@@ -110,3 +109,8 @@ class CalibrationWizard(Wizard):
 
     def wizard_finished(self):
         self._package.config_writer.calibrated = True
+
+    def wizard_failed(self):
+        writer = self._package.hw.config.get_writer()
+        writer.calibrated = False
+        writer.commit()

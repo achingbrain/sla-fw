@@ -127,8 +127,6 @@ class UVCalibrationWizard(Wizard):
             ],
             self._package,
         )
-        self._package.config_writer.uvPwm = 0
-        self._package.config_writer.commit()
 
     @classmethod
     def get_alt_names(cls) -> Iterable[str]:
@@ -147,3 +145,8 @@ class UVCalibrationWizard(Wizard):
             self._package.hw.uvLed(False)
             self._package.hw.stopFans()
             self._package.uv_meter.close()
+
+    def wizard_failed(self):
+        writer = self._package.hw.config.get_writer()
+        writer.uvPwm = 0
+        writer.commit()
