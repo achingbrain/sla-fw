@@ -274,6 +274,9 @@ class StartPositionsCheck(ExposureCheckRunner):
                 sleep(0.25)
 
             raise exception
+        while self.expo.hw.tilt.moving:
+            sleep(0.25)
+
 
 
 class StirringCheck(ExposureCheckRunner):
