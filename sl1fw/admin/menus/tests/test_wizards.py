@@ -11,7 +11,7 @@ from sl1fw.wizard.wizards.calibration import CalibrationWizard
 from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
 from sl1fw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
-from sl1fw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard
+from sl1fw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard, SL1DowngradeWizard
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
@@ -23,20 +23,23 @@ class TestWizardsMenu(AdminMenu):
 
         self.add_back()
 
-        self.add_item(AdminAction("Display test", self.api_display_test))
-        self.add_item(AdminAction("Unpacking (C)", self.api_unpacking_c))
-        self.add_item(AdminAction("Unpacking (K)", self.api_unpacking_k))
-        self.add_item(AdminAction("Self test", self.api_self_test))
-        self.add_item(AdminAction("Calibration", self.api_calibration))
-        self.add_item(AdminAction("Factory reset", self.api_factory_reset))
-        self.add_item(AdminAction("Packing (Factory factory reset)", self.api_packing))
-        self.add_item(
-            AdminAction(
-                "API UV Calibration wizard",
-                lambda: self._control.enter(TestUVCalibrationWizardMenu(self._control, self._printer)),
+        self.add_items(
+            (
+                AdminAction("Display test", self.api_display_test),
+                AdminAction("Unpacking (C)", self.api_unpacking_c),
+                AdminAction("Unpacking (K)", self.api_unpacking_k),
+                AdminAction("Self test", self.api_self_test),
+                AdminAction("Calibration", self.api_calibration),
+                AdminAction("Factory reset", self.api_factory_reset),
+                AdminAction("Packing (Factory factory reset)", self.api_packing),
+                AdminAction(
+                    "API UV Calibration wizard",
+                    lambda: self._control.enter(TestUVCalibrationWizardMenu(self._control, self._printer)),
+                ),
+                AdminAction("SL1S upgrade", self.sl1s_upgrade),
+                AdminAction("SL1 downgrade", self.sl1_downgrade),
             )
         )
-        self.add_item(AdminAction("SL1S upgrade", self.sl1s_upgrade))
 
     def api_display_test(self):
         self._printer.action_manager.start_wizard(
@@ -49,9 +52,7 @@ class TestWizardsMenu(AdminMenu):
         )
 
     def api_unpacking_k(self):
-        self._printer.action_manager.start_wizard(
-            KitUnboxingWizard(self._printer.hw, self._printer.runtime_config)
-        )
+        self._printer.action_manager.start_wizard(KitUnboxingWizard(self._printer.hw, self._printer.runtime_config))
 
     def api_self_test(self):
         self._printer.action_manager.start_wizard(
@@ -59,23 +60,22 @@ class TestWizardsMenu(AdminMenu):
         )
 
     def api_calibration(self):
-        self._printer.action_manager.start_wizard(
-            CalibrationWizard(self._printer.hw, self._printer.runtime_config)
-        )
+        self._printer.action_manager.start_wizard(CalibrationWizard(self._printer.hw, self._printer.runtime_config))
 
     def api_packing(self):
-        self._printer.action_manager.start_wizard(
-            PackingWizard(self._printer.hw, self._printer.runtime_config)
-        )
+        self._printer.action_manager.start_wizard(PackingWizard(self._printer.hw, self._printer.runtime_config))
 
     def api_factory_reset(self):
-        self._printer.action_manager.start_wizard(
-            FactoryResetWizard(self._printer.hw, self._printer.runtime_config)
-        )
+        self._printer.action_manager.start_wizard(FactoryResetWizard(self._printer.hw, self._printer.runtime_config))
 
     def sl1s_upgrade(self):
         self._printer.action_manager.start_wizard(
             SL1SUpgradeWizard(self._printer.hw, self._printer.exposure_image, self._printer.runtime_config)
+        )
+
+    def sl1_downgrade(self):
+        self._printer.action_manager.start_wizard(
+            SL1DowngradeWizard(self._printer.hw, self._printer.exposure_image, self._printer.runtime_config)
         )
 
 
