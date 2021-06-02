@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from time import time
-from typing import Optional
+from typing import Optional, Collection
 from enum import unique, IntEnum
 
 import pprint
@@ -48,7 +48,7 @@ class ProjectLayer:
     def __init__(self, image: str, height_nm: int):
         self.image = image
         self.height_nm = height_nm
-        self.times_ms = None
+        self.times_ms: Optional[Collection[int]] = None
         self.consumed_resin_nl = None
         self.bbox = BBox()
         self.calibration_type = LayerCalibrationType.NONE
@@ -88,7 +88,7 @@ class Project:
         self.warnings = set()
         self.path = project_file
         self._config = ProjectConfig()
-        self.layers = []
+        self.layers: Collection[ProjectLayer] = []
         self.total_height_nm = 0
         self.layer_height_nm = 0
         self.layer_height_first_nm = 0
@@ -237,21 +237,23 @@ class Project:
         self._fill_layers_times()
 
     def _fill_layers_times(self):
-        time_loss = (self._exposure_time_first_ms - self._exposure_time_ms) // (self._config.fadeLayers + 1)
+        fade_layers = self._config.fadeLayers
+        time_loss = (self._exposure_time_first_ms - self._exposure_time_ms) // (fade_layers + 1)
         extra_layers = defines.exposure_time_first_extra_layers
-        for i in range(len(self.layers)):
+        for i, layer in enumerate(self.layers):
             if i <= extra_layers:
-                times = [self._exposure_time_first_ms]
-            elif i <= self._config.fadeLayers + extra_layers:
-                times = [self._exposure_time_first_ms - (i - extra_layers) * time_loss]
+                t = self._exposure_time_first_ms
+            elif i <= fade_layers + extra_layers:
+                t = self._exposure_time_first_ms - (i - extra_layers) * time_loss
             else:
-                times = [self._exposure_time_ms]
+                t = self._exposure_time_ms
             if self._calibrate_regions:
                 if self._calibrate_time_ms_exact:
-                    times = self._calibrate_time_ms_exact
+                    layer.times_ms = self._calibrate_time_ms_exact
                 else:
-                    times.extend([self._calibrate_time_ms] * (self._calibrate_regions - 1))
-            self.layers[i].times_ms = times
+                    layer.times_ms = (t,) + (self._calibrate_time_ms,) * (self._calibrate_regions - 1)
+            else:
+                layer.times_ms = (t,)
 
     def analyze(self, force: bool = False ):
         """

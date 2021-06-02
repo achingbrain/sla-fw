@@ -28,7 +28,7 @@ def _layer_generator(name, count, height_nm, times_ms, layer_times_ms):
             times_ms[0] = layer_times_ms[-1]
         else:
             times_ms[0] = layer_times_ms[i]
-        layer.times_ms = times_ms.copy()
+        layer.times_ms = tuple(times_ms)
         if i < 10:
             layer.calibration_type = LayerCalibrationType.LABEL_PAD
         else:
@@ -112,7 +112,7 @@ class TestProject(Sl1fwTestCase):
         self.assertEqual(project.total_height_nm, 1e5, "Total height calculation")
         self.assertAlmostEqual(project.modification_time, 1569863651.0, msg="Check modification time")
 
-        result = _layer_generator('numbers', 2, 50000, [1000], [1000])
+        result = _layer_generator('numbers', 2, 50000, [1000], (1000,))
         self.assertEqual(project.layers, result, "Base layers")
         #consumed_resin_slicer = project.used_material_nl / 1e6
         project.analyze()

@@ -866,7 +866,7 @@ class Exposure:
                 psutil.cpu_percent(),
             )
 
-            times_ms = layer.times_ms.copy()
+            times_ms = list(layer.times_ms)
             times_ms[0] += exposure_compensation
 
             success, white_pixels = self._do_frame(times_ms, prev_white_pixels, was_stirring, False)
