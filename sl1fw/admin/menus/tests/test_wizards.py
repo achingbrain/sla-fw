@@ -7,7 +7,10 @@ from sl1fw.admin.items import AdminAction, AdminLabel, AdminBoolValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.libPrinter import Printer
-from sl1fw.wizard.wizards.calibration import CalibrationWizard
+from sl1fw.states.wizard import WizardId
+from sl1fw.wizard.wizard import Wizard, WizardDataPackage
+from sl1fw.wizard.wizards.generic import ShowResultsGroup
+from sl1fw.wizard.wizards.calibration import CalibrationWizard, CalibrationFinishCheckGroup
 from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
 from sl1fw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
@@ -38,6 +41,7 @@ class TestWizardsMenu(AdminMenu):
                 ),
                 AdminAction("SL1S upgrade", self.sl1s_upgrade),
                 AdminAction("SL1 downgrade", self.sl1_downgrade),
+                AdminAction("Calibration - tilt times only", self.api_calibration_tilt_times),
             )
         )
 
@@ -77,6 +81,24 @@ class TestWizardsMenu(AdminMenu):
         self._printer.action_manager.start_wizard(
             SL1DowngradeWizard(self._printer.hw, self._printer.exposure_image, self._printer.runtime_config)
         )
+
+    def api_calibration_tilt_times(self):
+        package = WizardDataPackage(
+            self._printer.hw, self._printer.hw.config.get_writer(), self._printer.runtime_config
+        )
+
+        class CalibrationTiltTimesOnlyWizard(Wizard):
+            def __init__(self):
+                super().__init__(
+                    WizardId.CALIBRATION,
+                    [
+                        CalibrationFinishCheckGroup(package),
+                        ShowResultsGroup(),
+                    ],
+                    package,
+                )
+
+        self._printer.action_manager.start_wizard(CalibrationTiltTimesOnlyWizard())
 
 
 class TestUVCalibrationWizardMenu(SafeAdminMenu):
