@@ -27,9 +27,16 @@ from sl1fw.api.decorators import (
 )
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.states.exposure import ExposureState
-from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, ProjectErrorNotEnoughLayers, \
-                                ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
-                                ProjectErrorWrongPrinterModel, ExposureError
+from sl1fw.errors.errors import (
+    ProjectErrorNotFound,
+    ProjectErrorCantRead,
+    ProjectErrorNotEnoughLayers,
+    ProjectErrorCorrupted,
+    ProjectErrorAnalysisFailed,
+    ProjectErrorCalibrationInvalid,
+    ProjectErrorWrongPrinterModel,
+    ExposureError,
+)
 
 
 @unique
@@ -102,7 +109,7 @@ class Exposure0ProjectState(Enum):
     ANALYSIS_FAILED = 6
     CALIBRATION_INVALID = 7
     WRONG_PRINTER_MODEL = 8
-    NOT_ENOUGH_INTERNAL_SPACE = 9   # obsolete
+    NOT_ENOUGH_INTERNAL_SPACE = 9  # obsolete
 
     @staticmethod
     def from_exception(exception: ExposureError) -> Exposure0ProjectState:
@@ -154,7 +161,6 @@ class Exposure0:
             self.exposure.hw.config.add_onchange_handler(self._handle_config_change)
         if self.exposure.project and self.exposure.project.path_changed:
             self.exposure.project.path_changed.connect(self._handle_path_changed_param)
-
 
     @auto_dbus_signal
     def Warning(self, value) -> Dict[str, Any]:
@@ -766,7 +772,13 @@ class Exposure0:
         "exposure_end": {"exposure_end"},
         "warning": {"exposure_warnings", "exposure_warning"},
         "check_results": {"checks_state"},
-        "project": {"exposure_time_ms", "exposure_time_first_ms", "exposure_time_calibrate_ms", "calibration_regions"},
+        "project": {
+            "exposure_time_ms",
+            "exposure_time_first_ms",
+            "exposure_time_calibrate_ms",
+            "calibration_regions",
+            "time_remain_ms",
+        },
         "printStartTime": {"print_start_timestamp"},
         "printEndTime": {"print_end_timestamp"},
         "exception": {"exposure_exception"},

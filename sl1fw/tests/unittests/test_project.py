@@ -131,8 +131,8 @@ class TestProject(Sl1fwTestCase):
 
         self.assertEqual(project.total_layers, 20, "Check total layers count")
         self.assertEqual(project.total_height_nm, 1e6, "Total height calculation")
-        self.assertEqual(project.count_remain_time(), 368860, "Total time calculation")
-        self.assertEqual(project.count_remain_time(layers_done = 10), 122555, "Half time calculation")
+        self.assertEqual(project.count_remain_time(), 478750, "Total time calculation")
+        self.assertEqual(project.count_remain_time(layers_done = 10), 177500, "Half time calculation")
 
         result = _layer_generator('sl1_linear_calibration_pattern',
                 20,

@@ -320,8 +320,7 @@ class Project:
     def exposure_time_ms(self, value: int) -> None:
         if self._exposure_time_ms != value:
             self._exposure_time_ms = value
-            self._fill_layers_times()
-            self.params_changed.emit()
+            self._times_changed()
 
     @property
     def exposure_time_first_ms(self) -> int:
@@ -332,8 +331,7 @@ class Project:
     def exposure_time_first_ms(self, value: int) -> None:
         if self._exposure_time_first_ms != value:
             self._exposure_time_first_ms = value
-            self._fill_layers_times()
-            self.params_changed.emit()
+            self._times_changed()
 
     # FIXME compatibility with api/standard0
     @property
@@ -349,8 +347,7 @@ class Project:
     def calibrate_time_ms(self, value: int) -> None:
         if self._calibrate_time_ms != value:
             self._calibrate_time_ms = value
-            self._fill_layers_times()
-            self.params_changed.emit()
+            self._times_changed()
 
     # FIXME compatibility with api/standard0
     @property
@@ -368,8 +365,7 @@ class Project:
             raise ProjectErrorCalibrationInvalid
         if self._calibrate_regions != value:
             self._calibrate_regions = value
-            self._fill_layers_times()
-            self.params_changed.emit()
+            self._times_changed()
 
     @property
     def total_layers(self) -> int:
@@ -486,3 +482,8 @@ class Project:
     @property
     def is_open(self):
         return self._zf and self._zf.fp
+
+    def _times_changed(self):
+        self._fill_layers_times()
+        self.count_remain_time.cache_clear()
+        self.params_changed.emit()
