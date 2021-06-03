@@ -1083,3 +1083,15 @@ class Printer0:
     @auto_dbus
     def remove_oneclick_inhibitor(self, name: str) -> None:
         self.printer.remove_oneclick_inhibitor(name)
+
+    @auto_dbus
+    @property
+    @last_error
+    @cached()
+    def booster_serial(self) -> str:
+        """
+        Get booster board serial number
+
+        :return: booster board serial number
+        """
+        return self.printer.hw.sl1s_booster.board_serial_no
