@@ -322,7 +322,7 @@ class Exposure0:
         """
         Estimated total print time in ms
         """
-        return self.exposure.estimate_total_time_ms
+        return self.exposure.estimated_total_time_ms
 
     @auto_dbus
     @property
@@ -782,6 +782,7 @@ class Exposure0:
         "printStartTime": {"print_start_timestamp"},
         "printEndTime": {"print_end_timestamp"},
         "exception": {"exposure_exception"},
+        "estimated_total_time_ms": {"total_time_ms"},
     }
 
     _SIGNAL_MAP = {

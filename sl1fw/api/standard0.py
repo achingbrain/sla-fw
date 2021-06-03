@@ -337,7 +337,7 @@ class Standard0:
             "remaining_material": exposure.remain_resin_ml if exposure.remain_resin_ml else -1,
             "consumed_material": exposure.resin_count,
             "progress": exposure.progress,
-            "estimatedPrintTime": exposure.estimate_total_time_ms / 1000,
+            "estimatedPrintTime": exposure.estimated_total_time_ms / 1000,
             "remaining_time": exposure.estimate_remain_time_ms() / 1000,
             "exposureTime": project.exposure_time_ms,
             "exposureTimeFirst": project.exposure_time_first_ms,

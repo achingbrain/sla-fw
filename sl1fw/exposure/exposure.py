@@ -278,7 +278,6 @@ class StartPositionsCheck(ExposureCheckRunner):
             sleep(0.25)
 
 
-
 class StirringCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.STIRRING, *args, **kwargs)
@@ -323,7 +322,7 @@ class Exposure:
         self.warning_dismissed = Event()
         self.warning_result: Optional[Exception] = None
         self.pending_warning = Lock()
-        self.estimate_total_time_ms = -1
+        self.estimated_total_time_ms = -1
         self.expoThread = Thread(target=self.run)
         self.last_warn = None
 
@@ -332,7 +331,7 @@ class Exposure:
         try:
             # Read project
             self.project = Project(self.hw, project_file)
-            self.estimate_total_time_ms = self.estimate_remain_time_ms()
+            self.estimated_total_time_ms = self.estimate_total_time_ms()
             self.state = ExposureState.CONFIRM
             # Signal project change on its parameter change. This lets Exposure0 emit
             # property changed on properties bound to project parameters.
@@ -350,6 +349,7 @@ class Exposure:
         self.change.emit("check_results", self.check_results)
 
     def _on_project_changed(self):
+        self.estimated_total_time_ms = self.estimate_total_time_ms()
         self.change.emit("project", None)
 
     def confirm_print_start(self):
@@ -466,6 +466,12 @@ class Exposure:
         else:
             self.resin_volume = volume + int(self.resin_count)
             self.remain_resin_ml = volume
+
+    def estimate_total_time_ms(self):
+        if self.project:
+            return self.project.count_remain_time(0, 0)
+        self.logger.warning("No active project to get estimated print time")
+        return -1
 
     def estimate_remain_time_ms(self) -> int:
         if self.project:

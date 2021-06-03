@@ -452,7 +452,7 @@ class Project:
         if self._zf:
             self._zf.close()
 
-    @functools.lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=2)
     def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0) -> int:
         time_remain_ms = sum(sum(x.times_ms) for x in self.layers[layers_done:])
         total_layers = len(self.layers)
