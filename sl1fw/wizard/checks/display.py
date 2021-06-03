@@ -51,7 +51,7 @@ class DisplayTest(DangerousCheck):
                 if old_state != actual_state:
                     old_state = actual_state
                     if actual_state:
-                        self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).min_pwm
+                        self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).safe_default_pwm
                         self._hw.uvLed(True)
                     else:
                         self._hw.uvLed(False)

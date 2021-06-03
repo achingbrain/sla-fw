@@ -43,17 +43,34 @@ class TestPrinterModel(Sl1fwTestCase):
 
     def test_calibration(self):
         calibration_parameters = PrinterModel.NONE.calibration_parameters(False)
-        self.assertEqual(calibration_parameters.pwms, (0, 250))
+        self.assertEqual(calibration_parameters.pwms, (0, 250, 0))
         self.assertEqual(calibration_parameters.intensity_error_threshold, 1)
         self.assertEqual(calibration_parameters.param_p, 0.75)
         self.assertEqual(calibration_parameters.min_pwm, 0)
         self.assertEqual(calibration_parameters.max_pwm, 250)
-        calibration_parameters = PrinterModel.SL1S.calibration_parameters(False)
-        self.assertEqual(calibration_parameters.pwms, (150, 250))
+        self.assertEqual(calibration_parameters.safe_default_pwm, 0)
+        calibration_parameters = PrinterModel.SL1.calibration_parameters(False) # MC revision < 6c
+        self.assertEqual(calibration_parameters.pwms, (125, 218, 125))
+        self.assertEqual(calibration_parameters.intensity_error_threshold, 1)
+        self.assertEqual(calibration_parameters.param_p, 0.75)
+        self.assertEqual(calibration_parameters.min_pwm, 125)
+        self.assertEqual(calibration_parameters.max_pwm, 218)
+        self.assertEqual(calibration_parameters.safe_default_pwm, 125)
+        calibration_parameters = PrinterModel.SL1.calibration_parameters(True) # MC revision >= 6c
+        self.assertEqual(calibration_parameters.pwms, (150, 250, 150))
         self.assertEqual(calibration_parameters.intensity_error_threshold, 1)
         self.assertEqual(calibration_parameters.param_p, 0.75)
         self.assertEqual(calibration_parameters.min_pwm, 150)
         self.assertEqual(calibration_parameters.max_pwm, 250)
+        self.assertEqual(calibration_parameters.safe_default_pwm, 150)
+        calibration_parameters = PrinterModel.SL1S.calibration_parameters(False)
+        self.assertEqual(calibration_parameters.pwms, (30, 250, 208))
+        self.assertEqual(calibration_parameters.intensity_error_threshold, 1)
+        self.assertEqual(calibration_parameters.param_p, 0.75)
+        self.assertEqual(calibration_parameters.min_pwm, 30)
+        self.assertEqual(calibration_parameters.max_pwm, 250)
+        self.assertEqual(calibration_parameters.safe_default_pwm, 208)
+
 
     def test_exposure_panel(self):
         defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / "sl1"

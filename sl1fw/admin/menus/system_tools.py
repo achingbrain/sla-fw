@@ -149,7 +149,7 @@ class SystemToolsMenu(SafeAdminMenu):
         writer.showUnboxing = False
         writer.uvPwm = self._printer.hw.printer_model.calibration_parameters(
             self._printer.hw.is500khz
-        ).min_pwm
+        ).safe_default_pwm
         self._printer.hw.uvLedPwm = writer.uvPwm
         writer.commit()
 

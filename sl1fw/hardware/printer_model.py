@@ -46,6 +46,10 @@ class CalibrationParameters:
     def max_pwm(self):
         return self.pwms[1]
 
+    @property
+    def safe_default_pwm(self):
+        return self.pwms[2]
+
 
 @unique
 class PrinterModel(Enum):
@@ -71,9 +75,9 @@ class PrinterModel(Enum):
 
     def calibration_parameters(self, is500khz: bool) -> CalibrationParameters:
         return {
-                self.NONE: CalibrationParameters((0, 250), 1, 0.75),
-                self.SL1: CalibrationParameters((150, 250) if is500khz else (125, 218), 1, 0.75),
-                self.SL1S: CalibrationParameters((150, 250), 1, 0.75),
+                self.NONE: CalibrationParameters((0, 250, 0), 1, 0.75),
+                self.SL1: CalibrationParameters((150, 250, 150) if is500khz else (125, 218, 125), 1, 0.75),
+                self.SL1S: CalibrationParameters((30, 250, 208), 1, 0.75),
             }[self]
 
     def default_uvpwm(self) -> int:
