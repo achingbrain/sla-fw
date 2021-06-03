@@ -465,6 +465,7 @@ class Exposure:
             self.resin_volume = None
         else:
             self.resin_volume = volume + int(self.resin_count)
+            self.remain_resin_ml = volume
 
     def estimate_remain_time_ms(self) -> int:
         if self.project:
@@ -804,7 +805,11 @@ class Exposure:
                 if self.hw.config.tilt:
                     self.hw.tilt.layer_up_wait()
                 self.state = ExposureState.FEED_ME
-                self.doWait(self.low_resin)
+                sub_command = self.doWait(self.low_resin)
+
+                if sub_command == "continue":
+                    # update resin volume
+                    self.setResinVolume(defines.resinMaxVolume)
 
                 # Force user to close the cover
                 self._wait_cover_close()
@@ -815,11 +820,6 @@ class Exposure:
                     self.hw.tilt.sync_wait()
                     self.hw.tilt.stir_resin()
                 was_stirring = True
-
-                # update resin volume
-                # ps: this expect the user always refill with 100% or up
-                self.setResinVolume(defines.resinMaxVolume)
-                self._update_resin()
 
                 # Resume print
                 self.hw.powerLed("normal")

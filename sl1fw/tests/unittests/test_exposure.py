@@ -124,10 +124,7 @@ class TestExposure(Sl1fwTestCase):
         hw = self.setupHw()
         self._fake_calibration(hw)
         hw.tilt.layer_down_wait.side_effect = TiltHomeFailed()
-        exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
-        exposure.read_project(TestExposure.PROJECT)
-        exposure.startProject()
-        exposure.confirm_print_start()
+        exposure = self._start_exposure(hw)
 
         for i in range(30):
             print(f"Waiting for exposure {i}, state: ", exposure.state)
@@ -152,10 +149,7 @@ class TestExposure(Sl1fwTestCase):
         hw = self.setupHw()
         self._fake_calibration(hw)
         hw.tilt.layer_down_wait.side_effect = TiltHomeFailed()
-        exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
-        exposure.read_project(TestExposure.PROJECT)
-        exposure.startProject()
-        exposure.confirm_print_start()
+        exposure = self._start_exposure(hw)
 
         for i in range(30):
             print(f"Waiting for exposure {i}, state: ", exposure.state)
@@ -176,11 +170,65 @@ class TestExposure(Sl1fwTestCase):
 
         raise TimeoutError("Waiting for exposure failed")
 
-    def _run_exposure(self, hw) -> Exposure:
+    def test_resin_refilled(self):
+        hw = self.setupHw()
+        self._fake_calibration(hw)
+        fake_resin_volume = 100.0
+        hw.get_resin_volume.return_value = fake_resin_volume
+        exposure = self._start_exposure(hw)
+        feedme_done = False
+
+        for i in range(60):
+            print(f"Waiting for exposure {i}, state: ", exposure.state)
+            if exposure.state == ExposureState.PRINTING:
+                if not feedme_done:
+                    exposure.doFeedMe()
+                    feedme_done = True
+                else:
+                    self.assertEqual(exposure.resin_volume, defines.resinMaxVolume)
+            if exposure.state == ExposureState.FEED_ME:
+                exposure.doContinue()
+            if exposure.state in ExposureState.finished_states():
+                self.assertNotEqual(exposure.state, ExposureState.FAILURE)
+                return
+            sleep(0.5)
+
+        raise TimeoutError("Waiting for exposure failed")
+
+    def test_resin_not_refilled(self):
+        hw = self.setupHw()
+        self._fake_calibration(hw)
+        fake_resin_volume = 100.0
+        hw.get_resin_volume.return_value = fake_resin_volume
+        exposure = self._start_exposure(hw)
+        feedme_done = False
+
+        for i in range(60):
+            print(f"Waiting for exposure {i}, state: ", exposure.state)
+            if exposure.state == ExposureState.PRINTING:
+                if not feedme_done:
+                    exposure.doFeedMe()
+                    feedme_done = True
+                else:
+                    self.assertLessEqual(fake_resin_volume, exposure.resin_volume)
+            if exposure.state == ExposureState.FEED_ME:
+                exposure.doBack()
+            if exposure.state in ExposureState.finished_states():
+                self.assertNotEqual(exposure.state, ExposureState.FAILURE)
+                return
+            sleep(0.5)
+
+        raise TimeoutError("Waiting for exposure failed")
+
+    def _start_exposure(self, hw) -> Exposure:
         exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
         exposure.read_project(TestExposure.PROJECT)
         exposure.startProject()
         exposure.confirm_print_start()
+        return exposure
+
+    def _run_exposure(self, hw) -> Exposure:
+        exposure = self._start_exposure(hw)
 
         for i in range(30):
             print(f"Waiting for exposure {i}, state: ", exposure.state)
