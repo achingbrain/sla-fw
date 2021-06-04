@@ -4,51 +4,55 @@
 # Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from dataclasses import dataclass, field
 from enum import unique, Enum
 
 from sl1fw import defines
 
 
+@dataclass(eq=False)
 class ExposureScreenParameters:
-    # pylint: disable=too-many-arguments
-    def __init__(self, size_px: (), pixel_size_nm: int, referesh_delay_ms: int, monochromatic: bool, backwards: bool):
-        self.size_px = size_px
-        self.pixel_size_nm = pixel_size_nm
-        self.referesh_delay_ms = referesh_delay_ms
-        self.monochromatic = monochromatic
-        self.backwards = backwards
+    #pylint: disable=too-many-instance-attributes
+    size_px: tuple
+    thumbnail_factor: int
+    pixel_size_nm: int
+    referesh_delay_ms: int
+    monochromatic: bool
+    backwards: bool
+    width_px: int = field(init=False)
+    height_px: int = field(init=False)
+    bytes_per_pixel: int = field(init=False)
+    apparent_width_px: int = field(init=False)
+    detected_size_px: tuple = field(init=False)
+    display_usage_size_px: tuple = field(init=False)
+    live_preview_size_px: tuple = field(init=False)
+    surface_area_px: tuple = field(init=False)
 
-    @property
-    def width_px(self):
-        return self.size_px[0]
+    def __post_init__(self):
+        self.width_px = self.size_px[0]
+        self.height_px = self.size_px[1]
+        self.bytes_per_pixel = 3 if self.monochromatic else 1
+        self.apparent_width_px = self.size_px[0] // self.bytes_per_pixel
+        self.detected_size_px = (self.size_px[0] // self.bytes_per_pixel, self.size_px[1])
+        # numpy uses reversed axis indexing
+        self.display_usage_size_px = (self.size_px[1] // self.thumbnail_factor, self.size_px[0] // self.thumbnail_factor)
+        self.live_preview_size_px = (self.size_px[0] // self.thumbnail_factor, self.size_px[1] // self.thumbnail_factor)
+        self.surface_area_px = (0, 0, self.apparent_width_px, self.height_px)
 
-    @property
-    def height_px(self):
-        return self.size_px[1]
 
-    @property
-    def detected_size_px(self):
-        if self.monochromatic:
-            return (self.size_px[0] // 3, self.size_px[1])
-        return self.size_px
-
+@dataclass(eq=False)
 class CalibrationParameters:
-    def __init__(self, pwms: (), intensity_error_threshold, param_p):
-        self.pwms = pwms
-        self.intensity_error_threshold = intensity_error_threshold
-        self.param_p = param_p
+    pwms: tuple
+    intensity_error_threshold: int
+    param_p: float
+    min_pwm: int = field(init=False)
+    max_pwm: int = field(init=False)
+    safe_default_pwm: int = field(init=False)
 
-    @property
-    def min_pwm(self):
-        return self.pwms[0]
-
-    @property
-    def max_pwm(self):
-        return self.pwms[1]
-
-    @property
-    def safe_default_pwm(self):
-        return self.pwms[2]
+    def __post_init__(self):
+        self.min_pwm = self.pwms[0]
+        self.max_pwm = self.pwms[1]
+        self.safe_default_pwm = self.pwms[2]
 
 
 @unique
@@ -68,9 +72,9 @@ class PrinterModel(Enum):
     @property
     def exposure_screen_parameters(self) -> ExposureScreenParameters:
         return {
-                self.NONE: ExposureScreenParameters((320, 200), 50000, 0, False, False),
-                self.SL1: ExposureScreenParameters((1440, 2560), 46875, 30, False, False),
-                self.SL1S: ExposureScreenParameters((1620, 2560), 50000, 20, True, False),
+                self.NONE: ExposureScreenParameters((320, 200), 1, 50000, 0, False, False),
+                self.SL1: ExposureScreenParameters((1440, 2560), 5, 46875, 30, False, False),
+                self.SL1S: ExposureScreenParameters((1620, 2560), 5, 50000, 20, True, False),
             }[self]
 
     def calibration_parameters(self, is500khz: bool) -> CalibrationParameters:

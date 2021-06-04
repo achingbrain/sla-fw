@@ -121,7 +121,7 @@ class DisplayServiceMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def display_usage_heatmap(self):
         generate.display_usage_heatmap(
-                self._printer.exposure_image,
+                self._printer.hw.exposure_screen.parameters,
                 defines.displayUsageData,
                 defines.displayUsagePalette,
                 defines.fullscreenImage)

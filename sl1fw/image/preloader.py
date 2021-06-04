@@ -64,9 +64,12 @@ class Preloader(Process):
         self._shm: Optional[shared_memory.SharedMemory] = None
         self._sl: Optional[shared_memory.ShareableList] = None
         self._stoprequest = Event()
-        self._live_preview_size_px = (self._params.width_px // defines.thumbnail_factor, self._params.height_px // defines.thumbnail_factor)
-        self._display_usage_size = (self._params.height_px // defines.thumbnail_factor, self._params.width_px // defines.thumbnail_factor)
-        self._display_usage_shape = (self._display_usage_size[0], defines.thumbnail_factor, self._display_usage_size[1], defines.thumbnail_factor)
+        self._display_usage_shape = (
+                self._params.display_usage_size_px[0],
+                self._params.thumbnail_factor,
+                self._params.display_usage_size_px[1],
+                self._params.thumbnail_factor,
+        )
         self._black_image = Image.new("L", self._params.size_px)
         self._project_serial: Optional[int] = None
         self._calibration: Optional[Calibration] = None
@@ -168,7 +171,11 @@ class Preloader(Process):
             output_image.paste(self._black_image, mask=mask)
         start_time = time()
         pixels = numpy.array(output_image)
-        usage = numpy.ndarray(self._display_usage_size, dtype=numpy.float64, order='C', buffer=self._shm[SHMIDX.DISPLAY_USAGE].buf)
+        usage = numpy.ndarray(
+                self._params.display_usage_size_px,
+                dtype=numpy.float64,
+                order='C',
+                buffer=self._shm[SHMIDX.DISPLAY_USAGE].buf)
         # 1500 layers on 0.1 mm layer height <0:255> -> <0.0:1.0>
         usage += numpy.reshape(pixels, self._display_usage_shape).mean(axis=3).mean(axis=1) / 382500
         white_pixels = get_white_pixels(output_image)
@@ -190,7 +197,7 @@ class Preloader(Process):
     def _screenshot(self, image: Image, number: str):
         try:
             start_time = time()
-            preview = image.resize(self._live_preview_size_px, Image.BICUBIC)
+            preview = image.resize(self._params.live_preview_size_px, Image.BICUBIC)
             self._logger.debug("resize done in %f secs", time() - start_time)
             start_time = time()
             preview.save(defines.livePreviewImage + "-tmp%s.png" % number)

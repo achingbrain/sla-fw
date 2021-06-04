@@ -23,10 +23,11 @@ from aiohttp.client_exceptions import ClientConnectorError
 
 from sl1fw import defines
 from sl1fw.functions.files import get_save_path, usb_remount
+from sl1fw.functions.generate import display_usage_heatmap
 from sl1fw.libHardware import Hardware
 from sl1fw.states.logs import LogsState, StoreType
 from sl1fw.state_actions.logs.summary import create_summary
-from sl1fw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace
+from sl1fw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace, DisplayUsageError
 
 
 def get_logs_file_name(hw: Hardware) -> str:
@@ -210,6 +211,7 @@ class LogsExport(ABC, Thread):
         logs_dir.mkdir()
         log_file = logs_dir / "log.txt"
         summary_file = logs_dir / "summary.json"
+        display_usage_file = logs_dir / "display_usage.png"
 
         self._logger.info("Creating log export summary")
         summary = create_summary(self._hw, self._logger, summary_path = summary_file)
@@ -217,6 +219,18 @@ class LogsExport(ABC, Thread):
             self._logger.debug("Log export summary created")
         else:
             self._logger.error("Log export summary failed to create")
+
+        self._logger.info("Creating display usage heatmap")
+        try:
+            display_usage_heatmap(
+                    self._hw.exposure_screen.parameters,
+                    defines.displayUsageData,
+                    defines.displayUsagePalette,
+                    display_usage_file)
+        except DisplayUsageError as e:
+            self._logger.warning("Display usage heatmap not exported: %s", e.reason)
+        except Exception:
+            self._logger.exception("Create display usage exception")
 
         self._logger.debug("Running log export script")
         self.proc = await asyncio.create_subprocess_shell(

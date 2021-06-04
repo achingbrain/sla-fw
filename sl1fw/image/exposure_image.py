@@ -40,13 +40,11 @@ class ExposureImage:
         self._preloader_log_listener = QueueListener(self._preloader_log_queue, *logging.getLogger().handlers)
         self._start_preload = Queue()
         self._preload_result = Queue()
-        self.display_usage_size = None
 
     def start(self):
         # numpy uses reversed axis indexing
-        self.display_usage_size = (self._hw.exposure_screen.parameters.height_px // defines.thumbnail_factor, self._hw.exposure_screen.parameters.width_px // defines.thumbnail_factor)
         image_bytes_count = self._hw.exposure_screen.parameters.width_px * self._hw.exposure_screen.parameters.height_px
-        temp_usage = numpy.zeros(self.display_usage_size, dtype=numpy.float64, order='C')
+        temp_usage = numpy.zeros(self._hw.exposure_screen.parameters.display_usage_size_px, dtype=numpy.float64, order='C')
         # see SLIDX!!!
         self._sl = shared_memory.ShareableList(sequence=[
                 0,
@@ -109,7 +107,11 @@ class ExposureImage:
         self._project = project
         self._calibration = None
         project_flags = ProjectFlags.NONE
-        usage = numpy.ndarray(self.display_usage_size, dtype=numpy.float64, order='C', buffer=self._shm[SHMIDX.DISPLAY_USAGE].buf)
+        usage = numpy.ndarray(
+                self._hw.exposure_screen.parameters.display_usage_size_px,
+                dtype=numpy.float64,
+                order='C',
+                buffer=self._shm[SHMIDX.DISPLAY_USAGE].buf)
         usage.fill(0.0)
         if self._project.per_partes:
             try:
@@ -251,11 +253,15 @@ class ExposureImage:
         self._logger.debug("inverse done in %f secs", time() - start_time)
 
     def save_display_usage(self):
-        usage = numpy.ndarray(self.display_usage_size, dtype=numpy.float64, order='C', buffer=self._shm[SHMIDX.DISPLAY_USAGE].buf)
+        usage = numpy.ndarray(
+                self._hw.exposure_screen.parameters.display_usage_size_px,
+                dtype=numpy.float64,
+                order='C',
+                buffer=self._shm[SHMIDX.DISPLAY_USAGE].buf)
         try:
             with numpy.load(defines.displayUsageData) as npzfile:
                 saved_data = npzfile['display_usage']
-                if saved_data.shape != self.display_usage_size:
+                if saved_data.shape != self._hw.exposure_screen.parameters.display_usage_size_px:
                     self._logger.warning("Wrong saved data shape: %s", saved_data.shape)
                 else:
                     usage += saved_data
