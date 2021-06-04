@@ -53,6 +53,8 @@ class TestIntegrationConfig0(Sl1FwIntegrationTestCaseBase):
         self.assertFalse(self.config0.mute)
         self.assertEqual(0, self.config0.uvCurrent)
         self.assertEqual(204, self.config0.uvPwm)
+        self.assertEqual(0, self.config0.uvPwmTune)
+        self.assertEqual(204, self.config0.uvPwmPrint)
         self.assertFalse(self.config0.perPartes)
         self.assertEqual(120, self.config0.uvWarmUpTime)
         self.assertEqual(100, self.config0.pwrLedPwm)

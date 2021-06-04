@@ -188,7 +188,7 @@ class DisplayControlMenu(SafeAdminMenu):
     def set_uv(self, enabled: bool):
         if enabled:
             self._printer.hw.startFans()
-            self._printer.hw.uvLedPwm = self._printer.hw.config.uvPwm
+            self._printer.hw.uvLedPwm = self._printer.hw.config.uvPwmPrint # use final UV PWM, due to possible test
         else:
             self._printer.hw.stopFans()
 
@@ -238,6 +238,7 @@ class DisplayControlMenu(SafeAdminMenu):
 
 
 class DirectPwmSetMenu(SafeAdminMenu):
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
         self._printer = printer
@@ -245,15 +246,21 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._run = True
         self._status = "<h3>UV meter disconnected<h3>"
         self._data = None
+        self._uv_pwm_print = self._temp.uvPwmPrint
 
         self.add_back()
         uv_pwm_item = AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1)
         uv_pwm_item.changed.connect(self._uv_pwm_changed)
+        uv_pwm_tune_item = AdminIntValue.from_value("UV LED PWM fine tune", self._temp, "uvPwmTune", 1)
+        uv_pwm_tune_item.changed.connect(self._uv_pwm_changed)
+        self.uv_pwm_print_item = AdminLabel.from_property(self, DirectPwmSetMenu.uv_pwm_print)
         self.add_items(
             (
                 AdminBoolValue.from_value("UV LED", self, "uv_led"),
                 AdminAction("Inverse", self.invert),
+                self.uv_pwm_print_item,
                 uv_pwm_item,
+                uv_pwm_tune_item,
                 AdminLabel.from_property(self, DirectPwmSetMenu.status),
                 AdminAction("Show measured data", functools.partial(self.show_calibration)),
                 AdminAction("Save", self.save),
@@ -288,7 +295,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
             if connected:
                 if meter.read():
                     self._data = meter.get_data(plain_mean=True)
-                    self._data.uvFoundPwm = self._temp.uvPwm
+                    self._data.uvFoundPwm = self._uv_pwm_print
                     self.status = "<h3>ø:%.1f σ:%.1f %.1f°C<h3>" % (
                         self._data.uvMean,
                         self._data.uvStdDev,
@@ -318,7 +325,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._printer.hw.powerLed("normal")
         status.set("<h3>Tilt leveled<h3>")
         self._printer.hw.startFans()
-        self._printer.hw.uvLedPwm = self._temp.uvPwm
+        self._printer.hw.uvLedPwm = self._uv_pwm_print
         self._printer.hw.uvLed(True)
         self._printer.exposure_image.blank_screen()
         self._printer.exposure_image.inverse()
@@ -332,10 +339,18 @@ class DirectPwmSetMenu(SafeAdminMenu):
     def uv_led(self, value: bool):
         if value:
             self._printer.hw.startFans()
-            self._printer.hw.uvLedPwm = self._temp.uvPwm
+            self._printer.hw.uvLedPwm = self._uv_pwm_print
         else:
             self._printer.hw.stopFans()
         self._printer.hw.uvLed(value)
+
+    @property
+    def uv_pwm_print(self) -> str:
+        return "<h3>Final UV PWM value: " + str(self._uv_pwm_print) + "</h3>"
+
+    @uv_pwm_print.setter
+    def uv_pwm_print(self, value):
+        self._uv_pwm_print = value
 
     @SafeAdminMenu.safe_call
     def invert(self):
@@ -351,4 +366,6 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._control.enter(Info(self._control, "Configuration saved"))
 
     def _uv_pwm_changed(self):
-        self._printer.hw.uvLedPwm = self._temp.uvPwm
+        # TODO: simplify work with config and config writer
+        self.uv_pwm_print_item.set_value(self._temp.uvPwm + self._temp.uvPwmTune)
+        self._printer.hw.uvLedPwm = self._uv_pwm_print

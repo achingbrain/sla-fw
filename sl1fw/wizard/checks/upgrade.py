@@ -21,6 +21,7 @@ class ResetUVPWM(Check):
 
     async def async_task_run(self, actions: UserActionBroker):
         del self._writer.uvCurrent
+        del self._writer.uvPwmTune
         pwm = self._model.default_uvpwm()
         self._writer.uvPwm = pwm
         set_factory_uvpwm(pwm)

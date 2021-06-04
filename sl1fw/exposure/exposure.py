@@ -412,7 +412,7 @@ class Exposure:
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
 
         self.exposure_image.blank_screen()
-        self.hw.uvLedPwm = self.hw.config.uvPwm
+        self.hw.uvLedPwm = self.hw.config.uvPwmPrint
         self.hw.uvDisplayCounter(True)
         if not self.hw.config.blinkExposure:
             self.hw.uvLed(True)

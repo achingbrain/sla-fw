@@ -157,13 +157,24 @@ class HwConfig(Config):
     fan2Enabled = BoolValue(True, doc="Blower fan status.")
     fan3Enabled = BoolValue(True, doc="Rear fan status.")
     uvCurrent = FloatValue(0.0, minimum=0.0, maximum=800.0, doc="UV LED current, DEPRECATED.")
+    uvPwmTune = IntValue(0, minimum=-10, maximum=10, doc="Fine tune UV PWM. This value is added to standard uvPwm [-]")
     uvPwm = IntValue(
         lambda self: int(round(self.uvCurrent / 3.2)),
         minimum=0,
         maximum=250,
         factory=True,
-        doc="Calibrated UV LED PWM.",
+        doc="UV LED PWM set by UV calibration (SL1) or calculated (SL1s) [-].",
     )
+
+    @property
+    def uvPwmPrint(self) -> int:
+        """
+        Final UV PWM used for printing
+
+        :return: Value which is supposed to be used for printing
+        """
+        return self.uvPwm + self.uvPwmTune
+
     uvWarmUpTime = IntValue(120, minimum=0, maximum=300, doc="UV LED calibration warmup time. [seconds]")
     uvCalibIntensity = IntValue(140, minimum=90, maximum=200, doc="UV LED calibration intensity.")
     uvCalibMinIntEdge = IntValue(90, minimum=80, maximum=150, doc="UV LED calibration minimum intensity at the edge.")

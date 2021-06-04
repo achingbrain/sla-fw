@@ -52,7 +52,7 @@ class FactoryTests0:
     def set_uv(self, enable: bool) -> None:
         if enable:
             self._printer.hw.startFans()
-            self._printer.hw.uvLedPwm = self._printer.hwConfig.uvPwm
+            self._printer.hw.uvLedPwm = self._printer.hwConfig.uvPwmPrint
         else:
             self._printer.hw.stopFans()
 

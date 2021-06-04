@@ -221,6 +221,8 @@ class TestUpgradeWizard(TestWizardsBase):
         config.read_file()
         self.assertEqual(1, config.vatRevision)
         self.assertEqual(208, config.uvPwm)
+        self.assertEqual(0, config.uvPwmTune)
+        self.assertEqual(208, config.uvPwmPrint)
         self.assertEqual(208, config.get_values()["uvPwm"].get_factory_value(config))
 
     def test_sl1s_upgrade_reject(self):
