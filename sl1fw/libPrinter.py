@@ -52,7 +52,6 @@ from sl1fw.libAsync import SlicerProfileUpdater
 from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
-from sl1fw.libQtDisplay import QtDisplay
 from sl1fw.slicer.slicer_profile import SlicerProfile
 from sl1fw.state_actions.manager import ActionManager
 from sl1fw.states.printer import PrinterState
@@ -134,7 +133,7 @@ class Printer:
         if debug_display:
             devices = [debug_display]
         else:
-            devices = [QtDisplay()]
+            devices = []
 
         self.logger.info("Initializing ExposureImage")
         self.exposure_image = ExposureImage(self.hw)
