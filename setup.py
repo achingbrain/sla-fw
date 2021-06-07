@@ -24,6 +24,7 @@ data_files = [
     ('/etc/sl1fw', ['sl1fw/hardware.cfg']),
     ('/etc/sl1fw', ['sl1fw/loggerConfig.json']),
     ('/usr/lib/systemd/system', glob('systemd/*.service')),
+    ('/usr/lib/systemd/system', glob('systemd/*.path')),
     ('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']),
     ('/usr/share/factory/defaults', ['factory/factory.toml']),
     ('/usr/share/dbus-1/system.d', glob('dbus/*'))

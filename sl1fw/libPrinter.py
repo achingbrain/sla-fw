@@ -208,10 +208,18 @@ class Printer:
             # the on firstboot. The firmware does not know whether the printer has been manufactured as SL1 or SL1S it
             # has to detect its initial HW configuration on first start.
             if defines.detect_sla_model_file.exists():
-                set_configured_printer_model(self.hw.printer_model)
                 if self.hw.printer_model == PrinterModel.SL1S:
                     self.hw.config.vatRevision = 1  # Configure SL1S vat revision
                     set_factory_uvpwm(self.hw.printer_model.default_uvpwm())
+                    incompatible_extension = PrinterModel.SL1
+                else:
+                    incompatible_extension = PrinterModel.SL1S
+
+                # Force remove incompatible projects on firstboot
+                files_to_remove = get_all_supported_files(incompatible_extension, Path(defines.internalProjectPath))
+                for file in files_to_remove:
+                    os.remove(file)
+                set_configured_printer_model(self.hw.printer_model)
                 defines.detect_sla_model_file.unlink()
             # Also omit running upgrade/downgrade wizard if printer is SL1 and model was not set before.
             if self.hw.printer_model == PrinterModel.SL1 and not defines.printer_model.exists():

@@ -13,6 +13,8 @@ if [ -z ${SL1} ]; then
 fi;
 
 rsync -av systemd/sl1fw.service root@${SL1}:/lib/systemd/system/sl1fw.service &&
+rsync -av systemd/model-detect.service root@${SL1}:/lib/systemd/system/model-detect.service &&
+rsync -av systemd/model-detect.path root@${SL1}:/lib/systemd/system/model-detect.path &&
 rsync -av systemd/sl1fw-tmpfiles.conf root@${SL1}:/lib/tmpfiles.d/sl1fw-tmpfiles.conf &&
 rsync -av sl1fw/scripts/ root@${SL1}:/usr/share/sl1fw/scripts/ &&
 rsync -av sl1fw/multimedia/ root@${SL1}:/usr/share/sl1fw/multimedia/ &&
@@ -22,5 +24,5 @@ ssh root@${SL1} "
 set -o xtrace; \
 systemctl daemon-reload; \
 systemctl restart sl1fw; \
-systemctl restart touch-ui
+systemctl restart touch-ui model-detect.service model-detect.path
 "

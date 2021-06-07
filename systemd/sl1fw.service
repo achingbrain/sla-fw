@@ -1,7 +1,7 @@
 [Unit]
 Description=SL1 firmware
-Wants=NetworkManager.service rauc.service model-detect.service
-After=NetworkManager.service rauc.service model-detect.service
+Wants=NetworkManager.service rauc.service model-detect.service model-detect.path
+After=NetworkManager.service rauc.service model-detect.service model-detect.path
 
 [Service]
 Type=dbus
