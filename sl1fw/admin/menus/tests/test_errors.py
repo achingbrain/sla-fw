@@ -3,46 +3,52 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
-
-from prusaerrors.shared.codes import Code
-from prusaerrors.sl1.codes import Sl1Codes
+from abc import abstractmethod
 
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.libPrinter import Printer
+from sl1fw.errors.tests import get_classes, get_instance
 
 
-class TestErrorsMenu(AdminMenu):
-    ARGS = {
-        "failed_fans_text": '["rear"]',
-        "volume_ml": 242,
-        "position_nm": 42000000,
-        "position": 4242,
-        "fan": "rear",
-        "rpm": 4242,
-        "avg": 2424,
-        "fanError": "[True, False, True]",
-        "sensor": "ambient",
-        "temperature": 42.42,
-        "found": 120,
-        "allowed": 150,
-        "a64": "FAKEA64SERIAL",
-        "mc": "FAKEMCSERIAL",
-        "adminAPI": True,
-    }
+class TestExceptionMenu(AdminMenu):
 
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
         self._printer = printer
 
         self.add_back()
-        self.add_error_items()
+        self.add_items(self._get_items())
 
-    def add_error_items(self):
-        for name, code in Sl1Codes.get_codes().items():
-            self.add_item(AdminAction(name, functools.partial(self.do_error, code)))
+    @staticmethod
+    @abstractmethod
+    def _get_classes_list():
+        """ implemented in children """
 
-    def do_error(self, code: Code):
-        self._printer.display.pages["error"].setParams(code=code.raw_code, params=self.ARGS)
-        self._printer.display.forcePage("error")
+    @staticmethod
+    def _sort_classes(data):
+        return data[1].CODE.code
+
+    def _get_items(self):
+        items = []
+        for _, cls in sorted(self._get_classes_list(), key=self._sort_classes):
+            items.append(AdminAction(f"{cls.CODE.code} - {cls.CODE.title}", functools.partial(self.do_error, cls)))
+        return items
+
+    def do_error(self, cls):
+        self._printer.exception = get_instance(cls)
+
+
+class TestWarningsMenu(TestExceptionMenu):
+
+    @staticmethod
+    def _get_classes_list():
+        return get_classes(get_warnings=True)
+
+
+class TestErrorsMenu(TestExceptionMenu):
+
+    @staticmethod
+    def _get_classes_list():
+        return get_classes(get_errors=True)

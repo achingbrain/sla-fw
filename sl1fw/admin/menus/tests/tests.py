@@ -7,8 +7,7 @@ import logging
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction
 from sl1fw.admin.menus.admin_api_test import TestMenu
-from sl1fw.admin.menus.tests.test_error_types import TestErrorTypesMenu
-from sl1fw.admin.menus.tests.test_errors import TestErrorsMenu
+from sl1fw.admin.menus.tests.test_errors import TestErrorsMenu, TestWarningsMenu
 from sl1fw.admin.menus.tests.test_hardware import TestHardwareMenu
 from sl1fw.admin.menus.tests.test_wizards import TestWizardsMenu
 from sl1fw.admin.safe_menu import SafeAdminMenu
@@ -47,13 +46,17 @@ class TestsMenu(SafeAdminMenu):
         self._printer = printer
 
         self.add_back()
-        self.add_item(AdminAction("Error types", lambda: self.enter(TestErrorTypesMenu(self._control, self._printer))))
-        self.add_item(AdminAction("Errors", lambda: self.enter(TestErrorsMenu(self._control, self._printer))))
-        self.add_item(AdminAction("Wizards", lambda: self.enter(TestWizardsMenu(self._control, self._printer))))
-        self.add_item(AdminAction("Hardware", lambda: self.enter(TestHardwareMenu(self._control, self._printer))))
-        self.add_item(AdminAction("Admin API test", lambda: self.enter(TestMenu(self._control))))
-        self.add_item(AdminAction("Touchscreen test", self._control.touchscreen_test))
-        self.add_item(AdminAction("Send wizard data", self.send_printer_data))
+        self.add_items(
+            (
+                AdminAction("Errors", lambda: self.enter(TestErrorsMenu(self._control, self._printer))),
+                AdminAction("Warnings", lambda: self.enter(TestWarningsMenu(self._control, self._printer))),
+                AdminAction("Wizards", lambda: self.enter(TestWizardsMenu(self._control, self._printer))),
+                AdminAction("Hardware", lambda: self.enter(TestHardwareMenu(self._control, self._printer))),
+                AdminAction("Admin API test", lambda: self.enter(TestMenu(self._control))),
+                AdminAction("Touchscreen test", self._control.touchscreen_test),
+                AdminAction("Send wizard data", self.send_printer_data),
+            )
+        )
 
     @SafeAdminMenu.safe_call
     def send_printer_data(self):
