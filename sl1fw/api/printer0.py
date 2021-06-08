@@ -1095,3 +1095,28 @@ class Printer0:
         :return: booster board serial number
         """
         return self.printer.hw.sl1s_booster.board_serial_no
+
+
+    @auto_dbus
+    @property
+    @last_error
+    @cached()
+    def expo_panel_serial(self) -> str:
+        """
+        Get exposure display serial number
+
+        :return: exposure display serial number
+        """
+        return self.printer.hw.exposure_screen.panel.serial_number()
+
+    @auto_dbus
+    @property
+    @last_error
+    @cached()
+    def expo_panel_transmittance(self) -> float:
+        """
+        Get exposure display transmittance
+
+        :return: exposure display transmittance
+        """
+        return self.printer.hw.exposure_screen.panel.transmittance()

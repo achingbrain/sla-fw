@@ -47,6 +47,7 @@ class ExposureScreen:
         self._video_sync_event = Event()
         self._thread: Optional[Thread] = None
         self._display = None
+        self.panel: ExposurePanel = None
 
 
     def start(self) -> PrinterModel:
@@ -171,15 +172,15 @@ class ExposureScreen:
 
 
     def _detect_model(self):
-        panel = ExposurePanel
-        model = panel.printer_model()
+        self.panel = ExposurePanel
+        model = self.panel.printer_model()
         self.parameters = model.exposure_screen_parameters
         if model == PrinterModel.NONE:
-            self._logger.error("Unknown printer model (panel name: '%s')", panel.panel_name())
+            self._logger.error("Unknown printer model (panel name: '%s')", self.panel.panel_name())
         else:
             self._logger.info("Detected printer model: %s", model.name)
-            self._logger.info("Exposure panel serial number: %s", panel.serial_number())
-            self._logger.info("Exposure panel transmittance: %s", panel.transmittance())
+            self._logger.info("Exposure panel serial number: %s", self.panel.serial_number())
+            self._logger.info("Exposure panel transmittance: %s", self.panel.transmittance())
             self._referesh_delay_s = self.parameters.referesh_delay_ms / 1000
         return model
 

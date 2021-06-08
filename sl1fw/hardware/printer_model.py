@@ -103,15 +103,15 @@ class ExposurePanel:
         return path.read_text()[:-1] if path.exists() else None
 
     @classmethod
-    def serial_number(cls):
+    def serial_number(cls) -> str:
         path = cls._of_node() / "serial-number"
-        return path.read_text()[:-1] if path.exists() else None
+        return path.read_text()[:-1] if path.exists() else ""
 
     @classmethod
-    def transmittance(cls):
+    def transmittance(cls) -> float:
         path = cls._of_node() / "transmittance"
-        return int.from_bytes(path.read_bytes(), byteorder='big') / 10000.0 \
-            if path.exists() else 1.0
+        return int.from_bytes(path.read_bytes(), byteorder='big') / 100.0 \
+            if path.exists() else 0.0
 
     @classmethod
     def printer_model(cls):

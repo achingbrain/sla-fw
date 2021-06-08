@@ -77,5 +77,5 @@ class TestPrinterModel(Sl1fwTestCase):
         self.assertEqual(ExposurePanel.printer_model(), PrinterModel.SL1)
         defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / "sl1s"
         self.assertEqual(ExposurePanel.printer_model(), PrinterModel.SL1S)
-        self.assertEqual(ExposurePanel.transmittance(), 0.9999)
+        self.assertEqual(ExposurePanel.transmittance(), 99.99)
         self.assertEqual(ExposurePanel.serial_number(), "CZPX0712X004X061939")
