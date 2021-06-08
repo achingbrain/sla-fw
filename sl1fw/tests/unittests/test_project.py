@@ -160,5 +160,15 @@ class TestProject(Sl1fwTestCase):
         # project.config.write("projectconfig.txt")
 
 
+    def test_project_remaining_time_estimate_with_tilt(self):
+        project = Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
+        self.assertEqual(13500, project.count_remain_time(0, 0))
+
+    def test_project_remaining_time_estimate_without_tilt(self):
+        self.hw.config.tilt = False
+        project = Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
+        self.assertEqual(2500, project.count_remain_time(0, 0))
+
+
 if __name__ == '__main__':
     unittest.main()

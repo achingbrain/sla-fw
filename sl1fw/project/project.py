@@ -460,8 +460,9 @@ class Project:
         if slow_layers < 0:
             slow_layers = 0
         fast_layers = total_layers - layers_done - slow_layers
-        time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
-        time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
+        if self._hw.config.tilt:
+            time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
+            time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
         time_remain_ms += (total_layers - layers_done) * (
                 self.layer_height_nm * 5000 / 1000 / 1000  # tower move
                 + self._hw.config.delayBeforeExposure * 100
