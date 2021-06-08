@@ -218,6 +218,7 @@ class Printer:
                 # Force remove incompatible projects on firstboot
                 files_to_remove = get_all_supported_files(incompatible_extension, Path(defines.internalProjectPath))
                 for file in files_to_remove:
+                    self.logger.info("Removing incompatible example project: %s", file)
                     os.remove(file)
                 set_configured_printer_model(self.hw.printer_model)
                 defines.detect_sla_model_file.unlink()
