@@ -8,12 +8,13 @@ from datetime import timedelta, datetime
 from itertools import chain
 from threading import Thread
 from dataclasses import asdict
+from math import isclose
 
 from sl1fw import defines
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction, AdminBoolValue, AdminIntValue, AdminLabel
 from sl1fw.admin.menu import AdminMenu
-from sl1fw.admin.menus.dialogs import Info, Confirm, Wait
+from sl1fw.admin.menus.dialogs import Info, Confirm, Wait, Error
 from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.functions.system import hw_all_off
 from sl1fw.functions import files, generate
@@ -258,6 +259,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
             (
                 AdminBoolValue.from_value("UV LED", self, "uv_led"),
                 AdminAction("Inverse", self.invert),
+                AdminAction("Calculate PWM from display transmittance", self.calculate_pwm),
                 self.uv_pwm_print_item,
                 uv_pwm_item,
                 uv_pwm_tune_item,
@@ -369,3 +371,16 @@ class DirectPwmSetMenu(SafeAdminMenu):
         # TODO: simplify work with config and config writer
         self.uv_pwm_print_item.set_value(self._temp.uvPwm + self._temp.uvPwmTune)
         self._printer.hw.uvLedPwm = self._uv_pwm_print
+
+    def calculate_pwm(self):
+        trans = self._printer.hw.exposure_screen.panel.transmittance()
+        if isclose(trans, 0.0, abs_tol=0.001):
+            self._control.enter(Error(self._control, text="Display transmittance is not valid", pop=1))
+        else:
+            pwm = int(-35 * trans + 350)
+            if 0 < pwm < 250:
+                self._temp.uvPwm = pwm
+                self._uv_pwm_changed()
+                self._control.enter(Info(self._control, f"Calculated PWM is {pwm}"))
+            else:
+                self._control.enter(Error(self._control, text=f"Calculated value {pwm} is not in range <0,250>", pop=1))
