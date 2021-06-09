@@ -18,3 +18,5 @@ setuptools
 deprecation
 requests
 aiohttp
+pywayland
+smbus2
