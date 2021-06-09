@@ -5,8 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from unittest.mock import Mock
-
-from sl1fw.hardware.printer_model import PrinterModel
+from sl1fw.hardware.printer_model import PrinterModel, ExposurePanel
 
 
 class ExposureScreen:
@@ -18,3 +17,4 @@ class ExposureScreen:
         self.exit = Mock()
         self.show = Mock()
         self.sync = Mock()
+        self.panel = ExposurePanel
