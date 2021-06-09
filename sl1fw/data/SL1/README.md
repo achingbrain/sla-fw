@@ -23,6 +23,14 @@
 # Tune tilt profiles
 
 - set of values for tilt movement while printing
+```
+[
+    [tilt_down_large_fill],
+    [tilt_down_small_fill],
+    [tilt_up_large_fill],
+    [tilt_up_small_fill],
+]
+```
 - the movement is split on slow and fast by `limit for fast tilt` parameter
 - values are stored in A64
 -  tilt down procedure:

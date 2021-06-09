@@ -546,11 +546,11 @@ class Exposure:
         if self.hw.config.tilt:
             if self.hw.config.layerTowerHop and slow_move:
                 self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
-                self.hw.tilt.layer_up_wait(slow_move)
+                self.hw.tilt.layer_up_wait(slowMove=slow_move)
                 self.hw.towerMoveAbsoluteWait(position_steps)
             else:
                 self.hw.towerMoveAbsoluteWait(position_steps)
-                self.hw.tilt.layer_up_wait(slow_move)
+                self.hw.tilt.layer_up_wait(slowMove=slow_move)
         else:
             self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
             self.hw.towerMoveAbsoluteWait(position_steps)

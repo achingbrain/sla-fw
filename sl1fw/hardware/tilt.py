@@ -51,7 +51,7 @@ class Tilt(Axis):
         """move tilt to max (synchronous)"""
 
     @abstractmethod
-    def layer_up_wait(self, tiltHeight: int = 0, slowMove: bool = False) -> None:
+    def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
         """tilt up during the print"""
 
     def layer_down_wait(self, slowMove: bool = False) -> None:
@@ -277,7 +277,7 @@ class TiltSL1(Tilt):
         await self.sync_wait_async(retries=0)
 
     @safe_call(False, MotionControllerException)
-    def layer_up_wait(self, tiltHeight: int = 0, slowMove: bool = False) -> None:
+    def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
         if tiltHeight == 0: # use self._config.tiltHeight by default
             _tiltHeight = self._config.tiltHeight
         else: # in case of calibration there is need to force new unstored tiltHeight
