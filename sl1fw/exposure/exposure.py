@@ -325,6 +325,8 @@ class Exposure:
         self.estimated_total_time_ms = -1
         self.expoThread = Thread(target=self.run)
         self.last_warn = None
+        self._slow_move: bool = False
+        self._force_slow_remain_nm: int = 0
 
     def read_project(self, project_file: str):
         check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
@@ -539,18 +541,17 @@ class Exposure:
     def stats_seen(self):
         self.state = ExposureState.DONE
 
-    def _do_frame(self, times_ms, prev_white_pixels, was_stirring, second):
+    def _do_frame(self, times_ms, was_stirring, second, layer_height_nm):
         position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
-        slow_move = prev_white_pixels > self.hw.white_pixels_threshold
 
         if self.hw.config.tilt:
-            if self.hw.config.layerTowerHop and slow_move:
+            if self.hw.config.layerTowerHop and self._slow_move:
                 self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
-                self.hw.tilt.layer_up_wait(slowMove=slow_move)
+                self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
                 self.hw.towerMoveAbsoluteWait(position_steps)
             else:
                 self.hw.towerMoveAbsoluteWait(position_steps)
-                self.hw.tilt.layer_up_wait(slowMove=slow_move)
+                self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
         else:
             self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
             self.hw.towerMoveAbsoluteWait(position_steps)
@@ -605,11 +606,18 @@ class Exposure:
             sleep(self.hw.config.delayAfterExposure / 10.0)
 
         if self.hw.config.tilt:
-            slow_move = white_pixels > self.hw.white_pixels_threshold
-            if slow_move:
+            self._slow_move = white_pixels > self.hw.white_pixels_threshold     # current layer
+            # Force slow tilt for forceSlowTiltHeight if current layer area > limit4fast
+            if self._slow_move:
+                self._force_slow_remain_nm = self.hw.config.forceSlowTiltHeight
+            elif self._force_slow_remain_nm > 0:
+                self._force_slow_remain_nm -= layer_height_nm
+                self._slow_move = True
+
+            if self._slow_move:
                 self.slow_layers_done += 1
             try:
-                self.hw.tilt.layer_down_wait(slow_move)
+                self.hw.tilt.layer_down_wait(self._slow_move)
             except Exception:
                 return False, white_pixels
 
@@ -772,7 +780,6 @@ class Exposure:
 
         project = self.project
         project_hash = md5(project.name.encode()).hexdigest()[:8] + "_"
-        prev_white_pixels = 0
         was_stirring = True
         exposure_compensation = 0
 
@@ -875,18 +882,17 @@ class Exposure:
             times_ms = list(layer.times_ms)
             times_ms[0] += exposure_compensation
 
-            success, white_pixels = self._do_frame(times_ms, prev_white_pixels, was_stirring, False)
+            success, white_pixels = self._do_frame(times_ms, was_stirring, False, layer.height_nm)
             if not success:
                 self.doStuckRelease()
                 self.hw.powerLed("normal")
 
             # exposure of the second part
             if project.per_partes and white_pixels > self.hw.white_pixels_threshold:
-                success, dummy = self._do_frame(times_ms, white_pixels, was_stirring, True)
+                success, dummy = self._do_frame(times_ms, was_stirring, True, layer.height_nm)
                 if not success:
                     self.doStuckRelease()
 
-            prev_white_pixels = white_pixels
             was_stirring = False
             exposure_compensation = 0
 

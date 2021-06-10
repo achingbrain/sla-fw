@@ -29,6 +29,7 @@ from sl1fw.tests.mocks.hardware import Hardware
 
 class TestExposure(Sl1fwTestCase):
     PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1")
+    PROJECT_LAYER_CHANGE = str(Sl1fwTestCase.SAMPLES_DIR / "layer_change.sl1")
     BROKEN_EMPTY_PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "empty_file.sl1")
 
     def __init__(self, *args, **kwargs):
@@ -218,6 +219,38 @@ class TestExposure(Sl1fwTestCase):
                 return
             sleep(0.5)
 
+        raise TimeoutError("Waiting for exposure failed")
+
+    def test_exposure_force_slow_tilt(self):
+        defines.livePreviewImage = str(self.TEMP_DIR / "live.png")
+        defines.displayUsageData = str(self.TEMP_DIR / "display_usage.npz")
+        hw = self.setupHw()
+        self._fake_calibration(hw)
+        print(hw.config.limit4fast)
+        hw.config.limit4fast = 45
+
+        hw.config.forceSlowTiltHeight = 0  # do not force any slow tilts
+        exposure = self._start_force_slow_tilt_exposure(hw)
+        self.assertEqual(exposure.state, ExposureState.FINISHED)
+        self.assertEqual(exposure.slow_layers_done, 4)
+
+        hw.config.forceSlowTiltHeight = 100000  # 100 um -> force 2 slow layers
+        exposure = self._start_force_slow_tilt_exposure(hw)
+        self.assertEqual(exposure.state, ExposureState.FINISHED)
+        self.assertEqual(exposure.slow_layers_done, 8)
+
+    def _start_force_slow_tilt_exposure(self, hw):
+        exposure_image = ExposureImage(hw)
+        exposure_image.start()
+        exposure = Exposure(0, hw, exposure_image, self.runtime_config)
+        exposure.read_project(TestExposure.PROJECT_LAYER_CHANGE)
+        exposure.startProject()
+        exposure.confirm_print_start()
+        for i in range(30):
+            print(f"Waiting for exposure {i}, state: ", exposure.state)
+            if exposure.state in ExposureState.finished_states():
+                return exposure
+            sleep(1)
         raise TimeoutError("Waiting for exposure failed")
 
     def _start_exposure(self, hw) -> Exposure:

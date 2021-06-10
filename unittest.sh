@@ -3,7 +3,7 @@
 set -x
 
 export PATH="${PATH}:$(pwd)"
-export PYTHONPATH="$(pwd)$(find ./dependencies/ -maxdepth 1 -type d -printf ':%p')"
+export PYTHONPATH="${PYTHONPATH}:$(pwd)$(find ./dependencies/ -maxdepth 1 -type d -printf ':%p')"
 
 if ! command -v SLA-control-01.elf
 then

@@ -115,6 +115,7 @@ class HwConfig(Config):
     MCBoardVersion = IntValue(6, minimum=5, maximum=6, doc="Motion controller board revision. Used to flash firmware.")
     towerSensitivity = IntValue(0, minimum=-2, maximum=2, factory=True, doc="Tower sensitivity adjustment")
     vatRevision = IntValue(0, minimum=0, maximum=1, doc="Resin vat revision: 0 = metalic (SL1); 1 = plastic (SL1S);")
+    forceSlowTiltHeight = IntValue(1000000, minimum=0, maximum=10000000, doc="Force slow tilt after crossing limit4fast for defined height. [nm]")
 
     calibTowerOffset = IntValue(
         lambda self: self.calcMicroSteps(defines.defaultTowerOffset),

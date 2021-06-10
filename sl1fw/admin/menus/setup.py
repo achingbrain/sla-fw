@@ -138,11 +138,20 @@ class ExposureSetupMenu(SetupMenu):
         def get_up_and_down_expo_comp():
             return self._temp.upAndDownExpoComp * 100
 
+        def set_force_slow_tilt_height(value):
+            self._temp.forceSlowTiltHeight = int(round(value * 1000, ndigits=1))
+
+        def get_force_slow_tilt_height():
+            tmp = self._temp.forceSlowTiltHeight / 1000
+            return tmp
+
         self.add_items(
             (
                 AdminBoolValue.from_value("Blink exposure", self._temp, "blinkExposure"),
                 AdminBoolValue.from_value("Per-partes exposure", self._temp, "perPartes"),
                 AdminBoolValue.from_value("Use tilt", self._temp, "tilt"),
+                AdminIntValue("Force slow tilt height [μm]", get_force_slow_tilt_height, set_force_slow_tilt_height, 10),
+                AdminIntValue.from_value("Limit for fast tilt [%]", self._temp, "limit4fast", 1),
                 AdminBoolValue.from_value("Up&Down UV on", self._temp, "upAndDownUvOn"),
                 AdminIntValue("Layer tower hop [μm]", get_layer_tower_hop, set_layer_tower_hop, 100),
                 AdminFloatValue("Delay before expos. [s]", get_delay_before_expo, set_delay_before_expo, 0.1),
