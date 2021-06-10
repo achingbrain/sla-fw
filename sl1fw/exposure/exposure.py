@@ -545,6 +545,7 @@ class Exposure:
         position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
 
         if self.hw.config.tilt:
+            self.logger.info("%s tilt up", "Slow" if self._slow_move else "Fast")
             if self.hw.config.layerTowerHop and self._slow_move:
                 self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
                 self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
@@ -617,6 +618,7 @@ class Exposure:
             if self._slow_move:
                 self.slow_layers_done += 1
             try:
+                self.logger.info("%s tilt down", "Slow" if self._slow_move else "Fast")
                 self.hw.tilt.layer_down_wait(self._slow_move)
             except Exception:
                 return False, white_pixels
@@ -771,6 +773,8 @@ class Exposure:
 
         self.logger.info("Running exposure")
         self.state = ExposureState.PRINTING
+        self.logger.info("Motion controller tilt profiles: %s", self.hw.tilt.profiles)
+        self.logger.info("Printer tune tilt profiles: %s", self.hw.config.tuneTilt)
         self.printStartTime = datetime.now(tz=timezone.utc)
         statistics = TomlConfigStats(defines.statsData, self.hw)
         statistics.load()
