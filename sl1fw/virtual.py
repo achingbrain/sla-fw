@@ -29,6 +29,7 @@ import pydbus
 from gi.repository import GLib
 
 import sl1fw.tests.mocks.mc_port
+from sl1fw.api.factorytests0 import FactoryTests0
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.tests.mocks.exposure_screen import ExposureScreen
 from sl1fw import defines, test_runtime
@@ -165,6 +166,7 @@ class Virtual:
             self.standard0 = bus.publish(Standard0.__INTERFACE__, Standard0(self.printer))
             self.admin_manager = AdminManager()
             self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
+            FactoryTests0(self.printer)
             print("Running printer")
             Thread(target=self.printer.run, daemon=False).start()
             self.glib_loop.run()

@@ -3,8 +3,7 @@ import logging
 from sl1fw.api.decorators import dbus_api, state_checked, auto_dbus
 from sl1fw.functions.system import hw_all_off
 from sl1fw.libPrinter import Printer
-from sl1fw.states.display import DisplayState
-from sl1fw.states.printer import Printer0State
+from sl1fw.states.printer import Printer0State, PrinterState
 
 
 @dbus_api
@@ -25,11 +24,13 @@ class FactoryTests0:
         elif not factory_mode and self._publication is not None:
             self._logger.info("deregistering the dbus interface")
             self.leave_test_mode()
+            # pylint: disable = protected-access
+            self._publication._at_exit_cbs[0].__self__._at_exit_cbs[0].__self__.object = None
             self._publication.unpublish()
             self._publication = None
 
     @property
-    def state(self) -> int:
+    def state(self) -> Printer0State:
         state = self._printer.state.to_state0()
         if not state:
             state = self._printer.display.state.to_state0()
@@ -41,7 +42,7 @@ class FactoryTests0:
     @auto_dbus
     @state_checked(Printer0State.IDLE)
     def enter_test_mode(self) -> None:
-        self._printer.display.state = DisplayState.DISPLAY_TEST
+        self._printer.set_state(PrinterState.WIZARD, True)
 
     @auto_dbus
     def get_uv(self) -> bool:
@@ -52,7 +53,7 @@ class FactoryTests0:
     def set_uv(self, enable: bool) -> None:
         if enable:
             self._printer.hw.startFans()
-            self._printer.hw.uvLedPwm = self._printer.hwConfig.uvPwmPrint
+            self._printer.hw.uvLedPwm = self._printer.hw.config.uvPwmPrint
         else:
             self._printer.hw.stopFans()
 
@@ -61,21 +62,21 @@ class FactoryTests0:
     @auto_dbus
     @state_checked(Printer0State.WIZARD)
     def display_image(self, filename: str) -> None:
-        self._printer.screen.show_system_image(filename)
+        self._printer.exposure_image.show_system_image(filename)
 
     @auto_dbus
     @state_checked(Printer0State.WIZARD)
     def blank_screen(self) -> None:
-        self._printer.screen.blank_screen()
+        self._printer.exposure_image.blank_screen()
 
     @auto_dbus
     @state_checked(Printer0State.WIZARD)
     def invert_screen(self) -> None:
-        self._printer.screen.inverse()
+        self._printer.exposure_image.inverse()
 
     @auto_dbus
     def leave_test_mode(self) -> None:
-        if self._printer.display.state != DisplayState.DISPLAY_TEST:
+        if self._printer.state != PrinterState.WIZARD:
             return
-        hw_all_off(self._printer.hw, self._printer.screen)
-        self._printer.display.state = DisplayState.IDLE
+        hw_all_off(self._printer.hw, self._printer.exposure_image)
+        self._printer.set_state(PrinterState.WIZARD, False)

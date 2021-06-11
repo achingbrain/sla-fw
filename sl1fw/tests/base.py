@@ -52,6 +52,7 @@ from sl1fw.api.wizard0 import Wizard0
 
 
 class Sl1fwTestCase(DBusTestCase):
+    # pylint: disable = too-many-instance-attributes
     LOGGER_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 
     LOGGER_STREAM_HANDLER_NAME = "a64-fw custom stream handler"
@@ -85,6 +86,7 @@ class Sl1fwTestCase(DBusTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.do_ref_check = True
 
         # Make sure we use unmodified defines
         importlib.reload(defines)
