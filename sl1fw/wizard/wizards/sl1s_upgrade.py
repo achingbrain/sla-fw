@@ -24,7 +24,7 @@ from sl1fw.wizard.checks.upgrade import (
     ResetHwCounters,
     MarkPrinterModel,
 )
-from sl1fw.wizard.group import CheckGroup
+from sl1fw.wizard.group import CheckGroup, SingleCheckGroup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
@@ -79,32 +79,6 @@ class SL1SUpgradeCleanup(CheckGroup):
             actions.drop_state(wait_state)
 
 
-class SL1SUpgradePrepare(CheckGroup):
-    """ Just save system info BEFORE any cleanups """
-
-    def __init__(self, package: WizardDataPackage):
-        super().__init__(checks=(SystemInfoTest(package.hw),))
-
-    async def setup(self, actions: UserActionBroker):
-        pass
-
-
-class SL1SUpgradeFinish(CheckGroup):
-    def __init__(self, package: WizardDataPackage):
-        super().__init__(checks=(MarkPrinterModel(PrinterModel.SL1S, package.hw.config),))
-
-    async def setup(self, actions: UserActionBroker):
-        pass
-
-
-class SL1DowngradeFinish(CheckGroup):
-    def __init__(self, package: WizardDataPackage):
-        super().__init__(checks=(MarkPrinterModel(PrinterModel.SL1, package.hw.config),))
-
-    async def setup(self, actions: UserActionBroker):
-        pass
-
-
 class UpgradeWizardBase(Wizard):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(
@@ -142,10 +116,10 @@ class SL1SUpgradeWizard(UpgradeWizardBase):
 
     def get_groups(self):
         return (
-            SL1SUpgradePrepare(self._package),
+            SingleCheckGroup(SystemInfoTest(self._package.hw)), # Just save system info BEFORE any cleanups
             SL1SUpgradeCleanup(self._package, PrinterModel.SL1S),
             ShowResultsGroup(),
-            SL1SUpgradeFinish(self._package),
+            SingleCheckGroup(MarkPrinterModel(PrinterModel.SL1S, self._package.hw.config)),
         )
 
 
@@ -155,8 +129,8 @@ class SL1DowngradeWizard(UpgradeWizardBase):
 
     def get_groups(self):
         return (
-            SL1SUpgradePrepare(self._package),
+            SingleCheckGroup(SystemInfoTest(self._package.hw)), # Just save system info BEFORE any cleanups
             SL1SUpgradeCleanup(self._package, PrinterModel.SL1),
             ShowResultsGroup(),
-            SL1DowngradeFinish(self._package),
+            SingleCheckGroup(MarkPrinterModel(PrinterModel.SL1, self._package.hw.config)),
         )

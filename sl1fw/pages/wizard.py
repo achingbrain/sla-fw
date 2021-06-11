@@ -271,9 +271,10 @@ class PageWizardUvLed(PageWizardBase):
 
 
     def continueUvCheck(self):
-        if not self.display.doMenu("uvfanstest"):
-            return self._EXIT_()
-        #endif
+# REMOVED
+#        if not self.display.doMenu("uvfanstest"):
+#            return self._EXIT_()
+#        #endif
 
         if not self.display.doMenu("displaytest"):
             return self._EXIT_()

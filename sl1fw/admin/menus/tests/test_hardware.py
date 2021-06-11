@@ -11,7 +11,6 @@ from sl1fw.admin.menus.dialogs import Error, Confirm, Info
 from sl1fw.libPrinter import Printer
 from sl1fw.pages.infinitetest import PageInfiniteTest
 from sl1fw.pages.uvcalibration import PageUvCalibrationBase
-from sl1fw.pages.uvfanstest import PageUvFansTest
 from sl1fw.hardware.tilt import TiltProfile
 from sl1fw.errors.errors import TiltHomeFailed
 
@@ -23,7 +22,6 @@ class TestHardwareMenu(AdminMenu):
         self.add_back()
 
         self.add_item(AdminAction("Resin sensor test", self.resin_sensor_test))
-        self.add_item(AdminAction("UV & Fan test", self.uv_and_fan_test))
         self.add_item(AdminAction("Infinite UV calibrator test", self.infinite_uv_calibrator_test))
         self.add_item(AdminAction("Infinite test", self.infinite_test))
 
@@ -38,9 +36,6 @@ class TestHardwareMenu(AdminMenu):
 
     def do_resin_sensor_test(self):
         self.enter(ResinSensorTestMenu(self._control, self._printer))
-
-    def uv_and_fan_test(self):
-        self._printer.display.forcePage(PageUvFansTest.Name)
 
     def infinite_uv_calibrator_test(self):
         self.enter(InfiniteUVCalibratorMenu(self._control))
@@ -174,4 +169,4 @@ class ResinSensorTestMenu(AdminMenu):
             self._control.enter(Error(self._control, text="Measurement failed"))
             return
 
-        self._control.enter(Info(self._control, f"Measured resin volume: {volume} ml", pop=3))
+        self._control.enter(Info(self._control, f"Measured resin volume: {volume} ml", pop=2))

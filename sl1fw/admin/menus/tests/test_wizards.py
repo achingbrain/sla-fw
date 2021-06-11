@@ -8,15 +8,16 @@ from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.safe_menu import SafeAdminMenu
 from sl1fw.libPrinter import Printer
 from sl1fw.states.wizard import WizardId
-from sl1fw.wizard.wizard import Wizard, WizardDataPackage
-from sl1fw.wizard.wizards.generic import ShowResultsGroup
-from sl1fw.wizard.wizards.calibration import CalibrationWizard, CalibrationFinishCheckGroup
+from sl1fw.wizard.wizard import SingleCheckWizard, WizardDataPackage
+from sl1fw.wizard.wizards.calibration import CalibrationWizard
 from sl1fw.wizard.wizards.displaytest import DisplayTestWizard
 from sl1fw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard, SL1DowngradeWizard
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
+from sl1fw.wizard.checks.tilt import TiltTimingTest
+from sl1fw.wizard.checks.uvfans import UVFansTest
 
 
 class TestWizardsMenu(AdminMenu):
@@ -41,6 +42,7 @@ class TestWizardsMenu(AdminMenu):
                 ),
                 AdminAction("SL1S upgrade", self.sl1s_upgrade),
                 AdminAction("SL1 downgrade", self.sl1_downgrade),
+                AdminAction("Self-test - UV & fans test only", self.api_selftest_uvfans),
                 AdminAction("Calibration - tilt times only", self.api_calibration_tilt_times),
             )
         )
@@ -82,23 +84,24 @@ class TestWizardsMenu(AdminMenu):
             SL1DowngradeWizard(self._printer.hw, self._printer.exposure_image, self._printer.runtime_config)
         )
 
+    def api_selftest_uvfans(self):
+        package = WizardDataPackage(
+            self._printer.hw, self._printer.hw.config.get_writer(), self._printer.runtime_config
+        )
+        self._printer.action_manager.start_wizard(SingleCheckWizard(
+            WizardId.SELF_TEST,
+            UVFansTest(package.hw),
+            package,
+            show_results=False))
+
     def api_calibration_tilt_times(self):
         package = WizardDataPackage(
             self._printer.hw, self._printer.hw.config.get_writer(), self._printer.runtime_config
         )
-
-        class CalibrationTiltTimesOnlyWizard(Wizard):
-            def __init__(self):
-                super().__init__(
-                    WizardId.CALIBRATION,
-                    [
-                        CalibrationFinishCheckGroup(package),
-                        ShowResultsGroup(),
-                    ],
-                    package,
-                )
-
-        self._printer.action_manager.start_wizard(CalibrationTiltTimesOnlyWizard())
+        self._printer.action_manager.start_wizard(SingleCheckWizard(
+            WizardId.CALIBRATION,
+            TiltTimingTest(package.hw, package.config_writer),
+            package))
 
 
 class TestUVCalibrationWizardMenu(SafeAdminMenu):

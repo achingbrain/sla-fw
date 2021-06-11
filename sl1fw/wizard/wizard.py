@@ -24,9 +24,10 @@ from sl1fw.errors.warnings import PrinterWarning
 from sl1fw.functions.system import FactoryMountedRW
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardState, WizardCheckState, WizardId
+from sl1fw.wizard.wizards.generic import ShowResultsGroup
 from sl1fw.wizard.actions import UserActionBroker, PushState
 from sl1fw.wizard.checks.base import Check, WizardCheckType, DangerousCheck
-from sl1fw.wizard.group import CheckGroup
+from sl1fw.wizard.group import CheckGroup, SingleCheckGroup
 from sl1fw.configs.writer import ConfigWriter
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UVCalibrationResult
 from sl1fw.image.exposure_image import ExposureImage
@@ -318,3 +319,19 @@ class Wizard(Thread, UserActionBroker):
             self._logger.debug("Danger from closed cover neutralized, dropping close cover state")
             self.drop_state(self._close_cover_state)
             self._close_cover_state = None
+
+
+class SingleCheckWizard(Wizard):
+    # pylint: disable=too-many-arguments
+    def __init__(
+        self,
+        identifier: WizardId,
+        check: Check,
+        package: WizardDataPackage,
+        cancelable=True,
+        show_results=True,
+    ):
+        groups = [SingleCheckGroup(check)]
+        if show_results:
+            groups.append(ShowResultsGroup())
+        super().__init__(identifier, groups, package, cancelable)

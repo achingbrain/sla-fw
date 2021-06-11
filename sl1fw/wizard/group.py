@@ -78,3 +78,12 @@ class CheckGroup(ABC):
 
     def _init_locks(self):
         self._locks = {resource: asyncio.Lock() for resource in Resource.__members__.values()}
+
+
+class SingleCheckGroup(CheckGroup):
+
+    def __init__(self, check: BaseCheck):
+        super().__init__(checks=(check,))
+
+    async def setup(self, actions: UserActionBroker):
+        pass
