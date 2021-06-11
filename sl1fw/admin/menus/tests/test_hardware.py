@@ -10,7 +10,7 @@ from sl1fw.admin.items import AdminAction, AdminTextValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error, Confirm, Info
 from sl1fw.libPrinter import Printer
-from sl1fw.pages.uvcalibration import PageUvCalibrationBase
+from sl1fw.libUvLedMeterMulti import UvLedMeterMulti
 from sl1fw.hardware.tilt import TiltProfile
 from sl1fw.errors.errors import TiltHomeFailed
 from sl1fw.functions.system import hw_all_off
@@ -114,31 +114,32 @@ class InfiniteUVCalibratorMenu(AdminMenu):
         self._iteration = value
 
     def _runner(self):
-        self.status = "Running infinite UV calibrator test"
+        self.status = "Connecting to UV calibrator"
+        uvmeter = UvLedMeterMulti()
+        connected = False
 
         cnt = 0
         while self._run:
-            cnt += 1
-            self.iteration = f"Iteration: {cnt}"
-            self.status = "Connecting UV calibrator"
-            self.logger.info("Connecting UV calibrator")
-            if not PageUvCalibrationBase.uvmeter.connect():
-                self._control.enter(Error(self._control, text="Failed to connect UV calibrator"))
-                return
-
-            for _ in range(5):
+            self.iteration = f"Successful reads: {cnt}"
+            if connected:
+                self.status = "Reading UV calibrator data"
                 self.logger.info("Reading UV calibrator data")
-                self.status = "Reading data"
-                if not PageUvCalibrationBase.uvmeter.read():
-                    self._control.enter(Error(self._control, text="Failed to read UV calibrator data"))
-                    return
-
-                uv_mean = PageUvCalibrationBase.uvmeter.get_data().uvMean
-                self.logger.info("Red data: UVMean: %s", uv_mean)
-                self.value = f"Last uvMean = {uv_mean}"
-
-            self.status = "Closing UV calibrator"
-            PageUvCalibrationBase.uvmeter.close()
+                if uvmeter.read():
+                    uv_mean = uvmeter.get_data().uvMean
+                    self.logger.info("Red data: UVMean: %s", uv_mean)
+                    self.value = f"Last uvMean = {uv_mean}"
+                    cnt += 1
+                else:
+                    self.status = "UV calibrator disconnected"
+                    self.logger.info("UV calibrator disconnected")
+                    connected = False
+            elif uvmeter.connect():
+                self.status = "UV calibrator connected"
+                self.logger.info("UV calibrator connected")
+                connected = True
+        self.status = "Closing UV calibrator"
+        self.logger.info("Closing UV calibrator")
+        uvmeter.close()
 
 
 class ResinSensorTestMenu(AdminMenu):
