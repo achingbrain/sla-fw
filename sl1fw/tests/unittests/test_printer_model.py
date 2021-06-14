@@ -23,14 +23,14 @@ class TestPrinterModel(Sl1fwTestCase):
 
     def test_exposure_screen(self):
         exposure_screen_parameters = PrinterModel.NONE.exposure_screen_parameters
-        self.assertEqual(exposure_screen_parameters.size_px, (320, 200))
-        self.assertEqual(exposure_screen_parameters.pixel_size_nm, 50000)
+        self.assertEqual(exposure_screen_parameters.size_px, (0, 0))
+        self.assertEqual(exposure_screen_parameters.pixel_size_nm, 0)
         self.assertEqual(exposure_screen_parameters.referesh_delay_ms, 0)
         self.assertEqual(exposure_screen_parameters.monochromatic, False)
         self.assertEqual(exposure_screen_parameters.backwards, False)
-        self.assertEqual(exposure_screen_parameters.width_px, 320)
-        self.assertEqual(exposure_screen_parameters.height_px, 200)
-        self.assertEqual(exposure_screen_parameters.detected_size_px, (320, 200))
+        self.assertEqual(exposure_screen_parameters.width_px, 0)
+        self.assertEqual(exposure_screen_parameters.height_px, 0)
+        self.assertEqual(exposure_screen_parameters.detected_size_px, (0, 0))
         exposure_screen_parameters = PrinterModel.SL1S.exposure_screen_parameters
         self.assertEqual(exposure_screen_parameters.size_px, (1620, 2560))
         self.assertEqual(exposure_screen_parameters.pixel_size_nm, 50000)

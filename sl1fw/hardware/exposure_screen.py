@@ -18,6 +18,7 @@ from pywayland.protocol.presentation_time import WpPresentation
 from pywayland.utils import AnonymousFile
 
 from sl1fw.hardware.printer_model import PrinterModel, ExposurePanel
+from sl1fw.errors.errors import UnknownPrinterModel
 
 
 class ExposureScreen:
@@ -34,7 +35,7 @@ class ExposureScreen:
         self._output = None
         self._presentation = None
         self._format_available = False
-        self._resolution = (320, 200)
+        self._resolution = (0, 0)
         self._referesh_delay_s = 0.0
         self._surface = None
         self._shm_data = None
@@ -51,6 +52,10 @@ class ExposureScreen:
 
 
     def start(self) -> PrinterModel:
+        model = self._detect_model()
+        if model == PrinterModel.NONE:
+            raise UnknownPrinterModel()
+
         self._display = Display()
         self._display.connect()
         self._logger.debug("connected to display")
@@ -78,7 +83,7 @@ class ExposureScreen:
         self._thread = Thread(target=self._event_loop)
         self._thread.start()
 
-        return self._detect_model()
+        return model
 
 
     def exit(self):

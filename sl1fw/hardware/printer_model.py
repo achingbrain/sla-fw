@@ -72,7 +72,7 @@ class PrinterModel(Enum):
     @property
     def exposure_screen_parameters(self) -> ExposureScreenParameters:
         return {
-                self.NONE: ExposureScreenParameters((320, 200), 1, 50000, 0, False, False),
+                self.NONE: ExposureScreenParameters((0, 0), 1, 0, 0, False, False),
                 self.SL1: ExposureScreenParameters((1440, 2560), 5, 46875, 30, False, False),
                 self.SL1S: ExposureScreenParameters((1620, 2560), 5, 50000, 20, True, False),
             }[self]

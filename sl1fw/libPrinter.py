@@ -35,7 +35,6 @@ from sl1fw.errors.errors import (
     NotUVCalibrated,
     NotMechanicallyCalibrated,
     BootedInAlternativeSlot,
-    UnknownPrinterModel,
     MissingExamples,
     NoFactoryUvCalib,
     ConfigException,
@@ -247,11 +246,8 @@ class Printer:
             if self.hw.printer_model == PrinterModel.SL1S:
                 self.hw.config.uvPwm = self._compute_sl1s_uv_pwm()
 
-            if self.hw.printer_model == PrinterModel.NONE:
-                self.exception = UnknownPrinterModel()
-            else:
-                self._make_ready_to_print()
-                save_all_remain_wizard_history()
+            self._make_ready_to_print()
+            save_all_remain_wizard_history()
 
         self.action_manager.load_exposure(self.hw)
         self.display.doMenu("home")

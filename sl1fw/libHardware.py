@@ -190,17 +190,17 @@ class Hardware:
 
     # MUST be called before start()
     def connect(self):
-        self.printer_model = self.exposure_screen.start()
+        # MC have to be started first (beep, poweroff)
         self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
+        self.printer_model = self.exposure_screen.start()
         if self.printer_model == PrinterModel.SL1S:
             self.sl1s_booster.connect()
             self.led_temp_idx = 2
 
     def start(self):
-        # FIXME this cause hard exception when printer model is not detected and tilt member is accessed
-#        if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
-        self.tilt = TiltSL1(self.mcc,self.config)
+        if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
+            self.tilt = TiltSL1(self.mcc, self.config)
         self.initDefaults()
         self._value_refresh_thread.start()
 
