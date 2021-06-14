@@ -103,12 +103,3 @@ class PagePrint(PagePrintBase):
     @staticmethod
     def settingsButtonRelease():
         return "exposure"
-
-    def turnoffButtonRelease(self, hw_button=False):
-        if hw_button:
-            self.display.pages["yesno"].setParams(
-                yesFce=self.exitPrint,
-                text=_("Do you really want to cancel the current job?"))
-            return "yesno"
-
-        return self.exitPrint("_SELF_")

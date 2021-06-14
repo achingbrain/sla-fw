@@ -149,14 +149,6 @@ class Page:
     #enddef
 
 
-    def turnoffButtonRelease(self, hw_button = False): # pylint: disable=unused-argument
-        self.display.pages['yesno'].setParams(
-                yesFce = self.turnoffContinue,
-                text = _("Do you really want to turn off the printer?"))
-        return "yesno"
-    #enddef
-
-
     def turnoffContinue(self):
         shut_down(self.display.hw)
     #enddef
@@ -300,13 +292,6 @@ class Page:
         self._page_switch_callback()
 
         state = False
-        if self.checkPowerbutton:
-            state = True
-            retc = self.powerButtonCallback()
-            if retc:
-                return retc
-            #endif
-        #endif
 
         if self.display.expo:
             expoInProgress = self.display.expo.in_progress
@@ -354,29 +339,6 @@ class Page:
             self.logger.debug("Exposure in confirm state. Switching %s -> checks", page)
             self.display.forcePage("checks")
         #endif
-
-    def powerButtonCallback(self):
-        if not self.display.hw.getPowerswitchState():
-            if self.powerButtonCount:
-                self.powerButtonCount = 0
-                self.display.hw.powerLed("normal")
-            #endif
-            return
-        #endif
-
-        if self.powerButtonCount > 0:
-            self.display.hw.powerLed("normal")
-            self.display.hw.beepEcho()
-            return self.turnoffButtonRelease(hw_button=True)
-        #endif
-
-        if not self.powerButtonCount:
-            self.display.hw.powerLed("off")
-            self.display.hw.beepEcho()
-        #endif
-
-        self.powerButtonCount += 1
-    #enddef
 
 
     def checkCoverCallback(self):
