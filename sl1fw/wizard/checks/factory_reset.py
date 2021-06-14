@@ -35,7 +35,7 @@ from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck, Dangerou
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 from sl1fw.hardware.tilt import TiltProfile
-
+from sl1fw.hardware.printer_model import PrinterModel
 
 class ResetCheck(SyncCheck):
     def __init__(self, *args, hard_errors: bool = False, **kwargs):
@@ -256,13 +256,16 @@ class SendPrinterData(SyncCheck):
             raise MissingCalibrationData()
 
         # Get UV calibration data
-        try:
-            with (defines.factoryMountPoint / UVCalibrationWizard.get_data_filename()).open("rt") as file:
-                calibration_dict = json.load(file)
-            if not calibration_dict:
-                raise ValueError("UV Calibration dictionary is empty")
-        except Exception as exception:
-            raise MissingUVCalibrationData() from exception
+        calibration_dict = {}
+        # SL1S does not have UV calibration
+        if self._hw.printer_model != PrinterModel.SL1S:
+            try:
+                with (defines.factoryMountPoint / UVCalibrationWizard.get_data_filename()).open("rt") as file:
+                    calibration_dict = json.load(file)
+                if not calibration_dict:
+                    raise ValueError("UV Calibration dictionary is empty")
+            except Exception as exception:
+                raise MissingUVCalibrationData() from exception
 
         # Compose data to single dict, ensure basic data are present
         mqtt_data = {
