@@ -53,7 +53,7 @@ class ResetSettingsGroup(CheckGroup):
             ResetLocale(hard_errors=hard_errors),
             ResetUVCalibrationData(hard_errors=hard_errors),
             RemoveSlicerProfiles(hard_errors=hard_errors),
-            ResetHWConfig(package.hw.config, disable_unboxing=disable_unboxing, hard_errors=hard_errors),
+            ResetHWConfig(package.hw, disable_unboxing=disable_unboxing, hard_errors=hard_errors),
             EraseMCEeprom(package.hw, hard_errors=hard_errors),
             ResetHomingProfiles(package.hw, hard_errors=hard_errors),
             DisableAccess(),

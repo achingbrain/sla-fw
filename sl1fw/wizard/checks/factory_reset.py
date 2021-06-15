@@ -17,7 +17,6 @@ import pydbus
 import paho.mqtt.publish as mqtt
 
 from sl1fw import defines, test_runtime
-from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.errors.errors import (
     MissingUVPWM,
@@ -36,6 +35,7 @@ from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 from sl1fw.hardware.tilt import TiltProfile
 from sl1fw.hardware.printer_model import PrinterModel
+
 
 class ResetCheck(SyncCheck):
     def __init__(self, *args, hard_errors: bool = False, **kwargs):
@@ -180,17 +180,19 @@ class RemoveSlicerProfiles(ResetCheck):
 
 
 class ResetHWConfig(ResetCheck):
-    def __init__(self, hw_config: HwConfig, *args, disable_unboxing: bool = False, **kwargs):
+    def __init__(self, hw: Hardware, *args, disable_unboxing: bool = False, **kwargs):
         super().__init__(WizardCheckType.RESET_HW_CONFIG, *args, **kwargs)
-        self._hw_config = hw_config
+        self._hw = hw
         self._disable_unboxing = disable_unboxing
 
     def reset_task_run(self, actions: UserActionBroker):
-        self._hw_config.read_file()
-        self._hw_config.factory_reset()
+        self._hw.config.read_file()
+        self._hw.config.factory_reset()
         if self._disable_unboxing:
-            self._hw_config.showUnboxing = False
-        self._hw_config.write()
+            self._hw.config.showUnboxing = False
+        if self._hw.printer_model == PrinterModel.SL1S:
+            self._hw.config.vatRevision = 1
+        self._hw.config.write()
         # TODO: Why is this here? Separate task would be better.
         rmtree(defines.wizardHistoryPath, ignore_errors=True)
 
