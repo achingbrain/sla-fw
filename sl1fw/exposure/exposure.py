@@ -325,7 +325,7 @@ class Exposure:
         self.estimated_total_time_ms = -1
         self.expoThread = Thread(target=self.run)
         self.last_warn = None
-        self._slow_move: bool = False
+        self._slow_move: bool = True    # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
 
     def read_project(self, project_file: str):
@@ -613,6 +613,9 @@ class Exposure:
                 self._force_slow_remain_nm = self.hw.config.forceSlowTiltHeight
             elif self._force_slow_remain_nm > 0:
                 self._force_slow_remain_nm -= layer_height_nm
+                self._slow_move = True
+            # Force slow tilt on first layers
+            if self.actual_layer < self.project.first_slow_layers:
                 self._slow_move = True
 
             if self._slow_move:

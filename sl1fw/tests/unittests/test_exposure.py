@@ -30,6 +30,7 @@ from sl1fw.tests.mocks.hardware import Hardware
 class TestExposure(Sl1fwTestCase):
     PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1")
     PROJECT_LAYER_CHANGE = str(Sl1fwTestCase.SAMPLES_DIR / "layer_change.sl1")
+    PROJECT_RESIN_CALIB = str(Sl1fwTestCase.SAMPLES_DIR / "Resin_calibration_linear_object.sl1")
     BROKEN_EMPTY_PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "empty_file.sl1")
 
     def __init__(self, *args, **kwargs):
@@ -229,15 +230,17 @@ class TestExposure(Sl1fwTestCase):
         print(hw.config.limit4fast)
         hw.config.limit4fast = 45
 
-        hw.config.forceSlowTiltHeight = 0  # do not force any slow tilts
+        hw.config.forceSlowTiltHeight = 0  # do not force any extra slow tilts
         exposure = self._start_force_slow_tilt_exposure(hw)
         self.assertEqual(exposure.state, ExposureState.FINISHED)
-        self.assertEqual(exposure.slow_layers_done, 4)
+        # 13 slow layers at beginning + 4 large layers in project
+        self.assertEqual(exposure.slow_layers_done, 13 + 4)
 
         hw.config.forceSlowTiltHeight = 100000  # 100 um -> force 2 slow layers
         exposure = self._start_force_slow_tilt_exposure(hw)
         self.assertEqual(exposure.state, ExposureState.FINISHED)
-        self.assertEqual(exposure.slow_layers_done, 8)
+        # 13 slow layers at beginning + 4 large layers in project + 4 layers after area change
+        self.assertEqual(exposure.slow_layers_done, 13 + 4 + 4)
 
     def _start_force_slow_tilt_exposure(self, hw):
         exposure_image = ExposureImage(hw)

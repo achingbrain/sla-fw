@@ -382,6 +382,11 @@ class Project:
     def used_material(self):
         return self.used_material_nl / 1e6
 
+    @property
+    @functools.lru_cache()
+    def first_slow_layers(self) -> int:
+        return self._config.fadeLayers + defines.exposure_time_first_extra_layers + 1
+
     def copy_and_check(self):
         origin_path = os.path.normpath(self.path)
         (dummy, filename) = os.path.split(origin_path)
