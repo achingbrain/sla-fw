@@ -251,8 +251,8 @@ class Admin0:
         if self._current_menu:
             self._current_menu.items_changed.connect(self._on_menu_change)
 
-        self.PropertiesChanged(self.__INTERFACE__, {"children": self.children}, [])
         self._update_items()
+        self.PropertiesChanged(self.__INTERFACE__, {"children": self.children}, [])
         self._printer.set_state(PrinterState.ADMIN, bool(self.children))
 
     def _update_items(self):
