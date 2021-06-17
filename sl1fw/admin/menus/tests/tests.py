@@ -15,11 +15,13 @@ from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libPrinter import Printer
 from sl1fw.states.wizard import WizardId
+from sl1fw.states.printer import PrinterState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.factory_reset import SendPrinterData
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
+from sl1fw.errors.errors import UnknownPrinterModel
 
 
 class SendPrinterDataGroup(CheckGroup):
@@ -50,6 +52,7 @@ class TestsMenu(SafeAdminMenu):
             (
                 AdminAction("Errors", lambda: self.enter(TestErrorsMenu(self._control, self._printer))),
                 AdminAction("Warnings", lambda: self.enter(TestWarningsMenu(self._control, self._printer))),
+                AdminAction("Simulate disconnected display", self.simulate_disconnected_display),
                 AdminAction("Wizards", lambda: self.enter(TestWizardsMenu(self._control, self._printer))),
                 AdminAction("Hardware", lambda: self.enter(TestHardwareMenu(self._control, self._printer))),
                 AdminAction("Admin API test", lambda: self.enter(TestMenu(self._control))),
@@ -57,6 +60,10 @@ class TestsMenu(SafeAdminMenu):
                 AdminAction("Send wizard data", self.send_printer_data),
             )
         )
+
+    def simulate_disconnected_display(self):
+        self._printer.exception = UnknownPrinterModel()
+        self._printer.set_state(PrinterState.EXCEPTION)
 
     @SafeAdminMenu.safe_call
     def send_printer_data(self):
