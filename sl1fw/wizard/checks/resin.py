@@ -29,12 +29,14 @@ class ResinSensorTest(DangerousCheck):
             self._hw.setTowerPosition(self._hw.config.calcMicroSteps(120))
             position_mm = await self._hw.get_resin_sensor_position_mm()
             self._logger.debug("resin triggered at %s mm", position_mm)
+
+            # Move tower up to default position, move now in case of exception
+            await self.verify_tower()
+
             # to work properly even with loosen rocker bearing
             if not 4 <= position_mm <= 16:
                 raise ResinSensorFailed(position_mm)
             self.position_mm = position_mm
-            # FIXME move tower up for next group (tower range test)
-            await self.verify_tower()
 
     def get_result_data(self) -> Dict[str, Any]:
         return {"wizardResinTriggeredMM": self.position_mm}
