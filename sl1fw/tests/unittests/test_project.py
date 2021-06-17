@@ -14,7 +14,7 @@ from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorNotEnoughLayer
                                 ProjectErrorCorrupted, ProjectErrorWrongPrinterModel, \
                                 ProjectErrorCantRead, ProjectErrorCalibrationInvalid
 from sl1fw.errors.warnings import PrintingDirectlyFromMedia
-from sl1fw.project.project import Project, ProjectLayer, LayerCalibrationType
+from sl1fw.project.project import Project, ProjectLayer, LayerCalibrationType, ExposureUserProfile
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.utils.bounding_box import BBox
 from sl1fw.hardware.printer_model import PrinterModel
@@ -169,6 +169,12 @@ class TestProject(Sl1fwTestCase):
         project = Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
         self.assertEqual(2500, project.count_remain_time(0, 0))
 
+    def test_project_exposure_user_profile(self):
+        project = Project(self.hw, str(self.SAMPLES_DIR / "layer_change.sl1"))
+        self.assertEqual(ExposureUserProfile.DEFAULT, project.exposure_user_profile)
+
+        project = Project(self.hw, str(self.SAMPLES_DIR / "layer_change_safe_profile.sl1"))
+        self.assertEqual(ExposureUserProfile.SAFE, project.exposure_user_profile)
 
 if __name__ == '__main__':
     unittest.main()

@@ -30,6 +30,7 @@ from sl1fw.tests.mocks.hardware import Hardware
 class TestExposure(Sl1fwTestCase):
     PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "numbers.sl1")
     PROJECT_LAYER_CHANGE = str(Sl1fwTestCase.SAMPLES_DIR / "layer_change.sl1")
+    PROJECT_LAYER_CHANGE_SAFE = str(Sl1fwTestCase.SAMPLES_DIR / "layer_change_safe_profile.sl1")
     PROJECT_RESIN_CALIB = str(Sl1fwTestCase.SAMPLES_DIR / "Resin_calibration_linear_object.sl1")
     BROKEN_EMPTY_PROJECT = str(Sl1fwTestCase.SAMPLES_DIR / "empty_file.sl1")
 
@@ -229,42 +230,49 @@ class TestExposure(Sl1fwTestCase):
         self._fake_calibration(hw)
         print(hw.config.limit4fast)
         hw.config.limit4fast = 45
+        exposure_image = ExposureImage(hw)
+        exposure_image.start()
 
         hw.config.forceSlowTiltHeight = 0  # do not force any extra slow tilts
-        exposure = self._start_force_slow_tilt_exposure(hw)
+        exposure = self._run_exposure(hw, TestExposure.PROJECT_LAYER_CHANGE, exposure_image)
         self.assertEqual(exposure.state, ExposureState.FINISHED)
         # 13 slow layers at beginning + 4 large layers in project
         self.assertEqual(exposure.slow_layers_done, 13 + 4)
 
         hw.config.forceSlowTiltHeight = 100000  # 100 um -> force 2 slow layers
-        exposure = self._start_force_slow_tilt_exposure(hw)
+        exposure = self._run_exposure(hw, TestExposure.PROJECT_LAYER_CHANGE, exposure_image)
         self.assertEqual(exposure.state, ExposureState.FINISHED)
         # 13 slow layers at beginning + 4 large layers in project + 4 layers after area change
         self.assertEqual(exposure.slow_layers_done, 13 + 4 + 4)
 
-    def _start_force_slow_tilt_exposure(self, hw):
-        exposure_image = ExposureImage(hw)
-        exposure_image.start()
-        exposure = Exposure(0, hw, exposure_image, self.runtime_config)
-        exposure.read_project(TestExposure.PROJECT_LAYER_CHANGE)
-        exposure.startProject()
-        exposure.confirm_print_start()
-        for i in range(30):
-            print(f"Waiting for exposure {i}, state: ", exposure.state)
-            if exposure.state in ExposureState.finished_states():
-                return exposure
-            sleep(1)
-        raise TimeoutError("Waiting for exposure failed")
+    def test_exposure_user_profile(self):
+        self.hw.config.limit4fast = 100
+        exposure = self._run_exposure(self.hw, TestExposure.PROJECT_LAYER_CHANGE)
+        self.assertEqual(exposure.state, ExposureState.FINISHED)
+        # 13 slow layers at beginning
+        self.assertEqual(exposure.slow_layers_done, 13)
+        self.assertEqual(197200, exposure.estimate_total_time_ms())
 
-    def _start_exposure(self, hw) -> Exposure:
-        exposure = Exposure(0, hw, self.exposure_image, self.runtime_config)
-        exposure.read_project(TestExposure.PROJECT)
+        defines.exposure_safe_delay_before = 0.1    # 0.01 s
+        exposure = self._run_exposure(self.hw, TestExposure.PROJECT_LAYER_CHANGE_SAFE)
+        self.assertEqual(exposure.state, ExposureState.FINISHED)
+        self.assertEqual(exposure.slow_layers_done, exposure.project.total_layers)
+        delay_time = exposure.project.total_layers * defines.exposure_safe_delay_before * 100
+        self.assertEqual(197200 + delay_time, exposure.estimate_total_time_ms())
+
+    def _start_exposure(self, hw, project = None, expo_img = None) -> Exposure:
+        if project is None:
+            project = TestExposure.PROJECT
+        if expo_img is None:
+            expo_img = self.exposure_image
+        exposure = Exposure(0, hw, expo_img, self.runtime_config)
+        exposure.read_project(project)
         exposure.startProject()
         exposure.confirm_print_start()
         return exposure
 
-    def _run_exposure(self, hw) -> Exposure:
-        exposure = self._start_exposure(hw)
+    def _run_exposure(self, hw, project = None, expo_img = None) -> Exposure:
+        exposure = self._start_exposure(hw, project, expo_img)
 
         for i in range(30):
             print(f"Waiting for exposure {i}, state: ", exposure.state)

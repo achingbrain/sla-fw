@@ -42,7 +42,12 @@ class LayerCalibrationType(IntEnum):
     NONE = 0
     LABEL_PAD = 1
     LABEL_TEXT = 2
-
+@unique
+class ExposureUserProfile(IntEnum):
+    DEFAULT = 0
+    SAFE = 1
+    #CUSTOM = 2
+    #CUSTOM2 = 3
 
 class ProjectLayer:
     def __init__(self, image: str, height_nm: int):
@@ -109,6 +114,7 @@ class Project:
         self._calibrate_time_ms = 0
         self._calibrate_time_ms_exact = []
         self._calibrate_regions = 0
+        self.exposure_user_profile = ExposureUserProfile.DEFAULT
         namelist = self._read_toml_config()
         self._parse_config()
         self._build_layers_description(self._check_filenames(namelist))
@@ -139,6 +145,7 @@ class Project:
             'calibrate_time_ms': self._calibrate_time_ms,
             'calibrate_time_ms_exact': self._calibrate_time_ms_exact,
             'calibrate_regions': self._calibrate_regions,
+            'exposure_user_profile': self.exposure_user_profile
             }
         pp = pprint.PrettyPrinter(width=200)
         return "Project:\n" + pp.pformat(items)
@@ -189,6 +196,7 @@ class Project:
         self.calibrate_penetration_px = int(self._config.calibratePenetration * 1e6 // pixel_size_nm)
         self.calibrate_compact = self._config.calibrateCompact
         self.used_material_nl = int(self._config.usedMaterial * 1e6)
+        self.exposure_user_profile = ExposureUserProfile(self._config.expUserProfile)
         if self._calibrate_regions:
             # labels and pads consumption is ignored
             self.used_material_nl *= self._calibrate_regions
@@ -468,9 +476,12 @@ class Project:
         if self._hw.config.tilt:
             time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
             time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
+        delay_before_exposure = self._hw.config.delayBeforeExposure
+        if self.exposure_user_profile == ExposureUserProfile.SAFE:
+            delay_before_exposure = defines.exposure_safe_delay_before
         time_remain_ms += (total_layers - layers_done) * (
                 self.layer_height_nm * 5000 / 1000 / 1000  # tower move
-                + self._hw.config.delayBeforeExposure * 100
+                + delay_before_exposure * 100
                 + self._hw.config.delayAfterExposure * 100)
         self.logger.debug("time_remain_ms: %f", time_remain_ms)
         return int(time_remain_ms)

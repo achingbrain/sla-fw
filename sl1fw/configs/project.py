@@ -29,6 +29,12 @@ class ProjectConfig(Config):
 
     expTime = FloatValue(8.0, doc="Exposure time. [s]")
     expTimeFirst = FloatValue(35.0, doc="First layer exposure time. [s]")
+    expUserProfile = IntValue(
+        0,
+        minimum=0,
+        maximum=1,
+        doc="Identifies set of exposure settings. 0 - DEFAULT, 1 - SAFE (slow tilt, delay before exposure) [-]"
+    )
     layerHeight = FloatValue(-1, doc="Layer height, if not equal to -1 supersedes stepNum. [mm]")
     stepnum = IntValue(40, doc="Layer height [microsteps]")
     layerHeightFirst = FloatValue(0.05)

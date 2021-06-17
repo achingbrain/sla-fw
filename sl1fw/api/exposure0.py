@@ -37,7 +37,7 @@ from sl1fw.errors.errors import (
     ProjectErrorWrongPrinterModel,
     ExposureError,
 )
-
+from sl1fw.project.project import ExposureUserProfile
 
 @unique
 class Exposure0State(Enum):
@@ -712,6 +712,18 @@ class Exposure0:
     @last_error
     def exposure_time_ms(self, value: int) -> None:
         self.exposure.project.exposure_time_ms = value
+
+    @property
+    @last_error
+    def user_profile(self) -> int:
+        return self.exposure.project.exposure_user_profile.value
+
+    @auto_dbus
+    @range_checked(ExposureUserProfile.DEFAULT.value, ExposureUserProfile.SAFE.value)
+    @user_profile.setter
+    @last_error
+    def user_profile(self, value: int) -> None:
+        self.exposure.project.exposure_user_profile = ExposureUserProfile(value)
 
     @property
     @last_error

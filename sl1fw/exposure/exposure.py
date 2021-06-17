@@ -55,7 +55,7 @@ from sl1fw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from sl1fw.functions.system import shut_down
 from sl1fw.libHardware import Hardware
 from sl1fw.project.functions import check_ready_to_print
-from sl1fw.project.project import Project
+from sl1fw.project.project import Project, ExposureUserProfile
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.utils.traceable_collections import TraceableDict
@@ -561,9 +561,13 @@ class Exposure:
         white_pixels = self.exposure_image.sync_preloader()
         self.exposure_image.screenshot_rename(second)
 
-        if self.hw.config.delayBeforeExposure:
-            self.logger.info("delayBeforeExposure [s]: %f", self.hw.config.delayBeforeExposure / 10.0)
-            sleep(self.hw.config.delayBeforeExposure / 10.0)
+        if self.project.exposure_user_profile == ExposureUserProfile.SAFE:
+            delay_before = defines.exposure_safe_delay_before
+        else:
+            delay_before = self.hw.config.delayBeforeExposure
+        if delay_before:
+            self.logger.info("delayBeforeExposure [s]: %f", delay_before / 10.0)
+            sleep(delay_before / 10.0)
 
         if was_stirring:
             self.logger.info("stirringDelay [s]: %f", self.hw.config.stirringDelay / 10.0)
@@ -614,8 +618,9 @@ class Exposure:
             elif self._force_slow_remain_nm > 0:
                 self._force_slow_remain_nm -= layer_height_nm
                 self._slow_move = True
-            # Force slow tilt on first layers
-            if self.actual_layer < self.project.first_slow_layers:
+            # Force slow tilt on first layers or if user selected safe print profile
+            if self.actual_layer < self.project.first_slow_layers \
+                    or self.project.exposure_user_profile == ExposureUserProfile.SAFE:
                 self._slow_move = True
 
             if self._slow_move:
