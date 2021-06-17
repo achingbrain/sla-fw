@@ -541,6 +541,23 @@ class UVLEDsRowFailed(PrinterError):
 class UnknownPrinterModel(PrinterError):
     pass
 
+
 @with_code(Sl1Codes.UV_TEMP_SENSOR_FAILED)
 class UvTempSensorFailed(PrinterError):
     pass
+
+
+class UVPWMComputationError(PrinterError):
+    pass
+
+
+@dataclass()
+class DisplayTransmittanceNotValid(UVPWMComputationError):
+    transmittance: float
+
+
+@dataclass()
+class CalculatedUVPWMNotInRange(UVPWMComputationError):
+    pwm: int
+    pwm_min: int
+    pwm_max: int

@@ -61,6 +61,10 @@ FAKE_ARGS = {
     "sensor: str": "Ambient temperature",
     "message: str = ''": "Exception message string",
     "reason: str": "Everything is broken",
+    "pwm: int": 142,
+    "pwm_min: int": 150,
+    "pwm_max: int": 250,
+    "transmittance: float": -1,
 }
 
 IGNORED_ARGS = {"self", "args", "kwargs"}

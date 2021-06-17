@@ -8,7 +8,6 @@ from datetime import timedelta, datetime
 from itertools import chain
 from threading import Thread
 from dataclasses import asdict
-from math import isclose
 
 from sl1fw import defines
 from sl1fw.admin.control import AdminControl
@@ -16,11 +15,13 @@ from sl1fw.admin.items import AdminAction, AdminBoolValue, AdminIntValue, AdminL
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Info, Confirm, Wait, Error
 from sl1fw.admin.safe_menu import SafeAdminMenu
-from sl1fw.functions.system import hw_all_off
+from sl1fw.errors.errors import DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange
+from sl1fw.functions.system import hw_all_off, compute_uvpwm
 from sl1fw.functions import files, generate
 from sl1fw.libPrinter import Printer
 from sl1fw.hardware.tilt import TiltProfile
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti
+
 
 class DisplayRootMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
@@ -373,14 +374,19 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._printer.hw.uvLedPwm = self._uv_pwm_print
 
     def calculate_pwm(self):
-        trans = self._printer.hw.exposure_screen.panel.transmittance()
-        if isclose(trans, 0.0, abs_tol=0.001):
-            self._control.enter(Error(self._control, text="Display transmittance is not valid", pop=1))
-        else:
-            pwm = int(-35 * trans + 350)
-            if 0 < pwm < 250:
-                self._temp.uvPwm = pwm
-                self._uv_pwm_changed()
-                self._control.enter(Info(self._control, f"Calculated PWM is {pwm}"))
-            else:
-                self._control.enter(Error(self._control, text=f"Calculated value {pwm} is not in range <0,250>", pop=1))
+        try:
+            pwm = compute_uvpwm(self._printer.hw)
+        except DisplayTransmittanceNotValid as exception:
+            self._control.enter(
+                Error(self._control, text=f"Display transmittance {exception.transmittance} is not valid", pop=1)
+            )
+            return
+        except CalculatedUVPWMNotInRange as e:
+            self._control.enter(
+                Error(self._control, text=f"Calculated value {e.pwm} is not in range <{e.pwm_min},{e.pwm_max}>", pop=1)
+            )
+            return
+
+        self._temp.uvPwm = pwm
+        self._uv_pwm_changed()
+        self._control.enter(Info(self._control, f"Calculated PWM is {pwm}"))

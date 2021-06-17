@@ -7,6 +7,7 @@
 import logging
 import os
 import subprocess
+from math import isclose
 
 from sl1fw import defines, test_runtime
 from sl1fw.configs.hw import HwConfig
@@ -14,7 +15,7 @@ from sl1fw.configs.toml import TomlConfig
 from sl1fw.errors.errors import (
     FailedUpdateChannelSet,
     FailedUpdateChannelGet,
-    ConfigException,
+    ConfigException, DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange,
 )
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
@@ -141,3 +142,18 @@ def set_factory_uvpwm(pwm: int) -> None:
     config.uvPwm = pwm
     with FactoryMountedRW():
         config.write_factory()
+
+
+def compute_uvpwm(hw: Hardware) -> int:
+    trans = hw.exposure_screen.panel.transmittance()
+    if isclose(trans, 0.0, abs_tol=0.001):
+        raise DisplayTransmittanceNotValid(trans)
+
+    pwm = int(-35 * trans + 350)
+
+    pwm_min = hw.printer_model.calibration_parameters().min_pwm
+    pwm_max = hw.printer_model.calibration_parameters().max_pwm
+    if not pwm_min < pwm < pwm_max:
+        raise CalculatedUVPWMNotInRange(pwm, pwm_min, pwm_max)
+
+    return pwm

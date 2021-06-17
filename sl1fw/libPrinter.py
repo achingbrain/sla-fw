@@ -39,11 +39,12 @@ from sl1fw.errors.errors import (
     NoFactoryUvCalib,
     ConfigException,
     MotionControllerWrongFw, MotionControllerNotResponding, MotionControllerWrongResponse,
+    UVPWMComputationError,
 )
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth, get_configured_printer_model, set_configured_printer_model, \
-    set_factory_uvpwm
+    set_factory_uvpwm, compute_uvpwm
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libAsync import AdminCheck
@@ -236,7 +237,11 @@ class Printer:
                         SL1DowngradeWizard(self.hw, self.exposure_image, self.runtime_config)
                     ).join()
 
-            if not self.hw.config.is_factory_read() and not self.hw.isKit:
+            if (
+                    not self.hw.config.is_factory_read()
+                    and not self.hw.isKit
+                    and self.hw.printer_model == PrinterModel.SL1
+            ):
                 self.exception = NoFactoryUvCalib()
             if self.runtime_config.factory_mode and not get_all_supported_files(
                 self.hw.printer_model, Path(defines.internalProjectPath)
@@ -244,7 +249,13 @@ class Printer:
                 self.exception = MissingExamples()
 
             if self.hw.printer_model == PrinterModel.SL1S:
-                self.hw.config.uvPwm = self._compute_sl1s_uv_pwm()
+                try:
+                    pwm = compute_uvpwm(self.hw)
+                    self.hw.config.uvPwm = pwm
+                    self.logger.info("Computed SL1S UV PWM: %s", pwm)
+                except UVPWMComputationError:
+                    self.logger.exception("Failed to compute UV PWM")
+                    self.hw.config.uvPwm = self.hw.printer_model.default_uvpwm()
 
             self._make_ready_to_print()
             save_all_remain_wizard_history()
@@ -592,11 +603,3 @@ class Printer:
         if key.lower() == "uvpwm":
             self.uv_calibrated_changed.emit()
             return
-
-    def _compute_sl1s_uv_pwm(self) -> int:
-        # TODO: This is temporary to allow setting pwm by hand.
-        if self.uv_calibrated:
-            return self.hw.config.uvPwm
-
-        # TODO: This is temporary until the correct formula is available.
-        return 208
