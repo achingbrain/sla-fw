@@ -89,6 +89,8 @@ class ProjectLayer:
 class Project:
     def __init__(self, hw: Hardware, project_file: str):
         self.logger = logging.getLogger(__name__)
+        self.params_changed = Signal()
+        self.path_changed = Signal()
         self._hw = hw
         self.warnings = set()
         self.path = project_file
@@ -114,12 +116,10 @@ class Project:
         self._calibrate_time_ms = 0
         self._calibrate_time_ms_exact = []
         self._calibrate_regions = 0
-        self.exposure_user_profile = ExposureUserProfile.DEFAULT
+        self._exposure_user_profile = ExposureUserProfile.DEFAULT
         namelist = self._read_toml_config()
         self._parse_config()
         self._build_layers_description(self._check_filenames(namelist))
-        self.params_changed = Signal()
-        self.path_changed = Signal()
 
     def __del__(self):
         self.data_close()
@@ -145,7 +145,7 @@ class Project:
             'calibrate_time_ms': self._calibrate_time_ms,
             'calibrate_time_ms_exact': self._calibrate_time_ms_exact,
             'calibrate_regions': self._calibrate_regions,
-            'exposure_user_profile': self.exposure_user_profile
+            'exposure_user_profile': self._exposure_user_profile
             }
         pp = pprint.PrettyPrinter(width=200)
         return "Project:\n" + pp.pformat(items)
@@ -358,6 +358,17 @@ class Project:
         if self._calibrate_time_ms != value:
             self._calibrate_time_ms = value
             self._times_changed()
+
+    @property
+    def exposure_user_profile(self) -> ExposureUserProfile:
+        return self._exposure_user_profile
+
+    @range_checked(ExposureUserProfile.DEFAULT, ExposureUserProfile.SAFE)
+    @exposure_user_profile.setter
+    def exposure_user_profile(self, value: ExposureUserProfile) -> None:
+        if value != self._exposure_user_profile:
+            self._exposure_user_profile = value
+            self.params_changed.emit()
 
     # FIXME compatibility with api/standard0
     @property

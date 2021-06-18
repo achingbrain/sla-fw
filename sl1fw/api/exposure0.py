@@ -790,6 +790,7 @@ class Exposure0:
             "exposure_time_calibrate_ms",
             "calibration_regions",
             "time_remain_ms",
+            "user_profile",
         },
         "printStartTime": {"print_start_timestamp"},
         "printEndTime": {"print_end_timestamp"},
