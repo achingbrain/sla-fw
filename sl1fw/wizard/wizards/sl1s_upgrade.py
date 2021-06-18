@@ -11,7 +11,7 @@ from typing import Iterable
 from sl1fw.wizard.checks.sysinfo import SystemInfoTest
 
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.functions.system import shut_down, set_configured_printer_model
+from sl1fw.functions.system import shut_down
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
@@ -51,18 +51,7 @@ class SL1SUpgradeCleanup(CheckGroup):
 
         def reject(loop: AbstractEventLoop, task: Task):
             self._logger.info("Shutting down to let user remove SL1S components as the user has rejected upgrade")
-
-            # TODO: This is commented out to let development printer to keep their configuration and be still usable
-            # TODO: after installing the sl1s upgrade.
-            # TODO: This should be uncommented in beta/public release
-            # shut_down(self._package.hw, reboot=False)
-
-            # TODO: This is here just to let the developers who rejected the full migration to SL1S to still have some
-            # TODO: model set. This will set the model, preventing future upgrade wizard runs and leave the printer in
-            # TODO: undefined state with the model set to SL1S
-            # TODO: this should be removed in beta/public release
-            set_configured_printer_model(self._package.hw.printer_model)
-
+            shut_down(self._package.hw, reboot=False)
             loop.call_soon_threadsafe(task.cancel)
 
         try:
