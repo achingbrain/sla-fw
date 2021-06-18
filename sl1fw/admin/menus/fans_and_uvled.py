@@ -51,6 +51,7 @@ class FansAndUVLedMenu(AdminMenu):
                 AdminIntValue.from_value("UV calib. warm-up [s]", self._temp, "uvWarmUpTime", 1),
                 AdminIntValue.from_value("UV calib. intensity", self._temp, "uvCalibIntensity", 1),
                 AdminIntValue.from_value("UV cal. min. int. edge", self._temp, "uvCalibMinIntEdge", 1),
+                AdminIntValue.from_value("Vat cleaner exposure [s]", self._temp, "vatCleanerExposure", 1),
                 AdminAction("Save", self.save),
                 AdminAction("Reset to defaults", self.reset_to_defaults),
                 AdminAction("Save & save as defaults", self.save_as_defaults),

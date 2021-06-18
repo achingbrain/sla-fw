@@ -75,6 +75,9 @@ class WizardCheckType(Enum):
     MARK_PRINTER_MODEL = 72
     RESET_HW_COUNTERS = 73
 
+    # temporary until better solution
+    VAT_CLEANER = 999
+
 
 class BaseCheck(ABC):
     # pylint: disable=too-many-instance-attributes

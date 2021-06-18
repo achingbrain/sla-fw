@@ -66,6 +66,9 @@ class WizardId(Enum):
     SL1S_UPGRADE = 9
     SL1_DOWNGRADE = 10
 
+    # temporary until better solution
+    VAT_CLEANER = 999
+
 
 @unique
 class WizardCheckState(Enum):

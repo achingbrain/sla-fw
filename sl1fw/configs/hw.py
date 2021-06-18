@@ -143,6 +143,9 @@ class HwConfig(Config):
     upAndDownEveryLayer = IntValue(0, minimum=0, maximum=500, doc="Do Up&Down every N layers, 0 means never.")
     upAndDownZoffset = IntValue(0, minimum=-800, maximum=800)
     upAndDownExpoComp = IntValue(0, minimum=-10, maximum=300)
+    vatCleanerExposure = IntValue(
+        20, minimum=1, maximum=120, doc="Time of the exposure when cleaning the vat. [seconds]"
+    )
 
     # Fans & LEDs
     fan1Rpm = IntValue(

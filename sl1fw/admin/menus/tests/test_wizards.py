@@ -16,6 +16,7 @@ from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard, SL1DowngradeWizard
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
+from sl1fw.wizard.wizards.vat_cleaner import VatCleaner
 from sl1fw.wizard.checks.tilt import TiltTimingTest
 from sl1fw.wizard.checks.uvfans import UVFansTest
 
@@ -44,6 +45,7 @@ class TestWizardsMenu(AdminMenu):
                 AdminAction("SL1 downgrade", self.sl1_downgrade),
                 AdminAction("Self-test - UV & fans test only", self.api_selftest_uvfans),
                 AdminAction("Calibration - tilt times only", self.api_calibration_tilt_times),
+                AdminAction("Vat cleaner", self.vat_cleaner),
             )
         )
 
@@ -102,6 +104,11 @@ class TestWizardsMenu(AdminMenu):
             WizardId.CALIBRATION,
             TiltTimingTest(package.hw, package.config_writer),
             package))
+
+    def vat_cleaner(self):
+        self._printer.action_manager.start_wizard(
+            VatCleaner(self._printer.hw, self._printer.exposure_image, self._printer.runtime_config)
+        )
 
 
 class TestUVCalibrationWizardMenu(SafeAdminMenu):
