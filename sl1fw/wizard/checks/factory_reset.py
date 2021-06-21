@@ -24,10 +24,11 @@ from sl1fw.errors.errors import (
     MissingCalibrationData,
     MissingUVCalibrationData,
     ErrorSendingDataToMQTT,
+    MissingExamples,
 )
 from sl1fw.errors.warnings import FactoryResetCheckFailure
-from sl1fw.functions.files import ch_mode_owner
-from sl1fw.functions.system import FactoryMountedRW, save_factory_mode
+from sl1fw.functions.files import ch_mode_owner, get_all_supported_files
+from sl1fw.functions.system import FactoryMountedRW, save_factory_mode, compute_uvpwm
 from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck, DangerousCheck
@@ -241,9 +242,18 @@ class SendPrinterData(SyncCheck):
         self._hw = hw
 
     def task_run(self, actions: UserActionBroker):
+        # Ensure some UV PWM is set, this ensure SL1 was UV calibrated
         if self._hw.config.uvPwm == 0:
             self._logger.error("Cannot do factory reset UV PWM not set (== 0)")
             raise MissingUVPWM()
+
+        # Ensure SL1S is able to compute UV PWM
+        if self._hw.printer_model == PrinterModel.SL1S:
+            compute_uvpwm(self._hw)
+
+        # Ensure examples are present
+        if not get_all_supported_files(self._hw.printer_model, Path(defines.internalProjectPath)):
+            raise MissingExamples()
 
         # Get wizard data
         try:

@@ -35,7 +35,6 @@ from sl1fw.errors.errors import (
     NotUVCalibrated,
     NotMechanicallyCalibrated,
     BootedInAlternativeSlot,
-    MissingExamples,
     NoFactoryUvCalib,
     ConfigException,
     MotionControllerWrongFw, MotionControllerNotResponding, MotionControllerWrongResponse,
@@ -243,10 +242,6 @@ class Printer:
                     and self.hw.printer_model == PrinterModel.SL1
             ):
                 self.exception = NoFactoryUvCalib()
-            if self.runtime_config.factory_mode and not get_all_supported_files(
-                self.hw.printer_model, Path(defines.internalProjectPath)
-            ):
-                self.exception = MissingExamples()
 
             if self.hw.printer_model == PrinterModel.SL1S:
                 try:
