@@ -28,12 +28,13 @@ class TestExceptionMenu(AdminMenu):
 
     @staticmethod
     def _sort_classes(data):
-        return data[1].CODE.code
+        name, cls = data
+        return f"{cls.CODE}-{name}"
 
     def _get_items(self):
         items = []
         for _, cls in sorted(self._get_classes_list(), key=self._sort_classes):
-            items.append(AdminAction(f"{cls.CODE.code} - {cls.CODE.title}", functools.partial(self.do_error, cls)))
+            items.append(AdminAction(f"{cls.CODE.code} - {cls.CODE.title}\n{cls.__name__}", functools.partial(self.do_error, cls)))
         return items
 
     def do_error(self, cls):

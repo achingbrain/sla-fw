@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import inspect
-from typing import Collection
+from typing import Collection, Tuple
 
 from sl1fw.errors import errors, warnings
 from sl1fw.motion_controller.trace import Trace
@@ -69,7 +69,7 @@ FAKE_ARGS = {
 
 IGNORED_ARGS = {"self", "args", "kwargs"}
 
-def get_classes(get_errors: bool = False, get_warnings: bool = False) -> Collection[Exception]:
+def get_classes(get_errors: bool = False, get_warnings: bool = False) -> Collection[Tuple[str, Exception]]:
     classes = []
     if get_errors:
         classes.extend(inspect.getmembers(errors))
