@@ -248,7 +248,7 @@ class Printer0:
 
     @auto_dbus
     @last_error
-    @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION])
+    @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION, Printer0State.ADMIN])
     def poweroff(self, do_shutdown: bool, reboot: bool) -> None:
         """
         Shut down the printer
