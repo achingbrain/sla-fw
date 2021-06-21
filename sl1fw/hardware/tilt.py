@@ -409,13 +409,8 @@ class TiltSL1(Tilt):
     def profiles(self) -> List[List[int]]:
         """get all profiles from MC"""
         profiles = list()
-        currentProfile = self.profile_id
         for profile_id in range(8):
-            try:
-                self.profile_id = TiltProfile(profile_id)
-                profiles.append(self.profile)
-            finally:
-                self.profile_id = currentProfile
+            profiles.append(self._mcc.doGetIntList("?ticf %d" % profile_id))
         return profiles
 
     @profiles.setter

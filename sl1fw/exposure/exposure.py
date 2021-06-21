@@ -710,6 +710,8 @@ class Exposure:
     def run(self):
         try:
             self.logger.info("Started exposure thread")
+            self.logger.info("Motion controller tilt profiles: %s", self.hw.tilt.profiles)
+            self.logger.info("Printer tune tilt profiles: %s", self.hw.config.tuneTilt)
 
             while not self.done:
                 command = self.commands.get()
@@ -781,8 +783,6 @@ class Exposure:
 
         self.logger.info("Running exposure")
         self.state = ExposureState.PRINTING
-        self.logger.info("Motion controller tilt profiles: %s", self.hw.tilt.profiles)
-        self.logger.info("Printer tune tilt profiles: %s", self.hw.config.tuneTilt)
         self.printStartTime = datetime.now(tz=timezone.utc)
         statistics = TomlConfigStats(defines.statsData, self.hw)
         statistics.load()
