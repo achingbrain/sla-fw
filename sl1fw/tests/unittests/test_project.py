@@ -131,8 +131,8 @@ class TestProject(Sl1fwTestCase):
 
         self.assertEqual(project.total_layers, 20, "Check total layers count")
         self.assertEqual(project.total_height_nm, 1e6, "Total height calculation")
-        self.assertEqual(project.count_remain_time(), 478750, "Total time calculation")
-        self.assertEqual(project.count_remain_time(layers_done = 10), 177500, "Half time calculation")
+        self.assertEqual(project.count_remain_time(), 484150, "Total time calculation")
+        self.assertEqual(project.count_remain_time(layers_done = 10), 180200, "Half time calculation")
 
         result = _layer_generator('sl1_linear_calibration_pattern',
                 20,
@@ -162,12 +162,12 @@ class TestProject(Sl1fwTestCase):
 
     def test_project_remaining_time_estimate_with_tilt(self):
         project = Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
-        self.assertEqual(13500, project.count_remain_time(0, 0))
+        self.assertEqual(14040, project.count_remain_time(0, 0))
 
     def test_project_remaining_time_estimate_without_tilt(self):
         self.hw.config.tilt = False
         project = Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
-        self.assertEqual(2500, project.count_remain_time(0, 0))
+        self.assertEqual(3040, project.count_remain_time(0, 0))
 
     def test_project_exposure_user_profile(self):
         project = Project(self.hw, str(self.SAMPLES_DIR / "layer_change.sl1"))
