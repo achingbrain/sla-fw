@@ -151,8 +151,8 @@ def compute_uvpwm(hw: Hardware) -> int:
 
     pwm = int(-35 * trans + 350)
 
-    pwm_min = hw.printer_model.calibration_parameters().min_pwm
-    pwm_max = hw.printer_model.calibration_parameters().max_pwm
+    pwm_min = hw.printer_model.calibration_parameters(hw.is500khz).min_pwm
+    pwm_max = hw.printer_model.calibration_parameters(hw.is500khz).max_pwm
     if not pwm_min < pwm < pwm_max:
         raise CalculatedUVPWMNotInRange(pwm, pwm_min, pwm_max)
 
