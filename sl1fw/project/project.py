@@ -511,6 +511,7 @@ class Project:
         self.exposure_time_ms = project.exposure_time_ms
         self.exposure_time_first_ms = project.exposure_time_first_ms
         self.calibrate_time_ms = project.calibrate_time_ms
+        self.exposure_user_profile = project.exposure_user_profile
 
     @property
     def is_open(self):
