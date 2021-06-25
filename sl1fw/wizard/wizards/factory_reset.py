@@ -135,7 +135,7 @@ class PackingWizard(Wizard):
             groups.append(PackStage1(self._package, True))
             groups.append(PackStage2(self._package))
 
-        super().__init__(WizardId.FACTORY_RESET, groups, self._package)
+        super().__init__(WizardId.PACKING, groups, self._package)
 
     def run(self):
         super().run()
