@@ -258,7 +258,9 @@ class TestExposure(Sl1fwTestCase):
         self.assertEqual(exposure.state, ExposureState.FINISHED)
         self.assertEqual(exposure.slow_layers_done, exposure.project.total_layers)
         delay_time = exposure.project.total_layers * defines.exposure_safe_delay_before * 100
-        self.assertEqual(205840 + delay_time, exposure.estimate_total_time_ms())
+        force_slow_time = exposure.project._layers_fast * (self.hw.config.tiltSlowTime - self.hw.config.tiltFastTime)\
+                          * 1000  # pylint: disable = protected-access
+        self.assertEqual(205840 + delay_time + force_slow_time, exposure.estimate_total_time_ms())
 
     def _start_exposure(self, hw, project = None, expo_img = None) -> Exposure:
         if project is None:

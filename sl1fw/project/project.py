@@ -368,6 +368,8 @@ class Project:
     def exposure_user_profile(self, value: ExposureUserProfile) -> None:
         if value != self._exposure_user_profile:
             self._exposure_user_profile = value
+            self.logger.info("Exposure user profile changed to %s", value)
+            self.count_remain_time.cache_clear()
             self.params_changed.emit()
 
     # FIXME compatibility with api/standard0
@@ -484,9 +486,16 @@ class Project:
         if slow_layers < 0:
             slow_layers = 0
         fast_layers = total_layers - layers_done - slow_layers
+
+        # Fast and slow tilt times
         if self._hw.config.tilt:
-            time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
-            time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
+            if self.exposure_user_profile == ExposureUserProfile.SAFE:
+                time_remain_ms += (fast_layers + slow_layers) * self._hw.config.tiltSlowTime * 1000
+            else:
+                time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
+                time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
+
+        # Per layer times
         delay_before_exposure = self._hw.config.delayBeforeExposure
         if self.exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before_exposure = defines.exposure_safe_delay_before
