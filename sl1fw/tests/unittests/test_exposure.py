@@ -118,8 +118,8 @@ class TestExposure(Sl1fwTestCase):
 
     def test_broken_empty_project(self):
         exposure = Exposure(0, self.hw, self.exposure_image, self.runtime_config)
-        exposure.read_project(self.BROKEN_EMPTY_PROJECT)
-        self.assertIsInstance(exposure.exception, ProjectErrorCantRead)
+        with self.assertRaises(ProjectErrorCantRead):
+            exposure.read_project(self.BROKEN_EMPTY_PROJECT)
 
     def test_stuck_recovery_success(self):
         hw = self.setupHw()

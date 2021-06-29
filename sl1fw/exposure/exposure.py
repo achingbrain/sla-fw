@@ -342,6 +342,7 @@ class Exposure:
             self.hw.uvLed(False)
             self.hw.stopFans()
             self.hw.motorsRelease()
+            raise
         self.logger.info("Created new exposure object id: %s", self.instance_id)
 
     def _on_check_result_change(self):
