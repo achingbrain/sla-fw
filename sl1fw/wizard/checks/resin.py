@@ -13,7 +13,7 @@ from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup, Resource
 
 
 class ResinSensorTest(DangerousCheck):
-    allowed_min_mm = 10
+    allowed_min_mm = 4
     allowed_max_mm = 22
 
     def __init__(self, hw: Hardware):
