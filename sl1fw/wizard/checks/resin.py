@@ -13,6 +13,9 @@ from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup, Resource
 
 
 class ResinSensorTest(DangerousCheck):
+    allowed_min_mm = 10
+    allowed_max_mm = 22
+
     def __init__(self, hw: Hardware):
         super().__init__(
             hw,
@@ -34,7 +37,7 @@ class ResinSensorTest(DangerousCheck):
             await self.verify_tower()
 
             # to work properly even with loosen rocker bearing
-            if not 4 <= position_mm <= 16:
+            if not self.allowed_min_mm <= position_mm <= self.allowed_max_mm:
                 raise ResinSensorFailed(position_mm)
             self.position_mm = position_mm
 
