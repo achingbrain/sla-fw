@@ -5,6 +5,7 @@
 import asyncio
 import unittest
 from shutil import copyfile
+from typing import Optional
 from unittest.mock import Mock, AsyncMock, MagicMock, patch
 
 import pydbus
@@ -369,7 +370,7 @@ class TestWizards(TestWizardsBase):
         self._run_wizard(wizard, limit_s=1, expected_state=WizardState.CANCELED)
         self._assert_final_state("showWizard", expected_value=None)
 
-    def _assert_final_state(self, item: str, expected_value: bool):
+    def _assert_final_state(self, item: str, expected_value: Optional[bool]):
         conf = HwConfig(self.hw_config_file)
         conf.read_file()
         if expected_value is None:
@@ -408,12 +409,14 @@ class TestWizards(TestWizardsBase):
         self._run_wizard(wizard)
 
     def test_packing_complete(self):
+        self.hw.config.showWizard = False
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST complete", False)
         self._run_wizard(PackingWizard(self.hw, self.runtime_config))
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_packing_kit(self):
+        self.hw.config.showWizard = False
         self.runtime_config.factory_mode = True
         self.hw.boardData = ("TEST kit", True)
         self._run_wizard(PackingWizard(self.hw, self.runtime_config))

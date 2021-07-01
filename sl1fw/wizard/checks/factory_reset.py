@@ -242,6 +242,7 @@ class SendPrinterData(SyncCheck):
         self._hw = hw
 
     def task_run(self, actions: UserActionBroker):
+        # pylint: disable = too-many-branches
         # Ensure some UV PWM is set, this ensure SL1 was UV calibrated
         if self._hw.config.uvPwm == 0:
             self._logger.error("Cannot do factory reset UV PWM not set (== 0)")
@@ -261,6 +262,8 @@ class SendPrinterData(SyncCheck):
                 wizard_dict = json.load(file)
             if not wizard_dict and not self._hw.isKit:
                 raise ValueError("Wizard data dictionary is empty")
+            if self._hw.config.showWizard:
+                raise Exception("Wizard data exists, but wizard is not considered done")
         except Exception as exception:
             raise MissingWizardData from exception
 
