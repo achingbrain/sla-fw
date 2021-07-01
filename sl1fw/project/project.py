@@ -482,6 +482,7 @@ class Project:
     def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0) -> int:
         time_remain_ms = sum(sum(x.times_ms) for x in self.layers[layers_done:])
         total_layers = len(self.layers)
+        # TODO count forced slow layers at the beginning and forced slow layers after slow layer
         slow_layers = self._layers_slow - slow_layers_done
         if slow_layers < 0:
             slow_layers = 0
@@ -499,6 +500,8 @@ class Project:
         delay_before_exposure = self._hw.config.delayBeforeExposure
         if self.exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before_exposure = defines.exposure_safe_delay_before
+        else:
+            time_remain_ms += slow_layers * defines.exposure_slow_move_delay_before * 100
         time_remain_ms += (total_layers - layers_done) * (
                 self.layer_height_nm * 5000 / 1000 / 1000  # tower move
                 + delay_before_exposure * 100

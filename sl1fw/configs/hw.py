@@ -95,7 +95,7 @@ class HwConfig(Config):
     raw_tiltdownsmallfill = IntListValue([5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill", doc="Definitions for tilt down where printed area < limit4fast. Profiles, offsets and wait times.")
     raw_tiltuplargefill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltuplargefill", doc="Definitions for tilt up where printed area > limit4fast. Profiles, offsets and wait times.")
     raw_tiltupsmallfill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltupsmallfill", doc="Definitions for tilt up where printed area < limit4fast. Profiles, offsets and wait times.")
-    limit4fast = IntValue(45, minimum=0, maximum=100, doc="Fast tearing is used if layer area is under this value. [%]")
+    limit4fast = IntValue(35, minimum=0, maximum=100, doc="Fast tearing is used if layer area is under this value. [%]")
     tiltFastTime = FloatValue(5.5, doc="Time necessary to perform fast tear off. [seconds]")
     tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off. [seconds]")
 

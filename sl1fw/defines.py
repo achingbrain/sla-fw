@@ -166,6 +166,7 @@ exposure_time_calibrate_min_ms = 500
 exposure_time_calibrate_max_ms = 5000
 exposure_time_first_extra_layers = 2    # first layer always have exposure_time_first
 exposure_safe_delay_before = 30         # [tenths of a second] applied when user selects ExposureUserProfile.SAFE
+exposure_slow_move_delay_before = 10    # [tenths of a second] applied when slow move of ExposureUserProfile.DEFAULT
 
 fan_check_override = test_runtime.testing
 default_hostname = "prusa64-sl1"

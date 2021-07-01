@@ -563,6 +563,8 @@ class Exposure:
 
         if self.project.exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before = defines.exposure_safe_delay_before
+        elif self._slow_move:
+            delay_before = defines.exposure_slow_move_delay_before
         else:
             delay_before = self.hw.config.delayBeforeExposure
         if delay_before:

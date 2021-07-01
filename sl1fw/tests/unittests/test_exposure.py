@@ -251,7 +251,7 @@ class TestExposure(Sl1fwTestCase):
         self.assertEqual(exposure.state, ExposureState.FINISHED)
         # 13 slow layers at beginning
         self.assertEqual(exposure.slow_layers_done, 13)
-        self.assertEqual(205840, exposure.estimate_total_time_ms())
+        self.assertEqual(209840, exposure.estimate_total_time_ms())
 
         defines.exposure_safe_delay_before = 0.1    # 0.01 s
         exposure = self._run_exposure(self.hw, TestExposure.PROJECT_LAYER_CHANGE_SAFE)
