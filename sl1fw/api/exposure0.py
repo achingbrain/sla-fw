@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from enum import unique, Enum
 from typing import Any, Dict, List, Optional
@@ -38,6 +39,7 @@ from sl1fw.errors.errors import (
     ExposureError,
 )
 from sl1fw.project.project import ExposureUserProfile
+
 
 @unique
 class Exposure0State(Enum):
@@ -151,6 +153,7 @@ class Exposure0:
     def __init__(self, exposure: Exposure):
         self._last_exception: Optional[Exception] = None
         self.exposure = exposure
+        self.logger = logging.getLogger(__name__)
 
         # Do not use lambdas as handlers. These would keep references to Exposure0
         if self.exposure.change:
@@ -313,6 +316,10 @@ class Exposure0:
 
         :return: Remaining time in minutes
         """
+        if self.exposure.estimated_total_time_ms > 2**31-1:
+            self.logger.error("Time remain out of int32 range: %d ms, capping to max value",
+                              self.exposure.estimated_total_time_ms)
+            return 2**31-1
         return self.exposure.estimate_remain_time_ms()
 
     @auto_dbus
@@ -322,6 +329,10 @@ class Exposure0:
         """
         Estimated total print time in ms
         """
+        if self.exposure.estimated_total_time_ms > 2**31-1:
+            self.logger.error("Estimated total time out of int32 range: %d ms, capping to max value",
+                              self.exposure.estimated_total_time_ms)
+            return 2**31-1
         return self.exposure.estimated_total_time_ms
 
     @auto_dbus
