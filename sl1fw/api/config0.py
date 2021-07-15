@@ -13,10 +13,12 @@ from pydbus.generic import signal
 
 from sl1fw.api.decorators import auto_dbus, dbus_api, wrap_dict_data_recursive
 from sl1fw.configs.hw import HwConfig
-from sl1fw.configs.value import  Value, NumericValue, ListValue, TextValue
+from sl1fw.configs.value import Value, NumericValue, ListValue, TextValue
+from sl1fw.libHardware import Axis
 
 if TYPE_CHECKING:
     from sl1fw.libHardware import Hardware
+
 
 
 def wrap_hw_config(cls: Config0):
@@ -114,7 +116,8 @@ class Config0:
 
         :return: None
         """
-        self.hw.updateMotorSensitivity(self.hw.config.tiltSensitivity, self.hw.config.towerSensitivity)
+        self.hw.updateMotorSensitivity(Axis.TOWER, self.hw.config.towerSensitivity)
+        self.hw.updateMotorSensitivity(Axis.TILT, self.hw.config.tiltSensitivity)
 
     @auto_dbus
     @property

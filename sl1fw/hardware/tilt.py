@@ -5,7 +5,7 @@ import asyncio
 from abc import abstractmethod
 from time import sleep
 from enum import unique, Enum
-from typing import List
+from typing import List, Dict
 import logging
 
 from PySignal import Signal
@@ -100,10 +100,10 @@ class TiltSL1(Tilt):
         self._targetPosition: int = 0
         self._lastPosition: int = 0
 
-        self._tiltAdjust = {
-            #                          -2       -1        0        +1       +2
-            TiltProfile.homingFast: [[20, 5], [20, 6], [20, 7], [21, 9], [22, 12]],
-            TiltProfile.homingSlow: [[16, 3], [16, 5], [16, 7], [16, 9], [16, 11]],
+        self._sensitivity = {
+            #                -2       -1        0        +1       +2
+            "homingFast": [[20, 5], [20, 6], [20, 7], [21, 9], [22, 12]],
+            "homingSlow": [[16, 3], [16, 5], [16, 7], [16, 9], [16, 11]],
         }
 
 ########## position/movement ##########
@@ -198,21 +198,6 @@ class TiltSL1(Tilt):
             self._lastPosition = self._config.tiltMin
         self.movement_ended.emit()
         return True
-
-    @safe_call(False, MotionControllerException)
-    def sensitivity(self, sensitivity: int = 0):
-        if sensitivity < -2 or sensitivity > 2:
-            raise ValueError("Sensitivity must be from -2 to +2")
-        newProfiles = self.profiles
-        newProfiles[0][4] = self._tiltAdjust[TiltProfile.homingFast][sensitivity + 2][0]
-        newProfiles[0][5] = self._tiltAdjust[TiltProfile.homingFast][sensitivity + 2][1]
-        newProfiles[1][4] = self._tiltAdjust[TiltProfile.homingSlow][sensitivity + 2][0]
-        newProfiles[1][5] = self._tiltAdjust[TiltProfile.homingSlow][sensitivity + 2][1]
-        self.profile_id = TiltProfile.homingFast
-        self.profile = newProfiles[TiltProfile.homingFast.value]
-        self.profile_id = TiltProfile.homingSlow
-        self.profile = newProfiles[TiltProfile.homingSlow.value]
-        self.logger.info("tilt profiles changed to: %s", newProfiles)
 
     @safe_call(False, MotionControllerException)
     def stop(self):
@@ -425,3 +410,7 @@ class TiltSL1(Tilt):
             self.profile_id = TiltProfile(profile_id)
             self.profile = profiles[profile_id]
         self.profile_id = currentProfile
+
+    @property
+    def sensitivity_dict(self) -> Dict[str, List[List[int]]]:
+        return self._sensitivity

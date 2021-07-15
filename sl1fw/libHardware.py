@@ -19,12 +19,13 @@ import os
 import re
 from asyncio import Task, CancelledError
 from datetime import timedelta
+from enum import unique, Enum
 from math import ceil
 from threading import Thread
 from time import sleep
 
 import json
-from typing import Optional
+from typing import Optional, List
 
 import bitstring
 import pydbus
@@ -76,6 +77,12 @@ class Fan:
         return self.__enabled
 
     # TODO methods to save, load, reset to defaults
+
+
+@unique
+class Axis(Enum):
+    TOWER = 0
+    TILT = 1
 
 
 class Hardware:
@@ -252,13 +259,24 @@ class Hardware:
             self.logger.warning("Printer profiles will not be overwriten")
         else:
             if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
-                with open(os.path.join(defines.dataPath, self.printer_model.name, "default." + defines.tiltProfilesSuffix), "r") as f:
-                    defaultProfiles = json.loads(f.read())
-                    mcProfiles = self.tilt.profiles
-                    if mcProfiles != defaultProfiles:
-                        self.logger.info("Overwriting tilt profiles to: %s", defaultProfiles)
-                        self.tilt.profiles = defaultProfiles
-                        self.tilt.sensitivity(self.config.tiltSensitivity)
+                for axis in Axis:
+                    if axis is Axis.TOWER:
+                        suffix = defines.towerProfilesSuffix
+                        sensitivity = self.config.towerSensitivity
+                        mc_profiles = self.getTowerProfiles()
+                    else:
+                        suffix = defines.tiltProfilesSuffix
+                        sensitivity = self.config.tiltSensitivity
+                        mc_profiles = self.tilt.profiles
+                    with open(os.path.join(defines.dataPath, self.printer_model.name, "default." + suffix), "r") as f:
+                        profiles = json.loads(f.read())
+                        profiles = self.get_profiles_with_sensitivity(profiles, axis, sensitivity)
+                        if mc_profiles != profiles:
+                            self.logger.info("Overwriting %s profiles to: %s", axis.name, profiles)
+                            if axis is Axis.TOWER:
+                                self.setTowerProfiles(profiles)
+                            else:
+                                self.tilt.profiles = profiles
                 with open(os.path.join(defines.dataPath, self.printer_model.name, "default." + defines.tuneTiltProfilesSuffix), "r") as f:
                     tuneTilt = json.loads(f.read())
                     writer = self.config.get_writer()
@@ -269,6 +287,7 @@ class Hardware:
                             writer.commit()
                         except Exception as e:
                             raise ConfigException() from e
+
             self.tilt.movement_ended.connect(lambda: self._tilt_position_checker.set_rapid_update(False))
 
     def flashMC(self):
@@ -998,17 +1017,28 @@ class Hardware:
             self.resinSensor(False)
         return self.config.calcMM(self.getTowerPositionMicroSteps())
 
-    def updateMotorSensitivity(self, tiltSensitivity=0, towerSensitivity=0):
-        self.tilt.sensitivity(tiltSensitivity)
+    def get_profiles_with_sensitivity(self, profiles: List[List[int]], axis: Axis, sens: int = 0):
+        if sens < -2 or sens > 2:
+            raise ValueError("`axis` sensitivity must be from -2 to +2", axis)
 
-        # adjust tower profiles
-        profiles = self.getTowerProfiles()
-        profiles[0][4] = self.towerAdjust["homingFast"][towerSensitivity + 2][0]
-        profiles[0][5] = self.towerAdjust["homingFast"][towerSensitivity + 2][1]
-        profiles[1][4] = self.towerAdjust["homingSlow"][towerSensitivity + 2][0]
-        profiles[1][5] = self.towerAdjust["homingSlow"][towerSensitivity + 2][1]
-        self.setTowerProfiles(profiles)
-        self.logger.info("tower profiles changed to: %s", profiles)
+        sens_dict = self.towerAdjust
+        if axis is Axis.TILT:
+            sens_dict = self.tilt.sensitivity_dict
+        profiles[0][4:6] = sens_dict["homingFast"][sens + 2]
+        profiles[1][4:6] = sens_dict["homingSlow"][sens + 2]
+        return profiles
+
+    def updateMotorSensitivity(self, axis: Axis, sens: int = 0):
+        if axis is Axis.TOWER:
+            profiles = self.getTowerProfiles()
+        else:
+            profiles = self.tilt.profiles
+        self.get_profiles_with_sensitivity(profiles, axis, sens)
+        if axis is Axis.TOWER:
+            self.setTowerProfiles(profiles)
+        else:
+            self.tilt.profiles = profiles
+        self.logger.info("%s profiles changed to: %s", axis.name, profiles)
 
     def tower_home(self) -> None:
         """
@@ -1088,8 +1118,8 @@ class Hardware:
         :return: Sensitivity value
         """
 
-        tower_sensitivity = 0  # use default sensitivity first
-        self.updateMotorSensitivity(self.config.tiltSensitivity, tower_sensitivity)
+        sensitivity = 0  # use default sensitivity first
+        self.updateMotorSensitivity(Axis.TOWER, sensitivity)
         tries = 3
         while tries > 0:
             await self.towerSyncWaitAsync()
@@ -1098,17 +1128,17 @@ class Hardware:
                 raise TowerEndstopNotReached()
             if home_status == -3:
                 # if homing failed try different tower homing profiles (only positive values of motor sensitivity)
-                tower_sensitivity += 1  # try next motor sensitivity
+                sensitivity += 1  # try next motor sensitivity
                 tries = 3  # start over with new sensitivity
-                if tower_sensitivity >= len(self.towerAdjust["homingFast"]) - 2:
+                if sensitivity >= len(self.towerAdjust["homingFast"]) - 2:
                     raise TowerHomeCheckFailed()
 
-                self.updateMotorSensitivity(self.config.tiltSensitivity, tower_sensitivity)
+                self.updateMotorSensitivity(Axis.TOWER, sensitivity)
 
                 continue
             tries -= 1
 
-        return tower_sensitivity
+        return sensitivity
 
     def getFansRpmDict(self):
         rpms = self.getFansRpm()

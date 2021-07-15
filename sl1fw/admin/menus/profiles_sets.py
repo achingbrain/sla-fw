@@ -13,6 +13,7 @@ from sl1fw.admin.control import AdminControl
 from sl1fw.admin.items import AdminAction, AdminBoolValue
 from sl1fw.admin.menus.dialogs import Info, Confirm
 from sl1fw.admin.safe_menu import SafeAdminMenu
+from sl1fw.libHardware import Axis
 from sl1fw.libPrinter import Printer
 from sl1fw.functions.files import get_save_path
 from sl1fw.errors.errors import ConfigException
@@ -51,7 +52,7 @@ class ProfilesSetsMenu(SafeAdminMenu):
             if filePath.endswith("." + defines.tiltProfilesSuffix):
                 self.add_item(AdminAction(
                     itemName,
-                    partial(self._confirm, self._setTiltProfiles, itemName, filePath)
+                    partial(self._confirm, self._setAxisProfiles, itemName, filePath, Axis.TILT)
                 ))
             elif filePath.endswith("." + defines.tuneTiltProfilesSuffix):
                 self.add_item(AdminAction(
@@ -61,36 +62,28 @@ class ProfilesSetsMenu(SafeAdminMenu):
             elif filePath.endswith("." + defines.towerProfilesSuffix):
                 self.add_item(AdminAction(
                     itemName,
-                    partial(self._confirm, self._setTowerProfiles, itemName, filePath)
+                    partial(self._confirm, self._setAxisProfiles, itemName, filePath, Axis.TOWER)
                 ))
 
-    def _confirm(self, action = None, itemName = None, path = None):
+    def _confirm(self, action = None, itemName = None, path = None, axis: Axis = Axis.TILT):
         self._control.enter(
             Confirm(
                 self._control,
-                partial(action, path),
+                partial(action, path, axis),
                 text="Do you really want to set profiles: " + itemName,
             )
         )
 
-    def _setTiltProfiles(self, path):
+    def _setAxisProfiles(self, path, axis: Axis):
         with open(path, "r") as f:
             profiles = json.loads(f.read())
-            self.logger.info("Overwriting tilt profiles to: %s", profiles)
-            self._printer.hw.tilt.profiles = profiles
-            self._printer.hw.tilt.sensitivity(self._printer.hw.config.tiltSensitivity)
+            self.logger.info("Overwriting %s profiles to: %s", axis.name, profiles)
+            if axis is Axis.TOWER:
+                self._printer.hw.setTowerProfiles(profiles)
+            else:
+                self._printer.hw.tilt.profiles = profiles
 
-    def _setTowerProfiles(self, path):
-        with open(path, "r") as f:
-            profiles = json.loads(f.read())
-            self.logger.info("Overwriting tower profiles to: %s", profiles)
-            self._printer.hw.setTowerProfiles(profiles)
-            self._printer.hw.updateMotorSensitivity(
-                self._printer.hw.config.tiltSensitivity,
-                self._printer.hw.config.towerSensitivity
-            )
-
-    def _setTuneTilt(self, path):
+    def _setTuneTilt(self, path, _):
         with open(path, "r") as f:
             profiles = json.loads(f.read())
             self.logger.info("Overwriting tune tilt profiles to: %s", profiles)

@@ -4,7 +4,7 @@
 import asyncio
 from abc import ABC, abstractmethod
 from enum import unique, Enum
-from typing import List
+from typing import List, Dict
 
 
 @unique
@@ -53,10 +53,6 @@ class Axis(ABC):
     @abstractmethod
     def move_absolute(self, position) -> bool:
         """initiate movement of the axis"""
-
-    @abstractmethod
-    def sensitivity(self, sensitivity: int):
-        """tune axis profiles to given sensitivity"""
 
     @abstractmethod
     def move(self, speed: int, set_profiles: bool = True, fullstep=False) -> bool:
@@ -126,3 +122,8 @@ class Axis(ABC):
     @abstractmethod
     def profiles(self, profiles: List[List[int]]):
         """save all profiles to MC"""
+
+    @property
+    @abstractmethod
+    def sensitivity_dict(self) -> Dict[str, List[List[int]]]:
+        """return dict with axis sensitivity values"""

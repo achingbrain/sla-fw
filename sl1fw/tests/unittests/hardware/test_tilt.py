@@ -2,15 +2,17 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # Copyright (C) 2020-2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import json
+import os
 import unittest
 from time import sleep
 from typing import Optional
 
+from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
-from sl1fw.libHardware import Hardware
+from sl1fw.libHardware import Hardware, Axis
 from sl1fw.errors.errors import TiltPositionFailed
 from sl1fw.hardware.tilt import TiltProfile
 
@@ -121,24 +123,17 @@ class TestTilt(Sl1fwTestCase):
         # TODO: ensure tilt is in fullstep
 
     def test_sensitivity(self):
-        #pylint: disable=protected-access
         with self.assertRaises(ValueError):
-            self.hw.tilt.sensitivity(-3)
+            self.hw.updateMotorSensitivity(Axis.TILT, -3)
         with self.assertRaises(ValueError):
-            self.hw.tilt.sensitivity(3)
+            self.hw.updateMotorSensitivity(Axis.TILT, 3)
         sensitivities = [-2, -1, 0, 1, 2]
-        originalProfiles = self.hw.tilt.profiles
-        homingFast = originalProfiles[TiltProfile.homingFast.value]
-        homingSlow = originalProfiles[TiltProfile.homingSlow.value]
+        with open(os.path.join(defines.dataPath, PrinterModel.SL1.name, "default.tilt"), "r") as f:
+            original_profiles = json.loads(f.read())
         for sensitivity in sensitivities:
-            self.hw.tilt.sensitivity(sensitivity)
-            homingFast[4] = self.hw.tilt._tiltAdjust[TiltProfile.homingFast][sensitivity + 2][0]
-            homingFast[5] = self.hw.tilt._tiltAdjust[TiltProfile.homingFast][sensitivity + 2][1]
-            homingSlow[4] = self.hw.tilt._tiltAdjust[TiltProfile.homingSlow][sensitivity + 2][0]
-            homingSlow[5] = self.hw.tilt._tiltAdjust[TiltProfile.homingSlow][sensitivity + 2][1]
-            newProfiles = self.hw.tilt.profiles
-            self.assertEqual(homingFast, newProfiles[TiltProfile.homingFast.value])
-            self.assertEqual(homingSlow, newProfiles[TiltProfile.homingSlow.value])
+            adjusted_profiles = self.hw.get_profiles_with_sensitivity(original_profiles, Axis.TILT, sensitivity)
+            self.hw.updateMotorSensitivity(Axis.TILT, sensitivity)
+            self.assertEqual(self.hw.tilt.profiles, adjusted_profiles)
 
     #FIXME: test go_to_fullstep. Simulator behaves differently from real HW ()
 
