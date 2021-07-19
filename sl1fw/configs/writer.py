@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Set
 
 from sl1fw.configs.value import ValueConfig
 
@@ -29,8 +29,8 @@ class ConfigWriter:
         """
         self._logger = logging.getLogger(__name__)
         self._config = config
-        self._changed: Dict[str:Any] = {}
-        self._deleted = set()
+        self._changed: Dict[str, Any] = {}
+        self._deleted: Set[str] = set()
 
     def _get_attribute_name(self, key: str) -> str:
         """

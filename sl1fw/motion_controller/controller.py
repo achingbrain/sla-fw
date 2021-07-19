@@ -304,7 +304,7 @@ class MotionController:
             self.logger.info("motion controller serial number: %s", self.board['serial'])
         else:
             self.logger.warning("motion controller serial number is invalid")
-            self.board.serial = "*INVALID*"
+            self.board['serial'] = "*INVALID*"
 
     def doGetInt(self, *args):
         return self.do(*args, return_process=int)
@@ -479,7 +479,7 @@ class MotionController:
 
     def getStateBits(self, request: List[str] = None, check_for_updates: bool = True):
         if not request:
-            request = StatusBits.__members__.keys()
+            request = StatusBits.__members__.keys()  # type: ignore
 
         bits = self.doGetBoolList("?", bit_count=16)
         if len(bits) != 16:

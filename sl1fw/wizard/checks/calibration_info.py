@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass, asdict
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from sl1fw.configs.hw import HwConfig
 from sl1fw.wizard.actions import UserActionBroker
@@ -23,7 +23,7 @@ class CalibrationInfo(Check):
             WizardCheckType.CALIBRATION_INFO, Configuration(None, None), [],
         )
         self._hw_config = hw_config
-        self._result_data = None
+        self._result_data: Optional[CheckData] = None
 
     async def async_task_run(self, actions: UserActionBroker):
         self._logger.debug("Obtaining calibration information")

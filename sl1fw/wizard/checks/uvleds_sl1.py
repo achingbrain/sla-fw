@@ -4,7 +4,7 @@
 
 from asyncio import sleep
 from dataclasses import dataclass, asdict
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from sl1fw import test_runtime
 from sl1fw.errors.errors import UVLEDsVoltagesDifferTooMuch
@@ -35,7 +35,7 @@ class UVLEDsTest_SL1(DangerousCheck):
         super().__init__(
             hw, WizardCheckType.UV_LEDS, Configuration(None, None), [Resource.UV],
         )
-        self._result_data = None
+        self._result_data: Optional[CheckData] = None
 
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()

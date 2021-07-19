@@ -29,7 +29,7 @@ from sl1fw.errors.errors import (
 from sl1fw.errors.warnings import FactoryResetCheckFailure
 from sl1fw.functions.files import ch_mode_owner, get_all_supported_files
 from sl1fw.functions.system import FactoryMountedRW, save_factory_mode, compute_uvpwm
-from sl1fw.tests.mocks.hardware import Hardware
+from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck, DangerousCheck
 from sl1fw.wizard.wizards.self_test import SelfTestWizard

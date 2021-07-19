@@ -66,6 +66,12 @@ pylint:
   script:
     - sh pylint.sh
 
+mypy:
+  stage: test
+  dependencies: []
+  script:
+    - sh mypy.sh
+
 i18n-complete:
   stage: i18n
   dependencies:

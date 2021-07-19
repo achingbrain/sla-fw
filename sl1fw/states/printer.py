@@ -51,7 +51,7 @@ class PrinterState(Enum):
             self.WIZARD: Printer0State.WIZARD,
             self.UPDATING_MC: Printer0State.UPDATE_MC,
             self.ADMIN: Printer0State.ADMIN,
-        }.get(self, None)
+        }.get(self, None)  # type: ignore
 
     @staticmethod
     def get_most_important(states: Iterable[PrinterState]) -> PrinterState:

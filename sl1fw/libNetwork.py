@@ -9,7 +9,7 @@
 import logging
 import os
 from time import monotonic
-from typing import Optional, Any, Dict, Callable
+from typing import Optional, Any, Dict, Callable, Mapping
 from urllib.request import urlopen, Request
 
 import distro
@@ -56,7 +56,7 @@ class Network:
     def online(self) -> bool:
         return self._nm.state() == self.NM_STATE_CONNECTED_GLOBAL
 
-    def _state_changed(self, changed: map) -> None:
+    def _state_changed(self, changed: Mapping[str, Any]) -> None:
         events = {"Connectivity", "Metered", "ActiveConnections", "WirelessEnabled"}
         if not events & set(changed.keys()):
             return

@@ -17,6 +17,7 @@ import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Mapping, Callable
 
 import psutil
 from pydbus import SystemBus
@@ -27,8 +28,9 @@ from sl1fw.libHardware import Hardware
 from sl1fw.configs.toml import TomlConfig
 from sl1fw.configs.stats import TomlConfigStats
 
+
 def create_summary(hw: Hardware, logger: logging.Logger, summary_path: Path):
-    data_template = {
+    data_template: Mapping[str, Callable[[], Any]] = {
         "hardware": functools.partial(log_hw, hw),
         "system": log_system,
         "network": log_network,
@@ -61,7 +63,7 @@ def create_summary(hw: Hardware, logger: logging.Logger, summary_path: Path):
     return None # fix: pylint inconsistent-return-statements
 
 
-def log_hw(hw: Hardware) -> None:
+def log_hw(hw: Hardware) -> Mapping[str, Any]:
     fans_rpm = hw.getFansRpm()
     voltages = hw.getVoltages()
     try:
@@ -69,7 +71,7 @@ def log_hw(hw: Hardware) -> None:
     except Exception:
         locales = "No info"
 
-    data = {
+    data: Mapping[str, Any] = {
         "Resin Sensor State": hw.getResinSensorState(),
         "Cover State": hw.isCoverClosed(),
         "Power Switch State": hw.getPowerswitchState(),
@@ -96,8 +98,8 @@ def log_hw(hw: Hardware) -> None:
     return data
 
 
-def log_system():
-    data = {
+def log_system() -> Mapping[str, Any]:
+    data: Mapping[str, Mapping[str, Any]] = {
         "time settings": {},
         "update channel": {},
         "slots info": {},
@@ -135,7 +137,7 @@ def log_system():
     return data
 
 
-def log_network():
+def log_network() -> Mapping[str, Any]:
     proxy = SystemBus().get("org.freedesktop.NetworkManager")
     data = {"wifi_enabled": proxy.WirelessEnabled, "primary_conn_type": proxy.PrimaryConnectionType}
     for devPath in proxy.Devices:
@@ -152,13 +154,13 @@ def log_network():
     return data
 
 
-def log_statistics(hw: Hardware):
+def log_statistics(hw: Hardware) -> Mapping[str, Any]:
     data = TomlConfigStats(defines.statsData, None).load()
     data["UV LED Time Counter [h]"] = hw.getUvStatistics()[0] / 3600
     data["Display Time Counter [h]"] = hw.getUvStatistics()[1] / 3600
     return data
 
 
-def log_counters():
+def log_counters() -> Mapping[str, Any]:
     data = TomlConfig(defines.counterLog).load()
     return data

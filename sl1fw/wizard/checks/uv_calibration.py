@@ -382,7 +382,7 @@ class UVCalibrateApply(Check):
         self._reset_display_counter = reset_display_counter
 
     async def async_task_run(self, actions: UserActionBroker):
-        result = Queue()
+        result: Queue[bool] = Queue()
 
         def discard(loop: AbstractEventLoop):
             loop.call_soon_threadsafe(partial(result.put_nowait, False))

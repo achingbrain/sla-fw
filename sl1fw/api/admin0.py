@@ -4,12 +4,13 @@
 
 import logging
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Set
 
 import pydbus
 from pydbus.generic import signal
+from pydbus.registration import ObjectRegistration
 
-from sl1fw.admin.items import AdminAction, AdminIntValue, AdminFloatValue, AdminBoolValue, AdminTextValue
+from sl1fw.admin.items import AdminAction, AdminIntValue, AdminFloatValue, AdminBoolValue, AdminTextValue, AdminItem
 from sl1fw.admin.manager import AdminManager
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.root import RootMenu
@@ -212,8 +213,8 @@ class Admin0:
         self._logger = logging.getLogger(__name__)
         self._manager = manager
         self._printer = printer
-        self._item_registrations = set()
-        self._item_names = set()
+        self._item_registrations: Set[ObjectRegistration] = set()
+        self._item_names: Set[AdminItem, str] = set()
         self._children: List[Tuple[str, DBusObjectPath]] = []
         self._bus_name = None
         manager.menu_changed.connect(self._on_menu_change)
@@ -244,7 +245,7 @@ class Admin0:
         return self._children
 
     @property
-    def _current_menu(self) -> AdminMenu:
+    def _current_menu(self) -> Optional[AdminMenu]:
         return self._manager.current_menu
 
     def _on_menu_change(self):

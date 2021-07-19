@@ -33,7 +33,7 @@ FAKE_ARGS = {
     "changes: Dict[str, Tuple[Any, Any]]": {"exposure": (10, 20)},
     "measured_resin_ml: float": 12.3,
     "required_resin_ml: float": 23.4,
-    "warning: Warning": warnings.AmbientTooHot(ambient_temperature=42.0),
+    "warning: Warning": warnings.AmbientTooHot(ambient_temperature=42.0),  # type: ignore
     "name: str": "fan1",
     "fan: str": "fan1",
     "rpm: Union[int, NoneType]": 1234,

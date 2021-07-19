@@ -36,10 +36,11 @@ class ExposureImage:
         self._sl: Optional[shared_memory.ShareableList] = None
         self._shm: Optional[list] = None
         self._preloader: Optional[Process] = None
-        self._preloader_log_queue = Queue()
-        self._preloader_log_listener = QueueListener(self._preloader_log_queue, *logging.getLogger().handlers)
-        self._start_preload = Queue()
-        self._preload_result = Queue()
+        self._preloader_log_queue: Queue = Queue()
+        self._preloader_log_listener: QueueListener = \
+            QueueListener(self._preloader_log_queue, *logging.getLogger().handlers)
+        self._start_preload: Queue = Queue()
+        self._preload_result: Queue = Queue()
 
     def start(self):
         # numpy uses reversed axis indexing
@@ -107,7 +108,7 @@ class ExposureImage:
         self._project = project
         self._calibration = None
         project_flags = ProjectFlags.NONE
-        usage = numpy.ndarray(
+        usage: numpy.ndarray = numpy.ndarray(
                 self._hw.exposure_screen.parameters.display_usage_size_px,
                 dtype=numpy.float64,
                 order='C',

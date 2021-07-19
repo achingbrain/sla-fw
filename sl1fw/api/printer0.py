@@ -86,7 +86,6 @@ class Printer0:
         self._unpacking = None
         self._wizard = None
         self._calibration = None
-        self._prints = []
 
         self.printer.display.state_changed.connect(self._on_state_changed)
         self.printer.state_changed.connect(self._on_state_changed)
@@ -112,7 +111,6 @@ class Printer0:
         self.printer.self_tested_changed.connect(self._on_self_tested_changed)
         self.printer.mechanically_calibrated_changed.connect(self._on_mechanically_calibrated_changed)
         self.printer.uv_calibrated_changed.connect(self._on_uv_calibrated_changed)
-
 
     def _on_state_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])

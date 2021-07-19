@@ -5,7 +5,7 @@
 from dataclasses import dataclass, asdict
 from threading import Thread
 from time import sleep
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from sl1fw import defines
 from sl1fw.functions.system import shut_down
@@ -32,7 +32,7 @@ class TemperatureTest(Check):
             WizardCheckType.TEMPERATURE, Configuration(None, None), [],
         )
         self._hw = hw
-        self._check_data = None
+        self._check_data: Optional[CheckData] = None
 
     async def async_task_run(self, actions: UserActionBroker):
         self._logger.debug("Checking temperatures")

@@ -8,6 +8,7 @@ from typing import Deque, Optional
 
 from PySignal import Signal
 
+from sl1fw.admin.base_menu import AdminMenuBase
 from sl1fw.admin.control import AdminControl
 from sl1fw.admin.menu import AdminMenu
 
@@ -27,7 +28,7 @@ class AdminManager(AdminControl):
             return self._menus[-1]
         return None
 
-    def enter(self, menu: AdminMenu) -> None:
+    def enter(self, menu: AdminMenuBase) -> None:
         self._logger.info("Entering admin menu: %s", menu)
         self._menus.append(menu)
         self.menu_changed.emit()
@@ -36,7 +37,7 @@ class AdminManager(AdminControl):
     def exit(self) -> None:
         self.pop(len(self._menus))
 
-    def pop(self, count=1, poping_menu: Optional[AdminMenu] = None) -> None:
+    def pop(self, count=1, poping_menu: Optional[AdminMenuBase] = None) -> None:
         current_menu = self.current_menu
         if poping_menu and current_menu != poping_menu:
             self._logger.info("Not poping non-active menu.")

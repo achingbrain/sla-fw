@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from time import time
-from typing import Optional, Collection
+from typing import Optional, Collection, List, Set
 from enum import unique, IntEnum
 
 import pprint
@@ -29,7 +29,7 @@ from sl1fw import defines
 from sl1fw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, ProjectErrorNotEnoughLayers, \
                                 ProjectErrorCorrupted, ProjectErrorAnalysisFailed, ProjectErrorCalibrationInvalid, \
                                 ProjectErrorWrongPrinterModel
-from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ProjectSettingsModified, VariantMismatch
+from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ProjectSettingsModified, VariantMismatch, PrinterWarning
 from sl1fw.configs.project import ProjectConfig
 from sl1fw.project.functions import get_white_pixels
 from sl1fw.utils.bounding_box import BBox
@@ -92,10 +92,10 @@ class Project:
         self.params_changed = Signal()
         self.path_changed = Signal()
         self._hw = hw
-        self.warnings = set()
+        self.warnings: Set[PrinterWarning] = set()
         self.path = project_file
         self._config = ProjectConfig()
-        self.layers: Collection[ProjectLayer] = []
+        self.layers: List[ProjectLayer] = []
         self.total_height_nm = 0
         self.layer_height_nm = 0
         self.layer_height_first_nm = 0
@@ -114,7 +114,7 @@ class Project:
         self._layers_slow = 0
         self._layers_fast = 0
         self._calibrate_time_ms = 0
-        self._calibrate_time_ms_exact = []
+        self._calibrate_time_ms_exact: List[int] = []
         self._calibrate_regions = 0
         self._exposure_user_profile = ExposureUserProfile.DEFAULT
         namelist = self._read_toml_config()

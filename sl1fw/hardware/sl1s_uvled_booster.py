@@ -8,7 +8,7 @@
 
 import logging
 from time import sleep
-from typing import Optional
+from typing import Optional, List, Tuple
 from smbus2 import SMBus, i2c_msg
 
 from sl1fw.errors.errors import BoosterError
@@ -92,7 +92,7 @@ class Booster:
         if count > 0:
             msg = i2c_msg.read(self.EEPROM_ADDR, count)
             self._bus.i2c_rdwr(msg)
-            data += list(msg)
+            data += list(msg)  # type: ignore
         self._logger.debug("data: %s", " ".join("{:02X}".format(x) for x in data))
         return data
 
@@ -118,7 +118,7 @@ class Booster:
             self._bus.write_i2c_block_data(self.EEPROM_ADDR, address, values[size:])
             sleep(self.EEPROM_WRITE_CYCLE_TIME)
 
-    def status(self) -> (bool, list):
+    def status(self) -> Tuple[bool, List]:
         # LED statuses are valid only when LED is turned on by MC, not only by DAC value
         # and with low DAC value (cca 20) only
         status_byte = self._bus.read_byte_data(self.GPIO_ADDR, 0)
@@ -130,7 +130,7 @@ class Booster:
             result = status_byte & (1 << i)
             self._logger.info("LED channel %d: %s", i, "DISCONNECTED" if result else "OK")
             led_states.append(result)
-        return dac_state, led_states
+        return bool(dac_state), led_states
 
     @property
     def pwm(self) -> int:

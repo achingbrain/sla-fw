@@ -371,7 +371,7 @@ def wrap_warning(warning: Warning) -> Dict[str, Any]:
         return {"code": Sl1Codes.NONE_WARNING.code}
 
     if isinstance(warning, PrinterWarning):
-        ret = {"code": warning.CODE.code, "name": type(warning).__name__, "text": str(warning)}
+        ret = {"code": warning.CODE.code, "name": type(warning).__name__, "text": str(warning)}  # type: ignore
         if is_dataclass(warning):
             ret.update(asdict(warning))
         return ret

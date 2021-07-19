@@ -92,7 +92,7 @@ class BaseCheck(ABC):
         self._exception: Optional[Exception] = None
         self._warnings: List[Warning] = []
         self._type = check_type
-        self._progress = 0
+        self._progress: float = 0
         self._configuration = configuration
         self._resources = sorted(resources)
         self.state_changed = Signal()
@@ -116,6 +116,13 @@ class BaseCheck(ABC):
     def state(self) -> WizardCheckState:
         return self._state
 
+    @state.setter
+    def state(self, value: WizardCheckState):
+        if self._state != value:
+            self._state = value
+            self.state_changed.emit()
+            self.data_changed.emit()
+
     @property
     def progress(self) -> float:
         return self._progress
@@ -125,13 +132,6 @@ class BaseCheck(ABC):
         self._logger.debug("Check %s progress: %s", type(self).__name__, value)
         self._progress = value
         self.data_changed.emit()
-
-    @state.setter
-    def state(self, value: WizardCheckState):
-        if self._state != value:
-            self._state = value
-            self.state_changed.emit()
-            self.data_changed.emit()
 
     @property
     def exception(self) -> Optional[Exception]:

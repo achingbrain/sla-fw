@@ -2,16 +2,17 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import re
-import errno
-import shutil
 import asyncio
+import errno
 import json
 import logging
+import re
+import shutil
 import tempfile
-from datetime import datetime
 from abc import ABC, abstractmethod
 from asyncio import CancelledError
+from asyncio.subprocess import Process
+from datetime import datetime
 from io import BufferedReader
 from pathlib import Path
 from threading import Thread
@@ -22,12 +23,12 @@ from PySignal import Signal
 from aiohttp.client_exceptions import ClientConnectorError
 
 from sl1fw import defines
+from sl1fw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace, DisplayUsageError
 from sl1fw.functions.files import get_save_path, usb_remount
 from sl1fw.functions.generate import display_usage_heatmap
 from sl1fw.libHardware import Hardware
-from sl1fw.states.logs import LogsState, StoreType
 from sl1fw.state_actions.logs.summary import create_summary
-from sl1fw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace, DisplayUsageError
+from sl1fw.states.logs import LogsState, StoreType
 
 
 def get_logs_file_name(hw: Hardware) -> str:
@@ -54,19 +55,19 @@ class LogsExport(ABC, Thread):
         self._logger = logging.getLogger(__name__)
         self._state = LogsState.IDLE
         self.state_changed = Signal()
-        self._export_progress = 0
+        self._export_progress: float = 0
         self.export_progress_changed = Signal()
-        self._store_progress = 0
+        self._store_progress: float = 0
         self.store_progress_changed = Signal()
         self._task: Optional[asyncio.Task] = None
         self._exception: Optional[Exception] = None
         self.exception_changed = Signal()
         self._hw = hw
-        self._uploaded_log_identifier = None
+        self._uploaded_log_identifier: Optional[str] = None
         self.uploaded_log_identifier_changed = Signal()
-        self._uploaded_log_url = None
+        self._uploaded_log_url: Optional[str] = None
         self.uploaded_log_url_changed = Signal()
-        self.proc = None
+        self.proc: Optional[Process] = None
 
     @property
     def state(self) -> LogsState:
@@ -128,7 +129,7 @@ class LogsExport(ABC, Thread):
         return self._uploaded_log_url
 
     @log_upload_url.setter
-    def log_upload_url(self, value :str) -> None:
+    def log_upload_url(self, value: str) -> None:
         if self._uploaded_log_url != value:
             self._uploaded_log_url = value
             self.uploaded_log_url_changed.emit(value)
@@ -352,9 +353,9 @@ class ServerUpload(LogsExport):
                     async with session.post(url=self._url, data=data) as response:
                         if response.status == 200:
                             self._logger.debug("aiohttp post done")
-                            response = await response.text()
-                            self._logger.debug("Log upload response: %s", response)
-                            response_data = json.loads(response)
+                            response_text = await response.text()
+                            self._logger.debug("Log upload response: %s", response_text)
+                            response_data = json.loads(response_text)
                             self.log_upload_identifier = response_data["id"] if "id" in response_data else response_data["url"]
                             self.log_upload_url = response_data["url"]
                         else:

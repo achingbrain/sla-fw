@@ -1,6 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 import asyncio
 from abc import abstractmethod
 from time import sleep
@@ -15,11 +16,11 @@ from sl1fw.motion_controller.controller import MotionController
 from sl1fw.configs.hw import HwConfig
 from sl1fw.functions.decorators import safe_call
 from sl1fw.errors.errors import TiltPositionFailed, TiltHomeFailed, MotionControllerException
-from sl1fw.hardware.axis import Axis
+from sl1fw.hardware.axis import Axis, AxisProfileBase
 
 
 @unique
-class TiltProfile(Enum):
+class TiltProfile(AxisProfileBase, Enum):
     temp = -1
     homingFast = 0
     homingSlow = 1

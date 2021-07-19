@@ -28,7 +28,7 @@ from logging import Logger
 from queue import Queue, Empty
 from threading import Thread, Event, Lock
 from time import sleep
-from typing import Optional, Any
+from typing import Optional, Any, List
 
 import psutil
 from PySignal import Signal
@@ -37,7 +37,6 @@ from sl1fw import defines, test_runtime
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.configs.stats import TomlConfigStats
 from sl1fw.errors.errors import (
-    ExposureError,
     TiltFailed,
     TowerFailed,
     TowerMoveFailed,
@@ -50,7 +49,7 @@ from sl1fw.errors.errors import (
     NotAvailableInState,
     ExposureCheckDisabled,
 )
-from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough
+from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough, PrinterWarning
 from sl1fw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from sl1fw.functions.system import shut_down
 from sl1fw.libHardware import Hardware
@@ -67,7 +66,7 @@ class ExposureCheckRunner:
         self.logger = logging.getLogger(__name__)
         self.check_type = check
         self.expo = expo
-        self.warnings = []
+        self.warnings: List[PrinterWarning] = []
 
     def __call__(self):
         self.logger.info("Running: %s", self.check_type)
@@ -315,10 +314,10 @@ class Exposure:
         self.instance_id = job_id
         self.check_results = TraceableDict()
         self.check_results.changed.connect(self._on_check_result_change)
-        self.exception: Optional[ExposureError] = None
+        self.exception: Optional[Exception] = None
         self.warning: Optional[Warning] = None
         self.canceled = False
-        self.commands = Queue()
+        self.commands: Queue[str] = Queue()  # pylint: disable=unsubscriptable-object
         self.warning_dismissed = Event()
         self.warning_result: Optional[Exception] = None
         self.pending_warning = Lock()

@@ -36,7 +36,7 @@ logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
 
 # use system locale settings for translation
 gettext.install("sl1fw", defines.localedir, names=("ngettext",))
-builtins.N_ = lambda x: x
+builtins.N_ = lambda x: x #type: ignore
 
 warnings.simplefilter("ignore")
 

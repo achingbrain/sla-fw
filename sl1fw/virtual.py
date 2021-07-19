@@ -43,7 +43,7 @@ from sl1fw.tests.mocks.dbus.rauc import Rauc
 
 # use system locale settings for translation
 gettext.install("sl1fw", defines.localedir, names=("ngettext",))
-builtins.N_ = lambda x: x
+builtins.N_ = lambda x: x #type: ignore
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
 
@@ -66,18 +66,17 @@ def change_dir(path):
 
 
 defines.hwConfigPath = HARDWARE_FILE
-defines.factoryConfigPath = str(SL1FW_DIR / ".." / "factory" / "factory.toml")
+defines.factoryConfigPath = SL1FW_DIR / ".." / "factory" / "factory.toml"
 defines.hwConfigPathFactory = HARDWARE_FILE_FACTORY
 defines.templates = str(SL1FW_DIR / "intranet" / "templates")
 test_runtime.testing = True
 test_runtime.hard_exceptions = False
-defines.truePoweroff = False
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
 defines.cpuTempFile = str(SAMPLES_DIR / "cputemp")
 defines.multimediaRootPath = str(SL1FW_DIR / "multimedia")
 defines.internalProjectPath = str(SAMPLES_DIR)
 defines.ramdiskPath = str(TEMP_DIR)
-defines.octoprintAuthFile = str(SAMPLES_DIR / "slicer-upload-api.key")
+defines.octoprintAuthFile = SAMPLES_DIR / "slicer-upload-api.key"
 defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
 defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")
 defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
@@ -98,7 +97,7 @@ defines.last_job = Path(defines.ramdiskPath) / "last_job"
 defines.last_log_token = Path(defines.ramdiskPath) / "last_log_token"
 defines.printer_summary = Path(defines.ramdiskPath) / "printer_summary"
 defines.firmwareListTemp = str(Path(defines.ramdiskPath) / "updates.json")
-defines.slicerProfilesFile = str(Path(defines.ramdiskPath) / "slicer_profiles.toml")
+defines.slicerProfilesFile = Path(defines.ramdiskPath) / "slicer_profiles.toml"
 defines.firmwareTempFile = str(Path(defines.ramdiskPath) / "update.raucb")
 defines.emmc_serial_path = SAMPLES_DIR / "cid"
 defines.factoryMountPoint = TEMP_DIR

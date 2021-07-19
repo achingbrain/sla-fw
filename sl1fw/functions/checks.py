@@ -4,7 +4,7 @@
 
 from logging import Logger
 from time import sleep
-from typing import Callable
+from typing import Callable, List
 
 from deprecation import deprecated
 
@@ -59,7 +59,7 @@ def check_uv_leds(hw: Hardware, progress_callback: Callable[[float], None] = Non
 def check_uv_fans(hw: Hardware, logger: Logger, progress_callback: Callable[[float], None] = None):
     fan_diff = 200
     hw.startFans()
-    rpm = [[], [], []]
+    rpm: List[List[int]] = [[], [], []]
     fans_wait_time = defines.fanWizardStabilizeTime + defines.fanStartStopTime
 
     # set UV LED to max PWM

@@ -4,7 +4,7 @@
 
 from asyncio import sleep
 from dataclasses import dataclass, asdict
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 
 from sl1fw import defines, test_runtime
 from sl1fw.errors.errors import FanRPMOutOfTestRange, UVLEDHeatsinkFailed
@@ -28,7 +28,7 @@ class UVFansTest(DangerousCheck):
         super().__init__(
             hw, WizardCheckType.UV_FANS, Configuration(None, None), [Resource.FANS, Resource.UV],
         )
-        self._check_data = None
+        self._check_data: Optional[CheckData] = None
 
     async def async_task_run(self, actions: UserActionBroker):
         # pylint: disable=too-many-branches
@@ -37,7 +37,7 @@ class UVFansTest(DangerousCheck):
         fan_diff = 200
         self._hw.startFans()
         self._hw.uvLed(True)
-        rpm = [[], [], []]
+        rpm: List[List[int]] = [[], [], []]
         fans_wait_time = defines.fanWizardStabilizeTime + defines.fanStartStopTime
 
         # set UV LED to max PWM

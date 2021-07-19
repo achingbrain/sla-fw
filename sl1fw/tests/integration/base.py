@@ -96,7 +96,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
         defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigPath = self.hardware_file
-        defines.truePoweroff = False
         defines.internalProjectPath = str(self.SAMPLES_DIR)
         defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
         defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")

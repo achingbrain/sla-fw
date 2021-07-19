@@ -5,6 +5,7 @@
 
 from collections import deque
 from enum import Enum
+from typing import Deque
 
 from sl1fw import defines
 
@@ -47,13 +48,13 @@ class LineTrace:
 
     def __bytes__(self) -> bytes:
         if self._repeats > 1:
-            return f"{self._repeats}x {self._marker.value} {self._line}".encode('ascii') # TODO: This is not nice
-        return f"{self._marker.value} {self._line}".encode('ascii') # TODO: This is not nice
+            return f"{self._repeats}x {self._marker.value} {self._line}".encode('ascii')  # type: ignore
+        return f"{self._marker.value} {self._line}".encode('ascii')  # type: ignore
 
 
 class Trace:
     def __init__(self, size: int):
-        self.traces = deque(maxlen=size)
+        self.traces: Deque[LineTrace] = deque(maxlen=size)
 
     def append_trace(self, current_trace: LineTrace):
         # < b'?mot\n' -3

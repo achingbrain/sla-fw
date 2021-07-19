@@ -144,7 +144,7 @@ class TiltTimingTest(DangerousCheck):
         :param slow_move: Whenever to do slow tilts
         :return: Tilt time in seconds
         """
-        tilt_time = 0
+        tilt_time: float = 0
         total = self._hw.config.measuringMoves
         for i in range(total):
             self.progress = (i + (3 * (1 - slow_move))) / total / 2

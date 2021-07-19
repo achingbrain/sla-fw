@@ -10,6 +10,7 @@
 import logging
 import configparser
 import re
+from typing import Optional
 
 from sl1fw import defines
 from sl1fw.slicer.slicer_profile import SlicerProfile
@@ -20,19 +21,19 @@ class ProfileParser:
     def __init__(self, printer_type_name: str):
         self.logger = logging.getLogger(__name__)
         self.printer_type_name = printer_type_name
-        self.config = None
+        self.config: Optional[configparser.ConfigParser] = None
 
     @staticmethod
-    def _convert(val : str):
+    def _convert(val: str):
         """
         'smart' value conversion
         """
         # TODO split on "," and handle as list of values
         try:
-            val = int(val)
+            val = int(val)  # type: ignore
         except ValueError:
             try:
-                val = float(val)
+                val = float(val)  # type: ignore
             except ValueError:
                 pass
         return val

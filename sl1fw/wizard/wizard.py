@@ -75,12 +75,12 @@ class Wizard(Thread, UserActionBroker):
         self.exception_changed = Signal()
         self.warnings_changed = Signal()
         self.__current_group: Optional[CheckGroup] = None
-        self.unstop_result = Queue()
+        self.unstop_result: Queue[bool] = Queue()  # pylint: disable=unsubscriptable-object
         self._runtime_config = package.runtime_config
         self.started = datetime.now()
         self._dangerous_running = False
         self._close_cover_state: Optional[PushState] = None
-        self._data = {}
+        self._data: Dict[str, Any] = {}
         self.data_changed = Signal()
         self._exception: Optional[Exception] = None
 

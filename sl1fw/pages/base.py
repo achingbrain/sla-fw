@@ -38,17 +38,17 @@ if TYPE_CHECKING:
 
 
 class Page:
-    Name = None
+    Name: Optional[str] = None
 
     def __init__(self, display: Display):
         self.pageUI = "splash"
         self.pageTitle = "unknown"
         self.logger = logging.getLogger(__name__)
         self.display = display
-        self.autorepeat = {}
+        self.autorepeat = {}  # type: ignore
         self.stack = True
         self.clearStack = False
-        self.items = dict()
+        self.items = dict()  # type: ignore
 
         self.updateDataPeriod = None
 

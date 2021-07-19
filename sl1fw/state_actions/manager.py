@@ -120,7 +120,7 @@ class ActionManager:
         exposure0 = Exposure0(exposure)
         weak_exposure0 = weakref.proxy(exposure0)
         # pylint: disable=no-member
-        registration = self._system_bus.register_object(path, weak_exposure0, exposure0.dbus)
+        registration = self._system_bus.register_object(path, weak_exposure0, exposure0.dbus)  # type: ignore
         self._exposure_dbus_objects.put((exposure0, registration))
         self.logger.info("New exposure registered as: %s", path)
 
@@ -164,7 +164,7 @@ class ActionManager:
         weak_wizard0 = weakref.proxy(self._wizard_registered_object)
         # pylint: disable=no-member
         self._wizard_registration = self._system_bus.register_object(
-            self._wizard_registered_object.DBUS_PATH, weak_wizard0, self._wizard_registered_object.dbus
+            self._wizard_registered_object.DBUS_PATH, weak_wizard0, self._wizard_registered_object.dbus  # type: ignore
         )
 
         self._wizard.start()

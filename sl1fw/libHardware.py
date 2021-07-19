@@ -25,7 +25,7 @@ from threading import Thread
 from time import sleep
 
 import json
-from typing import Optional, List
+from typing import List, Optional, Any, Tuple
 
 import bitstring
 import pydbus
@@ -603,7 +603,7 @@ class Hardware:
             self.mcc.do("!upwm", int(pwm))
 
     @safe_call([0], (MotionControllerException, ValueError))
-    def getUvStatistics(self):
+    def getUvStatistics(self) -> Tuple[Any, Any]:
         uvData = self.mcc.doGetIntList("?usta")  # time counter [s] #TODO add uv average current, uv average temperature
         if len(uvData) != 2:
             raise ValueError(f"UV statistics data count not match! ({uvData})")

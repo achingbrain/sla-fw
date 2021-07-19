@@ -5,7 +5,7 @@
 import logging
 from collections import deque
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Optional, Callable, Deque
 
 from PySignal import Signal
 
@@ -56,7 +56,7 @@ class UserActionBroker:
     # pylint: disable=too-many-instance-attributes
     def __init__(self, hw: Hardware):
         self._logger = logging.getLogger(__name__)
-        self._states = deque()
+        self._states: Deque[PushState] = deque()
         self.states_changed = Signal()
         self._hw = hw
         self._warn_level_counter = WarnLevelCounter(hw)

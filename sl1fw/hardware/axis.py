@@ -1,15 +1,21 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 import asyncio
 from abc import ABC, abstractmethod
 from enum import unique, Enum
 from typing import List, Dict
 
 
+class AxisProfileBase:  # pylint: disable = too-few-public-methods
+    """Base for axis profile enums. Important for type checking"""
+
+
 @unique
-class AxisProfile(Enum):
+class AxisProfile(AxisProfileBase, Enum):
     temp = -1
+
 
 class Axis(ABC):
 
@@ -95,12 +101,12 @@ class Axis(ABC):
 
     @property
     @abstractmethod
-    def profile_id(self) -> AxisProfile:
+    def profile_id(self) -> AxisProfileBase:
         """return selected profile"""
 
     @profile_id.setter
     @abstractmethod
-    def profile_id(self, profile_id: AxisProfile):
+    def profile_id(self, profile_id: AxisProfileBase):
         """select profile"""
 
     @property

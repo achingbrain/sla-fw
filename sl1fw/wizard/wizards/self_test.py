@@ -36,7 +36,7 @@ class SelfTestPart1CheckGroup(CheckGroup):
         if package.hw.printer_model == PrinterModel.SL1:
             uvled_test = UVLEDsTest_SL1(package.hw)
         elif package.hw.printer_model == PrinterModel.SL1S:
-            uvled_test = UVLEDsTest_SL1S(package.hw)
+            uvled_test = UVLEDsTest_SL1S(package.hw)  # type: ignore
         else:
             raise UnknownPrinterModel()
         super().__init__(

@@ -12,6 +12,7 @@ import tarfile
 import tempfile
 from threading import Thread
 from time import sleep
+from typing import Optional
 
 from PySignal import Signal
 from deprecation import deprecated
@@ -32,7 +33,7 @@ class Examples(Thread):
         self._download_progress: float = 0
         self._unpack_progress: float = 0
         self._copy_progress: float = 0
-        self._exception = None
+        self._exception: Optional[Exception] = None
         self._network = network
         self._printer_model = printer_model
         self.change = Signal()

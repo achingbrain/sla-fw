@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from sl1fw import defines, test_runtime
 from sl1fw.hardware.printer_model import PrinterModel
@@ -42,7 +42,7 @@ def get_all_supported_files(printer_model: PrinterModel, path: Path) -> list:
 
     :return: list of all supported files
     """
-    files = []
+    files: List[Path] = []
     for extension in printer_model.extensions:
         files.extend(path.rglob("*%s" % extension))
     return files

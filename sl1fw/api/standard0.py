@@ -479,7 +479,7 @@ class Standard0:
             # check if printer is Idle
             printer_state = self._printer_state
             if printer_state != Printer0State.IDLE:
-                raise NotAvailableInState(printer_state.value, [Printer0State.IDLE.value])
+                raise NotAvailableInState(printer_state.value, [Printer0State.IDLE])
 
             # close a project already opened
             last_exposure = self._printer.action_manager.exposure

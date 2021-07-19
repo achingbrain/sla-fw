@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
-from typing import Optional
+from typing import Optional, Tuple, List
 from PIL import Image, ImageDraw, ImageFont
 
 from sl1fw import defines
@@ -93,8 +93,8 @@ class AreaWithLabelStripe(AreaWithLabel):
 
 class Calibration:
     # pylint: disable=too-many-arguments
-    def __init__(self, exposure_size_px: ()):
-        self.areas = []
+    def __init__(self, exposure_size_px: Tuple):
+        self.areas: List[Area] = []
         self.is_cropped = False
         self._logger = logging.getLogger(__name__)
         self._width_px, self._height_px = exposure_size_px

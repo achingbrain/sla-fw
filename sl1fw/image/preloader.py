@@ -11,7 +11,7 @@ from enum import unique, IntEnum, IntFlag
 from multiprocessing import Process, shared_memory, Event, Queue
 from queue import Empty
 from time import time
-from typing import Optional
+from typing import Optional, List, Any
 import numpy
 from PIL import Image
 
@@ -61,7 +61,7 @@ class Preloader(Process):
         self._params = exposure_screen_parameters
         self._start_preload = start_preload
         self._preload_result = preload_result
-        self._shm: Optional[shared_memory.SharedMemory] = None
+        self._shm: Optional[List[Any]] = None  # TODO: List of heterogeneous types, "self._shm[SHMIDX.PROJECT_PPM1].buf"
         self._sl: Optional[shared_memory.ShareableList] = None
         self._stoprequest = Event()
         self._display_usage_shape = (
@@ -171,7 +171,7 @@ class Preloader(Process):
             output_image.paste(self._black_image, mask=mask)
         start_time = time()
         pixels = numpy.array(output_image)
-        usage = numpy.ndarray(
+        usage: numpy.ndarray = numpy.ndarray(
                 self._params.display_usage_size_px,
                 dtype=numpy.float64,
                 order='C',

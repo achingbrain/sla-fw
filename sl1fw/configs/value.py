@@ -95,11 +95,11 @@ class Value(property, ABC):
         :param doc: Documentation string fro the configuration item
         """
 
-        def getter(config: BaseConfig) -> value_type[0]:
+        def getter(config: BaseConfig) -> value_type[0]:  # type: ignore
             with config.lock.gen_rlock():
                 return self.value_getter(config)
 
-        def setter(config: BaseConfig, val: value_type[0]):
+        def setter(config: BaseConfig, val: value_type[0]):  # type: ignore
             # TODO: Take a write lock once we get rid of writable properties
             # with self.config.lock.gen_wlock():
             self.value_setter(config, val)
@@ -110,7 +110,7 @@ class Value(property, ABC):
 
         super().__init__(getter, setter, deleter)
         self.logger = logging.getLogger(__name__)
-        self.name = None
+        self.name: Optional[str] = None
         self.key = key
         self.type: List[Type] = value_type
         self.default = default

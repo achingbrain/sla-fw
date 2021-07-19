@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass, asdict
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import distro
 
@@ -33,18 +33,20 @@ class SystemInfoTest(Check):
             WizardCheckType.SYS_INFO, Configuration(None, None), [],
         )
         self._hw = hw
-        self._result_data = None
+        self._result_data: Optional[CheckData] = None
 
     async def async_task_run(self, actions: UserActionBroker):
         self._logger.debug("Obtaining system information")
 
+        uv_led, display = self._hw.getUvStatistics()
         self._result_data = CheckData(
             distro.version(),
             self._hw.cpuSerialNo,
             self._hw.mcSerialNo,
             self._hw.mcFwVersion,
             self._hw.mcBoardRevision,
-            *self._hw.getUvStatistics(),
+            uv_led,
+            display,
             self._hw.printer_model.name,
         )
 
