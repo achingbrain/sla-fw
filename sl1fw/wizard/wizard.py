@@ -86,6 +86,7 @@ class Wizard(Thread, UserActionBroker):
 
         for check in self.checks:
             check.state_changed.connect(self.check_states_changed.emit)
+            check.state_changed.connect(self.state_changed.emit)
             check.state_changed.connect(self._update_data)
             check.exception_changed.connect(self.exception_changed.emit)
             check.warnings_changed.connect(self.warnings_changed.emit)
@@ -101,8 +102,16 @@ class Wizard(Thread, UserActionBroker):
 
     @property
     def state(self) -> WizardState:
-        if self.__state not in [WizardState.FAILED, WizardState.CANCELED, WizardState.STOPPED] and self._states:
+        # TODO: This is not nice, maybe we would like to compute wizard state just using the inner check states.
+        # TODO: Feel free to refactor this if the current structure is not fit for new features.
+        if self.__state in [WizardState.FAILED, WizardState.CANCELED, WizardState.STOPPED, WizardState.DONE]:
+            return self.__state
+
+        if self._states:
             return self._states[0].state
+
+        if any([check.state == WizardCheckState.RUNNING for check in self.checks]):
+            return WizardState.RUNNING
 
         return self.__state
 
@@ -157,7 +166,6 @@ class Wizard(Thread, UserActionBroker):
 
     def run(self):
         self._logger.info("Wizard %s running", type(self).__name__)
-        self.state = WizardState.RUNNING
         self.started_changed.emit()
         self.check_states_changed.emit()
 
