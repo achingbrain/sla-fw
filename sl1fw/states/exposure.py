@@ -45,9 +45,9 @@ class ExposureState(Enum):
 
 @unique
 class ExposureCheck(Enum):
-    TEMPERATURE = 1
-    PROJECT = 2
-    HARDWARE = 3
+    HARDWARE = 1
+    TEMPERATURE = 2
+    PROJECT = 3
     FAN = 4
     COVER = 5
     RESIN = 6

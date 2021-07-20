@@ -284,7 +284,7 @@ class TestExposure(Sl1fwTestCase):
     def _run_exposure(self, hw, project = None, expo_img = None) -> Exposure:
         exposure = self._start_exposure(hw, project, expo_img)
 
-        for i in range(30):
+        for i in range(50):
             print(f"Waiting for exposure {i}, state: ", exposure.state)
             if exposure.state == ExposureState.CHECK_WARNING:
                 print(exposure.warning)

@@ -56,7 +56,6 @@ class Page:
         self.callbackPeriod = 0.5
         self.checkPowerbutton = True
         self.checkCover = False
-        self.checkCoverOveride = False   # to force off when exposure is in progress
         self.checkCooling = False
 
         # vars for checkCoverCallback()
@@ -299,10 +298,11 @@ class Page:
             expoInProgress = False
         #endif
 
-        if not self.checkCoverOveride and (self.checkCover or expoInProgress):
+        if not self.display.hw.check_cover_override and (self.checkCover or expoInProgress):
             state = True
             self.checkCoverCallback()
         #endif
+
 
         if self.checkCooling or (expoInProgress and self.display.runtime_config.check_cooling_expo):
             state = True

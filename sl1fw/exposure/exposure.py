@@ -101,6 +101,8 @@ class TempsCheck(ExposureCheckRunner):
         super().__init__(ExposureCheck.TEMPERATURE, *args, **kwargs)
 
     def run(self):
+        if test_runtime.injected_preprint_warning:
+            self.raise_warning(test_runtime.injected_preprint_warning)
         temperatures = self.expo.hw.getMcTemperatures()
         failed = [i for i in (self.expo.hw.led_temp_idx, self.expo.hw.ambient_temp_idx) if temperatures[i] < 0]
         if failed:
@@ -164,9 +166,6 @@ class HardwareCheck(ExposureCheckRunner):
         super().__init__(ExposureCheck.HARDWARE, *args, **kwargs)
 
     def run(self):
-        if test_runtime.injected_preprint_warning:
-            self.raise_warning(test_runtime.injected_preprint_warning)
-
         self.logger.info("Syncing tower")
         self.expo.hw.towerSyncWait()
         if not self.expo.hw.isTowerSynced():
@@ -253,10 +252,7 @@ class StartPositionsCheck(ExposureCheckRunner):
         super().__init__(ExposureCheck.START_POSITIONS, *args, **kwargs)
 
     def run(self):
-        self.logger.info("Prepare tank and resin")
-        if self.expo.hw.config.tilt:
-            self.logger.info("Tilting down")
-            self.expo.hw.tilt.move_down()
+        # tilt is handled by StirringCheck
 
         self.logger.info("Tower to print start position")
         self.expo.hw.setTowerProfile("homingFast")
@@ -720,16 +716,20 @@ class Exposure:
             while not self.done:
                 command = self.commands.get()
                 if command == "exit":
+                    self.hw.check_cover_override = False
                     self.logger.info("Exiting exposure thread on exit command")
                     if self.canceled:
                         self.state = ExposureState.CANCELED
                     break
 
                 if command == "pour_resin_in":
-                    self._pour_in_resin()
+                    self.hw.check_cover_override = True
+                    asyncio.run(self._run_axis_checks())
+                    self.state = ExposureState.POUR_IN_RESIN
                     continue
 
                 if command == "checks":
+                    self.hw.check_cover_override = False
                     asyncio.run(self._run_checks())
                     self.run_exposure()
                     continue
@@ -744,21 +744,9 @@ class Exposure:
                 self._final_go_up()
             self.state = ExposureState.FAILURE
 
-            self._print_end_hw_off()
         if self.project:
             self.project.data_close()
-
-    def _pour_in_resin(self):
-        while not self.hw.isCoverVirtuallyClosed(check_for_updates=False):
-            self.state = ExposureState.COVER_OPEN
-            sleep(0.1)
-        self.logger.info("Cover closed - Preparing printer to pour in resin")
-        self.state = ExposureState.GOING_UP
-        self.hw.towerSyncWait()
-        self.state = ExposureState.LEVELING_TILT
-        self.hw.tilt.sync_wait()
-        self.hw.tilt.layer_up_wait()
-        self.state = ExposureState.POUR_IN_RESIN
+        self._print_end_hw_off()
 
     def raise_preprint_warning(self, warning: Warning):
         self.logger.warning("Warning being raised in pre-print: %s", type(warning))
@@ -776,10 +764,23 @@ class Exposure:
             if self.warning_result:
                 raise self.warning_result  # pylint: disable = raising-bad-type
 
+    async def _run_axis_checks(self):
+        self.state = ExposureState.CHECKS
+        self.logger.info("Running axis pre-print checks")
+        self.check_results.update({ExposureCheck.HARDWARE: ExposureCheckResult.SCHEDULED})
+
+        loop = asyncio.get_running_loop()
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            hw = loop.run_in_executor(pool, HardwareCheck(self))
+            self.logger.debug("Waiting for pre-print checks to finish")
+            await asyncio.gather(hw)
+
     async def _run_checks(self):
         self.state = ExposureState.CHECKS
         self.logger.info("Running pre-print checks")
-        self.check_results.update({check: ExposureCheckResult.SCHEDULED for check in ExposureCheck})
+        for check in ExposureCheck:
+            if check is not ExposureCheck.HARDWARE:
+                self.check_results.update({check: ExposureCheckResult.SCHEDULED})
 
         loop = asyncio.get_running_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
@@ -795,7 +796,6 @@ class Exposure:
         loop = asyncio.get_running_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
             await loop.run_in_executor(pool, CoverCheck(self))
-            await loop.run_in_executor(pool, HardwareCheck(self))
             await loop.run_in_executor(pool, ResinCheck(self))
             await loop.run_in_executor(pool, StartPositionsCheck(self))
             await loop.run_in_executor(pool, StirringCheck(self))
@@ -946,7 +946,6 @@ class Exposure:
             self.actual_layer += 1
 
         self._final_go_up()
-        self._print_end_hw_off()
 
         is_finished = not self.canceled
         if is_finished:

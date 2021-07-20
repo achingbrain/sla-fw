@@ -161,6 +161,7 @@ class Hardware:
 
         self.exposure_screen = ExposureScreen()
         self.printer_model = PrinterModel.NONE
+        self.check_cover_override = False
 
         self.fans_changed = Signal()
         self.mc_temps_changed = Signal()
