@@ -19,3 +19,4 @@ requests
 aiohttp
 pywayland
 smbus2
+git+https://github.com/prusa3d/Prusa-Error-Codes@master#egg=prusa-errors
