@@ -242,7 +242,9 @@ class ResinCheck(ExposureCheckRunner):
         self.logger.debug(
             "min: %d [ml], requested: %d [ml], measured: %d [ml]", defines.resinMinVolume, required_volume_ml, volume_ml
         )
-        if volume_ml < required_volume_ml:
+
+        # User is already informed about required refill during print if project has volume over 100 %
+        if volume_ml < required_volume_ml <= defines.resinMaxVolume:
             self.logger.info("Raising resin not enough warning")
             self.raise_warning(ResinNotEnough(volume_ml, required_volume_ml))
 
@@ -739,10 +741,13 @@ class Exposure:
             self.logger.info("Exiting exposure thread on state: %s", self.state)
         except Exception as exception:
             self.logger.exception("Exposure thread exception")
-            self.exception = exception
             if not isinstance(exception, (TiltFailed, TowerFailed)):
                 self._final_go_up()
-            self.state = ExposureState.FAILURE
+            if isinstance(exception, WarningEscalation):
+                self.state = ExposureState.CANCELED
+            else:
+                self.exception = exception
+                self.state = ExposureState.FAILURE
 
         if self.project:
             self.project.data_close()

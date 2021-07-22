@@ -16,11 +16,10 @@ from sl1fw import defines
 from sl1fw.errors.errors import (
     NotUVCalibrated,
     ResinTooLow,
-    WarningEscalation,
     ProjectErrorCantRead,
     TiltHomeFailed,
 )
-from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
+from sl1fw.errors.warnings import PrintingDirectlyFromMedia
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.states.exposure import ExposureState
@@ -107,9 +106,8 @@ class TestExposure(Sl1fwTestCase):
         self._fake_calibration(hw)
         hw.get_resin_volume.return_value = defines.resinMinVolume + 0.1
         exposure = self._run_exposure(hw)
-        self.assertIsInstance(exposure.exception, WarningEscalation)
-        # pylint: disable=no-member
-        self.assertIsInstance(exposure.exception.warning, ResinNotEnough)
+        self.assertEqual(exposure.exception, None)
+        self.assertEqual(exposure.state, ExposureState.CANCELED)
 
     def test_resin_error(self):
         hw = self.setupHw()
