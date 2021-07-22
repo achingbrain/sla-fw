@@ -139,6 +139,8 @@ class Virtual:
             "sl1fw.libHardware.ExposureScreen", ExposureScreen
         ), patch(
             "sl1fw.libHardware.Hardware.isCoverClosed", Mock(return_value=True)
+        ), patch(
+            "sl1fw.libHardware.Hardware.get_resin_volume", Mock(return_value=100)   # fake resin measurement 100 ml
         ):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
@@ -158,7 +160,7 @@ class Virtual:
             self.printer.hw.config.calibrated = True
             self.printer.hw.config.fanCheck = False
             self.printer.hw.config.coverCheck = False
-            self.printer.hw.config.resinSensor = False
+            self.printer.hw.config.resinSensor = True
 
             print("Publishing printer on D-Bus")
             self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
