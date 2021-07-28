@@ -38,6 +38,9 @@ serial_service_service = "serial-getty@ttyS0.service"
 ssh_service_enabled = factoryMountPoint / "ssh_enabled"
 ssh_service_service = "sshd.socket"
 
+expoPanelLogFileName = "expo_panel_log.json"
+expoPanelLogPath = factoryMountPoint / expoPanelLogFileName
+
 tiltProfilesSuffix = "tilt"
 tuneTiltProfilesSuffix = "tune_tilt"
 towerProfilesSuffix = "tower"

@@ -11,6 +11,8 @@ from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.libHardware import Fan
 from sl1fw.hardware.printer_model import PrinterModel
+from sl1fw.tests.mocks.exposure_screen import ExposureScreen
+
 
 class Hardware:
     # pylint: disable = too-many-instance-attributes
@@ -41,6 +43,7 @@ class Hardware:
         self.mcBoardRevision = "6c"
 
         self.printer_model = PrinterModel.SL1
+        self.exposure_screen = ExposureScreen()
         self.exposure_screen.parameters = self.printer_model.exposure_screen_parameters
         self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 

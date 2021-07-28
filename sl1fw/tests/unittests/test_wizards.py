@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import asyncio
+import json
 import unittest
 from shutil import copyfile
 from typing import Optional
@@ -10,6 +11,7 @@ from unittest.mock import Mock, AsyncMock, MagicMock, patch
 
 import pydbus
 import toml
+from sl1fw.wizard.wizards.new_expo_panel import NewExpoPanelWizard
 
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
@@ -266,6 +268,9 @@ class TestWizards(TestWizardsBase):
             self.SAMPLES_DIR / "self_test_data.json", defines.factoryMountPoint / SelfTestWizard.get_data_filename()
         )
 
+        defines.expoPanelLogPath = self.TEMP_DIR / defines.expoPanelLogFileName
+        copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
+
         # Setup files that are touched by packing wizard
         defines.apikeyFile = self.TEMP_DIR / "apikey"
         defines.apikeyFile.touch()
@@ -500,6 +505,30 @@ class TestWizards(TestWizardsBase):
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, limit_s=1, expected_state=WizardState.CANCELED)
+        self._assert_final_state(item="calibrated", expected_value=False)
+
+    def test_new_expo_panel(self):
+        copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
+
+        uv_statistics = self.hw.getUvStatistics()
+        wizard = NewExpoPanelWizard(self.hw)
+
+        def on_state_changed():
+            if wizard.state == WizardState.PREPARE_NEW_EXPO_PANEL:
+                wizard.new_expo_panel_done()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard, limit_s=15, expected_state=WizardState.DONE)
+
+        self.assertEqual(self.hw.getUvStatistics()[0], uv_statistics[0])
+        self.assertEqual(self.hw.getUvStatistics()[1], 0)
+        with open(defines.expoPanelLogPath, "r") as f:
+            log = json.load(f)
+        last_key = list(log)[-1]
+        self.assertEqual(log[last_key]["panel_sn"], self.hw.exposure_screen.panel.serial_number())
+        next_to_last_key = list(log)[-2]
+        self.assertEqual(log[next_to_last_key]["counter_s"], uv_statistics[1])
+        self._assert_final_state(item="showWizard", expected_value=True)
         self._assert_final_state(item="calibrated", expected_value=False)
 
 

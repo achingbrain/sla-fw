@@ -65,6 +65,7 @@ FAKE_ARGS = {
     "pwm_min: int": 150,
     "pwm_max: int": 250,
     "transmittance: float": -1,
+    "counter_h: int": 500,
 }
 
 IGNORED_ARGS = {"self", "args", "kwargs"}

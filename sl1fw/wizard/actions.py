@@ -98,6 +98,9 @@ class UserActionBroker:
         self.sl1s_confirm_upgrade = UserAction()
         self.sl1s_reject_upgrade = UserAction()
 
+        # New exposure panel
+        self.new_expo_panel_done = UserAction()
+
     def push_state(self, state: PushState, priority: bool = False):
         if priority:
             self._states.appendleft(state)

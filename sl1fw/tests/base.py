@@ -126,6 +126,7 @@ class Sl1fwTestCase(DBusTestCase):
         defines.sl1_model_file = defines.printer_model / "sl1"
         defines.sl1s_model_file = defines.printer_model / "sl1s"
         defines.detect_sla_model_file = self.TEMP_DIR / "detect-sla-model"
+        defines.expoPanelLogPath = self.TEMP_DIR / defines.expoPanelLogFileName
         defines.printer_model.mkdir()
         defines.sl1_model_file.touch()  # Set SL1 as the current model
 

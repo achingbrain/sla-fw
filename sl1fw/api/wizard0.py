@@ -238,6 +238,11 @@ class Wizard0:
     def sl1s_reject_upgrade(self):
         self._wizard.sl1s_reject_upgrade()
 
+    @auto_dbus
+    @last_error
+    def new_expo_panel_done(self):
+        self._wizard.new_expo_panel_done()
+
     def _started_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"identifier": self.identifier}, [])
         self.PropertiesChanged(self.__INTERFACE__, {"cancelable": self.cancelable}, [])

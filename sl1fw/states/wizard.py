@@ -47,6 +47,8 @@ class WizardState(Enum):
 
     SL1S_CONFIRM_UPGRADE = 2300
 
+    PREPARE_NEW_EXPO_PANEL = 2400
+
     @staticmethod
     def finished_states():
         return [WizardState.FAILED, WizardState.DONE, WizardState.CANCELED]
@@ -65,6 +67,7 @@ class WizardId(Enum):
     UV_CALIBRATION = 8
     SL1S_UPGRADE = 9
     SL1_DOWNGRADE = 10
+    NEW_EXPO_PANEL = 11
 
     # temporary until better solution
     VAT_CLEANER = 999

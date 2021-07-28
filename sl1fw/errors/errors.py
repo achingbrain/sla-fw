@@ -561,3 +561,9 @@ class CalculatedUVPWMNotInRange(UVPWMComputationError):
     pwm: int
     pwm_min: int
     pwm_max: int
+
+
+@with_code(Sl1Codes.OLD_EXPO_PANEL)
+@dataclass()
+class OldExpoPanel(PrinterError):
+    counter_h: int

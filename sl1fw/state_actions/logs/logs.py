@@ -46,6 +46,7 @@ def export_configs(temp_dir: Path):
         shutil.copytree(defines.configDir, temp_dir / defines.configDir.name)
     if defines.factoryMountPoint.exists():
         shutil.copytree(defines.factoryMountPoint, temp_dir / defines.factoryMountPoint.name)
+        shutil.copyfile(defines.expoPanelLogPath, temp_dir / defines.expoPanelLogFileName)
 
 
 class LogsExport(ABC, Thread):

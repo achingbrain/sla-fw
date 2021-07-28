@@ -10,6 +10,7 @@
 
 import gettext
 import hashlib
+import json
 import logging
 import os
 import re
@@ -18,6 +19,7 @@ import threading
 from pathlib import Path
 from time import monotonic, sleep
 from typing import Optional, Set, Any
+from datetime import datetime
 
 import distro
 from PySignal import Signal
@@ -38,12 +40,12 @@ from sl1fw.errors.errors import (
     NoFactoryUvCalib,
     ConfigException,
     MotionControllerWrongFw, MotionControllerNotResponding, MotionControllerWrongResponse,
-    UVPWMComputationError,
+    UVPWMComputationError, OldExpoPanel
 )
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth, get_configured_printer_model, set_configured_printer_model, \
-    set_factory_uvpwm, compute_uvpwm
+    set_factory_uvpwm, compute_uvpwm, FactoryMountedRW
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libAsync import AdminCheck
@@ -56,6 +58,7 @@ from sl1fw.state_actions.manager import ActionManager
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.wizards.calibration import CalibrationWizard
+from sl1fw.wizard.wizards.new_expo_panel import NewExpoPanelWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard, SL1DowngradeWizard
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
@@ -244,6 +247,7 @@ class Printer:
                 self.exception = NoFactoryUvCalib()
 
             if self.hw.printer_model == PrinterModel.SL1S:
+                self._detect_new_expo_panel()
                 try:
                     pwm = compute_uvpwm(self.hw)
                     self.hw.config.uvPwm = pwm
@@ -598,3 +602,31 @@ class Printer:
         if key.lower() == "uvpwm":
             self.uv_calibrated_changed.emit()
             return
+
+    def _detect_new_expo_panel(self):
+        panel_sn = self.hw.exposure_screen.panel.serial_number()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            with open(defines.expoPanelLogPath, "r") as f:
+                log = json.load(f)
+            last_key = list(log)[-1]
+            if log[last_key]["panel_sn"] != panel_sn:    # if new panel detected
+                for record in log.values():                     # check if panel was already used in this printer
+                    if record["panel_sn"] == panel_sn and "counter_s" in record.keys():
+                        self.exception = OldExpoPanel(
+                            counter_h=round(record["counter_s"] / 3600))  # show warning about used panel
+                self.logger.info("Running new expo panel wizard")
+                new_expo_panel_wizard = self.action_manager.start_wizard(
+                    NewExpoPanelWizard(self.hw), handle_state_transitions=False
+                )
+                self.set_state(PrinterState.WIZARD, active=True)
+                new_expo_panel_wizard.join()
+                self.logger.info("New expo panel wizard finished")
+
+        except FileNotFoundError:                             # no records found
+            with FactoryMountedRW():
+                with open(defines.expoPanelLogPath, "w") as f:
+                    self.logger.info("No records in expo panel logs. Adding first record: %s", panel_sn)
+                    record = dict()
+                    record[timestamp] = {"panel_sn": panel_sn}
+                    json.dump(record, f, indent=2)

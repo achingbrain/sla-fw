@@ -74,6 +74,7 @@ class WizardCheckType(Enum):
     RESET_MECHANICAL_CALIBRATION = 71
     MARK_PRINTER_MODEL = 72
     RESET_HW_COUNTERS = 73
+    RECORD_EXPO_PANEL_LOG = 74
 
     # temporary until better solution
     VAT_CLEANER = 999

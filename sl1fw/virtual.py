@@ -60,6 +60,8 @@ copyfile(SAMPLES_DIR / "hardware-virtual.cfg", HARDWARE_FILE)
 HARDWARE_FILE_FACTORY = TEMP_DIR / "sl1fw.hardware.cfg.factory"
 copyfile(SAMPLES_DIR / "hardware.toml", HARDWARE_FILE_FACTORY)
 
+defines.expoPanelLogPath = TEMP_DIR / defines.expoPanelLogFileName
+copyfile(SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
 
 def change_dir(path):
     return os.path.join(defines.previousPrints, os.path.basename(path))
