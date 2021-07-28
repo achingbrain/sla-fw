@@ -583,7 +583,7 @@ class Standard0:
 
     @auto_dbus
     @last_error
-    @state_checked(Exposure0State.FEED_ME)
+    @state_checked([Exposure0State.FEED_ME, Exposure0State.POUR_IN_RESIN])
     def cmd_back(self) -> None:
         """
         Useful to back manual, e.g.feedme
