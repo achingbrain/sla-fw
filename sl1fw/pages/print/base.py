@@ -48,6 +48,9 @@ class PagePrintBase(Page):
             ExposureState.RESIN_WARNING: "resinconfirm",
             ExposureState.CHECK_WARNING: "checkconfirm",
             ExposureState.DONE: "home",
+            ExposureState.CANCELED: "home",
+            ExposureState.FAILURE: "home",
+            ExposureState.FINISHED: "home"
         }
 
         if self.display.expo.state in mapping and self.display.actualPage.Name != mapping[self.display.expo.state]:
