@@ -119,8 +119,22 @@ class TestTilt(Sl1fwTestCase):
         self.hw.tilt.stop()
         position = self.hw.tilt.position
         self.hw.tilt.move(speed=0, set_profiles=True, fullstep=True)
+        while self.hw.tilt.moving:
+            sleep(0.1)
         self.assertLessEqual(position, self.hw.tilt.position)
-        # TODO: ensure tilt is in fullstep
+        self.assertTrue(self.hw.tilt.position - position, 31)
+
+        # move only between valid limits
+        self.hw.tilt.position = 0
+        self.hw.tilt.move(speed=-2, set_profiles=True, fullstep=False)
+        while self.hw.tilt.moving:
+            sleep(0.1)
+        self.assertEqual(self.hw.tilt.position, 0)  # tilt not going below 0
+        self.hw.tilt.position = self.hw.config.tiltMax
+        self.hw.tilt.move(speed=2, set_profiles=True, fullstep=False)
+        while self.hw.tilt.moving:
+            sleep(0.1)
+        self.assertEqual(self.hw.tilt.position, self.hw.config.tiltMax)  # tilt not going above tiltMax
 
     def test_sensitivity(self):
         with self.assertRaises(ValueError):

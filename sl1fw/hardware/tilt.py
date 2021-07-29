@@ -186,7 +186,7 @@ class TiltSL1(Tilt):
                     return False
             else:
                 self.move_absolute(
-                    self._config.tiltMax if speed > 0 else self._config.tiltMin
+                    self._config.tiltMax if speed > 0 else 0
                 )
             return True
 
