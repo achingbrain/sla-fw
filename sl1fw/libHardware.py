@@ -130,6 +130,8 @@ class Hardware:
             2: Fan(N_("rear fan"), defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled),
         }
 
+        self.config.add_onchange_handler(self._fan_values_refresh)
+
         self._sensorsNames = {
             0: N_("UV LED temperature"),    # SL1
             1: N_("Ambient temperature"),
@@ -249,6 +251,17 @@ class Hardware:
             raise
         finally:
             self.logger.info("Value refresh checker thread ended")
+
+    def _fan_values_refresh(self, key: str, _: Any):
+        """ Re-load the fan RPM settings from configuration, should be used as a callback """
+        if key in {"fan1Rpm", "fan2Rpm", "fan3Rpm", "fan1Enabled", "fan2Enabled", "fan3Enabled", }:
+            self.fans = {
+                0: Fan(self.fans[0].name, defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled),
+                1: Fan(self.fans[1].name, defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled),
+                2: Fan(self.fans[2].name, defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled),
+            }
+            mask = self.getFans()
+            self.setFans(mask)
 
     def initDefaults(self):
         self.motorsRelease()
