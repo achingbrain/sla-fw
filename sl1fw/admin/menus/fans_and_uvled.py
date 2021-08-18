@@ -9,7 +9,6 @@ from sl1fw.admin.menus.dialogs import Confirm, Error, Info
 from sl1fw.errors.errors import ConfigException
 from sl1fw.functions.system import FactoryMountedRW
 from sl1fw.libPrinter import Printer
-from sl1fw.hardware.printer_model import PrinterModel
 
 
 class FansAndUVLedMenu(AdminMenu):
@@ -155,12 +154,12 @@ class FansAndUVLedMenu(AdminMenu):
         self._control.enter(Info(self._control, "Configuration saved as default"))
 
     def save_to_booster(self):
-        if self._printer.hw.printer_model == PrinterModel.SL1S:
+        if self._printer.hw.printer_model.options.has_booster:
             self._control.enter(
                 Confirm(self._control, self._do_save_to_booster, text="Save current PWM to boosterV2 board?")
             )
         else:
-            self._control.enter(Error(self._control, text="Works only on SL1S!", pop=1))
+            self._control.enter(Error(self._control, text="Works only on printer with boosterV2 board!", pop=1))
 
     def _do_save_to_booster(self):
         try:

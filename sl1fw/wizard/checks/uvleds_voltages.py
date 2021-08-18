@@ -28,7 +28,7 @@ class CheckData:
     uvPwm: int
 
 
-class UVLEDsTest_SL1(DangerousCheck):
+class UVLEDsTest_Voltages(DangerousCheck):
     CHECK_UV_PWM_INDEXES = 3
 
     def __init__(self, hw: Hardware):

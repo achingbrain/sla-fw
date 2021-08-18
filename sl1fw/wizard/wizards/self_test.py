@@ -20,25 +20,21 @@ from sl1fw.wizard.checks.temperature import TemperatureTest
 from sl1fw.wizard.checks.tilt import TiltRangeTest, TiltHomeTest
 from sl1fw.wizard.checks.tower import TowerHomeTest, TowerRangeTest
 from sl1fw.wizard.checks.uvfans import UVFansTest
-from sl1fw.hardware.printer_model import PrinterModel
-from sl1fw.wizard.checks.uvleds_sl1 import UVLEDsTest_SL1
-from sl1fw.wizard.checks.uvleds_sl1s import UVLEDsTest_SL1S
+from sl1fw.wizard.checks.uvleds_voltages import UVLEDsTest_Voltages
+from sl1fw.wizard.checks.uvleds_booster import UVLEDsTest_Booster
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
-from sl1fw.errors.errors import UnknownPrinterModel
 
 
 class SelfTestPart1CheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         self._package = package
-        if package.hw.printer_model == PrinterModel.SL1:
-            uvled_test = UVLEDsTest_SL1(package.hw)
-        elif package.hw.printer_model == PrinterModel.SL1S:
-            uvled_test = UVLEDsTest_SL1S(package.hw)  # type: ignore
+        if package.hw.printer_model.options.has_booster:
+            uvled_test = UVLEDsTest_Booster(package.hw)
         else:
-            raise UnknownPrinterModel()
+            uvled_test = UVLEDsTest_Voltages(package.hw)    # type: ignore
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [

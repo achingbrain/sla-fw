@@ -86,7 +86,7 @@ class Printer:
         self.action_manager.wizard_changed.connect(self._wizard_changed)
         self.exited = threading.Event()
         self.exited.set()
-        self.logger.info("SL1 firmware initializing")
+        self.logger.info("SLA firmware initializing")
         self._states: Set[PrinterState] = {PrinterState.INIT}
         self._dbus_subscriptions = []
         self.unboxed_changed = Signal()
@@ -156,7 +156,7 @@ class Printer:
         except Exception:
             self.logger.error("Error when update 'system_up_since' statistics.")
 
-        self.logger.info("SL1 firmware initialized in %.03f", monotonic() - init_time)
+        self.logger.info("SLA firmware initialized in %.03f", monotonic() - init_time)
 
     @property
     def state(self) -> PrinterState:
@@ -208,9 +208,10 @@ class Printer:
             # This is supposed to run on new printers detect_sla_model file is provided by a service configured to run
             # the on firstboot. The firmware does not know whether the printer has been manufactured as SL1 or SL1S it
             # has to detect its initial HW configuration on first start.
+            # M1 is detected as SL1S and switched in admin
             if defines.detect_sla_model_file.exists():
+                self.hw.config.vatRevision = self.hw.printer_model.options.vat_revision
                 if self.hw.printer_model == PrinterModel.SL1S:
-                    self.hw.config.vatRevision = 1  # Configure SL1S vat revision
                     set_factory_uvpwm(self.hw.printer_model.default_uvpwm())
                     incompatible_extension = PrinterModel.SL1
                 else:
@@ -246,12 +247,12 @@ class Printer:
             ):
                 self.exception = NoFactoryUvCalib()
 
-            if self.hw.printer_model == PrinterModel.SL1S:
+            if self.hw.printer_model.options.has_UV_calculation:
                 self._detect_new_expo_panel()
                 try:
                     pwm = compute_uvpwm(self.hw)
                     self.hw.config.uvPwm = pwm
-                    self.logger.info("Computed SL1S UV PWM: %s", pwm)
+                    self.logger.info("Computed UV PWM: %s", pwm)
                 except UVPWMComputationError:
                     self.logger.exception("Failed to compute UV PWM")
                     self.hw.config.uvPwm = self.hw.printer_model.default_uvpwm()
@@ -267,7 +268,7 @@ class Printer:
     def run(self):
         # TODO: wrap everything within this method in try-catch
         # TODO: Drop self.firstRun it does seem to make no more sense
-        self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
+        self.logger.info("SLA firmware starting, PID: %d", os.getpid())
         self.logger.info("System version: %s", distro.version())
         self.start_time = monotonic()
 
@@ -341,7 +342,7 @@ class Printer:
             # All network state handler should be already registered
             self.inet.force_refresh_state()
 
-            self.logger.info("SL1 firmware started in %.03f seconds", monotonic() - self.start_time)
+            self.logger.info("SLA firmware started in %.03f seconds", monotonic() - self.start_time)
         except Exception as exception:
             self.exception = exception
             self.set_state(PrinterState.EXCEPTION)

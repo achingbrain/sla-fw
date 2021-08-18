@@ -66,9 +66,4 @@ class MarkPrinterModel(Check):
     async def async_task_run(self, actions: UserActionBroker):
         self._logger.info("Setting printer model to %s", self._model)
         set_configured_printer_model(self._model)
-        if self._model == PrinterModel.SL1:
-            self._config.vatRevision = 0
-        elif self._model == PrinterModel.SL1S:
-            self._config.vatRevision = 1
-        else:
-            self._logger.warning('Not setting var revision as vat not defined for printer model: "%s"', self._model)
+        self._config.vatRevision = self._model.options.vat_revision

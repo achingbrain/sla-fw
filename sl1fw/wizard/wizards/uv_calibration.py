@@ -6,7 +6,6 @@ from typing import Iterable
 
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.errors.errors import PrinterError
-from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libHardware import Hardware
 from sl1fw.libUvLedMeterMulti import UvLedMeterMulti, UVCalibrationResult
@@ -41,8 +40,8 @@ class UVCalibrationPrepare(CheckGroup):
         self._package = package
 
     async def setup(self, actions: UserActionBroker):
-        if self._package.hw.printer_model != PrinterModel.SL1:
-            raise PrinterError("UV calibration only works on SL1")
+        if not self._package.hw.printer_model.options.has_UV_calibration:
+            raise PrinterError("UV calibration does not work on this printer model")
         await self.wait_for_user(actions, actions.uv_calibration_prepared, WizardState.UV_CALIBRATION_PREPARE)
 
 

@@ -11,7 +11,7 @@ from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
 from sl1fw.wizard.setup import Configuration, Resource
 
 
-class UVLEDsTest_SL1S(DangerousCheck):
+class UVLEDsTest_Booster(DangerousCheck):
 
     def __init__(self, hw: Hardware):
         super().__init__(

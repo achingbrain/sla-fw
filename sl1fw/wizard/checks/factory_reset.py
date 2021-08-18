@@ -35,7 +35,6 @@ from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck, Dangerou
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 from sl1fw.hardware.tilt import TiltProfile
-from sl1fw.hardware.printer_model import PrinterModel
 
 
 class ResetCheck(SyncCheck):
@@ -191,8 +190,7 @@ class ResetHWConfig(ResetCheck):
         self._hw.config.factory_reset()
         if self._disable_unboxing:
             self._hw.config.showUnboxing = False
-        if self._hw.printer_model == PrinterModel.SL1S:
-            self._hw.config.vatRevision = 1
+        self._hw.config.vatRevision = self._hw.printer_model.options.vat_revision
         self._hw.config.write()
         # TODO: Why is this here? Separate task would be better.
         rmtree(defines.wizardHistoryPath, ignore_errors=True)
@@ -249,8 +247,8 @@ class SendPrinterData(SyncCheck):
             self._logger.error("Cannot do factory reset UV PWM not set (== 0)")
             raise MissingUVPWM()
 
-        # Ensure SL1S is able to compute UV PWM
-        if self._hw.printer_model == PrinterModel.SL1S:
+        # Ensure the printer is able to compute UV PWM
+        if self._hw.printer_model.options.has_UV_calculation:
             compute_uvpwm(self._hw)
 
         # Ensure examples are present
@@ -273,8 +271,8 @@ class SendPrinterData(SyncCheck):
 
         # Get UV calibration data
         calibration_dict = {}
-        # SL1S does not have UV calibration
-        if self._hw.printer_model != PrinterModel.SL1S:
+        # only for printers with UV calibration
+        if self._hw.printer_model.options.has_UV_calibration:
             try:
                 with (defines.factoryMountPoint / UVCalibrationWizard.get_data_filename()).open("rt") as file:
                     calibration_dict = json.load(file)

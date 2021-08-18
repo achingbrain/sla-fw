@@ -55,11 +55,21 @@ class CalibrationParameters:
         self.safe_default_pwm = self.pwms[2]
 
 
+@dataclass(eq=False)
+class Options:
+    has_tilt: bool
+    has_booster: bool
+    vat_revision: int
+    has_UV_calibration: bool
+    has_UV_calculation: bool
+
+
 @unique
 class PrinterModel(Enum):
     NONE = 0
     SL1 = 1
     SL1S = 2
+    M1 = 3
 
     @property
     def extensions(self) -> set:
@@ -67,6 +77,7 @@ class PrinterModel(Enum):
                 self.NONE: {""},
                 self.SL1: {".sl1"},
                 self.SL1S: {".sl1s"},
+                self.M1: {".m1"},
             }[self]
 
     @property
@@ -75,6 +86,16 @@ class PrinterModel(Enum):
                 self.NONE: ExposureScreenParameters((0, 0), 1, 0, 0, False, False),
                 self.SL1: ExposureScreenParameters((1440, 2560), 5, 46875, 30, False, False),
                 self.SL1S: ExposureScreenParameters((1620, 2560), 5, 50000, 20, True, False),
+                self.M1: ExposureScreenParameters((1620, 2560), 5, 50000, 20, True, False),     # same as SL1S
+            }[self]
+
+    @property
+    def options(self) -> Options:
+        return {
+                self.NONE: Options(False, False, 0, False, False),
+                self.SL1: Options(True, False, 0, True, False),
+                self.SL1S: Options(True, True, 1, False, True),
+                self.M1: Options(True, True, 1, False, True),   # same as SL1S
             }[self]
 
     def calibration_parameters(self, is500khz: bool) -> CalibrationParameters:
@@ -82,6 +103,7 @@ class PrinterModel(Enum):
                 self.NONE: CalibrationParameters((0, 250, 0), 1, 0.75),
                 self.SL1: CalibrationParameters((150, 250, 150) if is500khz else (125, 218, 125), 1, 0.75),
                 self.SL1S: CalibrationParameters((30, 250, 208), 1, 0.75),
+                self.M1: CalibrationParameters((30, 250, 208), 1, 0.75),    # same as SL1S
             }[self]
 
     def default_uvpwm(self) -> int:
@@ -89,6 +111,7 @@ class PrinterModel(Enum):
             self.NONE: 0,
             self.SL1: 0,
             self.SL1S: 208,
+            self.M1: 208,   # same as SL1S
         }[self]
 
 
@@ -115,7 +138,11 @@ class ExposurePanel:
 
     @classmethod
     def printer_model(cls):
-        return {
-            "ls055r1sx04": PrinterModel.SL1,
-            "rv059fbb": PrinterModel.SL1S
-        }.get(cls.panel_name(), PrinterModel.NONE)
+        panel_name = cls.panel_name()
+        if panel_name == "ls055r1sx04":
+            return PrinterModel.SL1
+        if panel_name == "rv059fbb":
+            if defines.printer_m1_enabled.exists():
+                return PrinterModel.M1
+            return PrinterModel.SL1S
+        return PrinterModel.NONE

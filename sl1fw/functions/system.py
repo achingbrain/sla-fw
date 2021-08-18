@@ -45,6 +45,7 @@ def save_factory_mode(enable: bool):
     :param enable: Required factory mode state
     :return: True if successful, false otherwise
     """
+    # TODO obsolete, will be removed in 1.7.0
     return TomlConfig(defines.factoryConfigPath).save(data={"factoryMode": enable})
 
 
@@ -110,6 +111,8 @@ def set_configured_printer_model(model: PrinterModel):
         model_file = defines.sl1_model_file
     elif model == PrinterModel.SL1S:
         model_file = defines.sl1s_model_file
+    elif model == PrinterModel.M1:
+        model_file = defines.m1_model_file
     else:
         raise ValueError(f"No file defined for model: {model}")
 
@@ -124,6 +127,9 @@ def set_configured_printer_model(model: PrinterModel):
 
 
 def get_configured_printer_model() -> PrinterModel:
+    if defines.m1_model_file.exists():
+        return PrinterModel.M1
+
     if defines.sl1s_model_file.exists():
         return PrinterModel.SL1S
 

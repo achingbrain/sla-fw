@@ -41,6 +41,14 @@ class TestPrinterModel(Sl1fwTestCase):
         self.assertEqual(exposure_screen_parameters.height_px, 2560)
         self.assertEqual(exposure_screen_parameters.detected_size_px, (540, 2560))
 
+    def test_options(self):
+        options = PrinterModel.NONE.options
+        self.assertEqual(options.has_tilt, False)
+        self.assertEqual(options.has_booster, False)
+        self.assertEqual(options.vat_revision, 0)
+        self.assertEqual(options.has_UV_calibration, False)
+        self.assertEqual(options.has_UV_calculation, False)
+
     def test_calibration(self):
         calibration_parameters = PrinterModel.NONE.calibration_parameters(False)
         self.assertEqual(calibration_parameters.pwms, (0, 250, 0))
@@ -70,7 +78,6 @@ class TestPrinterModel(Sl1fwTestCase):
         self.assertEqual(calibration_parameters.min_pwm, 30)
         self.assertEqual(calibration_parameters.max_pwm, 250)
         self.assertEqual(calibration_parameters.safe_default_pwm, 208)
-
 
     def test_exposure_panel(self):
         defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / "sl1"

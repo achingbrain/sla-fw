@@ -11,24 +11,20 @@ from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.display import DisplayTest
-from sl1fw.hardware.printer_model import PrinterModel
-from sl1fw.wizard.checks.uvleds_sl1 import UVLEDsTest_SL1
-from sl1fw.wizard.checks.uvleds_sl1s import UVLEDsTest_SL1S
+from sl1fw.wizard.checks.uvleds_voltages import UVLEDsTest_Voltages
+from sl1fw.wizard.checks.uvleds_booster import UVLEDsTest_Booster
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
-from sl1fw.errors.errors import UnknownPrinterModel
 
 
 class DisplayTestCheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
-        if package.hw.printer_model == PrinterModel.SL1:
-            uvled_test = UVLEDsTest_SL1(package.hw)
-        elif package.hw.printer_model == PrinterModel.SL1S:
-            uvled_test = UVLEDsTest_SL1S(package.hw)  # type: ignore
+        if package.hw.printer_model.options.has_booster:
+            uvled_test = UVLEDsTest_Booster(package.hw)
         else:
-            raise UnknownPrinterModel()
+            uvled_test = UVLEDsTest_Voltages(package.hw)    # type: ignore
         super().__init__(
             Configuration(TankSetup.REMOVED, None),
             [uvled_test, DisplayTest(package.hw, package.exposure_image, package.runtime_config)],

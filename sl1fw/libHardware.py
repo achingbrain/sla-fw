@@ -204,12 +204,12 @@ class Hardware:
         self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
         self.printer_model = self.exposure_screen.start()
-        if self.printer_model == PrinterModel.SL1S:
+        if self.printer_model.options.has_booster:
             self.sl1s_booster.connect()
             self.led_temp_idx = 2
 
     def start(self):
-        if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
+        if self.printer_model.options.has_tilt:
             self.tilt = TiltSL1(self.mcc, self.config)
         self.initDefaults()
         self._value_refresh_thread.start()
@@ -272,7 +272,7 @@ class Hardware:
         if self.config.lockProfiles:
             self.logger.warning("Printer profiles will not be overwriten")
         else:
-            if self.printer_model == PrinterModel.SL1 or self.printer_model == PrinterModel.SL1S:
+            if self.printer_model.options.has_tilt:
                 for axis in Axis:
                     if axis is Axis.TOWER:
                         suffix = defines.towerProfilesSuffix
@@ -605,13 +605,13 @@ class Hardware:
 
     @property
     def uvLedPwm(self) -> int:
-        if self.printer_model == PrinterModel.SL1S:
+        if self.printer_model.options.has_booster:
             return self.sl1s_booster.pwm
         return self.mcc.doGetInt("?upwm")
 
     @uvLedPwm.setter
     def uvLedPwm(self, pwm) -> None:
-        if self.printer_model == PrinterModel.SL1S:
+        if self.printer_model.options.has_booster:
             self.sl1s_booster.pwm = int(pwm)
         else:
             self.mcc.do("!upwm", int(pwm))

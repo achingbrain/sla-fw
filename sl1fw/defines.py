@@ -37,6 +37,7 @@ serial_service_enabled = factoryMountPoint / "serial_enabled"
 serial_service_service = "serial-getty@ttyS0.service"
 ssh_service_enabled = factoryMountPoint / "ssh_enabled"
 ssh_service_service = "sshd.socket"
+printer_m1_enabled = factoryMountPoint / "printer_m1_enabled"
 
 expoPanelLogFileName = "expo_panel_log.json"
 expoPanelLogPath = factoryMountPoint / expoPanelLogFileName
@@ -192,4 +193,5 @@ nginx_enabled =  Path("/etc/nginx/sites-enabled/sl1fw")
 printer_model = configDir / "model"
 sl1_model_file = printer_model / "sl1"
 sl1s_model_file = printer_model / "sl1s"
+m1_model_file = printer_model / "m1"
 detect_sla_model_file = Path("/tmp/detect-sla-model")

@@ -18,9 +18,12 @@ from sl1fw.functions.system import (
     save_factory_mode,
     set_update_channel,
     get_update_channel,
+    set_configured_printer_model,
+    shut_down,
 )
 from sl1fw.libPrinter import Printer
 from sl1fw.state_actions.examples import Examples
+from sl1fw.hardware.printer_model import PrinterModel
 
 
 class SystemToolsMenu(SafeAdminMenu):
@@ -51,6 +54,11 @@ class SystemToolsMenu(SafeAdminMenu):
         self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.ssh))
         self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.serial))
         self.add_item(AdminAction("Fake setup", self._fake_setup))
+        if self._printer.hw.printer_model == PrinterModel.SL1S:
+            self.add_item(AdminAction("Switch to M1", self._switch_m1))
+        if self._printer.hw.printer_model == PrinterModel.M1:
+            self.add_item(AdminAction("Switch to SL1S", self._switch_sl1s))
+
 
     @property
     def factory_mode(self) -> bool:
@@ -158,3 +166,30 @@ class SystemToolsMenu(SafeAdminMenu):
             self._printer.hw.config.write_factory()
 
         status.set("Done")
+
+    def _switch_m1(self):
+        self.enter(Wait(self._control, self._do_switch_m1))
+
+    @SafeAdminMenu.safe_call
+    def _do_switch_m1(self, status: AdminLabel):
+        with FactoryMountedRW():
+            defines.printer_m1_enabled.touch()
+        self._switch_sl1s_m1(status, PrinterModel.M1)
+
+    def _switch_sl1s(self):
+        self.enter(Wait(self._control, self._do_switch_sl1s))
+
+    @SafeAdminMenu.safe_call
+    def _do_switch_sl1s(self, status: AdminLabel):
+        with FactoryMountedRW():
+            defines.printer_m1_enabled.unlink(missing_ok=True)
+        self._switch_sl1s_m1(status, PrinterModel.SL1S)
+
+    def _switch_sl1s_m1(self, status: AdminLabel, printer_model: PrinterModel):
+        set_configured_printer_model(printer_model)
+        # new examples remove the old ones
+        status.set("Downloading examples")
+        examples = Examples(self._printer.inet, printer_model)
+        examples.start()
+        examples.join()
+        shut_down(self._printer.hw, reboot=True)

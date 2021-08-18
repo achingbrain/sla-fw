@@ -21,6 +21,7 @@ data_files = [
     ('/usr/share/sl1fw/multimedia', glob('sl1fw/multimedia/*.xm')),
     ('/usr/share/sl1fw/multimedia/SL1', glob('sl1fw/multimedia/SL1/*')),
     ('/usr/share/sl1fw/multimedia/SL1S', glob('sl1fw/multimedia/SL1S/*')),
+    ('/usr/share/sl1fw/multimedia/M1', glob('sl1fw/multimedia/M1/*')),
     ('/etc/sl1fw', ['sl1fw/hardware.cfg']),
     ('/etc/sl1fw', ['sl1fw/loggerConfig.json']),
     ('/usr/lib/systemd/system', glob('systemd/*.service')),
@@ -32,10 +33,10 @@ data_files = [
 
 setup(
     name="sl1fw",
-    version="2021.04.14",
+    version="2021.08.27",
     packages=find_packages(exclude=["sl1fw.tests"]),
     scripts=['sl1fw/main.py', 'sl1fw/scripts/export_logs.bash'],
-    package_data={'sl1fw': ['data/*', 'data/SL*/*', 'locales/*/LC_MESSAGES/*.mo']},
+    package_data={'sl1fw': ['data/*', 'data/*/*', 'locales/*/LC_MESSAGES/*.mo']},
     data_files=data_files,
     cmdclass={
         'build_py': BuildPyWithLocalesCommand
