@@ -30,7 +30,7 @@ class ExposureState(Enum):
     DONE = 27
     OVERHEATING = 28
     POUR_IN_RESIN = 29
-    LEVELING_TILT = 30
+    HOMING_AXIS = 30
 
     @staticmethod
     def finished_states():
@@ -45,7 +45,7 @@ class ExposureState(Enum):
 
 @unique
 class ExposureCheck(Enum):
-    HARDWARE = 1
+    # HARDWARE = 1 axis are homed separately
     TEMPERATURE = 2
     PROJECT = 3
     FAN = 4

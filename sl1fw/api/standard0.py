@@ -80,11 +80,8 @@ class Standard0State(Enum):
     SELECTED = 1
     PRINTING = 2
     ATTENTION = 3
-    PRINTING_ATTENTION = 4
-    PRINTING_BUSY = 5
+    BUSY = 5
     REFILL = 6
-    BUSY = 7
-    FINISHED = 8
     ERROR = 9
 
 
@@ -102,6 +99,7 @@ class Standard0:
     PROPERTIES_ALLOWED = {
         "exposure_time_ms": True,
         "exposure_time_first_ms": True,
+        "exposure_user_profile": True,
         "calibration_regions": False,
         "calibrate_time_ms": True,
     }
@@ -110,6 +108,7 @@ class Standard0:
         "exposure_times": {
             "exposure_time_ms",
             "exposure_time_first_ms",
+            "exposure_user_profile",
             "calibration_regions",
             "calibrate_time_ms",
         }
@@ -206,28 +205,20 @@ class Standard0:
 
         result = Standard0State.BUSY
         if state == Printer0State.IDLE:
-            if substate in [Exposure0State.FAILURE, Exposure0State.STUCK]:
-                result = Standard0State.ATTENTION
-            else:
-                result = Standard0State.READY
+            result = Standard0State.READY
         elif state == Printer0State.PRINTING:
-            if substate == Exposure0State.PRINTING:
+            if substate == Exposure0State.POUR_IN_RESIN:
+                result = Standard0State.ATTENTION
+            elif substate == Exposure0State.PRINTING:
                 result = Standard0State.PRINTING
-            elif substate in [
-                Exposure0State.COVER_OPEN,
-                Exposure0State.CHECK_WARNING,
-            ]:
-                result = Standard0State.PRINTING_ATTENTION
-            elif substate in [Exposure0State.FEED_ME, Exposure0State.POUR_IN_RESIN]:
+            elif substate == Exposure0State.FEED_ME:
                 result = Standard0State.REFILL
             elif substate == Exposure0State.CONFIRM:
                 result = Standard0State.SELECTED
-            elif substate in [Exposure0State.DONE, Exposure0State.CANCELED, Exposure0State.FINISHED]:
-                result = Standard0State.FINISHED
-            elif substate in [Exposure0State.FAILURE, Exposure0State.STUCK]:
+            elif substate == Exposure0State.STUCK:
                 result = Standard0State.ERROR
             else:
-                result = Standard0State.PRINTING_BUSY
+                result = Standard0State.BUSY
         elif state == Printer0State.EXCEPTION:
             result = Standard0State.ERROR
 
@@ -341,6 +332,7 @@ class Standard0:
             "remaining_time": exposure.estimate_remain_time_ms() / 1000,
             "exposureTime": project.exposure_time_ms,
             "exposureTimeFirst": project.exposure_time_first_ms,
+            "exposureUserProfile": project.exposure_user_profile,
             "path": str(project.path),
         }
         if exposure.printStartTime.microsecond == 0:
@@ -446,7 +438,8 @@ class Standard0:
             properties_set({
                 "exposure_time_ms": 1000,
                 "exposure_time_first_ms": 1000,
-                "calibrate_time_ms": 1000
+                "calibrate_time_ms": 1000,
+                "exposure_user_profile": 1
             })
 
         :raises KeyError: If the property does not exists.

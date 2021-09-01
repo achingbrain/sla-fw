@@ -196,7 +196,7 @@ class Project:
         self.calibrate_penetration_px = int(self._config.calibratePenetration * 1e6 // pixel_size_nm)
         self.calibrate_compact = self._config.calibrateCompact
         self.used_material_nl = int(self._config.usedMaterial * 1e6)
-        self.exposure_user_profile = ExposureUserProfile(self._config.expUserProfile)
+        self.exposure_user_profile = self._config.expUserProfile
         if self._calibrate_regions:
             # labels and pads consumption is ignored
             self.used_material_nl *= self._calibrate_regions
@@ -360,15 +360,15 @@ class Project:
             self._times_changed()
 
     @property
-    def exposure_user_profile(self) -> ExposureUserProfile:
-        return self._exposure_user_profile
+    def exposure_user_profile(self) -> int:
+        return self._exposure_user_profile.value
 
     @range_checked(ExposureUserProfile.DEFAULT, ExposureUserProfile.SAFE)
     @exposure_user_profile.setter
-    def exposure_user_profile(self, value: ExposureUserProfile) -> None:
-        if value != self._exposure_user_profile:
-            self._exposure_user_profile = value
-            self.logger.info("Exposure user profile changed to %s", value)
+    def exposure_user_profile(self, value: int) -> None:
+        if ExposureUserProfile(value) != self._exposure_user_profile:
+            self._exposure_user_profile = ExposureUserProfile(value)
+            self.logger.info("Exposure user profile changed to %s", self._exposure_user_profile)
             self.count_remain_time.cache_clear()
             self.params_changed.emit()
 
@@ -490,7 +490,7 @@ class Project:
 
         # Fast and slow tilt times
         if self._hw.config.tilt:
-            if self.exposure_user_profile == ExposureUserProfile.SAFE:
+            if self._exposure_user_profile == ExposureUserProfile.SAFE:
                 time_remain_ms += (fast_layers + slow_layers) * self._hw.config.tiltSlowTime * 1000
             else:
                 time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
@@ -498,7 +498,7 @@ class Project:
 
         # Per layer times
         delay_before_exposure = self._hw.config.delayBeforeExposure
-        if self.exposure_user_profile == ExposureUserProfile.SAFE:
+        if self._exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before_exposure = defines.exposure_safe_delay_before
         else:
             time_remain_ms += slow_layers * defines.exposure_slow_move_delay_before * 100

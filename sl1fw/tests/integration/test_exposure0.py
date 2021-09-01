@@ -80,6 +80,34 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
             self.assertIsNotNone(exception)
             self.assertEqual(exception["code"], Sl1Codes.NONE.code)
 
+    def _test_home_axis(self):
+        self.exposure0.confirm_start()
+        self._wait_for_state(Exposure0State.HOMING_AXIS, 60)
+        self._wait_for_state(Exposure0State.POUR_IN_RESIN, 60)
+        self.exposure0.cancel()
+
+    def test_home_axis_without(self):
+        self._test_home_axis()
+
+    def test_home_axis_with_tilt(self):
+        self.printer.hw.tilt.level()
+        self._test_home_axis()
+
+    def test_home_axis_with_tower(self):
+        self.printer.hw.tower_home()
+        self._test_home_axis()
+
+    def test_home_axis_with_both(self):
+        self.printer.hw.tilt.level()
+        self.printer.hw.tower_home()
+        self.exposure0.confirm_start()
+        for _ in range(600):
+            self.assertNotEqual(Exposure0State.HOMING_AXIS, Exposure0State(self.exposure0.state))
+            if self.exposure0.state == Exposure0State.POUR_IN_RESIN.value:
+                break
+            sleep(0.1)
+        self.exposure0.cancel()
+
     def _wait_for_state(self, state: Exposure0State, timeout_s: int):
         for _ in range(timeout_s):
             if self.exposure0.state == state.value:

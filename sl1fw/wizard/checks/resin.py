@@ -28,13 +28,13 @@ class ResinSensorTest(DangerousCheck):
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
         with actions.led_warn:
-            await gather(self.verify_tower(), self.verify_tilt())
+            await gather(self._hw.verify_tower(), self._hw.verify_tilt())
             self._hw.setTowerPosition(self._hw.config.calcMicroSteps(120))
             position_mm = await self._hw.get_resin_sensor_position_mm()
             self._logger.debug("resin triggered at %s mm", position_mm)
 
             # Move tower up to default position, move now in case of exception
-            await self.verify_tower()
+            await self._hw.verify_tower()
 
             # to work properly even with loosen rocker bearing
             if not self.allowed_min_mm <= position_mm <= self.allowed_max_mm:

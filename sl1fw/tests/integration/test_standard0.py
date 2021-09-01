@@ -55,9 +55,10 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
         self.assertDictEqual(
             {
                 'exposure_time_ms': 1000,
-                'calibrate_time_ms':1000,
+                'calibrate_time_ms': 1000,
                 'calibration_regions': 0,
-                'exposure_time_first_ms': 1000
+                'exposure_time_first_ms': 1000,
+                'exposure_user_profile': 0
             },
             self.standard0.project_get_properties(["exposure_times"])
         )
@@ -66,9 +67,10 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
 
     def test_cmds_print_pause_cont(self):
         self.standard0.cmd_confirm()
-        self._wait_for_state(Standard0State.REFILL, 60)
+        self._wait_for_state(Standard0State.BUSY, 60) # exposure.HOMING_AXIS
+        self._wait_for_state(Standard0State.ATTENTION, 10) # exposure.POUR_IN_RESIN
         self.standard0.cmd_resin_in()
-        self._wait_for_state(Standard0State.PRINTING_BUSY, 10)
+        self._wait_for_state(Standard0State.BUSY, 60) # exposure.CHECKS
         self._wait_for_state(Standard0State.PRINTING, 60)
         self.standard0.cmd_pause("feed_me")
         self._wait_for_state(Standard0State.REFILL, 30)
@@ -79,10 +81,11 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
 
     def test_cmds_print_pause_back(self):
         self.standard0.cmd_confirm()
-        self._wait_for_state(Standard0State.REFILL, 60)
+        self._wait_for_state(Standard0State.BUSY, 60)  # exposure.HOMING_AXIS
+        self._wait_for_state(Standard0State.ATTENTION, 10)  # exposure.POUR_IN_RESIN
         self.standard0.cmd_resin_in()
+        self._wait_for_state(Standard0State.BUSY, 60)  # exposure.CHECKS
         self._wait_for_state(Standard0State.PRINTING, 60)
-        # raise Exception(1)
         self.standard0.cmd_pause("feed_me")
         self._wait_for_state(Standard0State.REFILL, 30)
         self.standard0.cmd_back()

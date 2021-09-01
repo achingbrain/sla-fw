@@ -22,6 +22,7 @@ import glob
 import logging
 import os
 from abc import abstractmethod
+from asyncio import gather
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from logging import Logger
@@ -58,7 +59,6 @@ from sl1fw.project.project import Project, ExposureUserProfile
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from sl1fw.utils.traceable_collections import TraceableDict
-from sl1fw.hardware.tilt import TiltProfile
 
 
 class ExposureCheckRunner:
@@ -159,27 +159,6 @@ class ProjectDataCheck(ExposureCheckRunner):
         if self.expo.project.warnings:
             for warning in self.expo.project.warnings:
                 self.raise_warning(warning)
-
-
-class HardwareCheck(ExposureCheckRunner):
-    def __init__(self, *args, **kwargs):
-        super().__init__(ExposureCheck.HARDWARE, *args, **kwargs)
-
-    def run(self):
-        self.logger.info("Syncing tower")
-        self.expo.hw.towerSyncWait()
-        if not self.expo.hw.isTowerSynced():
-            raise TowerFailed()
-
-        self.logger.info("Syncing tilt")
-        self.expo.hw.tilt.sync_wait()
-        self.logger.info("Tilting up")
-        self.expo.hw.tilt.profile_id = TiltProfile.homingFast
-        self.expo.hw.tilt.move_up()
-        while self.expo.hw.tilt.moving:
-            sleep(0.1)
-        if not self.expo.hw.tilt.on_target_position:
-            raise TiltFailed()
 
 
 class FansCheck(ExposureCheckRunner):
@@ -727,7 +706,7 @@ class Exposure:
 
                 if command == "pour_resin_in":
                     self.hw.check_cover_override = True
-                    asyncio.run(self._run_axis_checks())
+                    asyncio.run(self._home_axis())
                     self.state = ExposureState.POUR_IN_RESIN
                     continue
 
@@ -770,23 +749,17 @@ class Exposure:
             if self.warning_result:
                 raise self.warning_result  # pylint: disable = raising-bad-type
 
-    async def _run_axis_checks(self):
-        self.state = ExposureState.CHECKS
-        self.logger.info("Running axis pre-print checks")
-        self.check_results.update({ExposureCheck.HARDWARE: ExposureCheckResult.SCHEDULED})
-
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            hw = loop.run_in_executor(pool, HardwareCheck(self))
-            self.logger.debug("Waiting for pre-print checks to finish")
-            await asyncio.gather(hw)
+    async def _home_axis(self):
+        if not self.hw.towerSynced or not self.hw.tilt.synced:
+            self.state = ExposureState.HOMING_AXIS
+            self.logger.info("Homing axis to pour resin")
+            await gather(self.hw.verify_tower(), self.hw.verify_tilt())
 
     async def _run_checks(self):
         self.state = ExposureState.CHECKS
         self.logger.info("Running pre-print checks")
         for check in ExposureCheck:
-            if check is not ExposureCheck.HARDWARE:
-                self.check_results.update({check: ExposureCheckResult.SCHEDULED})
+            self.check_results.update({check: ExposureCheckResult.SCHEDULED})
 
         loop = asyncio.get_running_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:

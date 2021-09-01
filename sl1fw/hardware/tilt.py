@@ -310,6 +310,8 @@ class TiltSL1(Tilt):
         # assume tilt is up (there may be error from print)
         self.position = self.max
         self.layer_down_wait()
+        if not self.synced:
+            self.sync_wait()
         self.profile_id = TiltProfile.moveFast
         self.layer_up_wait()
 

@@ -21,7 +21,7 @@ class VatCleanerCheck(DangerousCheck):
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
         with actions.led_warn:
-            await gather(self.verify_tower(), self.verify_tilt())
+            await gather(self._hw.verify_tower(), self._hw.verify_tilt())
             self._exposure_image.blank_screen()
             self._exposure_image.inverse()
             self._hw.uvLedPwm = self._hw.config.uvPwmPrint

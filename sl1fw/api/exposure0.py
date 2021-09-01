@@ -69,7 +69,7 @@ class Exposure0State(Enum):
     DONE = 24
     OVERHEATING = 25
     POUR_IN_RESIN = 26
-    LEVELING_TILT = 27
+    HOMING_AXIS = 27
 
     @staticmethod
     def from_exposure(state: ExposureState) -> Exposure0State:
@@ -95,7 +95,7 @@ class Exposure0State(Enum):
             ExposureState.DONE: Exposure0State.DONE,
             ExposureState.OVERHEATING: Exposure0State.OVERHEATING,
             ExposureState.POUR_IN_RESIN: Exposure0State.POUR_IN_RESIN,
-            ExposureState.LEVELING_TILT: Exposure0State.LEVELING_TILT,
+            ExposureState.HOMING_AXIS: Exposure0State.HOMING_AXIS,
         }[state]
 
 
@@ -750,14 +750,14 @@ class Exposure0:
     @property
     @last_error
     def user_profile(self) -> int:
-        return self.exposure.project.exposure_user_profile.value
+        return self.exposure.project.exposure_user_profile
 
     @auto_dbus
     @range_checked(ExposureUserProfile.DEFAULT.value, ExposureUserProfile.SAFE.value)
     @user_profile.setter
     @last_error
     def user_profile(self, value: int) -> None:
-        self.exposure.project.exposure_user_profile = ExposureUserProfile(value)
+        self.exposure.project.exposure_user_profile = value
 
     @property
     @last_error

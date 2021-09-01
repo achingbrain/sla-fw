@@ -313,7 +313,7 @@ class InitiatePackingMoves(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        await gather(self.verify_tower(), self.verify_tilt())
+        await gather(self._hw.verify_tower(), self._hw.verify_tilt())
 
         # move tilt and tower to packing position
         self._hw.tilt.profile_id = TiltProfile.homingFast

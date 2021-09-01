@@ -39,7 +39,7 @@ from sl1fw.motion_controller.controller import MotionController
 from sl1fw.utils.value_checker import ValueChecker, UpdateInterval
 from sl1fw.hardware.exposure_screen import ExposureScreen
 from sl1fw.hardware.printer_model import PrinterModel
-from sl1fw.hardware.tilt import Tilt, TiltSL1
+from sl1fw.hardware.tilt import Tilt, TiltSL1, TiltProfile
 from sl1fw.functions.decorators import safe_call
 from sl1fw.hardware.sl1s_uvled_booster import Booster
 
@@ -838,7 +838,7 @@ class Hardware:
                 self.logger.warning("Tower homing failed! Status: %d", homingStatus)
                 if retries < 1:
                     self.logger.error("Tower homing max tries reached!")
-                    return False
+                    raise TowerHomeFailed()
 
                 retries -= 1
                 self.towerSync()
@@ -1169,3 +1169,25 @@ class Hardware:
             'temp_amb': temps[self.ambient_temp_idx],
             'cpu_temp': self.getCpuTemperature()
         }
+
+    async def verify_tower(self):
+        if not self.towerSynced:
+            self.setTowerProfile("homingFast")
+            await self.towerSyncWaitAsync()
+        else:
+            self.setTowerProfile("moveFast")
+            self.towerToTop()
+            while not self.isTowerOnPosition(retries=3):
+                await asyncio.sleep(0.25)
+
+    async def verify_tilt(self):
+        if not self.tilt.synced:
+            # FIXME MC cant properly home tilt while tower is moving
+            while self.isTowerMoving():
+                await asyncio.sleep(0.25)
+            self.tilt.profile_id = TiltProfile.homingFast
+            await self.tilt.sync_wait_async()
+        self.tilt.profile_id = TiltProfile.moveFast
+        self.tilt.move_up()
+        while not self.tilt.on_target_position:
+            await asyncio.sleep(0.25)

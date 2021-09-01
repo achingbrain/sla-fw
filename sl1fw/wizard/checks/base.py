@@ -11,7 +11,6 @@ from typing import Optional, List, Iterable, Dict, Any
 from PySignal import Signal
 
 from sl1fw.libHardware import Hardware
-from sl1fw.hardware.tilt import TiltProfile
 from sl1fw.states.wizard import WizardCheckState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.setup import Resource, Configuration
@@ -251,25 +250,3 @@ class DangerousCheck(Check, ABC):
         await asyncio.sleep(0)
         while not self._hw.isCoverVirtuallyClosed():
             await asyncio.sleep(0.5)
-
-    async def verify_tower(self):
-        if not self._hw.towerSynced:
-            self._hw.setTowerProfile("homingFast")
-            await self._hw.towerSyncWaitAsync()
-        else:
-            self._hw.setTowerProfile("moveFast")
-            self._hw.towerToTop()
-            while not self._hw.isTowerOnPosition(retries=3):
-                await asyncio.sleep(0.25)
-
-    async def verify_tilt(self):
-        if not self._hw.tilt.synced:
-            # FIXME MC cant properly home tilt while tower is moving
-            while self._hw.isTowerMoving():
-                await asyncio.sleep(0.25)
-            self._hw.tilt.profile_id = TiltProfile.homingFast
-            await self._hw.tilt.sync_wait_async()
-        self._hw.tilt.profile_id = TiltProfile.moveFast
-        self._hw.tilt.move_up()
-        while not self._hw.tilt.on_target_position:
-            await asyncio.sleep(0.25)

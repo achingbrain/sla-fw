@@ -45,7 +45,7 @@ class TowerRangeTest(DangerousCheck):
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
         with actions.led_warn:
-            await gather(self.verify_tower(), self.verify_tilt())
+            await gather(self._hw.verify_tower(), self._hw.verify_tilt())
             self._hw.setTowerPosition(self._hw.tower_end)
             self._hw.setTowerProfile("homingFast")
             self._hw.towerMoveAbsolute(0)
