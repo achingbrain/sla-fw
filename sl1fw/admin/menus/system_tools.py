@@ -34,26 +34,19 @@ class SystemToolsMenu(SafeAdminMenu):
         self._printer = printer
         self.systemd = pydbus.SystemBus().get(self.SYSTEMD_DBUS)
 
-        self._channel_value = AdminTextValue(
-            "Channel",
-            lambda: f"Update channel: {get_update_channel()}",
-            self._set_update_channel,
-        )
         self.add_back()
-        self.add_item(self._channel_value)
-        self.add_item(
-            AdminAction("Switch to stable", partial(self._set_update_channel, "stable"))
+        self.add_items(
+            (
+                AdminAction(
+                    "Update channel",
+                    lambda: self._control.enter(SetChannelMenu(self._control))
+                ),
+                AdminBoolValue.from_property(self, SystemToolsMenu.factory_mode),
+                AdminBoolValue.from_property(self, SystemToolsMenu.ssh),
+                AdminBoolValue.from_property(self, SystemToolsMenu.serial),
+                AdminAction("Fake setup", self._fake_setup),
+            )
         )
-        self.add_item(
-            AdminAction("Switch to beta", partial(self._set_update_channel, "beta"))
-        )
-        self.add_item(
-            AdminAction("Switch to dev", partial(self._set_update_channel, "dev"))
-        )
-        self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.factory_mode))
-        self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.ssh))
-        self.add_item(AdminBoolValue.from_property(self, SystemToolsMenu.serial))
-        self.add_item(AdminAction("Fake setup", self._fake_setup))
         if self._printer.hw.printer_model == PrinterModel.SL1S:
             self.add_item(AdminAction("Switch to M1", self._switch_m1))
         if self._printer.hw.printer_model == PrinterModel.M1:
@@ -105,19 +98,6 @@ class SystemToolsMenu(SafeAdminMenu):
         if self._printer.runtime_config.factory_mode:
             raise ValueError("Already enabled by factory mode")
         self._set_unit(defines.serial_service_service, defines.serial_service_enabled, value)
-
-    def _set_update_channel(self, channel: str):
-        try:
-            if channel not in ["stable", "beta", "dev"]:
-                raise ValueError(f'Unsupported update channel: "{channel}"')
-            set_update_channel(channel)
-        except FailedUpdateChannelSet:
-            self.logger.exception("Failed to set update channel")
-            self._control.enter(
-                Error(self._control, text="Failed to set update channel", pop=2)
-            )
-        finally:
-            self._channel_value.changed.emit()
 
     def _set_unit(self, service: str, enable_file: Path, state: bool):
         if state:
@@ -174,7 +154,7 @@ class SystemToolsMenu(SafeAdminMenu):
     def _do_switch_m1(self, status: AdminLabel):
         with FactoryMountedRW():
             defines.printer_m1_enabled.touch()
-        self._switch_sl1s_m1(status, PrinterModel.M1)
+        self._switch_sl1s_m1(status, PrinterModel.M1, "medic")
 
     def _switch_sl1s(self):
         self.enter(Wait(self._control, self._do_switch_sl1s))
@@ -183,9 +163,17 @@ class SystemToolsMenu(SafeAdminMenu):
     def _do_switch_sl1s(self, status: AdminLabel):
         with FactoryMountedRW():
             defines.printer_m1_enabled.unlink(missing_ok=True)
-        self._switch_sl1s_m1(status, PrinterModel.SL1S)
+        self._switch_sl1s_m1(status, PrinterModel.SL1S, "stable")
 
-    def _switch_sl1s_m1(self, status: AdminLabel, printer_model: PrinterModel):
+    def _switch_sl1s_m1(self, status: AdminLabel, printer_model: PrinterModel, channel: str):
+        status.set("Setting update channel")
+        try:
+            set_update_channel(channel)
+        except FailedUpdateChannelSet:
+            self.logger.exception("Failed to set update channel")
+            self._control.enter(
+                Error(self._control, text="Failed to set update channel", pop=2)
+            )
         set_configured_printer_model(printer_model)
         # new examples remove the old ones
         status.set("Downloading examples")
@@ -193,3 +181,37 @@ class SystemToolsMenu(SafeAdminMenu):
         examples.start()
         examples.join()
         shut_down(self._printer.hw, reboot=True)
+
+
+class SetChannelMenu(SafeAdminMenu):
+    def __init__(self, control: AdminControl):
+        super().__init__(control)
+        self._channel_value = AdminTextValue(
+            "Channel",
+            lambda: f"Update channel: {get_update_channel()}",
+            self._set_update_channel,
+        )
+
+        self.add_back()
+        self.add_items(
+            (
+                self._channel_value,
+                AdminAction("Switch to stable", partial(self._set_update_channel, "stable")),
+                AdminAction("Switch to beta", partial(self._set_update_channel, "beta")),
+                AdminAction("Switch to dev", partial(self._set_update_channel, "dev")),
+                AdminAction("Switch to medic", partial(self._set_update_channel, "medic")),
+            )
+        )
+
+    def _set_update_channel(self, channel: str):
+        try:
+            if channel not in ["stable", "beta", "dev", "medic"]:
+                raise ValueError(f'Unsupported update channel: "{channel}"')
+            set_update_channel(channel)
+        except FailedUpdateChannelSet:
+            self.logger.exception("Failed to set update channel")
+            self._control.enter(
+                Error(self._control, text="Failed to set update channel", pop=2)
+            )
+        finally:
+            self._channel_value.changed.emit()
