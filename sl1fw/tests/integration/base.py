@@ -64,6 +64,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.rewriteDefines()
 
         Path(self.api_key_file).touch()
+        defines.nginx_http_digest.touch()
         Path(self.uv_calib_data_file).touch()
         shutil.copy(self.SAMPLES_DIR / "self_test_data.json", Path(defines.factoryMountPoint))
         shutil.copy(
@@ -117,18 +118,12 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.last_log_token = Path(defines.ramdiskPath) / "last_log_token"
 
         # factory reset
-        defines.apikeyFile = str(self.api_key_file)
         defines.uvCalibDataPath = self.uv_calib_data_file
         defines.uvCalibDataPathFactory = self.uv_calib_factory_data_file
         defines.counterLog = self.counter_log
         defines.wizardDataPathFactory = str(self.wizard_data_file)
 
-        defines.nginx_api_key = self.TEMP_DIR / "nginx_api_key"
-        defines.nginx_http_digest = self.TEMP_DIR / "nginx_http_digest"
-        defines.nginx_enabled = self.TEMP_DIR / "nginx_enabled"
-        defines.nginx_api_key.touch()
-        defines.nginx_http_digest.touch()
-        defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
+        defines.nginx_http_digest = self.TEMP_DIR / "http_digest_enabled"
 
     def _change_dir(self, path) -> str:
         return self.temp_dir_project.name + "/" + os.path.basename(path)

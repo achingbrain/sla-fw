@@ -289,12 +289,8 @@ class TestWizards(TestWizardsBase):
         defines.serial_service_enabled.touch()
         defines.ssh_service_enabled = self.TEMP_DIR / "ssh"
         defines.ssh_service_enabled.touch()
-        defines.nginx_api_key = self.TEMP_DIR / "nginx_api_key"
         defines.nginx_http_digest = self.TEMP_DIR / "nginx_http_digest"
-        defines.nginx_enabled = self.TEMP_DIR / "nginx_enabled"
-        defines.nginx_api_key.touch()
         defines.nginx_http_digest.touch()
-        defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
 
         # Mock changed settings
         self.time_date.SetNTP(not self.time_date.DEFAULT_NTP, False)

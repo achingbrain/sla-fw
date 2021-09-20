@@ -418,25 +418,20 @@ class Printer:
 
     @property
     def http_digest(self) -> bool:
-        return defines.nginx_enabled.resolve() == defines.nginx_http_digest
+        return defines.nginx_http_digest.exists()
 
     @http_digest.setter
     def http_digest(self, enabled: bool) -> None:
         is_enabled = self.http_digest
         if enabled:
             if not is_enabled:
-                defines.nginx_enabled.unlink()
-                defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
-                systemd1 = SystemBus().get("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
-                systemd1.RestartUnit("nginx.service", "replace")
-                self.http_digest_changed.emit()
+                defines.nginx_http_digest.touch()
         else:
             if is_enabled:
-                defines.nginx_enabled.unlink()
-                defines.nginx_enabled.symlink_to(defines.nginx_api_key)
-                systemd1 = SystemBus().get("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
-                systemd1.RestartUnit("nginx.service", "replace")
-                self.http_digest_changed.emit()
+                defines.nginx_http_digest.unlink()
+        systemd1 = SystemBus().get("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
+        systemd1.RestartUnit("nginx.service", "replace")
+        self.http_digest_changed.emit()
 
     @property
     def api_key(self) -> str:

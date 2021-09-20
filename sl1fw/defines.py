@@ -186,9 +186,7 @@ local_time_path = Path("/etc/localtime")
 touch_ui_config = Path("/etc/touch-ui/touch-ui.conf")
 exposure_panel_of_node = Path("/sys/bus/i2c/devices/1-000f/of_node")
 
-nginx_api_key = Path("/etc/nginx/sites-available/sl1fw")
-nginx_http_digest = Path("/etc/nginx/sites-available/sl1fw_http_digest")
-nginx_enabled =  Path("/etc/nginx/sites-enabled/sl1fw")
+nginx_http_digest = Path("/etc/nginx/http_digest_enabled")
 
 printer_model = configDir / "model"
 sl1_model_file = printer_model / "sl1"

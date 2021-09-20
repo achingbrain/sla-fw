@@ -108,8 +108,7 @@ class ResetHttpDigest(ResetCheck):
 
     def reset_task_run(self, actions: UserActionBroker):
         try:
-            defines.nginx_enabled.unlink()
-            defines.nginx_enabled.symlink_to(defines.nginx_http_digest)
+            defines.nginx_http_digest.touch()
         except (subprocess.CalledProcessError, FileNotFoundError):
             self._logger.exception("Failed to reset http digest config")
 
