@@ -43,7 +43,7 @@ class ResetSettingsGroup(CheckGroup):
         hard_errors: bool = False,
     ):
         checks = [
-            ResetHostname(hard_errors=hard_errors),
+            ResetHostname(package.model, hard_errors=hard_errors),
             ResetAPIKey(hard_errors=hard_errors),
             ResetRemoteConfig(hard_errors=hard_errors),
             ResetHttpDigest(hard_errors=hard_errors),
@@ -106,7 +106,8 @@ class FactoryResetWizard(Wizard):
     ):
         self._package = WizardDataPackage(
             hw=hw,
-            runtime_config=runtime_config
+            runtime_config=runtime_config,
+            model=hw.printer_model
         )
         super().__init__(
             WizardId.FACTORY_RESET,
@@ -123,7 +124,8 @@ class PackingWizard(Wizard):
     def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(
             hw=hw,
-            runtime_config=runtime_config
+            runtime_config=runtime_config,
+            model=hw.printer_model
         )
         groups = [
             SendPrinterDataGroup(self._package),

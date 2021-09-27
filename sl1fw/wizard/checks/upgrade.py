@@ -1,9 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
 from sl1fw.configs.hw import HwConfig
-
 from sl1fw.libHardware import Hardware
 from sl1fw.configs.writer import ConfigWriter
 from sl1fw.functions.system import set_configured_printer_model, set_factory_uvpwm

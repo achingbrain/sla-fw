@@ -24,19 +24,21 @@ from sl1fw.wizard.checks.upgrade import (
     ResetHwCounters,
     MarkPrinterModel,
 )
+from sl1fw.wizard.checks.factory_reset import ResetHostname
 from sl1fw.wizard.group import CheckGroup, SingleCheckGroup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
 
 class SL1SUpgradeCleanup(CheckGroup):
-    def __init__(self, package: WizardDataPackage, model: PrinterModel):
+    def __init__(self, package: WizardDataPackage):
         super().__init__(
             checks=(
-                ResetUVPWM(package.config_writer, model),
+                ResetUVPWM(package.config_writer, package.model),
                 ResetSelfTest(package.config_writer),
                 ResetMechanicalCalibration(package.config_writer),
                 ResetHwCounters(package.hw),
+                ResetHostname(package.model)
             )
         )
         self._package = package
@@ -74,7 +76,7 @@ class UpgradeWizardBase(Wizard):
             hw=hw,
             runtime_config=runtime_config,
             exposure_image=exposure_image,
-            config_writer=hw.config.get_writer(),
+            config_writer=hw.config.get_writer()
         )
 
         super().__init__(
@@ -104,11 +106,12 @@ class SL1SUpgradeWizard(UpgradeWizardBase):
         return WizardId.SL1S_UPGRADE
 
     def get_groups(self):
+        self._package.model = PrinterModel.SL1S
         return (
-            SingleCheckGroup(SystemInfoTest(self._package.hw)), # Just save system info BEFORE any cleanups
-            SL1SUpgradeCleanup(self._package, PrinterModel.SL1S),
+            SingleCheckGroup(SystemInfoTest(self._package.hw)),  # Just save system info BEFORE any cleanups
+            SL1SUpgradeCleanup(self._package),
             ShowResultsGroup(),
-            SingleCheckGroup(MarkPrinterModel(PrinterModel.SL1S, self._package.hw.config)),
+            SingleCheckGroup(MarkPrinterModel(self._package.model, self._package.hw.config)),
         )
 
 
@@ -117,9 +120,10 @@ class SL1DowngradeWizard(UpgradeWizardBase):
         return WizardId.SL1_DOWNGRADE
 
     def get_groups(self):
+        self._package.model = PrinterModel.SL1
         return (
-            SingleCheckGroup(SystemInfoTest(self._package.hw)), # Just save system info BEFORE any cleanups
-            SL1SUpgradeCleanup(self._package, PrinterModel.SL1),
+            SingleCheckGroup(SystemInfoTest(self._package.hw)),  # Just save system info BEFORE any cleanups
+            SL1SUpgradeCleanup(self._package),
             ShowResultsGroup(),
-            SingleCheckGroup(MarkPrinterModel(PrinterModel.SL1, self._package.hw.config)),
+            SingleCheckGroup(MarkPrinterModel(self._package.model, self._package.hw.config)),
         )

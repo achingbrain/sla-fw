@@ -22,6 +22,7 @@ from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.errors.errors import WizardNotCancelable, FailedToSerializeWizardData, FailedToSaveWizardData
 from sl1fw.errors.warnings import PrinterWarning
 from sl1fw.functions.system import FactoryMountedRW
+from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardState, WizardCheckState, WizardId
 from sl1fw.wizard.wizards.generic import ShowResultsGroup
@@ -45,6 +46,7 @@ class WizardDataPackage:
     exposure_image: ExposureImage = None
     uv_meter: UvLedMeterMulti = None
     uv_result: UVCalibrationResult = None
+    model: PrinterModel = None
     # TODO: use this in other wizards like self-test, unboxing, uv calibration, factory reset, SL1/SL1s config reset
 
 

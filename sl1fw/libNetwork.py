@@ -22,7 +22,6 @@ from sl1fw.errors.errors import DownloadFailed
 
 class Network:
     NETWORKMANAGER_SERVICE = "org.freedesktop.NetworkManager"
-    HOSTNAME_SERVICE = "org.freedesktop.hostname1"
     NM_STATE_CONNECTED_GLOBAL = 70
     REPORT_INTERVAL_S = 0.25
     NM_DEVICE_TYPE_ETHERNET = 1
@@ -35,7 +34,6 @@ class Network:
         self.net_change = Signal()
         self._bus = pydbus.SystemBus()
         self._nm = self._bus.get(self.NETWORKMANAGER_SERVICE)
-        self._hostname_service = self._bus.get(self.HOSTNAME_SERVICE)
 
     def register_events(self) -> None:
         """
@@ -92,15 +90,6 @@ class Network:
             ]
             if dev.Interface != "lo" and dev.Ip4Config != "/"
         }
-
-    @property
-    def hostname(self) -> str:
-        return self._hostname_service.StaticHostname
-
-    @hostname.setter
-    def hostname(self, hostname: str) -> None:
-        self._hostname_service.SetStaticHostname(hostname, False)
-        self._hostname_service.SetHostname(hostname, False)
 
     def _get_ipv4(self, ipv4_config_path: str) -> Optional[str]:
         """

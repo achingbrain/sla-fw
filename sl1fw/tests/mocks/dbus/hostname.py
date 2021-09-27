@@ -15,17 +15,23 @@ class Hostname:
     PropertiesChanged = signal()
 
     def __init__(self):
-        self.hostname_set = False
+        self.hostname = ""
+        self.static_hostname = ""
 
     @auto_dbus
-    def SetStaticHostname(self, _: str, __: bool) -> None:
-        pass
+    def SetStaticHostname(self, hostname: str, _: bool) -> None:
+        self.static_hostname = hostname
 
     @auto_dbus
-    def SetHostname(self, _: str, __: bool) -> None:
-        self.hostname_set = True
+    def SetHostname(self, hostname: str, _: bool) -> None:
+        self.hostname = hostname
 
     @auto_dbus
     @property
     def StaticHostname(self) -> str:
-        return "prusa-sl1"
+        return self.static_hostname
+
+    @auto_dbus
+    @property
+    def Hostname(self) -> str:
+        return self.hostname

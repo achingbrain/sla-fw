@@ -425,7 +425,21 @@ class TestWizards(TestWizardsBase):
 
     def test_factory_reset_complete(self):
         self.runtime_config.factory_mode = False
-        self.hw.boardData = ("TEST kit", False)
+        self.hw.boardData = ("TEST complete", False)
+        self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
+        self._check_factory_reset(unboxing=False, factory_mode=False)
+
+    def test_factory_reset_complete_sl1s(self):
+        self.hw.printer_model = PrinterModel.SL1S
+        self.runtime_config.factory_mode = False
+        self.hw.boardData = ("TEST complete", False)
+        self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
+        self._check_factory_reset(unboxing=False, factory_mode=False)
+
+    def test_factory_reset_complete_m1(self):
+        self.hw.printer_model = PrinterModel.M1
+        self.runtime_config.factory_mode = False
+        self.hw.boardData = ("TEST complete", False)
         self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
@@ -461,7 +475,10 @@ class TestWizards(TestWizardsBase):
         )  # all wifi connections deleted
 
         self.assertEqual(False, defines.remoteConfig.exists())
-        self.assertTrue(self.hostname.hostname_set, "Hostname changed by factory reset")
+        self.assertNotEqual(self.hostname.Hostname, "")
+        self.assertNotEqual(self.hostname.StaticHostname, "")
+        self.assertEqual(self.hostname.StaticHostname, self.hostname.Hostname)
+        self.assertEqual(self.hostname.Hostname, defines.default_hostname + self.hw.printer_model.name.lower())
         self.assertTrue(self.time_date.is_default_ntp(), "NTP reset to default")
         print(self.locale.Locale)
         self.assertTrue(self.locale.is_default(), "Locale set to default")

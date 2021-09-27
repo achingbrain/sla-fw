@@ -19,7 +19,7 @@ from sl1fw.functions.system import (
     set_update_channel,
     get_update_channel,
     set_configured_printer_model,
-    shut_down,
+    shut_down, reset_hostname,
 )
 from sl1fw.libPrinter import Printer
 from sl1fw.state_actions.examples import Examples
@@ -174,7 +174,10 @@ class SystemToolsMenu(SafeAdminMenu):
             self._control.enter(
                 Error(self._control, text="Failed to set update channel", pop=2)
             )
+        status.set("Setting printer model")
         set_configured_printer_model(printer_model)
+        status.set("Setting hostname")
+        reset_hostname(printer_model)
         # new examples remove the old ones
         status.set("Downloading examples")
         examples = Examples(self._printer.inet, printer_model)

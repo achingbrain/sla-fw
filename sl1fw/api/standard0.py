@@ -23,6 +23,7 @@ import distro
 from pydbus import SystemBus
 from pydbus.generic import signal
 
+from sl1fw.functions.system import get_hostname
 from sl1fw.states.printer import PrinterState, Printer0State
 from sl1fw.states.exposure import ExposureState
 from sl1fw.api.exposure0 import Exposure0, Exposure0State
@@ -600,7 +601,7 @@ class Standard0:
     @auto_dbus
     @property
     def net_hostname(self) -> str:
-        return self._printer.inet.hostname
+        return get_hostname()
 
     @auto_dbus
     @property

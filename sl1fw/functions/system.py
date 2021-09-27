@@ -9,6 +9,8 @@ import os
 import subprocess
 from math import isclose
 
+import pydbus
+
 from sl1fw import defines, test_runtime
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.toml import TomlConfig
@@ -163,3 +165,17 @@ def compute_uvpwm(hw: Hardware) -> int:
         raise CalculatedUVPWMNotInRange(pwm, pwm_min, pwm_max)
 
     return pwm
+
+
+def get_hostname() -> str:
+    return pydbus.SystemBus().get("org.freedesktop.hostname1").StaticHostname
+
+
+def set_hostname(hostname: str) -> None:
+    dbus = pydbus.SystemBus().get("org.freedesktop.hostname1")
+    dbus.SetStaticHostname(hostname, False)
+    dbus.SetHostname(hostname, False)
+
+
+def reset_hostname(model: PrinterModel) -> None:
+    set_hostname(defines.default_hostname + model.name.lower())

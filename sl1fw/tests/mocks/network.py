@@ -21,7 +21,6 @@ class Network:
     def __init__(self, *_, **__):
         self.ip = "1.2.3.4"
         self.devices = {"eth0": "1.2.3.4"}
-        self.hostname = "test_hostname"
         self.net_change = Signal()
 
     def register_events(self):

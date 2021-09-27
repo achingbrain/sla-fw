@@ -45,7 +45,7 @@ from sl1fw.errors.errors import (
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
 from sl1fw.functions.system import get_octoprint_auth, get_configured_printer_model, set_configured_printer_model, \
-    set_factory_uvpwm, compute_uvpwm, FactoryMountedRW
+    set_factory_uvpwm, compute_uvpwm, FactoryMountedRW, reset_hostname
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libAsync import AdminCheck
@@ -224,6 +224,9 @@ class Printer:
                     os.remove(file)
                 set_configured_printer_model(self.hw.printer_model)
                 defines.detect_sla_model_file.unlink()
+
+                # set model specific default hostname
+                reset_hostname(self.hw.printer_model)
             # Also omit running upgrade/downgrade wizard if printer is SL1 and model was not set before.
             if self.hw.printer_model == PrinterModel.SL1 and not defines.printer_model.exists():
                 set_configured_printer_model(self.hw.printer_model)

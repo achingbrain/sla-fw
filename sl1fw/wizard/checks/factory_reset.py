@@ -28,7 +28,8 @@ from sl1fw.errors.errors import (
 )
 from sl1fw.errors.warnings import FactoryResetCheckFailure
 from sl1fw.functions.files import ch_mode_owner, get_all_supported_files
-from sl1fw.functions.system import FactoryMountedRW, save_factory_mode, compute_uvpwm
+from sl1fw.functions.system import FactoryMountedRW, save_factory_mode, compute_uvpwm, reset_hostname
+from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.libHardware import Hardware, Axis
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import Check, WizardCheckType, SyncCheck, DangerousCheck
@@ -69,13 +70,12 @@ class EraseProjects(ResetCheck):
 
 
 class ResetHostname(ResetCheck):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, model: PrinterModel, *args, **kwargs):
         super().__init__(WizardCheckType.RESET_HOSTNAME, *args, **kwargs)
+        self._model = model
 
     def reset_task_run(self, actions: UserActionBroker):
-        hostname = pydbus.SystemBus().get("org.freedesktop.hostname1")
-        hostname.SetStaticHostname(defines.default_hostname, False)
-        hostname.SetHostname(defines.default_hostname, False)
+        reset_hostname(self._model)
 
 
 class ResetAPIKey(ResetCheck):
