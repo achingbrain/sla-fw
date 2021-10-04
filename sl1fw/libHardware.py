@@ -32,7 +32,7 @@ import pydbus
 from PySignal import Signal
 
 from sl1fw import defines
-from sl1fw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, TowerHomeCheckFailed,\
+from sl1fw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
     MotionControllerException, ConfigException
 from sl1fw.configs.hw import HwConfig
 from sl1fw.motion_controller.controller import MotionController
@@ -838,7 +838,10 @@ class Hardware:
                 self.logger.warning("Tower homing failed! Status: %d", homingStatus)
                 if retries < 1:
                     self.logger.error("Tower homing max tries reached!")
-                    raise TowerHomeFailed()
+                    if homingStatus == -2:
+                        raise TowerEndstopNotReached()
+                    if homingStatus == -3:
+                        raise TowerHomeFailed()
 
                 retries -= 1
                 self.towerSync()
@@ -888,7 +891,10 @@ class Hardware:
                     self._towerToPosition,
                 )
                 profileBackup = self._lastTowerProfile
-                self.towerSyncWaitAsync()
+                try:
+                    asyncio.run(self.towerSyncWaitAsync())
+                except (TowerHomeFailed, TowerEndstopNotReached) as e:
+                    self.logger.exception(e)
                 self.setTowerProfile(profileBackup)
                 self.towerMoveAbsolute(self._towerToPosition)
                 while self.isTowerMoving():
@@ -1136,16 +1142,14 @@ class Hardware:
         self.updateMotorSensitivity(Axis.TOWER, sensitivity)
         tries = 3
         while tries > 0:
-            await self.towerSyncWaitAsync()
-            home_status = self.towerHomingStatus
-            if home_status == -2:
-                raise TowerEndstopNotReached()
-            if home_status == -3:
+            try:
+                await self.towerSyncWaitAsync()
+            except (TowerHomeFailed, TowerEndstopNotReached) as e:
                 # if homing failed try different tower homing profiles (only positive values of motor sensitivity)
                 sensitivity += 1  # try next motor sensitivity
                 tries = 3  # start over with new sensitivity
                 if sensitivity >= len(self.towerAdjust["homingFast"]) - 2:
-                    raise TowerHomeCheckFailed()
+                    raise e
 
                 self.updateMotorSensitivity(Axis.TOWER, sensitivity)
 

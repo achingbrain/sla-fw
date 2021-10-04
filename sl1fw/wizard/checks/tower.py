@@ -5,7 +5,7 @@
 from asyncio import sleep, gather
 from typing import Dict, Any
 
-from sl1fw.errors.errors import TowerBelowSurface, TowerAxisCheckFailed
+from sl1fw.errors.errors import TowerBelowSurface, TowerAxisCheckFailed, TowerHomeFailed, TowerEndstopNotReached
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
@@ -25,7 +25,10 @@ class TowerHomeTest(DangerousCheck):
         with actions.led_warn:
             for _ in range(3):
                 await sleep(0.1)
-                if not await self._hw.towerSyncWaitAsync():
+                try:
+                    await self._hw.towerSyncWaitAsync()
+                except (TowerHomeFailed, TowerEndstopNotReached) as e:
+                    self._logger.exception(e)
                     await sleep(0.1)
                     self.config_writer.towerSensitivity = await self._hw.get_tower_sensitivity_async()
 

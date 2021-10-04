@@ -16,7 +16,7 @@ from sl1fw.wizard.wizards.new_expo_panel import NewExpoPanelWizard
 from sl1fw import defines
 from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.errors.errors import UVTooDimm, UVTooBright, UVDeviationTooHigh
+from sl1fw.errors.errors import UVTooDimm, UVTooBright, UVDeviationTooHigh, TowerHomeFailed, TowerEndstopNotReached
 from sl1fw.functions.system import get_configured_printer_model
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.states.wizard import WizardState, WizardId
@@ -307,7 +307,7 @@ class TestWizards(TestWizardsBase):
         ), patch("sl1fw.wizard.checks.factory_reset.ch_mode_owner"):
             super()._run_wizard(wizard, limit_s, expected_state)
 
-    def test_self_test_success(self):
+    def _run_self_test(self, expected_state=WizardState.DONE) -> dict:
         self.hw.config.uvWarmUpTime = 0
         wizard = SelfTestWizard(self.hw, self.exposure_image, RuntimeConfig())
 
@@ -326,14 +326,17 @@ class TestWizards(TestWizardsBase):
                 wizard.show_results_done()
 
         wizard.state_changed.connect(on_state_changed)
-        self._run_wizard(wizard)
+        self._run_wizard(wizard, expected_state=expected_state)
 
         wizard_data_path = defines.configDir / wizard.get_data_filename()
         self.assertTrue(wizard_data_path.exists(), "Wizard data file exists")
         print(f"Wizard data:\n{wizard_data_path.read_text()}")
         with wizard_data_path.open("rt") as file:
             data = serializer.load(file)
+            return data
 
+    def test_self_test_success(self):
+        data = self._run_self_test()
         self.assertEqual("CZPX0819X009XC00151", data["a64SerialNo"])
         self.assertIn("osVersion", data)
         self.assertEqual("CZPX0619X678XC12345", data["mcSerialNo"])
@@ -378,6 +381,33 @@ class TestWizards(TestWizardsBase):
             self.assertTrue(conf.get_values().get(item).is_default(conf))
         else:
             self.assertEqual(expected_value, getattr(conf, item))
+
+    def test_self_test_tower_sensitivity_change(self):
+        # side_effect = [
+        #   TowerHomeFailed() - causes call hw.get_tower_sensitivity_async
+        #   TowerHomeFailed() - causes homing fail called inside hw.get_tower_sensitivity_async to increment sensitivity
+        #   True - the rest of the homing are successful
+        # ]
+        self.hw.towerSyncWaitAsync.side_effect = [TowerHomeFailed(), TowerHomeFailed(), True]
+        self.hw.get_tower_sensitivity_async.side_effect = [0, 1]
+        data = self._run_self_test()
+        self.assertEqual(1, data["towerSensitivity"])
+
+        self.hw.towerSyncWaitAsync.side_effect = [TowerEndstopNotReached(), TowerEndstopNotReached(), True]
+        self.hw.get_tower_sensitivity_async.side_effect = [0, 1]
+        data = self._run_self_test()
+        self.assertEqual(1, data["towerSensitivity"])
+
+        self.hw.towerSyncWaitAsync.side_effect = [TowerHomeFailed(), TowerHomeFailed(), TowerHomeFailed(), True]
+        self.hw.get_tower_sensitivity_async.side_effect = [0, 1, 2]
+        data = self._run_self_test()
+        self.assertEqual(2, data["towerSensitivity"])
+
+        self.hw.towerSyncWaitAsync.side_effect = TowerHomeFailed()
+        self._run_self_test(expected_state=WizardState.FAILED)
+
+        self.hw.towerSyncWaitAsync.side_effect = TowerEndstopNotReached()
+        self._run_self_test(expected_state=WizardState.FAILED)
 
     def test_unboxing_complete(self):
         wizard = CompleteUnboxingWizard(self.hw, RuntimeConfig())
