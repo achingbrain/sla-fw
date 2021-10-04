@@ -23,7 +23,7 @@ from PySignal import Signal
 from aiohttp.client_exceptions import ClientConnectorError
 
 from sl1fw import defines
-from sl1fw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace, DisplayUsageError
+from sl1fw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace, DisplayUsageError, NoExternalStorage
 from sl1fw.functions.files import get_save_path, usb_remount
 from sl1fw.functions.generate import display_usage_heatmap
 from sl1fw.libHardware import Hardware
@@ -281,7 +281,7 @@ class UsbExport(LogsExport):
         self.state = LogsState.SAVING
         save_path = get_save_path()
         if save_path is None or not save_path.parent.exists():
-            raise FileNotFoundError(save_path)
+            raise NoExternalStorage()
 
         self._logger.debug("Copying temporary log file to usb")
         await self._copy_with_progress(src, save_path / src.name)

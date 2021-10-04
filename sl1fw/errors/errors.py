@@ -358,6 +358,11 @@ class MissingWizardData(PrinterDataSendError):
     pass
 
 
+@with_code(Sl1Codes.NO_EXTERNAL_STORAGE)
+class NoExternalStorage(PrinterError):
+    pass
+
+
 @with_code(Sl1Codes.MISSING_CALIBRATION_DATA)
 class MissingCalibrationData(PrinterDataSendError):
     pass
