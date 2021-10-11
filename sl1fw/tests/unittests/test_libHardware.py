@@ -313,9 +313,10 @@ class TestLibHardware(Sl1fwTestCase):
 
     def test_tower_sync(self):
         self.hw.towerSync()
-        self.assertFalse(self.hw.isTowerSynced())
+        self.assertTrue(self.hw.isTowerMoving())
         while self.hw.isTowerMoving():
-            sleep(0.1)
+            self.assertFalse(self.hw.isTowerSynced())
+            sleep(0.25)
         self.assertTrue(self.hw.isTowerSynced())
 
     def test_tower_sync_wait(self):
@@ -370,18 +371,6 @@ class TestLibHardware(Sl1fwTestCase):
         while self.hw.isTowerMoving():
             sleep(0.1)
         self.assertTrue(self.hw.isTowerOnMin())
-
-    def test_tower_zero(self):
-        self.hw.towerToZero()
-        while self.hw.isTowerMoving():
-            sleep(0.1)
-        self.assertTrue(self.hw.isTowerOnZero())
-
-    def test_tower_top(self):
-        self.hw.towerToTop()
-        while self.hw.isTowerMoving():
-            sleep(0.1)
-        self.assertTrue(self.hw.isTowerOnTop())
 
     def test_tower_position(self):
         position = 1000000

@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import glob
 import logging
 import os
@@ -68,11 +67,11 @@ class ExposureCheckRunner:
         self.expo = expo
         self.warnings: List[PrinterWarning] = []
 
-    def __call__(self):
+    async def start(self):
         self.logger.info("Running: %s", self.check_type)
         self.expo.check_results[self.check_type] = ExposureCheckResult.RUNNING
         try:
-            self.run()
+            await self.run()
             if self.warnings:
                 self.logger.warning("Check warnings: %s", self.warnings)
                 self.expo.check_results[self.check_type] = ExposureCheckResult.WARNING
@@ -92,7 +91,7 @@ class ExposureCheckRunner:
         self.expo.raise_preprint_warning(warning)
 
     @abstractmethod
-    def run(self):
+    async def run(self):
         ...
 
 
@@ -100,7 +99,7 @@ class TempsCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.TEMPERATURE, *args, **kwargs)
 
-    def run(self):
+    async def run(self):
         if test_runtime.injected_preprint_warning:
             self.raise_warning(test_runtime.injected_preprint_warning)
         temperatures = self.expo.hw.getMcTemperatures()
@@ -120,7 +119,7 @@ class CoverCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.COVER, *args, **kwargs)
 
-    def run(self):
+    async def run(self):
         if not self.expo.hw.config.coverCheck:
             self.logger.info("Disabling cover check")
             raise ExposureCheckDisabled()
@@ -134,14 +133,14 @@ class CoverCheck(ExposureCheckRunner):
                     return
 
                 self.expo.state = ExposureState.COVER_OPEN
-                sleep(0.1)
+                await asyncio.sleep(0.1)
 
 
 class ProjectDataCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.PROJECT, *args, **kwargs)
 
-    def run(self):
+    async def run(self):
         # Remove old projects
         self.logger.debug("Running disk cleanup")
         self.expo.check_and_clean_last_data()
@@ -165,13 +164,13 @@ class FansCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.FAN, *args, **kwargs)
 
-    def run(self):
+    async def run(self):
         # Warm-up fans
         self.logger.info("Warming up fans")
         self.expo.hw.startFans()
         if not test_runtime.testing:
             self.logger.debug("Waiting %.2f secs for fans", defines.fanStartStopTime)
-            sleep(defines.fanStartStopTime)
+            await asyncio.sleep(defines.fanStartStopTime)
         else:
             self.logger.debug("Not waiting for fans to start due to testing")
 
@@ -196,16 +195,16 @@ class ResinCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.RESIN, *args, **kwargs)
 
-    def measure_resin_retries(self, retries: int) -> int:
+    async def measure_resin_retries(self, retries: int) -> int:
         try:
-            return self.do_measure_resin()
+            return await self.do_measure_resin()
         except (ResinMeasureFailed, ResinTooLow, ResinTooHigh):
             if retries:
-                return self.measure_resin_retries(retries - 1)
+                return await self.measure_resin_retries(retries - 1)
             raise
 
-    def do_measure_resin(self) -> int:
-        volume_ml = self.expo.hw.get_resin_volume()
+    async def do_measure_resin(self) -> int:
+        volume_ml = await self.expo.hw.get_resin_volume_async()
         self.expo.setResinVolume(volume_ml)
 
         try:
@@ -220,16 +219,16 @@ class ResinCheck(ExposureCheckRunner):
         except ResinMeasureFailed:
             self.expo.hw.setTowerProfile("homingFast")
             self.expo.hw.towerToTop()
-            while not self.expo.hw.isTowerOnTop():
-                sleep(0.25)
+            while not await self.expo.hw.isTowerOnPositionAsync():
+                await asyncio.sleep(0.25)
             raise
         return volume_ml
 
-    def run(self):
+    async def run(self):
         if not self.expo.hw.config.resinSensor:
             raise ExposureCheckDisabled()
 
-        volume_ml = self.measure_resin_retries(self.RETRIES)
+        volume_ml = await self.measure_resin_retries(self.RETRIES)
 
         required_volume_ml = self.expo.project.used_material + defines.resinMinVolume
         self.logger.debug(
@@ -246,36 +245,36 @@ class StartPositionsCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.START_POSITIONS, *args, **kwargs)
 
-    def run(self):
+    async def run(self):
         # tilt is handled by StirringCheck
 
         self.logger.info("Tower to print start position")
         self.expo.hw.setTowerProfile("homingFast")
         self.expo.hw.towerToPosition(0.25)  # TODO: Constant in code, seems important
-        while not self.expo.hw.isTowerOnPosition(retries=2):
-            sleep(0.25)
+        while not await self.expo.hw.isTowerOnPositionAsync(retries=2):
+            await asyncio.sleep(0.25)
 
         if self.expo.hw.towerPositonFailed():
             exception = TowerMoveFailed()
             self.expo.exception = exception
             self.expo.hw.setTowerProfile("homingFast")
             self.expo.hw.towerToTop()
-            while not self.expo.hw.isTowerOnTop():
-                sleep(0.25)
+            while not await self.expo.hw.isTowerOnPositionAsync():
+                await asyncio.sleep(0.25)
 
             raise exception
         while self.expo.hw.tilt.moving:
-            sleep(0.25)
+            await asyncio.sleep(0.25)
 
 
 class StirringCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.STIRRING, *args, **kwargs)
 
-    def run(self):
+    async def run(self):
         if not self.expo.hw.config.tilt:
             raise ExposureCheckDisabled()
-        self.expo.hw.tilt.stir_resin()
+        await self.expo.hw.tilt.stir_resin_async()
 
 
 class Exposure:
@@ -666,7 +665,7 @@ class Exposure:
         self.state = ExposureState.GOING_UP
         self.hw.setTowerProfile("homingFast")
         self.hw.towerToTop()
-        while not self.hw.isTowerOnTop():
+        while not self.hw.isTowerOnPosition():
             sleep(0.25)
 
         self.state = ExposureState.WAITING
@@ -824,23 +823,15 @@ class Exposure:
         for check in ExposureCheck:
             self.check_results.update({check: ExposureCheckResult.SCHEDULED})
 
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            fans = loop.run_in_executor(pool, FansCheck(self))
-            temps = loop.run_in_executor(pool, TempsCheck(self))
-            project = loop.run_in_executor(pool, ProjectDataCheck(self))
-            hw = asyncio.create_task(self._check_hw_related())
-
-            self.logger.debug("Waiting for pre-print checks to finish")
-            await asyncio.gather(fans, temps, project, hw)
-
-    async def _check_hw_related(self):
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            await loop.run_in_executor(pool, CoverCheck(self))
-            await loop.run_in_executor(pool, ResinCheck(self))
-            await loop.run_in_executor(pool, StartPositionsCheck(self))
-            await loop.run_in_executor(pool, StirringCheck(self))
+        await asyncio.gather(
+            FansCheck(self).start(),
+            TempsCheck(self).start(),
+            ProjectDataCheck(self).start()
+            )
+        await CoverCheck(self).start()
+        await ResinCheck(self).start()
+        await StartPositionsCheck(self).start()
+        await StirringCheck(self).start()
 
     def run_exposure(self):
         # TODO: Where is this supposed to be called from?
@@ -1064,7 +1055,7 @@ class Exposure:
         self.state = ExposureState.GOING_UP
         self.hw.setTowerProfile("homingFast")
         self.hw.towerToTop()
-        while not self.hw.isTowerOnTop():
+        while not self.hw.isTowerOnPosition():
             sleep(0.25)
 
     def _print_end_hw_off(self):

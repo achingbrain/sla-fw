@@ -156,7 +156,7 @@ class Hardware:
         self._emmc_serial = self._read_emmc_serial()
 
         self._tower_moving = False
-        self._towerPositionRetries = None
+        self._towerPositionRetries: int = 1
         self.sl1s_booster = Booster()
 
         self._value_refresh_thread = Thread(daemon=True, target=self._value_refresh_body)
@@ -887,12 +887,12 @@ class Hardware:
         return self.towerSynced
 
     @safe_call(False, MotionControllerException)
-    def towerSyncWait(self, retries: int = 0):
+    def towerSyncWait(self, retries: int = 2):
         """ blocking method for tower homing. retries = number of additional tries when homing failes """
         return asyncio.run(self.towerSyncWaitAsync(retries=retries))
 
     @safe_call(False, MotionControllerException)
-    async def towerSyncWaitAsync(self, retries: int = 0):
+    async def towerSyncWaitAsync(self, retries: int = 2):
         """ blocking method for tower homing. retries = number of additional tries when homing failes """
         if not self.isTowerMoving():
             self.towerSync()
@@ -923,10 +923,9 @@ class Hardware:
 
     async def towerMoveAbsoluteWaitAsync(self, position):
         self.towerMoveAbsolute(position)
-        while not self.isTowerOnPosition():
-            await asyncio.sleep(0.1)
+        while not await self.isTowerOnPositionAsync():
+            await asyncio.sleep(0.25)
 
-    @safe_call(None, MotionControllerException)
     def towerMoveAbsolute(self, position):
         self._towerToPosition = position
         self.mcc.do("!twma", position)
@@ -944,16 +943,19 @@ class Hardware:
         return False
 
     @safe_call(False, MotionControllerException)
-    def isTowerOnPosition(self, retries=None):
+    def isTowerOnPosition(self, retries: int = 1) -> bool:
+        return asyncio.run(self.isTowerOnPositionAsync(retries))
+
+    @safe_call(False, MotionControllerException)
+    async def isTowerOnPositionAsync(self, retries: int = 1) -> bool:
         """ check dest. position, retries = None is infinity """
         self._towerPositionRetries = retries
         if self.isTowerMoving():
             return False
 
         while self._towerToPosition != self.getTowerPositionMicroSteps():
-            if self._towerPositionRetries is None or self._towerPositionRetries:
-                if self._towerPositionRetries:
-                    self._towerPositionRetries -= 1
+            if self._towerPositionRetries:
+                self._towerPositionRetries -= 1
 
                 self.logger.warning(
                     "Tower is not on required position! Sync forced. Actual position: %d, Target position: %d ",
@@ -961,11 +963,11 @@ class Hardware:
                     self._towerToPosition,
                 )
                 profileBackup = self._lastTowerProfile
-                self.towerSyncWaitAsync()
+                await self.towerSyncWaitAsync()
                 self.setTowerProfile(profileBackup)
                 self.towerMoveAbsolute(self._towerToPosition)
                 while self.isTowerMoving():
-                    asyncio.sleep(0.1)
+                    await asyncio.sleep(0.1)
 
             else:
                 self.logger.error("Tower position max tries reached!")
@@ -979,14 +981,8 @@ class Hardware:
     def towerToZero(self):
         self.towerMoveAbsolute(self.config.calibTowerOffset)
 
-    def isTowerOnZero(self):
-        return self.isTowerOnPosition()
-
     def towerToTop(self):
         self.towerMoveAbsolute(self.config.towerHeight)
-
-    def isTowerOnTop(self):
-        return self.isTowerOnPosition()
 
     def setTowerOnMax(self):
         self.setTowerPosition(self._towerEnd)
@@ -1248,7 +1244,7 @@ class Hardware:
         else:
             self.setTowerProfile("moveFast")
             self.towerToTop()
-            while not self.isTowerOnPosition(retries=3):
+            while not await self.isTowerOnPositionAsync(retries=3):
                 await asyncio.sleep(0.25)
 
     async def verify_tilt(self):

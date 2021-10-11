@@ -124,7 +124,7 @@ class TiltAndTowerMenu(SafeAdminMenu):
             status.set("Moving platform to zero")
             self._printer.hw.towerToZero()
             status2 = self.add_label()
-            while not self._printer.hw.isTowerOnZero():
+            while not self._printer.hw.isTowerOnPosition():
                 sleep(0.25)
                 status2.set(self._printer.hw.getTowerPosition())
         self._printer.hw.powerLed("normal")

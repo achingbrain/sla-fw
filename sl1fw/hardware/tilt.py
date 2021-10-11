@@ -70,7 +70,11 @@ class Tilt(Axis):
         """tilt up during the print"""
 
     @abstractmethod
-    def stir_resin(self):
+    def stir_resin(self) -> None:
+        """mix the resin"""
+
+    @abstractmethod
+    async def stir_resin_async(self) -> None:
         """mix the resin"""
 
     def home_calibrate_wait(self):
@@ -294,6 +298,10 @@ class TiltSL1(Tilt):
 
     @safe_call(False, MotionControllerException)
     def stir_resin(self) -> None:
+        asyncio.run(self.stir_resin_async())
+
+    @safe_call(False, MotionControllerException)
+    async def stir_resin_async(self) -> None:
         for _ in range(self._config.stirringMoves):
             self.profile_id = TiltProfile.homingFast
             # do not verify end positions
@@ -303,7 +311,7 @@ class TiltSL1(Tilt):
             self.move_down()
             while self.moving:
                 sleep(0.1)
-            self.sync_wait()
+            await self.sync_wait_async()
 
     @safe_call(False, MotionControllerException)
     def level(self) -> None:

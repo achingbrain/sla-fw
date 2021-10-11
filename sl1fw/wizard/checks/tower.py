@@ -26,7 +26,7 @@ class TowerHomeTest(DangerousCheck):
             for _ in range(3):
                 await sleep(0.1)
                 try:
-                    await self._hw.towerSyncWaitAsync()
+                    await self._hw.towerSyncWaitAsync(retries=0)
                 except (TowerHomeFailed, TowerEndstopNotReached) as e:
                     self._logger.exception(e)
                     await sleep(0.1)

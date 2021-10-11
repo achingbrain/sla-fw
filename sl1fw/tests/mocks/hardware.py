@@ -67,6 +67,7 @@ class Hardware:
 
         self.getFansRpm = Mock(return_value=[self.config.fan1Rpm, self.config.fan2Rpm, self.config.fan3Rpm,])
         self.isTowerMoving = Mock(return_value=False)
+        self.isTowerOnPositionAsync = AsyncMock(return_value=True)
         self.getTowerPositionMicroSteps = Mock(return_value=self.tower_end)
         self.get_tower_sensitivity = Mock(return_value=0)
         self.get_tower_sensitivity_async = AsyncMock(return_value=0)
@@ -83,6 +84,7 @@ class Hardware:
         self.tilt.sync_wait_async = AsyncMock()
         self.tilt.home_calibrate_wait_async = AsyncMock()
         self.tilt.layer_down_wait_async = AsyncMock()
+        self.tilt.stir_resin_async = AsyncMock()
 
         self.sl1s_booster = Mock()
         self.sl1s_booster.board_serial_no = "FAKE BOOSTER SERIAL"
