@@ -891,10 +891,7 @@ class Hardware:
                     self._towerToPosition,
                 )
                 profileBackup = self._lastTowerProfile
-                try:
-                    asyncio.run(self.towerSyncWaitAsync())
-                except (TowerHomeFailed, TowerEndstopNotReached) as e:
-                    self.logger.exception(e)
+                self.towerSyncWaitAsync()
                 self.setTowerProfile(profileBackup)
                 self.towerMoveAbsolute(self._towerToPosition)
                 while self.isTowerMoving():
