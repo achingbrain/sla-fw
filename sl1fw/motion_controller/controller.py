@@ -338,13 +338,20 @@ class MotionController:
 
     def _read_garbage(self) -> None:
         """
-        Reads initial garbage found in port. Assumes portlock is already taken
+        Reads initial garbage/comments found in port.
+
+        This assumes portlock is already taken
+
+        Random garbage/leftovers signal an error. Lines starting with comment "#" are considered debug output of the
+        motion controller code. Those produced by asynchronous commands (like tilt/tower home) end up here.
         """
-        # TODO: This is not correct, there should be no random garbage around
         while self.in_waiting():
             try:
                 line = self._read_port(garbage=True)
-                self.logger.warning("Garbage pending in MC port: %s", line)
+                if line.startswith(b"#"):
+                    self.logger.debug("Comment in MC port: %s", line)
+                else:
+                    self.logger.warning("Garbage pending in MC port: %s", line)
             except (serial.SerialException, UnicodeError) as e:
                 raise MotionControllerException("Failed garbage read", self.trace) from e
 
@@ -406,7 +413,7 @@ class MotionController:
                 raise MotionControllerException(f"MC command failed with error: {err}", self.trace)
 
             if line.startswith("#"):
-                self.logger.warning("Garbage response received: %s", line)
+                self.logger.debug("Received comment response: %s", line)
             else:
                 raise MotionControllerException("MC command resulted in non-response line", self.trace)
 
