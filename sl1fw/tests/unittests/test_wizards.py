@@ -5,7 +5,9 @@
 import asyncio
 import json
 import unittest
+from pathlib import Path
 from shutil import copyfile
+from tempfile import NamedTemporaryFile
 from typing import Optional
 from unittest.mock import Mock, AsyncMock, MagicMock, patch
 
@@ -296,15 +298,23 @@ class TestWizards(TestWizardsBase):
         self.time_date.SetNTP(not self.time_date.DEFAULT_NTP, False)
         self.time_date.SetTimezone("Europe/Prague", False)
         self.locale.SetLocale("en_US.utf-8", False)
+        self.touch_ui_config = Path(NamedTemporaryFile(delete=False).name)
+        self.backlight_state = Path(NamedTemporaryFile(delete=False).name)
 
     def tearDown(self) -> None:
         del self.hw
+        self.touch_ui_config.unlink(missing_ok=True)
+        self.backlight_state.unlink(missing_ok=True)
         super().tearDown()
 
     def _run_wizard(self, wizard: Wizard, limit_s: int = 5, expected_state=WizardState.DONE):
         with patch("sl1fw.wizard.checks.factory_reset.copyfile"), patch(
             "sl1fw.wizard.checks.factory_reset.subprocess"
-        ), patch("sl1fw.wizard.checks.factory_reset.ch_mode_owner"):
+        ), patch("sl1fw.wizard.checks.factory_reset.ch_mode_owner"), patch(
+            "sl1fw.wizard.checks.factory_reset.ResetTouchUI.BACKLIGHT_STATE", self.backlight_state
+        ), patch(
+            "sl1fw.wizard.checks.factory_reset.ResetTouchUI.TOUCH_UI_CONFIG", self.touch_ui_config
+        ):
             super()._run_wizard(wizard, limit_s, expected_state)
 
     def _run_self_test(self, expected_state=WizardState.DONE) -> dict:
@@ -512,8 +522,10 @@ class TestWizards(TestWizardsBase):
         self.assertTrue(self.time_date.is_default_ntp(), "NTP reset to default")
         print(self.locale.Locale)
         self.assertTrue(self.locale.is_default(), "Locale set to default")
+        self.assertFalse(self.touch_ui_config.exists(), "Touch UI config removed")
+        self.assertFalse(self.backlight_state.exists(), "Backlight state cleared")
 
-        # Local time should be actualy replaced by default,
+        # Local time should be actually replaced by default,
         # but the copyfile is mocked. This only checks successful delete.
         self.assertFalse(defines.local_time_path.exists(), "Timezone reset to default")
 

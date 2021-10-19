@@ -349,8 +349,25 @@ class DisableAccess(SyncCheck):
 
 
 class ResetTouchUI(ResetCheck):
+    TOUCH_UI_CONFIG = Path("/etc/touch-ui/touch-ui.conf")
+    BACKLIGHT_STATE = Path("/var/lib/systemd/backlight/platform-backlight:backlight:backlight")
+    SYSTEMD_INTERFACE = "org.freedesktop.systemd1"
+    SYSTEMD_JOB_INTERFACE = "org.freedesktop.systemd1.Job"
+    SYSTEMD_BACKLIGHT = "systemd-backlight@backlight:backlight.service"
+
     def __init__(self):
         super().__init__(WizardCheckType.RESET_TOUCH_UI)
 
     def reset_task_run(self, actions: UserActionBroker):
-        defines.touch_ui_config.unlink(missing_ok=True)
+        self.TOUCH_UI_CONFIG.unlink(missing_ok=True)
+        systemd = pydbus.SystemBus().get(self.SYSTEMD_INTERFACE)
+        job_path = systemd.StopUnit(self.SYSTEMD_BACKLIGHT, "replace")
+        # Wait for job object to stop existing
+        for _ in range(100):
+            try:
+                pydbus.SystemBus().get(self.SYSTEMD_JOB_INTERFACE, job_path)
+            except GLib.Error:
+                break
+            sleep(0.1)
+
+        self.BACKLIGHT_STATE.unlink(missing_ok=True)

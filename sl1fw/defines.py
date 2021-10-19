@@ -183,7 +183,6 @@ log_url_dev = "http://cucek.prusa/api/upload"
 emmc_serial_path = Path("/sys/block/mmcblk2/device/cid")
 log_upload_token = "84U83mUQ"
 local_time_path = Path("/etc/localtime")
-touch_ui_config = Path("/etc/touch-ui/touch-ui.conf")
 exposure_panel_of_node = Path("/sys/bus/i2c/devices/1-000f/of_node")
 
 nginx_http_digest = Path("/etc/nginx/http_digest_enabled")

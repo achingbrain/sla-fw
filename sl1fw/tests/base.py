@@ -29,6 +29,7 @@ from sl1fw.tests.mocks.dbus.hostname import Hostname
 from sl1fw.tests.mocks.dbus.locale import Locale
 from sl1fw.tests.mocks.dbus.networkmanager import NetworkManager
 from sl1fw.tests.mocks.dbus.rauc import Rauc
+from sl1fw.tests.mocks.dbus.systemd import Systemd
 from sl1fw.tests.mocks.dbus.timedate import TimeDate
 from sl1fw.tests.mocks.gettext import fake_gettext
 
@@ -136,6 +137,7 @@ class Sl1fwTestCase(DBusTestCase):
         self.hostname = Hostname()
         self.locale = Locale()
         self.time_date = TimeDate()
+        self.systemd = Systemd()
         self.dbus_mocks = [
             bus.publish(
                 NetworkManager.__INTERFACE__,
@@ -150,6 +152,7 @@ class Sl1fwTestCase(DBusTestCase):
             bus.publish(Rauc.__OBJECT__, ("/", Rauc())),
             bus.publish(Locale.__INTERFACE__, self.locale),
             bus.publish(TimeDate.__INTERFACE__, self.time_date),
+            bus.publish(Systemd.__INTERFACE__, self.systemd)
         ]
 
     def tearDown(self) -> None:
