@@ -10,7 +10,7 @@ class BBox:
         if not coords:
             coords = 1000000, 1000000, 0, 0
         elif len(coords) != 4 or coords[2] <= coords[0] or coords[3] <= coords[1] or coords[0] < 0 or coords[1] < 0:
-            self._logger.error("coords %s is not a rectangle", str(coords))
+            self._logger.error("coords %s are not a rectangle", str(coords))
             coords = 1000000, 1000000, 0, 0
         self.x1 = coords[0]
         self.y1 = coords[1]

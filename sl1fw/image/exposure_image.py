@@ -8,7 +8,7 @@ import logging
 from logging.handlers import QueueListener
 from multiprocessing import Process, shared_memory, Queue
 import os
-from time import time
+from time import monotonic
 from typing import Optional
 
 import numpy
@@ -176,27 +176,28 @@ class ExposureImage:
 
     def blank_screen(self):
         self._logger.debug("blank started")
-        start_time = time()
+        start_time = monotonic()
         self._buffer.paste(0, (0, 0, self._hw.exposure_screen.parameters.width_px, self._hw.exposure_screen.parameters.height_px))
         self._hw.exposure_screen.show(self._buffer)
-        self._logger.debug("blank done in %f secs", time() - start_time)
+        self._logger.debug("blank done in %f secs", monotonic() - start_time)
 
     def fill_area(self, area_index, color=0):
         if self._calibration and area_index < len(self._calibration.areas):
             self._logger.debug("fill area %d", area_index)
+            start_time = monotonic()
             self._buffer.paste(color, self._calibration.areas[area_index].coords)
             self._hw.exposure_screen.show(self._buffer)
-            self._logger.debug("fill area end")
+            self._logger.debug("fill area done in %f secs", monotonic() - start_time)
 
     def show_system_image(self, filename: str):
         self.show_image_with_path(os.path.join(defines.dataPath, self._hw.printer_model.name, filename))
 
     def show_image_with_path(self, filename_with_path: str):
         self._logger.debug("show of %s started", filename_with_path)
-        start_time = time()
+        start_time = monotonic()
         self._buffer = self._open_image(filename_with_path)
         self._hw.exposure_screen.show(self._buffer)
-        self._logger.debug("show of %s done in %f secs", filename_with_path, time() - start_time)
+        self._logger.debug("show of %s done in %f secs", filename_with_path, monotonic() - start_time)
 
     def preload_image(self, layer_index: int, second=False):
         if second:
@@ -211,9 +212,9 @@ class ExposureImage:
         try:
             layer = self._project.layers[layer_index]
             self._logger.debug("read image %s from project started", layer.image)
-            start_time = time()
+            start_time = monotonic()
             input_image = self._project.read_image(layer.image)
-            self._logger.debug("read of '%s' done in %f secs", layer.image, time() - start_time)
+            self._logger.debug("read of '%s' done in %f secs", layer.image, monotonic() - start_time)
         except Exception as e:
             self._logger.exception("read image exception:")
             raise PreloadFailed() from e
@@ -232,26 +233,26 @@ class ExposureImage:
 
     def blit_image(self, second=False):
         self._logger.debug("blit started")
-        start_time = time()
+        start_time = monotonic()
         source_shm = self._shm[SHMIDX.OUTPUT_IMAGE2].buf if second else self._shm[SHMIDX.OUTPUT_IMAGE1].buf
         self._buffer = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, source_shm, "raw", "L", 0, 1).copy()
         self._hw.exposure_screen.show(self._buffer)
-        self._logger.debug("get result and blit done in %f secs", time() - start_time)
+        self._logger.debug("get result and blit done in %f secs", monotonic() - start_time)
 
     def screenshot_rename(self, second=False):
-        start_time = time()
+        start_time = monotonic()
         try:
             os.rename(defines.livePreviewImage + "-tmp%s.png" % ("2" if second else "1"), defines.livePreviewImage)
         except Exception:
             self._logger.exception("Screenshot rename exception:")
-        self._logger.debug("rename done in %f secs", time() - start_time)
+        self._logger.debug("rename done in %f secs", monotonic() - start_time)
 
     def inverse(self):
         self._logger.debug("inverse started")
-        start_time = time()
+        start_time = monotonic()
         self._buffer = ImageOps.invert(self._buffer)
         self._hw.exposure_screen.show(self._buffer)
-        self._logger.debug("inverse done in %f secs", time() - start_time)
+        self._logger.debug("inverse done in %f secs", monotonic() - start_time)
 
     def save_display_usage(self):
         usage = numpy.ndarray(

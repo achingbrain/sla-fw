@@ -10,7 +10,7 @@ from signal import signal, SIGTERM
 from enum import unique, IntEnum, IntFlag
 from multiprocessing import Process, shared_memory, Event, Queue
 from queue import Empty
-from time import time
+from time import monotonic
 from typing import Optional, List, Any
 import numpy
 from PIL import Image
@@ -137,7 +137,7 @@ class Preloader(Process):
         return dst
 
     def _preload(self, calibration_type: int) -> int:
-        start_time_first = time()
+        start_time_first = monotonic()
         if self._project_serial != self._sl[SLIDX.PROJECT_SERIAL]:
             self._project_serial = self._sl[SLIDX.PROJECT_SERIAL]
             self._calibration = None
@@ -157,19 +157,19 @@ class Preloader(Process):
         output_image = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.OUTPUT_IMAGE1].buf, "raw", "L", 0, 1)
         output_image.readonly = False
         if self._calibration and self._calibration.areas:
-            start_time = time()
+            start_time = monotonic()
             bbox = BBox(self._read_SL(self._shm[SHMIDX.PROJECT_BBOX]))
             crop = input_image.crop(bbox.coords)
             output_image.paste(self._black_image)
             for area in self._calibration.areas:
                 area.paste(output_image, crop, calibration_type)
-            self._logger.debug("multiplying done in %f secs", time() - start_time)
+            self._logger.debug("multiplying done in %f ms", 1e3 * (monotonic() - start_time))
         else:
             output_image.paste(input_image)
         if self._sl[SLIDX.PROJECT_FLAGS] & ProjectFlags.USE_MASK:
             mask = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
             output_image.paste(self._black_image, mask=mask)
-        start_time = time()
+        start_time = monotonic()
         pixels = numpy.array(output_image)
         usage: numpy.ndarray = numpy.ndarray(
                 self._params.display_usage_size_px,
@@ -179,8 +179,8 @@ class Preloader(Process):
         # 1500 layers on 0.1 mm layer height <0:255> -> <0.0:1.0>
         usage += numpy.reshape(pixels, self._display_usage_shape).mean(axis=3).mean(axis=1) / 382500
         white_pixels = get_white_pixels(output_image)
-        self._logger.debug("pixels manipulations done in %f secs, white pixels: %d",
-                time() - start_time, white_pixels)
+        self._logger.debug("pixels manipulations done in %f ms, white pixels: %d",
+                1e3 * (monotonic() - start_time), white_pixels)
         if self._sl[SLIDX.PROJECT_FLAGS] & ProjectFlags.PER_PARTES and white_pixels > self._sl[SLIDX.WHITE_PIXELS_THRESHOLD]:
             output_image_second = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.OUTPUT_IMAGE2].buf, "raw", "L", 0, 1)
             output_image_second.readonly = False
@@ -191,16 +191,16 @@ class Preloader(Process):
             output_image_second.paste(self._black_image, mask=mask)
             self._screenshot(output_image_second, "2")
         self._screenshot(output_image, "1")
-        self._logger.debug("whole preload done in %f secs", time() - start_time_first)
+        self._logger.debug("whole preload done in %f ms", 1e3 * (monotonic() - start_time_first))
         return white_pixels
 
     def _screenshot(self, image: Image, number: str):
         try:
-            start_time = time()
+            start_time = monotonic()
             preview = image.resize(self._params.live_preview_size_px, Image.BICUBIC)
-            self._logger.debug("resize done in %f secs", time() - start_time)
-            start_time = time()
+            self._logger.debug("resize done in %f ms", 1e3 * (monotonic() - start_time))
+            start_time = monotonic()
             preview.save(defines.livePreviewImage + "-tmp%s.png" % number)
-            self._logger.debug("screenshot done in %f secs", time() - start_time)
+            self._logger.debug("screenshot done in %f ms", 1e3 * (monotonic() - start_time))
         except Exception:
             self._logger.exception("Screenshot exception:")
