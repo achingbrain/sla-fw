@@ -1,5 +1,5 @@
 # This file is part of the SL1 firmware
-# Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
+# Copyright (C) 2020-2021 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -90,6 +90,39 @@ class AdminIntValue(AdminValue):
     @property
     def step(self) -> int:
         return self._step
+
+
+class AdminFixedValue(AdminValue):
+    # pylint: disable = too-many-arguments
+    def __init__(self, name: str, getter: Callable, setter: Callable, step: int, fractions: int):
+        super().__init__(name, getter, setter)
+        self._step = step
+        self._fractions = fractions
+
+    @classmethod
+    def from_value(cls, name: str, obj: object, prop: str, step: int, fractions: int) -> AdminFixedValue:
+        def g():
+            return getattr(obj, prop)
+
+        def s(value):
+            setattr(obj, prop, value)
+
+        return AdminFixedValue(name, g, s, step, fractions)
+
+    @classmethod
+    def from_property(cls, obj: object, prop: property, step: int, fractions: int) -> AdminFixedValue:
+        prop_name = cls._get_prop_name(obj, prop)
+        value = AdminFixedValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), step, fractions)
+        cls._map_prop(obj, prop, value, prop_name)
+        return value
+
+    @property
+    def step(self) -> int:
+        return self._step
+
+    @property
+    def fractions(self) -> int:
+        return self._fractions
 
 
 class AdminFloatValue(AdminValue):

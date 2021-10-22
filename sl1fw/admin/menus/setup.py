@@ -1,5 +1,5 @@
 # This file is part of the SL1 firmware
-# Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
+# Copyright (C) 2020-2021 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -7,7 +7,7 @@ from abc import abstractmethod
 
 from sl1fw import defines
 from sl1fw.admin.control import AdminControl
-from sl1fw.admin.items import AdminIntValue, AdminBoolValue, AdminAction, AdminFloatValue
+from sl1fw.admin.items import AdminIntValue, AdminBoolValue, AdminAction, AdminFloatValue, AdminFixedValue
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.dialogs import Error, Info
 from sl1fw.errors.errors import ConfigException

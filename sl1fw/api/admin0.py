@@ -1,5 +1,5 @@
 # This file is part of the SL1 firmware
-# Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
+# Copyright (C) 2020-2021 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -10,7 +10,8 @@ import pydbus
 from pydbus.generic import signal
 from pydbus.registration import ObjectRegistration
 
-from sl1fw.admin.items import AdminAction, AdminIntValue, AdminFloatValue, AdminBoolValue, AdminTextValue, AdminItem
+from sl1fw.admin.items import AdminAction, AdminIntValue, AdminFloatValue, AdminBoolValue, AdminTextValue, AdminItem, \
+    AdminFixedValue
 from sl1fw.admin.manager import AdminManager
 from sl1fw.admin.menu import AdminMenu
 from sl1fw.admin.menus.root import RootMenu
@@ -75,6 +76,48 @@ class Admin0IntValueItem:
     @property
     def step(self) -> int:
         return self._item.step
+
+    def _value_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"value": self.value}, [])
+
+
+@dbus_api
+class Admin0FixedValueItem:
+    """
+    SL1 administrative interface value item
+    """
+
+    __INTERFACE__ = "cz.prusa3d.sl1.admin0.value.fixed"
+    PropertiesChanged = signal()
+
+    def __init__(self, item: AdminFixedValue):
+        self._item = item
+        item.changed.connect(self._value_changed)
+
+    @auto_dbus
+    @property
+    def name(self) -> str:
+        return self._item.name
+
+    @auto_dbus
+    @property
+    def value(self) -> int:
+        return self._item.get_value()
+
+    @auto_dbus
+    @value.setter
+    def value(self, value: int):
+        self._item.set_value(value)
+
+    @auto_dbus
+    @property
+    def step(self) -> int:
+        return self._item.step
+
+    @auto_dbus
+    @property
+    def fractions(self) -> int:
+        return self._item.fractions
 
     def _value_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"value": self.value}, [])
@@ -291,6 +334,14 @@ class Admin0:
                 self._item_names.add((Admin0IntValueItem.__INTERFACE__, dbus_name))
                 self._children.append(
                     (Admin0IntValueItem.__INTERFACE__, DBusObjectPath(f"/cz/prusa3d/sl1/admin0/Items/{dbus_name}"))
+                )
+            elif isinstance(item, AdminFixedValue):
+                self._item_registrations.add(
+                    bus.register_object(f"/cz/prusa3d/sl1/admin0/Items/{dbus_name}", Admin0FixedValueItem(item), None)
+                )
+                self._item_names.add((Admin0FixedValueItem.__INTERFACE__, dbus_name))
+                self._children.append(
+                    (Admin0FixedValueItem.__INTERFACE__, DBusObjectPath(f"/cz/prusa3d/sl1/admin0/Items/{dbus_name}"))
                 )
             elif isinstance(item, AdminFloatValue):
                 self._item_registrations.add(
