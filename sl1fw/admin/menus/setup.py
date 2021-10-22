@@ -109,10 +109,10 @@ class HardwareSetupMenu(SetupMenu):
 class ExposureSetupMenu(SetupMenu):
     def configure_items(self):
         def set_layer_tower_hop(value):
-            self._temp.layerTowerHop = int(self._printer.hw.config.nm_to_tower_microsteps(value * 1000))
+            self._temp.layerTowerHop = self._printer.hw.config.nm_to_tower_microsteps(value)
 
         def get_layer_tower_hop():
-            return self._printer.hw.config.tower_microsteps_to_nm(self._temp.layerTowerHop) / 1000
+            return self._printer.hw.config.tower_microsteps_to_nm(self._temp.layerTowerHop)
 
         def set_delay_before_expo(value):
             self._temp.delayBeforeExposure = int(round(value * 10, ndigits=1))
@@ -127,38 +127,37 @@ class ExposureSetupMenu(SetupMenu):
             return self._temp.delayafterexposure / 10
 
         def set_up_and_down_z_offset(value):
-            self._temp.upAndDownZoffset = int(self._printer.hw.config.nm_to_tower_microsteps(value * 1000))
+            self._temp.upAndDownZoffset = self._printer.hw.config.nm_to_tower_microsteps(value)
 
         def get_up_and_down_z_offset():
-            return self._printer.hw.config.tower_microsteps_to_nm(self._temp.upAndDownZoffset) / 1000
-
-        def set_up_and_down_expo_comp(value):
-            self._temp.upAndDownExpoComp = int(round(value / 100))
-
-        def get_up_and_down_expo_comp():
-            return self._temp.upAndDownExpoComp * 100
-
-        def set_force_slow_tilt_height(value):
-            self._temp.forceSlowTiltHeight = int(round(value * 1000, ndigits=1))
-
-        def get_force_slow_tilt_height():
-            tmp = self._temp.forceSlowTiltHeight / 1000
-            return tmp
+            return self._printer.hw.config.tower_microsteps_to_nm(self._temp.upAndDownZoffset)
 
         self.add_items(
             (
                 AdminBoolValue.from_value("Blink exposure", self._temp, "blinkExposure"),
                 AdminBoolValue.from_value("Per-partes exposure", self._temp, "perPartes"),
                 AdminBoolValue.from_value("Use tilt", self._temp, "tilt"),
-                AdminIntValue("Force slow tilt height [μm]", get_force_slow_tilt_height, set_force_slow_tilt_height, 10),
+                AdminFixedValue.from_value("Force slow tilt height [mm]", self._temp, "forceSlowTiltHeight", 10000, 6),
                 AdminIntValue.from_value("Limit for fast tilt [%]", self._temp, "limit4fast", 1),
                 AdminBoolValue.from_value("Up&Down UV on", self._temp, "upAndDownUvOn"),
-                AdminIntValue("Layer tower hop [μm]", get_layer_tower_hop, set_layer_tower_hop, 100),
+                AdminFixedValue(
+                    "Layer tower hop [mm]",
+                    get_layer_tower_hop,
+                    set_layer_tower_hop,
+                    self._printer.hw.config.tower_microsteps_to_nm(1),
+                    6,
+                ),
                 AdminFloatValue("Delay before expos. [s]", get_delay_before_expo, set_delay_before_expo, 0.1),
                 AdminFloatValue("Delay after expos. [s]", get_delay_after_expo, set_delay_after_expo, 0.1),
                 AdminIntValue.from_value("Up&down wait [s]", self._temp, "upanddownwait", 1),
                 AdminIntValue.from_value("Up&down every n-th l.", self._temp, "upanddowneverylayer", 1),
-                AdminIntValue("Up&down Z offset [μm]", get_up_and_down_z_offset, set_up_and_down_z_offset, 10),
-                AdminIntValue("Up&down expo comp [ms]", get_up_and_down_expo_comp, set_up_and_down_expo_comp, 100),
+                AdminFixedValue(
+                    "Up&down Z offset [mm]",
+                    get_up_and_down_z_offset,
+                    set_up_and_down_z_offset,
+                    self._printer.hw.config.tower_microsteps_to_nm(1),
+                    6,
+                ),
+                AdminFixedValue.from_value("Up&down expo comp [s]", self._temp, "upAndDownExpoComp", 1, 1),
             )
         )
