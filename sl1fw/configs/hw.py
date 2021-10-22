@@ -83,7 +83,7 @@ class HwConfig(Config):
 
         :return: Width in nanometers
         """
-        return (self.screwMm * 1000 * 1000) / (200 * 16)
+        return (self.screwMm * 1000 * 1000) // (200 * 16)
 
     # tilt related
     tilt = BoolValue(True, doc="Use tilt to tear off the layers.")
