@@ -191,13 +191,20 @@ class FansCheck(ExposureCheckRunner):
 
 
 class ResinCheck(ExposureCheckRunner):
+    RETRIES = 3
+
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.RESIN, *args, **kwargs)
 
-    def run(self):
-        if not self.expo.hw.config.resinSensor:
-            raise ExposureCheckDisabled()
+    def measure_resin_retries(self, retries: int) -> int:
+        try:
+            return self.do_measure_resin()
+        except (ResinMeasureFailed, ResinTooLow, ResinTooHigh):
+            if retries:
+                return self.measure_resin_retries(retries - 1)
+            raise
 
+    def do_measure_resin(self) -> int:
         volume_ml = self.expo.hw.get_resin_volume()
         self.expo.setResinVolume(volume_ml)
 
@@ -216,6 +223,13 @@ class ResinCheck(ExposureCheckRunner):
             while not self.expo.hw.isTowerOnTop():
                 sleep(0.25)
             raise
+        return volume_ml
+
+    def run(self):
+        if not self.expo.hw.config.resinSensor:
+            raise ExposureCheckDisabled()
+
+        volume_ml = self.measure_resin_retries(self.RETRIES)
 
         required_volume_ml = self.expo.project.used_material + defines.resinMinVolume
         self.logger.debug(
