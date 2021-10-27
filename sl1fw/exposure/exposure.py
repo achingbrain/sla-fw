@@ -107,7 +107,7 @@ class TempsCheck(ExposureCheckRunner):
         failed = [i for i in (self.expo.hw.led_temp_idx, self.expo.hw.ambient_temp_idx) if temperatures[i] < 0]
         if failed:
             failed_names = [self.expo.hw.getSensorName(i) for i in failed]
-            failed_names = ', '.join(failed_names)
+            failed_names = ", ".join(failed_names)
             raise TempSensorFailed(failed_names)
 
         if temperatures[1] < defines.minAmbientTemp:
@@ -280,7 +280,11 @@ class StirringCheck(ExposureCheckRunner):
 
 class Exposure:
     def __init__(
-        self, job_id: int, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig,
+        self,
+        job_id: int,
+        hw: Hardware,
+        exposure_image: ExposureImage,
+        runtime_config: RuntimeConfig,
     ):
         self.change = Signal()
         self.logger = logging.getLogger(__name__)
@@ -315,7 +319,7 @@ class Exposure:
         self.estimated_total_time_ms = -1
         self.expoThread = Thread(target=self.run)
         self.last_warn = None
-        self._slow_move: bool = True    # slow tilt up before first layer
+        self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
 
     def read_project(self, project_file: str):
@@ -599,15 +603,18 @@ class Exposure:
         self.exposure_image.preload_image(self.actual_layer + 1)
 
         temperatures = self.hw.getMcTemperatures()
-        self.logger.info("UV temperature [C]: %.1f  Ambient temperature [C]: %.1f",
-                temperatures[self.hw.led_temp_idx], temperatures[self.hw.ambient_temp_idx])
+        self.logger.info(
+            "UV temperature [C]: %.1f  Ambient temperature [C]: %.1f",
+            temperatures[self.hw.led_temp_idx],
+            temperatures[self.hw.ambient_temp_idx],
+        )
 
         if self.hw.config.delayAfterExposure:
             self.logger.info("delayAfterExposure [s]: %f", self.hw.config.delayAfterExposure / 10.0)
             sleep(self.hw.config.delayAfterExposure / 10.0)
 
         if self.hw.config.tilt:
-            self._slow_move = white_pixels > self.hw.white_pixels_threshold     # current layer
+            self._slow_move = white_pixels > self.hw.white_pixels_threshold  # current layer
             # Force slow tilt for forceSlowTiltHeight if current layer area > limit4fast
             if self._slow_move:
                 self._force_slow_remain_nm = self.hw.config.forceSlowTiltHeight
@@ -615,8 +622,10 @@ class Exposure:
                 self._force_slow_remain_nm -= layer_height_nm
                 self._slow_move = True
             # Force slow tilt on first layers or if user selected safe print profile
-            if self.actual_layer < self.project.first_slow_layers \
-                    or self.project.exposure_user_profile == ExposureUserProfile.SAFE:
+            if (
+                self.actual_layer < self.project.first_slow_layers
+                or self.project.exposure_user_profile == ExposureUserProfile.SAFE
+            ):
                 self._slow_move = True
 
             if self._slow_move:
@@ -934,7 +943,7 @@ class Exposure:
 
             if self.hw.config.trigger:
                 self.logger.error("Trigger not implemented")
-                #sleep(self.hw.config.trigger / 10.0)
+                # sleep(self.hw.config.trigger / 10.0)
 
             self.actual_layer += 1
 
