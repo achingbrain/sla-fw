@@ -360,14 +360,16 @@ class ResetTouchUI(ResetCheck):
 
     def reset_task_run(self, actions: UserActionBroker):
         self.TOUCH_UI_CONFIG.unlink(missing_ok=True)
-        systemd = pydbus.SystemBus().get(self.SYSTEMD_INTERFACE)
-        job_path = systemd.StopUnit(self.SYSTEMD_BACKLIGHT, "replace")
-        # Wait for job object to stop existing
+
+        # Resetting the backlight state is a bit tricky
+        # The backlight service will store the state on stop (usually system shutdown).
+        # This removes the state file, stops the service and waits for the file to appear again.
+        # Once the file appears it is removed again. This way we can be sure the service will
+        # not recreate the file once we remove it.
+        self.BACKLIGHT_STATE.unlink(missing_ok=True)
+        pydbus.SystemBus().get(self.SYSTEMD_INTERFACE).StopUnit(self.SYSTEMD_BACKLIGHT, "replace")
         for _ in range(100):
-            try:
-                pydbus.SystemBus().get(self.SYSTEMD_JOB_INTERFACE, job_path)
-            except GLib.Error:
+            if self.BACKLIGHT_STATE.exists():
                 break
             sleep(0.1)
-
         self.BACKLIGHT_STATE.unlink(missing_ok=True)
