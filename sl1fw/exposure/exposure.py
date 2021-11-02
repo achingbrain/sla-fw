@@ -415,8 +415,6 @@ class Exposure:
         self.exposure_image.blank_screen()
         self.hw.uvLedPwm = self.hw.config.uvPwmPrint
         self.hw.uvDisplayCounter(True)
-        if not self.hw.config.blinkExposure:
-            self.hw.uvLed(True)
 
     @property
     def in_progress(self):
@@ -587,15 +585,12 @@ class Exposure:
         i = 0
         for time_ms in times_ms:
             uv_on_remain_ms = time_ms
-            if self.hw.config.blinkExposure:
-                uv_is_on = True
-                self.logger.debug("uv on")
-                self.hw.uvLed(True, time_ms)
-                while uv_is_on:
-                    sleep(uv_on_remain_ms / 1100.0)
-                    uv_is_on, uv_on_remain_ms = self.hw.getUvLedState()
-            else:
-                sleep(time_ms / 1e3)
+            uv_is_on = True
+            self.logger.debug("uv on")
+            self.hw.uvLed(True, time_ms)
+            while uv_is_on:
+                sleep(uv_on_remain_ms / 1100.0)
+                uv_is_on, uv_on_remain_ms = self.hw.getUvLedState()
             self.exposure_image.fill_area(i)
             i += 1
 
@@ -641,7 +636,7 @@ class Exposure:
 
     def upAndDown(self):
         self.hw.powerLed("warn")
-        if self.hw.config.blinkExposure and self.hw.config.upAndDownUvOn:
+        if self.hw.config.upAndDownUvOn:
             self.hw.uvLed(True)
 
         self.state = ExposureState.GOING_UP
@@ -859,14 +854,8 @@ class Exposure:
                 break
 
             if command == "pause":
-                if not self.hw.config.blinkExposure:
-                    self.hw.uvLed(False)
-
                 if self.doWait(False) == "exit":
                     break
-
-                if not self.hw.config.blinkExposure:
-                    self.hw.uvLed(True)
 
             if self._wait_uv_cool_down() == "exit":
                 break

@@ -134,7 +134,6 @@ class ExposureSetupMenu(SetupMenu):
 
         self.add_items(
             (
-                AdminBoolValue.from_value("Blink exposure", self._temp, "blinkExposure"),
                 AdminBoolValue.from_value("Per-partes exposure", self._temp, "perPartes"),
                 AdminBoolValue.from_value("Use tilt", self._temp, "tilt"),
                 AdminFixedValue.from_value("Force slow tilt height [mm]", self._temp, "forceSlowTiltHeight", 10000, 6),

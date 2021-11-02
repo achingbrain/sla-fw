@@ -23,7 +23,6 @@ class TestIntegrationConfig0(Sl1FwIntegrationTestCaseBase):
         self.assertEqual(5, self.config0.stirringDelay)
         self.assertTrue(self.config0.autoOff)
         self.assertEqual(4928, self.config0.tiltHeight)
-        self.assertTrue(self.config0.blinkExposure)
         self.assertEqual(0, self.config0.tiltSensitivity)
         self.assertEqual(40, self.config0.calibTowerOffset)
         self.assertEqual(8.0, self.config0.tiltSlowTime)

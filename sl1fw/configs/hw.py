@@ -123,7 +123,6 @@ class HwConfig(Config):
     )
 
     # Exposure setup
-    blinkExposure = BoolValue(True, doc="If True the UV LED will be powered off when not used during print.")
     perPartes = BoolValue(False, doc="Expose areas larger than layerFill in two steps.")
     upAndDownUvOn = BoolValue(False)
 
