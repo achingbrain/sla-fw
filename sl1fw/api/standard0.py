@@ -23,6 +23,7 @@ import distro
 from pydbus import SystemBus
 from pydbus.generic import signal
 
+from sl1fw import defines
 from sl1fw.functions.system import get_hostname
 from sl1fw.states.printer import PrinterState, Printer0State
 from sl1fw.states.exposure import ExposureState
@@ -80,9 +81,9 @@ class Standard0State(Enum):
     READY = 0
     SELECTED = 1
     PRINTING = 2
-    ATTENTION = 3
+    POUR_IN_RESIN = 3
     BUSY = 5
-    REFILL = 6
+    FEED_ME = 6
     ERROR = 9
 
 
@@ -142,9 +143,10 @@ class Standard0:
         self.PropertiesChanged(self.__INTERFACE__, {"net_authorization": self.net_authorization}, [])
 
     def _state_update(self, *args):  # pylint: disable=unused-argument
+
         state = self._state
         if self._last_state != state:
-            self.PropertiesChanged(self.__INTERFACE__, {"state": state.name}, [])
+            self.PropertiesChanged(self.__INTERFACE__, {"state": state.value}, [])
             self._last_state = state
 
     def _exposure_changed(self, *args):
@@ -209,11 +211,11 @@ class Standard0:
             result = Standard0State.READY
         elif state == Printer0State.PRINTING:
             if substate == Exposure0State.POUR_IN_RESIN:
-                result = Standard0State.ATTENTION
+                result = Standard0State.POUR_IN_RESIN
             elif substate == Exposure0State.PRINTING:
                 result = Standard0State.PRINTING
             elif substate == Exposure0State.FEED_ME:
-                result = Standard0State.REFILL
+                result = Standard0State.FEED_ME
             elif substate == Exposure0State.CONFIRM:
                 result = Standard0State.SELECTED
             elif substate == Exposure0State.STUCK:
@@ -257,11 +259,11 @@ class Standard0:
 
     @auto_dbus
     @property
-    def state(self) -> str:
+    def state(self) -> int:
         """
         Return a generic state
         """
-        return self._state.name
+        return self._state.value
 
     @auto_dbus
     @property
@@ -378,7 +380,7 @@ class Standard0:
                 "cover_closed": self._printer.hw.isCoverClosed(),
                 "temperatures": self._printer.hw.getTemperaturesDict(),
                 "fans": self._printer.hw.getFansRpmDict(),
-                "state": self._state.name,
+                "state": self._state.value,
             }
         )
 
@@ -470,11 +472,6 @@ class Standard0:
         :returns: Print task object
         """
         try:
-            # check if printer is Idle
-            printer_state = self._printer_state
-            if printer_state != Printer0State.IDLE:
-                raise NotAvailableInState(printer_state.value, [Printer0State.IDLE])
-
             # close a project already opened
             last_exposure = self._printer.action_manager.exposure
             if last_exposure:
@@ -503,7 +500,7 @@ class Standard0:
 
     @auto_dbus
     @last_error
-    @state_checked([Exposure0State.CONFIRM])
+    @state_checked(Exposure0State.CONFIRM)
     def cmd_confirm(self) -> None:
         """
         Confirm print project
@@ -516,20 +513,8 @@ class Standard0:
 
     @auto_dbus
     @last_error
-    @state_checked([Exposure0State.POUR_IN_RESIN])
-    def cmd_resin_in(self) -> None:
-        """
-        Confirm resin poured in
-
-        sl1: Confirm resin poured in
-
-        :return: None
-        """
-        self._current_expo.confirm_resin_in()
-
-    @auto_dbus
-    @last_error
-    @state_checked([Exposure0State.PRINTING, Exposure0State.CHECKS, Exposure0State.CONFIRM, Exposure0State.COVER_OPEN])
+    @state_checked([Exposure0State.PRINTING, Exposure0State.CONFIRM, Exposure0State.CHECKS, Exposure0State.CONFIRM,
+                    Exposure0State.COVER_OPEN, Exposure0State.POUR_IN_RESIN])
     def cmd_cancel(self) -> None:
         """
         Cancel print
@@ -551,14 +536,11 @@ class Standard0:
     @auto_dbus
     @last_error
     @state_checked(Exposure0State.PRINTING)
-    def cmd_pause(self, motivation: str) -> None:
+    def cmd_pause(self) -> None:
         """
-        pause printer, it must informe the motivation
+        Pauses current job. Currently used only for manual feedme
         """
-        if motivation == "feed_me":
-            self._current_expo.doFeedMe()
-        else:
-            raise TypeError(f"Unknoun motivation: {motivation}")
+        self._current_expo.doFeedMe()
 
     @auto_dbus
     @last_error
@@ -567,28 +549,22 @@ class Standard0:
         """
         Continue printing after a pause
 
-        Standard0 cannot distinguish initial resin fill and refill during print. This fires appropriate action at
-        the current state.
+        Standard0 cannot distinguish between initial resin fill and feedme. This fires appropriate action at the
+        current state.
         """
         if self._current_expo.state == ExposureState.POUR_IN_RESIN:
             self._current_expo.confirm_resin_in()
         else:
-            self._current_expo.doContinue()
+            self._current_expo.doBack()
 
     @auto_dbus
     @last_error
-    @state_checked([Exposure0State.FEED_ME, Exposure0State.POUR_IN_RESIN])
-    def cmd_back(self) -> None:
+    @state_checked(Exposure0State.FEED_ME)
+    def cmd_resin_refill(self) -> None:
         """
-        Useful to back manual, e.g.feedme
-
-        Standard0 cannot distinguish initial resin fill and refill during print. This fires appropriate action at
-        the current state.
+        Pauses current job to manual resin refill
         """
-        if self._current_expo.state == ExposureState.POUR_IN_RESIN:
-            self._current_expo.cancel()
-        else:
-            self._current_expo.doBack()
+        self._current_expo.setResinVolume(defines.resinMaxVolume)
 
     ## NETWORK ##
 

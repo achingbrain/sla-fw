@@ -11,6 +11,7 @@ from time import sleep
 
 from pydbus import SystemBus, Variant
 
+from sl1fw import defines
 from sl1fw.tests.integration.base import Sl1FwIntegrationTestCaseBase
 from sl1fw.api.standard0 import Standard0, Standard0State
 
@@ -39,7 +40,7 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
         super().tearDown()
 
     def test_read_printer_values(self):
-        self.assertEqual(Standard0State.SELECTED.name, self.standard0.state)
+        self.assertEqual(Standard0State.SELECTED.value, self.standard0.state)
         self.assertKeysIn(['temp_led', 'temp_amb', 'cpu_temp'], self.standard0.hw_temperatures)
         self.assertDictEqual({'uv_led': 0, 'blower': 0, 'rear': 0}, self.standard0.hw_fans)
         self.assertKeysIn(['cover_closed', 'temperatures', 'fans', 'state'], self.standard0.hw_telemetry)
@@ -65,43 +66,52 @@ class TestIntegrationStandard0(Sl1FwIntegrationTestCaseBase):
         self.standard0.project_set_properties({ "exposure_time_ms": Variant("i", 1042) })
         self.assertDictEqual({ "exposure_time_ms": 1042 }, self.standard0.project_get_properties(["exposure_time_ms"]))
 
-    def test_cmds_print_pause_cont(self):
+    def test_resin_refilled(self):
         self.standard0.cmd_confirm()
         self._wait_for_state(Standard0State.BUSY, 60) # exposure.HOMING_AXIS
-        self._wait_for_state(Standard0State.ATTENTION, 10) # exposure.POUR_IN_RESIN
-        self.standard0.cmd_resin_in()
+        self._wait_for_state(Standard0State.POUR_IN_RESIN, 10) # exposure.POUR_IN_RESIN
+        self.standard0.cmd_continue()
         self._wait_for_state(Standard0State.BUSY, 60) # exposure.CHECKS
         self._wait_for_state(Standard0State.PRINTING, 60)
-        self.standard0.cmd_pause("feed_me")
-        self._wait_for_state(Standard0State.REFILL, 30)
+        self.standard0.cmd_pause()
+        self._wait_for_state(Standard0State.BUSY, 60)  # finishing layer exposition
+        self._wait_for_state(Standard0State.FEED_ME, 30)
+        self.standard0.cmd_resin_refill()
         self.standard0.cmd_continue()
+        self._wait_for_state(Standard0State.BUSY, 60)  # resin stirring
         self._wait_for_state(Standard0State.PRINTING, 30)
+        self.assertEqual(self.standard0.job["remaining_material"], defines.resinMaxVolume)
         self.standard0.cmd_cancel()
+        self._wait_for_state(Standard0State.BUSY, 60)  # waiting for layer to finish and homing
         self._wait_for_state(Standard0State.READY, 30)
 
-    def test_cmds_print_pause_back(self):
+    def test_resin_not_refilled(self):
         self.standard0.cmd_confirm()
         self._wait_for_state(Standard0State.BUSY, 60)  # exposure.HOMING_AXIS
-        self._wait_for_state(Standard0State.ATTENTION, 10)  # exposure.POUR_IN_RESIN
-        self.standard0.cmd_resin_in()
+        self._wait_for_state(Standard0State.POUR_IN_RESIN, 10)  # exposure.POUR_IN_RESIN
+        self.standard0.cmd_continue()
         self._wait_for_state(Standard0State.BUSY, 60)  # exposure.CHECKS
         self._wait_for_state(Standard0State.PRINTING, 60)
-        self.standard0.cmd_pause("feed_me")
-        self._wait_for_state(Standard0State.REFILL, 30)
-        self.standard0.cmd_back()
+        resin_volume = self.standard0.job["remaining_material"]
+        self.standard0.cmd_pause()
+        self._wait_for_state(Standard0State.BUSY, 60)  # finishing layer exposition
+        self._wait_for_state(Standard0State.FEED_ME, 30)
+        self.standard0.cmd_continue()
+        self._wait_for_state(Standard0State.BUSY, 60)  # resin stirring
         self._wait_for_state(Standard0State.PRINTING, 30)
+        self.assertEqual(self.standard0.job["remaining_material"], resin_volume)
         # wait for end
         self._wait_for_state(Standard0State.READY, 60)
 
     def _wait_for_state(self, state: Standard0State, timeout_s: int):
         printer_state = None
         for _ in range(timeout_s):
-            printer_state = self.standard0.state
-            if printer_state == state.name:
+            printer_state = Standard0State(self.standard0.state)
+            if printer_state == state:
                 break
             print(f"Waiting for state: {state}, current state: {printer_state}")
             sleep(1)
-        self.assertEqual(state.name, printer_state)
+        self.assertEqual(state, printer_state)
         print(f"Finished waiting for state: {state}")
 
     def assertKeysIn(self, keys:list, container:dict):
