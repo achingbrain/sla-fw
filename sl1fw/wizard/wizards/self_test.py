@@ -5,8 +5,8 @@
 from typing import Iterable
 
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.libHardware import Hardware
 from sl1fw.image.exposure_image import ExposureImage
+from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker
@@ -20,8 +20,7 @@ from sl1fw.wizard.checks.temperature import TemperatureTest
 from sl1fw.wizard.checks.tilt import TiltRangeTest, TiltHomeTest
 from sl1fw.wizard.checks.tower import TowerHomeTest, TowerRangeTest
 from sl1fw.wizard.checks.uvfans import UVFansTest
-from sl1fw.wizard.checks.uvleds_voltages import UVLEDsTest_Voltages
-from sl1fw.wizard.checks.uvleds_booster import UVLEDsTest_Booster
+from sl1fw.wizard.checks.uvleds import UVLEDsTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
@@ -31,10 +30,6 @@ from sl1fw.wizard.wizards.generic import ShowResultsGroup
 class SelfTestPart1CheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         self._package = package
-        if package.hw.printer_model.options.has_booster:
-            uvled_test = UVLEDsTest_Booster(package.hw)
-        else:
-            uvled_test = UVLEDsTest_Voltages(package.hw)    # type: ignore
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
@@ -45,7 +40,7 @@ class SelfTestPart1CheckGroup(CheckGroup):
                 TiltHomeTest(package.hw),
                 TiltRangeTest(package.hw),
                 TowerHomeTest(package.hw, package.config_writer),
-                uvled_test,
+                UVLEDsTest.get_test(package.hw),
                 UVFansTest(package.hw),
                 DisplayTest(package.hw, package.exposure_image, package.runtime_config),
                 CalibrationInfo(package.hw.config),

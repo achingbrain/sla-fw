@@ -5,14 +5,13 @@
 import weakref
 
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.libHardware import Hardware
 from sl1fw.image.exposure_image import ExposureImage
+from sl1fw.libHardware import Hardware
 from sl1fw.states.wizard import WizardId
 from sl1fw.states.wizard import WizardState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.display import DisplayTest
-from sl1fw.wizard.checks.uvleds_voltages import UVLEDsTest_Voltages
-from sl1fw.wizard.checks.uvleds_booster import UVLEDsTest_Booster
+from sl1fw.wizard.checks.uvleds import UVLEDsTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
@@ -21,13 +20,9 @@ from sl1fw.wizard.wizards.generic import ShowResultsGroup
 
 class DisplayTestCheckGroup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
-        if package.hw.printer_model.options.has_booster:
-            uvled_test = UVLEDsTest_Booster(package.hw)
-        else:
-            uvled_test = UVLEDsTest_Voltages(package.hw)    # type: ignore
         super().__init__(
             Configuration(TankSetup.REMOVED, None),
-            [uvled_test, DisplayTest(package.hw, package.exposure_image, package.runtime_config)],
+            [UVLEDsTest.get_test(package.hw), DisplayTest(package.hw, package.exposure_image, package.runtime_config)],
         )
 
     async def setup(self, actions: UserActionBroker):

@@ -23,6 +23,7 @@ from sl1fw.wizard.checks.uv_calibration import (
     UVCalibrateApply,
     UVRemoveCalibrator,
 )
+from sl1fw.wizard.checks.uvleds import UVLEDsTest
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, TankSetup, PlatformSetup
 from sl1fw.wizard.wizard import Wizard, WizardDataPackage
@@ -35,7 +36,11 @@ class UVCalibrationPrepare(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
-            [DisplayTest(package.hw, package.exposure_image, package.runtime_config), SystemInfoTest(package.hw)],
+            [
+                UVLEDsTest.get_test(package.hw),
+                DisplayTest(package.hw, package.exposure_image, package.runtime_config),
+                SystemInfoTest(package.hw),
+            ],
         )
         self._package = package
 
