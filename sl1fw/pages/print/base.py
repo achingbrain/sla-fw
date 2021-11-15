@@ -45,7 +45,6 @@ class PagePrintBase(Page):
             ExposureState.STUCK: "printstuck",
             ExposureState.STUCK_RECOVERY: "printstuckrecovery",
             ExposureState.TILTING_DOWN: "tiltingdown",
-            ExposureState.RESIN_WARNING: "resinconfirm",
             ExposureState.CHECK_WARNING: "checkconfirm",
             ExposureState.DONE: "home",
             ExposureState.CANCELED: "home",

@@ -24,7 +24,6 @@ class ExposureState(Enum):
     STUCK = 16
     STUCK_RECOVERY = 17
     CHECK_WARNING = 22
-    RESIN_WARNING = 23
     TILTING_DOWN = 24
     CANCELED = 26
     DONE = 27
