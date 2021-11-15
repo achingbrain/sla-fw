@@ -16,6 +16,8 @@ from sl1fw.tests.mocks.exposure_screen import ExposureScreen
 
 class Hardware:
     # pylint: disable = too-many-instance-attributes
+    # pylint: disable = no-self-use
+    # pylint: disable = too-many-statements
     def __init__(self, config: HwConfig = None):
         if config is None:
             config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)    # TODO better!

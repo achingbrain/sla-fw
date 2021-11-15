@@ -15,7 +15,7 @@ from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.states.wizard import WizardId
 from sl1fw.states.printer import PrinterState
 from sl1fw.tests.base import Sl1fwTestCase
-from sl1fw.tests.mocks.display import TestDisplay
+from sl1fw.tests.mocks.display import DisplayClient
 from sl1fw.libPrinter import Printer
 
 
@@ -29,7 +29,7 @@ class TestStartup(Sl1fwTestCase):
         defines.sl1_model_file.unlink()
         defines.sl1s_model_file.touch()   # Set SL1S as the current model
 
-        self.printer = Printer(debug_display=TestDisplay())  # Pass test display just to avoid using real one
+        self.printer = Printer(debug_display=DisplayClient())  # Pass test display just to avoid using real one
         self.printer_thread = Thread(target=self.printer.run)
 
         # Init state

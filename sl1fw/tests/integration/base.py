@@ -23,7 +23,7 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines, test_runtime
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libPrinter import Printer
-from sl1fw.tests.mocks.display import TestDisplay
+from sl1fw.tests.mocks.display import DisplayClient
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.wizard import WizardState
 
@@ -32,7 +32,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     # pylint: disable = too-many-instance-attributes
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.display = TestDisplay()
+        self.display = DisplayClient()
         self.printer: Optional[Printer] = None
         self.thread: Optional[Thread] = None
         self.temp_dir_project = None

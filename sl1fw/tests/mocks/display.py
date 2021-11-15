@@ -1,16 +1,20 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from queue import Queue
 from threading import Lock
 from time import monotonic
 
+from PySignal import Signal
+
 from sl1fw.libVirtualDisplay import VirtualDisplay
+from sl1fw.states.display import DisplayState
 
 
-class TestDisplay(VirtualDisplay):
+class DisplayClient(VirtualDisplay):
     def __init__(self):
         super().__init__()
         self.page = None
@@ -45,17 +49,12 @@ class TestDisplay(VirtualDisplay):
         print("ShowItems: %s" % items)
 
     def add_event(self, page, event_id, pressed, data):
-        self.events.put({
-            'page': page,
-            'id': event_id,
-            'pressed': pressed,
-            'data': data
-        })
+        self.events.put({"page": page, "id": event_id, "pressed": pressed, "data": data})
 
-    def read_page(self, timeout_sec = None):
+    def read_page(self, timeout_sec=None):
         return self.page_queue.get(timeout=timeout_sec)
 
-    def read_items(self, timeout_sec = None):
+    def read_items(self, timeout_sec=None):
         start = monotonic()
         while True:
             with self.items_lock:
@@ -63,3 +62,10 @@ class TestDisplay(VirtualDisplay):
                     return self.items
             if timeout_sec and monotonic() - start > timeout_sec:
                 raise TimeoutError()
+
+
+class DisplayServer:
+    # pylint: disable = too-few-public-methods
+    def __init__(self):
+        self.state = DisplayState.IDLE
+        self.state_changed = Signal()

@@ -10,7 +10,7 @@ from unittest.mock import Mock
 from sl1fw.states.printer import PrinterState
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libPrinter import Printer
-from sl1fw.tests.mocks.display import TestDisplay
+from sl1fw.tests.mocks.display import DisplayClient
 
 
 class TestPrinter(Sl1fwTestCase):
@@ -21,7 +21,7 @@ class TestPrinter(Sl1fwTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.printer = Printer(debug_display=TestDisplay())  # Pass test display just to avoid using real one
+        self.printer = Printer(debug_display=DisplayClient())  # Pass test display just to avoid using real one
         self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
         self.printer_thread = Thread(target=self.printer.run)
         self.printer_thread.start()
