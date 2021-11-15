@@ -7,7 +7,7 @@ from typing import List, Dict
 
 from pydbus.generic import signal
 
-from sl1fw.api.decorators import dbus_api, auto_dbus, DBusObjectPath
+from sl1fw.api.decorators import dbus_api, auto_dbus, DBusObjectPath, auto_dbus_signal
 
 
 @dbus_api
@@ -15,6 +15,10 @@ class NetworkManager:
     __INTERFACE__ = "org.freedesktop.NetworkManager"
 
     PropertiesChanged = signal()
+
+    @auto_dbus_signal
+    def StateChanged(self):
+        pass
 
     def __init__(self):
         self._connections = ['ethernet', 'wifi0', 'wifi1']

@@ -92,7 +92,7 @@ class Examples(Thread):
             raise exception
 
     def _examples(self):
-        if not self._network.ip:
+        if not self._network.online:
             raise NotConnected()
 
         statvfs = os.statvfs(defines.internalProjectPath)

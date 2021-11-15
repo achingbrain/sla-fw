@@ -9,7 +9,7 @@
 import logging
 import os
 from time import monotonic
-from typing import Optional, Any, Dict, Callable, Mapping
+from typing import Optional, Any, Dict, Callable
 from urllib.request import urlopen, Request
 
 import distro
@@ -42,10 +42,10 @@ class Network:
 
         :return: None
         """
-        self._nm.PropertiesChanged.connect(self._state_changed)
+        self._nm.StateChanged.connect(self._state_changed)
         for device_path in self._nm.GetAllDevices():
             device = self._bus.get(self.NETWORKMANAGER_SERVICE, device_path)
-            device.PropertiesChanged.connect(self._state_changed)
+            device.StateChanged.connect(self._device_state_changed)
 
     def force_refresh_state(self):
         self.net_change.emit(self.online)
@@ -54,15 +54,13 @@ class Network:
     def online(self) -> bool:
         return self._nm.state() == self.NM_STATE_CONNECTED_GLOBAL
 
-    def _state_changed(self, changed: Mapping[str, Any]) -> None:
-        events = {"Connectivity", "Metered", "ActiveConnections", "WirelessEnabled"}
-        if not events & set(changed.keys()):
-            return
-
+    def _state_changed(self, state) -> None:
         self.force_refresh_state()
-        self.logger.debug(
-            "NetworkManager state changed: %s, devices: %s", changed, self.devices
-        )
+        self.logger.debug("NetworkManager state changed: %s", state)
+
+    def _device_state_changed(self, new_state, old_state, reason):
+        self.force_refresh_state()
+        self.logger.debug("NetworkManager device changed: %s -> %s (%s)", old_state, new_state, reason)
 
     @property
     def ip(self) -> Optional[str]:
@@ -85,9 +83,7 @@ class Network:
 
         return {
             dev.Interface: self._get_ipv4(dev.Ip4Config)
-            for dev in [
-                self._get_nm_obj(dev_path) for dev_path in self._nm.GetAllDevices()
-            ]
+            for dev in [self._get_nm_obj(dev_path) for dev_path in self._nm.GetAllDevices()]
             if dev.Interface != "lo" and dev.Ip4Config != "/"
         }
 
@@ -185,10 +181,7 @@ class Network:
                     else:
                         progress = 0
 
-                    if (
-                        monotonic() - last_report_s > self.REPORT_INTERVAL_S
-                        or progress == 1
-                    ):
+                    if monotonic() - last_report_s > self.REPORT_INTERVAL_S or progress == 1:
                         last_report_s = monotonic()
                         if page:
                             page.showItems(line2="%d%%" % int(100 * progress))

@@ -22,6 +22,7 @@ class Network:
         self.ip = "1.2.3.4"
         self.devices = {"eth0": "1.2.3.4"}
         self.net_change = Signal()
+        self.online = True
 
     def register_events(self):
         pass
