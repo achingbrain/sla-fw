@@ -81,6 +81,9 @@ class Hardware:
         self.tilt.home_calibrate_wait_async = AsyncMock()
         self.tilt.layer_down_wait_async = AsyncMock()
 
+        self.sl1s_booster = Mock()
+        self.sl1s_booster.board_serial_no = "FAKE BOOSTER SERIAL"
+
         self.cover_state_changed = Signal()
 
     def exit(self):
@@ -98,6 +101,12 @@ class Hardware:
     @staticmethod
     def get_uv_check_pwms():
         return [40, 122, 243, 250]  # board rev 0.6c+
+ 
+    def getPowerswitchState(self):
+        return False
+
+    def calcPercVolume(self, _):
+        return 42
 
     def __reduce__(self):
         return (Mock, ())
