@@ -25,7 +25,7 @@ class Hardware:
         self.cpuSerialNo = "CZPX0819X009XC00151"
         self.mcSerialNo = "CZPX0619X678XC12345"
 
-        self.tower_position_nm = defines.defaultTowerHeight * 1000 * 1000 * 1000
+        self.tower_position_nm = defines.defaultTowerHeight * 1000 * 1000
 
         self.config = config
         self.fans = {
