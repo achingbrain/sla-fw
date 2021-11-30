@@ -89,7 +89,7 @@ def log_hw(hw: Hardware) -> Mapping[str, Any]:
         "UV LED Line 2 Voltage": voltages[1],
         "UV LED Line 3 Voltage": voltages[2],
         "Power Supply Voltage": voltages[3],
-        "Free Space in eMMC": psutil.disk_usage("/")._asdict(),
+        "Free Space in eMMC": subprocess.check_output("df -h", shell=True).decode("ascii").split("\n")[:-1],
         "RAM statistics": psutil.virtual_memory()._asdict(),
         "CPU usage per core": psutil.cpu_percent(percpu=True),
         "CPU times": psutil.cpu_times()._asdict(),
