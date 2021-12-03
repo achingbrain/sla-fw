@@ -131,7 +131,7 @@ class HwConfig(Config):
         0, minimum=0, maximum=20, doc="Duration of electronic trigger durint the layer change, currently discarded. [tenths of a second]"
     )
     layerTowerHop = IntValue(
-        0, minimum=0, maximum=8000, doc="How much to rise the tower during layer change. [microsteps]"
+        0, minimum=0, maximum=80000, doc="How much to rise the tower during layer change. [microsteps]"
     )
     delayBeforeExposure = IntValue(
         0, minimum=0, maximum=300, doc="Delay between tear off and exposure. [tenths of a second]"
