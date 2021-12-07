@@ -922,7 +922,7 @@ class Hardware:
         self.setTowerPosition(self._towerEnd)
 
     def towerToMax(self):
-        self.towerMoveAbsolute(self._towerMax)
+        self.towerMoveAbsolute(self.tower_max)
 
     def isTowerOnMax(self):
         stopped = not self.isTowerMoving()
@@ -932,7 +932,7 @@ class Hardware:
         return stopped
 
     def towerToMin(self):
-        self.towerMoveAbsolute(self._towerMin)
+        self.towerMoveAbsolute(self.tower_min)
 
     def isTowerOnMin(self):
         stopped = not self.isTowerMoving()
