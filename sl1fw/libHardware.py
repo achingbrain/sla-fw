@@ -139,10 +139,11 @@ class Hardware:
             3: N_("<reserved2>"),
         }
 
-        self._towerMin = -self.config.calcMicroSteps(155)
-        self._towerAboveSurface = -self.config.calcMicroSteps(145)
-        self._towerMax = self.config.calcMicroSteps(310)
-        self._towerEnd = self.config.calcMicroSteps(150)
+        # TODO: Use @cached_property for these (needs Python 3.9)
+        self._towerMin = -self.config.calcMicroSteps(self.config.max_tower_height_mm + 5)
+        self._towerAboveSurface = -self.config.calcMicroSteps(self.config.max_tower_height_mm - 5)
+        self._towerMax = self.config.calcMicroSteps(2 * self.config.max_tower_height_mm)
+        self._towerEnd = self.config.calcMicroSteps(self.config.max_tower_height_mm)
         self._towerCalibPos = self.config.calcMicroSteps(1)
         self._towerResinStartPos = self.config.calcMicroSteps(36)
         self._towerResinEndPos = self.config.calcMicroSteps(1)

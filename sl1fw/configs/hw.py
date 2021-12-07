@@ -212,6 +212,7 @@ class HwConfig(Config):
     towerHeight = IntValue(
         lambda self: self.calcMicroSteps(defines.defaultTowerHeight), doc="Maximum tower height. [microsteps]"
     )
+    max_tower_height_mm = IntValue(150, key="maxTowerHeight_mm", doc="Maximum tower height in mm")
     showWizard = BoolValue(True, doc="Display wizard at startup if True.")
     showUnboxing = BoolValue(True, doc="Display unboxing wizard at startup if True.")
     showI18nSelect = BoolValue(True, doc="Display language select dialog at startup if True.")
