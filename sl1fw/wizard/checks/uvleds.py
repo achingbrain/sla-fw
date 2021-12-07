@@ -12,7 +12,6 @@ from typing import List, Dict, Any, Optional
 from sl1fw import test_runtime
 from sl1fw.errors.errors import UVLEDsDisconnected, UVLEDsRowFailed, BoosterError
 from sl1fw.errors.errors import UVLEDsVoltagesDifferTooMuch
-from sl1fw.functions.checks import get_uv_check_pwms
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
@@ -112,7 +111,7 @@ class UVLEDsTestVoltages(UVLEDsTest):
         await self.wait_cover_closed()
         self._hw.uvLedPwm = 0
         self._hw.uvLed(True)
-        uv_pwms = get_uv_check_pwms(self._hw)
+        uv_pwms = self._hw.get_uv_check_pwms()
 
         diff = 0.55  # [mV] voltages in all rows cannot differ more than this limit
         row1 = list()

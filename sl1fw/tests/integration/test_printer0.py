@@ -26,7 +26,6 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
 
     def test_initial_state(self):
         self.assertEqual(Printer0State.IDLE.value, self.printer0.state)
-        self.assertEqual("home", self.printer0.current_page)
 
     def test_homing(self):
         self.printer0.tower_home()

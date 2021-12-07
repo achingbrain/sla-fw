@@ -57,7 +57,7 @@ class TowerRangeTest(DangerousCheck):
 
             if self._hw.getTowerPositionMicroSteps() == 0:
                 # stop 10 mm before end-stop to change sensitive profile
-                self._hw.towerMoveAbsolute(self._hw.tower_end - 8000)
+                self._hw.towerMoveAbsolute(self._hw.tower_end - self._hw.config.calcMicroSteps(10))
                 while self._hw.isTowerMoving():
                     await sleep(0.25)
 

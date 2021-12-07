@@ -8,7 +8,6 @@ from typing import Dict, Any, Optional, List
 
 from sl1fw import defines, test_runtime
 from sl1fw.errors.errors import FanRPMOutOfTestRange, UVLEDHeatsinkFailed
-from sl1fw.functions.checks import get_uv_check_pwms
 from sl1fw.libHardware import Hardware
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.base import WizardCheckType, DangerousCheck
@@ -41,7 +40,7 @@ class UVFansTest(DangerousCheck):
         fans_wait_time = defines.fanWizardStabilizeTime + defines.fanStartStopTime
 
         # set UV LED to max PWM
-        self._hw.uvLedPwm = get_uv_check_pwms(self._hw)[3]
+        self._hw.uvLedPwm = self._hw.get_uv_check_pwms()[3]
 
         uv_temp = self._hw.getUvLedTemperature()
         fan_error = self._hw.getFansError()

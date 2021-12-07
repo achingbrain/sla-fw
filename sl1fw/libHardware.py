@@ -1192,3 +1192,9 @@ class Hardware:
         self.tilt.move_up()
         while not self.tilt.on_target_position:
             await asyncio.sleep(0.25)
+
+    def get_uv_check_pwms(self):
+        if self.is500khz:
+            return [40, 122, 243, 250]  # board rev 0.6c+
+
+        return [31, 94, 188, 219]  # board rev. < 0.6c

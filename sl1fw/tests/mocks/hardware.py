@@ -95,6 +95,10 @@ class Hardware:
     def clearDisplayStatistics(self):
         self._display_stat_s = 0
 
+    @staticmethod
+    def get_uv_check_pwms():
+        return [40, 122, 243, 250]  # board rev 0.6c+
+
     def __reduce__(self):
         return (Mock, ())
 
