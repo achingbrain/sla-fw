@@ -294,7 +294,7 @@ class Exposure:
         self.exposure_image = exposure_image
         self.resin_count = 0.0
         self.resin_volume = None
-        self.expoThread: Optional[Thread] = None
+        self._thread: Optional[Thread] = None
         self.tower_position_nm = 0
         self.actual_layer = 0
         self.slow_layers_done = 0
@@ -317,7 +317,7 @@ class Exposure:
         self.warning_result: Optional[Exception] = None
         self.pending_warning = Lock()
         self.estimated_total_time_ms = -1
-        self.expoThread = Thread(target=self.run)
+        self._thread = Thread(target=self.run)
         self.last_warn = None
         self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
@@ -350,7 +350,7 @@ class Exposure:
         self.change.emit("project", None)
 
     def confirm_print_start(self):
-        self.expoThread.start()
+        self._thread.start()
         self.commands.put("pour_resin_in")
 
     def confirm_resin_in(self):
@@ -419,10 +419,10 @@ class Exposure:
 
     @property
     def in_progress(self):
-        if not self.expoThread:
+        if not self._thread:
             return False
 
-        return self.expoThread.is_alive()
+        return self._thread.is_alive()
 
     @property
     def done(self):
@@ -437,8 +437,8 @@ class Exposure:
         return completed_layers / self.project.total_layers
 
     def waitDone(self):
-        if self.expoThread:
-            self.expoThread.join()
+        if self._thread:
+            self._thread.join()
 
     def doUpAndDown(self):
         self.state = ExposureState.PENDING_ACTION
