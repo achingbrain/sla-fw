@@ -39,13 +39,23 @@ from sl1fw.errors.errors import (
     BootedInAlternativeSlot,
     NoFactoryUvCalib,
     ConfigException,
-    MotionControllerWrongFw, MotionControllerNotResponding, MotionControllerWrongResponse,
-    UVPWMComputationError, OldExpoPanel
+    MotionControllerWrongFw,
+    MotionControllerNotResponding,
+    MotionControllerWrongResponse,
+    UVPWMComputationError,
+    OldExpoPanel,
 )
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
-from sl1fw.functions.system import get_octoprint_auth, get_configured_printer_model, set_configured_printer_model, \
-    set_factory_uvpwm, compute_uvpwm, FactoryMountedRW, reset_hostname
+from sl1fw.functions.system import (
+    get_octoprint_auth,
+    get_configured_printer_model,
+    set_configured_printer_model,
+    set_factory_uvpwm,
+    compute_uvpwm,
+    FactoryMountedRW,
+    reset_hostname,
+)
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libAsync import AdminCheck
@@ -80,7 +90,6 @@ class Printer:
         self.http_digest_changed = Signal()
         self.api_key_changed = Signal()
         self.data_privacy_changed = Signal()
-        self.firstRun = True
         self.action_manager = ActionManager()
         self.action_manager.exposure_change.connect(self._exposure_changed)
         self.action_manager.wizard_changed.connect(self._wizard_changed)
@@ -97,7 +106,9 @@ class Printer:
 
         self.logger.info("Initializing hwconfig")
         hw_config = HwConfig(
-            file_path=Path(defines.hwConfigPath), factory_file_path=Path(defines.hwConfigPathFactory), is_master=True,
+            file_path=Path(defines.hwConfigPath),
+            factory_file_path=Path(defines.hwConfigPathFactory),
+            is_master=True,
         )
         hw_config.add_onchange_handler(self._config_changed)
 
@@ -117,7 +128,6 @@ class Printer:
         self.logger.info(str(hw_config))
 
         self.logger.info("Initializing libHardware")
-
         self.hw = Hardware(hw_config)
 
         # needed before init of other components (display etc)
@@ -149,7 +159,12 @@ class Printer:
 
         self.logger.info("Initializing libDisplay")
         self.display = Display(
-            devices, self.hw, self.inet, self.exposure_image, self.runtime_config, self.action_manager,
+            devices,
+            self.hw,
+            self.inet,
+            self.exposure_image,
+            self.runtime_config,
+            self.action_manager,
         )
         try:
             TomlConfigStats(defines.statsData, self.hw).update_reboot_counter()
@@ -204,74 +219,78 @@ class Printer:
         if self.hw.checkFailedBoot():
             self.exception = BootedInAlternativeSlot()
 
-        if self.firstRun:
-            # This is supposed to run on new printers detect_sla_model file is provided by a service configured to run
-            # the on firstboot. The firmware does not know whether the printer has been manufactured as SL1 or SL1S it
-            # has to detect its initial HW configuration on first start.
-            # M1 is detected as SL1S and switched in admin
-            if defines.detect_sla_model_file.exists():
-                self.hw.config.vatRevision = self.hw.printer_model.options.vat_revision
-                if self.hw.printer_model == PrinterModel.SL1S:
-                    set_factory_uvpwm(self.hw.printer_model.default_uvpwm())
-                    incompatible_extension = PrinterModel.SL1
-                else:
-                    incompatible_extension = PrinterModel.SL1S
+        # This is supposed to run on new printers detect_sla_model file is provided by a service configured to run
+        # on the firstboot. The firmware does not know whether the printer has been manufactured as SL1 or SL1S it
+        # has to detect its initial HW configuration on first start.
+        # M1 is detected as SL1S and switched in admin
+        if defines.detect_sla_model_file.exists():
+            self.hw.config.vatRevision = self.hw.printer_model.options.vat_revision
+            if self.hw.printer_model == PrinterModel.SL1S:
+                set_factory_uvpwm(self.hw.printer_model.default_uvpwm())
+                incompatible_extension = PrinterModel.SL1
+            else:
+                incompatible_extension = PrinterModel.SL1S
 
-                # Force remove incompatible projects on firstboot
-                files_to_remove = get_all_supported_files(incompatible_extension, Path(defines.internalProjectPath))
-                for file in files_to_remove:
-                    self.logger.info("Removing incompatible example project: %s", file)
-                    os.remove(file)
-                set_configured_printer_model(self.hw.printer_model)
-                defines.detect_sla_model_file.unlink()
+            # Force remove incompatible projects on firstboot
+            files_to_remove = get_all_supported_files(incompatible_extension, Path(defines.internalProjectPath))
+            for file in files_to_remove:
+                self.logger.info("Removing incompatible example project: %s", file)
+                os.remove(file)
+            set_configured_printer_model(self.hw.printer_model)
+            defines.detect_sla_model_file.unlink()
+            # set model specific default hostname
+            reset_hostname(self.hw.printer_model)
+        # Also omit running upgrade/downgrade wizard if printer is SL1 and model was not set before.
+        if self.hw.printer_model == PrinterModel.SL1 and not defines.printer_model.exists():
+            set_configured_printer_model(self.hw.printer_model)
 
-                # set model specific default hostname
-                reset_hostname(self.hw.printer_model)
-            # Also omit running upgrade/downgrade wizard if printer is SL1 and model was not set before.
-            if self.hw.printer_model == PrinterModel.SL1 and not defines.printer_model.exists():
-                set_configured_printer_model(self.hw.printer_model)
+        config_model = get_configured_printer_model()
+        if self.hw.printer_model != config_model:
+            self.logger.info('Printer model change detected from "%s" to "%s"', config_model, self.hw.printer_model)
+            if self.hw.printer_model == PrinterModel.SL1S:
+                self.action_manager.start_wizard(
+                    SL1SUpgradeWizard(self.hw, self.exposure_image, self.runtime_config)
+                ).join()
+            elif self.hw.printer_model == PrinterModel.SL1:
+                self.action_manager.start_wizard(
+                    SL1DowngradeWizard(self.hw, self.exposure_image, self.runtime_config)
+                ).join()
 
-            config_model = get_configured_printer_model()
-            if self.hw.printer_model != config_model:
-                self.logger.info('Printer model change detected from "%s" to "%s"', config_model, self.hw.printer_model)
-                if self.hw.printer_model == PrinterModel.SL1S:
-                    self.action_manager.start_wizard(
-                        SL1SUpgradeWizard(self.hw, self.exposure_image, self.runtime_config)
-                    ).join()
-                elif self.hw.printer_model == PrinterModel.SL1:
-                    self.action_manager.start_wizard(
-                        SL1DowngradeWizard(self.hw, self.exposure_image, self.runtime_config)
-                    ).join()
+        if not self.hw.config.is_factory_read() and not self.hw.isKit and self.hw.printer_model == PrinterModel.SL1:
+            self.exception = NoFactoryUvCalib()
 
-            if (
-                    not self.hw.config.is_factory_read()
-                    and not self.hw.isKit
-                    and self.hw.printer_model == PrinterModel.SL1
-            ):
-                self.exception = NoFactoryUvCalib()
+        if self.hw.printer_model.options.has_UV_calculation:
+            self._detect_new_expo_panel()
+            try:
+                pwm = compute_uvpwm(self.hw)
+                self.hw.config.uvPwm = pwm
+                self.logger.info("Computed UV PWM: %s", pwm)
+            except UVPWMComputationError:
+                self.logger.exception("Failed to compute UV PWM")
+                self.hw.config.uvPwm = self.hw.printer_model.default_uvpwm()
 
-            if self.hw.printer_model.options.has_UV_calculation:
-                self._detect_new_expo_panel()
-                try:
-                    pwm = compute_uvpwm(self.hw)
-                    self.hw.config.uvPwm = pwm
-                    self.logger.info("Computed UV PWM: %s", pwm)
-                except UVPWMComputationError:
-                    self.logger.exception("Failed to compute UV PWM")
-                    self.hw.config.uvPwm = self.hw.printer_model.default_uvpwm()
-
-            self._make_ready_to_print()
-            save_all_remain_wizard_history()
+        self._make_ready_to_print()
+        save_all_remain_wizard_history()
 
         self.action_manager.load_exposure(self.hw)
-        self.display.doMenu("home")
-
-        self.firstRun = False
 
     def run(self):
-        # TODO: wrap everything within this method in try-catch
-        # TODO: Drop self.firstRun it does seem to make no more sense
-        self.logger.info("SLA firmware starting, PID: %d", os.getpid())
+        try:
+            self.run_init()
+            self.printer_run()
+            if self.action_manager.exposure and self.action_manager.exposure.in_progress:
+                self.action_manager.exposure.waitDone()
+        except Exception as exception:
+            self.exception = exception
+            self.set_state(PrinterState.EXCEPTION)
+            if test_runtime.hard_exceptions:
+                raise exception
+            self.logger.exception("Printer run")
+        finally:
+            self.exited.set()
+
+    def run_init(self):
+        self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
         self.logger.info("System version: %s", distro.version())
         self.start_time = monotonic()
 
@@ -279,20 +298,12 @@ class Printer:
         try:
             self.hw.connect()
         except (MotionControllerWrongFw, MotionControllerNotResponding, MotionControllerWrongResponse):
+            self.logger.info("HW connect failed with a recoverable error, flashing MC firmware")
             self.set_state(PrinterState.UPDATING_MC)
             self.hw.flashMC()
-            try:
-                self.hw.connect()
-                self.hw.eraseEeprom()
-                self.set_state(PrinterState.UPDATING_MC, active=False)
-            except Exception as e:
-                self.exception = e
-                self.set_state(PrinterState.EXCEPTION)
-                raise e
-        except Exception as e:
-            self.exception = e
-            self.set_state(PrinterState.EXCEPTION)
-            raise e
+            self.hw.connect()
+            self.hw.eraseEeprom()
+            self.set_state(PrinterState.UPDATING_MC, active=False)
 
         self.logger.info("Starting libHardware")
         self.hw.start()
@@ -301,73 +312,51 @@ class Printer:
         self.logger.info("Starting libDisplay")
         self.display.start()
 
-        # Since display is initialized we can catch exceptions and report problems to display
-        try:
-            self.logger.info("Registering event handlers")
-            self.inet.register_events()
-            self._dbus_subscriptions.append(
-                self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(self._locale_changed)
+        self.logger.info("Registering event handlers")
+        self.inet.register_events()
+        self._dbus_subscriptions.append(
+            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(self._locale_changed)
+        )
+        self._dbus_subscriptions.append(
+            self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
+        )
+        self.logger.info("connecting cz.prusa3d.sl1.filemanager0 DBus signals")
+        self._dbus_subscriptions.append(
+            self.system_bus.subscribe(
+                object="/cz/prusa3d/sl1/filemanager0", signal="MediaInserted", signal_fired=self._media_inserted
             )
-            self._dbus_subscriptions.append(
-                self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
+        )
+        self._dbus_subscriptions.append(
+            self.system_bus.subscribe(
+                object="/cz/prusa3d/sl1/filemanager0", signal="MediaEjected", signal_fired=self._media_ejected
             )
-            self.logger.info("connecting cz.prusa3d.sl1.filemanager0 DBus signals")
-            self._dbus_subscriptions.append(
-                self.system_bus.subscribe(
-                    object="/cz/prusa3d/sl1/filemanager0", signal="MediaInserted", signal_fired=self._media_inserted
-                )
-            )
-            self._dbus_subscriptions.append(
-                self.system_bus.subscribe(
-                    object="/cz/prusa3d/sl1/filemanager0", signal="MediaEjected", signal_fired=self._media_ejected
-                )
-            )
+        )
 
-            if not self.runtime_config.factory_mode:
-                self.logger.info("Starting admin checker")
-                self.admin_check = AdminCheck(self.runtime_config, self.hw, self.inet)
+        if not self.runtime_config.factory_mode:
+            self.logger.info("Starting admin checker")
+            self.admin_check = AdminCheck(self.runtime_config, self.hw, self.inet)
 
-            self.logger.info("Loading slicer profiles")
-            self.slicer_profile = SlicerProfile(defines.slicerProfilesFile)
+        self.logger.info("Loading slicer profiles")
+        self.slicer_profile = SlicerProfile(defines.slicerProfilesFile)
+        if not self.slicer_profile.load():
+            self.logger.debug("Trying bundled slicer profiles")
+            self.slicer_profile = SlicerProfile(defines.slicerProfilesFallback)
             if not self.slicer_profile.load():
-                self.logger.debug("Trying bundled slicer profiles")
-                self.slicer_profile = SlicerProfile(defines.slicerProfilesFallback)
-                if not self.slicer_profile.load():
-                    self.logger.error("No suitable slicer profiles found")
+                self.logger.error("No suitable slicer profiles found")
 
-            if self.slicer_profile.vendor:
-                self.logger.info("Starting slicer profiles updater")
-                self.slicer_profile_updater = SlicerProfileUpdater(
-                    self.inet, self.slicer_profile, self.hw.printer_model.name
-                )
+        if self.slicer_profile.vendor:
+            self.logger.info("Starting slicer profiles updater")
+            self.slicer_profile_updater = SlicerProfileUpdater(
+                self.inet, self.slicer_profile, self.hw.printer_model.name
+            )
 
-            # Force update network state (in case we missed network going online)
-            # All network state handler should be already registered
-            self.inet.force_refresh_state()
+        # Force update network state (in case we missed network going online)
+        # All network state handler should be already registered
+        self.inet.force_refresh_state()
 
-            self.logger.info("SLA firmware started in %.03f seconds", monotonic() - self.start_time)
-        except Exception as exception:
-            self.exception = exception
-            self.set_state(PrinterState.EXCEPTION)
-            if test_runtime.hard_exceptions:
-                raise exception
-            self.logger.exception("Printer run() init failed")
-
-        try:
-            self.exited.clear()
-            self.set_state(PrinterState.RUNNING)
-            self.printer_run()
-        except Exception as exception:
-            self.exception = exception
-            self.set_state(PrinterState.EXCEPTION)
-            if test_runtime.hard_exceptions:
-                raise exception
-            self.logger.exception("run() exception:")
-
-        if self.action_manager.exposure and self.action_manager.exposure.in_progress:
-            self.action_manager.exposure.waitDone()
-
-        self.exited.set()
+        self.exited.clear()
+        self.set_state(PrinterState.RUNNING)
+        self.logger.info("SL1 firmware started in %.03f seconds", monotonic() - self.start_time)
 
     def _locale_changed(self, __, changed, ___):
         if "Locale" not in changed:
@@ -609,11 +598,12 @@ class Printer:
             with open(defines.expoPanelLogPath, "r") as f:
                 log = json.load(f)
             last_key = list(log)[-1]
-            if log[last_key]["panel_sn"] != panel_sn:    # if new panel detected
-                for record in log.values():                     # check if panel was already used in this printer
+            if log[last_key]["panel_sn"] != panel_sn:  # if new panel detected
+                for record in log.values():  # check if panel was already used in this printer
                     if record["panel_sn"] == panel_sn and "counter_s" in record.keys():
                         self.exception = OldExpoPanel(
-                            counter_h=round(record["counter_s"] / 3600))  # show warning about used panel
+                            counter_h=round(record["counter_s"] / 3600)
+                        )  # show warning about used panel
                 self.logger.info("Running new expo panel wizard")
                 new_expo_panel_wizard = self.action_manager.start_wizard(
                     NewExpoPanelWizard(self.hw), handle_state_transitions=False
@@ -622,7 +612,7 @@ class Printer:
                 new_expo_panel_wizard.join()
                 self.logger.info("New expo panel wizard finished")
 
-        except FileNotFoundError:                             # no records found
+        except FileNotFoundError:  # no records found
             with FactoryMountedRW():
                 with open(defines.expoPanelLogPath, "w") as f:
                     self.logger.info("No records in expo panel logs. Adding first record: %s", panel_sn)
