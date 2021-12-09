@@ -5,7 +5,7 @@
 from PySignal import Signal
 
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.pages.home import PageHome
+from sl1fw.pages.start import PageStart
 from sl1fw.states.printer import PrinterState
 from sl1fw.tests.mocks.display import DisplayServer
 from sl1fw.tests.mocks.hardware import Hardware
@@ -42,7 +42,7 @@ class Printer:
         self.self_tested = True
         self.uv_calibrated = True
         self.mechanically_calibrated = True
-        self._current_page = PageHome(self.display)
+        self._current_page = PageStart(self.display)
 
     def get_actual_page(self):
         return self._current_page

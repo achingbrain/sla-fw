@@ -103,7 +103,7 @@ class Hardware:
     @staticmethod
     def get_uv_check_pwms():
         return [40, 122, 243, 250]  # board rev 0.6c+
- 
+
     def getPowerswitchState(self):
         return False
 
