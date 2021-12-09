@@ -36,6 +36,7 @@ from PySignal import Signal
 from sl1fw import defines, test_runtime
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.configs.stats import TomlConfigStats
+from sl1fw.errors import tests
 from sl1fw.errors.errors import (
     TiltFailed,
     TowerFailed,
@@ -47,7 +48,7 @@ from sl1fw.errors.errors import (
     ResinTooHigh,
     WarningEscalation,
     NotAvailableInState,
-    ExposureCheckDisabled,
+    ExposureCheckDisabled, ExposureError,
 )
 from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough, PrinterWarning, ExpectOverheating
 from sl1fw.exposure.persistance import ExposurePickler, ExposureUnpickler
@@ -308,8 +309,9 @@ class Exposure:
         self.instance_id = job_id
         self.check_results = TraceableDict()
         self.check_results.changed.connect(self._on_check_result_change)
-        self.exception: Optional[Exception] = None
-        self.warning: Optional[Warning] = None
+        self.fatal_error: Optional[Exception] = None
+        self.warning_occurred = Signal()  # Generic warning has been issued
+        self.warning: Optional[Warning] = None  # Current preprint warning
         self.canceled = False
         self.commands: Queue[str] = Queue()  # pylint: disable=unsubscriptable-object
         self.warning_dismissed = Event()
@@ -317,7 +319,6 @@ class Exposure:
         self.pending_warning = Lock()
         self.estimated_total_time_ms = -1
         self._thread = Thread(target=self.run)
-        self.last_warn: Optional[Warning] = None
         self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
         self.hw.fans_error_changed.connect(self._on_fans_error)
@@ -332,9 +333,9 @@ class Exposure:
             # Signal project change on its parameter change. This lets Exposure0 emit
             # property changed on properties bound to project parameters.
             self.project.params_changed.connect(self._on_project_changed)
-        except Exception as exception:
+        except ExposureError as exception:
             self.logger.exception("Exposure init exception")
-            self.exception = exception
+            self.fatal_error = exception
             self.state = ExposureState.FAILURE
             self.hw.uvLed(False)
             self.hw.stopFans()
@@ -783,12 +784,12 @@ class Exposure:
             self.logger.info("Exiting exposure thread on state: %s", self.state)
         except Exception as exception:
             self.logger.exception("Exposure thread exception")
+            self.fatal_error = exception
             if not isinstance(exception, (TiltFailed, TowerFailed)):
                 self._final_go_up()
             if isinstance(exception, WarningEscalation):
                 self.state = ExposureState.CANCELED
             else:
-                self.exception = exception
                 self.state = ExposureState.FAILURE
 
         if self.project:
@@ -875,6 +876,10 @@ class Exposure:
 
             if command == "exit":
                 break
+
+            if command == "inject_tower_fail":
+                self.logger.error("Injecting fatal tower fail")
+                raise TowerFailed()
 
             if command == "pause":
                 if self.doWait(False) == "exit":
@@ -1072,4 +1077,13 @@ class Exposure:
 
     def _on_fans_error(self, fans_error: Dict[str, bool]):
         if any(fans_error.values()):
-            self.last_warn = ExpectOverheating(failed_fans_text=self.hw.getFansErrorText())
+            self.warning_occurred.emit(ExpectOverheating(failed_fans_text=self.hw.getFansErrorText()))
+
+    def inject_fatal_error(self):
+        self.logger.info("Scheduling exception inject")
+        self.commands.put("inject_tower_fail")
+
+    def inject_exception(self, code: str):
+        exception = tests.get_instance_by_code(code)
+        self.logger.info("Injecting exception %s", exception)
+        self.warning_occurred.emit(exception)

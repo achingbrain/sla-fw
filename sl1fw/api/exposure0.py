@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from deprecation import deprecated
 from pydbus.generic import signal
+from sl1fw.errors.warnings import PrinterWarning
 
 from sl1fw import defines
 from sl1fw.api.decorators import (
@@ -20,10 +21,7 @@ from sl1fw.api.decorators import (
     auto_dbus,
     state_checked,
     range_checked,
-    wrap_exception,
-    last_error,
     wrap_dict_data,
-    wrap_warning,
     auto_dbus_signal,
 )
 from sl1fw.exposure.exposure import Exposure
@@ -36,7 +34,7 @@ from sl1fw.errors.errors import (
     ProjectErrorAnalysisFailed,
     ProjectErrorCalibrationInvalid,
     ProjectErrorWrongPrinterModel,
-    ExposureError,
+    ExposureError, PrinterException,
 )
 from sl1fw.project.project import ExposureUserProfile
 
@@ -118,7 +116,7 @@ class Exposure0ProjectState(Enum):
     NOT_ENOUGH_INTERNAL_SPACE = 9  # obsolete
 
     @staticmethod
-    def from_exception(exception: ExposureError) -> Exposure0ProjectState:
+    def from_exception(exception: Optional[ExposureError]) -> Exposure0ProjectState:
         return {
             None: Exposure0ProjectState.OK,
             ProjectErrorNotFound: Exposure0ProjectState.NOT_FOUND,
@@ -141,6 +139,17 @@ class Exposure0:
 
     Most of the functions should be deprecated and replaced by ones returning values in sane units.
     remaining minutes -> expected end timestamp, ...
+
+    # Error handling
+    Errors and exception come with data dictionary that is supposed to include at last a "code" member pointing to a
+    standard Prusa error code.
+
+    - Errors resulting from DBus calls are reported as native DBus errors. Exception data dictionary is embedded as json
+      into a DBus error message.
+    - Non-fatal errors produced by exposure internal thread (problems encountered during print) are reported using an
+      exception signal. The signal includes error message data dictionary.
+    - Fatal error that crashed the internal thread (fatal error that stopped the print) is stored in failure_reason
+      property including data dictionary.
     """
 
     # This class is an API to the exposure process. As the API is a draft it turned out to have many methods. Let's
@@ -155,7 +164,6 @@ class Exposure0:
         return DBusObjectPath(f"/cz/prusa3d/sl1/exposures0/{instance_id}")
 
     def __init__(self, exposure: Exposure):
-        self._last_exception: Optional[Exception] = None
         self.exposure = exposure
         self.logger = logging.getLogger(__name__)
 
@@ -168,22 +176,22 @@ class Exposure0:
             self.exposure.hw.config.add_onchange_handler(self._handle_config_change)
         if self.exposure.project and self.exposure.project.path_changed:
             self.exposure.project.path_changed.connect(self._handle_path_changed_param)
+        if self.exposure.warning_occurred:
+            self.exposure.warning_occurred.connect(self._on_warning_occurred)
 
     @auto_dbus_signal
-    def Warning(self, value) -> Dict[str, Any]:
+    def exception(self, value: Dict[str, Any]):
         pass
 
-    @auto_dbus_signal
-    def Error(self, value) -> Dict[str, Any]:
-        pass
+    def _on_warning_occurred(self, warning: Warning):
+        self.exception(wrap_dict_data(PrinterException.as_dict(warning)))
 
     @auto_dbus
     @property
-    def last_exception(self) -> Dict[str, Any]:
-        return wrap_dict_data(wrap_exception(self._last_exception))
+    def failure_reason(self) -> Dict[str, Any]:
+        return wrap_dict_data(PrinterException.as_dict(self.exposure.fatal_error))
 
     @auto_dbus
-    @last_error
     @state_checked(Exposure0State.CONFIRM)
     def confirm_start(self) -> None:
         """
@@ -194,7 +202,6 @@ class Exposure0:
         self.exposure.confirm_print_start()
 
     @auto_dbus
-    @last_error
     @state_checked(Exposure0State.POUR_IN_RESIN)
     def confirm_resin_in(self) -> None:
         """
@@ -205,14 +212,12 @@ class Exposure0:
         self.exposure.confirm_resin_in()
 
     @auto_dbus
-    @last_error
     @deprecated("Use confirm_print_warning")
     @state_checked(Exposure0State.CHECK_WARNING)
     def confirm_print_warnings(self) -> None:
         self.confirm_print_warning()
 
     @auto_dbus
-    @last_error
     @state_checked(Exposure0State.CHECK_WARNING)
     def confirm_print_warning(self) -> None:
         """
@@ -223,14 +228,12 @@ class Exposure0:
         self.exposure.confirm_print_warning()
 
     @auto_dbus
-    @last_error
     @deprecated("Use reject_print_warning")
     @state_checked(Exposure0State.CHECK_WARNING)
     def reject_print_warnings(self) -> None:
         self.reject_print_warning()
 
     @auto_dbus
-    @last_error
     @state_checked(Exposure0State.CHECK_WARNING)
     def reject_print_warning(self) -> None:
         """
@@ -242,7 +245,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("Use warning, now only single warning is raised at the time")
     def exposure_warnings(self) -> List[Dict[str, Any]]:
         """
@@ -264,19 +266,11 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def exposure_warning(self) -> Dict[str, Any]:
-        return wrap_dict_data(wrap_warning(self.exposure.warning))
+        return wrap_dict_data(PrinterWarning.as_dict(self.exposure.warning))
 
     @auto_dbus
     @property
-    @last_error
-    def exposure_exception(self) -> Dict[str, Any]:
-        return wrap_dict_data(wrap_exception(self.exposure.exception))
-
-    @auto_dbus
-    @property
-    @last_error
     def checks_state(self) -> Dict[int, int]:
         """
         State of exposure checks
@@ -290,7 +284,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("Use exposure_exception property")
     def project_state(self) -> int:
         """
@@ -298,11 +291,10 @@ class Exposure0:
 
         :return: Exposure0ProjectState as integer
         """
-        return Exposure0ProjectState.from_exception(self.exposure.exception).value
+        return Exposure0ProjectState.from_exception(self.exposure.fatal_error).value
 
     @auto_dbus
     @property
-    @last_error
     def current_layer(self) -> int:
         """
         Layer currently being printed
@@ -313,7 +305,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def total_layers(self) -> int:
         """
         Total number of layers in the project
@@ -324,7 +315,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def time_remain_ms(self) -> int:
         """
         Remaining print time
@@ -339,7 +329,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def total_time_ms(self) -> int:
         """
         Estimated total print time in ms
@@ -352,7 +341,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def expected_finish_timestamp(self) -> float:
         """
         Get timestamp of expected print end
@@ -363,7 +351,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def print_start_timestamp(self) -> float:
         """
         Get print start timestamp
@@ -374,7 +361,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def print_end_timestamp(self) -> float:
         """
         Get print end timestamp
@@ -385,7 +371,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("Use layer_height_first_nm")
     def layer_height_first_mm(self) -> float:
         """
@@ -397,7 +382,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def layer_height_first_nm(self) -> int:
         """
         Height of the first layer
@@ -408,7 +392,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("Use layer_height_nm")
     def layer_height_mm(self) -> float:
         """
@@ -420,7 +403,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def layer_height_nm(self) -> int:
         """
         Height of the standard layer
@@ -431,7 +413,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("Use position_nm")
     def position_mm(self) -> float:
         """
@@ -443,7 +424,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def position_nm(self) -> int:
         """
         Current layer position
@@ -454,7 +434,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("Use total_nm")
     def total_mm(self) -> float:
         """
@@ -466,7 +445,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def total_nm(self) -> int:
         """
         Model height
@@ -477,7 +455,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def project_name(self) -> str:
         """
         Name of the project
@@ -488,7 +465,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def project_file(self) -> str:
         """
         Full path to the project being printed
@@ -499,7 +475,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def progress(self) -> float:
         """
         Progress percentage
@@ -511,7 +486,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def resin_used_ml(self) -> float:
         """
         Amount of resin used
@@ -522,7 +496,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def resin_remaining_ml(self) -> float:
         """
         Remaining resin in the tank
@@ -535,7 +508,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def resin_measured_ml(self) -> float:
         """
         Amount of resin measured during last measurement
@@ -548,7 +520,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def total_resin_required_ml(self) -> float:
         """
         Total resin required to finish the project
@@ -561,7 +532,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def total_resin_required_percent(self) -> float:
         """
         Total resin required to finish the project
@@ -574,7 +544,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def resin_warn(self) -> bool:
         """
         Whenever the remaining resin has reached warning level
@@ -585,7 +554,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def resin_low(self) -> bool:
         """
         Whenever the resin has reached forced pause level
@@ -596,7 +564,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def remaining_wait_sec(self) -> int:
         """
         If in waiting state this is number of seconds remaing in wait
@@ -607,7 +574,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def wait_until_timestamp(self) -> float:
         """
         If in wait state this represents end of wait timestamp
@@ -618,7 +584,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def exposure_end(self) -> float:
         """
         End of current layer exposure
@@ -631,7 +596,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def state(self) -> int:
         """
         Print job state :class:`.states.Exposure0State`
@@ -642,12 +606,10 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @last_error
     def close_cover_warning(self) -> bool:
         return self.exposure.hw.config.coverCheck and not self.exposure.hw.isCoverClosed(False)
 
     @auto_dbus
-    @last_error
     @state_checked(Exposure0State.PRINTING)
     def up_and_down(self) -> None:
         """
@@ -658,7 +620,6 @@ class Exposure0:
         self.exposure.doUpAndDown()
 
     @auto_dbus
-    @last_error
     @deprecated("Use cancel method instead")
     @state_checked(Exposure0State.PRINTING)
     def exit_print(self) -> None:
@@ -670,7 +631,6 @@ class Exposure0:
         self.exposure.cancel()
 
     @auto_dbus
-    @last_error
     @state_checked(
         [
             Exposure0State.PRINTING,
@@ -689,7 +649,6 @@ class Exposure0:
         self.exposure.cancel()
 
     @auto_dbus
-    @last_error
     @state_checked([Exposure0State.FINISHED, Exposure0State.CANCELED, ExposureState.FAILURE])
     def stats_seen(self) -> None:
         """
@@ -701,7 +660,6 @@ class Exposure0:
         self.exposure.stats_seen()
 
     @auto_dbus
-    @last_error
     @state_checked(Exposure0State.PRINTING)
     def feed_me(self) -> None:
         """
@@ -712,7 +670,6 @@ class Exposure0:
         self.exposure.doFeedMe()
 
     @auto_dbus
-    @last_error
     @state_checked([Exposure0State.FEED_ME, Exposure0State.STUCK])
     def cont(self) -> None:
         """
@@ -723,7 +680,6 @@ class Exposure0:
         self.exposure.doContinue()
 
     @auto_dbus
-    @last_error
     @state_checked([Exposure0State.FEED_ME, Exposure0State.STUCK])
     def back(self) -> None:
         """
@@ -736,56 +692,47 @@ class Exposure0:
         self.exposure.doBack()
 
     @property
-    @last_error
     def exposure_time_ms(self) -> int:
         return self.exposure.project.exposure_time_ms
 
     @auto_dbus
     @range_checked(defines.exposure_time_min_ms, defines.exposure_time_max_ms)
     @exposure_time_ms.setter
-    @last_error
     def exposure_time_ms(self, value: int) -> None:
         self.exposure.project.exposure_time_ms = value
 
     @property
-    @last_error
     def user_profile(self) -> int:
         return self.exposure.project.exposure_user_profile
 
     @auto_dbus
     @range_checked(ExposureUserProfile.DEFAULT.value, ExposureUserProfile.SAFE.value)
     @user_profile.setter
-    @last_error
     def user_profile(self, value: int) -> None:
         self.exposure.project.exposure_user_profile = value
 
     @property
-    @last_error
     def exposure_time_first_ms(self) -> int:
         return self.exposure.project.exposure_time_first_ms
 
     @auto_dbus
     @range_checked(defines.exposure_time_first_min_ms, defines.exposure_time_first_max_ms)
     @exposure_time_first_ms.setter
-    @last_error
     def exposure_time_first_ms(self, value: int) -> None:
         self.exposure.project.exposure_time_first_ms = value
 
     @property
-    @last_error
     def exposure_time_calibrate_ms(self) -> int:
         return self.exposure.project.calibrate_time_ms
 
     @auto_dbus
     @range_checked(defines.exposure_time_calibrate_min_ms, defines.exposure_time_calibrate_max_ms)
     @exposure_time_calibrate_ms.setter
-    @last_error
     def exposure_time_calibrate_ms(self, value: int) -> None:
         self.exposure.project.calibrate_time_ms = value
 
     @auto_dbus
     @property
-    @last_error
     def calibration_regions(self) -> int:
         """
         Number of calibration regions
@@ -796,9 +743,13 @@ class Exposure0:
         """
         return self.exposure.project.calibrate_regions
 
-    @property
-    def _last_warn(self):
-        return wrap_dict_data(wrap_warning(self.exposure.last_warn))
+    @auto_dbus
+    def inject_fatal_error(self):
+        self.exposure.inject_fatal_error()
+
+    @auto_dbus
+    def inject_exception(self, code: str):
+        self.exposure.inject_exception(code)
 
     _CHANGE_MAP = {
         "state": {"state"},
@@ -828,13 +779,12 @@ class Exposure0:
         },
         "printStartTime": {"print_start_timestamp"},
         "printEndTime": {"print_end_timestamp"},
-        "exception": {"exposure_exception"},
+        "fatal_error": {"failure_reason"},
         "estimated_total_time_ms": {"total_time_ms"},
     }
 
     _SIGNAL_MAP = {
-        "last_warn": {"Warning": "_last_warn"},
-        "exception": {"Error": "exposure_exception"},
+        "exception": {"error": "exception_occurred"},
     }
 
     def _handle_change(self, key: str, _: Any):

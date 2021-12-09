@@ -15,7 +15,6 @@ from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.libHardware import Hardware
 from sl1fw.libPrinter import Printer
 from sl1fw.states.wizard import WizardId
-from sl1fw.states.printer import PrinterState
 from sl1fw.wizard.actions import UserActionBroker
 from sl1fw.wizard.checks.factory_reset import SendPrinterData
 from sl1fw.wizard.group import CheckGroup
@@ -62,8 +61,7 @@ class TestsMenu(SafeAdminMenu):
         )
 
     def simulate_disconnected_display(self):
-        self._printer.exception = UnknownPrinterModel()
-        self._printer.set_state(PrinterState.EXCEPTION)
+        self._printer.exception_occurred.emit(UnknownPrinterModel())
 
     @SafeAdminMenu.safe_call
     def send_printer_data(self):

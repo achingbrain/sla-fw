@@ -1,9 +1,11 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, is_dataclass, asdict
 from enum import Enum
 from typing import Dict, Optional
 from typing import List
@@ -14,7 +16,7 @@ from prusaerrors.sl1.codes import Sl1Codes
 from sl1fw.motion_controller.trace import Trace
 
 
-def with_code(code: str):
+def with_code(code: Code):
     """
     Class decorator used to add CODE to an Exception
 
@@ -44,6 +46,35 @@ class PrinterException(Exception):
     """
 
     CODE = Sl1Codes.UNKNOWN
+
+    def __str__(self):
+        return json.dumps(self.as_dict(self))
+
+    @staticmethod
+    def as_dict(exception: Optional[Exception]):
+        """
+           Wrap exception in dictionary
+
+           Exception is represented as dictionary str -> variant
+           {
+               "code": error code
+               "code_specific_feature1": value1
+               "code_specific_feature2": value2
+               ...
+           }
+
+           :return: Exception dictionary
+           """
+        if not exception:
+            return {"code": Sl1Codes.NONE.code}
+
+        if isinstance(exception, PrinterException):
+            ret = {"code": exception.CODE.code, "name": type(exception).__name__, "text": Exception.__str__(exception)}
+            if is_dataclass(exception):
+                ret.update(asdict(exception))
+            return ret
+
+        return {"code": Sl1Codes.UNKNOWN.code, "name": type(exception).__name__, "text": Exception.__str__(exception)}
 
 
 @with_code(Sl1Codes.CONFIG_EXCEPTION)

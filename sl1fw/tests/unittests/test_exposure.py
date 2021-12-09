@@ -17,9 +17,9 @@ from sl1fw.errors.errors import (
     NotUVCalibrated,
     ResinTooLow,
     ProjectErrorCantRead,
-    TiltHomeFailed,
+    TiltHomeFailed, WarningEscalation,
 )
-from sl1fw.errors.warnings import PrintingDirectlyFromMedia
+from sl1fw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.exposure.exposure import Exposure
 from sl1fw.states.exposure import ExposureState
@@ -106,20 +106,21 @@ class TestExposure(Sl1fwTestCase):
         self._fake_calibration(hw)
         hw.get_resin_volume.return_value = defines.resinMinVolume + 0.1
         exposure = self._run_exposure(hw)
-        self.assertEqual(exposure.exception, None)
-        self.assertEqual(exposure.state, ExposureState.CANCELED)
+        self.assertIsInstance(exposure.fatal_error, WarningEscalation)
+        self.assertIsInstance(exposure.fatal_error.warning, ResinNotEnough)  # pylint: disable=no-member
 
     def test_resin_error(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
         hw.get_resin_volume.return_value = defines.resinMinVolume - 0.1
         exposure = self._run_exposure(hw)
-        self.assertIsInstance(exposure.exception, ResinTooLow)
+        self.assertIsInstance(exposure.fatal_error, ResinTooLow)
 
     def test_broken_empty_project(self):
         exposure = Exposure(0, self.hw, self.exposure_image, self.runtime_config)
         with self.assertRaises(ProjectErrorCantRead):
             exposure.read_project(self.BROKEN_EMPTY_PROJECT)
+        self.assertIsInstance(exposure.fatal_error, ProjectErrorCantRead)
 
     def test_stuck_recovery_success(self):
         hw = self.setupHw()

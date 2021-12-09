@@ -103,7 +103,8 @@ class TestStartup(Sl1fwTestCase):
     def test_expo_panel_log_old_panel(self):
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
         self.printer.hw.exposure_screen.panel.serial_number = Mock(return_value="CZPX2921X021X000262")
-
+        observer = Mock(__name__ = "MockObserver")
+        self.printer.exception_occurred.connect(observer)
         self._run_printer()
         self.printer.run_make_ready_to_print()
         for _ in range(100):
@@ -113,9 +114,7 @@ class TestStartup(Sl1fwTestCase):
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
         next_to_last_key = list(log)[-2]    # get counter_s from sample file
-        self.assertEqual(
-            self.printer.exception,
-            OldExpoPanel(counter_h=round(log[next_to_last_key]["counter_s"] / 3600)))    # error is raised
+        observer.assert_called_with(OldExpoPanel(counter_h=round(log[next_to_last_key]["counter_s"] / 3600)))
         self.assertEqual(self.printer.state, PrinterState.WIZARD)       # wizard is running
 
     def _run_printer(self):

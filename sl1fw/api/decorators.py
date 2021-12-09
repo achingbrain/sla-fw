@@ -1,23 +1,20 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
-# Copyright (C) 2021 Prusa Development a.s. - www.prusa3d.com
+# Copyright (C) 2021-2022 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
 import logging
-from dataclasses import is_dataclass, asdict
 from enum import Enum
 from time import monotonic
-from typing import Union, List, Any, Dict, get_type_hints, Optional
+from typing import Union, List, Any, Dict, get_type_hints
 
+from gi.repository import GLib
 from pydbus import Variant
 from pydbus.generic import signal
-from gi.repository import GLib
-from prusaerrors.sl1.codes import Sl1Codes
 
-from sl1fw.errors.errors import NotAvailableInState, DBusMappingException, PrinterException
-from sl1fw.errors.warnings import PrinterWarning
+from sl1fw.errors.errors import NotAvailableInState, DBusMappingException
 
 
 class DBusObjectPath(str):
@@ -158,7 +155,7 @@ def auto_dbus(func):
 
 def auto_dbus_signal(func):
     sig = signal()
-    args = gen_method_dbus_args_spec(func)
+    args = gen_method_dbus_args_spec(func, signal_spec=True)
     sig.__dbus__ = f"<signal name=\"{func.__name__}\">{''.join(args)}</signal>"
     return sig
 
@@ -210,12 +207,13 @@ def gen_method_dbus_spec(obj: Any, name: str) -> str:
         raise DBusMappingException(f"Failed to generate dbus specification for {name}") from exception
 
 
-def gen_method_dbus_args_spec(obj) -> List[str]:
+def gen_method_dbus_args_spec(obj, signal_spec=False) -> List[str]:
     args = []
     for n, t in get_type_hints(obj).items():
-        if t == type(None):
+        if t == type(None):  # TODO: Use types.NoneType in Python 3.10
             continue
-        direction = "out" if n == "return" else "in"
+        return_arg = n != "return" if signal_spec else n == "return"
+        direction = "out" if return_arg else "in"
         args.append(f"<arg type='{python_to_dbus_type(t)}' name='{n}' direction='{direction}'/>")
     return args
 
@@ -324,56 +322,3 @@ def last_error(method):
             raise e
 
     return wrap
-
-
-def wrap_exception(e: Optional[Exception]) -> Dict[str, Any]:
-    """
-    Wrap exception in dictionary
-
-    Exception is represented as dictionary str -> variant
-    {
-        "code": error code
-        "code_specific_feature1": value1
-        "code_specific_feature2": value2
-        ...
-    }
-
-    :return: Exception dictionary
-    """
-    if not e:
-        return {"code": Sl1Codes.NONE.code}
-
-    if isinstance(e, PrinterException):
-        ret = {"code": e.CODE.code, "name": type(e).__name__, "text": str(e)}
-        if is_dataclass(e):
-            ret.update(asdict(e))
-        return ret
-
-    return {"code": Sl1Codes.UNKNOWN.code, "name": type(e).__name__, "text": str(e)}
-
-
-def wrap_warning(warning: Warning) -> Dict[str, Any]:
-    """
-    Wrap warning in dictionary
-
-    Warning is represented as dictionary str -> variant
-    {
-        "code": warning code
-        "code_specific_feature1": value1
-        "code_specific_feature2": value2
-        ...
-    }
-
-    :param warning: Warning to wrap
-    :return: Warning dictionary
-    """
-    if not warning:
-        return {"code": Sl1Codes.NONE_WARNING.code}
-
-    if isinstance(warning, PrinterWarning):
-        ret = {"code": warning.CODE.code, "name": type(warning).__name__, "text": str(warning)}  # type: ignore
-        if is_dataclass(warning):
-            ret.update(asdict(warning))
-        return ret
-
-    return {"code": Sl1Codes.UNKNOWN_WARNING.code, "name": type(warning).__name__, "text": str(warning)}

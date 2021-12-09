@@ -1,8 +1,10 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2020 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-from dataclasses import dataclass
+
+from dataclasses import dataclass, is_dataclass, asdict
 from typing import Dict, Tuple, Any
 
 from prusaerrors.sl1.codes import Sl1Codes
@@ -13,9 +15,33 @@ from sl1fw.errors.errors import with_code
 @with_code(Sl1Codes.UNKNOWN)
 @dataclass(frozen=True)
 class PrinterWarning(Warning):
-    """
-    Printer warning
-    """
+
+    @staticmethod
+    def as_dict(warning: Warning) -> Dict[str, Any]:
+        """
+        Wrap warning in dictionary
+
+        Warning is represented as dictionary str -> variant
+        {
+            "code": warning code
+            "code_specific_feature1": value1
+            "code_specific_feature2": value2
+            ...
+        }
+
+        :param warning: Warning to wrap
+        :return: Warning dictionary
+        """
+        if not warning:
+            return {"code": Sl1Codes.NONE_WARNING.code}
+
+        if isinstance(warning, PrinterWarning):
+            ret = {"code": warning.CODE.code, "name": type(warning).__name__, "text": str(warning)}  # type: ignore
+            if is_dataclass(warning):
+                ret.update(asdict(warning))
+            return ret
+
+        return {"code": Sl1Codes.UNKNOWN_WARNING.code, "name": type(warning).__name__, "text": str(warning)}
 
 
 @dataclass(frozen=True)

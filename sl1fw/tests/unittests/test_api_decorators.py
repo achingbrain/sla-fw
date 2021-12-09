@@ -160,8 +160,8 @@ class TestAutoDBusSignal(TestCase):
             pass
 
         self.assertEqual(
-            "<signal name=\"args\"><arg type='s' name='a' direction='in'/>"
-            "<arg type='i' name='b' direction='in'/></signal>",
+            "<signal name=\"args\"><arg type='s' name='a' direction='out'/>"
+            "<arg type='i' name='b' direction='out'/></signal>",
             auto_dbus_signal(args).__dbus__,
         )
 

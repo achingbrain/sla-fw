@@ -17,9 +17,10 @@ import json as serializer
 from PySignal import Signal
 
 from sl1fw import defines
-from sl1fw.api.decorators import wrap_exception, state_checked
+from sl1fw.api.decorators import state_checked
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.errors.errors import WizardNotCancelable, FailedToSerializeWizardData, FailedToSaveWizardData
+from sl1fw.errors.errors import WizardNotCancelable, FailedToSerializeWizardData, FailedToSaveWizardData, \
+    PrinterException
 from sl1fw.errors.warnings import PrinterWarning
 from sl1fw.functions.system import FactoryMountedRW
 from sl1fw.hardware.printer_model import PrinterModel
@@ -257,7 +258,7 @@ class Wizard(Thread, UserActionBroker):
                 if check.state == WizardCheckState.SUCCESS:
                     data.update(check.get_result_data())
                 elif check.state == WizardCheckState.FAILURE:
-                    data[f"{type(check).__name__.lower()}_exception"] = wrap_exception(check.exception)
+                    data[f"{type(check).__name__.lower()}_exception"] = PrinterException.as_dict(check.exception)
         return data
 
     @classmethod

@@ -10,10 +10,12 @@ from pathlib import Path
 
 from gi.repository.GLib import Variant
 from prusaerrors.sl1.codes import Sl1Codes
+from sl1fw.errors.errors import PrinterException
 
 import sl1fw
-from sl1fw.api.decorators import wrap_dict_data, wrap_exception
+from sl1fw.api.decorators import wrap_dict_data
 from sl1fw.errors.tests import FAKE_ARGS, get_classes, get_instance
+
 
 class TestExceptions(unittest.TestCase):
     """
@@ -26,7 +28,7 @@ class TestExceptions(unittest.TestCase):
     def test_instantiation(self):
         for name, cls in get_classes(get_errors=True, get_warnings=True):
             print(f"Testing dbus wrapping for class: {name}")
-            wrapped_exception = wrap_exception(get_instance(cls))
+            wrapped_exception = PrinterException.as_dict(get_instance(cls))
             wrapped_dict = wrap_dict_data(wrapped_exception)
             self.assertIsInstance(wrapped_dict, dict)
             for key, value in wrapped_dict.items():

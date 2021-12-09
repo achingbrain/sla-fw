@@ -1,7 +1,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
-# Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2021-2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import gettext
@@ -28,6 +28,7 @@ from sl1fw.configs.hw import HwConfig
 from sl1fw.configs.runtime import RuntimeConfig
 from sl1fw.configs.stats import TomlConfigStats, TomlConfigStatsException
 from sl1fw.configs.toml import TomlConfig
+from sl1fw.errors import tests
 from sl1fw.errors.errors import (
     NotUVCalibrated,
     NotMechanicallyCalibrated,
@@ -78,8 +79,7 @@ class Printer:
         self.logger.info("SLA firmware initializing")
         self._printer_identifier: Optional[str] = None
         init_time = monotonic()
-        self._exception: Optional[Exception] = None
-        self.exception_changed = Signal()
+        self.exception_occurred = Signal()  # Use this one to emit recoverable errors
         self.admin_check: Optional[AdminCheck] = None
         self.slicer_profile: Optional[SlicerProfile] = None
         self.slicer_profile_updater: Optional[SlicerProfileUpdater] = None
@@ -87,7 +87,7 @@ class Printer:
         self.http_digest_changed = Signal()
         self.api_key_changed = Signal()
         self.data_privacy_changed = Signal()
-        self.action_manager = ActionManager()
+        self.action_manager: ActionManager = ActionManager()
         self.action_manager.exposure_change.connect(self._exposure_changed)
         self.action_manager.wizard_changed.connect(self._wizard_changed)
         self._states: Set[PrinterState] = {PrinterState.INIT}
@@ -158,15 +158,6 @@ class Printer:
     def has_state(self, state: PrinterState) -> bool:
         return state in self._states
 
-    @property
-    def exception(self) -> Exception:
-        return self._exception
-
-    @exception.setter
-    def exception(self, value: Exception):
-        self._exception = value
-        self.exception_changed.emit()
-
     def setup(self):
         self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
         self.logger.info("System version: %s", distro.version())
@@ -198,7 +189,7 @@ class Printer:
         self.inet.force_refresh_state()
 
         if self.hw.checkFailedBoot():
-            self.exception = BootedInAlternativeSlot()
+            self.exception_occurred.emit(BootedInAlternativeSlot())
 
         # Model detection
         self._model_detect()
@@ -209,7 +200,7 @@ class Printer:
 
         # UV calibration
         if not self.hw.config.is_factory_read() and not self.hw.isKit and self.hw.printer_model == PrinterModel.SL1:
-            self.exception = NoFactoryUvCalib()
+            self.exception_occurred.emit(NoFactoryUvCalib())
         self._compute_uv_pwm()
 
         # Past exposures
@@ -562,6 +553,11 @@ class Printer:
 
         self.set_state(PrinterState.WIZARD, active=False)
 
+    def inject_exception(self, code: str):
+        exception = tests.get_instance_by_code(code)
+        self.logger.info("Injecting exception %s", exception)
+        self.exception_occurred.emit(exception)
+
     def _config_changed(self, key: str, _: Any):
         if key.lower() == "showunboxing":
             self.unboxed_changed.emit()
@@ -589,8 +585,8 @@ class Printer:
             if log[last_key]["panel_sn"] != panel_sn:  # if new panel detected
                 for record in log.values():  # check if panel was already used in this printer
                     if record["panel_sn"] == panel_sn and "counter_s" in record.keys():
-                        self.exception = OldExpoPanel(
-                            counter_h=round(record["counter_s"] / 3600)
+                        self.exception_occurred.emit(
+                            OldExpoPanel(counter_h=round(record["counter_s"] / 3600))
                         )  # show warning about used panel
                 self._run_expo_panel_wizard = True
 
@@ -616,7 +612,7 @@ class Printer:
             if self.hw.getUvLedTemperature() < 0:
                 self.logger.error("UV temperature reading failed")
                 self.hw.uvLed(False)
-                self.exception = UvTempSensorFailed()
+                self.exception_occurred.emit(UvTempSensorFailed())
 
     def _on_fans_error(self, fans_error: Dict[str, bool]):
         if not any(fans_error.values()):
@@ -631,4 +627,4 @@ class Printer:
             failed_fans = [num for num, state in enumerate(fans_state) if state]
             failed_fan_names = [self.hw.fans[i].name for i in failed_fans]
             failed_fans_text = self.hw.getFansErrorText()
-            self.exception = FanFailed(failed_fans, failed_fan_names, failed_fans_text)
+            self.exception_occurred.emit(FanFailed(failed_fans, failed_fan_names, failed_fans_text))

@@ -130,8 +130,11 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
 
     def tearDown(self):
         self.printer0_dbus.unpublish()
-        if self._printer0 in Printer0.PropertiesChanged.map:
-            del Printer0.PropertiesChanged.map[self._printer0]
+        # This fixes symptoms of a bug in pydbus. Drop circular dependencies.
+        if self._printer0 in Printer0.PropertiesChanged.map:  # pylint: disable = no-member
+            del Printer0.PropertiesChanged.map[self._printer0]  # pylint: disable = no-member
+        if self._printer0 in Printer0.exception.map:  # pylint: disable = no-member
+            del Printer0.exception.map[self._printer0]  # pylint: disable = no-member
 
         self.printer.stop()
 

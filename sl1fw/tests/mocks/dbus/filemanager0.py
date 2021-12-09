@@ -22,11 +22,11 @@ class FileManager0:
     PropertiesChanged = signal()
 
     @auto_dbus_signal
-    def MediaInserted(self, path) -> str:
+    def MediaInserted(self, path: str):
         pass
 
     @auto_dbus_signal
-    def MediaEjected(self, root_path) -> str:
+    def MediaEjected(self, root_path: str):
         pass
 
     @auto_dbus

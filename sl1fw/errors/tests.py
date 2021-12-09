@@ -10,7 +10,6 @@ from sl1fw.errors import errors, warnings
 from sl1fw.motion_controller.trace import Trace
 from sl1fw.states.printer import PrinterState
 
-
 FAKE_ARGS = {
     "url: str": "http://example.com",
     "total_bytes: int": 0,
@@ -77,6 +76,7 @@ FAKE_ARGS = {
 
 IGNORED_ARGS = {"self", "args", "kwargs"}
 
+
 def get_classes(get_errors: bool = False, get_warnings: bool = False) -> Collection[Tuple[str, Exception]]:
     classes = []
     if get_errors:
@@ -93,7 +93,15 @@ def get_classes(get_errors: bool = False, get_warnings: bool = False) -> Collect
 
         yield name, cls
 
+
 def get_instance(cls):
     parameters = inspect.signature(cls.__init__).parameters
     args = [FAKE_ARGS[str(param)] for name, param in parameters.items() if name not in IGNORED_ARGS]
     return cls(*args)
+
+
+def get_instance_by_code(code: str):
+    for _, cls in get_classes(get_errors=True, get_warnings=True):
+        if getattr(cls, "CODE", None).code == code:
+            return get_instance(cls)
+    raise ValueError(f"Unknown exception code to inject {code}")

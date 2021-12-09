@@ -76,9 +76,9 @@ class TestIntegrationExposure0(Sl1FwIntegrationTestCaseBase):
             self.exposure0.reject_print_warning()
             self._wait_for_state(Exposure0State.CANCELED, 30)
 
-            exception = self.exposure0.exposure_exception
+            exception = self.exposure0.failure_reason
             self.assertIsNotNone(exception)
-            self.assertEqual(exception["code"], Sl1Codes.NONE.code)
+            self.assertEqual(exception["code"], Sl1Codes.WARNING_ESCALATION.code)
 
     def _test_home_axis(self):
         self.exposure0.confirm_start()

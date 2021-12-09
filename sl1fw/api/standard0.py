@@ -28,15 +28,13 @@ from sl1fw.functions.system import get_hostname
 from sl1fw.states.printer import PrinterState, Printer0State
 from sl1fw.states.exposure import ExposureState
 from sl1fw.api.exposure0 import Exposure0, Exposure0State
-from sl1fw.errors.warnings import ResinLow
-from sl1fw.errors.errors import NotAvailableInState
+from sl1fw.errors.warnings import ResinLow, PrinterWarning
+from sl1fw.errors.errors import NotAvailableInState, PrinterException
 from sl1fw.api.decorators import (
     auto_dbus,
     dbus_api,
     last_error,
     wrap_dict_data,
-    wrap_exception,
-    wrap_warning,
     DBusObjectPath,
     auto_dbus_signal,
 )
@@ -119,11 +117,11 @@ class Standard0:
     def __init__(self, printer: Printer):
         self._last_exception: Optional[Exception] = None
         # Avoid keeping printer alive by API object. Printer object shares lifecycle with the whole application.
-        self._printer = weakref.proxy(printer)
+        self._printer: Printer = weakref.proxy(printer)
         self.__info_mac = None
         self.__info_uuid = None
         self._last_state = None
-        self._printer.exception_changed.connect(self._on_exception_changed)
+        self._printer.exception_occurred.connect(self._on_exception_changed)
         self._printer.state_changed.connect(self._state_update)
         self._printer.action_manager.exposure_change.connect(self._exposure_changed)
         self._printer.http_digest_changed.connect(self._on_http_digest_changed)
@@ -132,7 +130,7 @@ class Standard0:
         self._last_error_or_warn = None
 
     @auto_dbus_signal
-    def LastErrorOrWarn(self, value) -> Dict[str, Any]:
+    def LastErrorOrWarn(self, value: Dict[str, Any]):
         pass
 
     def _on_http_digest_changed(self):
@@ -160,20 +158,20 @@ class Standard0:
     def _exposure_values_changed(self, key, value):
         """Property value change in Exposure it should check if are warnings or errors"""
         if key == "exception":
-            self.LastErrorOrWarn(wrap_dict_data(wrap_exception(value)))
+            self.LastErrorOrWarn(wrap_dict_data(PrinterException.as_dict(value)))
         if key == "warning":
-            self.LastErrorOrWarn(wrap_dict_data(wrap_warning(value)))
+            self.LastErrorOrWarn(wrap_dict_data(PrinterWarning.as_dict(value)))
         if key =='warn_resin':
             if value:
                 warn = ResinLow()
-                self.LastErrorOrWarn(wrap_dict_data(wrap_warning(warn)))
+                self.LastErrorOrWarn(wrap_dict_data(PrinterWarning.as_dict(warn)))
             else:
-                self.LastErrorOrWarn(wrap_dict_data(wrap_warning(None)))
+                self.LastErrorOrWarn(wrap_dict_data(PrinterWarning.as_dict(None)))
         if key == "last_warn":
-            self.LastErrorOrWarn(wrap_dict_data(wrap_warning(value)))
+            self.LastErrorOrWarn(wrap_dict_data(PrinterWarning.as_dict(value)))
 
-    def _on_exception_changed(self):
-        self.LastErrorOrWarn(wrap_dict_data(wrap_exception(self._printer.exception)))
+    def _on_exception_changed(self, exception: Exception):
+        self.LastErrorOrWarn(wrap_dict_data(PrinterException.as_dict(exception)))
 
     @property
     def _printer_state(self) -> Printer0State:
@@ -481,9 +479,9 @@ class Standard0:
             )
 
             if expo.state == ExposureState.FAILURE:
-                raise expo.exception
+                raise expo.fatal_error
 
-            # start print automaticaly
+            # start print automatically
             if auto_advance:
                 expo.confirm_print_start()
 
@@ -633,4 +631,4 @@ class Standard0:
     @auto_dbus
     @property
     def last_exception(self) -> Dict[str, Any]:
-        return wrap_dict_data(wrap_exception(self._last_exception))
+        return wrap_dict_data(PrinterException.as_dict(self._last_exception))

@@ -38,7 +38,7 @@ class TestExceptionMenu(AdminMenu):
         return items
 
     def do_error(self, cls):
-        self._printer.exception = get_instance(cls)
+        self._printer.exception_occurred.emit(get_instance(cls))
 
 
 class TestWarningsMenu(TestExceptionMenu):

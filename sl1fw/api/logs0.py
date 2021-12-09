@@ -8,8 +8,9 @@ import logging
 from typing import Optional, Dict, Any
 
 from pydbus.generic import signal
+from sl1fw.errors.errors import PrinterException
 
-from sl1fw.api.decorators import dbus_api, auto_dbus, wrap_dict_data, wrap_exception
+from sl1fw.api.decorators import dbus_api, auto_dbus, wrap_dict_data
 from sl1fw.libHardware import Hardware
 from sl1fw.state_actions.logs import LogsExport, UsbExport, ServerUpload
 from sl1fw.states.logs import LogsState, StoreType
@@ -63,7 +64,7 @@ class Logs0:
             lambda value: self.PropertiesChanged(self.__INTERFACE__, {"log_upload_url": value}, [])
         )
         exporter.exception_changed.connect(
-            lambda _: self.PropertiesChanged(self.__INTERFACE__, {"exception": self.exception}, [])
+            lambda _: self.PropertiesChanged(self.__INTERFACE__, {"exception": self.failure_reason}, [])
         )
         exporter.start()
 
@@ -81,10 +82,10 @@ class Logs0:
 
     @auto_dbus
     @property
-    def exception(self) -> Dict[str, Any]:
+    def failure_reason(self) -> Dict[str, Any]:
         if not self._exporter:
-            return wrap_dict_data(wrap_exception(None))
-        return wrap_dict_data(wrap_exception(self._exporter.exception))
+            return wrap_dict_data(PrinterException.as_dict(None))
+        return wrap_dict_data(PrinterException.as_dict(self._exporter.exception))
 
     @auto_dbus
     @property

@@ -441,9 +441,9 @@ class Page:
 
             failed_fans_text = ", ".join(failedFans)
             if expoInProgress:
-                self.display.expo.last_warn = ExpectOverheating(failed_fans_text=failed_fans_text)
+                self.display.expo.warning_occurred.emit(ExpectOverheating(failed_fans_text=failed_fans_text))
             else:
-                self.display.expo.last_warn = FanWarning(failed_fans_text=failed_fans_text)
+                self.display.expo.warning_occurred.emit(FanWarning(failed_fans_text=failed_fans_text))
             #endif
             return "confirm"
         #endif

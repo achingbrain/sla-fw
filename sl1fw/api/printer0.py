@@ -17,6 +17,7 @@ import distro
 import pydbus
 from deprecation import deprecated
 from pydbus.generic import signal
+from sl1fw.errors import tests
 
 from sl1fw import defines
 from sl1fw.api.decorators import (
@@ -25,14 +26,12 @@ from sl1fw.api.decorators import (
     cached,
     auto_dbus,
     DBusObjectPath,
-    wrap_exception,
-    last_error,
-    wrap_dict_data,
+    wrap_dict_data, auto_dbus_signal,
 )
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.configs.stats import TomlConfigStats
-from sl1fw.errors.errors import ReprintWithoutHistory
+from sl1fw.errors.errors import ReprintWithoutHistory, PrinterException
 from sl1fw.functions.files import get_save_path, get_all_supported_files
 from sl1fw.functions.system import shut_down
 from sl1fw.project.functions import check_ready_to_print
@@ -58,6 +57,16 @@ class Printer0:
     were added as needed the API is not looking very well.
 
     Keep implementation out of this file. Methods here should only adapt interfaces and reformat data.
+
+    # Error handling
+    Errors and exception come with data dictionary that is supposed to include at last a "code" member pointing to a
+    standard Prusa error code.
+
+    - Internal non-fatal errors at startup are reported using exception signal. The signal includes exception data
+      dictionary.
+    - Fatal errors result in printer crash and are supposed to be resolved by systemd
+    - Errors resulting from DBus calls are reported as native DBus errors. Exception data dictionary is embedded as Json
+      into a DBus error message.
     """
 
     __INTERFACE__ = "cz.prusa3d.sl1.printer0"
@@ -65,7 +74,6 @@ class Printer0:
     PropertiesChanged = signal()
 
     def __init__(self, printer: Printer):
-        self._last_exception_data: Optional[Exception] = None
         self.printer = printer
         self._examples: Optional[Examples] = None
         self._examples0: Optional[Examples0] = None
@@ -78,7 +86,6 @@ class Printer0:
         self.printer.http_digest_changed.connect(self._on_http_digest_changed)
         self.printer.api_key_changed.connect(self._on_api_key_changed)
         self.printer.data_privacy_changed.connect(self._on_data_privacy_changed)
-        self.printer.exception_changed.connect(self._on_exception_changed)
         self.printer.hw.fans_changed.connect(self._on_fans_changed)
         self.printer.hw.mc_temps_changed.connect(self._on_temps_changed)
         self.printer.hw.cpu_temp_changed.connect(self._on_cpu_temp_changed)
@@ -97,9 +104,13 @@ class Printer0:
         self.printer.self_tested_changed.connect(self._on_self_tested_changed)
         self.printer.mechanically_calibrated_changed.connect(self._on_mechanically_calibrated_changed)
         self.printer.uv_calibrated_changed.connect(self._on_uv_calibrated_changed)
+        self.printer.exception_occurred.connect(self._on_exception)
 
     def _on_state_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
+
+    def _on_exception(self, exception: Exception):
+        self.exception(wrap_dict_data(PrinterException.as_dict(exception)))
 
     def _on_http_digest_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"http_digest": self.http_digest}, [])
@@ -111,9 +122,6 @@ class Printer0:
         self.PropertiesChanged(
             self.__INTERFACE__, {"data_privacy": self.data_privacy, "help_page_url": self.help_page_url}, []
         )
-
-    def _on_exception_changed(self):
-        self.PropertiesChanged(self.__INTERFACE__, {"printer_exception": self.printer_exception}, [])
 
     def _on_fans_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
@@ -171,7 +179,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     def state(self) -> int:
         """
         Get global printer state
@@ -184,24 +191,9 @@ class Printer0:
 
         return Printer0State.IDLE.value
 
-    @auto_dbus
-    @property
-    def last_exception(self) -> Dict[str, Any]:
-        return wrap_dict_data(wrap_exception(self._last_exception))
-
-    @property
-    def _last_exception(self) -> Exception:
-        return self._last_exception_data
-
-    @_last_exception.setter
-    def _last_exception(self, value: Exception):
-        self._last_exception_data = value
-        self.PropertiesChanged(self.__INTERFACE__, {"last_exception": self.last_exception}, [])
-
-    @auto_dbus
-    @property
-    def printer_exception(self) -> Dict[str, Any]:
-        return wrap_dict_data(wrap_exception(self.printer.exception))
+    @auto_dbus_signal
+    def exception(self, value: Dict[str, Any]):
+        pass
 
     @auto_dbus
     @property
@@ -210,12 +202,10 @@ class Printer0:
 
     @auto_dbus
     @http_digest.setter
-    @last_error
     def http_digest(self, enabled: bool) -> None:
         self.printer.http_digest = enabled
 
     @auto_dbus
-    @last_error
     def beep(self, frequency_hz: int, length_ms: int) -> None:
         """
         Motion controller beeper beep
@@ -227,7 +217,6 @@ class Printer0:
         self.printer.hw.beep(frequency_hz, length_ms / 1000)
 
     @auto_dbus
-    @last_error
     @state_checked([Printer0State.IDLE, Printer0State.EXCEPTION, Printer0State.ADMIN])
     def poweroff(self, do_shutdown: bool, reboot: bool) -> None:
         """
@@ -244,7 +233,6 @@ class Printer0:
             self.printer.hw.motorsRelease()
 
     @auto_dbus
-    @last_error
     @state_checked(Printer0State.IDLE)
     def tower_home(self) -> None:
         """
@@ -254,7 +242,6 @@ class Printer0:
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
-    @last_error
     def tilt_home(self) -> None:
         """
         Home tilt axis
@@ -264,7 +251,6 @@ class Printer0:
         self.printer.hw.tilt.level()
 
     @auto_dbus
-    @last_error
     @state_checked(Printer0State.IDLE)
     def disable_motors(self) -> None:
         """
@@ -277,7 +263,6 @@ class Printer0:
         self.printer.hw.motorsRelease()
 
     @auto_dbus
-    @last_error
     @state_checked([Printer0State.IDLE, Printer0State.WIZARD])
     def tower_move(self, speed: int) -> bool:
         """
@@ -285,7 +270,8 @@ class Printer0:
 
         TODO: This should be checked by heartbeat or the command should have limited ttl
         TODO: Allowed for calibration as calibration does not have dedicated control object, yet
-        TODO: Was limited only for calibration wizard. Now its allowed in all wizards. We may want to restrict it babck just for claibration.
+        TODO: Was limited only for calibration wizard. Now its allowed in all wizards.
+              We may want to restrict it back just for calibration.
 
         :param: Movement speed
 
@@ -299,7 +285,6 @@ class Printer0:
         return self.printer.hw.tower_move(speed)
 
     @auto_dbus
-    @last_error
     @state_checked([Printer0State.IDLE, Printer0State.WIZARD])
     def tilt_move(self, speed: int) -> bool:
         """
@@ -307,7 +292,8 @@ class Printer0:
 
         TODO: This should be checked by heartbeat or the command should have limited ttl
         TODO: Allowed for calibration as calibration does not have dedicated control object, yet
-        TODO: Was limited only for calibration wizard. Now its allowed in all wizards. We may want to restrict it babck just for claibration.
+        TODO: Was limited only for calibration wizard. Now its allowed in all wizards.
+              We may want to restrict it back just for calibration.
 
         :param: Movement speed
 
@@ -321,7 +307,6 @@ class Printer0:
         return self.printer.hw.tilt.move(speed)
 
     @property
-    @last_error
     def tower_position_nm(self) -> int:
         """
         Read or set tower position in nm
@@ -330,13 +315,11 @@ class Printer0:
 
     @auto_dbus
     @tower_position_nm.setter
-    @last_error
     @state_checked(Printer0State.IDLE)
     def tower_position_nm(self, position_nm: int) -> None:
         self.printer.hw.tower_position_nm = position_nm
 
     @property
-    @last_error
     def tilt_position(self) -> int:
         """
         Read or set tilt position in micro-steps
@@ -345,13 +328,11 @@ class Printer0:
 
     @auto_dbus
     @tilt_position.setter
-    @last_error
     @state_checked(Printer0State.IDLE)
     def tilt_position(self, micro_steps: int):
         self.printer.hw.tilt.position = micro_steps
 
     @auto_dbus
-    @last_error
     def get_projects(self) -> List[str]:
         """
         Get available project files
@@ -363,7 +344,6 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
-    @last_error
     def get_firmwares(self) -> List[str]:
         """
         Get available firmware files
@@ -376,7 +356,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached()
     def serial_number(self) -> str:
         """
@@ -388,7 +367,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached()
     def system_name(self) -> str:
         """
@@ -400,7 +378,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached()
     def system_version(self) -> str:
         """
@@ -412,7 +389,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def fans(self) -> Dict[str, Dict[str, int]]:
         """
@@ -428,7 +404,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def temps(self) -> Dict[str, float]:
         """
@@ -448,7 +423,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def cpu_temp(self) -> float:
         """
@@ -460,7 +434,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def leds(self) -> Dict[str, float]:
         """
@@ -476,7 +449,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     @deprecated("Use NetworkManager")
     def devlist(self) -> Dict[str, str]:
@@ -491,7 +463,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def uv_statistics(self) -> Dict[str, int]:
         """
@@ -510,7 +481,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def controller_sw_version(self) -> str:
         """
@@ -522,7 +492,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def controller_serial(self) -> str:
         """
@@ -534,14 +503,12 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def controller_revision(self) -> str:
         return self.printer.hw.mcBoardRevision
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def api_key(self) -> str:
         """
@@ -553,13 +520,11 @@ class Printer0:
 
     @auto_dbus
     @api_key.setter
-    @last_error
     def api_key(self, apikey: str) -> None:
         self.printer.api_key = apikey
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     @deprecated("Use config api")
     def tilt_fast_time_sec(self) -> float:
@@ -571,7 +536,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     @deprecated("Use config api")
     def tilt_slow_time_sec(self) -> float:
@@ -583,7 +547,6 @@ class Printer0:
         return self.printer.hw.config.tiltSlowTime
 
     @auto_dbus
-    @last_error
     def enable_resin_sensor(self, value: bool) -> None:
         """
         Set resin sensor enabled flag
@@ -595,7 +558,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=0.5)
     def resin_sensor_state(self) -> bool:
         """
@@ -607,7 +569,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=0.5)
     def cover_state(self) -> bool:
         """
@@ -619,7 +580,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=0.5)
     def power_switch_state(self) -> bool:
         """
@@ -631,7 +591,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     def factory_mode(self) -> bool:
         """
         Check for factory mode
@@ -669,7 +628,6 @@ class Printer0:
         return DBusObjectPath(Examples0.DBUS_PATH)
 
     @auto_dbus
-    @last_error
     @state_checked(Printer0State.IDLE)
     def update_firmware(self, fw_file: str):
         """
@@ -683,7 +641,6 @@ class Printer0:
         )
 
     @auto_dbus
-    @last_error
     def factory_reset(self) -> None:
         """
         Do factory reset
@@ -693,7 +650,6 @@ class Printer0:
         raise NotImplementedError
 
     @auto_dbus
-    @last_error
     @state_checked(Printer0State.IDLE)
     def check_ready(self) -> None:
         """
@@ -707,7 +663,6 @@ class Printer0:
         )
 
     @auto_dbus
-    @last_error
     @state_checked(Printer0State.IDLE)
     def print(self, project_path: str, auto_advance: bool) -> DBusObjectPath:
         """
@@ -727,7 +682,6 @@ class Printer0:
         return Exposure0.dbus_path(expo.instance_id)
 
     @auto_dbus
-    @last_error
     @state_checked(Printer0State.IDLE)
     def reprint(self, auto_advance: bool) -> DBusObjectPath:
         """
@@ -752,7 +706,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     def current_exposure(self) -> DBusObjectPath:
         """
         Get current exposure object DBus path
@@ -764,14 +717,12 @@ class Printer0:
         return Exposure0.dbus_path(self.printer.action_manager.exposure.instance_id)
 
     @auto_dbus
-    @last_error
     @deprecated("Use current_exposure property")
     def get_current_exposure(self) -> DBusObjectPath:
         return self.current_exposure
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("use filemanager0")
     def project_config_file_name(self) -> str:
         """
@@ -783,7 +734,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     def project_extensions(self) -> List[str]:
         """
         Set of supported project extensions
@@ -794,7 +744,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("use filemanager0")
     def persistent_storage_path(self) -> str:
         """
@@ -806,7 +755,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("use filemanager0")
     def internal_project_path(self) -> str:
         """
@@ -817,7 +765,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("use filemanager0")
     def media_root_path(self) -> str:
         """
@@ -830,7 +777,6 @@ class Printer0:
         return defines.mediaRootPath
 
     @auto_dbus
-    @last_error
     def list_projects_raw(self) -> List[str]:  # pylint: disable=no-self-use
         """
         List available projects
@@ -847,13 +793,11 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     def printer_model(self) -> int:
         return self.printer.hw.printer_model.value
 
     @auto_dbus
     @property
-    @last_error
     @deprecated("use filemanager0")
     def usb_path(self) -> str:
         """
@@ -868,7 +812,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     def resin_tank_capacity_ml(self) -> float:
         """
         Resin tank capacity in milliliters
@@ -879,7 +822,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     def admin_enabled(self) -> bool:
         """
         Whenever the user has admin access (show admin)
@@ -890,7 +832,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached(validity_s=5)
     def statistics(self) -> Dict[str, Any]:
         """
@@ -901,14 +842,12 @@ class Printer0:
         return wrap_dict_data(TomlConfigStats(defines.statsData, self.printer.hw).load())
 
     @auto_dbus
-    @last_error
     def run_displaytest_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             DisplayTestWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
         )
 
     @auto_dbus
-    @last_error
     def run_unboxing_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             CompleteUnboxingWizard(
@@ -917,28 +856,24 @@ class Printer0:
         )
 
     @auto_dbus
-    @last_error
     def run_kit_unboxing_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             KitUnboxingWizard(self.printer.hw, self.printer.runtime_config)
         )
 
     @auto_dbus
-    @last_error
     def run_self_test_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             SelfTestWizard(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
         )
 
     @auto_dbus
-    @last_error
     def run_calibration_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             CalibrationWizard(self.printer.hw, self.printer.runtime_config)
         )
 
     @auto_dbus
-    @last_error
     def run_factory_reset_wizard(self) -> None:
         if self.printer.runtime_config.factory_mode:
             self.printer.action_manager.start_wizard(
@@ -952,7 +887,6 @@ class Printer0:
             )
 
     @auto_dbus
-    @last_error
     def run_uv_calibration_wizard(self, display_replaced: bool, led_module_replaced: bool) -> None:
         self.printer.action_manager.start_wizard(
             UVCalibrationWizard(
@@ -971,19 +905,16 @@ class Printer0:
 
     @auto_dbus
     @data_privacy.setter
-    @last_error
     def data_privacy(self, enabled: bool) -> None:
         self.printer.data_privacy = enabled
 
     @auto_dbus
     @property
-    @last_error
     def help_page_url(self) -> str:
         return self.printer.help_page_url
 
     @auto_dbus
-    @last_error
-    def cmd_try_cancel_by_path(self, path:str) -> None:
+    def cmd_try_cancel_by_path(self, path: str) -> None:
         """
         Cancel exposure if the paths are equals
 
@@ -1026,7 +957,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached()
     def booster_serial(self) -> str:
         """
@@ -1039,7 +969,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached()
     def expo_panel_serial(self) -> str:
         """
@@ -1051,7 +980,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @last_error
     @cached()
     def expo_panel_transmittance(self) -> float:
         """
@@ -1060,3 +988,11 @@ class Printer0:
         :return: exposure display transmittance
         """
         return self.printer.hw.exposure_screen.panel.transmittance()
+
+    @auto_dbus
+    def inject_exception(self, code: str):
+        self.printer.inject_exception(code)
+
+    @auto_dbus
+    def fail_action(self, code: str):  # pylint: disable = no-self-use
+        raise tests.get_instance_by_code(code)
