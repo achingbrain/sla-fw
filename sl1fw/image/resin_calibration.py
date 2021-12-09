@@ -17,10 +17,10 @@ class Area(BBox):
     # pylint: disable=unused-argument
     def __init__(self, coords=None):
         super().__init__(coords)
-        self._copy_position = 0, 0
+        self.paste_position = 0, 0
 
-    def set_copy_position(self, bbox: BBox):
-        self._copy_position = self.x1, self.y1
+    def set_paste_position(self, bbox: BBox):
+        self.paste_position = self.x1, self.y1
 
     def set_label_text(self, font, text, text_padding, label_size):
         pass
@@ -29,7 +29,7 @@ class Area(BBox):
         pass
 
     def paste(self, image: Image, source: Image, calibration_type: LayerCalibrationType):
-        image.paste(source, box=self._copy_position)
+        image.paste(source, box=self.paste_position)
 
 class AreaWithLabel(Area):
     def __init__(self, coords=None):
@@ -42,11 +42,11 @@ class AreaWithLabel(Area):
         # pylint: disable=no-self-use
         return image.transpose(Image.FLIP_LEFT_RIGHT)
 
-    def set_copy_position(self, bbox: BBox):
+    def set_paste_position(self, bbox: BBox):
         bbox_size = bbox.size
         self_size = self.size
-        self._copy_position = self.x1 + (self_size[0] - bbox_size[0]) // 2, self.y1 + (self_size[1] - bbox_size[1]) // 2
-        self._logger.debug("copy position: %s", str(self._copy_position))
+        self.paste_position = self.x1 + (self_size[0] - bbox_size[0]) // 2, self.y1 + (self_size[1] - bbox_size[1]) // 2
+        self._logger.debug("copy position: %s", str(self.paste_position))
 
     def set_label_text(self, font, text, text_padding, label_size):
         self._logger.debug("calib. label size: %s  text padding: %s", str(label_size), str(text_padding))
@@ -59,14 +59,14 @@ class AreaWithLabel(Area):
     def set_label_position(self, label_size, calibrate_penetration_px, project_bbox, first_layer_bbox):
         first_padding = project_bbox - first_layer_bbox
         label_x = self.x1 + (self.size[0] - label_size[0]) // 2
-        label_y = self._copy_position[1] + first_padding[1] - label_size[1] + calibrate_penetration_px
+        label_y = self.paste_position[1] + first_padding[1] - label_size[1] + calibrate_penetration_px
         if label_y < self.y1:
             label_y = self.y1
         self._label_position = label_x, label_y
         self._logger.debug("label position: %s", str(self._label_position))
 
     def paste(self, image: Image, source: Image, calibration_type: LayerCalibrationType):
-        image.paste(source, box=self._copy_position)
+        image.paste(source, box=self.paste_position)
         if calibration_type == LayerCalibrationType.LABEL_TEXT:
             image.paste(self._pad_layer, box=self._label_position, mask=self._text_layer)
         elif calibration_type == LayerCalibrationType.LABEL_PAD:
@@ -76,11 +76,11 @@ class AreaWithLabelStripe(AreaWithLabel):
     def _transpose(self, image: Image):
         return image.transpose(Image.ROTATE_270).transpose(Image.FLIP_LEFT_RIGHT)
 
-    def set_copy_position(self, bbox: BBox):
+    def set_paste_position(self, bbox: BBox):
         bbox_size = bbox.size
         self_size = self.size
-        self._copy_position = 0, self.y1 + (self_size[1] - bbox_size[1]) // 2
-        self._logger.debug("copy position: %s", str(self._copy_position))
+        self.paste_position = 0, self.y1 + (self_size[1] - bbox_size[1]) // 2
+        self._logger.debug("copy position: %s", str(self.paste_position))
 
     def set_label_position(self, label_size, calibrate_penetration_px, project_bbox, first_layer_bbox):
         first_size = first_layer_bbox.size
@@ -192,7 +192,7 @@ class Calibration:
         font = ImageFont.truetype(defines.fontFile, calibrate_text_size_px)
         actual_time_ms = 0
         for area, time_ms in zip(self.areas, calibrate_times_ms):
-            area.set_copy_position(self._project_bbox)
+            area.set_paste_position(self._project_bbox)
             actual_time_ms += time_ms
             text = "%.1f" % (actual_time_ms / 1000)
             self._logger.debug("calib. text: '%s'", text)

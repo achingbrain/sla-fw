@@ -22,13 +22,12 @@ import glob
 import logging
 import os
 from abc import abstractmethod
-from asyncio import gather
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from logging import Logger
 from queue import Queue, Empty
 from threading import Thread, Event, Lock
-from time import sleep
+from time import sleep, monotonic_ns
 from typing import Optional, Any, List, Dict
 
 import psutil
@@ -538,6 +537,37 @@ class Exposure:
     def stats_seen(self):
         self.state = ExposureState.DONE
 
+    def _exposure_simple(self, times_ms):
+        uv_on_remain_ms = times_ms[0]
+        uv_is_on = True
+        self.logger.debug("uv on")
+        self.hw.uvLed(True, uv_on_remain_ms + 1)    # FIXME workaround for MC FW (1 ms shorted UV LED time)
+        while uv_is_on:
+            sleep(uv_on_remain_ms / 1100.0)
+            uv_is_on, uv_on_remain_ms = self.hw.getUvLedState()
+        self.exposure_image.blank_screen()
+
+    def _exposure_calibration(self, times_ms):
+        end = monotonic_ns()
+        ends = []
+        for time_ms in times_ms:
+            end += time_ms * 1e6
+            ends.append(end)
+        i = 0
+        last = len(ends) - 1
+        self.logger.debug("uv on")
+        self.hw.uvLed(True)
+        for end in ends:
+            diff = 0
+            while diff >= 0:
+                sleep(diff / 1e9 / 1.1)
+                diff = end - monotonic_ns()
+            self.exposure_image.blank_area(i, i == last)
+            i += 1
+            if abs(diff) > 1e7:
+                self.logger.warning("Exposure end delayed %f ms", abs(diff) / 1e6)
+        self.hw.uvLed(False)
+
     def _do_frame(self, times_ms, was_stirring, second, layer_height_nm):
         position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
 
@@ -564,6 +594,7 @@ class Exposure:
             delay_before = defines.exposure_slow_move_delay_before
         else:
             delay_before = self.hw.config.delayBeforeExposure
+
         if delay_before:
             self.logger.info("delayBeforeExposure [s]: %f", delay_before / 10.0)
             sleep(delay_before / 10.0)
@@ -582,19 +613,11 @@ class Exposure:
         self.exposure_end = datetime.now(tz=timezone.utc) + timedelta(seconds=exp_time_ms / 1e3)
         self.logger.info("Exposure started: %d ms, end: %s", exp_time_ms, self.exposure_end)
 
-        i = 0
-        for time_ms in times_ms:
-            uv_on_remain_ms = time_ms
-            uv_is_on = True
-            self.logger.debug("uv on")
-            self.hw.uvLed(True, time_ms)
-            while uv_is_on:
-                sleep(uv_on_remain_ms / 1100.0)
-                uv_is_on, uv_on_remain_ms = self.hw.getUvLedState()
-            self.exposure_image.fill_area(i)
-            i += 1
+        if len(times_ms) == 1:
+            self._exposure_simple(times_ms)
+        else:
+            self._exposure_calibration(times_ms)
 
-        self.exposure_image.blank_screen()
         self.logger.info("exposure done")
         self.exposure_image.preload_image(self.actual_layer + 1)
 
@@ -792,7 +815,7 @@ class Exposure:
         if not self.hw.towerSynced or not self.hw.tilt.synced:
             self.state = ExposureState.HOMING_AXIS
             self.logger.info("Homing axis to pour resin")
-            await gather(self.hw.verify_tower(), self.hw.verify_tilt())
+            await asyncio.gather(self.hw.verify_tower(), self.hw.verify_tilt())
 
     async def _run_checks(self):
         self.state = ExposureState.CHECKS

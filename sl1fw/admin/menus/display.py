@@ -175,7 +175,7 @@ class DisplayControlMenu(SafeAdminMenu):
                 AdminAction("Maze", self.maze),
                 AdminAction("USB:/test.png", self.usb_test),
                 AdminAction("Prusa logo", self.prusa),
-                AdminAction("Black", self.black),
+                AdminAction("White", self.white),
                 AdminAction("Inverse", self.invert),
             )
         )
@@ -231,8 +231,8 @@ class DisplayControlMenu(SafeAdminMenu):
         self._printer.exposure_image.show_system_image("logo.png")
 
     @SafeAdminMenu.safe_call
-    def black(self):
-        self._printer.exposure_image.blank_screen()
+    def white(self):
+        self._printer.exposure_image.open_screen()
 
     @SafeAdminMenu.safe_call
     def invert(self):

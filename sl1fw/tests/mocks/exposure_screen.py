@@ -10,11 +10,14 @@ from sl1fw.hardware.printer_model import PrinterModel, ExposurePanel
 
 class ExposureScreen:
     # pylint: disable = too-few-public-methods
+    # pylint: disable = too-many-instance-attributes
     def __init__(self):
         self.parameters = PrinterModel.SL1.exposure_screen_parameters
+        self.panel = ExposurePanel
 
         self.start = Mock(return_value=PrinterModel.SL1)
         self.exit = Mock()
         self.show = Mock()
-        self.sync = Mock()
-        self.panel = ExposurePanel
+        self.blank_screen = Mock()
+        self.create_areas = Mock()
+        self.blank_area = Mock()

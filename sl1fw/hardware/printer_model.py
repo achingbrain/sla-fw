@@ -16,9 +16,9 @@ class ExposureScreenParameters:
     size_px: tuple
     thumbnail_factor: int
     pixel_size_nm: int
-    referesh_delay_ms: int
+    refresh_delay_ms: int
     monochromatic: bool
-    backwards: bool
+    bgr_pixels: bool
     width_px: int = field(init=False)
     height_px: int = field(init=False)
     bytes_per_pixel: int = field(init=False)
@@ -83,27 +83,98 @@ class PrinterModel(Enum):
     @property
     def exposure_screen_parameters(self) -> ExposureScreenParameters:
         return {
-                self.NONE: ExposureScreenParameters((0, 0), 1, 0, 0, False, False),
-                self.SL1: ExposureScreenParameters((1440, 2560), 5, 46875, 30, False, False),
-                self.SL1S: ExposureScreenParameters((1620, 2560), 5, 50000, 20, True, False),
-                self.M1: ExposureScreenParameters((1620, 2560), 5, 50000, 20, True, False),     # same as SL1S
+                self.NONE: ExposureScreenParameters(
+                    size_px = (0, 0),
+                    thumbnail_factor = 1,
+                    pixel_size_nm = 0,
+                    refresh_delay_ms = 0,
+                    monochromatic = False,
+                    bgr_pixels = False,
+                    ),
+                self.SL1: ExposureScreenParameters(
+                    size_px = (1440, 2560),
+                    thumbnail_factor = 5,
+                    pixel_size_nm = 46875,
+                    refresh_delay_ms = 0,
+                    monochromatic = False,
+                    bgr_pixels = False,
+                    ),
+                self.SL1S: ExposureScreenParameters(
+                    size_px = (1620, 2560),
+                    thumbnail_factor = 5,
+                    pixel_size_nm = 50000,
+                    refresh_delay_ms = 0,
+                    monochromatic = True,
+                    bgr_pixels = True,
+                    ),
+                # same as SL1S
+                self.M1: ExposureScreenParameters(
+                    size_px = (1620, 2560),
+                    thumbnail_factor = 5,
+                    pixel_size_nm = 50000,
+                    refresh_delay_ms = 0,
+                    monochromatic = True,
+                    bgr_pixels = True,
+                    ),
             }[self]
 
     @property
     def options(self) -> Options:
         return {
-                self.NONE: Options(False, False, 0, False, False),
-                self.SL1: Options(True, False, 0, True, False),
-                self.SL1S: Options(True, True, 1, False, True),
-                self.M1: Options(True, True, 1, False, True),   # same as SL1S
+                self.NONE: Options(
+                    has_tilt = False,
+                    has_booster = False,
+                    vat_revision = 0,
+                    has_UV_calibration = False,
+                    has_UV_calculation = False,
+                    ),
+                self.SL1: Options(
+                    has_tilt = True,
+                    has_booster = False,
+                    vat_revision = 0,
+                    has_UV_calibration = True,
+                    has_UV_calculation = False,
+                    ),
+                self.SL1S: Options(
+                    has_tilt = True,
+                    has_booster = True,
+                    vat_revision = 1,
+                    has_UV_calibration = False,
+                    has_UV_calculation = True,
+                    ),
+                # same as SL1S
+                self.M1: Options(
+                    has_tilt = True,
+                    has_booster = True,
+                    vat_revision = 1,
+                    has_UV_calibration = False,
+                    has_UV_calculation = True,
+                    ),
             }[self]
 
     def calibration_parameters(self, is500khz: bool) -> CalibrationParameters:
         return {
-                self.NONE: CalibrationParameters((0, 250, 0), 1, 0.75),
-                self.SL1: CalibrationParameters((150, 250, 150) if is500khz else (125, 218, 125), 1, 0.75),
-                self.SL1S: CalibrationParameters((30, 250, 208), 1, 0.75),
-                self.M1: CalibrationParameters((30, 250, 208), 1, 0.75),    # same as SL1S
+                self.NONE: CalibrationParameters(
+                    pwms = (0, 250, 0),
+                    intensity_error_threshold = 1,
+                    param_p = 0.75,
+                    ),
+                self.SL1: CalibrationParameters(
+                    pwms = (150, 250, 150) if is500khz else (125, 218, 125),
+                    intensity_error_threshold = 1,
+                    param_p = 0.75,
+                    ),
+                self.SL1S: CalibrationParameters(
+                    pwms = (30, 250, 208),
+                    intensity_error_threshold = 1,
+                    param_p = 0.75,
+                    ),
+                # same as SL1S
+                self.M1: CalibrationParameters(
+                    pwms = (30, 250, 208),
+                    intensity_error_threshold = 1,
+                    param_p = 0.75,
+                    ),
             }[self]
 
     def default_uvpwm(self) -> int:

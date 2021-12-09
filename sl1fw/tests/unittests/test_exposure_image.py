@@ -55,11 +55,11 @@ class TestScreen(Sl1fwTestCase):
         super().tearDown()
 
     def test_basics(self):
-        self.assertTrue(self.exposure_image.is_screen_blank, "Test init")
+        self.assertTrue(self.exposure_image.is_screen_black, "Test init")
+        self.exposure_image.open_screen()
+        self.assertFalse(self.exposure_image.is_screen_black, "Test open screen")
         self.exposure_image.inverse()
-        self.assertFalse(self.exposure_image.is_screen_blank, "Test inverse")
-        self.exposure_image.blank_screen()
-        self.assertTrue(self.exposure_image.is_screen_blank, "Test blank screen")
+        self.assertTrue(self.exposure_image.is_screen_black, "Test inverse")
 
     def test_show_image(self):
         self.exposure_image.show_image_with_path(TestScreen.ZABA)

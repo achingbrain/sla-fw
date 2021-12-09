@@ -506,7 +506,7 @@ class Project:
                 self.layer_height_nm * 5000 / 1000 / 1000  # tower move
                 + delay_before_exposure * 100
                 + self._hw.config.delayAfterExposure * 100
-                + self._hw.printer_model.exposure_screen_parameters.referesh_delay_ms * 5  # ~ 5x frame display wait
+                + self._hw.printer_model.exposure_screen_parameters.refresh_delay_ms * 5  # ~ 5x frame display wait
                 + 120  # Magical constant to compensate remaining computation delay in exposure thread
         )
         self.logger.debug("time_remain_ms: %f", time_remain_ms)

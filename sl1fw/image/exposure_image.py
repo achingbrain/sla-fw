@@ -4,6 +4,7 @@
 # Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import functools
 import logging
 from logging.handlers import QueueListener
 from multiprocessing import Process, shared_memory, Queue
@@ -25,11 +26,22 @@ from sl1fw.errors.errors import ProjectErrorCalibrationInvalid
 from sl1fw.errors.warnings import PerPartesPrintNotAvaiable, PrintMaskNotAvaiable, PrintedObjectWasCropped
 
 
+def measure_time(what: str):
+    def decor(function):
+        @functools.wraps(function)
+        def inner(self, *args, **kwargs):
+            start_time = monotonic()
+            function(self, *args, **kwargs)
+            self.logger.debug("%s done in %f ms", what, 1e3 * (monotonic() - start_time))
+        return inner
+    return decor
+
+
 class ExposureImage:
     # pylint: disable=too-many-instance-attributes
     def __init__(self, hardware: Hardware):
         self._hw = hardware
-        self._logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
         self._project: Optional[Project] = None
         self._calibration: Optional[Calibration] = None
         self._buffer: Optional[Image] = None
@@ -91,10 +103,10 @@ class ExposureImage:
                     shm.shm.unlink()
 
     def _open_image(self, filename):
-        self._logger.debug("loading '%s'", filename)
+        self.logger.debug("loading '%s'", filename)
         img = Image.open(filename)
         if img.mode != "L":
-            self._logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha)."
+            self.logger.warning("Image '%s' is in '%s' mode, should be 'L' (grayscale without alpha)."
                                 " Losing time in conversion.",
                                 filename, img.mode)
             img = img.convert("L")
@@ -125,7 +137,7 @@ class ExposureImage:
                 image2.paste(ImageOps.invert(image1))
                 project_flags |= ProjectFlags.PER_PARTES
             except Exception:
-                self._logger.exception("per partes masks exception")
+                self.logger.exception("per partes masks exception")
                 self._project.warnings.add(PerPartesPrintNotAvaiable())
                 # reset the flag for Exposure
                 self._project.per_partes = False
@@ -135,9 +147,9 @@ class ExposureImage:
             mask.paste(ImageOps.invert(self._project.read_image(defines.maskFilename)))
             project_flags |= ProjectFlags.USE_MASK
         except KeyError:
-            self._logger.info("No mask picture in the project")
+            self.logger.info("No mask picture in the project")
         except Exception:
-            self._logger.exception("project mask exception")
+            self.logger.exception("project mask exception")
             self._project.warnings.add(PrintMaskNotAvaiable())
         if self._project.calibrate_regions:
             self._project.analyze()
@@ -156,6 +168,7 @@ class ExposureImage:
                 self._project.warnings.add(PrintedObjectWasCropped())
         if self._project.calibrate_compact:
             project_flags |= ProjectFlags.CALIBRATE_COMPACT
+        self._hw.exposure_screen.create_areas(self._calibration.areas if self._calibration else None)
         self._sl[SLIDX.PROJECT_SERIAL] += 1
         self._sl[SLIDX.PROJECT_FLAGS] = project_flags.value
         self._write_SL(self._shm[SHMIDX.PROJECT_BBOX], self._project.bbox.coords)
@@ -174,49 +187,51 @@ class ExposureImage:
         for i in range(len(src)):
             dst[i+1] = src[i]
 
+    @measure_time("blank screen")
     def blank_screen(self):
-        self._logger.debug("blank started")
-        start_time = monotonic()
-        self._buffer.paste(0, (0, 0, self._hw.exposure_screen.parameters.width_px, self._hw.exposure_screen.parameters.height_px))
-        self._hw.exposure_screen.show(self._buffer)
-        self._logger.debug("blank done in %f secs", monotonic() - start_time)
+        self._hw.exposure_screen.blank_screen(sync = False)
 
+    @measure_time("open screen")
+    def open_screen(self):
+        self._buffer.paste(255, (0, 0, self._hw.exposure_screen.parameters.width_px, self._hw.exposure_screen.parameters.height_px))
+        self._hw.exposure_screen.show(self._buffer)
+
+    @measure_time("fill area")
     def fill_area(self, area_index, color=0):
         if self._calibration and area_index < len(self._calibration.areas):
-            self._logger.debug("fill area %d", area_index)
-            start_time = monotonic()
             self._buffer.paste(color, self._calibration.areas[area_index].coords)
             self._hw.exposure_screen.show(self._buffer)
-            self._logger.debug("fill area done in %f secs", monotonic() - start_time)
+
+    @measure_time("blank area")
+    def blank_area(self, area_index, sync):
+        self._hw.exposure_screen.blank_area(area_index, sync = sync)
 
     def show_system_image(self, filename: str):
         self.show_image_with_path(os.path.join(defines.dataPath, self._hw.printer_model.name, filename))
 
+    @measure_time("show image")
     def show_image_with_path(self, filename_with_path: str):
-        self._logger.debug("show of %s started", filename_with_path)
-        start_time = monotonic()
         self._buffer = self._open_image(filename_with_path)
         self._hw.exposure_screen.show(self._buffer)
-        self._logger.debug("show of %s done in %f secs", filename_with_path, monotonic() - start_time)
 
     def preload_image(self, layer_index: int, second=False):
         if second:
-            self._logger.debug("second part of image - no preloading")
+            self.logger.debug("second part of image - no preloading")
             return
         if layer_index >= self._project.total_layers:
-            self._logger.debug("layer_index is beyond the layers count - no preloading")
+            self.logger.debug("layer_index is beyond the layers count - no preloading")
             return
         if not self._preloader.is_alive():
-            self._logger.error("Preloader process is not running, exitcode: %d", self._preloader.exitcode)
+            self.logger.error("Preloader process is not running, exitcode: %d", self._preloader.exitcode)
             raise PreloadFailed()
         try:
             layer = self._project.layers[layer_index]
-            self._logger.debug("read image %s from project started", layer.image)
+            self.logger.debug("read image %s from project started", layer.image)
             start_time = monotonic()
             input_image = self._project.read_image(layer.image)
-            self._logger.debug("read of '%s' done in %f secs", layer.image, monotonic() - start_time)
+            self.logger.debug("read of '%s' done in %f ms", layer.image, 1e3 * (monotonic() - start_time))
         except Exception as e:
-            self._logger.exception("read image exception:")
+            self.logger.exception("read image exception:")
             raise PreloadFailed() from e
         image = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
         image.readonly = False
@@ -224,35 +239,30 @@ class ExposureImage:
         self._start_preload.put(layer.calibration_type.value)
 
     def sync_preloader(self) -> int:
-        self._logger.debug("syncing preloader")
+        self.logger.debug("syncing preloader")
         try:
             return self._preload_result.get(timeout=5)
         except Exception as e:
-            self._logger.exception("sync preloader exception:")
+            self.logger.exception("sync preloader exception:")
             raise PreloadFailed() from e
 
+    @measure_time("get result and blit")
     def blit_image(self, second=False):
-        self._logger.debug("blit started")
-        start_time = monotonic()
         source_shm = self._shm[SHMIDX.OUTPUT_IMAGE2].buf if second else self._shm[SHMIDX.OUTPUT_IMAGE1].buf
         self._buffer = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, source_shm, "raw", "L", 0, 1).copy()
         self._hw.exposure_screen.show(self._buffer)
-        self._logger.debug("get result and blit done in %f secs", monotonic() - start_time)
 
+    @measure_time("rename")
     def screenshot_rename(self, second=False):
-        start_time = monotonic()
         try:
             os.rename(defines.livePreviewImage + "-tmp%s.png" % ("2" if second else "1"), defines.livePreviewImage)
         except Exception:
-            self._logger.exception("Screenshot rename exception:")
-        self._logger.debug("rename done in %f secs", monotonic() - start_time)
+            self.logger.exception("Screenshot rename exception:")
 
+    @measure_time("inverse")
     def inverse(self):
-        self._logger.debug("inverse started")
-        start_time = monotonic()
         self._buffer = ImageOps.invert(self._buffer)
         self._hw.exposure_screen.show(self._buffer)
-        self._logger.debug("inverse done in %f secs", monotonic() - start_time)
 
     def save_display_usage(self):
         usage = numpy.ndarray(
@@ -264,17 +274,17 @@ class ExposureImage:
             with numpy.load(defines.displayUsageData) as npzfile:
                 saved_data = npzfile['display_usage']
                 if saved_data.shape != self._hw.exposure_screen.parameters.display_usage_size_px:
-                    self._logger.warning("Wrong saved data shape: %s", saved_data.shape)
+                    self.logger.warning("Wrong saved data shape: %s", saved_data.shape)
                 else:
                     usage += saved_data
         except FileNotFoundError:
-            self._logger.warning("File '%s' not found", defines.displayUsageData)
+            self.logger.warning("File '%s' not found", defines.displayUsageData)
         except Exception:
-            self._logger.exception("Load display usage failed")
+            self.logger.exception("Load display usage failed")
         numpy.savez_compressed(defines.displayUsageData, display_usage=usage)
 
     @property
-    def is_screen_blank(self) -> bool:
+    def is_screen_black(self) -> bool:
         return get_white_pixels(self._buffer) == 0
 
     @property
