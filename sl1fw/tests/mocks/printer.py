@@ -5,9 +5,7 @@
 from PySignal import Signal
 
 from sl1fw.configs.runtime import RuntimeConfig
-from sl1fw.pages.start import PageStart
 from sl1fw.states.printer import PrinterState
-from sl1fw.tests.mocks.display import DisplayServer
 from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.tests.mocks.network import Network
 from sl1fw.tests.mocks.action_manager import ActionManager
@@ -16,7 +14,6 @@ from sl1fw.tests.mocks.action_manager import ActionManager
 class Printer:
     # pylint: disable = too-many-instance-attributes
     def __init__(self, exposure):
-        self.display = DisplayServer()
         self.state_changed = Signal()
         self.http_digest_changed = Signal()
         self.api_key_changed = Signal()
@@ -42,10 +39,6 @@ class Printer:
         self.self_tested = True
         self.uv_calibrated = True
         self.mechanically_calibrated = True
-        self._current_page = PageStart(self.display)
-
-    def get_actual_page(self):
-        return self._current_page
 
     def remove_oneclick_inhibitor(self, _):
         pass

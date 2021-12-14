@@ -60,7 +60,6 @@ from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
 from sl1fw.libAsync import AdminCheck
 from sl1fw.libAsync import SlicerProfileUpdater
-from sl1fw.libDisplay import Display
 from sl1fw.libHardware import Hardware
 from sl1fw.libNetwork import Network
 from sl1fw.slicer.slicer_profile import SlicerProfile
@@ -76,7 +75,7 @@ from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
 
 class Printer:
-    def __init__(self, debug_display=None):
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
         self._printer_identifier = None
         init_time = monotonic()
@@ -141,12 +140,6 @@ class Printer:
         self.logger.info("Initializing libNetwork")
         self.inet = Network(self.hw.cpuSerialNo)
 
-        self.logger.info("Initializing display devices")
-        if debug_display:
-            devices = [debug_display]
-        else:
-            devices = []
-
         self.logger.info("Initializing ExposureImage")
         self.exposure_image = ExposureImage(self.hw)
 
@@ -158,14 +151,6 @@ class Printer:
         self.logs0_dbus = self.system_bus.publish(Logs0.__INTERFACE__, Logs0(self.hw))
 
         self.logger.info("Initializing libDisplay")
-        self.display = Display(
-            devices,
-            self.hw,
-            self.inet,
-            self.exposure_image,
-            self.runtime_config,
-            self.action_manager,
-        )
         try:
             TomlConfigStats(defines.statsData, self.hw).update_reboot_counter()
         except Exception:
@@ -202,7 +187,6 @@ class Printer:
             sleep(1)
 
         self.set_state(PrinterState.EXIT)
-        self.display.exit()
         self.action_manager.exit()
         self.exposure_image.exit()
         self.exited.wait(timeout=60)
@@ -309,8 +293,6 @@ class Printer:
         self.hw.start()
         self.logger.info("Starting ExposureImage")
         self.exposure_image.start()
-        self.logger.info("Starting libDisplay")
-        self.display.start()
 
         self.logger.info("Registering event handlers")
         self.inet.register_events()

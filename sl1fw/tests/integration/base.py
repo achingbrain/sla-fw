@@ -8,7 +8,6 @@ import shutil
 import weakref
 
 from pathlib import Path
-from queue import Empty
 from shutil import copyfile
 from threading import Thread
 from time import sleep
@@ -23,7 +22,6 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines, test_runtime
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libPrinter import Printer
-from sl1fw.tests.mocks.display import DisplayClient
 from sl1fw.states.printer import PrinterState
 from sl1fw.states.wizard import WizardState
 
@@ -32,7 +30,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     # pylint: disable = too-many-instance-attributes
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.display = DisplayClient()
         self.printer: Optional[Printer] = None
         self.thread: Optional[Thread] = None
         self.temp_dir_project = None
@@ -75,7 +72,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         os.environ["SDL_AUDIODRIVER"] = "disk"
         os.environ["SDL_DISKAUDIOFILE"] = str(self.sdl_audio_file)
 
-        self.printer = Printer(debug_display=self.display)
+        self.printer = Printer()
         test_runtime.exposure_image = self.printer.exposure_image
 
         self._printer0 = Printer0(self.printer)
@@ -190,27 +187,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         self.temp_dir_wizard_history.cleanup()
         print(f"<<<<<===== {self.id()} =====>>>>>")
         super().tearDown()  # closes logger!
-
-    def press(self, identifier, data=None):
-        print("Pressing button: %s on page %s" % (identifier, self.display.page))
-        self.display.add_event(self.display.page, identifier, pressed=True, data=data)
-        self.display.add_event(self.display.page, identifier, pressed=False, data=data)
-
-    def waitPage(self, page: str, timeout_sec: int = 5):
-        try:
-            self.assertEqual(page, self.display.read_page(timeout_sec=timeout_sec))
-        except Empty as exception:
-            raise Exception(
-                f'Wait timeout for page "{page}" ({timeout_sec} seconds)'
-            ) from exception
-        print("Wait done for: %s" % page)
-
-    def readItems(self):
-        return self.display.read_items(timeout_sec=3)
-
-    def switchPage(self, page):
-        self.press(page)
-        self.waitPage(page)
 
     @staticmethod
     def call(fce):
