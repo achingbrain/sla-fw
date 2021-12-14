@@ -34,8 +34,6 @@ class FactoryTests0:
     def state(self) -> Printer0State:
         state = self._printer.state.to_state0()
         if not state:
-            state = self._printer.display.state.to_state0()
-        if not state:
             state = Printer0State.IDLE
 
         return state

@@ -32,7 +32,7 @@ from sl1fw.api.decorators import (
 from sl1fw.api.examples0 import Examples0
 from sl1fw.api.exposure0 import Exposure0
 from sl1fw.configs.stats import TomlConfigStats
-from sl1fw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated, ReprintWithoutHistory
+from sl1fw.errors.errors import ReprintWithoutHistory
 from sl1fw.functions.files import get_save_path, get_all_supported_files
 from sl1fw.functions.system import shut_down
 from sl1fw.project.functions import check_ready_to_print
@@ -64,19 +64,6 @@ class Printer0:
 
     PropertiesChanged = signal()
 
-    @auto_dbus
-    @property
-    @deprecated("Do not rely on current page, use state")
-    def current_page(self) -> str:
-        """
-        Get current page name
-
-        Does not provide changed signal as this property is deprecated.
-
-        :return: Current page name
-        """
-        return self.printer.get_actual_page().Name
-
     def __init__(self, printer: Printer):
         self._last_exception_data: Optional[Exception] = None
         self.printer = printer
@@ -87,7 +74,6 @@ class Printer0:
         self._wizard = None
         self._calibration = None
 
-        self.printer.display.state_changed.connect(self._on_state_changed)
         self.printer.state_changed.connect(self._on_state_changed)
         self.printer.http_digest_changed.connect(self._on_http_digest_changed)
         self.printer.api_key_changed.connect(self._on_api_key_changed)
@@ -196,10 +182,6 @@ class Printer0:
         if state:
             return state.value
 
-        state = self.printer.display.state.to_state0()
-        if state:
-            return state.value
-
         return Printer0State.IDLE.value
 
     @auto_dbus
@@ -260,7 +242,6 @@ class Printer0:
         else:
             self.printer.hw.uvLed(False)
             self.printer.hw.motorsRelease()
-            self.printer.display.forcedPage("start")
 
     @auto_dbus
     @last_error
@@ -690,20 +671,6 @@ class Printer0:
     @auto_dbus
     @last_error
     @state_checked(Printer0State.IDLE)
-    def wizard(self) -> DBusObjectPath:
-        """
-        Initiate wizard test object
-
-        Implemented by page transition. No wizard object available, yet.
-
-        :return: Wizard object path - currently only "/" string
-        """
-        self.printer.display.forcePage("wizardinit")
-        return DBusObjectPath("/")
-
-    @auto_dbus
-    @last_error
-    @state_checked(Printer0State.IDLE)
     def update_firmware(self, fw_file: str):
         """
         Initiate firmware update
@@ -724,15 +691,6 @@ class Printer0:
         NOT IMPLEMENTED
         """
         raise NotImplementedError
-
-    @auto_dbus
-    @last_error
-    @state_checked([Printer0State.IDLE])
-    def enter_home(self) -> None:
-        """
-        Enter home page
-        """
-        self.printer.display.forcePage("home")
 
     @auto_dbus
     @last_error
@@ -929,22 +887,6 @@ class Printer0:
         :return: True if admin enabled, false otherwise
         """
         return self.printer.runtime_config.show_admin
-
-    @auto_dbus
-    @last_error
-    @deprecated("use standard0.cmd_select")
-    def try_open_project(self, project_path: str) -> DBusObjectPath:
-        last_exposure = self.printer.action_manager.exposure
-        if last_exposure:
-            last_exposure.try_cancel()
-        try:
-            return self.print(project_path, False)
-        except NotUVCalibrated:
-            self.printer.display.forcePage("uvcalibrationstart")
-            raise
-        except NotMechanicallyCalibrated:
-            self.printer.display.forcePage("calibrationstart")
-            raise
 
     @auto_dbus
     @property

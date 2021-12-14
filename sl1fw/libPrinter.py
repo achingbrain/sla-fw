@@ -376,9 +376,6 @@ class Printer:
         if "Operation" in changed:
             self.set_state(PrinterState.UPDATING, changed["Operation"] != "idle")
 
-    def get_actual_page(self):
-        return self.display.actualPage
-
     def _exposure_changed(self):
         self.set_state(PrinterState.PRINTING, self.action_manager.exposure and not self.action_manager.exposure.done)
 

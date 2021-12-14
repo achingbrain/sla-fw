@@ -129,7 +129,6 @@ class TestIntegrationPrinter0(Sl1FwIntegrationTestCaseBase):
         self.assertTrue(self.printer0.factory_mode)
         self.assertTrue(self.printer0.admin_enabled)
 
-        # self.printer0.display_test()
         # self.printer0.wizard()
         # self.printer0.update_firmware()
         # self.printer0.factory_reset()

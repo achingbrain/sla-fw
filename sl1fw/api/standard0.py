@@ -123,7 +123,6 @@ class Standard0:
         self.__info_mac = None
         self.__info_uuid = None
         self._last_state = None
-        self._printer.display.state_changed.connect(self._state_update)
         self._printer.exception_changed.connect(self._on_exception_changed)
         self._printer.state_changed.connect(self._state_update)
         self._printer.action_manager.exposure_change.connect(self._exposure_changed)
@@ -179,10 +178,6 @@ class Standard0:
     @property
     def _printer_state(self) -> Printer0State:
         state = self._printer.state.to_state0()
-        if state:
-            return state
-
-        state = self._printer.display.state.to_state0()
         if state:
             return state
 
