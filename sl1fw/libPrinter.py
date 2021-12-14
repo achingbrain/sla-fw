@@ -18,7 +18,7 @@ import subprocess
 import threading
 from pathlib import Path
 from time import monotonic, sleep
-from typing import Optional, Set, Any
+from typing import Optional, Set, Any, Dict
 from datetime import datetime
 
 import distro
@@ -44,6 +44,7 @@ from sl1fw.errors.errors import (
     MotionControllerWrongResponse,
     UVPWMComputationError,
     OldExpoPanel,
+    UvTempSensorFailed, FanFailed,
 )
 from sl1fw.functions.files import save_all_remain_wizard_history, get_all_supported_files
 from sl1fw.functions.miscellaneous import toBase32hex
@@ -128,6 +129,8 @@ class Printer:
 
         self.logger.info("Initializing libHardware")
         self.hw = Hardware(hw_config)
+        self.hw.uv_led_overheat_changed.connect(self._on_uv_led_temp_overheat)
+        self.hw.fans_error_changed.connect(self._on_fans_error)
 
         # needed before init of other components (display etc)
         # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
@@ -171,6 +174,9 @@ class Printer:
         if old != self.state:
             self.logger.info("Printer state changed: %s -> %s", old, self.state)
             self.state_changed.emit()
+
+    def has_state(self, state: PrinterState) -> bool:
+        return state in self._states
 
     @property
     def exception(self) -> Exception:
@@ -259,6 +265,7 @@ class Printer:
         self.action_manager.load_exposure(self.hw)
 
     def run(self):
+        # TODO: This is rather an init than run - rename, reformat the code
         try:
             self.run_init()
             self.printer_run()
@@ -598,3 +605,34 @@ class Printer:
                     record = dict()
                     record[timestamp] = {"panel_sn": panel_sn}
                     json.dump(record, f, indent=2)
+
+    def _on_uv_led_temp_overheat(self, overheated: bool):
+        if not overheated:
+            self.hw.powerLed("normal")
+            self.set_state(PrinterState.OVERHEATED, False)
+        else:
+            self.logger.error("UV LED overheated")
+            self.hw.powerLed("error")
+            if not self.has_state(PrinterState.PRINTING):
+                self.hw.uvLed(False)
+            self.set_state(PrinterState.OVERHEATED, True)
+
+            if self.hw.getUvLedTemperature() < 0:
+                self.logger.error("UV temperature reading failed")
+                self.hw.uvLed(False)
+                self.exception = UvTempSensorFailed()
+
+    def _on_fans_error(self, fans_error: Dict[str, bool]):
+        if not any(fans_error.values()):
+            self.logger.debug("Fans recovered")
+            return
+
+        failed_fans_text = self.hw.getFansErrorText()
+        self.logger.error("Detected fan error, text: %s", failed_fans_text)
+        # Report error only if not printing to avoid mixing exposure and printer error reports
+        if not self.has_state(PrinterState.PRINTING):
+            fans_state = self.hw.getFansError().values()
+            failed_fans = [num for num, state in enumerate(fans_state) if state]
+            failed_fan_names = [self.hw.fans[i].name for i in failed_fans]
+            failed_fans_text = self.hw.getFansErrorText()
+            self.exception = FanFailed(failed_fans, failed_fan_names, failed_fans_text)

@@ -93,7 +93,7 @@ class Exposure0State(Enum):
             ExposureState.CANCELED: Exposure0State.CANCELED,
             ExposureState.CHECK_WARNING: Exposure0State.CHECK_WARNING,
             ExposureState.DONE: Exposure0State.DONE,
-            ExposureState.OVERHEATING: Exposure0State.OVERHEATING,
+            ExposureState.COOLING_DOWN: Exposure0State.OVERHEATING,
             ExposureState.POUR_IN_RESIN: Exposure0State.POUR_IN_RESIN,
             ExposureState.HOMING_AXIS: Exposure0State.HOMING_AXIS,
         }[state]

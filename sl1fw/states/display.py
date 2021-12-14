@@ -24,5 +24,5 @@ class DisplayState(Enum):
             self.FACTORY_RESET: Printer0State.INITIALIZING,
             self.ADMIN: Printer0State.ADMIN,
             self.DISPLAY_TEST: Printer0State.WIZARD,
-            self.OVERHEATING: Printer0State.OVERHEATING,
+            self.OVERHEATING: Printer0State.OVERHEATED,
         }.get(self, None)

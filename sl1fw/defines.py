@@ -135,6 +135,7 @@ minAmbientTemp = 16.0 # 18 C from manual. Capsule is not calibrated, add some to
 maxAmbientTemp = 34.0 # 32 C from manual. Capsule is not calibrated, add some tolerance
 maxA64Temp = 80.0     # maximal temperature of A64 is 125 C according to datasheet
 maxUVTemp = 55.0
+uv_temp_hysteresis = 10  # 10 deg C hysteresis
 
 # keep at least 110 MB of free space when copying project to internal storage or extracting examples
 internalReservedSpace = 110 * 1024 * 1024

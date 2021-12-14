@@ -27,7 +27,7 @@ class ExposureState(Enum):
     TILTING_DOWN = 24
     CANCELED = 26
     DONE = 27
-    OVERHEATING = 28
+    COOLING_DOWN = 28
     POUR_IN_RESIN = 29
     HOMING_AXIS = 30
 

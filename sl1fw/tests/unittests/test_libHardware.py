@@ -277,17 +277,17 @@ class TestLibHardware(Sl1fwTestCase):
     def test_uv_fan_rpm_control(self):
         fans = {0: True, 1: True, 2: True}
         self.hw.setFans(fans)
-        rpms = self.hw.getFansRpm()
         self.hw_config.rpmControlOverride = True
-        self.hw.uvFanRpmControl()
+        rpms = self.hw.getFansRpm()
+        self.hw.uv_fan_rpm_control(self.hw.getMcTemperatures())
         self.assertEqual(rpms, self.hw.getFansRpm())
         self.hw_config.rpmControlOverride = False
         self.hw.getUvLedTemperature = Mock(return_value=self.hw_config.rpmControlUvLedMinTemp)
-        self.hw.uvFanRpmControl()
+        self.hw.uv_fan_rpm_control(self.hw.getMcTemperatures())
         rpms = self.hw.getFansRpm()
         self.assertLessEqual(self.hw_config.rpmControlUvFanMinRpm , rpms[0])
         self.hw.getUvLedTemperature = Mock(return_value=self.hw_config.rpmControlUvLedMaxTemp) #due to rounding in MC
-        self.hw.uvFanRpmControl()
+        self.hw.uv_fan_rpm_control(self.hw.getMcTemperatures())
         rpms = self.hw.getFansRpm()
         self.assertLessEqual(self.hw_config.rpmControlUvFanMaxRpm , rpms[0])  #due to rounding in MC
 

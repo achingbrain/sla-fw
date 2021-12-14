@@ -29,7 +29,7 @@ from logging import Logger
 from queue import Queue, Empty
 from threading import Thread, Event, Lock
 from time import sleep
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Dict
 
 import psutil
 from PySignal import Signal
@@ -50,7 +50,7 @@ from sl1fw.errors.errors import (
     NotAvailableInState,
     ExposureCheckDisabled,
 )
-from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough, PrinterWarning
+from sl1fw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough, PrinterWarning, ExpectOverheating
 from sl1fw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from sl1fw.functions.system import shut_down
 from sl1fw.libHardware import Hardware
@@ -318,9 +318,10 @@ class Exposure:
         self.pending_warning = Lock()
         self.estimated_total_time_ms = -1
         self._thread = Thread(target=self.run)
-        self.last_warn = None
+        self.last_warn: Optional[Warning] = None
         self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
+        self.hw.fans_error_changed.connect(self._on_fans_error)
 
     def read_project(self, project_file: str):
         check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
@@ -697,6 +698,26 @@ class Exposure:
 
         return command
 
+    def _wait_uv_cool_down(self) -> Optional[str]:
+        if not self.hw.uv_led_overheat:
+            return None
+
+        self.logger.error("UV LED overheat - waiting for cooldown")
+        state = self.state
+        self.state = ExposureState.COOLING_DOWN
+        while True:
+            try:
+                if self.commands.get_nowait() == "exit":
+                    return "exit"
+            except Empty:
+                pass
+            if not self.hw.uv_led_overheat:
+                break
+            self.hw.beepAlarm(3)
+            sleep(3)
+        self.state = state
+        return None
+
     def doStuckRelease(self):
         self.state = ExposureState.STUCK
         self.hw.powerLed("error")
@@ -846,6 +867,9 @@ class Exposure:
 
                 if not self.hw.config.blinkExposure:
                     self.hw.uvLed(True)
+
+            if self._wait_uv_cool_down() == "exit":
+                break
 
             if self.resin_volume:
                 self._update_resin()
@@ -1033,3 +1057,7 @@ class Exposure:
         self.hw.uvDisplayCounter(False)
         self.hw.saveUvStatistics()
         self.printEndTime = datetime.now(tz=timezone.utc)
+
+    def _on_fans_error(self, fans_error: Dict[str, bool]):
+        if any(fans_error.values()):
+            self.last_warn = ExpectOverheating(failed_fans_text=self.hw.getFansErrorText())

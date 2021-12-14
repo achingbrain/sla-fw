@@ -26,7 +26,7 @@ class Printer0State(Enum):
     ADMIN = 8
     EXCEPTION = 9
     UPDATE_MC = 10
-    OVERHEATING = 11
+    OVERHEATED = 11
 
 
 @unique
@@ -40,6 +40,7 @@ class PrinterState(Enum):
     UPDATING_MC = 6
     EXCEPTION = 7
     EXIT = 8
+    OVERHEATED = 9
 
     def to_state0(self) -> Printer0State:
         return {
@@ -51,6 +52,7 @@ class PrinterState(Enum):
             self.WIZARD: Printer0State.WIZARD,
             self.UPDATING_MC: Printer0State.UPDATE_MC,
             self.ADMIN: Printer0State.ADMIN,
+            self.OVERHEATED: Printer0State.OVERHEATED,
         }.get(self, None)  # type: ignore
 
     @staticmethod

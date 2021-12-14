@@ -399,7 +399,7 @@ class Page:
             if expoInProgress:
                 self.display.expo.doPause()
                 old_state = self.display.expo.state
-                self.display.expo.state = ExposureState.OVERHEATING
+                self.display.expo.state = ExposureState.COOLING_DOWN
             else:
                 old_state = self.display.state
                 self.display.state = DisplayState.OVERHEATING
@@ -447,7 +447,7 @@ class Page:
             #endif
             return "confirm"
         #endif
-        self.display.hw.uvFanRpmControl()
+        self.display.hw.uv_fan_rpm_control()
     #enddef
 
 

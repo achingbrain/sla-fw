@@ -87,6 +87,8 @@ class Hardware:
         self.sl1s_booster.board_serial_no = "FAKE BOOSTER SERIAL"
 
         self.cover_state_changed = Signal()
+        self.uv_led_overheat = False
+        self.fans_error_changed = Signal()
 
     def exit(self):
         self.cover_state_changed.clear()

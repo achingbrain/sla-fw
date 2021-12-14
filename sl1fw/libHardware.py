@@ -14,6 +14,7 @@
 
 import asyncio
 import functools
+import json
 import logging
 import os
 import re
@@ -22,9 +23,7 @@ from datetime import timedelta
 from enum import unique, Enum
 from math import ceil
 from threading import Thread
-from time import sleep
-
-import json
+from time import sleep, monotonic
 from typing import List, Optional, Any, Tuple
 
 import bitstring
@@ -32,17 +31,16 @@ import pydbus
 from PySignal import Signal
 
 from sl1fw import defines
+from sl1fw.configs.hw import HwConfig
 from sl1fw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
     MotionControllerException, ConfigException
-from sl1fw.configs.hw import HwConfig
-from sl1fw.motion_controller.controller import MotionController
-from sl1fw.utils.value_checker import ValueChecker, UpdateInterval
+from sl1fw.functions.decorators import safe_call
 from sl1fw.hardware.exposure_screen import ExposureScreen
 from sl1fw.hardware.printer_model import PrinterModel
-from sl1fw.hardware.tilt import Tilt, TiltSL1, TiltProfile
-from sl1fw.functions.decorators import safe_call
 from sl1fw.hardware.sl1s_uvled_booster import Booster
-
+from sl1fw.hardware.tilt import Tilt, TiltSL1, TiltProfile
+from sl1fw.motion_controller.controller import MotionController
+from sl1fw.utils.value_checker import ValueChecker, UpdateInterval
 
 
 class Fan:
@@ -86,6 +84,8 @@ class Axis(Enum):
 
 
 class Hardware:
+    FAN_CONTROL_MIN_DELAY_S = 30
+
     def __init__(self, hw_config: HwConfig):
         self.logger = logging.getLogger(__name__)
         self.config = hw_config
@@ -177,12 +177,20 @@ class Hardware:
         self.uv_statistics_changed = Signal()
         self.tower_position_changed = Signal()
         self.tilt_position_changed = Signal()
+        self.uv_led_overheat_changed = Signal()
+        self.uv_led_overheat = False
+        self.fans_error_changed = Signal()
+        self.fans_error = False
 
         self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
         self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
         self.mcc.fans_state_changed.connect(lambda x: self.fans_changed.emit())
         self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
         self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
+        self.cpu_temp_changed.connect(self._check_cpu_overheat)
+        self.mc_temps_changed.connect(self._check_uv_led_overheat)
+        self.mc_temps_changed.connect(self.uv_fan_rpm_control)
+        self.mcc.fans_state_changed.connect(self._fans_error_check)
 
         self._tilt_position_checker = ValueChecker(
             lambda: self.tilt.position,
@@ -198,6 +206,7 @@ class Hardware:
         )
         self.mcc.tilt_status_changed.connect(self._tilt_position_checker.set_rapid_update)
         self.mcc.tower_status_changed.connect(self._tower_position_checker.set_rapid_update)
+        self.last_rpm_control: Optional[float] = None
 
     # MUST be called before start()
     def connect(self):
@@ -249,6 +258,9 @@ class Hardware:
             pass # This is normal printer shutdown
         except Exception:
             self.logger.exception("Value checker thread crashed")
+            # Overheat check is not working, assuming we are overheated
+            self.uv_led_overheat = True
+            self.uv_led_overheat_changed.emit(True)
             raise
         finally:
             self.logger.info("Value refresh checker thread ended")
@@ -594,6 +606,10 @@ class Hardware:
         self.mcc.do("!shdn", 5)
 
     def uvLed(self, state, time=0):
+        if state and self.uv_led_overheat:
+            self.logger.error("Blocking attempt to set overheated UV LED on")
+            return
+
         self.mcc.do("!uled", 1 if state else 0, int(time))
 
     @safe_call([0, 0], (ValueError, MotionControllerException))
@@ -714,6 +730,14 @@ class Hardware:
         fansError = self.getFansBits("?fane", (0, 1, 2))
         return fansError
 
+    def getFansErrorText(self) -> str:
+        failed_fans = []
+        fans_state = self.getFansError()
+        for num, state in fans_state.items():
+            if state:
+                failed_fans.append(self.fans[num].name)
+        return ", ".join(failed_fans)
+
     def getFansBits(self, cmd, request):
         try:
             bits = self.mcc.doGetBoolList(cmd, bit_count=3)
@@ -736,19 +760,29 @@ class Hardware:
             self.logger.exception("getFansRpm failed")
             return dict.fromkeys(request, 0)
 
+    def setFansRpm(self, rpms: [int]):
+        self.mcc.do("!frpm", " ".join(str(fan) for fan in rpms))
 
-    def uvFanRpmControl(self):
+    def uv_fan_rpm_control(self, temps: [float]):
+        if self.last_rpm_control and monotonic() - self.last_rpm_control < self.FAN_CONTROL_MIN_DELAY_S:
+            # Avoid too frequent controls, MC does not report errors a few seconds after control
+            return
+
         if self.config.rpmControlOverride:
             return
-        uvLedTemperature = self.getUvLedTemperature()
-        mapConstant = (self.config.rpmControlUvFanMaxRpm - self.config.rpmControlUvFanMinRpm) / (self.config.rpmControlUvLedMaxTemp - self.config.rpmControlUvLedMinTemp)
-        uvFanTempRpm = round((uvLedTemperature - self.config.rpmControlUvLedMinTemp) * mapConstant + self.config.rpmControlUvFanMinRpm)
-        if uvFanTempRpm > defines.fanMaxRPM[0]:
-            uvFanTempRpm = defines.fanMaxRPM[0]
-        elif uvFanTempRpm < defines.fanMinRPM:
-            uvFanTempRpm = defines.fanMinRPM
-        fansRpm = [uvFanTempRpm, self.fans[1].targetRpm, self.fans[2].targetRpm]
-        self.mcc.do("!frpm", " ".join(str(fan) for fan in fansRpm))
+
+        uv_led_temperature = temps[self.led_temp_idx]
+        max_rpm = self.config.rpmControlUvFanMaxRpm
+        min_rpm = self.config.rpmControlUvFanMinRpm
+        max_temp = self.config.rpmControlUvLedMaxTemp
+        min_temp = self.config.rpmControlUvLedMinTemp
+        map_constant = (max_rpm - min_rpm) / (max_temp - min_temp)
+        uv_fan_temp_rpm = round((uv_led_temperature - min_temp) * map_constant + min_rpm)
+        uv_fan_temp_rpm = max(min(uv_fan_temp_rpm, defines.fanMaxRPM[0]), defines.fanMinRPM)
+        fans_rpm = [uv_fan_temp_rpm, self.fans[1].targetRpm, self.fans[2].targetRpm]
+        self.logger.debug("Fan RPM control setting RPMs: %s", fans_rpm)
+        self.last_rpm_control = monotonic()
+        self.setFansRpm(fans_rpm)
 
     @safe_call([-273.2, -273.2, -273.2, -273.2], (MotionControllerException, ValueError))
     def getMcTemperatures(self, logTemps=True):
@@ -764,6 +798,34 @@ class Hardware:
     def getUvLedTemperature(self):
         return self.getMcTemperatures(logTemps=False)[self.led_temp_idx]
 
+    def _check_uv_led_overheat(self, temperatures: [int]) -> None:
+        # TODO: Refactor temp (all value read) using some cache to avoid parsing at multiple places
+        temp = temperatures[self.led_temp_idx]
+        # TODO: < 0 is not an overheat, it is rather a read error (or it is an actual temperature)
+        old = self.uv_led_overheat
+        if temp < 0 or temp > defines.maxUVTemp:
+            self.logger.error("UV LED is overheating, temperature: %f", temp)
+            self.uv_led_overheat = True
+        if 0 < temp < defines.maxUVTemp - defines.uv_temp_hysteresis:
+            self.uv_led_overheat = False
+        if old != self.uv_led_overheat:
+            self.uv_led_overheat_changed.emit(self.uv_led_overheat)
+
+    def _fans_error_check(self, fans_error: bool):
+        """
+        Report fan failure
+
+        @param fans_status: fan operation status, True - working, False - broken
+        """
+        error = self.getFansError()
+        if not any(error.values()):
+            self.logger.debug("Ignoring fan error from status as no fan is failing")
+            fans_error = False  # False positive, fans are actually ok ???
+
+        if self.fans_error != fans_error:
+            self.fans_error = fans_error
+            self.fans_error_changed.emit(error)
+
     def getAmbientTemperature(self):
         return self.getMcTemperatures(logTemps=False)[self.ambient_temp_idx]
 
@@ -774,6 +836,13 @@ class Hardware:
     def getCpuTemperature(self):  # pylint: disable=no-self-use
         with open(defines.cpuTempFile, "r") as f:
             return round((int(f.read()) / 1000.0), 1)
+
+    def _check_cpu_overheat(self, A64temperature):
+        if A64temperature > defines.maxA64Temp: # 80 C
+            self.logger.warning("Printer is overheating! Measured %.1f °C on A64.", A64temperature)
+            if not any(fan.enabled for fan in self.fans.values()):
+                self.startFans()
+            #self.checkCooling = True #shouldn't this start the fan check also?
 
     # --- motors ---
 
