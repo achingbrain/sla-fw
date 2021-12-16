@@ -5,7 +5,6 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from functools import partial
 from typing import Dict, Optional
 from typing import List
 
@@ -36,9 +35,6 @@ def with_code(code: str):
 
 def get_exception_code(exception: Exception) -> Code:
     return getattr(exception, "CODE") if hasattr(exception, "CODE") else Sl1Codes.UNKNOWN
-
-
-exception_dataclass = partial(dataclass, frozen=True, eq=True)
 
 
 @with_code(Sl1Codes.UNKNOWN)
@@ -165,13 +161,13 @@ class TiltHomeCheckFailed(GeneralError):
 
 
 @with_code(Sl1Codes.TOWER_AXIS_CHECK_FAILED)
-@dataclass()
+@dataclass(frozen=True)
 class TowerAxisCheckFailed(GeneralError):
     position_nm: int
 
 
 @with_code(Sl1Codes.TILT_AXIS_CHECK_FAILED)
-@dataclass()
+@dataclass(frozen=True)
 class TiltAxisCheckFailed(GeneralError):
     position: int
 
@@ -187,19 +183,19 @@ class DisplayTestFailed(GeneralError):
 
 
 @with_code(Sl1Codes.UVLED_HEAT_SINK_FAILED)
-@dataclass()
+@dataclass(frozen=True)
 class UVLEDHeatsinkFailed(GeneralError):
     uv_temp_deg_c: float
 
 
 @with_code(Sl1Codes.INVALID_TILT_ALIGN_POSITION)
-@dataclass()
+@dataclass(frozen=True)
 class InvalidTiltAlignPosition(GeneralError):
     tilt_position: Optional[int]
 
 
 @with_code(Sl1Codes.FAN_RPM_OUT_OF_TEST_RANGE)
-@dataclass()
+@dataclass(frozen=True)
 class FanRPMOutOfTestRange(GeneralError):
     fan: str
     rpm: Optional[int]
@@ -213,7 +209,7 @@ class WizardNotCancelable(GeneralError):
 
 
 @with_code(Sl1Codes.TOWER_BELOW_SURFACE)
-@dataclass()
+@dataclass(frozen=True)
 class TowerBelowSurface(GeneralError):
     tower_position_nm: int
 
@@ -292,26 +288,26 @@ class ProjectErrorCantRemove(ExposureError):
 
 
 @with_code(Sl1Codes.TEMP_SENSOR_FAILED)
-@dataclass
+@dataclass(frozen=True)
 class TempSensorFailed(ExposureError):
     sensor: str
 
 
 @with_code(Sl1Codes.TEMPERATURE_OUT_OF_RANGE)
-@dataclass()
+@dataclass(frozen=True)
 class TempSensorNotInRange(GeneralError):
     sensor: str
     temperature: float
 
 
 @with_code(Sl1Codes.A64_OVERHEAT)
-@dataclass()
+@dataclass(frozen=True)
 class A64Overheat(GeneralError):
     temperature: float
 
 
 @with_code(Sl1Codes.FAN_FAILED)
-@dataclass
+@dataclass(frozen=True)
 class FanFailed(ExposureError):
     failed_fans: List[int]
     failed_fan_names: List[str]
@@ -319,13 +315,13 @@ class FanFailed(ExposureError):
 
 
 @with_code(Sl1Codes.RESIN_MEASURE_FAILED)
-@dataclass
+@dataclass(frozen=True)
 class ResinMeasureFailed(ExposureError):
     volume_ml: float
 
 
 @with_code(Sl1Codes.RESIN_TOO_LOW)
-@dataclass
+@dataclass(frozen=True)
 class ResinTooLow(ResinMeasureFailed):
     min_resin_ml: float
 
@@ -336,13 +332,13 @@ class ResinTooHigh(ResinMeasureFailed):
 
 
 @with_code(Sl1Codes.RESIN_SENSOR_FAILED)
-@dataclass
+@dataclass(frozen=True)
 class ResinSensorFailed(ExposureError):
     position_mm: float
 
 
 @with_code(Sl1Codes.WARNING_ESCALATION)
-@dataclass
+@dataclass(frozen=True)
 class WarningEscalation(ExposureError):
     warning: Warning
 
@@ -409,7 +405,7 @@ class NotEnoughInternalSpace(PrinterError):
 
 
 @with_code(Sl1Codes.DOWNLOAD_FAILED)
-@dataclass()
+@dataclass(frozen=True)
 class DownloadFailed(PrinterError):
     url: str
     total_bytes: int
@@ -467,7 +463,7 @@ class UnexpectedUVIntensity(PrinterError):
 
 
 @with_code(Sl1Codes.UNKNOWN_UV_MEASUREMENT_ERROR)
-@dataclass()
+@dataclass(frozen=True)
 class UnknownUVMeasurementFailure(PrinterError):
     code: int
 
@@ -477,7 +473,7 @@ class UVCalibrationError(PrinterError):
 
 
 @with_code(Sl1Codes.UV_TOO_BRIGHT)
-@dataclass()
+@dataclass(frozen=True)
 class UVTooBright(UVCalibrationError):
     intensity: float
     threshold: float
@@ -490,7 +486,7 @@ class UVTooDimm(UVCalibrationError):
 
 
 @with_code(Sl1Codes.UV_INTENSITY_DEVIATION_TOO_HIGH)
-@dataclass()
+@dataclass(frozen=True)
 class UVDeviationTooHigh(UVCalibrationError):
     found: float
     allowed: float
@@ -512,7 +508,7 @@ class DataFromUnknownUvSensor(PrinterError):
 
 
 @with_code(Sl1Codes.NO_DISPLAY_USAGE_DATA)
-@dataclass()
+@dataclass(frozen=True)
 class DisplayUsageError(PrinterError):
     reason: str
 
@@ -556,12 +552,12 @@ class UVPWMComputationError(PrinterError):
     pass
 
 
-@dataclass()
+@dataclass(frozen=True)
 class DisplayTransmittanceNotValid(UVPWMComputationError):
     transmittance: float
 
 
-@dataclass()
+@dataclass(frozen=True)
 class CalculatedUVPWMNotInRange(UVPWMComputationError):
     pwm: int
     pwm_min: int
@@ -569,6 +565,6 @@ class CalculatedUVPWMNotInRange(UVPWMComputationError):
 
 
 @with_code(Sl1Codes.OLD_EXPO_PANEL)
-@dataclass()
+@dataclass(frozen=True)
 class OldExpoPanel(PrinterError):
     counter_h: int
