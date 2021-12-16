@@ -1,7 +1,8 @@
 import logging
 
-from sl1fw.api.decorators import dbus_api, state_checked, auto_dbus
 from sl1fw.functions.system import hw_all_off
+
+from sl1fw.api.decorators import dbus_api, state_checked, auto_dbus
 from sl1fw.libPrinter import Printer
 from sl1fw.states.printer import Printer0State, PrinterState
 

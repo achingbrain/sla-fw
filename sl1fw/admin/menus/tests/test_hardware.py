@@ -15,6 +15,7 @@ from sl1fw.hardware.tilt import TiltProfile
 from sl1fw.errors.errors import TiltHomeFailed
 from sl1fw.functions.system import hw_all_off
 
+
 class TestHardwareMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)

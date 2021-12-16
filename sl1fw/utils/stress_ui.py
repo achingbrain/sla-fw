@@ -22,7 +22,7 @@ printer = Printer(exposure)
 bus.publish(Printer0.__INTERFACE__, Printer0(printer))
 bus.publish(Exposure0.__INTERFACE__, (Exposure0.dbus_path(exposure.instance_id), Exposure0(exposure)))
 
-Thread(target=GLib.MainLoop().run, daemon=True).start()
+Thread(target=GLib.MainLoop().run, daemon=True).start()  # type: ignore[attr-defined]
 
 while True:
     for state in ExposureState:

@@ -36,7 +36,7 @@ logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
 
 # use system locale settings for translation
 gettext.install("sl1fw", defines.localedir, names=("ngettext",))
-builtins.N_ = lambda x: x #type: ignore
+builtins.N_ = lambda x: x  # type: ignore
 
 warnings.simplefilter("ignore")
 
@@ -49,4 +49,4 @@ factorytests0 = FactoryTests0(printer)
 Thread(target=printer.run, daemon=False).start()
 
 logger.info("Running DBus event loop")
-GLib.MainLoop().run()
+GLib.MainLoop().run()  # type: ignore[attr-defined]

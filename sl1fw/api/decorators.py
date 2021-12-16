@@ -224,7 +224,7 @@ def python_to_dbus_value_type(data: Any):
     # pylint: disable = unidiomatic-typecheck
 
     if isinstance(data, int):
-        if data > GLib.MAXINT32 or data < GLib.MININT32:
+        if data > GLib.MAXINT32 or data < GLib.MININT32:  # type: ignore[operator]
             return "x"
 
     if type(data) in PYTHON_TO_DBUS_TYPE:
@@ -256,7 +256,7 @@ def wrap_value(data: Any) -> Variant:
     # pylint: disable = too-many-return-statements
 
     if isinstance(data, int):
-        if data > GLib.MAXINT32 or data < GLib.MININT32:
+        if data > GLib.MAXINT32 or data < GLib.MININT32:  # type: ignore[operator]
             return Variant("x", data)
 
     if type(data) in PYTHON_TO_DBUS_TYPE:

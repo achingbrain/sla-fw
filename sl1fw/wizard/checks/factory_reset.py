@@ -128,7 +128,7 @@ class ResetWifi(ResetCheck):
             ):
                 try:
                     system_bus.get(self.NETWORK_MANAGER, connection).Delete()
-                except GLib.GError:
+                except GLib.GError:  # type: ignore[attr-defined]
                     self._logger.exception("Failed to delete connection %s", connection)
 
 
