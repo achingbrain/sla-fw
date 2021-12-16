@@ -5,9 +5,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
-import toml
 
-from sl1fw import test_runtime
+import toml
 
 
 class TomlConfig:
@@ -25,9 +24,7 @@ class TomlConfig:
         except FileNotFoundError:
             self.logger.warning("File '%s' not found", self.filename)
             self.data = {}
-        except Exception as exception:
-            if test_runtime.hard_exceptions:
-                raise exception
+        except Exception:
             self.logger.exception("Failed to load toml file")
             self.data = {}
         return self.data
@@ -45,9 +42,7 @@ class TomlConfig:
             if filename:
                 self.filename = filename
             self.save_raw()
-        except Exception as exception:
-            if test_runtime.hard_exceptions:
-                raise exception
+        except Exception:
             self.logger.exception("Failed to save toml file")
             return False
         return True

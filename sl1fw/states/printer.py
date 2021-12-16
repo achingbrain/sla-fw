@@ -39,7 +39,6 @@ class PrinterState(Enum):
     WIZARD = 5
     UPDATING_MC = 6
     EXCEPTION = 7
-    EXIT = 8
     OVERHEATED = 9
 
     def to_state0(self) -> Printer0State:

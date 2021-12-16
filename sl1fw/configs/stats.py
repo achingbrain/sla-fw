@@ -7,6 +7,11 @@
 import subprocess
 from sl1fw.configs.toml import TomlConfig
 
+
+class TomlConfigStatsException(Exception):
+    pass
+
+
 class TomlConfigStats(TomlConfig):
     def __init__(self, filename, hw):
         super(TomlConfigStats, self).__init__(filename)
@@ -21,13 +26,16 @@ class TomlConfigStats(TomlConfig):
         return self.data
 
     def update_reboot_counter(self):
-        result = subprocess.run(["uptime", "-s"], capture_output=True, check=True)
-        system_up_since = result.stdout.decode("ascii").strip()
-        self.load()
-        if self['last_reboot'] != system_up_since:
-            self['last_reboot'] = system_up_since
-            self["reboot_counter"] += 1
-            self.save_raw()
+        try:
+            result = subprocess.run(["uptime", "-s"], capture_output=True, check=True)
+            system_up_since = result.stdout.decode("ascii").strip()
+            self.load()
+            if self["last_reboot"] != system_up_since:
+                self["last_reboot"] = system_up_since
+                self["reboot_counter"] += 1
+                self.save_raw()
+        except Exception as exception:
+            raise TomlConfigStatsException from exception
 
     def __setitem__(self, key, value):
         self.data[key] = value

@@ -10,7 +10,6 @@ import weakref
 from pathlib import Path
 from shutil import copyfile
 from threading import Thread
-from time import sleep
 
 # import cProfile
 from typing import Optional
@@ -22,8 +21,6 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw import defines, test_runtime
 from sl1fw.api.printer0 import Printer0
 from sl1fw.libPrinter import Printer
-from sl1fw.states.printer import PrinterState
-from sl1fw.states.wizard import WizardState
 
 
 class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
@@ -81,9 +78,7 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
             Printer0.__INTERFACE__,
             (None, weakref.proxy(self._printer0), self._printer0.dbus),
         )
-        self.thread = Thread(target=self.printer_thread)
-
-        self.tryStartPrinter()
+        self.try_start_printer()
 
     def rewriteDefines(self) -> None:
         defines.wizardHistoryPath = Path(self.temp_dir_wizard_history.name)
@@ -125,43 +120,20 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
     def _change_dir(self, path) -> str:
         return self.temp_dir_project.name + "/" + os.path.basename(path)
 
-    def tryStartPrinter(self):
+    def try_start_printer(self):
         try:
-            self.thread.start()
-
-            # skip selftest and calibration
-            expectedStates = [
-                WizardState.PREPARE_WIZARD_PART_1.value,
-                WizardState.PREPARE_CALIBRATION_INSERT_PLATFORM_TANK.value
-            ]
-            for expectedState in expectedStates:
-                while self.printer.state != PrinterState.WIZARD:
-                    sleep(0.25)
-                wizard = SystemBus().get("cz.prusa3d.sl1.wizard0")
-                for _ in range(50):  # 5 second timeout
-                    if wizard.state == expectedState:
-                        break
-                    sleep(0.1)
-                if wizard.state != expectedState:
-                    raise Exception("Wizard not in expected state")
-                wizard.cancel()
-            sleep(0.5)    # FIXME: MC commands from canceling wizard are sent even when wizard.state is already CANCELED. It has effect on ongoing tests
+            self.printer.setup()
+            # cProfile.runctx('self.printer.start()', globals=globals(), locals=locals())
         except Exception as exception:
             self.tearDown()
             raise Exception("Test setup failed") from exception
-
-    def printer_thread(self):
-        self.printer.run()
-        # cProfile.runctx('self.printer.start()', globals=globals(), locals=locals())
 
     def tearDown(self):
         self.printer0_dbus.unpublish()
         if self._printer0 in Printer0.PropertiesChanged.map:
             del Printer0.PropertiesChanged.map[self._printer0]
 
-        self.printer.exit()
-
-        self.thread.join()
+        self.printer.stop()
 
         # Make sure we are not leaving these behind.
         # Base test tear down checks this does not happen.

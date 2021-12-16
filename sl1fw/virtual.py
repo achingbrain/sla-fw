@@ -3,6 +3,7 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
@@ -19,10 +20,10 @@ import logging
 import os
 import signal
 import tempfile
+import threading
 import warnings
 from pathlib import Path
 from shutil import copyfile
-from threading import Thread
 from unittest.mock import patch, Mock
 
 import pydbus
@@ -43,7 +44,7 @@ from sl1fw.tests.mocks.dbus.rauc import Rauc
 
 # use system locale settings for translation
 gettext.install("sl1fw", defines.localedir, names=("ngettext",))
-builtins.N_ = lambda x: x #type: ignore
+builtins.N_ = lambda x: x  # type: ignore
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
 
@@ -63,6 +64,7 @@ copyfile(SAMPLES_DIR / "hardware.toml", HARDWARE_FILE_FACTORY)
 defines.expoPanelLogPath = TEMP_DIR / defines.expoPanelLogFileName
 copyfile(SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
 
+
 def change_dir(path):
     return os.path.join(defines.previousPrints, os.path.basename(path))
 
@@ -72,7 +74,6 @@ defines.factoryConfigPath = SL1FW_DIR / ".." / "factory" / "factory.toml"
 defines.hwConfigPathFactory = HARDWARE_FILE_FACTORY
 defines.templates = str(SL1FW_DIR / "intranet" / "templates")
 test_runtime.testing = True
-test_runtime.hard_exceptions = False
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
 defines.cpuTempFile = str(SAMPLES_DIR / "cputemp")
 defines.multimediaRootPath = str(SL1FW_DIR / "multimedia")
@@ -142,15 +143,12 @@ class Virtual:
         ), patch(
             "sl1fw.libHardware.Hardware.isCoverClosed", Mock(return_value=True)
         ), patch(
-            "sl1fw.libHardware.Hardware.get_resin_volume", Mock(return_value=100)   # fake resin measurement 100 ml
+            "sl1fw.libHardware.Hardware.get_resin_volume", Mock(return_value=100)  # fake resin measurement 100 ml
         ):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
             print("Publishing Rauc mock")
             self.rauc_mocks = bus.publish(Rauc.__OBJECT__, ("/", Rauc()))
-
-            print("Running glib mainloop")
-            self.glib_loop = GLib.MainLoop()
 
             print("Initializing printer")
             self.printer = libPrinter.Printer()
@@ -171,9 +169,10 @@ class Virtual:
             self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
             FactoryTests0(self.printer)
             print("Running printer")
-            Thread(target=self.printer.run, daemon=False).start()
-            self.glib_loop.run()
-
+            threading.Thread(target=self.printer.setup).start()  # Does not block, but requires Rauc on DBus
+            print("Running glib mainloop")
+            self.glib_loop = GLib.MainLoop().run()
+            self.glib_loop.run()  # type: ignore[attr-defined]
             print("Unpublishing Rauc mock")
             self.rauc_mocks.unpublish()
 
@@ -194,7 +193,7 @@ class Virtual:
         # Run all teardown parts in parallel. Some may block or fail
         with concurrent.futures.ThreadPoolExecutor() as pool:
             tasks = [
-                loop.run_in_executor(pool, self.printer.exit),
+                loop.run_in_executor(pool, self.printer.stop),
                 loop.run_in_executor(pool, self.rauc_mocks.unpublish),
                 loop.run_in_executor(pool, self.glib_loop.quit),
                 loop.run_in_executor(pool, self.printer0.unpublish),

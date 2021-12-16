@@ -19,4 +19,3 @@ uv_pwm = 0
 uv_on_until: Optional[datetime] = None
 exposure_image = None
 uv_error_each = 0
-hard_exceptions = False

@@ -17,7 +17,7 @@ from sl1fw.configs.toml import TomlConfig
 from sl1fw.errors.errors import (
     FailedUpdateChannelSet,
     FailedUpdateChannelGet,
-    ConfigException, DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange,
+    ConfigException, DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange, PrinterException,
 )
 from sl1fw.hardware.printer_model import PrinterModel
 from sl1fw.image.exposure_image import ExposureImage
@@ -172,9 +172,12 @@ def get_hostname() -> str:
 
 
 def set_hostname(hostname: str) -> None:
-    dbus = pydbus.SystemBus().get("org.freedesktop.hostname1")
-    dbus.SetStaticHostname(hostname, False)
-    dbus.SetHostname(hostname, False)
+    try:
+        dbus = pydbus.SystemBus().get("org.freedesktop.hostname1")
+        dbus.SetStaticHostname(hostname, False)
+        dbus.SetHostname(hostname, False)
+    except Exception as exception:
+        raise PrinterException("Cannot set hostname") from exception
 
 
 def reset_hostname(model: PrinterModel) -> None:

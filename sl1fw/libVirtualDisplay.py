@@ -21,7 +21,7 @@ class VirtualDisplay:
 
 
     def start(self):
-        self.server.start()
+        self.server.setup()
     #enddef
 
 

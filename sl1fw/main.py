@@ -3,14 +3,13 @@
 # This file is part of the SL1 firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
-# Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2020-2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import builtins
 import gettext
 import logging
 import warnings
-from threading import Thread
 
 from gi.repository import GLib
 from pydbus import SystemBus
@@ -46,7 +45,8 @@ SystemBus().publish(Standard0.__INTERFACE__, Standard0(printer))
 admin_manager = AdminManager()
 SystemBus().publish(Admin0.__INTERFACE__, Admin0(admin_manager, printer))
 factorytests0 = FactoryTests0(printer)
-Thread(target=printer.run, daemon=False).start()
+printer.setup()
+printer.make_ready_to_print()
 
 logger.info("Running DBus event loop")
 GLib.MainLoop().run()  # type: ignore[attr-defined]

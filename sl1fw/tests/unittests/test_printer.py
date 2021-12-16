@@ -2,12 +2,9 @@
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from threading import Thread
-from time import sleep
 from typing import Optional
 from unittest.mock import Mock
 
-from sl1fw.states.printer import PrinterState
 from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.libPrinter import Printer
 
@@ -22,20 +19,11 @@ class TestPrinter(Sl1fwTestCase):
 
         self.printer = Printer()
         self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
-        self.printer_thread = Thread(target=self.printer.run)
-        self.printer_thread.start()
-        for _ in range(100):
-            if self.printer.state != PrinterState.INIT:
-                break
-            sleep(0.1)
-            print("Waiting for printer to leave init")
-        self.assertNotEqual(self.printer.state, PrinterState.INIT)
+        self.printer.setup()
 
     def tearDown(self) -> None:
-        self.printer.exit()
-        self.printer_thread.join()
+        self.printer.stop()
         self.printer = None
-        self.printer_thread = None
 
         super().tearDown()
 

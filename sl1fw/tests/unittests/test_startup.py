@@ -5,7 +5,6 @@
 import json
 from datetime import datetime, timedelta
 from shutil import copyfile
-from threading import Thread
 from time import sleep
 from typing import Optional
 from unittest.mock import Mock
@@ -30,7 +29,6 @@ class TestStartup(Sl1fwTestCase):
         defines.sl1s_model_file.touch()   # Set SL1S as the current model
 
         self.printer = Printer()
-        self.printer_thread = Thread(target=self.printer.run)
 
         # Init state
         # Create mocks for registering callbacks being called. __name__ set to satisfy PySignal
@@ -55,11 +53,8 @@ class TestStartup(Sl1fwTestCase):
         self.printer.hw.config.uvPwm = 208
 
     def tearDown(self) -> None:
-        self.printer.exit()
-        self.printer_thread.join()
-        self.printer = None
-        self.printer_thread = None
-
+        self.printer.stop()
+        del self.printer
         super().tearDown()
 
     def test_expo_panel_log_first_record(self):
@@ -88,23 +83,33 @@ class TestStartup(Sl1fwTestCase):
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
 
         self._run_printer()
+        self.printer.run_make_ready_to_print()
+        for _ in range(100):
+            if self.printer.state == PrinterState.WIZARD:
+                break
+            sleep(0.1)
         self.assertEqual(self.printer.state, PrinterState.WIZARD)  # wizard is running, no error is raised
         self.assertEqual(
-            self.printer.action_manager._wizard.identifier, WizardId.NEW_EXPO_PANEL) # pylint: disable=protected-access
+            self.printer.action_manager._wizard.identifier, WizardId.NEW_EXPO_PANEL)  # pylint: disable=protected-access
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
-        self.assertEqual(3, len(log))                                   # log holds records from sample file
+        self.assertEqual(3, len(log))  # log holds records from sample file
 
-        last_key = list(log)[-1]                                 # last record has to be newly added
+        last_key = list(log)[-1]  # last record has to be newly added
         self.assertNotEqual(
             self.printer.hw.exposure_screen.panel.serial_number(),
-            log[last_key]["panel_sn"])                          # wizard is not done, so new panel is not recorded
+            log[last_key]["panel_sn"])  # wizard is not done, so new panel is not recorded
 
     def test_expo_panel_log_old_panel(self):
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
         self.printer.hw.exposure_screen.panel.serial_number = Mock(return_value="CZPX2921X021X000262")
 
         self._run_printer()
+        self.printer.run_make_ready_to_print()
+        for _ in range(100):
+            if self.printer.state == PrinterState.WIZARD:
+                break
+            sleep(0.1)
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
         next_to_last_key = list(log)[-2]    # get counter_s from sample file
@@ -114,10 +119,4 @@ class TestStartup(Sl1fwTestCase):
         self.assertEqual(self.printer.state, PrinterState.WIZARD)       # wizard is running
 
     def _run_printer(self):
-        self.printer_thread.start()
-        for _ in range(100):
-            if self.printer.state != PrinterState.INIT:
-                sleep(1)    # TODO: why half of setup is in printer.INIT and half in printer.RUNNING??
-                break
-            sleep(0.1)
-            print("Waiting for printer to exit")
+        self.printer.setup()

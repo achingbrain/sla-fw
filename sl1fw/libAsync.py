@@ -22,8 +22,8 @@ from sl1fw.slicer.slicer_profile import SlicerProfile
 
 
 class BackgroundNetworkCheck(ABC):
-    def __init__(self, inet: Network, name: str):
-        self.logger = logging.getLogger(name)
+    def __init__(self, inet: Network):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.inet = inet
         self.change_trigger = True
         self.logger.info("Registering net change handler")
@@ -54,9 +54,10 @@ class BackgroundNetworkCheck(ABC):
 
 class AdminCheck(BackgroundNetworkCheck):
     def __init__(self, config: RuntimeConfig, hw: Hardware, inet: Network):
+        super().__init__(inet)
         self.config = config
         self.hw = hw
-        super().__init__(inet, "sl1fw.AdminCheck")
+        self.logger.info("Starting admin checker")
 
     def check(self):
         self.logger.info("Querying admin enabled")
@@ -84,7 +85,7 @@ class SlicerProfileUpdater(BackgroundNetworkCheck):
     def __init__(self, inet: Network, profile: SlicerProfile, printer_type_name: str):
         self.profile = profile
         self.printer_type_name = printer_type_name
-        super().__init__(inet, "sl1fw.SlicerProfileUpdater")
+        super().__init__(inet)
 
     def check(self):
         self.logger.info("Checking slicer profiles update")
