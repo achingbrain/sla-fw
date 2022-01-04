@@ -152,7 +152,7 @@ class Project:
 
     def _read_toml_config(self) -> list:
         self.logger.info("Opening project file '%s'", self.path)
-        if not Path(self.path).exists():
+        if not Path(self.path).is_file():
             self.logger.error("Project lookup exception: file not found: %s", self.path)
             raise ProjectErrorNotFound
         try:
