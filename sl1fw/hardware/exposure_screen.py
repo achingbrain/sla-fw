@@ -202,6 +202,7 @@ class Wayland:
         xdg_toplevel = xdg_surface.get_toplevel()
         xdg_toplevel.set_title("SLA-FW Exposure Output")
         xdg_toplevel.set_app_id("cz.prusa3d.slafw")
+        xdg_toplevel.set_fullscreen(self.bindings.output)
         xdg_toplevel.dispatcher["configure"] = self._xdg_toplevel_configure_handler
         xdg_toplevel.dispatcher["close"] = self._xdg_toplevel_close_handler
         self.blank_layer = Layer(
@@ -247,9 +248,8 @@ class Wayland:
             self.bindings.shm = registry.bind(id_, WlShm, version)
             self.bindings.shm.dispatcher["format"] = self._shm_format_handler
         elif interface == "wl_output":
-            self.logger.debug("got wl_output")
-            self.bindings.output = registry.bind(id_, WlOutput, version)
-            self.bindings.output.dispatcher["mode"] = self._output_mode_handler
+            output = registry.bind(id_, WlOutput, version)
+            output.dispatcher["mode"] = self._output_handler
         elif interface == "wp_presentation":
             self.logger.debug("got wp_presentation")
             self.bindings.presentation = registry.bind(id_, WpPresentation, version)
@@ -266,8 +266,13 @@ class Wayland:
             self.logger.debug("got shm_format")
             self.format_available = True
 
-    def _output_mode_handler(self, wl_output, flags, width, height, refresh):
-        self.logger.debug("got output mode - flags:%d width:%d height:%d refresh:%d", flags, width, height, refresh)
+    def _output_handler(self, wl_output, flags, width, height, refresh):
+        self.logger.debug("found output - %dx%d@%.1f flags:%d ", width, height, refresh / 1e3, flags)
+        if width == self.parameters.width_px // self.parameters.bytes_per_pixel and height == self.parameters.height_px:
+            self.logger.debug("got wl_output")
+            self.bindings.output = wl_output
+        else:
+            self.logger.debug("wrong resolution (%dx%d) - output ignored", width, height)
 
     def _xdg_toplevel_configure_handler(self, xdg_toplevel, width, height, states):
         if width != self.main_layer.width or height != self.main_layer.height:
