@@ -437,6 +437,7 @@ class Project:
                     self.logger.debug("Copying project to internal storage '%s' -> '%s'", origin_path, new_source)
                     shutil.copyfile(origin_path, new_source + "~")
                     shutil.move(new_source + "~", new_source)
+                    self.logger.debug("Done copying project")
                     self.path = new_source
                     self.path_changed.emit(self.path)
                 except Exception as e:
@@ -444,9 +445,11 @@ class Project:
                     self.logger.warning("Can't copy the project, printing directly from USB.")
                     self.warnings.add(PrintingDirectlyFromMedia())
         try:
+            self.logger.debug("Testing project file integrity")
             zf = ZipFile(self.path, "r")
             badfile = zf.testzip()
             zf.close()
+            self.logger.debug("Done testing integrity")
         except Exception as e:
             self.logger.exception("zip read exception: %s", str(e))
             raise ProjectErrorCantRead from e

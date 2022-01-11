@@ -21,6 +21,7 @@ import glob
 import logging
 import os
 from abc import abstractmethod
+from asyncio import CancelledError, Task
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from logging import Logger
@@ -141,23 +142,22 @@ class ProjectDataCheck(ExposureCheckRunner):
         super().__init__(ExposureCheck.PROJECT, *args, **kwargs)
 
     async def run(self):
-        # Remove old projects
+        await asyncio.sleep(0)
         self.logger.debug("Running disk cleanup")
         self.expo.check_and_clean_last_data()
-
+        await asyncio.sleep(0)
         self.logger.debug("Running project copy and check")
         self.expo.project.copy_and_check()
-
         self.logger.info("Project after copy and check: %s", str(self.expo.project))
-
-        # start data preparation by ExposureImage
+        await asyncio.sleep(0)
         self.logger.debug("Initiating project in ExposureImage")
         self.expo.startProject()
-
+        await asyncio.sleep(0)
         # show all warnings
         if self.expo.project.warnings:
             for warning in self.expo.project.warnings:
                 self.raise_warning(warning)
+        await asyncio.sleep(0)
 
 
 class FansCheck(ExposureCheckRunner):
@@ -321,6 +321,7 @@ class Exposure:
         self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
         self.hw.fans_error_changed.connect(self._on_fans_error)
+        self._checks_task: Task = None
 
     def read_project(self, project_file: str):
         check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
@@ -366,14 +367,20 @@ class Exposure:
         self.warning_dismissed.set()
 
     def cancel(self):
-        self.logger.info("Canceling exposure")
         self.canceled = True
         if self.in_progress:
             # Will be terminated by after layer finished
-            self.state = ExposureState.PENDING_ACTION
-            self.doExitPrint()
+            if self.state == ExposureState.CHECKS and self._checks_task:
+                self.logger.info("Canceling preprint checks")
+                self.state = ExposureState.PENDING_ACTION
+                self._checks_task.cancel()
+            else:
+                self.logger.info("Canceling exposure")
+                self.state = ExposureState.PENDING_ACTION
+                self.doExitPrint()
         else:
             # Exposure thread not yet running (cancel before start)
+            self.logger.info("Canceling not started exposure")
             self.state = ExposureState.DONE
             self.write_last_exposure()
 
@@ -781,15 +788,16 @@ class Exposure:
                 self.logger.error('Undefined command: "%s" ignored', command)
 
             self.logger.info("Exiting exposure thread on state: %s", self.state)
-        except Exception as exception:
+        except (Exception, CancelledError) as exception:
             self.logger.exception("Exposure thread exception")
-            self.fatal_error = exception
             if not isinstance(exception, (TiltFailed, TowerFailed)):
                 self._final_go_up()
-            if isinstance(exception, WarningEscalation):
+            if isinstance(exception, (WarningEscalation, CancelledError)):
                 self.state = ExposureState.CANCELED
             else:
                 self.state = ExposureState.FAILURE
+            if not isinstance(exception, CancelledError):
+                self.fatal_error = exception
 
         if self.project:
             self.project.data_close()
@@ -818,6 +826,10 @@ class Exposure:
             await asyncio.gather(self.hw.verify_tower(), self.hw.verify_tilt())
 
     async def _run_checks(self):
+        self._checks_task = asyncio.create_task(self._run_checks_task())
+        await self._checks_task
+
+    async def _run_checks_task(self):
         self.state = ExposureState.CHECKS
         self.logger.info("Running pre-print checks")
         for check in ExposureCheck:
@@ -1053,6 +1065,7 @@ class Exposure:
 
     def _final_go_up(self):
         self.state = ExposureState.GOING_UP
+        self.hw.motorsStop()
         self.hw.setTowerProfile("homingFast")
         self.hw.towerToTop()
         while not self.hw.isTowerOnPosition():

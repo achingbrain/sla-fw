@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pickle
+from asyncio import Task
 from pathlib import Path
 from queue import Queue
 from threading import Thread, Lock, Event
@@ -30,6 +31,7 @@ class ExposurePickler(pickle.Pickler):
         ZipFile,
         Event,
         type(Lock()),
+        Task,
     )
 
     def persistent_id(self, obj):
