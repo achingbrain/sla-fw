@@ -1024,6 +1024,7 @@ class Exposure:
         else:
             self.state = ExposureState.FINISHED
 
+        self._print_end_hw_off()
         self.write_last_exposure()
 
         if not self.canceled:
