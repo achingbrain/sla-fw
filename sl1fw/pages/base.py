@@ -3,6 +3,8 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# pylint: skip-file
+
 # TODO: Fix following pylint problems
 # pylint: disable=inconsistent-return-statements
 # pylint: disable=no-else-return
@@ -11,7 +13,6 @@
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-statements
-
 
 from __future__ import annotations
 

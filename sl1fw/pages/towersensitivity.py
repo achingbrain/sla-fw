@@ -4,6 +4,8 @@
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# pylint: skip-file
+
 from prusaerrors.sl1.codes import Sl1Codes
 
 from sl1fw.errors.errors import TowerEndstopNotReached, TowerHomeCheckFailed, ConfigException, get_exception_code
