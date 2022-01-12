@@ -1,4 +1,4 @@
-# This file is part of the SL1 firmware
+# This file is part of the SLA firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # Copyright (C) 2021-2022 Prusa Research a.s. - www.prusa3d.com
@@ -159,7 +159,7 @@ class Printer:
         return state in self._states
 
     def setup(self):
-        self.logger.info("SL1 firmware starting, PID: %d", os.getpid())
+        self.logger.info("SLA firmware starting, PID: %d", os.getpid())
         self.logger.info("System version: %s", distro.version())
         start_time = monotonic()
 
@@ -209,7 +209,7 @@ class Printer:
 
         # Finish startup
         self.set_state(PrinterState.RUNNING)
-        self.logger.info("SL1 firmware started in %.03f seconds", monotonic() - start_time)
+        self.logger.info("SLA firmware started in %.03f seconds", monotonic() - start_time)
 
     def stop(self):
         self.action_manager.exit()

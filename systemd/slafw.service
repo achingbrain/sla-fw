@@ -1,5 +1,5 @@
 [Unit]
-Description=SL1 firmware
+Description=SLA firmware
 Wants=NetworkManager.service rauc.service model-detect.service model-detect.path
 After=NetworkManager.service rauc.service model-detect.service model-detect.path
 
