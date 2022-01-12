@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 
-project = "sl1fw"
+project = "slafw"
 copyright = f"{datetime.now().year}, Prusa Reasearch"
 
 

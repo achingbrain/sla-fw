@@ -1,0 +1,3 @@
+*.pyc
+bin/
+locales/slafw.pot

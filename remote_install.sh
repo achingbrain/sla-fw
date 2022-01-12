@@ -19,14 +19,14 @@ echo "Target is ${target}"
 set -o xtrace
 
 # Create temp root
-tmp=$(mktemp --directory --tmpdir=/tmp/ sl1fw.XXXX)
+tmp=$(mktemp --directory --tmpdir=/tmp/ slafw.XXXX)
 echo "Local temp is ${tmp}"
 
 echo "Running setup"
 python3 setup.py sdist --dist-dir=${tmp}
 
 # Create remote temp
-target_tmp=$(ssh root@${target} "mktemp --directory --tmpdir=/tmp/ sl1fw.XXXX")
+target_tmp=$(ssh root@${target} "mktemp --directory --tmpdir=/tmp/ slafw.XXXX")
 echo "Remote temp is ${target_tmp}"
 
 echo "Installing on target"
@@ -35,16 +35,16 @@ ssh root@${target} "\
 set -o xtrace; \
 cp -f \"$CFG\" \"$CFG.bak\"; \
 cd ${target_tmp}; \
-tar xvf sl1fw*.tar.gz; \
-rm sl1fw*.tar.gz; \
-cd sl1fw-*; \
+tar xvf slafw*.tar.gz; \
+rm slafw*.tar.gz; \
+cd slafw-*; \
 mount -o remount,rw /usr/share/factory/defaults; \
 pip3 install . ; \
 mount -o remount,ro /usr/share/factory/defaults; \
 mv -f \"$CFG\" \"$CFG.new\"; \
 cp \"$CFG.bak\" \"$CFG\"; \
 systemctl daemon-reload; \
-systemctl restart sl1fw; \
+systemctl restart slafw; \
 systemctl restart touch-ui model-detect.service model-detect.path
 "
 

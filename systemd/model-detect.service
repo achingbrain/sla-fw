@@ -1,5 +1,5 @@
 [Unit]
-Description=Instruct a64-fw to detect initial printer model
+Description=Instruct sla-fw to detect initial printer model
 ConditionFirstBoot=yes
 
 [Service]

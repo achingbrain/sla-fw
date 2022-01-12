@@ -1,4 +1,4 @@
-# a64-fw
+# sla-fw
 High level firmware for SL1 3D printer
 
 # Testing
@@ -39,7 +39,7 @@ To check the source code using pylint use the script:
 
 # Virtual printer
 
-In order to do a quick test of the a64-fw functionality a python script virtual.py can be used to execute a virtual
+In order to do a quick test of the sla-fw functionality a python script virtual.py can be used to execute a virtual
 printer. This one runs in an environment similar to the integration tests while allowing for cooperation with touch-ui
 and full control over system dbus. In order to use the virtual printer it is necessary to have all dbus control files
 installed and adjusted to allow the current user to own sl1 dbus names.

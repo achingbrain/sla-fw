@@ -12,32 +12,32 @@ from setuptools import setup, find_packages
 
 class BuildPyWithLocalesCommand(setuptools.command.build_py.build_py):
     def run(self):
-        subprocess.check_call(["make", "-C", "sl1fw/locales"])
+        subprocess.check_call(["make", "-C", "slafw/locales"])
         setuptools.command.build_py.build_py.run(self)
 
 
 data_files = [
-    ('/usr/share/sl1fw/scripts', glob('sl1fw/scripts/*')),
-    ('/etc/sl1fw', ['sl1fw/hardware.cfg']),
-    ('/etc/sl1fw', ['sl1fw/loggerConfig.json']),
+    ('/usr/share/slafw/scripts', glob('slafw/scripts/*')),
+    ('/etc/slafw', ['slafw/hardware.cfg']),
+    ('/etc/slafw', ['slafw/loggerConfig.json']),
     ('/usr/lib/systemd/system', glob('systemd/*.service')),
     ('/usr/lib/systemd/system', glob('systemd/*.path')),
-    ('/usr/lib/tmpfiles.d/', ['systemd/sl1fw-tmpfiles.conf']),
+    ('/usr/lib/tmpfiles.d/', ['systemd/slafw-tmpfiles.conf']),
     ('/usr/share/factory/defaults', ['factory/factory.toml']),
     ('/usr/share/dbus-1/system.d', glob('dbus/*'))
 ]
 
 setup(
-    name="sl1fw",
-    version="2021.08.27",
-    packages=find_packages(exclude=["sl1fw.tests"]),
-    scripts=['sl1fw/main.py', 'sl1fw/scripts/export_logs.bash'],
-    package_data={'sl1fw': ['data/*', 'data/*/*', 'locales/*/LC_MESSAGES/*.mo']},
+    name="slafw",
+    version="2022.01.11",
+    packages=find_packages(exclude=["slafw.tests"]),
+    scripts=['slafw/main.py', 'slafw/scripts/export_logs.bash'],
+    package_data={'slafw': ['data/*', 'data/*/*', 'locales/*/LC_MESSAGES/*.mo']},
     data_files=data_files,
     cmdclass={
         'build_py': BuildPyWithLocalesCommand
     },
-    url="https://gitlab.com/prusa3d/sl1/a64-fw",
+    url="https://gitlab.com/prusa3d/sl1/sla-fw",
     license="GNU General Public License v3 or later (GPLv3+)",
     classifiers=[
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)'

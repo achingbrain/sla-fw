@@ -1,9 +1,9 @@
 Print project configuration
 ===========================
 
-.. inheritance-diagram:: sl1fw.configs.project
+.. inheritance-diagram:: slafw.configs.project
 
-.. inheritance-diagram:: sl1fw.configs.value
+.. inheritance-diagram:: slafw.configs.value
 
-.. autoclass:: sl1fw.configs.project.ProjectConfig
+.. autoclass:: slafw.configs.project.ProjectConfig
    :members:

@@ -1,10 +1,10 @@
 HWConfig
 ========
 
-.. inheritance-diagram:: sl1fw.configs.hw
+.. inheritance-diagram:: slafw.configs.hw
 
-.. inheritance-diagram:: sl1fw.configs.value
+.. inheritance-diagram:: slafw.configs.value
 
-.. autoclass:: sl1fw.configs.hw.HwConfig
+.. autoclass:: slafw.configs.hw.HwConfig
    :members:
 

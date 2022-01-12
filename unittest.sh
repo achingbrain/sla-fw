@@ -11,5 +11,5 @@ then
     exit 2
 fi
 
-python3-coverage run -m unittest discover --failfast --verbose --buffer sl1fw.tests.unittests &&
-python3-coverage report --include "sl1fw*"
+python3-coverage run -m unittest discover --failfast --verbose --buffer slafw.tests.unittests &&
+python3-coverage report --include "slafw*"

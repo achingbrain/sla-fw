@@ -56,7 +56,7 @@ Now control the printer using the Python interpreter:
     Current state 11
 
     # Numeric state can be decoded using the state enum
-    >>> from sl1fw.api.exposure0 import Exposure0State
+    >>> from slafw.api.exposure0 import Exposure0State
     >>> print(f"Current state {Exposure0State(exposure.state)}")
     Current state Exposure0State.FINISHED
 
@@ -70,7 +70,7 @@ It is possible to react to property changes:
 
     # Import pydbus, printer state for printer0 API access
     >>> import pydbus
-    >>> from sl1fw.api.printer0 import Printer0State
+    >>> from slafw.api.printer0 import Printer0State
     # Import GLib, Thread for DBus event loop
     >>> from gi.repository import GLib
     >>> from threading import Thread
@@ -88,7 +88,7 @@ It is possible to react to property changes:
     cz.prusa3d.sl1.printer0 {'state': 6} []
 
     # Similarly to the exposure states the printer states can be decoded
-    >>> from sl1fw.api.printer0 import Printer0State
+    >>> from slafw.api.printer0 import Printer0State
     >>> def decode(_, prop, __):
     ...     if "state" in prop:
     ...             print(Printer0State(prop["state"]))

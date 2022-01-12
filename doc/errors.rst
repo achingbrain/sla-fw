@@ -5,12 +5,12 @@ Errors, exception, warnings
    :members:
    :undoc-members:
 
-.. automodule:: sl1fw.errors.errors
+.. automodule:: slafw.errors.errors
    :members:
 
-.. automodule:: sl1fw.errors.exceptions
+.. automodule:: slafw.errors.exceptions
    :members:
 
-.. automodule:: sl1fw.errors.warnings
+.. automodule:: slafw.errors.warnings
    :members:
 

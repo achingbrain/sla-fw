@@ -10,7 +10,7 @@ if [ -z "$1" ]
 then
     ARGS=""
 else
-    ARGS="sl1fw.tests.integration.$1"
+    ARGS="slafw.tests.integration.$1"
 fi
 
 export PATH="${PATH}:$(pwd)"
@@ -22,5 +22,5 @@ then
     exit 2
 fi
 
-python3 -m unittest discover --failfast --verbose --buffer sl1fw.tests.integration $ARGS &&
-python3 -m unittest discover --failfast --verbose sl1fw.tests.virtual
+python3 -m unittest discover --failfast --verbose --buffer slafw.tests.integration $ARGS &&
+python3 -m unittest discover --failfast --verbose slafw.tests.virtual
