@@ -141,7 +141,6 @@ uv_temp_hysteresis = 10  # 10 deg C hysteresis
 internalReservedSpace = 110 * 1024 * 1024
 
 localedir = os.path.join(swPath, "locales")
-multimediaRootPath = "/usr/share/sl1fw/multimedia"
 manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
 videosURL = "https://www.prusa3d.com/SL1guide/"
 aboutURL = "https://www.prusa3d.com/about-us/"

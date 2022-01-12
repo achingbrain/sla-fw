@@ -17,8 +17,7 @@ rsync -av systemd/model-detect.service root@${SL1}:/lib/systemd/system/model-det
 rsync -av systemd/model-detect.path root@${SL1}:/lib/systemd/system/model-detect.path &&
 rsync -av systemd/sl1fw-tmpfiles.conf root@${SL1}:/lib/tmpfiles.d/sl1fw-tmpfiles.conf &&
 rsync -av sl1fw/scripts/ root@${SL1}:/usr/share/sl1fw/scripts/ &&
-rsync -av sl1fw/multimedia/ root@${SL1}:/usr/share/sl1fw/multimedia/ &&
-rsync -av --exclude scripts --exclude multimedia sl1fw/ root@${SL1}:/usr/lib/python3.8/site-packages/sl1fw/
+rsync -av --exclude scripts sl1fw/ root@${SL1}:/usr/lib/python3.9/site-packages/sl1fw/
 
 ssh root@${SL1} "
 set -o xtrace; \

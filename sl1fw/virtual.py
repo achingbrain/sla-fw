@@ -76,7 +76,6 @@ defines.templates = str(SL1FW_DIR / "intranet" / "templates")
 test_runtime.testing = True
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
 defines.cpuTempFile = str(SAMPLES_DIR / "cputemp")
-defines.multimediaRootPath = str(SL1FW_DIR / "multimedia")
 defines.internalProjectPath = str(SAMPLES_DIR)
 defines.ramdiskPath = str(TEMP_DIR)
 defines.octoprintAuthFile = SAMPLES_DIR / "slicer-upload-api.key"

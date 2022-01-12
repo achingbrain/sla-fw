@@ -87,7 +87,6 @@ class Sl1FwIntegrationTestCaseBase(Sl1fwTestCase):
         defines.factoryConfigPath = str(self.factory_config_file)
         defines.hwConfigPathFactory = self.hardwarwe_factory_file
         defines.templates = str(self.SL1FW_DIR / "intranet" / "templates")
-        defines.multimediaRootPath = str(self.SL1FW_DIR / "multimedia")
         defines.hwConfigPath = self.hardware_file
         defines.internalProjectPath = str(self.SAMPLES_DIR)
         defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
