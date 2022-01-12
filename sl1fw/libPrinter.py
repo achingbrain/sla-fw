@@ -495,9 +495,9 @@ class Printer:
         return not self.hw.config.showWizard
 
     def run_make_ready_to_print(self):
-        threading.Thread(target=self.make_ready_to_print, daemon=True).start()
+        threading.Thread(target=self._make_ready_to_print, daemon=True).start()
 
-    def make_ready_to_print(self):
+    def _make_ready_to_print(self):
         if not self.runtime_config.factory_mode and self.hw.config.showUnboxing:
             if self.hw.isKit:
                 unboxing = self.action_manager.start_wizard(

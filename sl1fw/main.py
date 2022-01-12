@@ -46,7 +46,7 @@ admin_manager = AdminManager()
 SystemBus().publish(Admin0.__INTERFACE__, Admin0(admin_manager, printer))
 factorytests0 = FactoryTests0(printer)
 printer.setup()
-printer.make_ready_to_print()
+printer.run_make_ready_to_print()
 
 logger.info("Running DBus event loop")
 GLib.MainLoop().run()  # type: ignore[attr-defined]
