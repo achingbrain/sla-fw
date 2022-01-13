@@ -24,7 +24,7 @@ import threading
 import warnings
 from pathlib import Path
 from shutil import copyfile
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, AsyncMock
 
 import pydbus
 from gi.repository import GLib
@@ -143,7 +143,8 @@ class Virtual:
         ), patch(
             "sl1fw.libHardware.Hardware.isCoverClosed", Mock(return_value=True)
         ), patch(
-            "sl1fw.libHardware.Hardware.get_resin_volume", Mock(return_value=100)  # fake resin measurement 100 ml
+            # fake resin measurement 100 ml
+            "sl1fw.libHardware.Hardware.get_resin_volume_async", AsyncMock(return_value=100)
         ):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
