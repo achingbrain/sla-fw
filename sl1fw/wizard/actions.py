@@ -101,6 +101,11 @@ class UserActionBroker:
         # New exposure panel
         self.new_expo_panel_done = UserAction()
 
+        # Tank Surface Cleaner
+        self.tank_surface_cleaner_init_done = UserAction()
+        self.insert_garbage_collector_done = UserAction()
+        self.remove_garbage_done = UserAction()
+
     def push_state(self, state: PushState, priority: bool = False):
         if priority:
             self._states.appendleft(state)

@@ -222,6 +222,18 @@ class Wizard0:
     def new_expo_panel_done(self):
         self._wizard.new_expo_panel_done()
 
+    @auto_dbus
+    def tank_surface_cleaner_init_done(self):
+        self._wizard.tank_surface_cleaner_init_done()
+
+    @auto_dbus
+    def insert_garbage_collector_done(self):
+        self._wizard.insert_garbage_collector_done()
+
+    @auto_dbus
+    def remove_garbage_done(self):
+        self._wizard.remove_garbage_done()
+
     def _started_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"identifier": self.identifier}, [])
         self.PropertiesChanged(self.__INTERFACE__, {"cancelable": self.cancelable}, [])

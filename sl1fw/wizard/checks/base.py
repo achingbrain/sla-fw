@@ -75,8 +75,11 @@ class WizardCheckType(Enum):
     RESET_HW_COUNTERS = 73
     RECORD_EXPO_PANEL_LOG = 74
 
-    # temporary until better solution
-    VAT_CLEANER = 999
+    TOWER_SAFE_DISTANCE = 76
+    TOWER_TOUCHDOWN = 77
+    EXPOSING_GARBAGE = 78
+    TOWER_GENTLY_UP = 79
+    WAITING_FOR_USER = 80
 
 
 class BaseCheck(ABC):

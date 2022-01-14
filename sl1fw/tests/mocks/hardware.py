@@ -71,6 +71,7 @@ class Hardware:
         self.get_tower_sensitivity = Mock(return_value=0)
         self.get_tower_sensitivity_async = AsyncMock(return_value=0)
         self.towerSyncWaitAsync = AsyncMock()
+        self.towerMoveAbsoluteWaitAsync = AsyncMock()
         self.verify_tilt = AsyncMock()
         self.verify_tower = AsyncMock()
 

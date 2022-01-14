@@ -49,6 +49,10 @@ class WizardState(Enum):
 
     PREPARE_NEW_EXPO_PANEL = 2400
 
+    TANK_SURFACE_CLEANER_INIT = 2500
+    TANK_SURFACE_CLEANER_INSERT_GARBAGE_COLLECTOR = 2501
+    TANK_SURFACE_CLEANER_REMOVE_GARBAGE = 2502
+
     @staticmethod
     def finished_states():
         return [WizardState.FAILED, WizardState.DONE, WizardState.CANCELED]
@@ -68,9 +72,7 @@ class WizardId(Enum):
     SL1S_UPGRADE = 9
     SL1_DOWNGRADE = 10
     NEW_EXPO_PANEL = 11
-
-    # temporary until better solution
-    VAT_CLEANER = 999
+    TANK_SURFACE_CLEANER = 12
 
 
 @unique

@@ -10,7 +10,7 @@ from shutil import copyfile
 from tempfile import NamedTemporaryFile
 from typing import Optional
 from unittest.mock import Mock, AsyncMock, MagicMock, patch
-
+import time
 import pydbus
 import toml
 from sl1fw.wizard.wizards.new_expo_panel import NewExpoPanelWizard
@@ -26,7 +26,7 @@ from sl1fw.tests.base import Sl1fwTestCase
 from sl1fw.tests.mocks.hardware import Hardware
 from sl1fw.tests.mocks.uv_meter import UVMeterMock
 from sl1fw.wizard.actions import UserActionBroker
-from sl1fw.wizard.checks.base import Check, WizardCheckType
+from sl1fw.wizard.checks.base import Check, WizardCheckType, WizardCheckState
 from sl1fw.wizard.group import CheckGroup
 from sl1fw.wizard.setup import Configuration, PlatformSetup, TankSetup
 from sl1fw.wizard.wizard import Wizard
@@ -38,6 +38,7 @@ from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
+from sl1fw.wizard.wizards.tank_surface_cleaner import TankSurfaceCleaner
 
 
 class TestGroup(CheckGroup):
@@ -726,6 +727,99 @@ class TestUVCalibration(TestWizardsBase):
         conf = HwConfig(self.hw_config_file)
         conf.read_file()
         self.assertLessEqual(expected_value, conf.uvPwm)
+
+
+class TankSurfaceCleanerTest(TestWizardsBase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.hw_config_file = self.TEMP_DIR / "reset_config.toml"
+        self.hw_config_factory_file = self.TEMP_DIR / "reset_config_factory.toml"
+        # defines.counterLog = self.TEMP_DIR / "counter.log"
+
+        hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True)
+        hw_config.tankCleaningExposureTime = 5  # Avoid waiting for long exposures
+        self.hw = Hardware(hw_config)
+        # self.hw.config.tankCleaningExposureTime = 5.0
+        self.runtime_config = RuntimeConfig()
+        self.exposure_image = Mock()
+        self.exposure_image.printer_model = PrinterModel.SL1
+
+        self.exposure_start_time = None
+        self.exposure_end_time = None
+        # self.uv_meter = UVMeterMock(self.hw)
+
+    def tearDown(self) -> None:
+        del self.hw
+        del self.runtime_config
+        del self.exposure_image
+        super().tearDown()
+
+    def test_tank_surface_cleaner(self):
+        wizard = TankSurfaceCleaner(self.hw, self.exposure_image, self.runtime_config)
+
+        def on_state_changed():
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
+                wizard.tank_surface_cleaner_init_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_GARBAGE_COLLECTOR:
+                wizard.insert_garbage_collector_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_GARBAGE:
+                wizard.remove_garbage_done()
+
+        wizard.state_changed.connect(on_state_changed)
+        self._run_wizard(wizard, limit_s=10)
+
+    def test_tank_surface_cleaner_fail_safe(self):
+        wizard = TankSurfaceCleaner(self.hw, self.exposure_image, self.runtime_config)
+
+        def on_state_changed():
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
+                wizard.tank_surface_cleaner_init_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_GARBAGE_COLLECTOR:
+                wizard.insert_garbage_collector_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_GARBAGE:
+                wizard.remove_garbage_done()
+
+        wizard.state_changed.connect(on_state_changed)
+
+        def on_check_states_changed():
+            if WizardCheckType.EXPOSING_GARBAGE in wizard.check_state \
+                    and wizard.check_state[WizardCheckType.EXPOSING_GARBAGE] == WizardCheckState.RUNNING:
+                time.sleep(1)
+                wizard.cancel()
+            if WizardCheckType.EXPOSING_GARBAGE in wizard.check_state \
+                    and wizard.check_state[WizardCheckType.EXPOSING_GARBAGE] == WizardCheckState.CANCELED:
+                assert not self.hw.getUvLedState()[0]
+
+        wizard.check_states_changed.connect(on_check_states_changed)
+        self._run_wizard(wizard, limit_s=60, expected_state=WizardState.CANCELED)
+
+    def test_tank_surface_cleaner_exposure_time(self):
+        wizard = TankSurfaceCleaner(self.hw, self.exposure_image, self.runtime_config)
+
+        def on_state_changed():
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
+                wizard.tank_surface_cleaner_init_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_GARBAGE_COLLECTOR:
+                wizard.insert_garbage_collector_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_GARBAGE:
+                wizard.remove_garbage_done()
+
+        wizard.state_changed.connect(on_state_changed)
+
+        def on_check_states_changed():
+            if WizardCheckType.EXPOSING_GARBAGE in wizard.check_state \
+                    and wizard.check_state[WizardCheckType.EXPOSING_GARBAGE] == WizardCheckState.RUNNING:
+                self.exposure_start_time = time.time()
+            if WizardCheckType.EXPOSING_GARBAGE in wizard.check_state \
+                    and wizard.check_state[WizardCheckType.EXPOSING_GARBAGE] == WizardCheckState.CANCELED:
+                self.exposure_end_time = time.time()
+                duration = self.exposure_end_time - self.exposure_start_time
+                time_diff = abs(duration - self.hw.config.tankCleaningExposureTime)
+                assert time_diff < 1
+
+        wizard.check_states_changed.connect(on_check_states_changed)
+        self._run_wizard(wizard, limit_s=60)
 
 
 if __name__ == "__main__":

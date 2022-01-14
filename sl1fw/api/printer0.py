@@ -44,6 +44,7 @@ from sl1fw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
 from sl1fw.wizard.wizards.self_test import SelfTestWizard
 from sl1fw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from sl1fw.wizard.wizards.uv_calibration import UVCalibrationWizard
+from sl1fw.wizard.wizards.tank_surface_cleaner import TankSurfaceCleaner
 
 if TYPE_CHECKING:
     from sl1fw.libPrinter import Printer
@@ -871,6 +872,12 @@ class Printer0:
     def run_calibration_wizard(self) -> None:
         self.printer.action_manager.start_wizard(
             CalibrationWizard(self.printer.hw, self.printer.runtime_config)
+        )
+
+    @auto_dbus
+    def run_tank_surface_cleaner_wizard(self) -> None:
+        self.printer.action_manager.start_wizard(
+            TankSurfaceCleaner(self.printer.hw, self.printer.exposure_image, self.printer.runtime_config)
         )
 
     @auto_dbus

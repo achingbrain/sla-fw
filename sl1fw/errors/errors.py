@@ -191,6 +191,11 @@ class TiltHomeCheckFailed(GeneralError):
     pass
 
 
+@with_code(Sl1Codes.GARBAGE_COLLECTOR_MISSING)
+class GarbageCollectorMissing(GeneralError):
+    pass
+
+
 @with_code(Sl1Codes.TOWER_AXIS_CHECK_FAILED)
 @dataclass(frozen=True)
 class TowerAxisCheckFailed(GeneralError):
