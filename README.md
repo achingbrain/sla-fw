@@ -42,5 +42,8 @@ To check the source code using pylint use the script:
 In order to do a quick test of the sla-fw functionality a python script virtual.py can be used to execute a virtual
 printer. This one runs in an environment similar to the integration tests while allowing for cooperation with touch-ui
 and full control over system dbus. In order to use the virtual printer it is necessary to have all dbus control files
-installed and adjusted to allow the current user to own sl1 dbus names.
+installed and adjusted to allow the current user to own sl1 dbus names. It should be enough to copy provided virtual 
+dbus config to your system:
+
+	$ cp cz.prusa3d.virtual-sla.conf /etc/dbus-1/system.d/cz.prusa3d.virtual-sla.conf
 
