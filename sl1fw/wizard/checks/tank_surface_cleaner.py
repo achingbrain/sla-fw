@@ -101,15 +101,17 @@ class ExposeGarbage(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        try: # Handle the possible interruption
-            self._exposure_image.blank_screen()
-            self._exposure_image.inverse()
+        try:  # Handle the possible interruption
+            # Exposure display turn "white"
+            self._exposure_image.open_screen()
             self._hw.startFans()
             self._hw.uvLed(True)
             finish_time = time() + self._hw.config.tankCleaningExposureTime
             while time() < finish_time:
                 await sleep(0.25)
         finally:
+            # Return the display to black
+            self._exposure_image.blank_screen()
             self._hw.uvLed(False)
             self._hw.stopFans()
 
