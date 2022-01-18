@@ -11,18 +11,16 @@ import shutil
 import tarfile
 import tempfile
 from threading import Thread
-from time import sleep
 from typing import Optional
 
 from PySignal import Signal
-from deprecation import deprecated
 
 from slafw import defines
 from slafw.errors.errors import NotConnected, NotEnoughInternalSpace
-from slafw.libNetwork import Network
-from slafw.states.examples import ExamplesState
 from slafw.functions.files import ch_mode_owner
 from slafw.hardware.printer_model import PrinterModel
+from slafw.libNetwork import Network
+from slafw.states.examples import ExamplesState
 
 
 class Examples(Thread):
@@ -144,25 +142,3 @@ class Examples(Thread):
 
     def _download_callback(self, progress):
         self.download_progress = progress
-
-
-@deprecated("Use examples API")
-def download_examples_legacy(page_wait, network: Network, printer_model: PrinterModel) -> None:
-    examples = Examples(network, printer_model)
-    examples.start()
-
-    while examples.state not in ExamplesState.get_finished():
-        if examples.state == ExamplesState.DOWNLOADING:
-            page_wait.showItems(line1=_("Fetching examples"), line2="%d%%" % int(100 * examples.download_progress))
-        elif examples.state == ExamplesState.UNPACKING:
-            page_wait.showItems(line1=_("Extracting examples"), line2="%d%%" % int(100 * examples.unpack_progress))
-        elif examples.state == ExamplesState.COPYING:
-            page_wait.showItems(line1=_("Storing examples"), line2="%d%%" % int(100 * examples.copy_progress))
-        elif examples.state == ExamplesState.CLEANUP:
-            page_wait.showItems(line1=_("Cleaning up"))
-
-        sleep(0.1)
-
-    examples.join()
-    if examples.state != ExamplesState.COMPLETED:
-        raise examples.exception
