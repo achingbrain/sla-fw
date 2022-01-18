@@ -169,7 +169,7 @@ class Hardware:
 
         self.mcc = MotionController(defines.motionControlDevice)
 
-        self.tilt: Tilt = None
+        self.tilt: Optional[Tilt] = None
 
         self.boardData = self.readCpuSerial()
         self._emmc_serial = self._read_emmc_serial()
@@ -832,7 +832,7 @@ class Hardware:
         """
         Report fan failure
 
-        @param fans_status: fan operation status, True - working, False - broken
+        @param fans_error: fan operation status, True - working, False - broken
         """
         error = self.getFansError()
         if not any(error.values()):
