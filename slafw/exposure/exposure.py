@@ -579,7 +579,7 @@ class Exposure:
 
         if self.hw.config.tilt:
             self.logger.info("%s tilt up", "Slow" if self._slow_move else "Fast")
-            if self.hw.config.layerTowerHop and self._slow_move:
+            if self.hw.config.layerTowerHop:
                 self.hw.tower_move_absolute_nm_wait(position_nm + self.hw.config.layer_tower_hop_nm)
                 self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
                 self.hw.tower_move_absolute_nm_wait(position_nm)
