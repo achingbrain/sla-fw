@@ -17,7 +17,6 @@ from pydbus import SystemBus
 from slafw import defines
 from slafw import libPrinter
 from slafw.api.admin0 import Admin0
-from slafw.api.factorytests0 import FactoryTests0
 from slafw.api.printer0 import Printer0
 from slafw.api.standard0 import Standard0
 from slafw.admin.manager import AdminManager
@@ -44,7 +43,6 @@ SystemBus().publish(Printer0.__INTERFACE__, Printer0(printer))
 SystemBus().publish(Standard0.__INTERFACE__, Standard0(printer))
 admin_manager = AdminManager()
 SystemBus().publish(Admin0.__INTERFACE__, Admin0(admin_manager, printer))
-factorytests0 = FactoryTests0(printer)
 printer.setup()
 printer.run_make_ready_to_print()
 

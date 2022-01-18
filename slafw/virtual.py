@@ -30,7 +30,6 @@ import pydbus
 from gi.repository import GLib
 
 import slafw.tests.mocks.mc_port
-from slafw.api.factorytests0 import FactoryTests0
 from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.mocks.exposure_screen import ExposureScreen
 from slafw import defines, test_runtime
@@ -167,7 +166,6 @@ class Virtual:
             self.standard0 = bus.publish(Standard0.__INTERFACE__, Standard0(self.printer))
             self.admin_manager = AdminManager()
             self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
-            FactoryTests0(self.printer)
             print("Running printer")
             threading.Thread(target=self.printer.setup).start()  # Does not block, but requires Rauc on DBus
             print("Running glib mainloop")
