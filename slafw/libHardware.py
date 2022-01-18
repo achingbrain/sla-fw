@@ -621,9 +621,6 @@ class Hardware:
     def powerLedSpeed(self, speed):
         self.mcc.do("!pspd", speed)
 
-    def shutdown(self):
-        self.mcc.do("!shdn", 5)
-
     def uvLed(self, state, time=0):
         if state and self.uv_led_overheat:
             self.logger.error("Blocking attempt to set overheated UV LED on")
@@ -1091,9 +1088,6 @@ class Hardware:
         else:
             volume = pos_mm * resin_constant[1]
         return volume
-
-    def get_resin_volume(self) -> int:
-        return asyncio.run(self.get_resin_volume_async())
 
     async def get_resin_volume_async(self) -> int:
         return int(round(await self.get_precise_resin_volume_ml_async() / 10.0) * 10)

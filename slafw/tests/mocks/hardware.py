@@ -55,7 +55,6 @@ class Hardware:
         self._led_stat_s = 6912
         self._display_stat_s = 3600
         self.getMcTemperatures = Mock(return_value=[46.7, 26.1, 44.3, 0])
-        self.get_resin_volume = Mock(return_value=defines.resinMaxVolume)
         self.get_resin_volume_async = AsyncMock(return_value=defines.resinMaxVolume)
         self.get_resin_sensor_position_mm = AsyncMock(return_value=12.8)
         self.towerPositonFailed = Mock(return_value=False)
