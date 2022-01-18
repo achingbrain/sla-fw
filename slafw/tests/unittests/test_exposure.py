@@ -177,7 +177,7 @@ class TestExposure(SlafwTestCase):
         hw = self.setupHw()
         self._fake_calibration(hw)
         fake_resin_volume = 100.0
-        hw.get_resin_volume.return_value = fake_resin_volume
+        hw.get_resin_volume_async.return_value = fake_resin_volume
         exposure = self._start_exposure(hw)
         feedme_done = False
 
@@ -185,6 +185,7 @@ class TestExposure(SlafwTestCase):
             print(f"Waiting for exposure {i}, state: ", exposure.state)
             if exposure.state == ExposureState.PRINTING:
                 if not feedme_done:
+                    self.assertLess(exposure.resin_volume, defines.resinMaxVolume)
                     exposure.doFeedMe()
                     feedme_done = True
                 else:
