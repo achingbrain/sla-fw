@@ -189,10 +189,16 @@ class ExposureImage:
 
     @measure_time("blank screen")
     def blank_screen(self):
+        """
+        Overlay the current exposure display content with a black (wayland) surface.
+        It will disappear at the next change to the display content.
+        This is faster than changing all pixels to black.
+        """
         self._hw.exposure_screen.blank_screen(sync = False)
 
     @measure_time("open screen")
     def open_screen(self):
+        """ Turn all pixels of the exposure display transparent(white) """
         self._buffer.paste(255, (0, 0, self._hw.exposure_screen.parameters.width_px, self._hw.exposure_screen.parameters.height_px))
         self._hw.exposure_screen.show(self._buffer)
 
