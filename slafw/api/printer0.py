@@ -15,7 +15,6 @@ from typing import List, Dict, TYPE_CHECKING, Any, Optional
 
 import distro
 import pydbus
-from deprecation import deprecated
 from pydbus.generic import signal
 from slafw.errors import tests
 
@@ -32,7 +31,7 @@ from slafw.api.examples0 import Examples0
 from slafw.api.exposure0 import Exposure0
 from slafw.configs.stats import TomlConfigStats
 from slafw.errors.errors import ReprintWithoutHistory, PrinterException
-from slafw.functions.files import get_save_path, get_all_supported_files
+from slafw.functions.files import get_all_supported_files
 from slafw.functions.system import shut_down
 from slafw.project.functions import check_ready_to_print
 from slafw.state_actions.examples import Examples
@@ -334,28 +333,6 @@ class Printer0:
         self.printer.hw.tilt.position = micro_steps
 
     @auto_dbus
-    def get_projects(self) -> List[str]:
-        """
-        Get available project files
-
-        NOT IMPLEMENTED
-
-        :return: Array of project file paths
-        """
-        raise NotImplementedError
-
-    @auto_dbus
-    def get_firmwares(self) -> List[str]:
-        """
-        Get available firmware files
-
-        NOT IMPLEMENTED
-
-        :return: Array of firmware sources (file, network)
-        """
-        raise NotImplementedError
-
-    @auto_dbus
     @property
     @cached()
     def serial_number(self) -> str:
@@ -451,20 +428,6 @@ class Printer0:
     @auto_dbus
     @property
     @cached(validity_s=5)
-    @deprecated("Use NetworkManager")
-    def devlist(self) -> Dict[str, str]:
-        """
-        Get network devices
-
-        No changed events are send for this item
-
-        :return: Dictionary mapping from interface names to IP address strings
-        """
-        return self.printer.inet.devices
-
-    @auto_dbus
-    @property
-    @cached(validity_s=5)
     def uv_statistics(self) -> Dict[str, int]:
         """
         Get UV statistics
@@ -523,29 +486,6 @@ class Printer0:
     @api_key.setter
     def api_key(self, apikey: str) -> None:
         self.printer.api_key = apikey
-
-    @auto_dbus
-    @property
-    @cached(validity_s=5)
-    @deprecated("Use config api")
-    def tilt_fast_time_sec(self) -> float:
-        """
-        Get fast tilt time
-        :return: Fast tilt time in seconds
-        """
-        return self.printer.hw.config.tiltFastTime
-
-    @auto_dbus
-    @property
-    @cached(validity_s=5)
-    @deprecated("Use config api")
-    def tilt_slow_time_sec(self) -> float:
-        """
-        Get slow tilt time
-
-        :return: Fast slow time in seconds
-        """
-        return self.printer.hw.config.tiltSlowTime
 
     @auto_dbus
     def enable_resin_sensor(self, value: bool) -> None:
@@ -642,15 +582,6 @@ class Printer0:
         )
 
     @auto_dbus
-    def factory_reset(self) -> None:
-        """
-        Do factory reset
-
-        NOT IMPLEMENTED
-        """
-        raise NotImplementedError
-
-    @auto_dbus
     @state_checked(Printer0State.IDLE)
     def check_ready(self) -> None:
         """
@@ -718,22 +649,6 @@ class Printer0:
         return Exposure0.dbus_path(self.printer.action_manager.exposure.instance_id)
 
     @auto_dbus
-    @deprecated("Use current_exposure property")
-    def get_current_exposure(self) -> DBusObjectPath:
-        return self.current_exposure
-
-    @auto_dbus
-    @property
-    @deprecated("use filemanager0")
-    def project_config_file_name(self) -> str:
-        """
-        Name of the config file embedded in project files
-
-        :return: Name as string
-        """
-        return defines.configFile
-
-    @auto_dbus
     @property
     def project_extensions(self) -> List[str]:
         """
@@ -742,40 +657,6 @@ class Printer0:
         :return: Set of extension strings
         """
         return list(self.printer.hw.printer_model.extensions)
-
-    @auto_dbus
-    @property
-    @deprecated("use filemanager0")
-    def persistent_storage_path(self) -> str:
-        """
-        Filesystem path of the persistent internal storage
-
-        :return: Path as string
-        """
-        return defines.persistentStorage
-
-    @auto_dbus
-    @property
-    @deprecated("use filemanager0")
-    def internal_project_path(self) -> str:
-        """
-        Filesystem path to the projects root on the internal storage
-        :return: Path as string
-        """
-        return defines.internalProjectPath
-
-    @auto_dbus
-    @property
-    @deprecated("use filemanager0")
-    def media_root_path(self) -> str:
-        """
-        Filesystem path to the root of the mounted media
-
-        New media are mounted into directories residing inside this path.
-
-        :return: Path as string
-        """
-        return defines.mediaRootPath
 
     @auto_dbus
     def list_projects_raw(self) -> List[str]:  # pylint: disable=no-self-use
@@ -796,20 +677,6 @@ class Printer0:
     @property
     def printer_model(self) -> int:
         return self.printer.hw.printer_model.value
-
-    @auto_dbus
-    @property
-    @deprecated("use filemanager0")
-    def usb_path(self) -> str:
-        """
-        Read path to currently inserted USB drive
-
-        :return: Path as string or empty string in case of no USB present
-        """
-        path = get_save_path()
-        if path:
-            return str(path)
-        return ""
 
     @auto_dbus
     @property

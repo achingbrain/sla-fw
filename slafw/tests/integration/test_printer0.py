@@ -120,8 +120,6 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
         self.assertEqual(self.printer0.controller_revision, "6c")
         self.assertEqual(self.printer0.http_digest, True)
         self.assertEqual(self.printer0.api_key, "32LF9aXN")
-        self.assertEqual(self.printer0.tilt_fast_time_sec, 5.5)
-        self.assertEqual(self.printer0.tilt_slow_time_sec, 8.0)
         self.printer0.enable_resin_sensor(True)
         self.printer0.enable_resin_sensor(False)
         self.assertEqual(self.printer0.cover_state, False)
@@ -129,9 +127,6 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
         self.assertTrue(self.printer0.factory_mode)
         self.assertTrue(self.printer0.admin_enabled)
 
-        # self.printer0.wizard()
-        # self.printer0.update_firmware()
-        # self.printer0.factory_reset()
         # self.printer0.print()
 
     def test_project_list_raw(self):

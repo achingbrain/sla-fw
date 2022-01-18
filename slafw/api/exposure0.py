@@ -8,11 +8,9 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from enum import unique, Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from deprecation import deprecated
 from pydbus.generic import signal
-from slafw.errors.warnings import PrinterWarning
 
 from slafw import defines
 from slafw.api.decorators import (
@@ -24,19 +22,13 @@ from slafw.api.decorators import (
     wrap_dict_data,
     auto_dbus_signal,
 )
-from slafw.exposure.exposure import Exposure
-from slafw.states.exposure import ExposureState
 from slafw.errors.errors import (
-    ProjectErrorNotFound,
-    ProjectErrorCantRead,
-    ProjectErrorNotEnoughLayers,
-    ProjectErrorCorrupted,
-    ProjectErrorAnalysisFailed,
-    ProjectErrorCalibrationInvalid,
-    ProjectErrorWrongPrinterModel,
-    ExposureError, PrinterException,
+    PrinterException,
 )
+from slafw.errors.warnings import PrinterWarning
+from slafw.exposure.exposure import Exposure
 from slafw.project.project import ExposureUserProfile
+from slafw.states.exposure import ExposureState
 
 
 @unique
@@ -95,38 +87,6 @@ class Exposure0State(Enum):
             ExposureState.POUR_IN_RESIN: Exposure0State.POUR_IN_RESIN,
             ExposureState.HOMING_AXIS: Exposure0State.HOMING_AXIS,
         }[state]
-
-
-@unique
-class Exposure0ProjectState(Enum):
-    """
-    Project configuration state enumeration
-    """
-
-    UNINITIALIZED = -1
-    OK = 0
-    NOT_FOUND = 1
-    CANT_READ = 2
-    NOT_ENOUGH_LAYERS = 3
-    CORRUPTED = 4
-    PRINT_DIRECTLY = 5
-    ANALYSIS_FAILED = 6
-    CALIBRATION_INVALID = 7
-    WRONG_PRINTER_MODEL = 8
-    NOT_ENOUGH_INTERNAL_SPACE = 9  # obsolete
-
-    @staticmethod
-    def from_exception(exception: Optional[ExposureError]) -> Exposure0ProjectState:
-        return {
-            None: Exposure0ProjectState.OK,
-            ProjectErrorNotFound: Exposure0ProjectState.NOT_FOUND,
-            ProjectErrorCantRead: Exposure0ProjectState.CANT_READ,
-            ProjectErrorNotEnoughLayers: Exposure0ProjectState.NOT_ENOUGH_LAYERS,
-            ProjectErrorCorrupted: Exposure0ProjectState.CORRUPTED,
-            ProjectErrorAnalysisFailed: Exposure0ProjectState.ANALYSIS_FAILED,
-            ProjectErrorCalibrationInvalid: Exposure0ProjectState.CALIBRATION_INVALID,
-            ProjectErrorWrongPrinterModel: Exposure0ProjectState.WRONG_PRINTER_MODEL,
-        }[exception]
 
 
 @dbus_api
@@ -212,12 +172,6 @@ class Exposure0:
         self.exposure.confirm_resin_in()
 
     @auto_dbus
-    @deprecated("Use confirm_print_warning")
-    @state_checked(Exposure0State.CHECK_WARNING)
-    def confirm_print_warnings(self) -> None:
-        self.confirm_print_warning()
-
-    @auto_dbus
     @state_checked(Exposure0State.CHECK_WARNING)
     def confirm_print_warning(self) -> None:
         """
@@ -226,12 +180,6 @@ class Exposure0:
         :return: None
         """
         self.exposure.confirm_print_warning()
-
-    @auto_dbus
-    @deprecated("Use reject_print_warning")
-    @state_checked(Exposure0State.CHECK_WARNING)
-    def reject_print_warnings(self) -> None:
-        self.reject_print_warning()
 
     @auto_dbus
     @state_checked(Exposure0State.CHECK_WARNING)
@@ -245,10 +193,9 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @deprecated("Use warning, now only single warning is raised at the time")
-    def exposure_warnings(self) -> List[Dict[str, Any]]:
+    def exposure_warning(self) -> Dict[str, Any]:
         """
-        Get current list of exposure warnings.
+        Get current exposure warning.
 
         .. seealso:: :meth:`slafw.errors.codes.WarningCode`
 
@@ -260,13 +207,8 @@ class Exposure0:
                 "code_specific_feature2": value2
             }
 
-        :return: List of warning dictionaries
+        :return: Warning dictionary
         """
-        return [self.exposure_warning]
-
-    @auto_dbus
-    @property
-    def exposure_warning(self) -> Dict[str, Any]:
         return wrap_dict_data(PrinterWarning.as_dict(self.exposure.warning))
 
     @auto_dbus
@@ -281,17 +223,6 @@ class Exposure0:
             return {}
 
         return {check.value: state.value for check, state in self.exposure.check_results.items()}
-
-    @auto_dbus
-    @property
-    @deprecated("Use exposure_exception property")
-    def project_state(self) -> int:
-        """
-        State of source project data
-
-        :return: Exposure0ProjectState as integer
-        """
-        return Exposure0ProjectState.from_exception(self.exposure.fatal_error).value
 
     @auto_dbus
     @property
@@ -371,17 +302,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @deprecated("Use layer_height_first_nm")
-    def layer_height_first_mm(self) -> float:
-        """
-        Height of the first layer
-
-        :return: Height in millimeters
-        """
-        return self.exposure.project.layer_height_first_nm / 1e6
-
-    @auto_dbus
-    @property
     def layer_height_first_nm(self) -> int:
         """
         Height of the first layer
@@ -389,17 +309,6 @@ class Exposure0:
         :return: Height in nanometers
         """
         return self.exposure.project.layer_height_first_nm
-
-    @auto_dbus
-    @property
-    @deprecated("Use layer_height_nm")
-    def layer_height_mm(self) -> float:
-        """
-        Height of the standard layer
-
-        :return: Height in millimeters
-        """
-        return self.exposure.project.layer_height_nm / 1e6
 
     @auto_dbus
     @property
@@ -413,17 +322,6 @@ class Exposure0:
 
     @auto_dbus
     @property
-    @deprecated("Use position_nm")
-    def position_mm(self) -> float:
-        """
-        Current layer position
-
-        :return: Layer position in millimeters
-        """
-        return self.exposure.tower_position_nm / 1e6
-
-    @auto_dbus
-    @property
     def position_nm(self) -> int:
         """
         Current layer position
@@ -431,17 +329,6 @@ class Exposure0:
         :return: Layer position in nanometers
         """
         return self.exposure.tower_position_nm
-
-    @auto_dbus
-    @property
-    @deprecated("Use total_nm")
-    def total_mm(self) -> float:
-        """
-        Model height
-
-        :return: Height in millimeters
-        """
-        return self.exposure.project.total_height_nm / 1e6
 
     @auto_dbus
     @property
@@ -620,17 +507,6 @@ class Exposure0:
         self.exposure.doUpAndDown()
 
     @auto_dbus
-    @deprecated("Use cancel method instead")
-    @state_checked(Exposure0State.PRINTING)
-    def exit_print(self) -> None:
-        """
-        Cancel print
-
-        :return: None
-        """
-        self.exposure.cancel()
-
-    @auto_dbus
     @state_checked(
         [
             Exposure0State.PRINTING,
@@ -757,7 +633,6 @@ class Exposure0:
             "current_layer",
             "progress",
             "time_remain_ms",
-            "position_mm",
             "position_nm",
             "expected_finish_timestamp",
         },
@@ -767,7 +642,7 @@ class Exposure0:
         "low_resin": {"resin_low"},
         "remaining_wait_sec": {"remaining_wait_sec"},
         "exposure_end": {"exposure_end"},
-        "warning": {"exposure_warnings", "exposure_warning"},
+        "warning": {"exposure_warning"},
         "check_results": {"checks_state"},
         "project": {
             "exposure_time_ms",

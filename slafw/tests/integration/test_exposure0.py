@@ -10,9 +10,10 @@ from unittest.mock import patch
 
 import pydbus
 from prusaerrors.sl1.codes import Sl1Codes
+from slafw.errors.errors import PrinterException
 
 from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
-from slafw.api.exposure0 import Exposure0State, Exposure0ProjectState
+from slafw.api.exposure0 import Exposure0State, Exposure0
 from slafw.errors.warnings import AmbientTooHot
 
 
@@ -30,7 +31,7 @@ class TestIntegrationExposure0(SlaFwIntegrationTestCaseBase):
         self.bus = pydbus.SystemBus()
         self.printer0 = self.bus.get("cz.prusa3d.sl1.printer0")
         expo_path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)
-        self.exposure0 = self.bus.get("cz.prusa3d.sl1.exposure0", expo_path)
+        self.exposure0: Exposure0 = self.bus.get("cz.prusa3d.sl1.exposure0", expo_path)
 
     def test_init(self):
         self.assertEqual(Exposure0State.CONFIRM, Exposure0State(self.exposure0.state))
@@ -47,7 +48,7 @@ class TestIntegrationExposure0(SlaFwIntegrationTestCaseBase):
         self.exposure0.confirm_resin_in()
         self._wait_for_state(Exposure0State.CHECKS, 5)
         self._wait_for_state(Exposure0State.PRINTING, 60)
-        self.assertEqual(Exposure0ProjectState.OK.value, self.exposure0.project_state)
+        self.assertEqual(self.exposure0.failure_reason, PrinterException.as_dict(None))
         self._wait_for_state(Exposure0State.FINISHED, 30)
         self.assertEqual(100, self.exposure0.progress)
 
