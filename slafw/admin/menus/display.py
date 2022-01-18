@@ -330,8 +330,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._printer.hw.startFans()
         self._printer.hw.uvLedPwm = self._uv_pwm_print
         self._printer.hw.uvLed(True)
-        self._printer.exposure_image.blank_screen()
-        self._printer.exposure_image.inverse()
+        self._printer.exposure_image.open_screen()
 
     @property
     def uv_led(self) -> bool:

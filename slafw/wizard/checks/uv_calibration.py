@@ -107,7 +107,7 @@ class CheckUVMeterPlacement(DangerousCheck):
         await self.wait_cover_closed()
         try:
             # NOTE: Fans and UV already started by previous check
-            error = self._uv_meter.check_place(self._exposure_image.inverse)
+            error = self._uv_meter.check_place(self._exposure_image.open_screen)
             # TODO: Move raise to check_place ?
 
             if error == UvMeterState.ERROR_COMMUNICATION:
@@ -305,8 +305,7 @@ class UVCalibrateEdge(UVCalibrate):
             self._exposure_image.blank_screen()
 
     async def calibrate(self):
-        self._exposure_image.blank_screen()
-        self._exposure_image.inverse()
+        self._exposure_image.open_screen()
         max_pwm = self._calibration_params.max_pwm
         # check PWM value from previous step
         self.pwm = self._hw.uvLedPwm
