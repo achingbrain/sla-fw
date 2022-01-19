@@ -207,7 +207,6 @@ class TestHardwareConfig(SlafwTestCase):
 
     def setUp(self):
         super().setUp()
-        defines.factoryConfigPath = self.SLAFW_DIR / ".." / "factory" / "factory.toml"
         defines.hwConfigPathFactory = self.SAMPLES_DIR / "hardware.toml"
         defines.hwConfigPath = self.SAMPLES_DIR / "hardware-toml.cfg"
         copyfile(defines.hwConfigPath, "hwconfig.test")

@@ -30,7 +30,6 @@ class TestScreen(SlafwTestCase):
 
         self.preview_file = self.TEMP_DIR / "live.png"
         self.display_usage = self.TEMP_DIR / "display_usage.npz"
-        defines.factoryConfigPath = str(self.SLAFW_DIR / ".." / "factory" / "factory.toml")
         defines.livePreviewImage = str(self.preview_file)
         defines.displayUsageData = str(self.display_usage)
         test_runtime.testing = True

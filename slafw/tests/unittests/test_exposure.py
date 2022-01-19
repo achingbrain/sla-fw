@@ -43,9 +43,6 @@ class TestExposure(SlafwTestCase):
 
     def setUp(self):
         super().setUp()
-        defines.factoryConfigPath = str(
-            self.SLAFW_DIR / ".." / "factory" / "factory.toml"
-        )
         defines.statsData = str(self.TEMP_DIR / "stats.toml")
         defines.previousPrints = str(self.TEMP_DIR)
         defines.lastProjectHwConfig = self._change_dir(defines.lastProjectHwConfig)

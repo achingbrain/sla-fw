@@ -28,7 +28,7 @@ from slafw.errors.errors import (
 )
 from slafw.errors.warnings import FactoryResetCheckFailure
 from slafw.functions.files import ch_mode_owner, get_all_supported_files
-from slafw.functions.system import FactoryMountedRW, save_factory_mode, compute_uvpwm, reset_hostname
+from slafw.functions.system import FactoryMountedRW, compute_uvpwm, reset_hostname
 from slafw.hardware.printer_model import PrinterModel
 from slafw.libHardware import Hardware, Axis
 from slafw.wizard.actions import UserActionBroker
@@ -228,10 +228,6 @@ class DisableFactory(SyncCheck):
         self._logger.info("Factory reset - disabling factory mode")
         with FactoryMountedRW():
             defines.factory_enable.unlink(missing_ok=True)
-            if not save_factory_mode(False):
-                self._logger.error("Factory mode was not disabled!")
-                # This is to stop shipment of factory mode enabled printer
-                raise Exception("Factory mode was not disabled!")
 
 
 class SendPrinterData(SyncCheck):

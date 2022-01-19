@@ -77,7 +77,6 @@ class TestLibHardware(SlafwTestCase):
         super().setUp()
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.factoryConfigPath = str(self.SLAFW_DIR / ".." / "factory/factory.toml")
         defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
 
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg", is_master=True)

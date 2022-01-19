@@ -120,7 +120,6 @@ class SlafwTestCase(DBusTestCase):
         defines.configDir = self.TEMP_DIR
         defines.uvCalibDataPathFactory = self.TEMP_DIR / defines.uvCalibDataFilename
         defines.wizardDataPathFactory = self.TEMP_DIR / defines.wizardDataFilename
-        defines.factoryConfigPath = self.TEMP_DIR / "factory_config.toml"
         defines.hwConfigPath = self.TEMP_DIR / "hwconfig.toml"
         defines.hwConfigPathFactory = self.TEMP_DIR / "hwconfig-factory.toml"
         defines.printer_model = self.TEMP_DIR / "model"
@@ -130,6 +129,8 @@ class SlafwTestCase(DBusTestCase):
         defines.expoPanelLogPath = self.TEMP_DIR / defines.expoPanelLogFileName
         defines.printer_model.mkdir()
         defines.sl1_model_file.touch()  # Set SL1 as the current model
+        defines.factory_enable = self.TEMP_DIR / "factory_mode_enabled"
+        defines.factory_enable.touch()  # Enable factory mode
 
         # DBus mocks
         nm = NetworkManager()

@@ -69,7 +69,6 @@ def change_dir(path):
 
 
 defines.hwConfigPath = HARDWARE_FILE
-defines.factoryConfigPath = SLAFW_DIR / ".." / "factory" / "factory.toml"
 defines.hwConfigPathFactory = HARDWARE_FILE_FACTORY
 defines.templates = str(SLAFW_DIR / "intranet" / "templates")
 test_runtime.testing = True

@@ -69,7 +69,7 @@ def _save_wizard_history_bach(files: dict, source_path: Path):
 
 def save_all_remain_wizard_history():
     _save_wizard_history_bach(
-        ("factory.toml", "hardware.toml", "uvcalib_data.toml", "wizard_data.toml"),
+        ("hardware.toml", "uvcalib_data.toml", "wizard_data.toml"),
         defines.factoryMountPoint
     )
 

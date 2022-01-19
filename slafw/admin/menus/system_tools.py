@@ -15,7 +15,6 @@ from slafw.admin.safe_menu import SafeAdminMenu
 from slafw.errors.errors import FailedUpdateChannelSet
 from slafw.functions.system import (
     FactoryMountedRW,
-    save_factory_mode,
     set_update_channel,
     get_update_channel,
     set_configured_printer_model,
@@ -60,7 +59,6 @@ class SystemToolsMenu(SafeAdminMenu):
     @factory_mode.setter
     def factory_mode(self, value: bool):
         with FactoryMountedRW():
-            save_factory_mode(not self._printer.runtime_config.factory_mode)
             if value:
                 defines.factory_enable.touch()
             else:

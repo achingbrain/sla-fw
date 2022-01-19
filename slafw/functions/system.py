@@ -13,7 +13,6 @@ import pydbus
 
 from slafw import defines, test_runtime
 from slafw.configs.hw import HwConfig
-from slafw.configs.toml import TomlConfig
 from slafw.errors.errors import (
     FailedUpdateChannelSet,
     FailedUpdateChannelGet,
@@ -36,19 +35,6 @@ def shut_down(hw: Hardware, reboot=False):
         os.system("reboot")
     else:
         os.system("poweroff")
-
-
-def save_factory_mode(enable: bool):
-    """
-    Save factory mode
-
-    This has to be called with factory partition mounted rw
-
-    :param enable: Required factory mode state
-    :return: True if successful, false otherwise
-    """
-    # TODO obsolete, will be removed in 1.7.0
-    return TomlConfig(defines.factoryConfigPath).save(data={"factoryMode": enable})
 
 
 def get_update_channel() -> str:

@@ -43,14 +43,10 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCase):
         )
         self.counter_log = self.TEMP_DIR / defines.counterLogFilename
         self.wizard_data_file = self.TEMP_DIR / defines.wizardDataFilename
-        self.factory_config_file = self.TEMP_DIR / "factory.toml"
         self.hardwarwe_factory_file = self.TEMP_DIR / "hardware.toml"
 
         print(f"<<<<<===== {self.id()} =====>>>>>")
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.hardware_file)
-        copyfile(
-            self.SLAFW_DIR / ".." / "factory" / "factory.toml", self.factory_config_file
-        )
         copyfile(self.SAMPLES_DIR / "hardware.toml", self.hardwarwe_factory_file)
         self.temp_dir_project = TemporaryDirectory()
         self.temp_dir_wizard_history = TemporaryDirectory()
@@ -84,7 +80,6 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCase):
         defines.wizardHistoryPath = Path(self.temp_dir_wizard_history.name)
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.factoryConfigPath = str(self.factory_config_file)
         defines.hwConfigPathFactory = self.hardwarwe_factory_file
         defines.templates = str(self.SLAFW_DIR / "intranet" / "templates")
         defines.hwConfigPath = self.hardware_file
@@ -150,7 +145,6 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCase):
             self.sdl_audio_file,
             self.api_key_file,
             self.uv_calib_data_file,
-            self.factory_config_file,
         ]
 
         for file in files:
