@@ -69,7 +69,6 @@ class FansAndUVLedMenu(AdminMenu):
     def uv_led_fan(self, value: bool):
         self._override_fans[0] = value
         self._printer.hw.setFans(self._override_fans)
-        self._printer.runtime_config.fan_error_override = False
 
     @property
     def blower_fan(self) -> bool:
@@ -79,7 +78,6 @@ class FansAndUVLedMenu(AdminMenu):
     def blower_fan(self, value: bool):
         self._override_fans[1] = value
         self._printer.hw.setFans(self._override_fans)
-        self._printer.runtime_config.fan_error_override = False
 
     @property
     def rear_fan(self) -> bool:
@@ -89,7 +87,6 @@ class FansAndUVLedMenu(AdminMenu):
     def rear_fan(self, value: bool):
         self._override_fans[2] = value
         self._printer.hw.setFans(self._override_fans)
-        self._printer.runtime_config.fan_error_override = False
 
     @property
     def uv_led(self) -> bool:
@@ -169,15 +166,15 @@ class FansAndUVLedMenu(AdminMenu):
 
     def _uv_led_fan_changed(self):
         self.uv_led_fan = True
-        self._printer.hw.fans[0].targetRpm = self._temp.fan1Rpm
+        self._printer.hw.fans[0].target_rpm = self._temp.fan1Rpm
 
     def _blower_fan_changed(self):
         self.blower_fan = True
-        self._printer.hw.fans[1].targetRpm = self._temp.fan2Rpm
+        self._printer.hw.fans[1].target_rpm = self._temp.fan2Rpm
 
     def _rear_fan_changed(self):
         self.rear_fan = True
-        self._printer.hw.fans[2].targetRpm = self._temp.fan3Rpm
+        self._printer.hw.fans[2].target_rpm = self._temp.fan3Rpm
 
     def _uv_pwm_changed(self):
         # TODO: simplify work with config and config writer

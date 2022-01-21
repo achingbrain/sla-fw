@@ -13,7 +13,6 @@ from typing import Optional
 
 testing = False
 test_uvmeter_present = True
-test_fan_error_override = False
 injected_preprint_warning = None
 uv_pwm = 0
 uv_on_until: Optional[datetime] = None

@@ -44,35 +44,50 @@ from slafw.utils.value_checker import ValueChecker, UpdateInterval
 
 
 class Fan:
-    def __init__(self, name, maxRpm, defaultRpm, enabled):
+    # pylint: disable = too-many-arguments
+    def __init__(self, name: str, max_rpm: int, default_rpm: int, enabled: bool, auto_control: bool = False):
         super().__init__()
         self.name = name
-        self.__minRpm = defines.fanMinRPM
-        self.__maxRpm = maxRpm
-        self.targetRpm = defaultRpm
+        self.__min_rpm = defines.fanMinRPM
+        self.__max_rpm = max_rpm
+        self.__default_rpm = default_rpm
+        self.__target_rpm = default_rpm
         self.__enabled = enabled
         # TODO add periodic callback on the background
         # self.__error = False
         # self.__realRpm = 0
+        self.__auto_control: bool = auto_control
 
     @property
-    def targetRpm(self) -> int:
-        return self.__targetRpm
+    def target_rpm(self) -> int:
+        return self.__target_rpm
 
-    @targetRpm.setter
-    def targetRpm(self, val):
+    @target_rpm.setter
+    def target_rpm(self, val):
         self.__enabled = True
-        if val < self.__minRpm:
-            self.__targetRpm = self.__minRpm
+        if val < self.__min_rpm:
+            self.__target_rpm = self.__min_rpm
             self.__enabled = False
-        elif val > self.__maxRpm:
-            self.__targetRpm = self.__maxRpm
+        elif val > self.__max_rpm:
+            self.__target_rpm = self.__max_rpm
         else:
-            self.__targetRpm = val
+            self.__target_rpm = val
+
+    @property
+    def default_rpm(self) -> int:
+        return self.__default_rpm
 
     @property
     def enabled(self) -> bool:
         return self.__enabled
+
+    @property
+    def auto_control(self):
+        return self.__auto_control
+
+    @auto_control.setter
+    def auto_control(self, value: bool):
+        self.__auto_control = value
 
     # TODO methods to save, load, reset to defaults
 
@@ -124,10 +139,14 @@ class Hardware:
             "homingSlow": [[14, 0], [15, 0], [16, 1], [16, 3], [16, 5]],
         }
 
+        self.uv_fan = Fan(N_("UV LED fan"), defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled,
+                          auto_control=True)
+        self.blower_fan = Fan(N_("blower fan"), defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled)
+        self.rear_fan = Fan(N_("rear fan"), defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled)
         self.fans = {
-            0: Fan(N_("UV LED fan"), defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled),
-            1: Fan(N_("blower fan"), defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled),
-            2: Fan(N_("rear fan"), defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled),
+            0: self.uv_fan,
+            1: self.blower_fan,
+            2: self.rear_fan,
         }
 
         self.config.add_onchange_handler(self._fan_values_refresh)
@@ -716,7 +735,7 @@ class Hardware:
             else:
                 out.append(False)
         self.mcc.doSetBoolList("!fans", out)
-        self.mcc.do("!frpm", " ".join(str(fan.targetRpm) for fan in self.fans.values()))
+        self.mcc.do("!frpm", " ".join(str(fan.target_rpm) for fan in self.fans.values()))
 
     def getFans(self, request=(0, 1, 2)):
         return self.getFansBits("?fans", request)
@@ -768,7 +787,8 @@ class Hardware:
             # Avoid too frequent controls, MC does not report errors a few seconds after control
             return
 
-        if self.config.rpmControlOverride:
+        if self.config.rpmControlOverride or not self.uv_fan.auto_control:
+            self.logger.debug("Skipping auto UV fan control - disabled")
             return
 
         uv_led_temperature = temps[self.led_temp_idx]
@@ -779,7 +799,7 @@ class Hardware:
         map_constant = (max_rpm - min_rpm) / (max_temp - min_temp)
         uv_fan_temp_rpm = round((uv_led_temperature - min_temp) * map_constant + min_rpm)
         uv_fan_temp_rpm = max(min(uv_fan_temp_rpm, defines.fanMaxRPM[0]), defines.fanMinRPM)
-        fans_rpm = [uv_fan_temp_rpm, self.fans[1].targetRpm, self.fans[2].targetRpm]
+        fans_rpm = [uv_fan_temp_rpm, self.fans[1].target_rpm, self.fans[2].target_rpm]
         self.logger.debug("Fan RPM control setting RPMs: %s", fans_rpm)
         self.last_rpm_control = monotonic()
         self.setFansRpm(fans_rpm)

@@ -185,9 +185,6 @@ class FansCheck(ExposureCheckRunner):
             raise FanFailed(failed_fans, failed_fan_names, failed_fans_text)
         self.logger.info("Fans OK")
 
-        self.expo.runtime_config.fan_error_override = False
-        self.expo.runtime_config.check_cooling_expo = True
-
 
 class ResinCheck(ExposureCheckRunner):
     RETRIES = 3
@@ -1074,7 +1071,6 @@ class Exposure:
     def _print_end_hw_off(self):
         self.hw.uvLed(False)
         self.hw.stopFans()
-        self.runtime_config.check_cooling_expo = False
         self.hw.motorsRelease()
         self.hw.uvDisplayCounter(False)
         self.hw.saveUvStatistics()

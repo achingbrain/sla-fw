@@ -305,7 +305,7 @@ class Page:
         #endif
 
 
-        if self.checkCooling or (expoInProgress and self.display.runtime_config.check_cooling_expo):
+        if self.checkCooling or expoInProgress:
             state = True
             retc = self.checkCoolingCallback(expoInProgress)
             if retc:
@@ -385,7 +385,6 @@ class Page:
         if temp < 0:
             if expoInProgress:
                 self.display.expo.doPause()
-                self.display.runtime_config.check_cooling_expo = False
             else:
                 self.display.hw.uvLed(False)
             #endif
@@ -423,8 +422,7 @@ class Page:
         #endif
 
         # fans test
-        if not self.display.hw.config.fanCheck or self.display.runtime_config.fan_error_override \
-                or test_runtime.test_fan_error_override:
+        if not self.display.hw.config.fanCheck:
             return
         #endif
 
@@ -437,8 +435,6 @@ class Page:
                 #endif
             #endfor
             self.logger.error("Detected fan failure: %s", failedFans)
-
-            self.display.runtime_config.fan_error_override = True
 
             failed_fans_text = ", ".join(failedFans)
             if expoInProgress:

@@ -31,7 +31,7 @@ class Hardware:
 
         self.config = config
         self.fans = {
-            0: Fan("UV LED fan", defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled,),
+            0: Fan("UV LED fan", defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled, auto_control=True),
             1: Fan("blower fan", defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled,),
             2: Fan("rear fan", defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled,),
         }

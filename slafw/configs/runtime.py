@@ -19,8 +19,6 @@ class RuntimeConfig:
         self._logger = logging.getLogger(__name__)
         self.show_admin_changed = Signal()
         self._show_admin: bool = False
-        self.fan_error_override: bool = False
-        self.check_cooling_expo: bool = False
         self.factory_mode_changed = Signal()
         self._factory_mode: bool = False
 

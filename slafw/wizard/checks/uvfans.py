@@ -35,6 +35,8 @@ class UVFansTest(DangerousCheck):
 
         fan_diff = 200
         self._hw.startFans()
+        self._hw.uv_fan.auto_control = False
+        self._hw.setFansRpm([fan.default_rpm for fan in self._hw.fans.values()])
         self._hw.uvLed(True)
         rpm: List[List[int]] = [[], [], []]
         fans_wait_time = defines.fanWizardStabilizeTime + defines.fanStartStopTime
@@ -64,6 +66,7 @@ class UVFansTest(DangerousCheck):
                 await sleep(1)
         finally:
             self._hw.uvLed(False)
+            self._hw.uv_fan.auto_control = True
             self._hw.stopFans()
 
         # evaluate fans data
@@ -73,9 +76,9 @@ class UVFansTest(DangerousCheck):
 
         for i, fan in self._hw.fans.items():  # iterate over fans
             if len(rpm[i]) == 0:
-                rpm[i].append(fan.targetRpm)
+                rpm[i].append(fan.target_rpm)
             avg_rpm = sum(rpm[i]) / len(rpm[i])
-            if not fan.targetRpm - fan_diff <= avg_rpm <= fan.targetRpm + fan_diff or fan_error[i]:
+            if not fan.target_rpm - fan_diff <= avg_rpm <= fan.target_rpm + fan_diff or fan_error[i]:
                 self._logger.error("Fans raw RPM: %s", rpm)
                 self._logger.error("Fans error: %s", fan_error)
                 self._logger.error("Fans samples: %s", len(rpm[i]))

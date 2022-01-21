@@ -43,7 +43,6 @@ class DisplayTest(DangerousCheck):
         await gather(self._hw.verify_tower(), self._hw.verify_tilt())
         old_state = False     # turn LEDs on for first time
         self._hw.startFans()
-        self._runtime_config.fan_error_override = True
         self._exposure_image.show_system_image("logo.png")
         self._logger.debug("Registering display test user resolution callback")
         actions.report_display.register_callback(self.user_callback)
@@ -64,7 +63,6 @@ class DisplayTest(DangerousCheck):
             actions.report_display.unregister_callback()
             actions.drop_state(display_check_state)
             self._logger.debug("Finishing display test")
-            self._runtime_config.fan_error_override = False
             self._hw.saveUvStatistics()
             self._hw.uvLed(False)
             self._hw.stopFans()

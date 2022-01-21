@@ -243,28 +243,28 @@ class TestLibHardware(SlafwTestCase):
         self.assertEqual(len(fans), len(self.hw.fans))
         for key in fans:
             # max RPM
-            self.hw.fans[key].targetRpm = defines.fanMaxRPM[key]
-            self.assertEqual(defines.fanMaxRPM[key], self.hw.fans[key].targetRpm)
+            self.hw.fans[key].target_rpm = defines.fanMaxRPM[key]
+            self.assertEqual(defines.fanMaxRPM[key], self.hw.fans[key].target_rpm)
             self.assertEqual(True, self.hw.fans[key].enabled)
 
             # min RPM
-            self.hw.fans[key].targetRpm = defines.fanMinRPM
-            self.assertEqual(defines.fanMinRPM, self.hw.fans[key].targetRpm)
+            self.hw.fans[key].target_rpm = defines.fanMinRPM
+            self.assertEqual(defines.fanMinRPM, self.hw.fans[key].target_rpm)
             self.assertEqual(True, self.hw.fans[key].enabled)
 
             # below min RPM (disabled)
-            self.hw.fans[key].targetRpm = defines.fanMinRPM - 1
-            self.assertEqual(defines.fanMinRPM, self.hw.fans[key].targetRpm)
+            self.hw.fans[key].target_rpm = defines.fanMinRPM - 1
+            self.assertEqual(defines.fanMinRPM, self.hw.fans[key].target_rpm)
             self.assertEqual(False, self.hw.fans[key].enabled)
 
         # override start by enabled
         for key in fans:
-            self.hw.fans[key].targetRpm = defines.fanMaxRPM[key]
+            self.hw.fans[key].target_rpm = defines.fanMaxRPM[key]
         self.hw.startFans()
         self.assertEqual({0: True, 1: True, 2: True}, self.hw.getFans())
 
         for key in fans:
-            self.hw.fans[key].targetRpm = defines.fanMinRPM - 1
+            self.hw.fans[key].target_rpm = defines.fanMinRPM - 1
         self.hw.startFans()
         self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
 
