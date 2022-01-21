@@ -49,15 +49,16 @@ class ActionManager:
     ) -> Exposure:
         # Create new exposure object and apply passed settings
         exposure = Exposure(self._get_job_id(), hw, exposure_image, runtime_config)
-        exposure.read_project(project)
         self.logger.info("Created new exposure id: %s", exposure.instance_id)
-
         # Register properties changed signal of the new exposure as current exposure signal source
         path = self._register_exposure(exposure)
         self._register_exposure_signal(path)
 
         self._current_exposure = exposure
         self.exposure_change.emit()
+
+        exposure.read_project(project)
+
         return exposure
 
     def load_exposure(self, hw: Hardware) -> Optional[Exposure]:
