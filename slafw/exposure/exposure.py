@@ -316,7 +316,7 @@ class Exposure:
         self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
         self.hw.fans_error_changed.connect(self._on_fans_error)
-        self._checks_task: Task = None
+        self._checks_task: Optional[Task] = None
 
     def read_project(self, project_file: str):
         check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
