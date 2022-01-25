@@ -61,6 +61,7 @@ class Preloader(Process):
         self._params = exposure_screen_parameters
         self._start_preload = start_preload
         self._preload_result = preload_result
+        self._dev_shm_prefix = '/dev/shm/' + shm_prefix
         self._shm: Optional[List[Any]] = None  # TODO: List of heterogeneous types, "self._shm[SHMIDX.PROJECT_PPM1].buf"
         self._sl: Optional[shared_memory.ShareableList] = None
         self._stoprequest = Event()
@@ -170,12 +171,17 @@ class Preloader(Process):
             mask = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
             output_image.paste(self._black_image, mask=mask)
         start_time = monotonic()
-        pixels = numpy.array(output_image)
-        usage: numpy.ndarray = numpy.ndarray(
-                self._params.display_usage_size_px,
+        pixels = numpy.memmap(
+                filename=self._dev_shm_prefix+SHMIDX.OUTPUT_IMAGE1.name,
+                dtype=numpy.uint8,
+                mode='r',
+                order='C')
+        usage = numpy.memmap(
+                filename=self._dev_shm_prefix+SHMIDX.DISPLAY_USAGE.name,
                 dtype=numpy.float64,
-                order='C',
-                buffer=self._shm[SHMIDX.DISPLAY_USAGE].buf)
+                mode='r+',
+                shape=self._params.display_usage_size_px,
+                order='C')
         # 1500 layers on 0.1 mm layer height <0:255> -> <0.0:1.0>
         usage += numpy.reshape(pixels, self._display_usage_shape).mean(axis=3).mean(axis=1) / 382500
         white_pixels = get_white_pixels(output_image)
