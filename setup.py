@@ -18,8 +18,8 @@ class BuildPyWithLocalesCommand(setuptools.command.build_py.build_py):
 
 data_files = [
     ('/usr/share/slafw/scripts', glob('slafw/scripts/*')),
-    ('/etc/slafw', ['slafw/hardware.cfg']),
-    ('/etc/slafw', ['slafw/loggerConfig.json']),
+    ('/etc/sl1fw', ['slafw/hardware.cfg']),
+    ('/etc/sl1fw', ['slafw/loggerConfig.json']),
     ('/usr/lib/systemd/system', glob('systemd/*.service')),
     ('/usr/lib/systemd/system', glob('systemd/*.path')),
     ('/usr/lib/tmpfiles.d/', ['systemd/slafw-tmpfiles.conf']),
