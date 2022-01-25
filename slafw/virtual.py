@@ -113,6 +113,8 @@ defines.sl1s_model_file = defines.printer_model / "sl1s"
 defines.detect_sla_model_file = TEMP_DIR / "detect-sla-model"
 defines.printer_model.mkdir()
 defines.sl1_model_file.touch()  # Set SL1 as the current model
+defines.factory_enable = TEMP_DIR / "factory_mode_enabled"
+defines.factory_enable.touch()  # Enable factory mode
 
 
 class Virtual:
