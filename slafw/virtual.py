@@ -128,9 +128,6 @@ class Virtual:
         self.admin0_dbus = None
 
     def __call__(self):
-        signal.signal(signal.SIGINT, self.tear_down)
-        signal.signal(signal.SIGTERM, self.tear_down)
-
         with patch("slafw.motion_controller.controller.serial", slafw.tests.mocks.mc_port), patch(
             "slafw.libUvLedMeterMulti.serial", slafw.tests.mocks.mc_port
         ), patch("slafw.motion_controller.controller.UInput", Mock()), patch(
@@ -169,19 +166,22 @@ class Virtual:
             self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
             print("Running printer")
             threading.Thread(target=self.printer.setup).start()  # Does not block, but requires Rauc on DBus
-            print("Running glib mainloop")
+
             self.glib_loop = GLib.MainLoop().run()
+
+            def tear_down(signum, _):
+                if signum not in [signal.SIGTERM, signal.SIGINT]:
+                    return
+
+                print("Running virtual printer tear down")
+                asyncio.run(self.async_tear_down())
+                print("Virtual printer teardown finished")
+
+            signal.signal(signal.SIGINT, tear_down)
+            signal.signal(signal.SIGTERM, tear_down)
+
+            print("Running glib mainloop")
             self.glib_loop.run()  # type: ignore[attr-defined]
-            print("Unpublishing Rauc mock")
-            self.rauc_mocks.unpublish()
-
-    def tear_down(self, signum, _):
-        if signum != signal.SIGTERM:
-            return
-
-        print("Running virtual printer tear down")
-        asyncio.run(self.async_tear_down())
-        print("Virtual printer teardown finished")
 
     @staticmethod
     def fake_save_path():
