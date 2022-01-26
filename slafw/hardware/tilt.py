@@ -33,9 +33,10 @@ class TiltProfile(AxisProfileBase, Enum):
 
 
 class Tilt(Axis):
-    def __init__(self):
+    def __init__(self, config: HwConfig):
         super().__init__()
         self.movement_ended = Signal()
+        self._config = config
 
     @abstractmethod
     def go_to_fullstep(self, goUp: int):
@@ -45,17 +46,21 @@ class Tilt(Axis):
     def move_down(self):
         """move tilt to zero"""
 
-    @abstractmethod
+    @safe_call(False, MotionControllerException)
     def move_down_wait(self):
-        """move tilt to zero (synchronous)"""
+        self.move_down()
+        while not self.on_target_position:
+            sleep(0.1)
 
     @abstractmethod
     def move_up(self):
         """move tilt to max"""
 
-    @abstractmethod
+    @safe_call(False, MotionControllerException)
     def move_up_wait(self):
-        """move tilt to max (synchronous)"""
+        self.move_up()
+        while not self.on_target_position:
+            sleep(0.1)
 
     @abstractmethod
     def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
@@ -69,13 +74,22 @@ class Tilt(Axis):
     async def layer_down_wait_async(self, slowMove: bool = False) -> None:
         """tilt up during the print"""
 
-    @abstractmethod
+    @safe_call(False, MotionControllerException)
     def stir_resin(self) -> None:
-        """mix the resin"""
+        asyncio.run(self.stir_resin_async())
 
-    @abstractmethod
+    @safe_call(False, MotionControllerException)
     async def stir_resin_async(self) -> None:
-        """mix the resin"""
+        for _ in range(self._config.stirringMoves):
+            self.profile_id = TiltProfile.homingFast
+            # do not verify end positions
+            self.move_up()
+            while self.moving:
+                sleep(0.1)
+            self.move_down()
+            while self.moving:
+                sleep(0.1)
+            await self.sync_wait_async()
 
     def home_calibrate_wait(self):
         """test and save tilt motor phase for accurate homing"""
@@ -98,7 +112,7 @@ class TiltSL1(Tilt):
     # pylint: disable=too-many-public-methods
 
     def __init__(self, mcc: MotionController, config: HwConfig):
-        super().__init__()
+        super().__init__(config)
         self.logger = logging.getLogger(__name__)
         self._mcc = mcc
         self._config = config
@@ -217,20 +231,8 @@ class TiltSL1(Tilt):
         self.move_absolute(0)
 
     @safe_call(False, MotionControllerException)
-    def move_down_wait(self):
-        self.move_down()
-        while not self.on_target_position:
-            sleep(0.1)
-
-    @safe_call(False, MotionControllerException)
     def move_up(self):
         self.move_absolute(self._config.tiltHeight)
-
-    @safe_call(False, MotionControllerException)
-    def move_up_wait(self):
-        self.move_up()
-        while not self.on_target_position:
-            sleep(0.1)
 
     @safe_call(False, MotionControllerException)
     async def layer_down_wait_async(self, slowMove: bool = False) -> None:
@@ -295,23 +297,6 @@ class TiltSL1(Tilt):
             while self.moving:
                 sleep(0.1)
             sleep(profile[5] / 1000.0)
-
-    @safe_call(False, MotionControllerException)
-    def stir_resin(self) -> None:
-        asyncio.run(self.stir_resin_async())
-
-    @safe_call(False, MotionControllerException)
-    async def stir_resin_async(self) -> None:
-        for _ in range(self._config.stirringMoves):
-            self.profile_id = TiltProfile.homingFast
-            # do not verify end positions
-            self.move_up()
-            while self.moving:
-                sleep(0.1)
-            self.move_down()
-            while self.moving:
-                sleep(0.1)
-            await self.sync_wait_async()
 
     @safe_call(False, MotionControllerException)
     def level(self) -> None:
