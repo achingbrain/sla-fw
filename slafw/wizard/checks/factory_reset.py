@@ -316,7 +316,7 @@ class InitiatePackingMoves(DangerousCheck):
 
         self._hw.setTowerProfile("homingFast")
         # TODO: Constant in code !!!
-        self._hw.towerMoveAbsolute(self._hw.config.towerHeight - self._hw.config.calcMicroSteps(74))
+        self._hw.tower_position_nm = self._hw.config.tower_height_nm - 74_000_000
         while self._hw.isTowerMoving():
             await sleep(0.25)
 
@@ -329,7 +329,7 @@ class FinishPackingMoves(Check):
     async def async_task_run(self, actions: UserActionBroker):
         # slightly press the foam against printers base
         # TODO: Constant in code !!!
-        self._hw.towerMoveAbsolute(self._hw.config.towerHeight - self._hw.config.calcMicroSteps(93))
+        self._hw.tower_position_nm = self._hw.config.tower_height_nm - 93_000_000
         while self._hw.isTowerMoving():
             await sleep(0.25)
 

@@ -23,24 +23,6 @@ class HwConfig(Config):
        notation. For details see Toml format specification: https://en.wikipedia.org/wiki/TOML
     """
 
-    def calcMicroSteps(self, mm: float) -> int:
-        """
-        Convert from millimeters to microsteps using current tower pitch.
-
-        :param mm: Tower position in millimeters
-        :return: Tower position in microsteps
-        """
-        return int(mm * self.microStepsMM)
-
-    def calcMM(self, microSteps: int) -> float:
-        """
-        Convert microsteps to millimeters using current tower pitch.
-
-        :param microSteps: Tower position in microsteps
-        :return: Tower position in millimeters
-        """
-        return round(float(microSteps) / self.microStepsMM, 3)
-
     def tower_microsteps_to_nm(self, microsteps: int) -> int:
         """
         Covert microsteps to nanometers using the current tower pitch
@@ -117,9 +99,14 @@ class HwConfig(Config):
     vatRevision = IntValue(0, minimum=0, maximum=1, doc="Resin vat revision: 0 = metalic (SL1); 1 = plastic (SL1S);")
     forceSlowTiltHeight = IntValue(1000000, minimum=0, maximum=10000000, doc="Force slow tilt after crossing limit4fast for defined height. [nm]")
 
+    # Deprecated - use calib_tower_offset_nm
     calibTowerOffset = IntValue(
-        lambda self: self.calcMicroSteps(defines.defaultTowerOffset),
+        lambda self: self.nm_to_tower_microsteps(defines.defaultTowerOffset * 1_000_000),
         doc="Adjustment of zero on the tower axis. [microsteps]",
+    )
+    calib_tower_offset_nm = IntValue(
+        lambda self:self.tower_microsteps_to_nm(self.calibTowerOffset),
+        doc="Adjustment of zero on the tower axis. [nanometers]",
     )
 
     # Exposure setup
@@ -129,8 +116,15 @@ class HwConfig(Config):
     trigger = IntValue(
         0, minimum=0, maximum=20, doc="Duration of electronic trigger durint the layer change, currently discarded. [tenths of a second]"
     )
+    # Deprecated - use layer_tower_hop_nm
     layerTowerHop = IntValue(
         0, minimum=0, maximum=80000, doc="How much to rise the tower during layer change. [microsteps]"
+    )
+    layer_tower_hop_nm = IntValue(
+        lambda self: self.tower_microsteps_to_nm(self.layerTowerHop),
+        minimum=0,
+        maximum=100_000_000,
+        doc = "How much to rise the tower during layer change. [microsteps]"
     )
     delayBeforeExposure = IntValue(
         0, minimum=0, maximum=300, doc="Delay between tear off and exposure. [tenths of a second]"
@@ -140,7 +134,14 @@ class HwConfig(Config):
     )
     upAndDownWait = IntValue(10, minimum=0, maximum=600, doc="Up&Down wait time. [seconds]")
     upAndDownEveryLayer = IntValue(0, minimum=0, maximum=500, doc="Do Up&Down every N layers, 0 means never.")
+    # Deprecated - use up_and_down_z_offset_nm
     upAndDownZoffset = IntValue(0, minimum=-800, maximum=800)
+    up_and_down_z_offset_nm = IntValue(
+        lambda self: self.tower_microsteps_to_nm(self.upAndDownZoffset),
+        minimum=-50_000_000,
+        maximum=50_000_000,
+    )
+
     upAndDownExpoComp = IntValue(0, minimum=-10, maximum=300)
 
     # Fans & LEDs
@@ -205,9 +206,16 @@ class HwConfig(Config):
     def calibrated(self, value: bool) -> None:
         self.raw_calibrated = value
 
+    # Deprecated - use tower_height_nm
     towerHeight = IntValue(
-        lambda self: self.calcMicroSteps(defines.defaultTowerHeight), doc="Maximum tower height. [microsteps]"
+        lambda self: self.nm_to_tower_microsteps(defines.defaultTowerHeight * 1_000_000),
+        doc="Maximum tower height. [microsteps]"
     )
+    tower_height_nm = IntValue(
+        lambda self: self.tower_microsteps_to_nm(self.towerHeight),
+        doc = "Current tower height. [nanometers]"
+    )
+
     max_tower_height_mm = IntValue(150, key="maxTowerHeight_mm", doc="Maximum tower height in mm")
     showWizard = BoolValue(True, doc="Display wizard at startup if True.")
     showUnboxing = BoolValue(True, doc="Display unboxing wizard at startup if True.")

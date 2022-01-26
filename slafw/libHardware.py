@@ -13,7 +13,7 @@
 # pylint: disable=too-many-branches
 
 import asyncio
-import functools
+from functools import cached_property, partial
 import json
 import logging
 import os
@@ -157,16 +157,6 @@ class Hardware:
             2: N_("UV LED temperature"),    # SL1S
             3: N_("<reserved2>"),
         }
-
-        # TODO: Use @cached_property for these (needs Python 3.9)
-        self._towerMin = -self.config.calcMicroSteps(self.config.max_tower_height_mm + 5)
-        self._towerAboveSurface = -self.config.calcMicroSteps(self.config.max_tower_height_mm - 5)
-        self._towerMax = self.config.calcMicroSteps(2 * self.config.max_tower_height_mm)
-        self._towerEnd = self.config.calcMicroSteps(self.config.max_tower_height_mm)
-        self._towerCalibPos = self.config.calcMicroSteps(1)
-        self._towerResinStartPos = self.config.calcMicroSteps(36)
-        self._towerResinEndPos = self.config.calcMicroSteps(1)
-
         self.mcc = MotionController(defines.motionControlDevice)
 
         self.tilt: Optional[Tilt] = None
@@ -227,6 +217,34 @@ class Hardware:
         self.mcc.tower_status_changed.connect(self._tower_position_checker.set_rapid_update)
         self.last_rpm_control: Optional[float] = None
 
+    @cached_property
+    def tower_min_nm(self) -> int:
+        return -(self.config.max_tower_height_mm + 5) * 1_000_000
+
+    @cached_property
+    def tower_above_surface_nm(self) -> int:
+        return -(self.config.max_tower_height_mm - 5) * 1_000_000
+
+    @cached_property
+    def tower_max_nm(self) -> int:
+        return 2 * self.config.max_tower_height_mm * 1_000_000
+
+    @cached_property
+    def tower_end_nm(self) -> int:
+        return self.config.max_tower_height_mm * 1_000_000
+
+    @cached_property
+    def tower_calib_pos_nm(self) -> int:  # pylint: disable=no-self-use
+        return 1_000_000
+
+    @cached_property
+    def _tower_resin_start_pos_nm(self) -> int:  # pylint: disable=no-self-use
+        return 36_000_000
+
+    @cached_property
+    def _tower_resin_end_pos_nm(self) -> int:  # pylint: disable=no-self-use
+        return 1_000_000
+
     # MUST be called before start()
     def connect(self):
         # MC have to be started first (beep, poweroff)
@@ -256,7 +274,7 @@ class Hardware:
         checkers = [
             ValueChecker(self.getFansRpm, self.fans_changed, UpdateInterval.seconds(3), pass_value=False),
             ValueChecker(
-                functools.partial(self.getMcTemperatures, False), self.mc_temps_changed, UpdateInterval.seconds(3),
+                partial(self.getMcTemperatures, False), self.mc_temps_changed, UpdateInterval.seconds(3),
             ),
             ValueChecker(self.getCpuTemperature, self.cpu_temp_changed, UpdateInterval.seconds(3)),
             ValueChecker(self.getVoltages, self.led_voltages_changed, UpdateInterval.seconds(5)),
@@ -338,26 +356,6 @@ class Hardware:
 
     def flashMC(self):
         self.mcc.flash(self.config.MCBoardVersion)
-
-    @property
-    def tower_min(self) -> int:
-        return self._towerMin
-
-    @property
-    def tower_max(self) -> int:
-        return self._towerMax
-
-    @property
-    def tower_end(self) -> int:
-        return self._towerEnd
-
-    @property
-    def tower_above_surface(self) -> int:
-        return self._towerAboveSurface
-
-    @property
-    def tower_calib_pos(self) -> int:
-        return self._towerCalibPos
 
     @property
     def white_pixels_threshold(self) -> int:
@@ -896,7 +894,7 @@ class Hardware:
         """ return tower status. False if tower is still homing or error occured """
         if not self.towerSynced:
             if self.towerHomingStatus == 0:
-                self.setTowerPosition(self.config.towerHeight)
+                self.set_tower_position_nm(self.config.tower_height_nm)
                 self.towerSynced = True
             else:
                 self.towerSynced = False
@@ -917,7 +915,7 @@ class Hardware:
         while True:
             homingStatus = self.towerHomingStatus
             if homingStatus == 0:
-                self.setTowerPosition(self.config.towerHeight)
+                self.set_tower_position_nm(self.config.tower_height_nm)
                 self.towerSynced = True
                 return True
 
@@ -935,20 +933,17 @@ class Hardware:
 
             await asyncio.sleep(0.25)
 
-    def towerMoveAbsoluteWait(self, position):
-        return asyncio.run(self.towerMoveAbsoluteWaitAsync(position))
+    def tower_move_absolute_nm_wait(self, position_nm):
+        return asyncio.run(self.tower_move_absolute_nm_wait_async(position_nm))
 
-    async def towerMoveAbsoluteWaitAsync(self, position):
-        self.towerMoveAbsolute(position)
+    async def tower_move_absolute_nm_wait_async(self, position_nm: int):
+        self.tower_position_nm = position_nm
         while not await self.isTowerOnPositionAsync():
             await asyncio.sleep(0.25)
 
-    def towerMoveAbsolute(self, position):
+    def _towerMoveAbsolute(self, position):
         self._towerToPosition = position
         self.mcc.do("!twma", position)
-
-    def towerToPosition(self, mm):
-        self.towerMoveAbsolute(self.config.calcMicroSteps(mm))
 
     # TODO use !brk instead. Motor might stall at !mot 0
     def towerStop(self):
@@ -970,19 +965,19 @@ class Hardware:
         if self.isTowerMoving():
             return False
 
-        while self._towerToPosition != self.getTowerPositionMicroSteps():
+        while self._towerToPosition != self._getTowerPositionMicroSteps():
             if self._towerPositionRetries:
                 self._towerPositionRetries -= 1
 
                 self.logger.warning(
                     "Tower is not on required position! Sync forced. Actual position: %d, Target position: %d ",
-                    self.getTowerPositionMicroSteps(),
+                    self._getTowerPositionMicroSteps(),
                     self._towerToPosition,
                 )
                 profileBackup = self._lastTowerProfile
                 await self.towerSyncWaitAsync()
                 self.setTowerProfile(profileBackup)
-                self.towerMoveAbsolute(self._towerToPosition)
+                self._towerMoveAbsolute(self._towerToPosition)
                 while self.isTowerMoving():
                     await asyncio.sleep(0.1)
 
@@ -996,16 +991,16 @@ class Hardware:
         return self._towerPositionRetries == 0
 
     def towerToZero(self):
-        self.towerMoveAbsolute(self.config.calibTowerOffset)
+        self.tower_position_nm = self.config.calib_tower_offset_nm
 
     def towerToTop(self):
-        self.towerMoveAbsolute(self.config.towerHeight)
+        self.tower_position_nm = self.config.tower_height_nm
 
     def setTowerOnMax(self):
-        self.setTowerPosition(self._towerEnd)
+        self.set_tower_position_nm(self.tower_end_nm)
 
     def towerToMax(self):
-        self.towerMoveAbsolute(self.tower_max)
+        self.tower_position_nm = self.tower_max_nm
 
     def isTowerOnMax(self):
         stopped = not self.isTowerMoving()
@@ -1015,30 +1010,21 @@ class Hardware:
         return stopped
 
     def towerToMin(self):
-        self.towerMoveAbsolute(self.tower_min)
+        self.tower_position_nm = self.tower_min_nm
 
     def isTowerOnMin(self):
         stopped = not self.isTowerMoving()
         if stopped:
-            self.setTowerPosition(0)
+            self.set_tower_position_nm(0)
 
         return stopped
 
-    @safe_call(None, MotionControllerException)
-    def setTowerPosition(self, position):
-        self.mcc.do("!twpo", position)
-
-    # TODO: Get rid of this
-    # TODO: Fix inconsistency getTowerPosition returns formated string with mm
-    # TODO: Property could handle this a bit more consistently
-    @safe_call("ERROR", Exception)
-    def getTowerPosition(self):
-        steps = self.getTowerPositionMicroSteps()
-        return "%.3f mm" % self.config.calcMM(int(steps))
-
-    def getTowerPositionMicroSteps(self):
+    def _getTowerPositionMicroSteps(self):
         steps = self.mcc.doGetInt("?twpo")
         return steps
+
+    def set_tower_position_nm(self, position_nm: int):
+        self.mcc.do("!twpo", self.config.nm_to_tower_microsteps(position_nm))
 
     @safe_call(None, (ValueError, MotionControllerException))
     def setTowerProfile(self, profile):
@@ -1099,12 +1085,13 @@ class Hardware:
     @safe_call(0, MotionControllerException)
     async def get_resin_sensor_position_mm(self) -> float:
         self.setTowerProfile("homingFast")
-        await self.towerMoveAbsoluteWaitAsync(self._towerResinStartPos)  # move quickly to safe distance
+        await self.tower_move_absolute_nm_wait_async(self._tower_resin_start_pos_nm)  # move quickly to safe distance
         try:
             self.resinSensor(True)
             await asyncio.sleep(1)
             self.setTowerProfile("resinSensor")
-            self.mcc.do("!rsme", self._towerResinStartPos - self._towerResinEndPos)  # relative movement!
+            relative_move_nm = self._tower_resin_start_pos_nm - self._tower_resin_end_pos_nm
+            self.mcc.do("!rsme", self.config.nm_to_tower_microsteps(relative_move_nm))
             while self.isTowerMoving():
                 await asyncio.sleep(0.1)
             if not self.getResinSensorState():
@@ -1112,7 +1099,7 @@ class Hardware:
                 return 0.0
         finally:
             self.resinSensor(False)
-        return self.config.calcMM(self.getTowerPositionMicroSteps())
+        return self.tower_position_nm / 1_000_000
 
     def get_profiles_with_sensitivity(self, profiles: List[List[int]], axis: Axis, sens: int = 0):
         if sens < -2 or sens > 2:
@@ -1192,21 +1179,12 @@ class Hardware:
         Read or set tower position in nm
         """
         # TODO: Raise exception if tower not synced
-        microsteps = self.getTowerPositionMicroSteps()
+        microsteps = self._getTowerPositionMicroSteps()
         return self.config.tower_microsteps_to_nm(microsteps)
 
     @tower_position_nm.setter
     def tower_position_nm(self, position_nm: int) -> None:
-        # TODO: This needs some safety check
-        self.towerToPosition(position_nm / 1000 / 1000)
-
-    def get_tower_sensitivity(self) -> int:
-        """
-        Obtain tower sensitivity
-
-        :return: Sensitivity value
-        """
-        return asyncio.run(self.get_tower_sensitivity_async())
+        self._towerMoveAbsolute(self.config.nm_to_tower_microsteps(position_nm))
 
     async def get_tower_sensitivity_async(self) -> int:
         """

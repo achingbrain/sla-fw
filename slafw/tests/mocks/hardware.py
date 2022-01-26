@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock, PropertyMock
 
 from PySignal import Signal
 
@@ -27,7 +27,7 @@ class Hardware:
         self.cpuSerialNo = "CZPX0819X009XC00151"
         self.mcSerialNo = "CZPX0619X678XC12345"
 
-        self.tower_position_nm = defines.defaultTowerHeight * 1000 * 1000
+        self._tower_position_nm = defines.defaultTowerHeight * 1000 * 1000
 
         self.config = config
         self.fans = {
@@ -36,11 +36,11 @@ class Hardware:
             2: Fan("rear fan", defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled,),
         }
 
-        self.tower_end = self.config.calcMicroSteps(150)
+        self.tower_end_nm = 150_000_000
 
-        self.tower_above_surface = self.tower_end
-        self.tower_min = self.tower_end - 1
-        self.tower_calib_pos = self.tower_end
+        self.tower_above_surface_nm = self.tower_end_nm
+        self.tower_min_nm = self.tower_end_nm - 1
+        self.tower_calib_pos_nm = self.tower_end_nm
         self.mcFwVersion = "1.0.0"
         self.mcBoardRevision = "6c"
 
@@ -67,11 +67,11 @@ class Hardware:
         self.getFansRpm = Mock(return_value=[self.config.fan1Rpm, self.config.fan2Rpm, self.config.fan3Rpm,])
         self.isTowerMoving = Mock(return_value=False)
         self.isTowerOnPositionAsync = AsyncMock(return_value=True)
-        self.getTowerPositionMicroSteps = Mock(return_value=self.tower_end)
+
         self.get_tower_sensitivity = Mock(return_value=0)
         self.get_tower_sensitivity_async = AsyncMock(return_value=0)
         self.towerSyncWaitAsync = AsyncMock()
-        self.towerMoveAbsoluteWaitAsync = AsyncMock()
+        self.tower_move_absolute_nm_wait_async = AsyncMock()
         self.verify_tilt = AsyncMock()
         self.verify_tower = AsyncMock()
 
@@ -91,6 +91,8 @@ class Hardware:
         self.cover_state_changed = Signal()
         self.uv_led_overheat = False
         self.fans_error_changed = Signal()
+
+    tower_position_nm = PropertyMock(return_value=150_000_000)
 
     def exit(self):
         self.cover_state_changed.clear()

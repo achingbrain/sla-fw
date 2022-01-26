@@ -126,7 +126,7 @@ class TiltAndTowerMenu(SafeAdminMenu):
             status2 = self.add_label()
             while not self._printer.hw.isTowerOnPosition():
                 sleep(0.25)
-                status2.set(self._printer.hw.getTowerPosition())
+                status2.set(self._printer.hw.tower_position_nm)
         self._printer.hw.powerLed("normal")
 
     @SafeAdminMenu.safe_call

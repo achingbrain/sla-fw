@@ -247,7 +247,7 @@ class StartPositionsCheck(ExposureCheckRunner):
 
         self.logger.info("Tower to print start position")
         self.expo.hw.setTowerProfile("homingFast")
-        self.expo.hw.towerToPosition(0.25)  # TODO: Constant in code, seems important
+        self.expo.hw.tower_position_nm = 0.25 * 1_000_000  # TODO: Constant in code, seems important
         while not await self.expo.hw.isTowerOnPositionAsync(retries=2):
             await asyncio.sleep(0.25)
 
@@ -413,7 +413,7 @@ class Exposure:
     def prepare(self):
         self.exposure_image.preload_image(0)
         self.hw.setTowerProfile("layer")
-        self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
+        self.hw.tower_move_absolute_nm_wait(0)  # first layer will move up
 
         self.exposure_image.blank_screen()
         self.hw.uvLedPwm = self.hw.config.uvPwmPrint
@@ -573,20 +573,20 @@ class Exposure:
         self.hw.uvLed(False)
 
     def _do_frame(self, times_ms, was_stirring, second, layer_height_nm):
-        position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
+        position_nm = self.tower_position_nm + self.hw.config.calib_tower_offset_nm
 
         if self.hw.config.tilt:
             self.logger.info("%s tilt up", "Slow" if self._slow_move else "Fast")
             if self.hw.config.layerTowerHop and self._slow_move:
-                self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
+                self.hw.tower_move_absolute_nm_wait(position_nm + self.hw.config.layer_tower_hop_nm)
                 self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
-                self.hw.towerMoveAbsoluteWait(position_steps)
+                self.hw.tower_move_absolute_nm_wait(position_nm)
             else:
-                self.hw.towerMoveAbsoluteWait(position_steps)
+                self.hw.tower_move_absolute_nm_wait(position_nm)
                 self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
         else:
-            self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
-            self.hw.towerMoveAbsoluteWait(position_steps)
+            self.hw.tower_move_absolute_nm_wait(position_nm + self.hw.config.layer_tower_hop_nm)
+            self.hw.tower_move_absolute_nm_wait(position_nm)
         self.hw.setTowerCurrent(defines.towerHoldCurrent)
 
         white_pixels = self.exposure_image.sync_preloader()
@@ -688,10 +688,10 @@ class Exposure:
             self.hw.tilt.stir_resin()
 
         self.state = ExposureState.GOING_DOWN
-        position = self.hw.config.upAndDownZoffset
-        if position < 0:
-            position = 0
-        self.hw.towerMoveAbsolute(position)
+        position_nm = self.hw.config.up_and_down_z_offset_nm
+        if position_nm < 0:
+            position_nm = 0
+        self.hw.tower_position_nm = position_nm
         while not self.hw.isTowerOnPosition():
             sleep(0.25)
         self.hw.setTowerProfile("layer")

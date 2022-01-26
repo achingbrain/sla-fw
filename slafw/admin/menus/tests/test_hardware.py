@@ -252,7 +252,7 @@ class InfiniteTestMenu(AdminMenu):
         tilt_counter = 0
         tower_status = 0
         tilt_may_move = True
-        tower_target_position = 0
+        tower_target_position_nm = 0
         # up = 0
         # above Display = 1
         # down = 3
@@ -272,10 +272,10 @@ class InfiniteTestMenu(AdminMenu):
                     self.logger.info("towerCounter: %d, tiltCounter: %d", tower_counter, tilt_counter)
                     if (tower_counter % 100) == 0:  # save uv statistics every 100 tower cycles
                         self._printer.hw.saveUvStatistics()
-                    self._printer.hw.setTowerPosition(0)
+                    self._printer.hw.set_tower_position_nm(0)
                     self._printer.hw.setTowerProfile("homingFast")
-                    tower_target_position = self._printer.hw.tower_above_surface
-                    self._printer.hw.towerMoveAbsolute(tower_target_position)
+                    tower_target_position_nm = self._printer.hw.tower_above_surface_nm
+                    self._printer.hw.tower_position_nm = tower_target_position_nm
                     tower_status = 1
                 elif tower_status == 1:  # tower above the display
                     tilt_may_move = False
@@ -283,12 +283,12 @@ class InfiniteTestMenu(AdminMenu):
                         tower_status = 2
                         self._printer.hw.tilt.profile_id = TiltProfile.layerMoveSlow
                         self._printer.hw.setTowerProfile("homingSlow")
-                        tower_target_position = self._printer.hw.tower_min
-                        self._printer.hw.towerMoveAbsolute(tower_target_position)
+                        tower_target_position_nm = self._printer.hw.tower_min_nm
+                        self._printer.hw.tower_position_nm = tower_target_position_nm
                 elif tower_status == 2:
                     tilt_may_move = True
-                    tower_target_position = self._printer.hw.tower_end
-                    self._printer.hw.towerMoveAbsolute(tower_target_position)
+                    tower_target_position_nm = self._printer.hw.tower_end_nm
+                    self._printer.hw.tower_position_nm = tower_target_position_nm
                     tower_status = 0
             if not self._printer.hw.tilt.moving:
                 # hack to force tilt to move. Needs MC FW fix. Tilt cannot move up when tower moving
@@ -297,7 +297,7 @@ class InfiniteTestMenu(AdminMenu):
                     self._printer.hw.tilt.profile_id = TiltProfile.homingFast
                     self._printer.hw.tilt.move_up()
                     self._printer.hw.setTowerProfile("homingFast")
-                    self._printer.hw.towerMoveAbsolute(tower_target_position)
+                    self._printer.hw.tower_position_nm = tower_target_position_nm
                     sleep(1)
                 elif tilt_may_move:
                     tilt_counter += 1

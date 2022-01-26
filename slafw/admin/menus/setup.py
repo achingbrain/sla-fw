@@ -108,12 +108,6 @@ class HardwareSetupMenu(SetupMenu):
 
 class ExposureSetupMenu(SetupMenu):
     def configure_items(self):
-        def set_layer_tower_hop(value):
-            self._temp.layerTowerHop = self._printer.hw.config.nm_to_tower_microsteps(value)
-
-        def get_layer_tower_hop():
-            return self._printer.hw.config.tower_microsteps_to_nm(self._temp.layerTowerHop)
-
         def set_delay_before_expo(value):
             self._temp.delayBeforeExposure = int(round(value * 10, ndigits=1))
 
@@ -126,12 +120,6 @@ class ExposureSetupMenu(SetupMenu):
         def get_delay_after_expo():
             return self._temp.delayafterexposure / 10
 
-        def set_up_and_down_z_offset(value):
-            self._temp.upAndDownZoffset = self._printer.hw.config.nm_to_tower_microsteps(value)
-
-        def get_up_and_down_z_offset():
-            return self._printer.hw.config.tower_microsteps_to_nm(self._temp.upAndDownZoffset)
-
         self.add_items(
             (
                 AdminBoolValue.from_value("Per-partes exposure", self._temp, "perPartes"),
@@ -139,24 +127,12 @@ class ExposureSetupMenu(SetupMenu):
                 AdminFixedValue.from_value("Force slow tilt height [mm]", self._temp, "forceSlowTiltHeight", 10000, 6),
                 AdminIntValue.from_value("Limit for fast tilt [%]", self._temp, "limit4fast", 1),
                 AdminBoolValue.from_value("Up&Down UV on", self._temp, "upAndDownUvOn"),
-                AdminFixedValue(
-                    "Layer tower hop [mm]",
-                    get_layer_tower_hop,
-                    set_layer_tower_hop,
-                    self._printer.hw.config.tower_microsteps_to_nm(1),
-                    6,
-                ),
+                AdminFixedValue.from_value("Layer tower hop [mm]", self._temp, "layer_tower_hop_nm", 1, 6),
                 AdminFloatValue("Delay before expos. [s]", get_delay_before_expo, set_delay_before_expo, 0.1),
                 AdminFloatValue("Delay after expos. [s]", get_delay_after_expo, set_delay_after_expo, 0.1),
                 AdminIntValue.from_value("Up&down wait [s]", self._temp, "upanddownwait", 1),
                 AdminIntValue.from_value("Up&down every n-th l.", self._temp, "upanddowneverylayer", 1),
-                AdminFixedValue(
-                    "Up&down Z offset [mm]",
-                    get_up_and_down_z_offset,
-                    set_up_and_down_z_offset,
-                    self._printer.hw.config.tower_microsteps_to_nm(1),
-                    6,
-                ),
+                AdminFixedValue.from_value("Up&down Z offset [mm]", self._temp, "up_and_down_z_offset_nm", 1, 6),
                 AdminFixedValue.from_value("Up&down expo comp [s]", self._temp, "upAndDownExpoComp", 1, 1),
             )
         )

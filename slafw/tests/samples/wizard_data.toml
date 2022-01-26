@@ -4,6 +4,7 @@ mcSerialNo = "CZPX0819X009XC00151"
 mcFwVersion = "0.11.5"
 mcBoardRev = "5a"
 towerHeight = 96000
+tower_height_nm = 120000000
 tiltHeight = 4928
 uvPwm = 26
 wizardUvVoltageRow1 = [ 12835, 14193, 16062,]

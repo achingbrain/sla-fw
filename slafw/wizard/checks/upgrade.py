@@ -40,6 +40,7 @@ class ResetMechanicalCalibration(Check):
         self._writer = writer
 
     async def async_task_run(self, actions: UserActionBroker):
+        del self._writer.tower_height_nm
         del self._writer.towerHeight
         del self._writer.tiltHeight
         self._writer.calibrated = False

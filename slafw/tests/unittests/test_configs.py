@@ -243,11 +243,11 @@ class TestHardwareConfig(SlafwTestCase):
 
     def test_write(self):
         hw_config = HwConfig(self.test_config_path, is_master=True)
-        hw_config.towerHeight = -1
-        tower_height = 1024
-        hw_config.towerHeight = tower_height
+        hw_config.tower_height_nm = -1
+        tower_height_nm = 1024
+        hw_config.tower_height_nm = tower_height_nm
 
-        self.assertEqual(hw_config.towerHeight, tower_height, "Check towerHeight is set")
+        self.assertEqual(hw_config.tower_height_nm, tower_height_nm, "Check tower height is set")
 
         hw_config.uvPwm = 222
 
@@ -258,7 +258,7 @@ class TestHardwareConfig(SlafwTestCase):
             # "showUnboxing = true\r\n"
             # "MCversionCheck = false\r\n"
             # "autoOff = true\r\n"
-            "uvPwm = 222\n" "towerHeight = 1024\n",
+            "uvPwm = 222\n" "tower_height_nm = 1024\n",
             self.get_config_content(self.writetest_config_path),
             "Check file lines append",
         )
@@ -270,7 +270,7 @@ class TestHardwareConfig(SlafwTestCase):
             # "showUnboxing = false\r\n"
             # "MCversionCheck = false\r\n"
             # "autoOff = true\r\n"
-            "uvPwm = 222\n" "towerHeight = 1024\n",
+            "uvPwm = 222\n" "tower_height_nm = 1024\n",
             self.get_config_content(self.test_config_path),
             "Check file lines delete",
         )

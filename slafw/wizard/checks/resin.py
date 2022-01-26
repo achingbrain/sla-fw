@@ -29,7 +29,7 @@ class ResinSensorTest(DangerousCheck):
         await self.wait_cover_closed()
         with actions.led_warn:
             await gather(self._hw.verify_tower(), self._hw.verify_tilt())
-            self._hw.setTowerPosition(self._hw.config.calcMicroSteps(120))
+            self._hw.set_tower_position_nm(120_000_000)
             position_mm = await self._hw.get_resin_sensor_position_mm()
             self._logger.debug("resin triggered at %s mm", position_mm)
 

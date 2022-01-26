@@ -14,7 +14,7 @@ from slafw.wizard.setup import Configuration
 @dataclass
 class CheckData:
     tiltHeight: int
-    towerHeight: int
+    tower_height_nm: int
 
 
 class CalibrationInfo(Check):
@@ -27,7 +27,7 @@ class CalibrationInfo(Check):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._logger.debug("Obtaining calibration information")
-        self._result_data = CheckData(self._hw_config.tiltHeight, self._hw_config.towerHeight)
+        self._result_data = CheckData(self._hw_config.tiltHeight, self._hw_config.tower_height_nm)
 
     def get_result_data(self) -> Dict[str, Any]:
         return asdict(self._result_data)

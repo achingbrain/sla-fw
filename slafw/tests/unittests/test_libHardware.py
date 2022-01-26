@@ -324,37 +324,37 @@ class TestLibHardware(SlafwTestCase):
 
     def test_tower_printstart(self):
         self.hw.setTowerProfile('homingFast')
-        self.hw.towerToPosition(0.25)
+        self.hw.tower_position_nm = 0.25 * 1_000_000
         while not self.hw.isTowerOnPosition(retries=2):
             sleep(0.25)
         self.assertFalse(self.hw.towerPositonFailed())
 
     def test_tower_move(self):
         position = 100000
-        self.hw.towerMoveAbsolute(position)
+        self.hw.tower_position_nm = position
         self.assertTrue(self.hw.isTowerMoving())
         while self.hw.isTowerMoving():
             sleep(0.1)
         self.assertFalse(self.hw.isTowerMoving())
-        self.assertEqual(position, self.hw.getTowerPositionMicroSteps())
+        self.assertEqual(position, self.hw.tower_position_nm)
 
     def test_tower_move_wait(self):
         position = 100000
-        self.hw.towerMoveAbsoluteWait(position)
+        self.hw.tower_move_absolute_nm_wait(position)
         self.assertFalse(self.hw.isTowerMoving())
-        self.assertEqual(position, self.hw.getTowerPositionMicroSteps())
+        self.assertEqual(position, self.hw.tower_position_nm)
         self.assertTrue(self.hw.isTowerOnPosition(retries=5))
 
     def test_tower_to_position(self):
-        position_mm = 10
-        self.hw.towerToPosition(position_mm)
+        position_nm = 10_000_000
+        self.hw.tower_position_nm = position_nm
         while self.hw.isTowerMoving():
             sleep(0.1)
-        self.assertEqual("%.3f mm" % position_mm, self.hw.getTowerPosition())
+        self.assertEqual(position_nm, self.hw.tower_position_nm)
 
     def test_tower_stop(self):
         position = 100000
-        self.hw.towerMoveAbsolute(position)
+        self.hw.tower_position_nm = position
         self.assertTrue(self.hw.isTowerMoving())
         self.hw.towerStop()
         self.assertFalse(self.hw.isTowerMoving())
@@ -373,8 +373,8 @@ class TestLibHardware(SlafwTestCase):
 
     def test_tower_position(self):
         position = 1000000
-        self.hw.setTowerPosition(position)
-        self.assertEqual("%.3f mm" % (position / 800), self.hw.getTowerPosition())
+        self.hw.set_tower_position_nm(position)
+        self.assertEqual(position, self.hw.tower_position_nm)
 
     def test_tower_profile(self):
         self.hw.setTowerProfile("homingFast")

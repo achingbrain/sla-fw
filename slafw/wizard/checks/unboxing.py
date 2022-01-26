@@ -23,7 +23,7 @@ class MoveToFoam(Check):
 
     async def async_task_run(self, actions: UserActionBroker):
         with actions.led_warn:
-            self.hw.setTowerPosition(0)
+            self.hw.set_tower_position_nm(0)
             self.hw.setTowerProfile("homingFast")
             initial_pos_nm = self.hw.tower_position_nm
             self.hw.tower_position_nm = self.FOAM_TARGET_POSITION_NM

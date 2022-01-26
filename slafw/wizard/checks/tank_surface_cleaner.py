@@ -59,7 +59,7 @@ class TowerSafeDistance(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.setTowerProfile("homingFast")
-        await self._hw.towerMoveAbsoluteWaitAsync(self._hw.config.calcMicroSteps(36))
+        await self._hw.tower_move_absolute_nm_wait_async(36_000_000)
         while self._hw.isTowerMoving():
             await sleep(0.25)
 
@@ -77,14 +77,14 @@ class TouchDown(DangerousCheck):
         self._hw.setTowerProfile("homingSlow")
         # Note: Do not use towerMoveAbsoluteWaitAsync here. It's periodically calling isTowerOnPosition which
         # is causing the printer to try to fix the tower position
-        target_microsteps = self._hw.config.calcMicroSteps(1.8)
-        self._hw.towerMoveAbsolute(target_microsteps)
+        target_position_nm = 1_800_000
+        self._hw.tower_position_nm = target_position_nm
         while self._hw.isTowerMoving():
             await sleep(0.25)
-        if target_microsteps == self._hw.getTowerPositionMicroSteps():
+        if target_position_nm == self._hw.tower_position_nm:
             # Did you forget to put a garbage collector pin on corner of the platform?
             self._hw.setTowerProfile("homingFast")
-            await self._hw.towerMoveAbsoluteWaitAsync(self._hw.config.towerHeight)
+            await self._hw.tower_move_absolute_nm_wait_async(self._hw.config.tower_height_nm)
             self._hw.motorsRelease()
             # Error: The garbage collector is not present, the platform moved to the exposure display without hitting it.
             raise GarbageCollectorMissing()
@@ -128,6 +128,6 @@ class GentlyUp(Check):
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.setTowerProfile("homingSlow")
         await self._hw.tilt.sync_wait_async(retries=2)
-        await self._hw.towerMoveAbsoluteWaitAsync(self._hw.config.calcMicroSteps(50))
+        await self._hw.tower_move_absolute_nm_wait_async(50_000_000)
         while self._hw.isTowerMoving():
             await sleep(0.25)
