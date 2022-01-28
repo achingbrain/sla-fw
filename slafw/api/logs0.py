@@ -64,7 +64,7 @@ class Logs0:
             lambda value: self.PropertiesChanged(self.__INTERFACE__, {"log_upload_url": value}, [])
         )
         exporter.exception_changed.connect(
-            lambda _: self.PropertiesChanged(self.__INTERFACE__, {"exception": self.failure_reason}, [])
+            lambda _: self.PropertiesChanged(self.__INTERFACE__, {"failure_reason": self.failure_reason}, [])
         )
         exporter.start()
 
