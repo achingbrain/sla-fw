@@ -582,7 +582,7 @@ class Exposure0:
         return self.exposure.project.exposure_user_profile
 
     @auto_dbus
-    @range_checked(ExposureUserProfile.DEFAULT.value, ExposureUserProfile.SAFE.value)
+    @range_checked(ExposureUserProfile.DEFAULT.value, ExposureUserProfile.SUPERSLOW.value)
     @user_profile.setter
     def user_profile(self, value: int) -> None:
         self.exposure.project.exposure_user_profile = value

@@ -16,7 +16,7 @@
     [...], # layerMoveSlow
     [...], # layerRelease
     [...], # layesMoveFast
-    [...]  # reserved2
+    [...]  # moveSuperSlow
 ]
 ```
 

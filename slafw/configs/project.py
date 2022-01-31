@@ -32,8 +32,9 @@ class ProjectConfig(Config):
     expUserProfile = IntValue(
         0,
         minimum=0,
-        maximum=1,
-        doc="Identifies set of exposure settings. 0 - DEFAULT, 1 - SAFE (slow tilt, delay before exposure) [-]"
+        maximum=2,
+        doc="Identifies set of exposure settings. 0 - DEFAULT, 1 - SAFE (slow tilt, delay before exposure), "
+            "2 - SUPERSLOW (very slow, longer delay before exposure) [-]"
     )
     layerHeight = FloatValue(-1, doc="Layer height, if not equal to -1 supersedes stepNum. [mm]")
     stepnum = IntValue(40, doc="Layer height [microsteps]")

@@ -59,7 +59,7 @@ from slafw.project.project import Project, ExposureUserProfile
 from slafw.image.exposure_image import ExposureImage
 from slafw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from slafw.utils.traceable_collections import TraceableDict
-
+from slafw.hardware.tilt import TiltSpeed
 
 class ExposureCheckRunner:
     def __init__(self, check: ExposureCheck, expo: Exposure):
@@ -291,6 +291,7 @@ class Exposure:
         self.tower_position_nm = 0
         self.actual_layer = 0
         self.slow_layers_done = 0
+        self.super_slow_layers_done = 0
         self.printStartTime = datetime.now(tz=timezone.utc)
         self.printEndTime = datetime.fromtimestamp(0, tz=timezone.utc)
         self.state = ExposureState.READING_DATA
@@ -312,10 +313,12 @@ class Exposure:
         self.pending_warning = Lock()
         self.estimated_total_time_ms = -1
         self._thread = Thread(target=self.run)
-        self._slow_move: bool = True  # slow tilt up before first layer
+        self._tilt_speed: TiltSpeed = TiltSpeed.SAFE
+        #self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
         self.hw.fans_error_changed.connect(self._on_fans_error)
         self._checks_task: Task = None
+
 
     def read_project(self, project_file: str):
         check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
@@ -405,6 +408,7 @@ class Exposure:
         self.actual_layer = 0
         self.resin_count = 0.0
         self.slow_layers_done = 0
+        self.super_slow_layers_done = 0
         self.exposure_image.new_project(self.project)
 
     def prepare(self):
@@ -474,7 +478,7 @@ class Exposure:
 
     def estimate_remain_time_ms(self) -> int:
         if self.project:
-            return self.project.count_remain_time(self.actual_layer, self.slow_layers_done)
+            return self.project.count_remain_time(self.actual_layer, self.slow_layers_done, self.super_slow_layers_done)
         self.logger.warning("No active project to get remaining time")
         return -1
 
@@ -571,16 +575,21 @@ class Exposure:
 
     def _do_frame(self, times_ms, was_stirring, second, layer_height_nm):
         position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
-
+        self._tilt_speed = TiltSpeed(self.project.exposure_user_profile)
         if self.hw.config.tilt:
-            self.logger.info("%s tilt up", "Slow" if self._slow_move else "Fast")
-            if self.hw.config.layerTowerHop and self._slow_move:
-                self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
-                self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
+            self.logger.info("%s tilt up", self._tilt_speed.name)
+            if self.hw.config.layerTowerHop and self._tilt_speed == TiltSpeed.SAFE or self._tilt_speed == TiltSpeed.SUPERSLOW:
+                hopPosition = position_steps + self.hw.config.layerTowerHop
+                if self._tilt_speed == TiltSpeed.SUPERSLOW:
+                    self.hw.setTowerProfile("superSlow")
+                    if self._tilt_speed == TiltSpeed.SUPERSLOW and self.hw.config.layerTowerHop == 0:
+                        hopPosition = position_steps + self.hw.config.calcMicroSteps(5)
+                self.hw.towerMoveAbsoluteWait(hopPosition)
+                self.hw.tilt.layer_up_wait(tilt_speed=self._tilt_speed)
                 self.hw.towerMoveAbsoluteWait(position_steps)
             else:
                 self.hw.towerMoveAbsoluteWait(position_steps)
-                self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
+                self.hw.tilt.layer_up_wait(tilt_speed=self._tilt_speed)
         else:
             self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
             self.hw.towerMoveAbsoluteWait(position_steps)
@@ -591,8 +600,12 @@ class Exposure:
 
         if self.project.exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before = defines.exposure_safe_delay_before
-        elif self._slow_move:
+        elif self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+            delay_before = defines.exposure_superslow_delay_before
+        elif self._tilt_speed == TiltSpeed.SAFE:
             delay_before = defines.exposure_slow_move_delay_before
+        elif self._tilt_speed == TiltSpeed.SUPERSLOW:
+            delay_before = defines.exposure_superslow_delay_before
         else:
             delay_before = self.hw.config.delayBeforeExposure
 
@@ -604,7 +617,7 @@ class Exposure:
             self.logger.info("stirringDelay [s]: %f", self.hw.config.stirringDelay / 10.0)
             sleep(self.hw.config.stirringDelay / 10.0)
 
-        # FIXME WTF?
+        # FIXME WTF? :)
         if self.hw.config.tilt:
             self.hw.getMcTemperatures()
 
@@ -634,25 +647,34 @@ class Exposure:
             sleep(self.hw.config.delayAfterExposure / 10.0)
 
         if self.hw.config.tilt:
-            self._slow_move = white_pixels > self.hw.white_pixels_threshold  # current layer
+            if self._tilt_speed not in {TiltSpeed.SAFE, TiltSpeed.SUPERSLOW} and white_pixels > self.hw.white_pixels_threshold:  # current layer
+                self._tilt_speed = TiltSpeed.SAFE
+            # self._slow_move = white_pixels > self.hw.white_pixels_threshold  # current layer
             # Force slow tilt for forceSlowTiltHeight if current layer area > limit4fast
-            if self._slow_move:
+            if self._tilt_speed in {TiltSpeed.SAFE, TiltSpeed.SUPERSLOW}:
                 self._force_slow_remain_nm = self.hw.config.forceSlowTiltHeight
             elif self._force_slow_remain_nm > 0:
                 self._force_slow_remain_nm -= layer_height_nm
-                self._slow_move = True
+                self._tilt_speed = TiltSpeed.SAFE
+                # self._slow_move = True
             # Force slow tilt on first layers or if user selected safe print profile
             if (
                 self.actual_layer < self.project.first_slow_layers
                 or self.project.exposure_user_profile == ExposureUserProfile.SAFE
+                or self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW
             ):
-                self._slow_move = True
+                if self.project.exposure_user_profile == ExposureUserProfile.SAFE:
+                    self._tilt_speed = TiltSpeed.SAFE
+                elif self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+                    self._tilt_speed = TiltSpeed.SUPERSLOW
 
-            if self._slow_move:
+            if self._tilt_speed == TiltSpeed.SAFE:
                 self.slow_layers_done += 1
+            elif self._tilt_speed == TiltSpeed.SUPERSLOW:
+                self.super_slow_layers_done += 1
             try:
-                self.logger.info("%s tilt down", "Slow" if self._slow_move else "Fast")
-                self.hw.tilt.layer_down_wait(self._slow_move)
+                self.logger.info("%s tilt down", self._tilt_speed.name)
+                self.hw.tilt.layer_down_wait(self._tilt_speed)
             except Exception:
                 return False, white_pixels
 
@@ -931,6 +953,7 @@ class Exposure:
                 " 'layer': '%04d/%04d (%s)',"
                 " 'exposure [ms]': %s,"
                 " 'slow_layers_done': %d,"
+                " 'super_slow_layers_done': %d,"
                 " 'height [mm]': '%.3f/%.3f',"
                 " 'elapsed [min]': %d,"
                 " 'remain [ms]': %d,"
@@ -944,6 +967,7 @@ class Exposure:
                 layer.image.replace(project.name, project_hash),
                 str(layer.times_ms),
                 self.slow_layers_done,
+                self.super_slow_layers_done,
                 self.tower_position_nm / 1e6,
                 project.total_height_nm / 1e6,
                 int(round((datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds() / 60)),

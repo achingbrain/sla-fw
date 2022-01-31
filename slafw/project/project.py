@@ -46,7 +46,7 @@ class LayerCalibrationType(IntEnum):
 class ExposureUserProfile(IntEnum):
     DEFAULT = 0
     SAFE = 1
-    #CUSTOM = 2
+    SUPERSLOW = 2
     #CUSTOM2 = 3
 
 class ProjectLayer:
@@ -263,7 +263,7 @@ class Project:
             else:
                 layer.times_ms = (t,)
 
-    def analyze(self, force: bool = False ):
+    def analyze(self, force: bool = False):
         """
         Analyze project and fill layer's 'bbox' and 'consumed_resin_nl' where needed
 
@@ -363,7 +363,7 @@ class Project:
     def exposure_user_profile(self) -> int:
         return self._exposure_user_profile.value
 
-    @range_checked(ExposureUserProfile.DEFAULT, ExposureUserProfile.SAFE)
+    @range_checked(ExposureUserProfile.DEFAULT, ExposureUserProfile.SUPERSLOW)
     @exposure_user_profile.setter
     def exposure_user_profile(self, value: int) -> None:
         if ExposureUserProfile(value) != self._exposure_user_profile:
@@ -482,7 +482,8 @@ class Project:
             self._zf.close()
 
     @functools.lru_cache(maxsize=2)
-    def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0) -> int:
+    def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0, super_slow_layers_done: int = 0) -> int:
+        # FIXME: super_slow_layers_done are ignored in the estimate
         time_remain_ms = sum(sum(x.times_ms) for x in self.layers[layers_done:])
         total_layers = len(self.layers)
         # TODO count forced slow layers at the beginning and forced slow layers after slow layer
@@ -495,6 +496,8 @@ class Project:
         if self._hw.config.tilt:
             if self._exposure_user_profile == ExposureUserProfile.SAFE:
                 time_remain_ms += (fast_layers + slow_layers) * self._hw.config.tiltSlowTime * 1000
+            elif self._exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+                time_remain_ms += (fast_layers + slow_layers) * self._hw.config.tiltSlowTime * 1000 # FIXME: NEEDS REVISION
             else:
                 time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
                 time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
@@ -503,6 +506,8 @@ class Project:
         delay_before_exposure = self._hw.config.delayBeforeExposure
         if self._exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before_exposure = defines.exposure_safe_delay_before
+        elif self._exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+            delay_before_exposure = defines.exposure_superslow_delay_before
         else:
             time_remain_ms += slow_layers * defines.exposure_slow_move_delay_before * 100
         time_remain_ms += (total_layers - layers_done) * (

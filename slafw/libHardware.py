@@ -127,7 +127,7 @@ class Hardware:
             "moveSlow": 3,
             "layer": 4,
             "layerMove": 5,
-            "<reserved2>": 6,
+            "superSlow": 6,
             "resinSensor": 7,
         }
 

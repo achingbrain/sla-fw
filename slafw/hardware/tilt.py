@@ -18,7 +18,6 @@ from slafw.functions.decorators import safe_call
 from slafw.errors.errors import TiltPositionFailed, TiltHomeFailed, MotionControllerException
 from slafw.hardware.axis import Axis, AxisProfileBase
 
-
 @unique
 class TiltProfile(AxisProfileBase, Enum):
     temp = -1
@@ -29,7 +28,15 @@ class TiltProfile(AxisProfileBase, Enum):
     layerMoveSlow = 4
     layerRelease = 5
     layerMoveFast = 6
-    reserved2 = 7
+    moveSuperSlow = 7
+
+
+@unique
+class TiltSpeed(Enum):
+    """Tilt movement profiles will be selected based on this value"""
+    DEFAULT = 0
+    SAFE = 1
+    SUPERSLOW = 2
 
 
 class Tilt(Axis):
@@ -58,15 +65,15 @@ class Tilt(Axis):
         """move tilt to max (synchronous)"""
 
     @abstractmethod
-    def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
+    def layer_up_wait(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT, tiltHeight: int = 0) -> None:
         """tilt up during the print"""
 
-    def layer_down_wait(self, slowMove: bool = False) -> None:
+    def layer_down_wait(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
         """tilt up during the print"""
-        asyncio.run(self.layer_down_wait_async(slowMove=slowMove))
+        asyncio.run(self.layer_down_wait_async(tilt_speed))
 
     @abstractmethod
-    async def layer_down_wait_async(self, slowMove: bool = False) -> None:
+    async def layer_down_wait_async(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
         """tilt up during the print"""
 
     @abstractmethod
@@ -233,8 +240,15 @@ class TiltSL1(Tilt):
             sleep(0.1)
 
     @safe_call(False, MotionControllerException)
-    async def layer_down_wait_async(self, slowMove: bool = False) -> None:
-        profile = self._config.tuneTilt[0] if slowMove else self._config.tuneTilt[1]
+    async def layer_down_wait_async(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
+        profile = self._config.tuneTilt[1]
+        if tilt_speed == TiltSpeed.SAFE:
+            profile = self._config.tuneTilt[0]
+        elif tilt_speed == TiltSpeed.SUPERSLOW:
+            profile = self._config.tuneTilt[4]
+        else:
+            assert False, "Invalid value"
+
         # initial release movement with optional sleep at the end
         self.profile_id = TiltProfile(profile[0])
         if profile[1] > 0:
@@ -274,12 +288,20 @@ class TiltSL1(Tilt):
         await self.sync_wait_async(retries=0)
 
     @safe_call(False, MotionControllerException)
-    def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
+    def layer_up_wait(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT, tiltHeight: int = 0) -> None:
         if tiltHeight == 0: # use self._config.tiltHeight by default
             _tiltHeight = self._config.tiltHeight
         else: # in case of calibration there is need to force new unstored tiltHeight
             _tiltHeight = tiltHeight
-        profile = self._config.tuneTilt[2] if slowMove else self._config.tuneTilt[3]
+        # profile = self._config.tuneTilt[2] if slowMove else self._config.tuneTilt[3]
+
+        profile = self._config.tuneTilt[3]
+        if tilt_speed == TiltSpeed.SAFE:
+            profile = self._config.tuneTilt[2]
+        elif tilt_speed == TiltSpeed.SUPERSLOW:
+            profile = self._config.tuneTilt[5]
+        else:
+            assert False, "Invalid value"
 
         self.profile_id = TiltProfile(profile[0])
         self.move_absolute(_tiltHeight - profile[1])
