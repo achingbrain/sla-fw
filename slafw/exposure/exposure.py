@@ -577,16 +577,19 @@ class Exposure:
         position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
         self._tilt_speed = TiltSpeed(self.project.exposure_user_profile)
         if self.hw.config.tilt:
+            minimal_tower_hop_steps = self.hw.config.calcMicroSteps(5)
             self.logger.info("%s tilt up", self._tilt_speed.name)
             if self.hw.config.layerTowerHop and self._tilt_speed == TiltSpeed.SAFE or self._tilt_speed == TiltSpeed.SUPERSLOW:
-                hopPosition = position_steps + self.hw.config.layerTowerHop
+                hop_position = position_steps + self.hw.config.layerTowerHop
                 if self._tilt_speed == TiltSpeed.SUPERSLOW:
                     self.hw.setTowerProfile("superSlow")
-                    if self._tilt_speed == TiltSpeed.SUPERSLOW and self.hw.config.layerTowerHop == 0:
-                        hopPosition = position_steps + self.hw.config.calcMicroSteps(5)
-                self.hw.towerMoveAbsoluteWait(hopPosition)
+                    if self._tilt_speed == TiltSpeed.SUPERSLOW and self.hw.config.layerTowerHop < minimal_tower_hop_steps:
+                        self.logger.info("%s forcing layerTopHop = %s", self._tilt_speed.name, minimal_tower_hop_steps)
+                        hop_position = position_steps + minimal_tower_hop_steps
+                self.hw.towerMoveAbsoluteWait(hop_position)
                 self.hw.tilt.layer_up_wait(tilt_speed=self._tilt_speed)
                 self.hw.towerMoveAbsoluteWait(position_steps)
+                self.logger.info("layerTopHop finished.")
             else:
                 self.hw.towerMoveAbsoluteWait(position_steps)
                 self.hw.tilt.layer_up_wait(tilt_speed=self._tilt_speed)
