@@ -100,7 +100,7 @@ class HwConfig(Config):
     limit4fast = IntValue(35, minimum=0, maximum=100, doc="Fast tearing is used if layer area is under this value. [%]")
     tiltFastTime = FloatValue(5.5, doc="Time necessary to perform fast tear off. [seconds]")
     tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off. [seconds]")
-
+    tiltSuperSlowTime = FloatValue(14.0, doc="Time necessary to perform super slow tear off. [seconds]")
 
     @property
     def tuneTilt(self) -> List[List[int]]:

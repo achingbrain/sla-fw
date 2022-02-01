@@ -242,8 +242,15 @@ class StartPositionsCheck(ExposureCheckRunner):
     async def run(self):
         # tilt is handled by StirringCheck
 
-        self.logger.info("Tower to print start position")
-        self.expo.hw.setTowerProfile("homingFast")
+        self.logger.info("Tower to print start position, tilt_speed=%s", self.expo.project._exposure_user_profile.name)
+
+        # Go almost down, then go slowly the rest of the way
+        if self.expo.project._exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+            self.logger.info("SUPERSLOW tilt speed, setting tower to superSlow profile")
+            self.expo.hw.towerToPosition(20)
+            self.expo.hw.setTowerProfile("superSlow")
+        else:
+            self.expo.hw.setTowerProfile("homingFast")
         self.expo.hw.towerToPosition(0.25)  # TODO: Constant in code, seems important
         while not await self.expo.hw.isTowerOnPositionAsync(retries=2):
             await asyncio.sleep(0.25)
@@ -314,7 +321,6 @@ class Exposure:
         self.estimated_total_time_ms = -1
         self._thread = Thread(target=self.run)
         self._tilt_speed: TiltSpeed = TiltSpeed.SAFE
-        #self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
         self.hw.fans_error_changed.connect(self._on_fans_error)
         self._checks_task: Task = None
@@ -413,7 +419,13 @@ class Exposure:
 
     def prepare(self):
         self.exposure_image.preload_image(0)
-        self.hw.setTowerProfile("layer")
+        if self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+            self.logger.info("%s going fast most of the way", "SUPERSLOW")
+            self.hw.setTowerProfile("superSlow")
+            self.logger.info("%s now going slowly rest of the way", "SUPERSLOW")
+        else:
+            self.hw.setTowerProfile("layer")
+
         self.hw.towerMoveAbsoluteWait(0)  # first layer will move up
 
         self.exposure_image.blank_screen()

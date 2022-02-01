@@ -242,7 +242,9 @@ class TiltSL1(Tilt):
     @safe_call(False, MotionControllerException)
     async def layer_down_wait_async(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
         profile = self._config.tuneTilt[1]
-        if tilt_speed == TiltSpeed.SAFE:
+        if tilt_speed == TiltSpeed.DEFAULT:
+            pass
+        elif tilt_speed == TiltSpeed.SAFE:
             profile = self._config.tuneTilt[0]
         elif tilt_speed == TiltSpeed.SUPERSLOW:
             profile = self._config.tuneTilt[4]
@@ -296,12 +298,14 @@ class TiltSL1(Tilt):
         # profile = self._config.tuneTilt[2] if slowMove else self._config.tuneTilt[3]
 
         profile = self._config.tuneTilt[3]
-        if tilt_speed == TiltSpeed.SAFE:
+        if tilt_speed == TiltSpeed.DEFAULT:
+            pass
+        elif tilt_speed == TiltSpeed.SAFE:
             profile = self._config.tuneTilt[2]
         elif tilt_speed == TiltSpeed.SUPERSLOW:
             profile = self._config.tuneTilt[5]
         else:
-            assert False, "Invalid value"
+            assert False, f"Invalid value {tilt_speed.name}"
 
         self.profile_id = TiltProfile(profile[0])
         self.move_absolute(_tiltHeight - profile[1])

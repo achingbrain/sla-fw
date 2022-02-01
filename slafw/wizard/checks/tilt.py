@@ -21,7 +21,7 @@ from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from slafw.wizard.setup import Configuration, Resource, TankSetup
-from slafw.hardware.tilt import TiltProfile
+from slafw.hardware.tilt import TiltProfile, TiltSpeed
 from slafw.configs.writer import ConfigWriter
 
 
@@ -129,8 +129,9 @@ class TiltTimingTest(DangerousCheck):
                 await asyncio.sleep(0.25)
 
             await self._hw.tilt.sync_wait_async()  # FIXME MC cant properly home tilt while tower is moving
-            self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(slow_move=True)
-            self._config_writer.tiltFastTime = await self._get_tilt_time_sec(slow_move=False)
+            self._config_writer.tiltFastTime = await self._get_tilt_time_sec(TiltSpeed.DEFAULT, 1/3)
+            self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(TiltSpeed.SAFE, 1/3)
+            self._config_writer.tiltSuperSlowTime = await self._get_tilt_time_sec(TiltSpeed.SUPERSLOW, 1/3)
             self._hw.setTowerProfile("homingFast")
             self._hw.tilt.profile_id = TiltProfile.moveFast
             self.progress = 1
@@ -138,27 +139,27 @@ class TiltTimingTest(DangerousCheck):
             while self._hw.tilt.moving:
                 await asyncio.sleep(0.25)
 
-    async def _get_tilt_time_sec(self, slow_move: bool) -> float:
+    async def _get_tilt_time_sec(self, tilt_speed: TiltSpeed, progress_multiplier: float = 1.0) -> float:
         """
         Get tilt time in seconds
-        :param slow_move: Whenever to do slow tilts
+        :param tilt_speed: How slow tilts
+        :param progress_multiplier: How big part of the total amount of work does this function
+                call consist of?
         :return: Tilt time in seconds
         """
         tilt_time: float = 0
         total = self._hw.config.measuringMoves
         for i in range(total):
-            self.progress = (i + (3 * (1 - slow_move))) / total / 2
-            self._logger.info(
-                "Slow move %(count)d/%(total)d" % {"count": i + 1, "total": total}
-                if slow_move
-                else "Fast move %(count)d/%(total)d" % {"count": i + 1, "total": total}
-            )
             await asyncio.sleep(0)
             tilt_start_time = time()
-            self._hw.tilt.layer_up_wait(slowMove=slow_move, tiltHeight=self._config_writer.tiltHeight)
+            self._hw.tilt.layer_up_wait(tilt_speed=tilt_speed, tiltHeight=self._config_writer.tiltHeight)
             await asyncio.sleep(0)
-            await self._hw.tilt.layer_down_wait_async(slow_move)
+            await self._hw.tilt.layer_down_wait_async(tilt_speed)
             tilt_time += time() - tilt_start_time
+            self.progress += progress_multiplier * (i / total)
+            self._logger.info(
+                "%(what)s move %(count)d/%(total)d" % {"what": tilt_speed.name, "count": i + 1, "total": total}
+            )
 
         return tilt_time / total
 
@@ -166,6 +167,7 @@ class TiltTimingTest(DangerousCheck):
         return {
             "tilt_slow_time_ms": int(self._config_writer.tiltSlowTime * 1000),
             "tilt_fast_time_ms": int(self._config_writer.tiltFastTime * 1000),
+            "tilt_superslow_time_ms": int(self._config_writer.tiltFastTime * 1000),
         }
 
 
