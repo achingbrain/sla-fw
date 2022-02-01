@@ -11,6 +11,7 @@ from PySignal import Signal
 
 from slafw.libHardware import Hardware
 from slafw.states.wizard import WizardState
+from slafw.hardware.power_led import PowerLedActions
 
 
 @dataclass
@@ -43,13 +44,13 @@ class WarnLevelCounter:
 
     def __enter__(self):
         self._level_counter += 1
-        self._hw.powerLed("warn")
+        self._hw.powerLed(PowerLedActions.Warning)
 
     def __exit__(self, *_):
         assert self._level_counter > 0
         self._level_counter -= 1
         if self._level_counter == 0:
-            self._hw.powerLed("normal")
+            self._hw.powerLed(PowerLedActions.Normal)
 
 
 class UserActionBroker:

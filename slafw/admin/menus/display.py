@@ -21,7 +21,7 @@ from slafw.functions import files, generate
 from slafw.libPrinter import Printer
 from slafw.hardware.tilt import TiltProfile
 from slafw.libUvLedMeterMulti import UvLedMeterMulti
-
+from slafw.hardware.power_led_action import WarnInvoker
 
 class DisplayRootMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
@@ -319,13 +319,13 @@ class DirectPwmSetMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def _do_prepare(self, status: AdminLabel):
-        self._printer.hw.powerLed("warn")
-        status.set("<h3>Tilt is going to level<h3>")
-        self._printer.hw.tilt.profile_id = TiltProfile.homingFast
-        self._printer.hw.tilt.sync_wait()
-        self._printer.hw.tilt.profile_id = TiltProfile.moveFast
-        self._printer.hw.tilt.move_up_wait()
-        self._printer.hw.powerLed("normal")
+        with WarnInvoker():
+            status.set("<h3>Tilt is going to level<h3>")
+            self._printer.hw.tilt.profile_id = TiltProfile.homingFast
+            self._printer.hw.tilt.sync_wait()
+            self._printer.hw.tilt.profile_id = TiltProfile.moveFast
+            self._printer.hw.tilt.move_up_wait()
+
         status.set("<h3>Tilt leveled<h3>")
         self._printer.hw.startFans()
         self._printer.hw.uvLedPwm = self._uv_pwm_print

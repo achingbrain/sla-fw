@@ -10,6 +10,7 @@ from slafw.admin.menus.profiles_sets import ProfilesSetsMenu
 from slafw.admin.safe_menu import SafeAdminMenu
 from slafw.libPrinter import Printer
 from slafw.errors.errors import TiltHomeFailed
+from slafw.hardware.power_led_action import WarningAction
 
 
 class TiltAndTowerMenu(SafeAdminMenu):
@@ -41,9 +42,8 @@ class TiltAndTowerMenu(SafeAdminMenu):
         self._control.enter(Wait(self._control, self._do_tilt_home))
 
     def _do_tilt_home(self, status: AdminLabel):
-        self._printer.hw.powerLed("warn")
-        self._sync_tilt(status)
-        self._printer.hw.powerLed("normal")
+        with WarningAction(self._printer.hw.power_led):
+            self._sync_tilt(status)
 
     def _sync_tilt(self, status: AdminLabel):
         status.set("Tilt home")
@@ -61,23 +61,22 @@ class TiltAndTowerMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def _do_tilt_test(self, status: AdminLabel):
-        self._printer.hw.powerLed("warn")
         status.set("Tilt sync")
-        if self._sync_tilt(status):
-            self._printer.hw.beepEcho()
-            sleep(1)
-            status.set("Tilt up")
-            self._printer.hw.tilt.layer_up_wait()
-            self._printer.hw.beepEcho()
-            sleep(1)
-            status.set("Tilt down")
-            self._printer.hw.tilt.layer_down_wait()
-            self._printer.hw.beepEcho()
-            sleep(1)
-            status.set("Tilt up")
-            self._printer.hw.tilt.layer_up_wait()
-            self._printer.hw.beepEcho()
-        self._printer.hw.powerLed("normal")
+        with WarningAction(self._printer.hw.power_led):
+            if self._sync_tilt(status):
+                self._printer.hw.beepEcho()
+                sleep(1)
+                status.set("Tilt up")
+                self._printer.hw.tilt.layer_up_wait()
+                self._printer.hw.beepEcho()
+                sleep(1)
+                status.set("Tilt down")
+                self._printer.hw.tilt.layer_down_wait()
+                self._printer.hw.beepEcho()
+                sleep(1)
+                status.set("Tilt up")
+                self._printer.hw.tilt.layer_up_wait()
+                self._printer.hw.beepEcho()
 
     @SafeAdminMenu.safe_call
     def tilt_profiles(self):
@@ -89,20 +88,18 @@ class TiltAndTowerMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def _do_tilt_home_calib(self, status: AdminLabel):
-        self._printer.hw.powerLed("warn")
         status.set("Tilt home calibration")
-        self._printer.hw.tilt.home_calibrate_wait()
-        self._printer.hw.motorsRelease()
-        self._printer.hw.powerLed("normal")
+        with WarningAction(self._printer.hw.power_led):
+            self._printer.hw.tilt.home_calibrate_wait()
+            self._printer.hw.motorsRelease()
 
     @SafeAdminMenu.safe_call
     def tower_home(self):
         self.enter(Wait(self._control, self._do_sync_tower))
 
     def _do_sync_tower(self, status: AdminLabel):
-        self._printer.hw.powerLed("warn")
-        self._sync_tower(status)
-        self._printer.hw.powerLed("normal")
+        with WarningAction(self._printer.hw.power_led):
+            self._sync_tower(status)
 
     def _sync_tower(self, status: AdminLabel):
         status.set("Tower home")
@@ -118,16 +115,15 @@ class TiltAndTowerMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def _do_tower_test(self, status: AdminLabel):
-        self._printer.hw.powerLed("warn")
         status.set("Moving platform to the top")
-        if self._sync_tower(status):
-            status.set("Moving platform to zero")
-            self._printer.hw.towerToZero()
-            status2 = self.add_label()
-            while not self._printer.hw.isTowerOnPosition():
-                sleep(0.25)
-                status2.set(self._printer.hw.getTowerPosition())
-        self._printer.hw.powerLed("normal")
+        with WarningAction(self._printer.hw.power_led):
+            if self._sync_tower(status):
+                status.set("Moving platform to zero")
+                self._printer.hw.towerToZero()
+                status2 = self.add_label()
+                while not self._printer.hw.isTowerOnPosition():
+                    sleep(0.25)
+                    status2.set(self._printer.hw.getTowerPosition())
 
     @SafeAdminMenu.safe_call
     def tower_profiles(self):
@@ -138,11 +134,10 @@ class TiltAndTowerMenu(SafeAdminMenu):
         self.enter(Wait(self._control, self._do_test_home_calib))
 
     def _do_test_home_calib(self, status: AdminLabel):
-        self._printer.hw.powerLed("warn")
         status.set("Tower home calibration")
-        self._printer.hw.towerHomeCalibrateWait()
-        self._printer.hw.motorsRelease()
-        self._printer.hw.powerLed("normal")
+        with WarningAction(self._printer.hw.power_led):
+            self._printer.hw.towerHomeCalibrateWait()
+            self._printer.hw.motorsRelease()
 
     @SafeAdminMenu.safe_call
     def turn_off_motors(self):
