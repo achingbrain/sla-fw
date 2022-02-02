@@ -330,6 +330,7 @@ class TiltSL1(Tilt):
     async def stir_resin_async(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
         for _ in range(self._config.stirringMoves):
             if tilt_speed == TiltSpeed.SUPERSLOW:
+                self.logger.info("Stirring resin with the superSlow profile")
                 self.profile_id = TiltProfile.moveSuperSlow
             else:
                 self.profile_id = TiltProfile.homingFast
