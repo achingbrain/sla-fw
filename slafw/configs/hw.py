@@ -102,6 +102,8 @@ class HwConfig(Config):
     tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off. [seconds]")
     tiltSuperSlowTime = FloatValue(14.0, doc="Time necessary to perform super slow tear off. [seconds]")
 
+    superSlowTowerHopHeight_mm = FloatValue(5.0, doc="Minimal layerTowerHop enforced for the superSlow movement profile")
+
     @property
     def tuneTilt(self) -> List[List[int]]:
         return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltupsuperslow, self.raw_tiltdownsuperslow]
