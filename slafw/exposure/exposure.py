@@ -246,8 +246,13 @@ class StartPositionsCheck(ExposureCheckRunner):
 
         # Go almost down, then go slowly the rest of the way
         if self.expo.project._exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+
+            self.logger.info("SUPERSLOW tilt speed, going fast down, will slow down 30mm above the bottom")
+            self.expo.hw.setTowerProfile("homingFast")
+            self.expo.hw.towerToPosition(30.0)
+            while not await self.expo.hw.isTowerOnPositionAsync(retries=2):
+                await asyncio.sleep(0.25)
             self.logger.info("SUPERSLOW tilt speed, setting tower to superSlow profile")
-            self.expo.hw.towerToPosition(20)
             self.expo.hw.setTowerProfile("superSlow")
         else:
             self.expo.hw.setTowerProfile("homingFast")
@@ -275,7 +280,7 @@ class StirringCheck(ExposureCheckRunner):
     async def run(self):
         if not self.expo.hw.config.tilt:
             raise ExposureCheckDisabled()
-        await self.expo.hw.tilt.stir_resin_async()
+        await self.expo.hw.tilt.stir_resin_async(self.expo._tilt_speed)
 
 
 class Exposure:
@@ -719,7 +724,7 @@ class Exposure:
 
         if self.hw.config.tilt:
             self.state = ExposureState.STIRRING
-            self.hw.tilt.stir_resin()
+            self.hw.tilt.stir_resin(self._tilt_speed)
 
         self.state = ExposureState.GOING_DOWN
         position = self.hw.config.upAndDownZoffset
@@ -785,7 +790,7 @@ class Exposure:
         self.state = ExposureState.STUCK_RECOVERY
         self.hw.tilt.sync_wait()
         self.state = ExposureState.STIRRING
-        self.hw.tilt.stir_resin()
+        self.hw.tilt.stir_resin(self._tilt_speed)
         self.hw.powerLed("normal")
         self.state = ExposureState.PRINTING
 
@@ -943,7 +948,7 @@ class Exposure:
                 if self.hw.config.tilt:
                     self.state = ExposureState.STIRRING
                     self.hw.tilt.sync_wait()
-                    self.hw.tilt.stir_resin()
+                    self.hw.tilt.stir_resin(self._tilt_speed)
                 was_stirring = True
 
                 # Resume print

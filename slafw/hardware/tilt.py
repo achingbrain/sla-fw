@@ -81,7 +81,7 @@ class Tilt(Axis):
         """mix the resin"""
 
     @abstractmethod
-    async def stir_resin_async(self) -> None:
+    async def stir_resin_async(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
         """mix the resin"""
 
     def home_calibrate_wait(self):
@@ -323,13 +323,16 @@ class TiltSL1(Tilt):
             sleep(profile[5] / 1000.0)
 
     @safe_call(False, MotionControllerException)
-    def stir_resin(self) -> None:
-        asyncio.run(self.stir_resin_async())
+    def stir_resin(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
+        asyncio.run(self.stir_resin_async(tilt_speed))
 
     @safe_call(False, MotionControllerException)
-    async def stir_resin_async(self) -> None:
+    async def stir_resin_async(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
         for _ in range(self._config.stirringMoves):
-            self.profile_id = TiltProfile.homingFast
+            if tilt_speed == TiltSpeed.SUPERSLOW:
+                self.profile_id = TiltProfile.moveSuperSlow
+            else:
+                self.profile_id = TiltProfile.homingFast
             # do not verify end positions
             self.move_up()
             while self.moving:
