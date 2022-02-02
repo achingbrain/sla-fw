@@ -280,7 +280,9 @@ class StirringCheck(ExposureCheckRunner):
     async def run(self):
         if not self.expo.hw.config.tilt:
             raise ExposureCheckDisabled()
-        await self.expo.hw.tilt.stir_resin_async(self.expo._tilt_speed)
+        # Stirring is run at the start, when the correct tilt_speed is not yet set
+        stirring_tilt_speed = TiltSpeed.SUPERSLOW if self.expo.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW else TiltSpeed.DEFAULT
+        await self.expo.hw.tilt.stir_resin_async(stirring_tilt_speed)
 
 
 class Exposure:
