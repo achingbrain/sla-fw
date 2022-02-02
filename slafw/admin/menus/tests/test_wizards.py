@@ -12,6 +12,7 @@ from slafw.wizard.wizard import SingleCheckWizard, WizardDataPackage
 from slafw.wizard.wizards.calibration import CalibrationWizard
 from slafw.wizard.wizards.displaytest import DisplayTestWizard
 from slafw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
+from slafw.wizard.wizards.new_expo_panel import NewExpoPanelWizard
 from slafw.wizard.wizards.self_test import SelfTestWizard
 from slafw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard, SL1DowngradeWizard
 from slafw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
@@ -46,6 +47,7 @@ class TestWizardsMenu(AdminMenu):
                 AdminAction("Self-test - UV & fans test only", self.api_selftest_uvfans),
                 AdminAction("Calibration - tilt times only", self.api_calibration_tilt_times),
                 AdminAction("Tank Surface Cleaner", self.tank_surface_cleaner),
+                AdminAction("New expo panel", self.new_expo_panel)
             )
         )
 
@@ -108,6 +110,11 @@ class TestWizardsMenu(AdminMenu):
     def tank_surface_cleaner(self):
         self._printer.action_manager.start_wizard(
             TankSurfaceCleaner(self._printer.hw, self._printer.exposure_image, self._printer.runtime_config)
+        )
+
+    def new_expo_panel(self):
+        self._printer.action_manager.start_wizard(
+            NewExpoPanelWizard(self._printer.hw)
         )
 
 
