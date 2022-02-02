@@ -508,6 +508,15 @@ class Printer:
             unboxing.join()
             self.logger.info("Unboxing wizard finished")
 
+        if self._run_expo_panel_wizard:
+            self.logger.info("Running new expo panel wizard")
+            new_expo_panel_wizard = self.action_manager.start_wizard(
+                NewExpoPanelWizard(self.hw), handle_state_transitions=False
+            )
+            self.set_state(PrinterState.WIZARD, active=True)
+            new_expo_panel_wizard.join()
+            self.logger.info("New expo panel wizard finished")
+
         if self.hw.config.showWizard:
             self.logger.info("Running selftest wizard")
             selftest = self.action_manager.start_wizard(
@@ -538,14 +547,6 @@ class Printer:
             self.set_state(PrinterState.WIZARD, active=True)
             uv_calibration.join()
             self.logger.info("UV calibration wizard finished")
-
-        if self._run_expo_panel_wizard:
-            self.logger.info("Running new expo panel wizard")
-            new_expo_panel_wizard = self.action_manager.start_wizard(
-                NewExpoPanelWizard(self.hw), handle_state_transitions=False
-            )
-            self.set_state(PrinterState.WIZARD, active=True)
-            new_expo_panel_wizard.join()
 
         self.set_state(PrinterState.WIZARD, active=False)
 
@@ -585,6 +586,12 @@ class Printer:
                             OldExpoPanel(counter_h=round(record["counter_s"] / 3600))
                         )  # show warning about used panel
                 self._run_expo_panel_wizard = True
+                # Force selftest and calibration with new display as:
+                # - Printer internals might have been tempered with
+                # - Display plane might have shifted
+                self.hw.config.showWizard = True
+                self.hw.config.calibrated = False
+                self.hw.config.write()
 
         except FileNotFoundError:  # no records found
             with FactoryMountedRW():

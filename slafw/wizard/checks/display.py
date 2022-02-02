@@ -97,6 +97,3 @@ class RecordExpoPanelLog(Check):
         with FactoryMountedRW():
             with open(defines.expoPanelLogPath, "w") as f:
                 json.dump(log, f, indent=2)
-            self._hw.config.showWizard = True  # force selftest and calibration with new display
-            self._hw.config.calibrated = False
-            self._hw.config.write()
