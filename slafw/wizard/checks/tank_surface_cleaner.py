@@ -59,7 +59,7 @@ class TowerSafeDistance(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.setTowerProfile("homingFast")
-        await self._hw.towerMoveAbsoluteWaitAsync(self._hw.config.calcMicroSteps(36))
+        await self._hw.towerMoveAbsoluteWaitAsync(self._hw.config.calcMicroSteps(56))
         while self._hw.isTowerMoving():
             await sleep(0.25)
 
