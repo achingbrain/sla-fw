@@ -16,7 +16,7 @@ from slafw.admin.menu import AdminMenu
 from slafw.admin.menus.dialogs import Info, Confirm, Wait, Error
 from slafw.admin.safe_menu import SafeAdminMenu
 from slafw.errors.errors import DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange
-from slafw.functions.system import hw_all_off, compute_uvpwm
+from slafw.functions.system import compute_uvpwm
 from slafw.functions import files, generate
 from slafw.libPrinter import Printer
 from slafw.hardware.tilt import TiltProfile
@@ -182,7 +182,7 @@ class DisplayControlMenu(SafeAdminMenu):
 
     def on_leave(self):
         self._printer.hw.saveUvStatistics()
-        hw_all_off(self._printer.hw, self._printer.exposure_image)
+        self._printer.hw_all_off()
 
     def get_uv(self):
         return self._printer.hw.getUvLedState()[0]
@@ -285,7 +285,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
 
     def on_leave(self):
         self._run = False
-        hw_all_off(self._printer.hw, self._printer.exposure_image)
+        self._printer.hw_all_off()
         self._printer.hw.saveUvStatistics()
         if self._temp.changed():
             self._control.enter(Info(self._control, "Configuration has been changed but NOT saved."))

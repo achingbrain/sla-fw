@@ -1,9 +1,0 @@
-[Unit]
-Description=Monitor if printer model has been already detected
-
-[Path]
-DirectoryNotEmpty=/etc/sl1fw/model
-Unit=filemanager.service
-
-[Install]
-WantedBy=multi-user.target

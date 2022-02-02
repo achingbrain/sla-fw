@@ -9,14 +9,15 @@ from PIL import Image
 
 from slafw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from slafw.configs.hw import HwConfig
-from slafw.hardware.printer_model import CalibrationParameters
+from slafw.hardware.uv_led import UvLedParameters
+
 
 def get_white_pixels(image: Image) -> int:
     np_array = numpy.array(image.histogram())
     return int(numpy.sum(np_array[128:]))  # simple treshold
 
 
-def check_ready_to_print(config: HwConfig, calibration_parameters: CalibrationParameters) -> None:
+def check_ready_to_print(config: HwConfig, uv_parameters: UvLedParameters) -> None:
     """
     This raises exceptions when printer is not ready to print
 
@@ -25,7 +26,7 @@ def check_ready_to_print(config: HwConfig, calibration_parameters: CalibrationPa
 
     :return: None
     """
-    if config.uvPwm < calibration_parameters.min_pwm:
+    if config.uvPwm < uv_parameters.min_pwm:
         raise NotUVCalibrated()
 
     if not config.calibrated:

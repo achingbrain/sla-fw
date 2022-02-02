@@ -23,6 +23,8 @@ from gi.repository import GLib
 import slafw.tests.mocks.mc_port
 import slafw.tests.mocks.exposure_screen
 from slafw import defines, test_runtime
+from slafw.functions.system import set_configured_printer_model
+from slafw.hardware.printer_model import PrinterModel
 from slafw.tests import samples
 from slafw.tests.mocks.dbus.filemanager0 import FileManager0
 from slafw.tests.mocks.dbus.hostname import Hostname
@@ -122,15 +124,14 @@ class SlafwTestCase(DBusTestCase):
         defines.wizardDataPathFactory = self.TEMP_DIR / defines.wizardDataFilename
         defines.hwConfigPath = self.TEMP_DIR / "hwconfig.toml"
         defines.hwConfigPathFactory = self.TEMP_DIR / "hwconfig-factory.toml"
+        defines.printer_model_run = self.SAMPLES_DIR / "model"
         defines.printer_model = self.TEMP_DIR / "model"
-        defines.sl1_model_file = defines.printer_model / "sl1"
-        defines.sl1s_model_file = defines.printer_model / "sl1s"
-        defines.detect_sla_model_file = self.TEMP_DIR / "detect-sla-model"
+        set_configured_printer_model(PrinterModel.SL1) # Set SL1 as the current model
+        defines.firstboot = self.TEMP_DIR / "firstboot"
         defines.expoPanelLogPath = self.TEMP_DIR / defines.expoPanelLogFileName
-        defines.printer_model.mkdir()
-        defines.sl1_model_file.touch()  # Set SL1 as the current model
         defines.factory_enable = self.TEMP_DIR / "factory_mode_enabled"
         defines.factory_enable.touch()  # Enable factory mode
+        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / "sl1"
 
         # DBus mocks
         nm = NetworkManager()

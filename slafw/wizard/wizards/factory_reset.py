@@ -106,8 +106,7 @@ class FactoryResetWizard(Wizard):
     ):
         self._package = WizardDataPackage(
             hw=hw,
-            runtime_config=runtime_config,
-            model=hw.printer_model
+            runtime_config=runtime_config
         )
         super().__init__(
             WizardId.FACTORY_RESET,
@@ -124,8 +123,7 @@ class PackingWizard(Wizard):
     def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(
             hw=hw,
-            runtime_config=runtime_config,
-            model=hw.printer_model
+            runtime_config=runtime_config
         )
         groups = [
             SendPrinterDataGroup(self._package),

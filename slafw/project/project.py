@@ -31,10 +31,12 @@ from slafw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, Proj
                                 ProjectErrorWrongPrinterModel
 from slafw.errors.warnings import PrintingDirectlyFromMedia, ProjectSettingsModified, VariantMismatch, PrinterWarning
 from slafw.configs.project import ProjectConfig
+from slafw.functions.system import get_configured_printer_model
 from slafw.project.functions import get_white_pixels
 from slafw.utils.bounding_box import BBox
 from slafw.api.decorators import range_checked
 from slafw.libHardware import Hardware
+from slafw.hardware.printer_model import PrinterModel
 
 
 @unique
@@ -216,9 +218,10 @@ class Project:
         else:
             date_time = datetime.now(timezone.utc)
         self.modification_time = date_time.timestamp()
-        if self._hw.printer_model.name != self._config.printerModel:
+        printer_model = get_configured_printer_model()
+        if printer_model.name != self._config.printerModel:
             self.logger.error("Wrong printer model '%s', expected '%s'",
-                    self._config.printerModel, self._hw.printer_model.name)
+                    self._config.printerModel, printer_model.name)
             raise ProjectErrorWrongPrinterModel
         if defines.printerVariant != self._config.printerVariant:
             self.warnings.add(VariantMismatch(defines.printerVariant, self._config.printerVariant))
@@ -512,7 +515,7 @@ class Project:
                 self.layer_height_nm * 5000 / 1000 / 1000  # tower move
                 + delay_before_exposure * 100
                 + self._hw.config.delayAfterExposure * 100
-                + self._hw.printer_model.exposure_screen_parameters.refresh_delay_ms * 5  # ~ 5x frame display wait
+                + self._hw.exposure_screen.parameters.refresh_delay_ms * 5  # ~ 5x frame display wait
                 + 120  # Magical constant to compensate remaining computation delay in exposure thread
         )
         self.logger.debug("time_remain_ms: %f", time_remain_ms)

@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -99,7 +100,10 @@ class TestProject(SlafwTestCase):
 
     def test_printer_model(self):
         hw = Hardware(self.hw_config)
-        hw.printer_model = PrinterModel.NONE
+
+        printer_model = PrinterModel.NONE
+        temp_model_dir = tempfile.TemporaryDirectory().name
+        Path(temp_model_dir / printer_model.name.lower()).touch()
         with self.assertRaises(ProjectErrorWrongPrinterModel):
             Project(hw, str(self.SAMPLES_DIR / "numbers.sl1"))
 

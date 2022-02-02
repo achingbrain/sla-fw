@@ -30,7 +30,6 @@ import pydbus
 from gi.repository import GLib
 
 import slafw.tests.mocks.mc_port
-from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.mocks.exposure_screen import ExposureScreen
 from slafw import defines, test_runtime
 from slafw import libPrinter
@@ -107,15 +106,13 @@ defines.wizardHistoryPathFactory = TEMP_DIR / "wizard_history" / "factory_data"
 defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
 defines.uvCalibDataPathFactory = TEMP_DIR / "uv_calib_data_factory.toml"
 defines.counterLog = TEMP_DIR / defines.counterLogFilename
+defines.printer_model_run = SAMPLES_DIR / "model"
 defines.printer_model = TEMP_DIR / "model"
-defines.sl1_model_file = defines.printer_model / "sl1"
-defines.sl1s_model_file = defines.printer_model / "sl1s"
-defines.detect_sla_model_file = TEMP_DIR / "detect-sla-model"
-defines.printer_model.mkdir()
-defines.sl1_model_file.touch()  # Set SL1 as the current model
+defines.firstboot = TEMP_DIR / "firstboot"
 defines.factory_enable = TEMP_DIR / "factory_mode_enabled"
 defines.factory_enable.touch()  # Enable factory mode
 defines.admincheckTemp = TEMP_DIR / "admincheck.json"
+defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / "sl1"
 
 
 class Virtual:
@@ -136,7 +133,7 @@ class Virtual:
         ), patch(
             "slafw.functions.files.get_save_path", self.fake_save_path
         ), patch(
-            "slafw.libHardwareBase.ExposureScreen", ExposureScreen
+            "slafw.hardware.exposure_screen.ExposureScreen", ExposureScreen
         ), patch(
             "slafw.libHardware.Hardware.isCoverClosed", Mock(return_value=True)
         ), patch(
@@ -152,7 +149,6 @@ class Virtual:
             self.printer = libPrinter.Printer()
 
             test_runtime.exposure_image = self.printer.exposure_image
-            self.printer.hw.printer_model = PrinterModel.SL1
 
             print("Overriding printer settings")
             self.printer.hw.config.calibrated = True

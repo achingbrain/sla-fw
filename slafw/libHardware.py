@@ -17,7 +17,6 @@ import json
 import os
 from asyncio import Task, CancelledError
 from datetime import timedelta
-from enum import unique, Enum
 from functools import cached_property, partial
 from math import ceil
 from threading import Thread
@@ -29,10 +28,11 @@ from slafw.configs.hw import HwConfig
 from slafw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
     MotionControllerException, ConfigException
 from slafw.functions.decorators import safe_call
-from slafw.hardware.exposure_screen import ExposureScreen
+from slafw.hardware.axis import Axis
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.tilt import Tilt, TiltSL1, TiltProfile
-from slafw.libHardwareBase import BaseHardware
+from slafw.hardware.uv_led import UvLedSL1
+from slafw.hardware.base import BaseHardware
 from slafw.motion_controller.controller import MotionController
 from slafw.utils.value_checker import ValueChecker, UpdateInterval
 from slafw.hardware.power_led_action import WarningAction
@@ -88,18 +88,12 @@ class Fan:
     # TODO methods to save, load, reset to defaults
 
 
-@unique
-class Axis(Enum):
-    TOWER = 0
-    TILT = 1
-
-
 class Hardware(BaseHardware):
     FAN_CONTROL_MIN_DELAY_S = 30
 
-    def __init__(self, hw_config: HwConfig):
-        super().__init__(hw_config)
-
+    def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
+        super().__init__(hw_config, printer_model)
+        self._printer_model = printer_model
         self.towerSynced = False
 
         self._lastTowerProfile = None
@@ -151,6 +145,7 @@ class Hardware(BaseHardware):
         self.mcc = MotionController(defines.motionControlDevice)
 
         self.tilt: Optional[Tilt] = None
+        self.uv_led = UvLedSL1(self.mcc, printer_model)
 
         self._tower_moving = False
         self._towerPositionRetries: int = 1
@@ -158,8 +153,6 @@ class Hardware(BaseHardware):
         self._value_refresh_thread = Thread(daemon=True, target=self._value_refresh_body)
         self._value_refresh_task: Optional[Task] = None
 
-        self.exposure_screen = ExposureScreen()
-        self.printer_model = PrinterModel.NONE
         self.check_cover_override = False
 
         self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
@@ -222,13 +215,12 @@ class Hardware(BaseHardware):
         # MC have to be started first (beep, poweroff)
         self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
-        self.printer_model = self.exposure_screen.start()
-        if self.printer_model.options.has_booster:
+        if self._printer_model.options.has_booster:
             self.sl1s_booster.connect()
             self.led_temp_idx = 2
 
     def start(self):
-        if self.printer_model.options.has_tilt:
+        if self._printer_model.options.has_tilt:
             self.tilt = TiltSL1(self.mcc, self.config)
         self.initDefaults()
         self._value_refresh_thread.start()
@@ -240,7 +232,6 @@ class Hardware(BaseHardware):
             self._value_refresh_task.cancel()
             self._value_refresh_thread.join()
         self.mcc.exit()
-        self.exposure_screen.exit()
 
     async def _value_refresh_task_body(self):
         checkers = [
@@ -294,7 +285,7 @@ class Hardware(BaseHardware):
         if self.config.lockProfiles:
             self.logger.warning("Printer profiles will not be overwriten")
         else:
-            if self.printer_model.options.has_tilt:
+            if self._printer_model.options.has_tilt:
                 for axis in Axis:
                     if axis is Axis.TOWER:
                         suffix = defines.towerProfilesSuffix
@@ -304,7 +295,7 @@ class Hardware(BaseHardware):
                         suffix = defines.tiltProfilesSuffix
                         sensitivity = self.config.tiltSensitivity
                         mc_profiles = self.tilt.profiles
-                    with open(os.path.join(defines.dataPath, self.printer_model.name, "default." + suffix), "r") as f:
+                    with open(os.path.join(defines.dataPath, self._printer_model.name, "default." + suffix), "r") as f:
                         profiles = json.loads(f.read())
                         profiles = self.get_profiles_with_sensitivity(profiles, axis, sensitivity)
                         if mc_profiles != profiles:
@@ -313,7 +304,7 @@ class Hardware(BaseHardware):
                                 self.setTowerProfiles(profiles)
                             else:
                                 self.tilt.profiles = profiles
-                with open(os.path.join(defines.dataPath, self.printer_model.name, "default." + defines.tuneTiltProfilesSuffix), "r") as f:
+                with open(os.path.join(defines.dataPath, self._printer_model.name, "default." + defines.tuneTiltProfilesSuffix), "r") as f:
                     tuneTilt = json.loads(f.read())
                     writer = self.config.get_writer()
                     if tuneTilt != writer.tuneTilt:
@@ -351,11 +342,6 @@ class Hardware(BaseHardware):
     @property
     def mcSerialNo(self):
         return self.mcc.board["serial"]
-
-    @property
-    def is500khz(self):
-        # FIXME this will not work for board "7a"
-        return self.mcc.board["revision"] >= 6 and self.mcc.board["subRevision"] == "c"
 
     def eraseEeprom(self):
         self.mcc.do("!eecl")
@@ -442,13 +428,13 @@ class Hardware(BaseHardware):
 
     @property
     def uvLedPwm(self) -> int:
-        if self.printer_model.options.has_booster:
+        if self._printer_model.options.has_booster:
             return self.sl1s_booster.pwm
         return self.mcc.doGetInt("?upwm")
 
     @uvLedPwm.setter
     def uvLedPwm(self, pwm) -> None:
-        if self.printer_model.options.has_booster:
+        if self._printer_model.options.has_booster:
             self.sl1s_booster.pwm = int(pwm)
         else:
             self.mcc.do("!upwm", int(pwm))
@@ -580,10 +566,10 @@ class Hardware(BaseHardware):
             self.logger.exception("getFansRpm failed")
             return dict.fromkeys(request, 0)
 
-    def setFansRpm(self, rpms: [int]):
+    def setFansRpm(self, rpms: List[int]):
         self.mcc.do("!frpm", " ".join(str(fan) for fan in rpms))
 
-    def uv_fan_rpm_control(self, temps: [float]):
+    def uv_fan_rpm_control(self, temps: List[float]):
         if self.last_rpm_control and monotonic() - self.last_rpm_control < self.FAN_CONTROL_MIN_DELAY_S:
             # Avoid too frequent controls, MC does not report errors a few seconds after control
             return
@@ -619,7 +605,7 @@ class Hardware(BaseHardware):
     def getUvLedTemperature(self):
         return self.getMcTemperatures(logTemps=False)[self.led_temp_idx]
 
-    def _check_uv_led_overheat(self, temperatures: [int]) -> None:
+    def _check_uv_led_overheat(self, temperatures: List[int]) -> None:
         # TODO: Refactor temp (all value read) using some cache to avoid parsing at multiple places
         temp = temperatures[self.led_temp_idx]
         # TODO: < 0 is not an overheat, it is rather a read error (or it is an actual temperature)

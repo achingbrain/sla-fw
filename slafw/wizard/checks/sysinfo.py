@@ -7,6 +7,8 @@ from typing import Dict, Any, Optional
 
 import distro
 
+from slafw.functions.system import get_configured_printer_model
+from slafw.hardware.printer_model import PrinterModel
 from slafw.libHardware import Hardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType
@@ -39,6 +41,7 @@ class SystemInfoTest(Check):
         self._logger.debug("Obtaining system information")
 
         uv_led, display = self._hw.getUvStatistics()
+        printer_model = get_configured_printer_model()
         self._result_data = CheckData(
             distro.version(),
             self._hw.cpuSerialNo,
@@ -47,7 +50,7 @@ class SystemInfoTest(Check):
             self._hw.mcBoardRevision,
             uv_led,
             display,
-            self._hw.printer_model.name,
+            printer_model.name,
         )
 
     def get_result_data(self) -> Dict[str, Any]:

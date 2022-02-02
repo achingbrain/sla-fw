@@ -11,6 +11,7 @@ from unittest.mock import Mock
 
 from slafw import defines
 from slafw.errors.errors import OldExpoPanel
+from slafw.functions.system import set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.states.wizard import WizardId
 from slafw.states.printer import PrinterState
@@ -25,8 +26,7 @@ class TestStartup(SlafwTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        defines.sl1_model_file.unlink()
-        defines.sl1s_model_file.touch()   # Set SL1S as the current model
+        set_configured_printer_model(PrinterModel.SL1S) # Set SL1S as the current model
 
         self.printer = Printer()
 
@@ -66,13 +66,12 @@ class TestStartup(SlafwTestCase):
         last_key = list(log)[-1]
         self.assertTrue(abs(datetime.strptime(last_key, "%Y-%m-%d %H:%M:%S") - datetime.now().replace(
             microsecond=0)) < timedelta(seconds=5))
-        self.assertEqual(self.printer.hw.exposure_screen.panel.serial_number(), log[last_key]["panel_sn"])
+        self.assertEqual(self.printer.hw.exposure_screen.serial_number, log[last_key]["panel_sn"])
         self.assertRaises(KeyError, lambda: log[last_key]["counter_s"])
 
     def test_expo_panel_log_sl1(self):
         self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1)
-        defines.sl1s_model_file.unlink()
-        defines.sl1_model_file.touch()  # Set SL1 as the current model
+        set_configured_printer_model(PrinterModel.SL1)  # Set SL1 as the current model
 
         self._run_printer()
         self.assertEqual(self.printer.state, PrinterState.RUNNING)  # no wizard is running, no error is raised
@@ -97,12 +96,12 @@ class TestStartup(SlafwTestCase):
 
         last_key = list(log)[-1]  # last record has to be newly added
         self.assertNotEqual(
-            self.printer.hw.exposure_screen.panel.serial_number(),
+            self.printer.hw.exposure_screen.serial_number,
             log[last_key]["panel_sn"])  # wizard is not done, so new panel is not recorded
 
     def test_expo_panel_log_old_panel(self):
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
-        self.printer.hw.exposure_screen.panel.serial_number = Mock(return_value="CZPX2921X021X000262")
+        self.printer.hw.exposure_screen.serial_number = Mock(return_value="CZPX2921X021X000262")
         observer = Mock(__name__ = "MockObserver")
         self.printer.exception_occurred.connect(observer)
         self._run_printer()

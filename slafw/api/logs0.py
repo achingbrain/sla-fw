@@ -11,7 +11,7 @@ from pydbus.generic import signal
 from slafw.errors.errors import PrinterException
 
 from slafw.api.decorators import dbus_api, auto_dbus, wrap_dict_data
-from slafw.libHardware import Hardware
+from slafw.hardware.libHardware2 import Hardware2
 from slafw.state_actions.logs import LogsExport, UsbExport, ServerUpload
 from slafw.states.logs import LogsState, StoreType
 from slafw import defines
@@ -24,7 +24,7 @@ class Logs0:
 
     PropertiesChanged = signal()
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: Hardware2):
         self._logger = logging.getLogger(__name__)
         self._hw = hw
         self._exporter: Optional[LogsExport] = None

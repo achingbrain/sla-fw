@@ -186,8 +186,6 @@ exposure_panel_of_node = Path("/sys/bus/i2c/devices/1-000f/of_node")
 
 nginx_http_digest = Path("/etc/nginx/http_digest_enabled")
 
+printer_model_run = Path("/run/model")
 printer_model = configDir / "model"
-sl1_model_file = printer_model / "sl1"
-sl1s_model_file = printer_model / "sl1s"
-m1_model_file = printer_model / "m1"
-detect_sla_model_file = Path("/tmp/detect-sla-model")
+firstboot = Path("/tmp/firstboot")

@@ -13,7 +13,7 @@ from slafw.admin.control import AdminControl
 from slafw.admin.items import AdminAction, AdminBoolValue
 from slafw.admin.menus.dialogs import Info, Confirm
 from slafw.admin.safe_menu import SafeAdminMenu
-from slafw.libHardware import Axis
+from slafw.hardware.axis import Axis
 from slafw.libPrinter import Printer
 from slafw.functions.files import get_save_path
 from slafw.errors.errors import ConfigException
@@ -52,20 +52,20 @@ class ProfilesSetsMenu(SafeAdminMenu):
             if filePath.endswith("." + defines.tiltProfilesSuffix):
                 self.add_item(AdminAction(
                     itemName,
-                    partial(self._confirm, self._setAxisProfiles, itemName, filePath, Axis.TILT)
+                    partial(self._confirm, Axis.TILT, self._setAxisProfiles, itemName, filePath)
                 ))
             elif filePath.endswith("." + defines.tuneTiltProfilesSuffix):
                 self.add_item(AdminAction(
                     itemName,
-                    partial(self._confirm, self._setTuneTilt, itemName, filePath)
+                    partial(self._confirm, Axis.TILT, self._setTuneTilt, itemName, filePath)
                 ))
             elif filePath.endswith("." + defines.towerProfilesSuffix):
                 self.add_item(AdminAction(
                     itemName,
-                    partial(self._confirm, self._setAxisProfiles, itemName, filePath, Axis.TOWER)
+                    partial(self._confirm, Axis.TOWER, self._setAxisProfiles, itemName, filePath)
                 ))
 
-    def _confirm(self, action = None, itemName = None, path = None, axis: Axis = Axis.TILT):
+    def _confirm(self, axis: Axis, action = None, itemName = None, path = None):
         self._control.enter(
             Confirm(
                 self._control,

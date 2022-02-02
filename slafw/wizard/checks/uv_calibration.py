@@ -77,7 +77,7 @@ class UVWarmupCheck(DangerousCheck):
 
         try:
             self._hw.startFans()
-            self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).max_pwm
+            self._hw.uvLedPwm = self._hw.uv_led.parameters.max_pwm
             self._exposure_image.blank_screen()
             self._hw.uvLed(True)
 
@@ -92,7 +92,7 @@ class UVWarmupCheck(DangerousCheck):
             self._hw.stopFans()
             raise
 
-        self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).min_pwm
+        self._hw.uvLedPwm = self._hw.uv_led.parameters.min_pwm
 
 
 class CheckUVMeterPlacement(DangerousCheck):
@@ -142,7 +142,7 @@ class UVCalibrate(DangerousCheck, ABC):
         super().__init__(hw, check_type, Configuration(None, None), [Resource.UV])
         self._exposure_image = weakref.proxy(exposure_image)
         self._uv_meter = uv_meter
-        self._calibration_params = self._hw.printer_model.calibration_parameters(self._hw.is500khz)
+        self._calibration_params = self._hw.uv_led.parameters
         self._result: UVCalibrationResult = result
 
         self.pwm = None

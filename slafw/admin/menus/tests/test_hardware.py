@@ -307,4 +307,4 @@ class InfiniteTestMenu(AdminMenu):
                         self._printer.hw.tilt.sync_wait()
                 sleep(0.25)
             self._printer.hw.powerLed("normal")
-            hw_all_off(self._printer.hw, self._printer.exposure_image)
+            self._printer.hw_all_off()

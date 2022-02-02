@@ -34,7 +34,7 @@ class SL1SUpgradeCleanup(CheckGroup):
     def __init__(self, package: WizardDataPackage):
         super().__init__(
             checks=(
-                ResetUVPWM(package.config_writer, package.model),
+                ResetUVPWM(package.config_writer, package.hw.uv_led),
                 ResetSelfTest(package.config_writer),
                 ResetMechanicalCalibration(package.config_writer),
                 ResetHwCounters(package.hw),

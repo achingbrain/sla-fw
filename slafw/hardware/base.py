@@ -16,20 +16,18 @@ from PySignal import Signal
 from slafw.hardware.sl1s_uvled_booster import Booster
 
 from slafw.functions.decorators import safe_call
-
 from slafw import defines
-
 from slafw.configs.hw import HwConfig
-
 from slafw.hardware.exposure_screen import ExposureScreen
+from slafw.hardware.printer_model import PrinterModel
 
 
 class BaseHardware:
-    def __init__(self, hw_config: HwConfig):
+    def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
         self.logger = logging.getLogger(__name__)
         self.config = hw_config
 
-        self.exposure_screen = ExposureScreen()
+        self.exposure_screen = ExposureScreen(printer_model)
         self.sl1s_booster = Booster()
 
         self.fans_changed = Signal()
@@ -137,7 +135,7 @@ class BaseHardware:
             if mcsc != mcs1 or mcsc ^ 255 != mcs2:
                 self.logger.error("MAC checksum FAIL (is %02x:%02x, should be %02x:%02x)", mcs1, mcs2, mcsc, mcsc ^ 255)
             else:
-                mac_hex = ":".join(re.findall("..", mac.hex))
+                mac_hex = ":".join(re.findall("../..", mac.hex))
                 self.logger.info("MAC: %s (checksum %02x:%02x)", mac_hex, mcs1, mcs2)
 
                 # byte order change

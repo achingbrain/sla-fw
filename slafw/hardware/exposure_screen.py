@@ -19,7 +19,8 @@ from pywayland.protocol.xdg_shell import XdgWmBase
 from pywayland.protocol.presentation_time import WpPresentation
 from pywayland.utils import AnonymousFile
 
-from slafw.hardware.printer_model import PrinterModel, ExposurePanel, ExposureScreenParameters
+from slafw import defines
+from slafw.hardware.printer_model import PrinterModel
 from slafw.errors.errors import UnknownPrinterModel
 
 
@@ -34,8 +35,42 @@ class Bindings:
     shm_format: int = field(init=False, default=None)
 
 
+@dataclass(eq=False)
+class ExposureScreenParameters:
+    #pylint: disable=too-many-instance-attributes
+    size_px: tuple
+    thumbnail_factor: int
+    pixel_size_nm: int
+    refresh_delay_ms: int
+    monochromatic: bool
+    bgr_pixels: bool
+    width_px: int = field(init=False)
+    height_px: int = field(init=False)
+    bytes_per_pixel: int = field(init=False)
+    apparent_width_px: int = field(init=False)
+    detected_size_px: tuple = field(init=False)
+    display_usage_size_px: tuple = field(init=False)
+    live_preview_size_px: tuple = field(init=False)
+    surface_area_px: tuple = field(init=False)
+
+    def __post_init__(self):
+        self.width_px = self.size_px[0]
+        self.height_px = self.size_px[1]
+        self.bytes_per_pixel = 3 if self.monochromatic else 1
+        self.apparent_width_px = self.size_px[0] // self.bytes_per_pixel
+        self.detected_size_px = (self.size_px[0] // self.bytes_per_pixel,
+                                 self.size_px[1])
+        # numpy uses reversed axis indexing
+        self.display_usage_size_px = (self.size_px[1] // self.thumbnail_factor,
+                                      self.size_px[0] // self.thumbnail_factor)
+        self.live_preview_size_px = (self.size_px[0] // self.thumbnail_factor,
+                                     self.size_px[1] // self.thumbnail_factor)
+        self.surface_area_px = (0, 0, self.apparent_width_px, self.height_px)
+
+
 class Layer:
-    def __init__(self, bindings: Bindings, width: int, height: int, bytes_per_pixel: int):
+    def __init__(self, bindings: Bindings, width: int, height: int,
+                 bytes_per_pixel: int):
         self.bindings = bindings
         self.width = width
         self.height = height
@@ -153,7 +188,7 @@ class Wayland:
     # pylint: disable=too-many-instance-attributes
     # pylint: disable=unused-argument
     # pylint: disable=too-many-arguments
-    def __init__(self):
+    def __init__(self, parameters: ExposureScreenParameters):
         self.logger = logging.getLogger(__name__)
         self._thread = Thread(target=self._event_loop)
         self.video_sync_event = Event()
@@ -162,12 +197,11 @@ class Wayland:
         self.main_layer: Optional[Layer] = None
         self.blank_layer: Optional[Layer] = None
         self.calibration_layer: Optional[Layer] = None
-        self.parameters: Optional[ExposureScreenParameters] = None
+        self.parameters: ExposureScreenParameters = parameters
         self.format_available = False
         self._stopped = False
 
-    def start(self, parameters: ExposureScreenParameters, shm_format: int):
-        self.parameters = parameters
+    def start(self, shm_format: int):
         self.bindings.shm_format = shm_format
         self.display.connect()
         self.logger.debug("connected to display")
@@ -192,9 +226,9 @@ class Wayland:
             raise RuntimeError("no suitable shm format available")
         self.main_layer = Layer(
                 self.bindings,
-                parameters.width_px // parameters.bytes_per_pixel,
-                parameters.height_px,
-                parameters.bytes_per_pixel)
+                self.parameters.width_px // self.parameters.bytes_per_pixel,
+                self.parameters.height_px,
+                self.parameters.bytes_per_pixel)
         self.main_layer.add_surface(self.bindings.compositor)
         main_surface = self.main_layer.base_wl_surface
         xdg_surface = self.bindings.wm_base.get_xdg_surface(main_surface)
@@ -209,7 +243,7 @@ class Wayland:
                 self.bindings,
                 self.main_layer.width,
                 self.main_layer.height,
-                parameters.bytes_per_pixel)
+                self.parameters.bytes_per_pixel)
         self.blank_layer.add_surface(self.bindings.compositor, self.bindings.subcompositor, main_surface)
         main_surface.commit()
         self.display.dispatch(block=True)
@@ -335,18 +369,15 @@ class Wayland:
 
 
 class ExposureScreen:
-    def __init__(self):
-        self.parameters = PrinterModel.NONE.exposure_screen_parameters
-        self.panel: Optional[ExposurePanel] = None
+    def __init__(self, printer_model: PrinterModel):
         self.logger = logging.getLogger(__name__)
-        self._wayland = Wayland()
+        self._parameters = self.get_parameters(printer_model)
+        self.logger.info("Exposure panel serial number: %s", self.serial_number)
+        self.logger.info("Exposure panel transmittance: %s", self.transmittance)
+        self._wayland = Wayland(self.parameters)
 
-    def start(self) -> PrinterModel:
-        model = self._detect_model()
-        if model == PrinterModel.NONE:
-            raise UnknownPrinterModel()
+    def start(self):
         self._wayland.start(self.parameters, self._find_format())
-        return model
 
     def exit(self):
         self._wayland.exit()
@@ -357,18 +388,6 @@ class ExposureScreen:
         if self.parameters.bgr_pixels:
             return WlShm.format.bgr888.value
         return WlShm.format.rgb888.value
-
-    def _detect_model(self):
-        self.panel = ExposurePanel
-        model = self.panel.printer_model()
-        self.parameters = model.exposure_screen_parameters
-        if model == PrinterModel.NONE:
-            self.logger.error("Unknown printer model (panel name: '%s')", self.panel.panel_name())
-        else:
-            self.logger.info("Detected printer model: %s", model.name)
-            self.logger.info("Exposure panel serial number: %s", self.panel.serial_number())
-            self.logger.info("Exposure panel transmittance: %s", self.panel.transmittance())
-        return model
 
     def show(self, image: Image, sync: bool = True):
         if image.size != self.parameters.size_px:
@@ -387,3 +406,57 @@ class ExposureScreen:
 
     def blank_area(self, area_index: int, sync: bool = True):
         self._wayland.blank_area(sync, area_index)
+
+    @staticmethod
+    def get_parameters(printer_model: PrinterModel) -> \
+            ExposureScreenParameters:
+        return {
+                PrinterModel.NONE: ExposureScreenParameters(
+                    size_px = (0, 0),
+                    thumbnail_factor = 1,
+                    pixel_size_nm = 0,
+                    refresh_delay_ms = 0,
+                    monochromatic = False,
+                    bgr_pixels = False,
+                    ),
+                PrinterModel.SL1: ExposureScreenParameters(
+                    size_px = (1440, 2560),
+                    thumbnail_factor = 5,
+                    pixel_size_nm = 46875,
+                    refresh_delay_ms = 0,
+                    monochromatic = False,
+                    bgr_pixels = False,
+                    ),
+                PrinterModel.SL1S: ExposureScreenParameters(
+                    size_px = (1620, 2560),
+                    thumbnail_factor = 5,
+                    pixel_size_nm = 50000,
+                    refresh_delay_ms = 0,
+                    monochromatic = True,
+                    bgr_pixels = True,
+                    ),
+                # same as SL1S
+                PrinterModel.M1: ExposureScreenParameters(
+                    size_px = (1620, 2560),
+                    thumbnail_factor = 5,
+                    pixel_size_nm = 50000,
+                    refresh_delay_ms = 0,
+                    monochromatic = True,
+                    bgr_pixels = True,
+                    ),
+            }[printer_model]
+
+    @property
+    def parameters(self) -> ExposureScreenParameters:
+        return self._parameters
+
+    @property
+    def serial_number(self) -> str:
+        path = defines.exposure_panel_of_node / "serial-number"
+        return path.read_text()[:-1] if path.exists() else ""
+
+    @property
+    def transmittance(self) -> float:
+        path = defines.exposure_panel_of_node / "transmittance"
+        return int.from_bytes(path.read_bytes(), byteorder='big') / 100.0 \
+            if path.exists() else 0.0

@@ -1,7 +1,9 @@
 # This file is part of the SLA firmware
-# Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 from slafw.configs.hw import HwConfig
+from slafw.hardware.uv_led import UvLed
 from slafw.libHardware import Hardware
 from slafw.configs.writer import ConfigWriter
 from slafw.functions.system import set_configured_printer_model, set_factory_uvpwm
@@ -12,15 +14,15 @@ from slafw.wizard.checks.base import Check, WizardCheckType
 
 
 class ResetUVPWM(Check):
-    def __init__(self, writer: ConfigWriter, model: PrinterModel):
+    def __init__(self, writer: ConfigWriter, uv_led: UvLed):
         super().__init__(WizardCheckType.ERASE_UV_PWM)
         self._writer = writer
-        self._model = model
+        self._uv_led = uv_led
 
     async def async_task_run(self, actions: UserActionBroker):
         del self._writer.uvCurrent
         del self._writer.uvPwmTune
-        pwm = self._model.default_uvpwm()
+        pwm = self._uv_led.parameters.safe_default_pwm
         self._writer.uvPwm = pwm
         set_factory_uvpwm(pwm)
 

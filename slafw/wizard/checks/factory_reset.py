@@ -28,7 +28,8 @@ from slafw.errors.errors import (
 )
 from slafw.errors.warnings import FactoryResetCheckFailure
 from slafw.functions.files import ch_mode_owner, get_all_supported_files
-from slafw.functions.system import FactoryMountedRW, compute_uvpwm, reset_hostname
+from slafw.functions.system import FactoryMountedRW, reset_hostname, \
+    compute_uvpwm, get_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.libHardware import Hardware, Axis
 from slafw.wizard.actions import UserActionBroker
@@ -70,12 +71,11 @@ class EraseProjects(ResetCheck):
 
 
 class ResetHostname(ResetCheck):
-    def __init__(self, model: PrinterModel, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(WizardCheckType.RESET_HOSTNAME, *args, **kwargs)
-        self._model = model
 
     def reset_task_run(self, actions: UserActionBroker):
-        reset_hostname(self._model)
+        reset_hostname()
 
 
 class ResetAPIKey(ResetCheck):
@@ -185,11 +185,12 @@ class ResetHWConfig(ResetCheck):
         self._disable_unboxing = disable_unboxing
 
     def reset_task_run(self, actions: UserActionBroker):
+        printer_model = get_configured_printer_model()
         self._hw.config.read_file()
         self._hw.config.factory_reset()
         if self._disable_unboxing:
             self._hw.config.showUnboxing = False
-        self._hw.config.vatRevision = self._hw.printer_model.options.vat_revision
+        self._hw.config.vatRevision = printer_model.options.vat_revision
         self._hw.config.write()
         # TODO: Why is this here? Separate task would be better.
         rmtree(defines.wizardHistoryPath, ignore_errors=True)
@@ -231,9 +232,10 @@ class DisableFactory(SyncCheck):
 
 
 class SendPrinterData(SyncCheck):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: Hardware, printer_model: PrinterModel):
         super().__init__(WizardCheckType.SEND_PRINTER_DATA)
         self._hw = hw
+        self._printer_model = printer_model
 
     def task_run(self, actions: UserActionBroker):
         # pylint: disable = too-many-branches
@@ -243,11 +245,11 @@ class SendPrinterData(SyncCheck):
             raise MissingUVPWM()
 
         # Ensure the printer is able to compute UV PWM
-        if self._hw.printer_model.options.has_UV_calculation:
+        if self._printer_model.options.has_UV_calculation:
             compute_uvpwm(self._hw)
 
         # Ensure examples are present
-        if not get_all_supported_files(self._hw.printer_model, Path(defines.internalProjectPath)):
+        if not get_all_supported_files(self.printer_model, Path(defines.internalProjectPath)):
             raise MissingExamples()
 
         # Get wizard data
@@ -267,7 +269,7 @@ class SendPrinterData(SyncCheck):
         # Get UV calibration data
         calibration_dict = {}
         # only for printers with UV calibration
-        if self._hw.printer_model.options.has_UV_calibration:
+        if self.printer_model.options.has_UV_calibration:
             try:
                 with (defines.factoryMountPoint / UVCalibrationWizard.get_data_filename()).open("rt") as file:
                     calibration_dict = json.load(file)

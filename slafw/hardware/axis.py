@@ -3,9 +3,27 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import asyncio
+import re
 from abc import ABC, abstractmethod
 from enum import unique, Enum
 from typing import List, Dict
+
+
+def parse_axis(text: str, axis: str) -> int:
+    try:
+        mm, dec = re.search(fr"(?<={axis}:)([0-9]*)\.([0-9]*)", text).groups()
+        nm = int(mm) * 1000 * 1000
+        for i, c in enumerate(dec):
+            if i <= 5:
+                nm += int(c) * 10 ** (5 - i)
+    except Exception as exception:
+        raise ValueError from exception
+
+    return nm
+
+
+def format_axis(position_nm: int) -> str:
+    return f"{position_nm // 1000000}.{position_nm % 1000000}"
 
 
 class AxisProfileBase:  # pylint: disable = too-few-public-methods
@@ -15,6 +33,12 @@ class AxisProfileBase:  # pylint: disable = too-few-public-methods
 @unique
 class AxisProfile(AxisProfileBase, Enum):
     temp = -1
+
+
+@unique
+class Axis(Enum):
+    TOWER = 0
+    TILT = 1
 
 
 class Axis(ABC):

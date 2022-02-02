@@ -9,28 +9,26 @@ from asyncio import sleep, gather
 
 from slafw import defines
 from slafw.errors.errors import DisplayTestFailed
-from slafw.configs.runtime import RuntimeConfig
 from slafw.functions.system import FactoryMountedRW
 from slafw.libHardware import Hardware
-from slafw.image.exposure_image import ExposureImage
+from slafw.hardware.printer_model import PrinterModel
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from slafw.wizard.setup import Configuration, TankSetup, Resource
+from slafw.wizard.wizard import WizardDataPackage
 
 
 class DisplayTest(DangerousCheck):
-    def __init__(
-        self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig,
-    ):
+    def __init__(self, package: WizardDataPackage):
         super().__init__(
-            hw,
+            package.hw,
             WizardCheckType.DISPLAY,
             Configuration(TankSetup.REMOVED, None),
             [Resource.UV, Resource.TILT, Resource.TOWER_DOWN, Resource.TOWER],
         )
-        self._exposure_image = exposure_image
-        self._runtime_config = runtime_config
+        self._exposure_image = package.exposure_image
+        self._runtime_config = package.runtime_config
 
         self.result: Optional[bool] = None
 
@@ -54,7 +52,8 @@ class DisplayTest(DangerousCheck):
                 if old_state != actual_state:
                     old_state = actual_state
                     if actual_state:
-                        self._hw.uvLedPwm = self._hw.printer_model.calibration_parameters(self._hw.is500khz).safe_default_pwm
+                        # TODO: create uv_led.set_default_pwm()
+                        self._hw.uvLedPwm = self._hw.uv_led.parameters.safe_default_pwm
                         self._hw.uvLed(True)
                     else:
                         self._hw.uvLed(False)
@@ -84,7 +83,7 @@ class RecordExpoPanelLog(Check):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        panel_sn = self._hw.exposure_screen.panel.serial_number()
+        panel_sn = self._hw.exposure_screen.serial_number
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)

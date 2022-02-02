@@ -560,7 +560,7 @@ class Printer0:
             self._examples.join()
 
         # Initiate new examples download
-        self._examples = Examples(self.printer.inet, self.printer.hw.printer_model)
+        self._examples = Examples(self.printer.inet, self.printer.model)
         self._examples0 = Examples0(self._examples)
         self._examples_registration = pydbus.SystemBus().publish(
             Examples0.__INTERFACE__, (Examples0.DBUS_PATH, self._examples0)
@@ -591,7 +591,7 @@ class Printer0:
         :return: None
         """
         check_ready_to_print(
-            self.printer.hw.config, self.printer.hw.printer_model.calibration_parameters(self.printer.hw.is500khz)
+            self.printer.hw.config, self.printer.hw.uv_led.parameters
         )
 
     @auto_dbus
@@ -656,7 +656,7 @@ class Printer0:
 
         :return: Set of extension strings
         """
-        return list(self.printer.hw.printer_model.extensions)
+        return list(self.printer.model.extensions)
 
     @auto_dbus
     def list_projects_raw(self) -> List[str]:  # pylint: disable=no-self-use
@@ -670,13 +670,13 @@ class Printer0:
         sources = [Path(defines.internalProjectPath), Path(defines.mediaRootPath)]
         projects = []
         for directory in sources:
-            projects.extend(get_all_supported_files(self.printer.hw.printer_model, directory))
+            projects.extend(get_all_supported_files(self.printer.model, directory))
         return [str(project) for project in projects]
 
     @auto_dbus
     @property
     def printer_model(self) -> int:
-        return self.printer.hw.printer_model.value
+        return self.printer.model.value
 
     @auto_dbus
     @property
@@ -850,7 +850,7 @@ class Printer0:
 
         :return: exposure display serial number
         """
-        return self.printer.hw.exposure_screen.panel.serial_number()
+        return self.printer.hw.exposure_screen.serial_number
 
     @auto_dbus
     @property
@@ -861,7 +861,7 @@ class Printer0:
 
         :return: exposure display transmittance
         """
-        return self.printer.hw.exposure_screen.panel.transmittance()
+        return self.printer.hw.exposure_screen.transmittance
 
     @auto_dbus
     def inject_exception(self, code: str):

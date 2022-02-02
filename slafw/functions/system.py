@@ -16,10 +16,9 @@ from slafw.configs.hw import HwConfig
 from slafw.errors.errors import (
     FailedUpdateChannelSet,
     FailedUpdateChannelGet,
-    ConfigException, DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange, PrinterException,
+    ConfigException, PrinterException, DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange
 )
 from slafw.hardware.printer_model import PrinterModel
-from slafw.image.exposure_image import ExposureImage
 from slafw.libHardware import Hardware
 
 
@@ -60,13 +59,6 @@ def get_octoprint_auth(logger: logging.Logger) -> str:
         raise ConfigException("Octoprint auth file read failed") from e
 
 
-def hw_all_off(hw: Hardware, exposure_image: ExposureImage):
-    exposure_image.blank_screen()
-    hw.uvLed(False)
-    hw.stopFans()
-    hw.motorsRelease()
-
-
 class FactoryMountedRW:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -91,18 +83,7 @@ def set_configured_printer_model(model: PrinterModel):
     Adjust printer model definition files to match new printer model
 
     :param model: New printer model
-    :raises ValueError: Raised on unknown model - no modification is done
     """
-
-    # Obtain new model file before clearing existing definitions (just in case this raises an exception)
-    if model == PrinterModel.SL1:
-        model_file = defines.sl1_model_file
-    elif model == PrinterModel.SL1S:
-        model_file = defines.sl1s_model_file
-    elif model == PrinterModel.M1:
-        model_file = defines.m1_model_file
-    else:
-        raise ValueError(f"No file defined for model: {model}")
 
     # Clear existing model definitions
     for file in defines.printer_model.glob("*"):
@@ -110,23 +91,20 @@ def set_configured_printer_model(model: PrinterModel):
             file.unlink()
 
     # Add new model definition
+    model_file = defines.printer_model / model.name.lower()
     model_file.parent.mkdir(exist_ok=True)
     model_file.touch()
 
 
 def get_configured_printer_model() -> PrinterModel:
-    if defines.m1_model_file.exists():
-        return PrinterModel.M1
-
-    if defines.sl1s_model_file.exists():
-        return PrinterModel.SL1S
-
-    if defines.sl1_model_file.exists():
-        return PrinterModel.SL1
-
+    for model in PrinterModel:
+        model_file = defines.printer_model / model.name.lower()
+        if model_file.exists():
+            return model
     return PrinterModel.NONE
 
 
+# TODO: move into hw.uv_led
 def set_factory_uvpwm(pwm: int) -> None:
     """
     This is supposed to read current factory config, set the new uvPWM and save factory config
@@ -139,14 +117,14 @@ def set_factory_uvpwm(pwm: int) -> None:
 
 
 def compute_uvpwm(hw: Hardware) -> int:
-    trans = hw.exposure_screen.panel.transmittance()
+    trans = hw.exposure_screen.transmittance
     if isclose(trans, 0.0, abs_tol=0.001):
         raise DisplayTransmittanceNotValid(trans)
 
     pwm = int(-35 * trans + 350)
 
-    pwm_min = hw.printer_model.calibration_parameters(hw.is500khz).min_pwm
-    pwm_max = hw.printer_model.calibration_parameters(hw.is500khz).max_pwm
+    pwm_min = hw.uv_led.parameters.min_pwm
+    pwm_max = hw.uv_led.parameters.min_pwm
     if not pwm_min < pwm < pwm_max:
         raise CalculatedUVPWMNotInRange(pwm, pwm_min, pwm_max)
 
@@ -166,5 +144,6 @@ def set_hostname(hostname: str) -> None:
         raise PrinterException("Cannot set hostname") from exception
 
 
-def reset_hostname(model: PrinterModel) -> None:
-    set_hostname(defines.default_hostname + model.name.lower())
+def reset_hostname() -> None:
+    printer_model = get_configured_printer_model()
+    set_hostname(defines.default_hostname + printer_model.name.lower())

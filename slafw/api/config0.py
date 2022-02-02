@@ -14,7 +14,7 @@ from pydbus.generic import signal
 from slafw.api.decorators import auto_dbus, dbus_api, wrap_dict_data_recursive
 from slafw.configs.hw import HwConfig
 from slafw.configs.value import Value, NumericValue, ListValue, TextValue
-from slafw.libHardware import Axis
+from slafw.hardware.axis import Axis
 
 if TYPE_CHECKING:
     from slafw.libHardware import Hardware

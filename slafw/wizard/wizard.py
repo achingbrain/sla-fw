@@ -47,7 +47,6 @@ class WizardDataPackage:
     exposure_image: ExposureImage = None
     uv_meter: UvLedMeterMulti = None
     uv_result: UVCalibrationResult = None
-    model: PrinterModel = None
     # TODO: use this in other wizards like self-test, unboxing, uv calibration, factory reset, SL1/SL1s config reset
 
 

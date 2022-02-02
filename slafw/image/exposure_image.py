@@ -17,7 +17,7 @@ from PIL import Image, ImageOps
 
 from slafw import defines
 from slafw.errors.errors import PreloadFailed
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.project.project import Project
 from slafw.project.functions import get_white_pixels
 from slafw.image.resin_calibration import Calibration
@@ -39,7 +39,7 @@ def measure_time(what: str):
 
 class ExposureImage:
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, hardware: Hardware):
+    def __init__(self, hardware: BaseHardware):
         self._hw = hardware
         self.logger = logging.getLogger(__name__)
         self._project: Optional[Project] = None
@@ -131,7 +131,7 @@ class ExposureImage:
                 image1 = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
                 image1.readonly = False
                 image1.paste(self._open_image(os.path.join(
-                    defines.dataPath, self._hw.printer_model.name, defines.perPartesMask)))
+                    defines.modelSpecificDataPath, defines.perPartesMask)))
                 image2 = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
                 image2.readonly = False
                 image2.paste(ImageOps.invert(image1))
@@ -153,7 +153,7 @@ class ExposureImage:
             self._project.warnings.add(PrintMaskNotAvaiable())
         if self._project.calibrate_regions:
             self._project.analyze()
-            self._calibration = Calibration(self._hw.exposure_screen.parameters.size_px)
+            self._calibration = Calibration(self._exposure_screen.parameters.size_px)
             if not self._calibration.new_project(
                     self._project.bbox,
                     self._project.layers[0].bbox,
@@ -213,7 +213,7 @@ class ExposureImage:
         self._hw.exposure_screen.blank_area(area_index, sync = sync)
 
     def show_system_image(self, filename: str):
-        self.show_image_with_path(os.path.join(defines.dataPath, self._hw.printer_model.name, filename))
+        self.show_image_with_path(os.path.join(defines.modelSpecificDataPath, filename))
 
     @measure_time("show image")
     def show_image_with_path(self, filename_with_path: str):

@@ -42,7 +42,7 @@ class UVFansTest(DangerousCheck):
         fans_wait_time = defines.fanWizardStabilizeTime + defines.fanStartStopTime
 
         # set UV LED to max PWM
-        self._hw.uvLedPwm = self._hw.get_uv_check_pwms()[3]
+        self._hw.uvLedPwm = self._hw.uv_led.get_check_pwms[3]
 
         uv_temp = self._hw.getUvLedTemperature()
         fan_error = self._hw.getFansError()

@@ -9,6 +9,7 @@ from PySignal import Signal
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
+from slafw.hardware.uv_led import UvLedSL1, UvLed2
 from slafw.libHardware import Fan
 from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.mocks.exposure_screen import ExposureScreen
@@ -21,8 +22,6 @@ class Hardware:
     def __init__(self, config: HwConfig = None):
         if config is None:
             config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)    # TODO better!
-
-        self.is500khz = True
 
         self.cpuSerialNo = "CZPX0819X009XC00151"
         self.mcSerialNo = "CZPX0619X678XC12345"
@@ -44,9 +43,7 @@ class Hardware:
         self.mcFwVersion = "1.0.0"
         self.mcBoardRevision = "6c"
 
-        self.printer_model = PrinterModel.SL1
         self.exposure_screen = ExposureScreen()
-        self.exposure_screen.parameters = self.printer_model.exposure_screen_parameters
         self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 
         self.led_temp_idx = 0
@@ -93,6 +90,12 @@ class Hardware:
         self.uv_led_overheat = False
         self.fans_error_changed = Signal()
 
+        self.mcc = Mock()
+        if self.printer_model in [PrinterModel.SL1, PrinterModel.SL1s, PrinterModel.M1]:
+            self.uv_led = UvLedSL1(self.mcc, self.printer_model)
+        else:
+            self.uv_led = UvLed2(self.mcc, self.printer_model)
+
     tower_position_nm = PropertyMock(return_value=150_000_000)
 
     def exit(self):
@@ -106,10 +109,6 @@ class Hardware:
 
     def clearDisplayStatistics(self):
         self._display_stat_s = 0
-
-    @staticmethod
-    def get_uv_check_pwms():
-        return [40, 122, 243, 250]  # board rev 0.6c+
 
     def getPowerswitchState(self):
         return False

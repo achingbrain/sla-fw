@@ -150,7 +150,7 @@ class FansAndUVLedMenu(AdminMenu):
         self._control.enter(Info(self._control, "Configuration saved as default"))
 
     def save_to_booster(self):
-        if self._printer.hw.printer_model.options.has_booster:
+        if self._printer.model.options.has_booster:
             self._control.enter(
                 Confirm(self._control, self._do_save_to_booster, text="Save current PWM to boosterV2 board?")
             )

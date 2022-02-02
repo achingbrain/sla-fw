@@ -12,10 +12,13 @@ from typing import List, Dict, Any, Optional
 from slafw import test_runtime
 from slafw.errors.errors import UVLEDsDisconnected, UVLEDsRowFailed, BoosterError
 from slafw.errors.errors import UVLEDsVoltagesDifferTooMuch
+from slafw.functions.system import get_configured_printer_model
+from slafw.hardware.printer_model import PrinterModel
 from slafw.libHardware import Hardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck
 from slafw.wizard.setup import Configuration, Resource
+from slafw.wizard.wizard import WizardDataPackage
 
 
 class UVLEDsTest(DangerousCheck):
@@ -28,7 +31,8 @@ class UVLEDsTest(DangerousCheck):
         """
         Instantiate UV LEDs test for particular printer HW
         """
-        if hw.printer_model.options.has_booster:
+        printer_model = get_configured_printer_model()
+        if printer_model.options.has_booster:
             return UVLEDsTestBooster(hw)
 
         return UVLEDsTestVoltages(hw)
@@ -111,7 +115,7 @@ class UVLEDsTestVoltages(UVLEDsTest):
         await self.wait_cover_closed()
         self._hw.uvLedPwm = 0
         self._hw.uvLed(True)
-        uv_pwms = self._hw.get_uv_check_pwms()
+        uv_pwms = self._hw.uv_led.get_check_pwms
 
         diff = 0.55  # [mV] voltages in all rows cannot differ more than this limit
         row1 = list()

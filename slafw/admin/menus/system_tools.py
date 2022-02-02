@@ -46,9 +46,9 @@ class SystemToolsMenu(SafeAdminMenu):
                 AdminAction("Fake setup", self._fake_setup),
             )
         )
-        if self._printer.hw.printer_model == PrinterModel.SL1S:
+        if self._printer.model == PrinterModel.SL1S:
             self.add_item(AdminAction("Switch to M1", self._switch_m1))
-        if self._printer.hw.printer_model == PrinterModel.M1:
+        if self._printer.model == PrinterModel.M1:
             self.add_item(AdminAction("Switch to SL1S", self._switch_sl1s))
 
 
@@ -124,7 +124,7 @@ class SystemToolsMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def _do_fake_setup(self, status: AdminLabel):
         status.set("Downloading examples")
-        examples = Examples(self._printer.inet, self._printer.hw.printer_model)
+        examples = Examples(self._printer.inet, self._printer.model)
         examples.start()
         examples.join()
 
@@ -133,9 +133,7 @@ class SystemToolsMenu(SafeAdminMenu):
         writer.calibrated = True
         writer.showWizard = False
         writer.showUnboxing = False
-        writer.uvPwm = self._printer.hw.printer_model.calibration_parameters(
-            self._printer.hw.is500khz
-        ).safe_default_pwm
+        writer.uvPwm = self._printer.hw.uv_led.parameters.safe_default_pwm
         self._printer.hw.uvLedPwm = writer.uvPwm
         writer.commit()
 
@@ -175,7 +173,7 @@ class SystemToolsMenu(SafeAdminMenu):
         status.set("Setting printer model")
         set_configured_printer_model(printer_model)
         status.set("Setting hostname")
-        reset_hostname(printer_model)
+        reset_hostname()
         # new examples remove the old ones
         status.set("Downloading examples")
         examples = Examples(self._printer.inet, printer_model)

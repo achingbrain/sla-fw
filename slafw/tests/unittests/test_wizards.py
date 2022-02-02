@@ -19,7 +19,8 @@ from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.configs.runtime import RuntimeConfig
 from slafw.errors.errors import UVTooDimm, UVTooBright, UVDeviationTooHigh, TowerHomeFailed, TowerEndstopNotReached
-from slafw.functions.system import get_configured_printer_model
+from slafw.functions.system import get_configured_printer_model, \
+    set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.states.wizard import WizardState, WizardId
 from slafw.tests.base import SlafwTestCase
@@ -471,14 +472,14 @@ class TestWizards(TestWizardsBase):
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def test_factory_reset_complete_sl1s(self):
-        self.hw.printer_model = PrinterModel.SL1S
+        set_configured_printer_model(PrinterModel.SL1S)
         self.runtime_config.factory_mode = False
         self.hw.boardData = ("TEST complete", False)
         self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def test_factory_reset_complete_m1(self):
-        self.hw.printer_model = PrinterModel.M1
+        set_configured_printer_model(PrinterModel.M1)
         self.runtime_config.factory_mode = False
         self.hw.boardData = ("TEST complete", False)
         self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
@@ -519,7 +520,8 @@ class TestWizards(TestWizardsBase):
         self.assertNotEqual(self.hostname.Hostname, "")
         self.assertNotEqual(self.hostname.StaticHostname, "")
         self.assertEqual(self.hostname.StaticHostname, self.hostname.Hostname)
-        self.assertEqual(self.hostname.Hostname, defines.default_hostname + self.hw.printer_model.name.lower())
+        printer_model = set_configured_printer_model()
+        self.assertEqual(self.hostname.Hostname, defines.default_hostname + printer_model.name.lower())
         self.assertTrue(self.time_date.is_default_ntp(), "NTP reset to default")
         print(self.locale.Locale)
         self.assertTrue(self.locale.is_default(), "Locale set to default")
@@ -581,7 +583,7 @@ class TestWizards(TestWizardsBase):
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
         last_key = list(log)[-1]
-        self.assertEqual(log[last_key]["panel_sn"], self.hw.exposure_screen.panel.serial_number())
+        self.assertEqual(log[last_key]["panel_sn"], self.hw.exposure_screen.serial_number)
         next_to_last_key = list(log)[-2]
         self.assertEqual(log[next_to_last_key]["counter_s"], uv_statistics[1])
         self._assert_final_state(item="showWizard", expected_value=True)
@@ -630,7 +632,7 @@ class TestUVCalibration(TestWizardsBase):
         self.assertEqual(140.0, wizard.data["uvMinValue"])
         self.assertEqual(140.0, wizard.data["uvMaxValue"])
         self.assertEqual(200, wizard.data["uvFoundPwm"])
-        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
+        self._assert_final_uv_pwm(self.hw.uv_led.parameters.min_pwm)
 
     def test_uv_calibration_boost(self):
         with patch("slafw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -639,7 +641,7 @@ class TestUVCalibration(TestWizardsBase):
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Boosted as led+display too weak
             self.assertFalse(defines.counterLog.exists())  # Counter log not written as nothing was reset
-        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
+        self._assert_final_uv_pwm(self.hw.uv_led.parameters.min_pwm)
 
     def test_uv_calibration_boost_difference(self):
         with patch("slafw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -648,7 +650,7 @@ class TestUVCalibration(TestWizardsBase):
             self.uv_meter.multiplier = 0.85
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Boosted as PWM differs too much from previous setup
-        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
+        self._assert_final_uv_pwm(self.hw.uv_led.parameters.min_pwm)
 
     def test_uv_calibration_no_boost_replace_display(self):
         with patch("slafw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -667,7 +669,7 @@ class TestUVCalibration(TestWizardsBase):
                     # Log record contains original counter values
                     self.assertEqual(6912, data["uvLed_seconds"])
                     self.assertEqual(3600, data["display_seconds"])
-        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
+        self._assert_final_uv_pwm(self.hw.uv_led.parameters.min_pwm)
 
     def test_uv_calibration_boost_replace_led(self):
         with patch("slafw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):
@@ -679,7 +681,7 @@ class TestUVCalibration(TestWizardsBase):
             self.assertEqual(3600, self.hw.getUvStatistics()[1])  # Display stays
             self.assertEqual(0, self.hw.getUvStatistics()[0])  # UV LED replaced
             self.assertTrue(defines.counterLog.exists())  # Counter log written as UV LED was replaced
-        self._assert_final_uv_pwm(self.hw.printer_model.calibration_parameters(True).min_pwm)
+        self._assert_final_uv_pwm(self.hw.uv_led.parameters.min_pwm)
 
     def test_uv_calibration_dim(self):
         with patch("slafw.wizard.wizards.uv_calibration.UvLedMeterMulti", self.uv_meter):

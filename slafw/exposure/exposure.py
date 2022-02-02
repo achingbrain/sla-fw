@@ -321,7 +321,7 @@ class Exposure:
         self._checks_task: Optional[Task] = None
 
     def read_project(self, project_file: str):
-        check_ready_to_print(self.hw.config, self.hw.printer_model.calibration_parameters(self.hw.is500khz))
+        check_ready_to_print(self.hw.config, self.hw.uv_led.parameters)
         try:
             # Read project
             self.project = Project(self.hw, project_file)
