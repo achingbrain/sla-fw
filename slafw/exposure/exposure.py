@@ -327,7 +327,7 @@ class Exposure:
         self.pending_warning = Lock()
         self.estimated_total_time_ms = -1
         self._thread = Thread(target=self.run)
-        self._tilt_speed: TiltSpeed = TiltSpeed.SAFE
+        self._tilt_speed: TiltSpeed = TiltSpeed.SLOW
         self._force_slow_remain_nm: int = 0
         self.hw.fans_error_changed.connect(self._on_fans_error)
         self._checks_task: Task = None
@@ -597,7 +597,7 @@ class Exposure:
         if self.hw.config.tilt:
             minimal_tower_hop_steps = self.hw.config.calcMicroSteps(self.hw.config.superSlowTowerHopHeight_mm)
             self.logger.info("%s tilt up", self._tilt_speed.name)
-            if self.hw.config.layerTowerHop and self._tilt_speed == TiltSpeed.SAFE or self._tilt_speed == TiltSpeed.SUPERSLOW:
+            if self.hw.config.layerTowerHop and self._tilt_speed == TiltSpeed.SLOW or self._tilt_speed == TiltSpeed.SUPERSLOW:
                 hop_position = position_steps + self.hw.config.layerTowerHop
                 if self._tilt_speed == TiltSpeed.SUPERSLOW:
                     self.hw.setTowerProfile("superSlow")
@@ -623,7 +623,7 @@ class Exposure:
             delay_before = defines.exposure_safe_delay_before
         elif self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
             delay_before = defines.exposure_superslow_delay_before
-        elif self._tilt_speed == TiltSpeed.SAFE:
+        elif self._tilt_speed == TiltSpeed.SLOW:
             delay_before = defines.exposure_slow_move_delay_before
         elif self._tilt_speed == TiltSpeed.SUPERSLOW:
             delay_before = defines.exposure_superslow_delay_before
@@ -668,15 +668,15 @@ class Exposure:
             sleep(self.hw.config.delayAfterExposure / 10.0)
 
         if self.hw.config.tilt:
-            if self._tilt_speed not in {TiltSpeed.SAFE, TiltSpeed.SUPERSLOW} and white_pixels > self.hw.white_pixels_threshold:  # current layer
-                self._tilt_speed = TiltSpeed.SAFE
+            if self._tilt_speed not in {TiltSpeed.SLOW, TiltSpeed.SUPERSLOW} and white_pixels > self.hw.white_pixels_threshold:  # current layer
+                self._tilt_speed = TiltSpeed.SLOW
             # self._slow_move = white_pixels > self.hw.white_pixels_threshold  # current layer
             # Force slow tilt for forceSlowTiltHeight if current layer area > limit4fast
-            if self._tilt_speed in {TiltSpeed.SAFE, TiltSpeed.SUPERSLOW}:
+            if self._tilt_speed in {TiltSpeed.SLOW, TiltSpeed.SUPERSLOW}:
                 self._force_slow_remain_nm = self.hw.config.forceSlowTiltHeight
             elif self._force_slow_remain_nm > 0:
                 self._force_slow_remain_nm -= layer_height_nm
-                self._tilt_speed = TiltSpeed.SAFE
+                self._tilt_speed = TiltSpeed.SLOW
             # Force slow tilt on first layers or if user selected safe print profile
             if (
                 self.actual_layer < self.project.first_slow_layers
@@ -684,11 +684,11 @@ class Exposure:
                 or self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW
             ):
                 if self.project.exposure_user_profile == ExposureUserProfile.SAFE:
-                    self._tilt_speed = TiltSpeed.SAFE
+                    self._tilt_speed = TiltSpeed.SLOW
                 elif self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
                     self._tilt_speed = TiltSpeed.SUPERSLOW
 
-            if self._tilt_speed == TiltSpeed.SAFE:
+            if self._tilt_speed == TiltSpeed.SLOW:
                 self.slow_layers_done += 1
             elif self._tilt_speed == TiltSpeed.SUPERSLOW:
                 self.super_slow_layers_done += 1

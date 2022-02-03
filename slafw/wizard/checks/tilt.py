@@ -130,7 +130,7 @@ class TiltTimingTest(DangerousCheck):
 
             await self._hw.tilt.sync_wait_async()  # FIXME MC cant properly home tilt while tower is moving
             self._config_writer.tiltFastTime = await self._get_tilt_time_sec(TiltSpeed.DEFAULT, 1/3)
-            self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(TiltSpeed.SAFE, 1/3)
+            self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(TiltSpeed.SLOW, 1 / 3)
             self._config_writer.tiltSuperSlowTime = await self._get_tilt_time_sec(TiltSpeed.SUPERSLOW, 1/3)
             self._hw.setTowerProfile("homingFast")
             self._hw.tilt.profile_id = TiltProfile.moveFast

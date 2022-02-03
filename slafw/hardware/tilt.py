@@ -35,7 +35,7 @@ class TiltProfile(AxisProfileBase, Enum):
 class TiltSpeed(Enum):
     """Tilt movement profiles will be selected based on this value"""
     DEFAULT = 0
-    SAFE = 1
+    SLOW = 1
     SUPERSLOW = 2
 
 
@@ -244,7 +244,7 @@ class TiltSL1(Tilt):
         profile = self._config.tuneTilt[1]
         if tilt_speed == TiltSpeed.DEFAULT:
             pass
-        elif tilt_speed == TiltSpeed.SAFE:
+        elif tilt_speed == TiltSpeed.SLOW:
             profile = self._config.tuneTilt[0]
         elif tilt_speed == TiltSpeed.SUPERSLOW:
             profile = self._config.tuneTilt[4]
@@ -300,7 +300,7 @@ class TiltSL1(Tilt):
         profile = self._config.tuneTilt[3]
         if tilt_speed == TiltSpeed.DEFAULT:
             pass
-        elif tilt_speed == TiltSpeed.SAFE:
+        elif tilt_speed == TiltSpeed.SLOW:
             profile = self._config.tuneTilt[2]
         elif tilt_speed == TiltSpeed.SUPERSLOW:
             profile = self._config.tuneTilt[5]
