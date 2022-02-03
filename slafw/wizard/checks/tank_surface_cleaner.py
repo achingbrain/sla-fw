@@ -4,6 +4,7 @@
 
 from asyncio import sleep
 from time import time
+from enum import Enum, unique
 
 from slafw.libHardware import Hardware
 from slafw.image.exposure_image import ExposureImage
@@ -11,6 +12,31 @@ from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from slafw.wizard.setup import Configuration, Resource
 from slafw.errors.errors import GarbageCollectorMissing
+
+@unique
+class GentlyUpProfile(Enum):
+    """Gives meaning to the value config.tankCleaningGentlyUpProfile,
+    which should be restricted to the prepared(here) selection of
+    available profiles for "GentlyUp" operation.
+    """
+
+    SPEED0 = 0
+    SPEED1 = 1
+    SPEED2 = 2
+    SPEED3 = 3
+
+    def map_to_tower_profile_name(self) -> str:
+        """Transform the value passed from the frontend via configuration into a name of an actual tower profile"""
+        if self == GentlyUpProfile.SPEED0:
+            return "moveSlow"
+        elif self == GentlyUpProfile.SPEED1:
+            return "homingSlow"
+        elif self == GentlyUpProfile.SPEED2:
+            return "resinSensor"
+        elif self == GentlyUpProfile.SPEED3:
+            return "moveFast"
+        else:
+            return "moveSlow"
 
 
 class HomeTower(DangerousCheck):
@@ -126,7 +152,9 @@ class GentlyUp(Check):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.setTowerProfile("homingSlow")
+        up_profile = GentlyUpProfile(self._hw.config.tankCleaningGentlyUpProfile)
+        self._logger.info("GentlyUp with %s -> %s", up_profile.name, up_profile.map_to_tower_profile_name())
+        self._hw.setTowerProfile(up_profile.map_to_tower_profile_name())
         await self._hw.tilt.sync_wait_async(retries=2)
         await self._hw.towerMoveAbsoluteWaitAsync(self._hw.config.calcMicroSteps(50))
         while self._hw.isTowerMoving():
