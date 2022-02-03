@@ -250,7 +250,9 @@ class StartPositionsCheck(ExposureCheckRunner):
             self.logger.info("SUPERSLOW tilt speed, going fast down, will slow down 30mm above the bottom")
             self.expo.hw.setTowerProfile("homingFast")
             self.expo.hw.towerToPosition(30.0)
-            while not await self.expo.hw.isTowerOnPositionAsync(retries=2):
+            while self.expo.hw.isTowerMoving():
+                await asyncio.sleep(0.25)
+            while not await self.expo.hw.isTowerOnPositionAsync(retries=3):
                 await asyncio.sleep(0.25)
             self.logger.info("SUPERSLOW tilt speed, setting tower to superSlow profile")
             self.expo.hw.setTowerProfile("superSlow")
@@ -262,7 +264,7 @@ class StartPositionsCheck(ExposureCheckRunner):
 
         if self.expo.hw.towerPositonFailed():
             exception = TowerMoveFailed()
-            self.expo.exception = exception
+            self.expo.fatal_error = exception
             self.expo.hw.setTowerProfile("homingFast")
             self.expo.hw.towerToTop()
             while not await self.expo.hw.isTowerOnPositionAsync():
