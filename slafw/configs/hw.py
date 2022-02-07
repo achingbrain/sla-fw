@@ -186,7 +186,7 @@ class HwConfig(Config):
     rpmControlUvFanMaxRpm = IntValue(defines.fanMaxRPM[0], minimum=defines.fanMinRPM, maximum=defines.fanMaxRPM[0], doc="RPM is lineary mapped to UV LED temp. This is the upper limit.")
     rpmControlOverride = BoolValue(False, doc="Overide UV FAN RPM control with UV LED temp. Force the RPM set in this config.")
     tankCleaningExposureTime = IntValue(defines.tank_surface_cleaning_exposure_time_s, minimum=5, maximum=120, doc="Exposure time when running the tank surface cleaning wizard")
-    tankCleaningGentlyUpProfile = IntValue(1, minimum=0, maximum=3, doc="Select the profile used for the upward movement of the platform in the tank surface cleaning wizard(should be cast into GentlyUpProfile enum).")
+    tankCleaningGentlyUpProfile = IntValue(2, minimum=0, maximum=3, doc="Select the profile used for the upward movement of the platform in the tank surface cleaning wizard(should be cast into GentlyUpProfile enum).")
     currentProfilesSet = TextValue("n/a", doc="Last applied profiles set")
 
     raw_calibrated = BoolValue(False, key="calibrated")
