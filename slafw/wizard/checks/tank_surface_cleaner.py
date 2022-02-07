@@ -116,6 +116,16 @@ class TouchDown(DangerousCheck):
             raise GarbageCollectorMissing()
         self._logger.info("TouchDown did detect an obstacle - garbageCollector.?")
 
+        self._logger.info("Moving up to the configured height(%d nm)...", self._hw.config.tankCleaningMinDistance_nm)
+        lifted_position = self._hw.tower_position_nm + self._hw.config.tankCleaningMinDistance_nm
+        self._hw.tower_position_nm = lifted_position
+        while self._hw.isTowerMoving():
+            await sleep(0.25)
+        if lifted_position == self._hw.tower_position_nm:
+            self._logger.info("Garbage collector successfully lifted to the initial position.")
+        else:
+            self._logger.warning("Garbage collector failed to be lifted to the initial position(should be %d, is %d). Continuing anyway.", lifted_position, self._hw.tower_position_nm)
+
 
 class ExposeGarbage(DangerousCheck):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage):
