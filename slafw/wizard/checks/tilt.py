@@ -167,7 +167,7 @@ class TiltTimingTest(DangerousCheck):
         return {
             "tilt_slow_time_ms": int(self._config_writer.tiltSlowTime * 1000),
             "tilt_fast_time_ms": int(self._config_writer.tiltFastTime * 1000),
-            "tilt_superslow_time_ms": int(self._config_writer.tiltFastTime * 1000),
+            "tilt_superslow_time_ms": int(self._config_writer.tiltSuperSlowTime * 1000),
         }
 
 

@@ -483,7 +483,6 @@ class Project:
 
     @functools.lru_cache(maxsize=2)
     def count_remain_time(self, layers_done: int = 0, slow_layers_done: int = 0, super_slow_layers_done: int = 0) -> int:
-        # FIXME: super_slow_layers_done are ignored in the estimate
         time_remain_ms = sum(sum(x.times_ms) for x in self.layers[layers_done:])
         total_layers = len(self.layers)
         # TODO count forced slow layers at the beginning and forced slow layers after slow layer
@@ -491,13 +490,15 @@ class Project:
         if slow_layers < 0:
             slow_layers = 0
         fast_layers = total_layers - layers_done - slow_layers
+        # If we are using superSlow profile, there should not be any other
+        superslow_layers = total_layers - super_slow_layers_done
 
         # Fast and slow tilt times
         if self._hw.config.tilt:
             if self._exposure_user_profile == ExposureUserProfile.SAFE:
                 time_remain_ms += (fast_layers + slow_layers) * self._hw.config.tiltSlowTime * 1000
             elif self._exposure_user_profile == ExposureUserProfile.SUPERSLOW:
-                time_remain_ms += (fast_layers + slow_layers) * self._hw.config.tiltSlowTime * 1000 # FIXME: NEEDS REVISION
+                time_remain_ms += superslow_layers * self._hw.config.tiltSuperSlowTime * 1000
             else:
                 time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
                 time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
