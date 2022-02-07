@@ -30,11 +30,11 @@ class GentlyUpProfile(Enum):
         if self == GentlyUpProfile.SPEED0:
             return "moveSlow"
         elif self == GentlyUpProfile.SPEED1:
-            return "homingSlow"
+            return "superSlow"
         elif self == GentlyUpProfile.SPEED2:
-            return "resinSensor"
+            return "homingSlow"
         elif self == GentlyUpProfile.SPEED3:
-            return "moveFast"
+            return "resinSensor"
         else:
             return "moveSlow"
 
