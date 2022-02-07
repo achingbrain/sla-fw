@@ -12,7 +12,7 @@ import threading
 import warnings
 import weakref
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from types import FrameType
 
 import pydbus
@@ -22,9 +22,6 @@ from gi.repository import GLib
 
 import slafw.tests.mocks.mc_port
 import slafw.tests.mocks.exposure_screen
-from slafw import defines, test_runtime
-from slafw.functions.system import set_configured_printer_model
-from slafw.hardware.printer_model import PrinterModel
 from slafw.tests import samples
 from slafw.tests.mocks.dbus.filemanager0 import FileManager0
 from slafw.tests.mocks.dbus.hostname import Hostname
@@ -41,7 +38,6 @@ sys.modules["gpio"] = Mock()
 sys.modules["serial"] = slafw.tests.mocks.mc_port
 sys.modules["serial.tools.list_ports"] = Mock()
 sys.modules["evdev"] = Mock()
-sys.modules["slafw.hardware.exposure_screen"] = slafw.tests.mocks.exposure_screen
 
 # These needs to be imported after sys.module override
 # pylint: disable = wrong-import-position
@@ -52,6 +48,9 @@ from slafw.image.exposure_image import ExposureImage
 from slafw.wizard.wizard import Wizard
 from slafw.api.exposure0 import Exposure0
 from slafw.api.wizard0 import Wizard0
+from slafw.hardware.printer_model import PrinterModel
+from slafw import defines, test_runtime
+from slafw.functions.system import set_configured_printer_model
 
 
 class SlafwTestCase(DBusTestCase):
@@ -68,6 +67,8 @@ class SlafwTestCase(DBusTestCase):
     dbus_mocks = []
     event_loop = GLib.MainLoop()
     event_thread: threading.Thread = None
+
+    exposure_screen_patcher = patch("slafw.hardware.base.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen)
 
     @classmethod
     def setUpClass(cls):
@@ -90,6 +91,7 @@ class SlafwTestCase(DBusTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.do_ref_check = True
+        self.exposure_screen_patcher.start()
 
         # Make sure we use unmodified defines
         importlib.reload(defines)
@@ -171,6 +173,8 @@ class SlafwTestCase(DBusTestCase):
 
         for dbus_mock in self.dbus_mocks:
             dbus_mock.unpublish()
+
+        self.exposure_screen_patcher.stop()
 
         super().tearDown()
 

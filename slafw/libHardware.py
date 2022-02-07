@@ -30,7 +30,8 @@ from slafw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
 from slafw.functions.decorators import safe_call
 from slafw.hardware.axis import Axis
 from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.tilt import Tilt, TiltSL1, TiltProfile
+from slafw.hardware.tilt import Tilt, TiltProfile
+from slafw.hardware.sl1.tilt import TiltSL1
 from slafw.hardware.uv_led import UvLedSL1
 from slafw.hardware.base import BaseHardware
 from slafw.motion_controller.controller import MotionController

@@ -133,7 +133,7 @@ class Virtual:
         ), patch(
             "slafw.functions.files.get_save_path", self.fake_save_path
         ), patch(
-            "slafw.hardware.exposure_screen.ExposureScreen", ExposureScreen
+            "slafw.hardware.base.ExposureScreen", ExposureScreen
         ), patch(
             "slafw.libHardware.Hardware.isCoverClosed", Mock(return_value=True)
         ), patch(

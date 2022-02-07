@@ -4,18 +4,15 @@
 
 import asyncio
 from abc import abstractmethod
-from time import sleep
 from enum import unique, Enum
-from typing import List, Dict
-import logging
+from time import sleep
+from typing import List
 
 from PySignal import Signal
 
-from slafw import defines
-from slafw.motion_controller.controller import MotionController
 from slafw.configs.hw import HwConfig
+from slafw.errors.errors import MotionControllerException
 from slafw.functions.decorators import safe_call
-from slafw.errors.errors import TiltPositionFailed, TiltHomeFailed, MotionControllerException
 from slafw.hardware.axis import Axis, AxisProfileBase
 
 
