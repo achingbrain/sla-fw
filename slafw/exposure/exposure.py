@@ -41,6 +41,7 @@ from slafw.errors.errors import (
     TiltFailed,
     TowerFailed,
     TowerMoveFailed,
+    TowerHomeFailed,
     TempSensorFailed,
     FanFailed,
     ResinMeasureFailed,
@@ -829,7 +830,10 @@ class Exposure:
         except (Exception, CancelledError) as exception:
             self.logger.exception("Exposure thread exception")
             if not isinstance(exception, (TiltFailed, TowerFailed)):
-                self._final_go_up()
+                try:
+                    self._final_go_up()
+                except TowerHomeFailed:
+                    self.logger.warning("Suppressing exception TowerHomeFailed cauth while processing another exception: %s", exception.__class__.__name__)
             if isinstance(exception, (WarningEscalation, CancelledError)):
                 self.state = ExposureState.CANCELED
             else:
