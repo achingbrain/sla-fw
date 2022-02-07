@@ -12,6 +12,7 @@ from slafw.errors.errors import (
     TiltHomeCheckFailed,
     TiltEndstopNotReached,
     TiltAxisCheckFailed,
+    TowerMoveFailed,
     InvalidTiltAlignPosition,
     PrinterException,
 )
@@ -130,7 +131,7 @@ class TiltTimingTest(DangerousCheck):
 
             await self._hw.tilt.sync_wait_async()  # FIXME MC cant properly home tilt while tower is moving
             self._config_writer.tiltFastTime = await self._get_tilt_time_sec(TiltSpeed.DEFAULT, 1/3)
-            self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(TiltSpeed.SLOW, 1 / 3)
+            self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(TiltSpeed.SLOW, 1/3)
             self._config_writer.tiltSuperSlowTime = await self._get_tilt_time_sec(TiltSpeed.SUPERSLOW, 1/3)
             self._hw.setTowerProfile("homingFast")
             self._hw.tilt.profile_id = TiltProfile.moveFast
@@ -147,19 +148,49 @@ class TiltTimingTest(DangerousCheck):
                 call consist of?
         :return: Tilt time in seconds
         """
+
         tilt_time: float = 0
         total = self._hw.config.measuringMoves
+
+        # SuperSlow has special requirements: layerTowerHop
+        hop_normal_position_nm = 100_000_000
+        hop_top_position = hop_normal_position_nm - self._hw.config.superSlowTowerHopHeight_mm * 10**6
+
+        async def move_tower_nm(target_position):
+            """Move tower to position and raise error if that is not possible."""
+            self._hw.tower_position_nm = target_position
+            while self._hw.isTowerMoving():
+                await asyncio.sleep(0.25)
+            await asyncio.sleep(0.25)
+            if abs(self._hw.tower_position_nm - target_position) > 10:
+                self._logger.warning("Tower not on position %d, is at %d", target_position, self._hw.tower_position_nm)
+                raise TowerMoveFailed()
+
+        if tilt_speed == TiltSpeed.SUPERSLOW:
+            await move_tower_nm(hop_normal_position_nm)
+            self._hw.setTowerProfile("superSlow")
+
         for i in range(total):
             await asyncio.sleep(0)
             tilt_start_time = time()
+            if tilt_speed == TiltSpeed.SUPERSLOW:
+                await move_tower_nm(hop_top_position)
             self._hw.tilt.layer_up_wait(tilt_speed=tilt_speed, tiltHeight=self._config_writer.tiltHeight)
             await asyncio.sleep(0)
             await self._hw.tilt.layer_down_wait_async(tilt_speed)
+            if tilt_speed == TiltSpeed.SUPERSLOW:
+                await move_tower_nm(hop_normal_position_nm)
             tilt_time += time() - tilt_start_time
             self.progress += progress_multiplier * (i / total)
             self._logger.info(
                 "%(what)s move %(count)d/%(total)d" % {"what": tilt_speed.name, "count": i + 1, "total": total}
             )
+
+        if tilt_speed == TiltSpeed.SUPERSLOW:
+            self._hw.setTowerProfile("homingFast")
+            self._hw.towerToTop()
+            while self._hw.isTowerMoving():
+                await asyncio.sleep(0.25)
 
         return tilt_time / total
 
