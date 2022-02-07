@@ -1,7 +1,7 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2020-2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import asyncio
 from asyncio import sleep
 from time import time
 from enum import Enum, unique
@@ -27,7 +27,7 @@ class GentlyUpProfile(Enum):
 
     def map_to_tower_profile_name(self) -> str:
         """Transform the value passed from the frontend via configuration into a name of an actual tower profile"""
-        if self == GentlyUpProfile.SPEED0:
+        if self == GentlyUpProfile.SPEED0:  # pylint: disable=no-else-return
             return "moveSlow"
         elif self == GentlyUpProfile.SPEED1:
             return "superSlow"
@@ -35,8 +35,7 @@ class GentlyUpProfile(Enum):
             return "homingSlow"
         elif self == GentlyUpProfile.SPEED3:
             return "resinSensor"
-        else:
-            return "moveSlow"
+        return "moveSlow"
 
 
 class HomeTower(DangerousCheck):
@@ -100,7 +99,7 @@ class TouchDown(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.setTowerProfile("homingSlow")
+        self._hw.setTowerProfile("resinSensor")
         # Note: Do not use towerMoveAbsoluteWaitAsync here. It's periodically calling isTowerOnPosition which
         # is causing the printer to try to fix the tower position
         target_position_nm = 1_800_000
@@ -142,8 +141,10 @@ class ExposeDebris(DangerousCheck):
             self._exposure_image.open_screen()
             self._hw.startFans()
             self._hw.uvLed(True)
+            start_time = time()
             finish_time = time() + self._hw.config.tankCleaningExposureTime
             while time() < finish_time:
+                self.progress = 1 - (finish_time - time()) / (finish_time - start_time)
                 await sleep(0.25)
         finally:
             # Return the display to black
@@ -165,7 +166,12 @@ class GentlyUp(Check):
         up_profile = GentlyUpProfile(self._hw.config.tankCleaningGentlyUpProfile)
         self._logger.info("GentlyUp with %s -> %s", up_profile.name, up_profile.map_to_tower_profile_name())
         self._hw.setTowerProfile(up_profile.map_to_tower_profile_name())
-        await self._hw.tilt.sync_wait_async(retries=2)
-        await self._hw.tower_move_absolute_nm_wait_async(50_000_000)
-        while self._hw.isTowerMoving():
-            await sleep(0.25)
+
+        await self._hw.tilt.layer_down_wait_async(slowMove=True)
+        target_position = 50_000_000
+        for _ in range(3):
+            self._hw.tower_position_nm = target_position
+            while self._hw.isTowerMoving():
+                await asyncio.sleep(0.25)
+            if abs(target_position - self._hw.tower_position_nm) < 10:
+                break
