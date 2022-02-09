@@ -28,7 +28,7 @@ class TiltProfile(AxisProfileBase, Enum):
     layerMoveSlow = 4
     layerRelease = 5
     layerMoveFast = 6
-    moveSuperSlow = 7
+    superSlow = 7
 
 
 @unique
@@ -77,7 +77,7 @@ class Tilt(Axis):
         """tilt up during the print"""
 
     @abstractmethod
-    def stir_resin(self) -> None:
+    def stir_resin(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
         """mix the resin"""
 
     @abstractmethod
@@ -240,7 +240,7 @@ class TiltSL1(Tilt):
             sleep(0.1)
 
     @safe_call(False, MotionControllerException)
-    async def layer_down_wait_async(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:
+    async def layer_down_wait_async(self, tilt_speed: TiltSpeed = TiltSpeed.DEFAULT) -> None:  # pylint: disable=too-many-branches
         profile = self._config.tuneTilt[1]
         if tilt_speed == TiltSpeed.DEFAULT:
             pass
@@ -331,7 +331,7 @@ class TiltSL1(Tilt):
         for _ in range(self._config.stirringMoves):
             if tilt_speed == TiltSpeed.SUPERSLOW:
                 self.logger.info("Stirring resin with the superSlow profile")
-                self.profile_id = TiltProfile.moveSuperSlow
+                self.profile_id = TiltProfile.superSlow
             else:
                 self.profile_id = TiltProfile.homingFast
             # do not verify end positions

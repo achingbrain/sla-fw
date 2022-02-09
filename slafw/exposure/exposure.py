@@ -243,12 +243,14 @@ class StartPositionsCheck(ExposureCheckRunner):
     async def run(self):
         # tilt is handled by StirringCheck
 
-        self.logger.info("Tower to print start position, tilt_speed=%s", self.expo.project._exposure_user_profile.name)
+        self.logger.info("Tower to print start position, tilt_speed=%s",
+                         self.expo.project._exposure_user_profile.name)  # pylint: disable=protected-access
 
         # Go almost down, then go slowly the rest of the way
-        if self.expo.project._exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+        if self.expo.project._exposure_user_profile == ExposureUserProfile.SUPERSLOW:  # pylint: disable=protected-access
             slow_movement_start_position_nm = 35_000_000
-            self.logger.info("SUPERSLOW tilt speed, going fast down, will slow down %d mm above the bottom", slow_movement_start_position_nm/1_000_000)
+            self.logger.info("SUPERSLOW tilt speed, going fast down, will slow down %d mm above the bottom",
+                             slow_movement_start_position_nm/1_000_000)
             self.expo.hw.setTowerProfile("homingFast")
             self.expo.hw.tower_position_nm = slow_movement_start_position_nm
             while self.expo.hw.isTowerMoving():

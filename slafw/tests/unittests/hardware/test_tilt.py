@@ -184,7 +184,7 @@ class TestTilt(SlafwTestCase):
                 "layerMoveSlow",
                 "layerRelease",
                 "layerMoveFast",
-                "reserved2",
+                "superSlow",
             ],
             self.hw.tilt.profile_names,
         )
@@ -197,7 +197,7 @@ class TestTilt(SlafwTestCase):
 
     def test_profile(self):
         testProfile = [12345, 23456, 234, 345, 28, 8, 1234]
-        self.hw.tilt.profile_id = TiltProfile.reserved2
+        self.hw.tilt.profile_id = TiltProfile.superSlow
         self.assertNotEqual(testProfile, self.hw.tilt.profile)
         self.hw.tilt.profile = testProfile
         self.assertEqual(testProfile, self.hw.tilt.profile)

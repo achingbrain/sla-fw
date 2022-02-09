@@ -16,7 +16,7 @@
     [...], # layerMoveSlow
     [...], # layerRelease
     [...], # layesMoveFast
-    [...]  # moveSuperSlow
+    [...]  # superSlow
 ]
 ```
 
@@ -29,6 +29,8 @@
     [tilt_down_small_fill],
     [tilt_up_large_fill],
     [tilt_up_small_fill],
+    [tilt_up_superslow],
+    [tilt_down_superslow]
 ]
 ```
 - the movement is split on slow and fast by `limit for fast tilt` parameter
@@ -68,7 +70,7 @@
     [...], # moveSlow
     [...], # layer
     [...], # layerMove
-    [...], # reserved2
+    [...], # superSlow
     [...]  # resinSensor
 ]
 ```

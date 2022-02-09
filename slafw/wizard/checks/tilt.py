@@ -183,7 +183,7 @@ class TiltTimingTest(DangerousCheck):
             tilt_time += time() - tilt_start_time
             self.progress += progress_multiplier * (i / total)
             self._logger.info(
-                "%(what)s move %(count)d/%(total)d" % {"what": tilt_speed.name, "count": i + 1, "total": total}
+                "%(what)s move %(count)d/%(total)d", {"what": tilt_speed.name, "count": i + 1, "total": total}
             )
 
         if tilt_speed == TiltSpeed.SUPERSLOW:
