@@ -557,6 +557,8 @@ class Exposure:
             logger.debug("removing '%s'", project_file)
             try:
                 os.remove(project_file)
+            except IsADirectoryError:
+                logger.debug("Is a directory '%s'", project_file)
             except FileNotFoundError:
                 logger.debug("No such file '%s'", project_file)
             except Exception:
