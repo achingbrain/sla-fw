@@ -661,7 +661,7 @@ class Exposure:
                 return False, white_pixels
 
         return True, white_pixels
-    
+
     def upAndDown(self):
         with WarningAction(self.hw.power_led):
             if self.hw.config.upAndDownUvOn:

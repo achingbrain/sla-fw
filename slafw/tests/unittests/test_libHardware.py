@@ -147,20 +147,20 @@ class TestLibHardware(SlafwTestCase):
 
     def test_power_led(self):
         power_led_mode = 1
-        self.hw._power_led.powerLedMode = power_led_mode
-        self.assertEqual(power_led_mode, self.hw._power_led.powerLedMode)
+        self.hw.power_led.powerLedMode = power_led_mode
+        self.assertEqual(power_led_mode, self.hw.power_led.powerLedMode)
 
         power_led_speed = 8
-        self.hw._power_led.powerLedSpeed = power_led_speed
-        self.assertEqual(power_led_speed, self.hw._power_led.powerLedSpeed)
+        self.hw.power_led.powerLedSpeed = power_led_speed
+        self.assertEqual(power_led_speed, self.hw.power_led.powerLedSpeed)
 
         power_led_pwm = 100
-        self.hw._power_led.powerLedPwm = power_led_pwm
-        self.assertEqual(power_led_pwm, self.hw._power_led.powerLedPwm)
+        self.hw.power_led.powerLedPwm = power_led_pwm
+        self.assertEqual(power_led_pwm, self.hw.power_led.powerLedPwm)
 
-        self.hw._power_led.powerLed(PowerLedActions.Warning)
-        self.assertEqual(2, self.hw._power_led.powerLedMode)
-        self.assertEqual(10, self.hw._power_led.powerLedSpeed)
+        self.hw.power_led.powerLed(PowerLedActions.Warning)
+        self.assertEqual(2, self.hw.power_led.powerLedMode)
+        self.assertEqual(10, self.hw.power_led.powerLedSpeed)
 
     def test_uv_statistics(self):
         # clear any garbage

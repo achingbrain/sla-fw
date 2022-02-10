@@ -2,10 +2,12 @@
 # Copyright (C) 2022 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from enum import Enum
+import logging
+
 from slafw.motion_controller.controller import MotionController
 from slafw.errors.errors import MotionControllerException
 from slafw.functions.decorators import safe_call
-from enum import Enum
 
 class PowerLedActions(str, Enum):
     Normal = 'normal'
@@ -17,6 +19,7 @@ class PowerLedActions(str, Enum):
 class PowerLed:
 
     def __init__(self, mcc: MotionController):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self._mcc = mcc
         # (mode, speed)
         self._powerLedStates = {
@@ -25,7 +28,8 @@ class PowerLed:
             PowerLedActions.Error: (3, 15),
             PowerLedActions.Off: (3, 64)
         }
-#        self.reset()
+        self._error_level_counter = 0
+        self._warn_level_counter  = 0
 
     def powerLed(self, state: PowerLedActions):
         mode, speed = self._powerLedStates.get(state, (1, 1))
@@ -66,10 +70,6 @@ class PowerLed:
     def powerLedSpeed(self, speed):
         self._mcc.do("!pspd", speed)
 
-    @property
-    def screensaver_enabled(self) -> bool:
-        return self._screensaver_enabled
-
     def set_error(self) -> int:
         if self._error_level_counter == 0:
             self.powerLed(PowerLedActions.Error)
@@ -100,7 +100,6 @@ class PowerLed:
         return self._warn_level_counter
 
     def reset(self):
-        self._screensaver_enabled = False
         self._warn_level_counter = 0
         self._error_level_counter = 0
         self.powerLed(PowerLedActions.Normal)

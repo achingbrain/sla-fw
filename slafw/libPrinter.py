@@ -603,11 +603,11 @@ class Printer:
 
     def _on_uv_led_temp_overheat(self, overheated: bool):
         if not overheated:
-            self.power_led.remove_error()
+            self.hw.power_led.remove_error()
             self.set_state(PrinterState.OVERHEATED, False)
         else:
             self.logger.error("UV LED overheated")
-            self.power_led.set_error()
+            self.hw.power_led.set_error()
             if not self.has_state(PrinterState.PRINTING):
                 self.hw.uvLed(False)
             self.set_state(PrinterState.OVERHEATED, True)
