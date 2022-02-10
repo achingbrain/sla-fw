@@ -675,25 +675,21 @@ class Exposure:
             sleep(self.hw.config.delayAfterExposure / 10.0)
 
         if self.hw.config.tilt:
-            if self._tilt_speed not in {TiltSpeed.SLOW, TiltSpeed.SUPERSLOW} and white_pixels > self.hw.white_pixels_threshold:  # current layer
+            # Slow down if white_pixels > self.hw.white_pixels_threshold  # current layer
+            if self._tilt_speed in {TiltSpeed.DEFAULT} and white_pixels > self.hw.white_pixels_threshold:
                 self._tilt_speed = TiltSpeed.SLOW
-            # self._slow_move = white_pixels > self.hw.white_pixels_threshold  # current layer
             # Force slow tilt for forceSlowTiltHeight if current layer area > limit4fast
-            if self._tilt_speed in {TiltSpeed.SLOW, TiltSpeed.SUPERSLOW}:
+            if self._tilt_speed in {TiltSpeed.SLOW}:
                 self._force_slow_remain_nm = self.hw.config.forceSlowTiltHeight
-            elif self._force_slow_remain_nm > 0:
+            elif self._tilt_speed in {TiltSpeed.DEFAULT} and self._force_slow_remain_nm > 0:
                 self._force_slow_remain_nm -= layer_height_nm
                 self._tilt_speed = TiltSpeed.SLOW
             # Force slow tilt on first layers or if user selected safe print profile
             if (
-                self.actual_layer < self.project.first_slow_layers
+                self.actual_layer < self.project.first_slow_layers and self._tilt_speed == TiltSpeed.DEFAULT
                 or self.project.exposure_user_profile == ExposureUserProfile.SAFE
-                or self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW
             ):
-                if self.project.exposure_user_profile == ExposureUserProfile.SAFE:
-                    self._tilt_speed = TiltSpeed.SLOW
-                elif self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
-                    self._tilt_speed = TiltSpeed.SUPERSLOW
+                self._tilt_speed = TiltSpeed.SLOW
 
             if self._tilt_speed == TiltSpeed.SLOW:
                 self.slow_layers_done += 1
