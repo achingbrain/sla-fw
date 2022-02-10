@@ -233,7 +233,7 @@ class Printer:
         self.logger.info("Starting ExposureImage")
         self.exposure_image.start()
         self.hw.uvLed(False)
-        self.hw.powerLed("normal")
+        self.hw.power_led.reset()
 
     def _register_event_handlers(self):
         self.logger.info("Registering event handlers")
@@ -603,11 +603,11 @@ class Printer:
 
     def _on_uv_led_temp_overheat(self, overheated: bool):
         if not overheated:
-            self.hw.powerLed("normal")
+            self.power_led.remove_error()
             self.set_state(PrinterState.OVERHEATED, False)
         else:
             self.logger.error("UV LED overheated")
-            self.hw.powerLed("error")
+            self.power_led.set_error()
             if not self.has_state(PrinterState.PRINTING):
                 self.hw.uvLed(False)
             self.set_state(PrinterState.OVERHEATED, True)

@@ -41,6 +41,8 @@ from slafw.hardware.sl1s_uvled_booster import Booster
 from slafw.hardware.tilt import Tilt, TiltSL1, TiltProfile
 from slafw.motion_controller.controller import MotionController
 from slafw.utils.value_checker import ValueChecker, UpdateInterval
+from slafw.hardware.power_led_action import WarningAction
+from slafw.hardware.power_led import PowerLed
 
 
 class Fan:
@@ -115,10 +117,6 @@ class Hardware:
         self._coolDownCounter = 0
         self.led_temp_idx = 0
         self.ambient_temp_idx = 1
-
-        # (mode, speed)
-        self._powerLedStates = {"normal": (1, 2), "warn": (2, 10), "error": (3, 15), "off": (3, 64)}
-
 
         self._towerProfiles = {
             "homingFast": 0,
@@ -216,6 +214,7 @@ class Hardware:
         self.mcc.tilt_status_changed.connect(self._tilt_position_checker.set_rapid_update)
         self.mcc.tower_status_changed.connect(self._tower_position_checker.set_rapid_update)
         self.last_rpm_control: Optional[float] = None
+        self._power_led = PowerLed(self.mcc)
 
     @cached_property
     def tower_min_nm(self) -> int:
@@ -316,7 +315,7 @@ class Hardware:
     def initDefaults(self):
         self.motorsRelease()
         self.uvLedPwm = self.config.uvPwm
-        self.powerLedPwm = self.config.pwrLedPwm
+        self._power_led.powerLedPwm = self.config.pwrLedPwm
         self.resinSensor(False)
         self.stopFans()
         if self.config.lockProfiles:
@@ -579,45 +578,6 @@ class Hardware:
         for _ in range(count):
             self.beep(1900, 0.05)
             sleep(0.25)
-
-    def powerLed(self, state):
-        mode, speed = self._powerLedStates.get(state, (1, 1))
-        self.powerLedMode = mode
-        self.powerLedSpeed = speed
-
-    @property
-    def powerLedMode(self):
-        return self.mcc.doGetInt("?pled")
-
-    @powerLedMode.setter
-    def powerLedMode(self, value):
-        self.mcc.do("!pled", value)
-
-    @property
-    def powerLedPwm(self):
-        try:
-            pwm = self.mcc.do("?ppwm")
-            return int(pwm) * 5
-        except MotionControllerException:
-            self.logger.exception("Failed to read power led pwm")
-            return -1
-
-    @powerLedPwm.setter
-    def powerLedPwm(self, pwm):
-        try:
-            self.mcc.do("!ppwm", int(pwm / 5))
-        except MotionControllerException:
-            self.logger.exception("Failed to set power led pwm")
-
-    @property
-    @safe_call(-1, MotionControllerException)
-    def powerLedSpeed(self):
-        return self.mcc.doGetInt("?pspd")
-
-    @powerLedSpeed.setter
-    @safe_call(None, MotionControllerException)
-    def powerLedSpeed(self, speed):
-        self.mcc.do("!pspd", speed)
 
     def uvLed(self, state, time=0):
         if state and self.uv_led_overheat:
@@ -1128,10 +1088,9 @@ class Hardware:
         """
         Home tower axis
         """
-        self.powerLed("warn")
-        if not self.towerSyncWait():
-            raise TowerHomeFailed()
-        self.powerLed("normal")
+        with WarningAction(self.power_led):
+            if not self.towerSyncWait():
+                raise TowerHomeFailed()
 
     def tower_move(self, speed: int, set_profiles: bool = True) -> bool:
         """
@@ -1256,3 +1215,7 @@ class Hardware:
             return [40, 122, 243, 250]  # board rev 0.6c+
 
         return [31, 94, 188, 219]  # board rev. < 0.6c
+
+    @property
+    def power_led(self) -> PowerLed:
+        return self._power_led

@@ -16,6 +16,7 @@ from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.libHardware import Hardware
 from slafw.errors.errors import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
+from slafw.hardware.power_led import PowerLedActions
 
 
 class TestLibHardwareConnect(SlafwTestCase):
@@ -146,20 +147,20 @@ class TestLibHardware(SlafwTestCase):
 
     def test_power_led(self):
         power_led_mode = 1
-        self.hw.powerLedMode = power_led_mode
-        self.assertEqual(power_led_mode, self.hw.powerLedMode)
+        self.hw._power_led.powerLedMode = power_led_mode
+        self.assertEqual(power_led_mode, self.hw._power_led.powerLedMode)
 
         power_led_speed = 8
-        self.hw.powerLedSpeed = power_led_speed
-        self.assertEqual(power_led_speed, self.hw.powerLedSpeed)
+        self.hw._power_led.powerLedSpeed = power_led_speed
+        self.assertEqual(power_led_speed, self.hw._power_led.powerLedSpeed)
 
         power_led_pwm = 100
-        self.hw.powerLedPwm = power_led_pwm
-        self.assertEqual(power_led_pwm, self.hw.powerLedPwm)
+        self.hw._power_led.powerLedPwm = power_led_pwm
+        self.assertEqual(power_led_pwm, self.hw._power_led.powerLedPwm)
 
-        self.hw.powerLed("warn")
-        self.assertEqual(2, self.hw.powerLedMode)
-        self.assertEqual(10, self.hw.powerLedSpeed)
+        self.hw._power_led.powerLed(PowerLedActions.Warning)
+        self.assertEqual(2, self.hw._power_led.powerLedMode)
+        self.assertEqual(10, self.hw._power_led.powerLedSpeed)
 
     def test_uv_statistics(self):
         # clear any garbage

@@ -33,6 +33,7 @@ from sl1fw.functions import files
 from sl1fw.functions.system import shut_down, FactoryMountedRW, get_octoprint_auth, hw_all_off
 from sl1fw.errors.errors import ConfigException, UvTempSensorFailed
 from sl1fw.errors.warnings import FanWarning, ExpectOverheating
+from slafw.hardware.power_led_action import WarningAction
 
 if TYPE_CHECKING:
     from sl1fw.libDisplay import Display
@@ -182,17 +183,16 @@ class Page:
         if self.display.hw.isKit and self.display.runtime_config.factory_mode:
             return
         #endif
-        self.display.hw.powerLed("warn")
-        pageWait = self.display.makeWait(self.display,
-                line1 = _("Close the orange cover."),
-                line2 = _("If the cover is closed, please check the connection of the cover switch."))
-        pageWait.show()
-        self.display.hw.beepAlarm(3)
-        #endif
-        while not self.display.hw.isCoverClosed():
-            sleep(0.5)
-        #endwhile
-        self.display.hw.powerLed("normal")
+        with WarningAction(self.displayhw.power_led):
+            pageWait = self.display.makeWait(self.display,
+                    line1 = _("Close the orange cover."),
+                    line2 = _("If the cover is closed, please check the connection of the cover switch."))
+            pageWait.show()
+            self.display.hw.beepAlarm(3)
+            #endif
+            while not self.display.hw.isCoverClosed():
+                sleep(0.5)
+            #endwhile
     #enddef
 
 
@@ -357,14 +357,13 @@ class Page:
             #endif
         else:
             self.display.hw.uvLed(False)
-            self.display.hw.powerLed("warn")
-            pageWait = self.display.makeWait(self.display, line1 = _("Close the orange cover."))
-            pageWait.show()
-            self.display.hw.beepAlarm(3)
-            while not self.display.hw.isCoverClosed():
-                sleep(0.5)
-            #endwhile
-            self.display.hw.powerLed("normal")
+            with WarningAction(self.displayhw.power_led):
+                pageWait = self.display.makeWait(self.display, line1 = _("Close the orange cover."))
+                pageWait.show()
+                self.display.hw.beepAlarm(3)
+                while not self.display.hw.isCoverClosed():
+                    sleep(0.5)
+                #endwhile
             self.show()
             if self.checkCoverUVOn:
                 self.display.hw.uvLed(True)

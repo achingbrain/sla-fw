@@ -59,6 +59,7 @@ from slafw.project.project import Project, ExposureUserProfile
 from slafw.image.exposure_image import ExposureImage
 from slafw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from slafw.utils.traceable_collections import TraceableDict
+from slafw.hardware.power_led_action import WarningAction, ErrorAction
 
 
 class ExposureCheckRunner:
@@ -660,44 +661,43 @@ class Exposure:
                 return False, white_pixels
 
         return True, white_pixels
-
+    
     def upAndDown(self):
-        self.hw.powerLed("warn")
-        if self.hw.config.upAndDownUvOn:
-            self.hw.uvLed(True)
+        with WarningAction(self.hw.power_led):
+            if self.hw.config.upAndDownUvOn:
+                self.hw.uvLed(True)
 
-        self.state = ExposureState.GOING_UP
-        self.hw.setTowerProfile("homingFast")
-        self.hw.towerToTop()
-        while not self.hw.isTowerOnPosition():
-            sleep(0.25)
+            self.state = ExposureState.GOING_UP
+            self.hw.setTowerProfile("homingFast")
+            self.hw.towerToTop()
+            while not self.hw.isTowerOnPosition():
+                sleep(0.25)
 
-        self.state = ExposureState.WAITING
-        for sec in range(self.hw.config.upAndDownWait):
-            cnt = self.hw.config.upAndDownWait - sec
-            self.remaining_wait_sec = cnt
-            sleep(1)
-            if self.hw.config.coverCheck and not self.hw.isCoverClosed():
-                self.state = ExposureState.COVER_OPEN
-                while not self.hw.isCoverClosed():
-                    sleep(1)
-                self.state = ExposureState.WAITING
+            self.state = ExposureState.WAITING
+            for sec in range(self.hw.config.upAndDownWait):
+                cnt = self.hw.config.upAndDownWait - sec
+                self.remaining_wait_sec = cnt
+                sleep(1)
+                if self.hw.config.coverCheck and not self.hw.isCoverClosed():
+                    self.state = ExposureState.COVER_OPEN
+                    while not self.hw.isCoverClosed():
+                        sleep(1)
+                    self.state = ExposureState.WAITING
 
-        if self.hw.config.tilt:
-            self.state = ExposureState.STIRRING
-            self.hw.tilt.stir_resin()
+            if self.hw.config.tilt:
+                self.state = ExposureState.STIRRING
+                self.hw.tilt.stir_resin()
 
-        self.state = ExposureState.GOING_DOWN
-        position_nm = self.hw.config.up_and_down_z_offset_nm
-        if position_nm < 0:
-            position_nm = 0
-        self.hw.tower_position_nm = position_nm
-        while not self.hw.isTowerOnPosition():
-            sleep(0.25)
-        self.hw.setTowerProfile("layer")
-        self.hw.powerLed("normal")
+            self.state = ExposureState.GOING_DOWN
+            position_nm = self.hw.config.up_and_down_z_offset_nm
+            if position_nm < 0:
+                position_nm = 0
+            self.hw.tower_position_nm = position_nm
+            while not self.hw.isTowerOnPosition():
+                sleep(0.25)
+            self.hw.setTowerProfile("layer")
 
-        self.state = ExposureState.PRINTING
+            self.state = ExposureState.PRINTING
 
     def doWait(self, beep=False):
         command = None
@@ -741,18 +741,20 @@ class Exposure:
         return None
 
     def doStuckRelease(self):
-        self.state = ExposureState.STUCK
-        self.hw.powerLed("error")
-        self.hw.towerHoldTiltRelease()
-        if self.doWait(True) == "back":
-            raise TiltFailed()
 
-        self.hw.powerLed("warn")
-        self.state = ExposureState.STUCK_RECOVERY
-        self.hw.tilt.sync_wait()
-        self.state = ExposureState.STIRRING
-        self.hw.tilt.stir_resin()
-        self.hw.powerLed("normal")
+        self.state = ExposureState.STUCK
+
+        with ErrorAction(self.hw.power_led):
+            self.hw.towerHoldTiltRelease()
+            if self.doWait(True) == "back":
+                raise TiltFailed()
+
+        with WarningAction(self.hw.power_led):
+            self.state = ExposureState.STUCK_RECOVERY
+            self.hw.tilt.sync_wait()
+            self.state = ExposureState.STIRRING
+            self.hw.tilt.stir_resin()
+
         self.state = ExposureState.PRINTING
 
     def run(self):
@@ -892,28 +894,27 @@ class Exposure:
                 self._update_resin()
 
             if command == "feedme" or self.low_resin:
-                self.hw.powerLed("warn")
-                if self.hw.config.tilt:
-                    self.hw.tilt.layer_up_wait()
-                self.state = ExposureState.FEED_ME
-                sub_command = self.doWait(self.low_resin)
+                with WarningAction(self.hw.power_led):
+                    if self.hw.config.tilt:
+                        self.hw.tilt.layer_up_wait()
+                    self.state = ExposureState.FEED_ME
+                    sub_command = self.doWait(self.low_resin)
 
-                if sub_command == "continue":
-                    # update resin volume
-                    self.setResinVolume(defines.resinMaxVolume)
+                    if sub_command == "continue":
+                        # update resin volume
+                        self.setResinVolume(defines.resinMaxVolume)
 
-                # Force user to close the cover
-                self._wait_cover_close()
+                    # Force user to close the cover
+                    self._wait_cover_close()
 
-                # Stir resin before resuming print
-                if self.hw.config.tilt:
-                    self.state = ExposureState.STIRRING
-                    self.hw.tilt.sync_wait()
-                    self.hw.tilt.stir_resin()
-                was_stirring = True
+                    # Stir resin before resuming print
+                    if self.hw.config.tilt:
+                        self.state = ExposureState.STIRRING
+                        self.hw.tilt.sync_wait()
+                        self.hw.tilt.stir_resin()
+                    was_stirring = True
 
                 # Resume print
-                self.hw.powerLed("normal")
                 self.state = ExposureState.PRINTING
 
             if (
@@ -963,7 +964,6 @@ class Exposure:
             success, white_pixels = self._do_frame(times_ms, was_stirring, False, layer.height_nm)
             if not success:
                 self.doStuckRelease()
-                self.hw.powerLed("normal")
 
             # exposure of the second part
             if project.per_partes and white_pixels > self.hw.white_pixels_threshold:

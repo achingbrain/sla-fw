@@ -175,6 +175,17 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
                 pass
         return counter
 
+    def test_error(self):
+        self.assertEqual(self.printer0.power_led_set_error(), 1)
+        self.assertEqual(self.printer0.power_led_set_error(), 2)
+        self.assertEqual(self.printer0.power_led_remove_error(), 1)
+        self.assertEqual(self.printer0.power_led_remove_error(), 0)
+
+    def test_warning(self):
+        self.assertEqual(self.printer0.power_led_set_warning(), 1)
+        self.assertEqual(self.printer0.power_led_set_warning(), 2)
+        self.assertEqual(self.printer0.power_led_remove_warning(), 1)
+        self.assertEqual(self.printer0.power_led_remove_warning(), 0)
 
 if __name__ == "__main__":
     unittest.main()

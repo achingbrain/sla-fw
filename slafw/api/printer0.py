@@ -870,3 +870,19 @@ class Printer0:
     @auto_dbus
     def fail_action(self, code: str):  # pylint: disable = no-self-use
         raise tests.get_instance_by_code(code)
+
+    @auto_dbus
+    def power_led_set_warning(self) -> int:
+        return self.printer.hw.power_led.set_warning()
+
+    @auto_dbus
+    def power_led_remove_warning(self) -> int:
+        return self.printer.hw.power_led.remove_warning()
+
+    @auto_dbus
+    def power_led_set_error(self) -> int:
+        return self.printer.hw.power_led.set_error()
+
+    @auto_dbus
+    def power_led_remove_error(self) -> int:
+        return self.printer.hw.power_led.remove_error()
