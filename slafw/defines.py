@@ -172,8 +172,6 @@ exposure_safe_delay_before = 30         # [tenths of a second] applied when user
 exposure_slow_move_delay_before = 10    # [tenths of a second] applied when slow move of ExposureUserProfile.DEFAULT
 exposure_superslow_delay_before = 35    # [tenths of a second] ExposureUserProfile.SUPERSLOW
 
-tank_surface_cleaning_exposure_time_s = 50 # seconds
-
 fan_check_override = test_runtime.testing
 default_hostname = "prusa-"
 mqtt_prusa_host = "mqttstage.prusa"

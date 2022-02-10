@@ -105,6 +105,7 @@ class Printer:
             factory_file_path=Path(defines.hwConfigPathFactory),
             is_master=True,
         )
+
         hw_config.add_onchange_handler(self._config_changed)
         self.runtime_config = RuntimeConfig()
         try:
@@ -202,6 +203,14 @@ class Printer:
         # Past exposures
         save_all_remain_wizard_history()
         self.action_manager.load_exposure(self.hw)
+
+        # Set the default exposure for tank cleaning
+        if not self.hw.config.tankCleaningExposureTime:
+            if self.hw.printer_model == PrinterModel.SL1:
+                self.hw.config.tankCleaningExposureTime = 50  # seconds
+            else:
+                self.hw.config.tankCleaningExposureTime = 30  # seconds
+            self.hw.config.write()
 
         # Finish startup
         self.set_state(PrinterState.RUNNING)
