@@ -44,13 +44,13 @@ class WarnLevelCounter:
 
     def __enter__(self):
         self._level_counter += 1
-        self._hw.powerLed(PowerLedActions.Warning)
+        self._hw.power_led.mode = PowerLedActions.Warning
 
     def __exit__(self, *_):
         assert self._level_counter > 0
         self._level_counter -= 1
         if self._level_counter == 0:
-            self._hw.powerLed(PowerLedActions.Normal)
+            self._hw.power_led.mode = PowerLedActions.Normal
 
 
 class UserActionBroker:

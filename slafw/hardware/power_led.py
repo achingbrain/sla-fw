@@ -7,13 +7,13 @@ import logging
 
 from slafw.motion_controller.controller import MotionController
 from slafw.errors.errors import MotionControllerException
-from slafw.functions.decorators import safe_call
 
 class PowerLedActions(str, Enum):
     Normal = 'normal'
     Warning = 'warn'
     Error = 'error'
     Off = 'off'
+    Unspecified = 'unspecified'
 
 
 class PowerLed:
@@ -21,31 +21,40 @@ class PowerLed:
     def __init__(self, mcc: MotionController):
         self.logger = logging.getLogger(self.__class__.__name__)
         self._mcc = mcc
-        # (mode, speed)
-        self._powerLedStates = {
+        self._error_level_counter = 0
+        self._warn_level_counter  = 0
+        self._modes = {
+            # (mode, speed)
             PowerLedActions.Normal: (1, 2),
             PowerLedActions.Warning: (2, 10),
             PowerLedActions.Error: (3, 15),
             PowerLedActions.Off: (3, 64)
         }
-        self._error_level_counter = 0
-        self._warn_level_counter  = 0
-
-    def powerLed(self, state: PowerLedActions):
-        mode, speed = self._powerLedStates.get(state, (1, 1))
-        self.powerLedMode = mode
-        self.powerLedSpeed = speed
 
     @property
-    def powerLedMode(self):
-        return self._mcc.doGetInt("?pled")
+    def mode(self) -> PowerLedActions:
+        result = PowerLedActions.Unspecified
+        try:
+            mode = self._mcc.doGetInt("?pled")
+            speed = self._mcc.doGetInt("?pspd")
+            for k, v in self._modes.items():
+                if v[0] == mode and v[1] == speed:
+                    result = k
+        except MotionControllerException:
+            self.logger.exception("Failed to read power led pwm")
+        return result
 
-    @powerLedMode.setter
-    def powerLedMode(self, value):
-        self._mcc.do("!pled", value)
+    @mode.setter
+    def mode(self, value: PowerLedActions):
+        m, s = self._modes[value]
+        try:
+            self._mcc.do("!pled", m)
+            self._mcc.do("!pspd", s)
+        except MotionControllerException:
+            self.logger.exception("Failed to read power led pwm")
 
     @property
-    def powerLedPwm(self):
+    def intensity(self):
         try:
             pwm = self._mcc.do("?ppwm")
             return int(pwm) * 5
@@ -53,26 +62,16 @@ class PowerLed:
             self.logger.exception("Failed to read power led pwm")
             return -1
 
-    @powerLedPwm.setter
-    def powerLedPwm(self, pwm):
+    @intensity.setter
+    def intensity(self, pwm):
         try:
             self._mcc.do("!ppwm", int(pwm / 5))
         except MotionControllerException:
             self.logger.exception("Failed to set power led pwm")
 
-    @property
-    @safe_call(-1, MotionControllerException)
-    def powerLedSpeed(self):
-        return self._mcc.doGetInt("?pspd")
-
-    @powerLedSpeed.setter
-    @safe_call(None, MotionControllerException)
-    def powerLedSpeed(self, speed):
-        self._mcc.do("!pspd", speed)
-
     def set_error(self) -> int:
         if self._error_level_counter == 0:
-            self.powerLed(PowerLedActions.Error)
+            self.mode = PowerLedActions.Error
         self._error_level_counter += 1
         return self._error_level_counter
 
@@ -81,14 +80,14 @@ class PowerLed:
         self._error_level_counter -= 1
         if self._error_level_counter == 0:
             if self._warn_level_counter > 0:
-                self.powerLed(PowerLedActions.Warning)
+                self.mode = PowerLedActions.Warning
             else:
-                self.powerLed(PowerLedActions.Normal)
+                self.mode =PowerLedActions.Normal
         return self._error_level_counter
 
     def set_warning(self) -> int:
         if self._error_level_counter == 0 and self._warn_level_counter == 0:
-            self.powerLed(PowerLedActions.Warning)
+            self.mode = PowerLedActions.Warning
         self._warn_level_counter += 1
         return self._warn_level_counter
 
@@ -96,10 +95,10 @@ class PowerLed:
         assert self._warn_level_counter > 0
         self._warn_level_counter -= 1
         if self._error_level_counter == 0 and self._warn_level_counter == 0:
-            self.powerLed(PowerLedActions.Normal)
+            self.mode = PowerLedActions.Normal
         return self._warn_level_counter
 
     def reset(self):
         self._warn_level_counter = 0
         self._error_level_counter = 0
-        self.powerLed(PowerLedActions.Normal)
+        self.mode = PowerLedActions.Normal

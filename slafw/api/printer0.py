@@ -872,17 +872,17 @@ class Printer0:
         raise tests.get_instance_by_code(code)
 
     @auto_dbus
-    def power_led_set_warning(self) -> int:
+    def power_led_set_warning(self) -> None:
         return self.printer.hw.power_led.set_warning()
 
     @auto_dbus
-    def power_led_remove_warning(self) -> int:
+    def power_led_remove_warning(self) -> None:
         return self.printer.hw.power_led.remove_warning()
 
     @auto_dbus
-    def power_led_set_error(self) -> int:
+    def power_led_set_error(self) -> None:
         return self.printer.hw.power_led.set_error()
 
     @auto_dbus
-    def power_led_remove_error(self) -> int:
+    def power_led_remove_error(self) -> None:
         return self.printer.hw.power_led.remove_error()

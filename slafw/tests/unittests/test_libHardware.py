@@ -145,22 +145,53 @@ class TestLibHardware(SlafwTestCase):
         self.hw.beepRepeat(3)
         self.hw.beepAlarm(3)
 
-    def test_power_led(self):
-        power_led_mode = 1
-        self.hw.power_led.powerLedMode = power_led_mode
-        self.assertEqual(power_led_mode, self.hw.power_led.powerLedMode)
+    def test_power_led_mode_normal(self):
+        power_led_mode = PowerLedActions.Normal
+        self.hw.power_led.mode = power_led_mode
+        self.assertEqual(power_led_mode, self.hw.power_led.mode)
 
-        power_led_speed = 8
-        self.hw.power_led.powerLedSpeed = power_led_speed
-        self.assertEqual(power_led_speed, self.hw.power_led.powerLedSpeed)
-
+    def test_power_led_intensity(self):
         power_led_pwm = 100
-        self.hw.power_led.powerLedPwm = power_led_pwm
-        self.assertEqual(power_led_pwm, self.hw.power_led.powerLedPwm)
+        self.hw.power_led.intensity = power_led_pwm
+        self.assertEqual(power_led_pwm, self.hw.power_led.intensity)
 
-        self.hw.power_led.powerLed(PowerLedActions.Warning)
-        self.assertEqual(2, self.hw.power_led.powerLedMode)
-        self.assertEqual(10, self.hw.power_led.powerLedSpeed)
+    def test_power_led_mode_warning(self):
+        self.hw.power_led.mode = PowerLedActions.Warning
+        self.assertEqual(PowerLedActions.Warning, self.hw.power_led.mode)
+
+    def test_power_led_error(self):
+        self.assertEqual(1, self.hw.power_led.set_error())
+        self.assertEqual(PowerLedActions.Error, self.hw.power_led.mode)
+        self.assertEqual(2, self.hw.power_led.set_error())
+        self.assertEqual(PowerLedActions.Error, self.hw.power_led.mode)
+        self.assertEqual(1, self.hw.power_led.remove_error())
+        self.assertEqual(PowerLedActions.Error, self.hw.power_led.mode)
+        self.assertEqual(0, self.hw.power_led.remove_error())
+        self.assertEqual(PowerLedActions.Normal, self.hw.power_led.mode)
+
+    def test_power_led_warning(self):
+        self.assertEqual(1, self.hw.power_led.set_warning())
+        self.assertEqual(PowerLedActions.Warning, self.hw.power_led.mode)
+        self.assertEqual(2, self.hw.power_led.set_warning())
+        self.assertEqual(PowerLedActions.Warning, self.hw.power_led.mode)
+        self.assertEqual(1, self.hw.power_led.remove_warning())
+        self.assertEqual(PowerLedActions.Warning, self.hw.power_led.mode)
+        self.assertEqual(0, self.hw.power_led.remove_warning())
+        self.assertEqual(PowerLedActions.Normal, self.hw.power_led.mode)
+
+    def test_power_led_mixed(self):
+        self.assertEqual(1, self.hw.power_led.set_warning())
+        self.assertEqual(PowerLedActions.Warning, self.hw.power_led.mode)
+        self.assertEqual(1, self.hw.power_led.set_error())
+        self.assertEqual(PowerLedActions.Error, self.hw.power_led.mode)
+        self.assertEqual(2, self.hw.power_led.set_warning())
+        self.assertEqual(PowerLedActions.Error, self.hw.power_led.mode)
+        self.assertEqual(0, self.hw.power_led.remove_error())
+        self.assertEqual(PowerLedActions.Warning, self.hw.power_led.mode)
+        self.assertEqual(1, self.hw.power_led.remove_warning())
+        self.assertEqual(PowerLedActions.Warning, self.hw.power_led.mode)
+        self.assertEqual(0, self.hw.power_led.remove_warning())
+        self.assertEqual(PowerLedActions.Normal, self.hw.power_led.mode)
 
     def test_uv_statistics(self):
         # clear any garbage
