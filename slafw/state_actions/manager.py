@@ -20,7 +20,7 @@ from slafw.api.exposure0 import Exposure0
 from slafw.api.wizard0 import Wizard0
 from slafw.configs.runtime import RuntimeConfig
 from slafw.exposure.exposure import Exposure
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.states.wizard import WizardState
 from slafw.wizard.wizard import Wizard
@@ -45,7 +45,8 @@ class ActionManager:
         self._exited = False
 
     def new_exposure(
-        self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig, project: str
+        self, hw: BaseHardware, exposure_image: ExposureImage, runtime_config:
+            RuntimeConfig, project: str
     ) -> Exposure:
         # Create new exposure object and apply passed settings
         exposure = Exposure(self._get_job_id(), hw, exposure_image, runtime_config)
@@ -61,7 +62,7 @@ class ActionManager:
 
         return exposure
 
-    def load_exposure(self, hw: Hardware) -> Optional[Exposure]:
+    def load_exposure(self, hw: BaseHardware) -> Optional[Exposure]:
         exposure = Exposure.load(self.logger, hw)
         if not exposure:
             return None
@@ -75,7 +76,8 @@ class ActionManager:
         return exposure
 
     def reprint_exposure(
-        self, reference: Exposure, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig
+        self, reference: Exposure, hw: BaseHardware, exposure_image:
+            ExposureImage, runtime_config: RuntimeConfig
     ):
         exposure = Exposure(self._get_job_id(), hw, exposure_image, runtime_config)
         exposure.read_project(reference.project.path)

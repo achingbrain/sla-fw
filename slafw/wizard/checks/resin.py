@@ -6,7 +6,7 @@ from asyncio import gather
 from typing import Optional, Dict, Any
 
 from slafw.errors.errors import ResinSensorFailed
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck
 from slafw.wizard.setup import Configuration, TankSetup, PlatformSetup, Resource
@@ -16,7 +16,7 @@ class ResinSensorTest(DangerousCheck):
     allowed_min_mm = 4
     allowed_max_mm = 22
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw,
             WizardCheckType.RESIN_SENSOR,

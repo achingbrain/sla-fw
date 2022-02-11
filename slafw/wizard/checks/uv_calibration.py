@@ -30,8 +30,8 @@ from slafw.errors.errors import (
 )
 from slafw.functions.files import save_wizard_history
 from slafw.functions.system import FactoryMountedRW
+from slafw.hardware.base import BaseHardware
 from slafw.image.exposure_image import ExposureImage
-from slafw.libHardware import Hardware
 from slafw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState, UVCalibrationResult
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
@@ -42,7 +42,7 @@ from slafw.wizard.setup import Configuration, Resource
 
 
 class CheckUVMeter(DangerousCheck):
-    def __init__(self, hw: Hardware, uv_meter: UvLedMeterMulti):
+    def __init__(self, hw: BaseHardware, uv_meter: UvLedMeterMulti):
         super().__init__(
             hw, WizardCheckType.UV_METER_PRESENT, Configuration(None, None), [Resource.UV],
         )
@@ -67,7 +67,8 @@ class CheckUVMeter(DangerousCheck):
 
 
 class UVWarmupCheck(DangerousCheck):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
+    def __init__(self, hw: BaseHardware, exposure_image: ExposureImage,
+                 uv_meter: UvLedMeterMulti):
         super().__init__(hw, WizardCheckType.UV_WARMUP, Configuration(None, None), [Resource.UV, Resource.FANS])
         self._exposure_image = weakref.proxy(exposure_image)
         self._uv_meter = uv_meter
@@ -96,7 +97,8 @@ class UVWarmupCheck(DangerousCheck):
 
 
 class CheckUVMeterPlacement(DangerousCheck):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, uv_meter: UvLedMeterMulti):
+    def __init__(self, hw: BaseHardware, exposure_image: ExposureImage,
+                 uv_meter: UvLedMeterMulti):
         super().__init__(
             hw, WizardCheckType.UV_METER_PLACEMENT, Configuration(None, None), [Resource.UV, Resource.FANS]
         )
@@ -133,7 +135,7 @@ class UVCalibrate(DangerousCheck, ABC):
     def __init__(
         self,
         check_type: WizardCheckType,
-        hw: Hardware,
+        hw: BaseHardware,
         exposure_image: ExposureImage,
         uv_meter: UvLedMeterMulti,
         replacement: bool,
@@ -348,7 +350,7 @@ class UVCalibrateEdge(UVCalibrate):
 
 
 class UVRemoveCalibrator(Check):
-    def __init__(self, hw: Hardware, uv_meter: UvLedMeterMulti):
+    def __init__(self, hw: BaseHardware, uv_meter: UvLedMeterMulti):
         super().__init__(WizardCheckType.UV_METER_REMOVED)
         self._hw = hw
         self._uv_meter = uv_meter
@@ -367,7 +369,7 @@ class UVRemoveCalibrator(Check):
 class UVCalibrateApply(Check):
     def __init__(
         self,
-        hw: Hardware,
+        hw: BaseHardware,
         runtime_config: RuntimeConfig,
         result: UVCalibrationResult,
         reset_display_counter: bool,

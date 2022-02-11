@@ -5,9 +5,9 @@
 import weakref
 
 from slafw.configs.runtime import RuntimeConfig
+from slafw.hardware.base import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
-from slafw.libHardware import Hardware
 from slafw.states.wizard import WizardId
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker
@@ -32,7 +32,7 @@ class DisplayTestCheckGroup(CheckGroup):
 
 
 class DisplayTestWizard(Wizard):
-    def __init__(self, hw: Hardware, exp_image: ExposureImage,
+    def __init__(self, hw: BaseHardware, exp_image: ExposureImage,
                  runtime_config: RuntimeConfig, printer_model: PrinterModel):
         self._package = WizardDataPackage(hw=hw, exposure_image=weakref.proxy(
             exp_image), runtime_config=runtime_config,

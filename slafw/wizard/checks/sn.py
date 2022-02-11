@@ -5,14 +5,14 @@
 import re
 
 from slafw.errors.warnings import WrongA64SerialFormat, WrongMCSerialFormat
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType
 from slafw.wizard.setup import Configuration
 
 
 class SerialNumberTest(Check):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             WizardCheckType.SERIAL_NUMBER, Configuration(None, None), [],
         )

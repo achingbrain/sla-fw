@@ -5,8 +5,8 @@
 from typing import Iterable
 
 from slafw.configs.runtime import RuntimeConfig
+from slafw.hardware.base import BaseHardware
 from slafw.image.exposure_image import ExposureImage
-from slafw.libHardware import Hardware
 from slafw.states.wizard import WizardId
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker
@@ -78,7 +78,8 @@ class SelfTestPart3CheckGroup(CheckGroup):
 
 
 class SelfTestWizard(Wizard):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, exposure_image: ExposureImage,
+                 runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(
             hw=hw,
             config_writer=hw.config.get_writer(),

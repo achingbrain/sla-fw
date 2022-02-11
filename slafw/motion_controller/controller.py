@@ -262,7 +262,7 @@ class MotionController:
             except BrokenPipeError:
                 self.logger.exception("Attempt to send data to broken debug socket")
 
-    def connect(self, mc_version_check: bool) -> None:
+    def connect(self, mc_version_check: bool = True) -> None:
         if not self.is_open:
             self.open()
         state = self.getStateBits(["fatal", "reset"], check_for_updates=False)

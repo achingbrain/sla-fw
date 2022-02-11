@@ -23,8 +23,7 @@ from slafw.errors.errors import WizardNotCancelable, FailedToSerializeWizardData
     PrinterException
 from slafw.errors.warnings import PrinterWarning
 from slafw.functions.system import FactoryMountedRW
-from slafw.hardware.printer_model import PrinterModel
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.states.wizard import WizardState, WizardCheckState, WizardId
 from slafw.wizard.wizards.generic import ShowResultsGroup
 from slafw.wizard.actions import UserActionBroker, PushState
@@ -41,7 +40,7 @@ class WizardDataPackage:
     Data getting passed to the wizard groups and wizard checks for their initialization
     """
 
-    hw: Hardware = None
+    hw: BaseHardware = None
     config_writer: ConfigWriter = None
     runtime_config: RuntimeConfig = None
     exposure_image: ExposureImage = None

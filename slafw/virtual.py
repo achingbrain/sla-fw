@@ -11,7 +11,7 @@ This module is used to run a virtual printer. Virtual printer encompasses some o
 integration test mocks. All in all this launches the printer (similar to the one launched by main.py) that can run on
 a desktop computer without motion controller connected. This mode is intended for GUI testing.
 """
-
+import argparse
 import asyncio
 import builtins
 import concurrent
@@ -30,7 +30,7 @@ import pydbus
 from gi.repository import GLib
 
 import slafw.tests.mocks.mc_port
-from slafw.tests.mocks.exposure_screen import ExposureScreen
+from slafw.hardware.printer_model import PrinterModel
 from slafw import defines, test_runtime
 from slafw import libPrinter
 from slafw.admin.manager import AdminManager
@@ -39,6 +39,16 @@ from slafw.api.printer0 import Printer0
 from slafw.api.standard0 import Standard0
 from slafw.tests import samples
 from slafw.tests.mocks.dbus.rauc import Rauc
+
+# Initialize parser
+from slafw.tests.mocks.exposure_screen import ExposureScreen
+from slafw.tests.mocks.sl1s_uvled_booster import BoosterMock
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-p", "--printer_model", type=str,
+                    choices=[m.name.lower() for m in PrinterModel],
+                    help="let virtual printer start as specific printer model")
+args = parser.parse_args()
 
 # use system locale settings for translation
 gettext.install("slafw", defines.localedir, names=("ngettext",))
@@ -106,13 +116,25 @@ defines.wizardHistoryPathFactory = TEMP_DIR / "wizard_history" / "factory_data"
 defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
 defines.uvCalibDataPathFactory = TEMP_DIR / "uv_calib_data_factory.toml"
 defines.counterLog = TEMP_DIR / defines.counterLogFilename
-defines.printer_model_run = SAMPLES_DIR / "model"
+
+# create initial printer model file.
+# usually model-detect.service takes care of this
+defines.printer_model_run = TEMP_DIR / "model_run"
+defines.printer_model_run.mkdir(exist_ok=True, parents=True)
+model_file = defines.printer_model_run / args.printer_model
+model_file.touch()
+
+# disable SL1SUpgradeDowngradeWizard by default
 defines.printer_model = TEMP_DIR / "model"
+defines.printer_model.mkdir(exist_ok=True, parents=True)
+model_file = defines.printer_model / args.printer_model
+model_file.touch()
+
 defines.firstboot = TEMP_DIR / "firstboot"
 defines.factory_enable = TEMP_DIR / "factory_mode_enabled"
 defines.factory_enable.touch()  # Enable factory mode
 defines.admincheckTemp = TEMP_DIR / "admincheck.json"
-defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / "sl1"
+defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / args.printer_model
 
 
 class Virtual:
@@ -132,14 +154,14 @@ class Virtual:
             "slafw.motion_controller.controller.gpio", Mock()
         ), patch(
             "slafw.functions.files.get_save_path", self.fake_save_path
+        ), patch("slafw.hardware.base.ExposureScreen", ExposureScreen
         ), patch(
-            "slafw.hardware.base.ExposureScreen", ExposureScreen
-        ), patch(
-            "slafw.libHardware.Hardware.isCoverClosed", Mock(return_value=True)
+            "slafw.hardware.hardware_sl1.HardwareSL1.isCoverClosed",
+            Mock(return_value=True)
         ), patch(
             # fake resin measurement 100 ml
-            "slafw.libHardware.Hardware.get_resin_volume_async", AsyncMock(return_value=100)
-        ):
+            "slafw.hardware.hardware_sl1.HardwareSL1.get_resin_volume_async", AsyncMock(return_value=100)
+        ), patch("slafw.hardware.hardware_sl1.Booster", BoosterMock):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
             print("Publishing Rauc mock")

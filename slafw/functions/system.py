@@ -18,11 +18,11 @@ from slafw.errors.errors import (
     FailedUpdateChannelGet,
     ConfigException, PrinterException, DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange
 )
+from slafw.hardware.base import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
-from slafw.libHardware import Hardware
 
 
-def shut_down(hw: Hardware, reboot=False):
+def shut_down(hw: BaseHardware, reboot=False):
     if test_runtime.testing:
         print("Skipping poweroff due to testing")
         return
@@ -116,7 +116,7 @@ def set_factory_uvpwm(pwm: int) -> None:
         config.write_factory()
 
 
-def compute_uvpwm(hw: Hardware) -> int:
+def compute_uvpwm(hw: BaseHardware) -> int:
     trans = hw.exposure_screen.transmittance
     if isclose(trans, 0.0, abs_tol=0.001):
         raise DisplayTransmittanceNotValid(trans)
@@ -124,7 +124,7 @@ def compute_uvpwm(hw: Hardware) -> int:
     pwm = int(-35 * trans + 350)
 
     pwm_min = hw.uv_led.parameters.min_pwm
-    pwm_max = hw.uv_led.parameters.min_pwm
+    pwm_max = hw.uv_led.parameters.max_pwm
     if not pwm_min < pwm < pwm_max:
         raise CalculatedUVPWMNotInRange(pwm, pwm_min, pwm_max)
 

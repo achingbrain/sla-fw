@@ -8,13 +8,13 @@ from asyncio import AbstractEventLoop, Task
 from functools import partial
 from typing import Iterable
 
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.checks.sysinfo import SystemInfoTest
 
 from slafw.configs.runtime import RuntimeConfig
-from slafw.functions.system import shut_down
+from slafw.functions.system import shut_down, get_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
-from slafw.libHardware import Hardware
 from slafw.states.wizard import WizardId, WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
 from slafw.wizard.checks.upgrade import (
@@ -38,7 +38,7 @@ class SL1SUpgradeCleanup(CheckGroup):
                 ResetSelfTest(package.config_writer),
                 ResetMechanicalCalibration(package.config_writer),
                 ResetHwCounters(package.hw),
-                ResetHostname(package.model)
+                ResetHostname()
             )
         )
         self._package = package
@@ -71,7 +71,8 @@ class SL1SUpgradeCleanup(CheckGroup):
 
 
 class UpgradeWizardBase(Wizard):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, exposure_image: ExposureImage,
+                 runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(
             hw=hw,
             runtime_config=runtime_config,

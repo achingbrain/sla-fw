@@ -53,11 +53,12 @@ from slafw.functions.system import (
     FactoryMountedRW,
     reset_hostname, compute_uvpwm,
 )
+from slafw.hardware.base import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
 from slafw.libAsync import AdminCheck
 from slafw.libAsync import SlicerProfileUpdater
-from slafw.hardware.libHardware2 import Hardware2
+from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.libNetwork import Network
 from slafw.slicer.slicer_profile import SlicerProfile
 from slafw.state_actions.manager import ActionManager
@@ -115,9 +116,12 @@ class Printer:
         self.logger.info(str(hw_config))
 
         self.logger.info("Initializing libHardware")
-        self.hw = Hardware2(hw_config, self.model)
+        self.hw = HardwareSL1(hw_config, self.model)
+
         self.hw.uv_led_overheat_changed.connect(self._on_uv_led_temp_overheat)
         self.hw.fans_error_changed.connect(self._on_fans_error)
+
+
 
         # needed before init of other components (display etc)
         # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
@@ -206,7 +210,7 @@ class Printer:
 
         # Set the default exposure for tank cleaning
         if not self.hw.config.tankCleaningExposureTime:
-            if self.hw.printer_model == PrinterModel.SL1:
+            if self.model == PrinterModel.SL1:
                 self.hw.config.tankCleaningExposureTime = 50  # seconds
             else:
                 self.hw.config.tankCleaningExposureTime = 30  # seconds
@@ -229,8 +233,10 @@ class Printer:
         self.logger.info("Connecting to hardware components")
         try:
             self.hw.connect()
-        except (MotionControllerWrongFw, MotionControllerNotResponding, MotionControllerWrongResponse):
-            self.logger.info("HW connect failed with a recoverable error, flashing MC firmware")
+        except (MotionControllerWrongFw, MotionControllerNotResponding,
+                MotionControllerWrongResponse):
+            self.logger.info(
+                "HW connect failed with a recoverable error, flashing MC firmware")
             self.set_state(PrinterState.UPDATING_MC)
             self.hw.flashMC()
             self.hw.connect()

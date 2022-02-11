@@ -26,12 +26,12 @@ from slafw import defines
 from slafw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace, DisplayUsageError, NoExternalStorage
 from slafw.functions.files import get_save_path, usb_remount
 from slafw.functions.generate import display_usage_heatmap
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.state_actions.logs.summary import create_summary
 from slafw.states.logs import LogsState, StoreType
 
 
-def get_logs_file_name(hw: Hardware) -> str:
+def get_logs_file_name(hw: BaseHardware) -> str:
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     serial = re.sub("[^a-zA-Z0-9]", "_", hw.cpuSerialNo)
     return f"logs.{serial}.{timestamp}.tar.xz"
@@ -51,7 +51,7 @@ def export_configs(temp_dir: Path):
 
 class LogsExport(ABC, Thread):
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__()
         self._logger = logging.getLogger(__name__)
         self._state = LogsState.IDLE
@@ -328,7 +328,7 @@ class FileReader(BufferedReader):
 
 
 class ServerUpload(LogsExport):
-    def __init__(self, hw: Hardware, url: str):
+    def __init__(self, hw: BaseHardware, url: str):
         super().__init__(hw)
         self._url = url
 

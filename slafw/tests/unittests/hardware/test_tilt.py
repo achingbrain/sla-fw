@@ -12,7 +12,7 @@ from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.base import SlafwTestCase
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.libHardware import Hardware, Axis
+from slafw.hardware.sl1 import Hardware, Axis
 from slafw.errors.errors import TiltPositionFailed
 from slafw.hardware.tilt import TiltProfile
 

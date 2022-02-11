@@ -9,7 +9,7 @@ import logging
 from time import sleep
 
 from slafw.configs.hw import HwConfig
-from slafw.libHardware import Hardware
+from slafw.hardware.sl1 import Hardware
 
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 

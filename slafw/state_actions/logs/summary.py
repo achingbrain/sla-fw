@@ -24,12 +24,13 @@ from pydbus import SystemBus
 
 from slafw import defines
 from slafw.functions.system import get_update_channel
-from slafw.libHardware import Hardware
 from slafw.configs.toml import TomlConfig
 from slafw.configs.stats import TomlConfigStats
+from slafw.hardware.base import BaseHardware
 
 
-def create_summary(hw: Hardware, logger: logging.Logger, summary_path: Path):
+def create_summary(hw: BaseHardware, logger: logging.Logger, summary_path:
+Path):
     data_template: Mapping[str, Callable[[], Any]] = {
         "hardware": functools.partial(log_hw, hw),
         "system": log_system,
@@ -63,7 +64,7 @@ def create_summary(hw: Hardware, logger: logging.Logger, summary_path: Path):
     return None # fix: pylint inconsistent-return-statements
 
 
-def log_hw(hw: Hardware) -> Mapping[str, Any]:
+def log_hw(hw: BaseHardware) -> Mapping[str, Any]:
     fans_rpm = hw.getFansRpm()
     voltages = hw.getVoltages()
     try:

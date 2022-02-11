@@ -13,12 +13,10 @@ from slafw import test_runtime
 from slafw.errors.errors import UVLEDsDisconnected, UVLEDsRowFailed, BoosterError
 from slafw.errors.errors import UVLEDsVoltagesDifferTooMuch
 from slafw.functions.system import get_configured_printer_model
-from slafw.hardware.printer_model import PrinterModel
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck
 from slafw.wizard.setup import Configuration, Resource
-from slafw.wizard.wizard import WizardDataPackage
 
 
 class UVLEDsTest(DangerousCheck):
@@ -27,7 +25,7 @@ class UVLEDsTest(DangerousCheck):
         ...
 
     @staticmethod
-    def get_test(hw: Hardware) -> UVLEDsTest:
+    def get_test(hw: BaseHardware) -> UVLEDsTest:
         """
         Instantiate UV LEDs test for particular printer HW
         """
@@ -39,7 +37,7 @@ class UVLEDsTest(DangerousCheck):
 
 
 class UVLEDsTestBooster(UVLEDsTest):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw,
             WizardCheckType.UV_LEDS,
@@ -94,7 +92,7 @@ class CheckData:
 class UVLEDsTestVoltages(UVLEDsTest):
     CHECK_UV_PWM_INDEXES = 3
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw,
             WizardCheckType.UV_LEDS,

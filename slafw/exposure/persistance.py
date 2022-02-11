@@ -14,7 +14,7 @@ from PySignal import Signal
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.configs.project import ProjectConfig
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.utils.traceable_collections import TraceableDict, TraceableList
 
@@ -22,7 +22,7 @@ from slafw.utils.traceable_collections import TraceableDict, TraceableList
 class ExposurePickler(pickle.Pickler):
     IGNORED_CLASSES = (
         Signal,
-        Hardware,
+        BaseHardware,
         ExposureImage,
         Thread,
         TraceableDict,

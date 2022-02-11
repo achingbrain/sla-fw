@@ -656,7 +656,7 @@ class Printer0:
 
         :return: Set of extension strings
         """
-        return list(self.printer.model.extensions)
+        return [".sl1"] #list(self.printer.model.extensions)
 
     @auto_dbus
     def list_projects_raw(self) -> List[str]:  # pylint: disable=no-self-use
@@ -838,8 +838,11 @@ class Printer0:
 
         :return: booster board serial number
         """
-        return self.printer.hw.sl1s_booster.board_serial_no
-
+        # TODO: booster could be encapsulated inside UvLed
+        try:
+            return self.printer.hw.sl1s_booster.board_serial_no
+        except AttributeError:
+            return "NA"
 
     @auto_dbus
     @property

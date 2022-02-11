@@ -13,11 +13,14 @@ class ExposureScreen:
     # pylint: disable = too-few-public-methods
     # pylint: disable = too-many-instance-attributes
     def __init__(self, printer_model: PrinterModel):
-        self.parameters = RealExposureScreen.get_parameters(printer_model)
+        real_expo_screen = RealExposureScreen(printer_model)
+        self.parameters = real_expo_screen.parameters
 
-        self.start = Mock(return_value=PrinterModel.SL1)
+        self.start = Mock()
         self.exit = Mock()
         self.show = Mock()
         self.blank_screen = Mock()
         self.create_areas = Mock()
         self.blank_area = Mock()
+        self.serial_number = real_expo_screen.serial_number
+        self.transmittance = real_expo_screen.transmittance

@@ -1,11 +1,10 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.checks.sysinfo import SystemInfoTest
 
 from slafw.configs.runtime import RuntimeConfig
-from slafw.libHardware import Hardware
 from slafw.states.wizard import WizardId
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker
@@ -89,7 +88,7 @@ class CalibrationFinishCheckGroup(CheckGroup):
 
 
 class CalibrationWizard(Wizard):
-    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(hw=hw, config_writer=hw.config.get_writer(), runtime_config=runtime_config)
         super().__init__(
             WizardId.CALIBRATION,

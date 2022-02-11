@@ -5,7 +5,7 @@
 import weakref
 
 from slafw.configs.runtime import RuntimeConfig
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.wizard.checks.tank_surface_cleaner import HomeTower, TiltHome, TiltUp, TowerSafeDistance, TouchDown, \
     GentlyUp, ExposeDebris, Check
@@ -54,7 +54,8 @@ class TankSurfaceCleaner(Wizard):
     - move the platform up so that the user can remove the garbage
     """
 
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, exposure_image: ExposureImage,
+                 runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(
             hw=hw, exposure_image=weakref.proxy(exposure_image), runtime_config=runtime_config
         )

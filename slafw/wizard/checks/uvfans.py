@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List
 
 from slafw import defines, test_runtime
 from slafw.errors.errors import FanRPMOutOfTestRange, UVLEDHeatsinkFailed
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck
 from slafw.wizard.setup import Configuration, Resource
@@ -23,7 +23,7 @@ class CheckData:
 
 
 class UVFansTest(DangerousCheck):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.UV_FANS, Configuration(None, None), [Resource.FANS, Resource.UV],
         )

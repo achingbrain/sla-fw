@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 
 from slafw import defines
 from slafw.functions.system import shut_down
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, Check
 from slafw.wizard.setup import Configuration
@@ -27,7 +27,7 @@ class CheckData:
 
 
 class TemperatureTest(Check):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             WizardCheckType.TEMPERATURE, Configuration(None, None), [],
         )

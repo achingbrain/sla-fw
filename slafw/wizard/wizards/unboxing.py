@@ -5,7 +5,7 @@
 from typing import Iterable
 
 from slafw.configs.runtime import RuntimeConfig
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.states.wizard import WizardId
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker
@@ -59,7 +59,7 @@ class UnboxingWizard(Wizard):
 
 
 class CompleteUnboxingWizard(UnboxingWizard):
-    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(hw=hw, config_writer=hw.config.get_writer(), runtime_config=runtime_config)
         super().__init__(
             WizardId.COMPLETE_UNBOXING,
@@ -79,7 +79,7 @@ class CompleteUnboxingWizard(UnboxingWizard):
 
 
 class KitUnboxingWizard(UnboxingWizard):
-    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(hw=hw, config_writer=hw.config.get_writer(), runtime_config=runtime_config)
         super().__init__(WizardId.KIT_UNBOXING, [RemoveDisplayFoilCheckGroup(), ShowResultsGroup()], self._package)
 

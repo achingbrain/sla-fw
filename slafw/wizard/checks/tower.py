@@ -6,7 +6,7 @@ from asyncio import sleep, gather
 from typing import Dict, Any
 
 from slafw.errors.errors import TowerBelowSurface, TowerAxisCheckFailed, TowerHomeFailed, TowerEndstopNotReached
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck
 from slafw.wizard.setup import Configuration, Resource, TankSetup, PlatformSetup
@@ -15,7 +15,7 @@ from slafw.configs.writer import ConfigWriter
 
 
 class TowerHomeTest(DangerousCheck):
-    def __init__(self, hw: Hardware, config_writer: ConfigWriter):
+    def __init__(self, hw: BaseHardware, config_writer: ConfigWriter):
         super().__init__(
             hw, WizardCheckType.TOWER_HOME, Configuration(None, None), [Resource.TOWER, Resource.TOWER_DOWN],
         )
@@ -40,7 +40,7 @@ class TowerHomeTest(DangerousCheck):
 
 
 class TowerRangeTest(DangerousCheck):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TOWER_RANGE, Configuration(None, None), [Resource.TOWER, Resource.TOWER_DOWN],
         )
@@ -76,7 +76,7 @@ class TowerRangeTest(DangerousCheck):
 
 
 class TowerAlignTest(DangerousCheck):
-    def __init__(self, hw: Hardware, config_writer: ConfigWriter):
+    def __init__(self, hw: BaseHardware, config_writer: ConfigWriter):
         super().__init__(
             hw,
             WizardCheckType.TOWER_CALIBRATION,

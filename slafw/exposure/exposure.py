@@ -53,7 +53,7 @@ from slafw.errors.errors import (
 from slafw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough, PrinterWarning, ExpectOverheating
 from slafw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from slafw.functions.system import shut_down
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.project.functions import check_ready_to_print
 from slafw.project.project import Project, ExposureUserProfile
 from slafw.image.exposure_image import ExposureImage
@@ -278,7 +278,7 @@ class Exposure:
     def __init__(
         self,
         job_id: int,
-        hw: Hardware,
+        hw: BaseHardware,
         exposure_image: ExposureImage,
         runtime_config: RuntimeConfig,
     ):

@@ -14,7 +14,7 @@ from unittest.mock import Mock, patch
 from slafw.tests.base import SlafwTestCase
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.libHardware import Hardware
+from slafw.hardware.sl1 import Hardware
 from slafw.errors.errors import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
 from slafw.hardware.power_led import PowerLedActions
 

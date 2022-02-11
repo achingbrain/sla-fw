@@ -9,26 +9,30 @@ import os
 import re
 from abc import abstractmethod
 from time import sleep
+from typing import Union, Dict
 
 import bitstring
 import pydbus
 from PySignal import Signal
-from slafw.hardware.sl1s_uvled_booster import Booster
 
 from slafw.functions.decorators import safe_call
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.hardware.exposure_screen import ExposureScreen
+from slafw.hardware.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.sl1.tilt import TiltSL1
+from slafw.hardware.sl1.uv_led import UvLedSL1
+from slafw.motion_controller.controller import MotionController
 
 
 class BaseHardware:
     def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
         self.logger = logging.getLogger(__name__)
         self.config = hw_config
+        self._printer_model = printer_model
 
         self.exposure_screen = ExposureScreen(printer_model)
-        self.sl1s_booster = Booster()
 
         self.fans_changed = Signal()
         self.mc_temps_changed = Signal()
@@ -45,6 +49,24 @@ class BaseHardware:
         self.uv_led_overheat = False
         self.fans_error_changed = Signal()
         self.fans_error = False
+
+        # to be inicialized in connect()
+        self.mcc: MotionController = None
+        self.uv_led: UvLedSL1 = None
+        self.tilt: TiltSL1 = None
+        self.fans: Dict[int, Fan] = None
+
+    @abstractmethod
+    def connect(self):
+        """
+        connect to MC and init all hw components
+        """
+
+    @abstractmethod
+    def start(self):
+        """
+        init default values
+        """
 
     @property
     def cpuSerialNo(self):

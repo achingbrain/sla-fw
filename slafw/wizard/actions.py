@@ -9,7 +9,7 @@ from typing import Optional, Callable, Deque
 
 from PySignal import Signal
 
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.states.wizard import WizardState
 from slafw.hardware.power_led import PowerLedActions
 
@@ -38,7 +38,7 @@ class UserAction:
 
 
 class WarnLevelCounter:
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         self._hw = hw
         self._level_counter = 0
 
@@ -55,7 +55,7 @@ class WarnLevelCounter:
 
 class UserActionBroker:
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         self._logger = logging.getLogger(__name__)
         self._states: Deque[PushState] = deque()
         self.states_changed = Signal()

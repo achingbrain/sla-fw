@@ -56,7 +56,7 @@ class PrinterModel(Enum, metaclass=PrinterModelMeta):
                 self.NONE: {""},
                 self.SL1: {".sl1"},
                 self.SL1S: {".sl1s"},
-                self.M1: {".m1"},
+                self.M1: {".m1"}
             }[self]
 
     @property
@@ -90,5 +90,5 @@ class PrinterModel(Enum, metaclass=PrinterModelMeta):
                     vat_revision = 1,
                     has_UV_calibration = False,
                     has_UV_calculation = True,
-                    ),
+                    )
             }[self]

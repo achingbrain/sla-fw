@@ -7,6 +7,7 @@ import logging
 from time import sleep
 from typing import List, Dict
 
+from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.errors.errors import MotionControllerException, TiltHomeFailed, TiltPositionFailed
 from slafw.functions.decorators import safe_call

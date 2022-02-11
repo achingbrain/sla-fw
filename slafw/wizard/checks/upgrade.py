@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from slafw.configs.hw import HwConfig
+from slafw.hardware.base import BaseHardware
 from slafw.hardware.uv_led import UvLed
-from slafw.libHardware import Hardware
 from slafw.configs.writer import ConfigWriter
 from slafw.functions.system import set_configured_printer_model, set_factory_uvpwm
 from slafw.hardware.printer_model import PrinterModel
@@ -49,7 +49,7 @@ class ResetMechanicalCalibration(Check):
 
 
 class ResetHwCounters(Check):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(WizardCheckType.RESET_HW_COUNTERS)
         self._hw = hw
 

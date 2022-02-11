@@ -10,7 +10,7 @@ from typing import Optional, List, Iterable, Dict, Any
 
 from PySignal import Signal
 
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.states.wizard import WizardCheckState
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.setup import Resource, Configuration
@@ -245,7 +245,7 @@ class DangerousCheck(Check, ABC):
     Dangerous checks require cover closed during operation
     """
 
-    def __init__(self, hw: Hardware, *args, **kwargs):
+    def __init__(self, hw: BaseHardware, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._hw = hw
 

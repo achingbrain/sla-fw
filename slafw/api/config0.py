@@ -14,10 +14,10 @@ from pydbus.generic import signal
 from slafw.api.decorators import auto_dbus, dbus_api, wrap_dict_data_recursive
 from slafw.configs.hw import HwConfig
 from slafw.configs.value import Value, NumericValue, ListValue, TextValue
-from slafw.hardware.axis import Axis
+from slafw.hardware.axis import AxisId
 
 if TYPE_CHECKING:
-    from slafw.libHardware import Hardware
+    from slafw.hardware.sl1 import Hardware
 
 
 
@@ -116,8 +116,8 @@ class Config0:
 
         :return: None
         """
-        self.hw.updateMotorSensitivity(Axis.TOWER, self.hw.config.towerSensitivity)
-        self.hw.updateMotorSensitivity(Axis.TILT, self.hw.config.tiltSensitivity)
+        self.hw.updateMotorSensitivity(AxisId.TOWER, self.hw.config.towerSensitivity)
+        self.hw.updateMotorSensitivity(AxisId.TILT, self.hw.config.tiltSensitivity)
 
     @auto_dbus
     @property

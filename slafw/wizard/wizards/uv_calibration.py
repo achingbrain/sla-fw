@@ -7,9 +7,8 @@ from typing import Iterable
 from slafw.configs.runtime import RuntimeConfig
 from slafw.errors.errors import PrinterError
 from slafw.functions.system import get_configured_printer_model
-from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.base import BaseHardware
 from slafw.image.exposure_image import ExposureImage
-from slafw.libHardware import Hardware
 from slafw.libUvLedMeterMulti import UvLedMeterMulti, UVCalibrationResult
 from slafw.states.wizard import WizardId
 from slafw.states.wizard import WizardState
@@ -109,7 +108,7 @@ class UVCalibrationFinish(CheckGroup):
 class UVCalibrationWizard(Wizard):
     def __init__(
         self,
-        hw: Hardware,
+        hw: BaseHardware,
         exposure_image: ExposureImage,
         runtime_config: RuntimeConfig,
         display_replaced: bool,

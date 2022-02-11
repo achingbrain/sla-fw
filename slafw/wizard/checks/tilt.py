@@ -15,7 +15,7 @@ from slafw.errors.errors import (
     InvalidTiltAlignPosition,
     PrinterException,
 )
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw import test_runtime
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
@@ -26,7 +26,7 @@ from slafw.configs.writer import ConfigWriter
 
 
 class TiltHomeTest(DangerousCheck, ABC):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TILT_HOME, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
@@ -49,7 +49,7 @@ class TiltHomeTest(DangerousCheck, ABC):
 
 
 class TiltLevelTest(DangerousCheck):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TILT_LEVEL, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN]
         )
@@ -79,7 +79,7 @@ class TiltLevelTest(DangerousCheck):
 
 
 class TiltRangeTest(DangerousCheck):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TILT_RANGE, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
@@ -116,7 +116,7 @@ class TiltRangeTest(DangerousCheck):
 
 
 class TiltTimingTest(DangerousCheck):
-    def __init__(self, hw: Hardware, config_writer: ConfigWriter):
+    def __init__(self, hw: BaseHardware, config_writer: ConfigWriter):
         super().__init__(
             hw, WizardCheckType.TILT_TIMING, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
@@ -170,7 +170,7 @@ class TiltTimingTest(DangerousCheck):
 
 
 class TiltCalibrationStartTest(DangerousCheck):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TILT_CALIBRATION_START, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN],
         )
@@ -184,7 +184,7 @@ class TiltCalibrationStartTest(DangerousCheck):
 
 
 class TiltAlignTest(Check):
-    def __init__(self, hw: Hardware, config_writer: ConfigWriter):
+    def __init__(self, hw: BaseHardware, config_writer: ConfigWriter):
         super().__init__(
             WizardCheckType.TILT_CALIBRATION,
             Configuration(TankSetup.REMOVED, None),

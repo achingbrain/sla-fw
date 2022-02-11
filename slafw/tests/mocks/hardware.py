@@ -10,7 +10,7 @@ from PySignal import Signal
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.hardware.uv_led import UvLedSL1, UvLed2
-from slafw.libHardware import Fan
+from slafw.hardware.sl1 import Fan
 from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.mocks.exposure_screen import ExposureScreen
 

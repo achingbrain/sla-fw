@@ -6,7 +6,7 @@ from asyncio import sleep
 from time import time
 from enum import Enum, unique
 
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
@@ -41,7 +41,7 @@ class GentlyUpProfile(Enum):
 class HomeTower(DangerousCheck):
     """ Home tower and request the user to attach the cleaning adaptor to the platform """
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TOWER_HOME, Configuration(None, None), [Resource.TOWER],
         )
@@ -54,7 +54,7 @@ class HomeTower(DangerousCheck):
 class TiltHome(DangerousCheck):
     """ Home the platform (to the top) """
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TILT_HOME, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN]
         )
@@ -64,7 +64,7 @@ class TiltHome(DangerousCheck):
 
 
 class TiltUp(DangerousCheck):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TILT_LEVEL, Configuration(None, None), [Resource.TILT, Resource.TOWER_DOWN]
         )
@@ -76,7 +76,7 @@ class TiltUp(DangerousCheck):
 class TowerSafeDistance(DangerousCheck):
     """ Move the platform to save distance from the tank """
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TOWER_SAFE_DISTANCE, Configuration(None, None), [Resource.TOWER],
         )
@@ -92,7 +92,7 @@ class TowerSafeDistance(DangerousCheck):
 class TouchDown(DangerousCheck):
     """ Move slowly down until you hit something """
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             hw, WizardCheckType.TOWER_TOUCHDOWN, Configuration(None, None), [Resource.TOWER],
         )
@@ -127,7 +127,7 @@ class TouchDown(DangerousCheck):
 
 
 class ExposeDebris(DangerousCheck):
-    def __init__(self, hw: Hardware, exposure_image: ExposureImage):
+    def __init__(self, hw: BaseHardware, exposure_image: ExposureImage):
         super().__init__(
             hw, WizardCheckType.EXPOSING_DEBRIS, Configuration(None, None),
             [Resource.UV, Resource.FANS, Resource.TOWER_DOWN, Resource.TILT]
@@ -156,7 +156,7 @@ class ExposeDebris(DangerousCheck):
 class GentlyUp(Check):
     """ Move slowly up until you hit something """
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             WizardCheckType.TOWER_GENTLY_UP, Configuration(None, None), [Resource.TILT, Resource.TOWER],
         )

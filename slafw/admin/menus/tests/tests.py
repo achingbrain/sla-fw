@@ -12,7 +12,7 @@ from slafw.admin.menus.tests.test_hardware import TestHardwareMenu
 from slafw.admin.menus.tests.test_wizards import TestWizardsMenu
 from slafw.admin.safe_menu import SafeAdminMenu
 from slafw.configs.runtime import RuntimeConfig
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.libPrinter import Printer
 from slafw.states.wizard import WizardId
 from slafw.wizard.actions import UserActionBroker
@@ -27,12 +27,12 @@ class SendPrinterDataGroup(CheckGroup):
     async def setup(self, actions: UserActionBroker):
         pass
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(Configuration(None, None), (SendPrinterData(hw),))
 
 
 class SendPrinterDataWizard(Wizard):
-    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, runtime_config: RuntimeConfig):
         super().__init__(
             WizardId.PACKING,
             (SendPrinterDataGroup(hw),),

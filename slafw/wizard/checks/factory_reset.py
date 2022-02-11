@@ -30,8 +30,9 @@ from slafw.errors.warnings import FactoryResetCheckFailure
 from slafw.functions.files import ch_mode_owner, get_all_supported_files
 from slafw.functions.system import FactoryMountedRW, reset_hostname, \
     compute_uvpwm, get_configured_printer_model
+from slafw.hardware.axis import AxisId
+from slafw.hardware.base import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
-from slafw.libHardware import Hardware, Axis
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType, SyncCheck, DangerousCheck
 from slafw.wizard.wizards.self_test import SelfTestWizard
@@ -179,7 +180,8 @@ class RemoveSlicerProfiles(ResetCheck):
 
 
 class ResetHWConfig(ResetCheck):
-    def __init__(self, hw: Hardware, *args, disable_unboxing: bool = False, **kwargs):
+    def __init__(self, hw: BaseHardware, *args, disable_unboxing: bool = False,
+                 **kwargs):
         super().__init__(WizardCheckType.RESET_HW_CONFIG, *args, **kwargs)
         self._hw = hw
         self._disable_unboxing = disable_unboxing
@@ -197,7 +199,7 @@ class ResetHWConfig(ResetCheck):
 
 
 class EraseMCEeprom(ResetCheck):
-    def __init__(self, hw: Hardware, *args, **kwargs):
+    def __init__(self, hw: BaseHardware, *args, **kwargs):
         super().__init__(WizardCheckType.ERASE_MC_EEPROM, *args, **kwargs)
         self._hw = hw
 
@@ -210,17 +212,17 @@ class ResetHomingProfiles(ResetCheck):
     Set homing profiles to factory defaults
     """
 
-    def __init__(self, hw: Hardware, *args, **kwargs):
+    def __init__(self, hw: BaseHardware, *args, **kwargs):
         super().__init__(WizardCheckType.RESET_HOMING_PROFILES, *args, **kwargs)
         self._hw = hw
 
     def reset_task_run(self, actions: UserActionBroker):
-        self._hw.updateMotorSensitivity(Axis.TOWER)
-        self._hw.updateMotorSensitivity(Axis.TILT)
+        self._hw.updateMotorSensitivity(AxisId.TOWER)
+        self._hw.updateMotorSensitivity(AxisId.TILT)
 
 
 class DisableFactory(SyncCheck):
-    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, runtime_config: RuntimeConfig):
         super().__init__(WizardCheckType.DISABLE_FACTORY)
         self._hw = hw
         self._runtime_config = runtime_config
@@ -232,7 +234,7 @@ class DisableFactory(SyncCheck):
 
 
 class SendPrinterData(SyncCheck):
-    def __init__(self, hw: Hardware, printer_model: PrinterModel):
+    def __init__(self, hw: BaseHardware, printer_model: PrinterModel):
         super().__init__(WizardCheckType.SEND_PRINTER_DATA)
         self._hw = hw
         self._printer_model = printer_model
@@ -303,7 +305,7 @@ class SendPrinterData(SyncCheck):
 
 
 class InitiatePackingMoves(DangerousCheck):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(hw, WizardCheckType.INITIATE_PACKING_MOVES)
         self._hw = hw
 
@@ -324,7 +326,7 @@ class InitiatePackingMoves(DangerousCheck):
 
 
 class FinishPackingMoves(Check):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(WizardCheckType.FINISH_PACKING_MOVES)
         self._hw = hw
 

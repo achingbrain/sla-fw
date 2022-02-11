@@ -443,7 +443,7 @@ class ExposureScreen:
                     refresh_delay_ms = 0,
                     monochromatic = True,
                     bgr_pixels = True,
-                    ),
+                    )
             }[printer_model]
 
     @property

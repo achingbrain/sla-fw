@@ -8,8 +8,7 @@ from typing import Dict, Any, Optional
 import distro
 
 from slafw.functions.system import get_configured_printer_model
-from slafw.hardware.printer_model import PrinterModel
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType
 from slafw.wizard.setup import Configuration
@@ -30,7 +29,7 @@ class CheckData:
 
 
 class SystemInfoTest(Check):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             WizardCheckType.SYS_INFO, Configuration(None, None), [],
         )

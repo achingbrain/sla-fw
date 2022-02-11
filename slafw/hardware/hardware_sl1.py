@@ -21,18 +21,20 @@ from functools import cached_property, partial
 from math import ceil
 from threading import Thread
 from time import sleep, monotonic
-from typing import List, Optional, Any, Tuple
+from typing import List, Optional, Any, Tuple, Dict
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
     MotionControllerException, ConfigException
 from slafw.functions.decorators import safe_call
-from slafw.hardware.axis import Axis
+from slafw.hardware.axis import AxisId
+from slafw.hardware.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.tilt import Tilt, TiltProfile
 from slafw.hardware.sl1.tilt import TiltSL1
-from slafw.hardware.uv_led import UvLedSL1
+from slafw.hardware.sl1.uv_led import UvLedSL1
+from slafw.hardware.sl1s_uvled_booster import Booster
+from slafw.hardware.tilt import TiltProfile
 from slafw.hardware.base import BaseHardware
 from slafw.motion_controller.controller import MotionController
 from slafw.utils.value_checker import ValueChecker, UpdateInterval
@@ -40,60 +42,16 @@ from slafw.hardware.power_led_action import WarningAction
 from slafw.hardware.power_led import PowerLed
 
 
-class Fan:
-    # pylint: disable = too-many-arguments
-    def __init__(self, name: str, max_rpm: int, default_rpm: int, enabled: bool, auto_control: bool = False):
-        super().__init__()
-        self.name = name
-        self.__min_rpm = defines.fanMinRPM
-        self.__max_rpm = max_rpm
-        self.__default_rpm = default_rpm
-        self.__target_rpm = default_rpm
-        self.__enabled = enabled
-        # TODO add periodic callback on the background
-        # self.__error = False
-        # self.__realRpm = 0
-        self.__auto_control: bool = auto_control
-
-    @property
-    def target_rpm(self) -> int:
-        return self.__target_rpm
-
-    @target_rpm.setter
-    def target_rpm(self, val):
-        self.__enabled = True
-        if val < self.__min_rpm:
-            self.__target_rpm = self.__min_rpm
-            self.__enabled = False
-        elif val > self.__max_rpm:
-            self.__target_rpm = self.__max_rpm
-        else:
-            self.__target_rpm = val
-
-    @property
-    def default_rpm(self) -> int:
-        return self.__default_rpm
-
-    @property
-    def enabled(self) -> bool:
-        return self.__enabled
-
-    @property
-    def auto_control(self):
-        return self.__auto_control
-
-    @auto_control.setter
-    def auto_control(self, value: bool):
-        self.__auto_control = value
-
-    # TODO methods to save, load, reset to defaults
-
-
-class Hardware(BaseHardware):
+class HardwareSL1(BaseHardware):
     FAN_CONTROL_MIN_DELAY_S = 30
 
     def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
         super().__init__(hw_config, printer_model)
+
+        self.mcc = MotionController(defines.motionControlDevice)
+        self.sl1s_booster = Booster()
+
+
         self._printer_model = printer_model
         self.towerSynced = False
 
@@ -125,15 +83,7 @@ class Hardware(BaseHardware):
             "homingSlow": [[14, 0], [15, 0], [16, 1], [16, 3], [16, 5]],
         }
 
-        self.uv_fan = Fan(N_("UV LED fan"), defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled,
-                          auto_control=True)
-        self.blower_fan = Fan(N_("blower fan"), defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled)
-        self.rear_fan = Fan(N_("rear fan"), defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled)
-        self.fans = {
-            0: self.uv_fan,
-            1: self.blower_fan,
-            2: self.rear_fan,
-        }
+
 
         self.config.add_onchange_handler(self._fan_values_refresh)
 
@@ -143,10 +93,6 @@ class Hardware(BaseHardware):
             2: N_("UV LED temperature"),    # SL1S
             3: N_("<reserved2>"),
         }
-        self.mcc = MotionController(defines.motionControlDevice)
-
-        self.tilt: Optional[Tilt] = None
-        self.uv_led = UvLedSL1(self.mcc, printer_model)
 
         self._tower_moving = False
         self._towerPositionRetries: int = 1
@@ -183,6 +129,17 @@ class Hardware(BaseHardware):
         self.last_rpm_control: Optional[float] = None
         self._power_led = PowerLed(self.mcc)
 
+        self.uv_fan = Fan(
+            N_("UV LED fan"), defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled, auto_control=True
+        )
+        self.blower_fan = Fan(N_("blower fan"), defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled)
+        self.rear_fan = Fan(N_("rear fan"), defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled)
+        self.fans = {
+            0: self.uv_fan,
+            1: self.blower_fan,
+            2: self.rear_fan,
+        }
+
     @cached_property
     def tower_min_nm(self) -> int:
         return -(self.config.max_tower_height_mm + 5) * 1_000_000
@@ -216,13 +173,15 @@ class Hardware(BaseHardware):
         # MC have to be started first (beep, poweroff)
         self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
+
+        self.uv_led = UvLedSL1(self.mcc, self._printer_model)
+        self.tilt = TiltSL1(self.mcc, self.config)
+
         if self._printer_model.options.has_booster:
             self.sl1s_booster.connect()
             self.led_temp_idx = 2
 
     def start(self):
-        if self._printer_model.options.has_tilt:
-            self.tilt = TiltSL1(self.mcc, self.config)
         self.initDefaults()
         self._value_refresh_thread.start()
 
@@ -269,11 +228,12 @@ class Hardware(BaseHardware):
     def _fan_values_refresh(self, key: str, _: Any):
         """ Re-load the fan RPM settings from configuration, should be used as a callback """
         if key in {"fan1Rpm", "fan2Rpm", "fan3Rpm", "fan1Enabled", "fan2Enabled", "fan3Enabled", }:
-            self.fans = {
-                0: Fan(self.fans[0].name, defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled),
-                1: Fan(self.fans[1].name, defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled),
-                2: Fan(self.fans[2].name, defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled),
-            }
+            self.fans[0].default_rpm = self.config.fan1Rpm
+            self.fans[0].enabled = self.config.fan1Enabled
+            self.fans[1].default_rpm = self.config.fan2Rpm
+            self.fans[1].enabled = self.config.fan2Enabled
+            self.fans[2].default_rpm = self.config.fan3Rpm
+            self.fans[2].enabled = self.config.fan3Enabled
             mask = self.getFans()
             self.setFans(mask)
 
@@ -287,8 +247,8 @@ class Hardware(BaseHardware):
             self.logger.warning("Printer profiles will not be overwriten")
         else:
             if self._printer_model.options.has_tilt:
-                for axis in Axis:
-                    if axis is Axis.TOWER:
+                for axis in AxisId:
+                    if axis is AxisId.TOWER:
                         suffix = defines.towerProfilesSuffix
                         sensitivity = self.config.towerSensitivity
                         mc_profiles = self.getTowerProfiles()
@@ -301,7 +261,7 @@ class Hardware(BaseHardware):
                         profiles = self.get_profiles_with_sensitivity(profiles, axis, sensitivity)
                         if mc_profiles != profiles:
                             self.logger.info("Overwriting %s profiles to: %s", axis.name, profiles)
-                            if axis is Axis.TOWER:
+                            if axis is AxisId.TOWER:
                                 self.setTowerProfiles(profiles)
                             else:
                                 self.tilt.profiles = profiles
@@ -880,24 +840,24 @@ class Hardware(BaseHardware):
             self.resinSensor(False)
         return self.tower_position_nm / 1_000_000
 
-    def get_profiles_with_sensitivity(self, profiles: List[List[int]], axis: Axis, sens: int = 0):
+    def get_profiles_with_sensitivity(self, profiles: List[List[int]], axis: AxisId, sens: int = 0):
         if sens < -2 or sens > 2:
             raise ValueError("`axis` sensitivity must be from -2 to +2", axis)
 
         sens_dict = self.towerAdjust
-        if axis is Axis.TILT:
+        if axis is AxisId.TILT:
             sens_dict = self.tilt.sensitivity_dict
         profiles[0][4:6] = sens_dict["homingFast"][sens + 2]
         profiles[1][4:6] = sens_dict["homingSlow"][sens + 2]
         return profiles
 
-    def updateMotorSensitivity(self, axis: Axis, sens: int = 0):
-        if axis is Axis.TOWER:
+    def updateMotorSensitivity(self, axis: AxisId, sens: int = 0):
+        if axis is AxisId.TOWER:
             profiles = self.getTowerProfiles()
         else:
             profiles = self.tilt.profiles
         self.get_profiles_with_sensitivity(profiles, axis, sens)
-        if axis is Axis.TOWER:
+        if axis is AxisId.TOWER:
             self.setTowerProfiles(profiles)
         else:
             self.tilt.profiles = profiles
@@ -972,7 +932,7 @@ class Hardware(BaseHardware):
         """
 
         sensitivity = 0  # use default sensitivity first
-        self.updateMotorSensitivity(Axis.TOWER, sensitivity)
+        self.updateMotorSensitivity(AxisId.TOWER, sensitivity)
         tries = 3
         while tries > 0:
             try:
@@ -984,7 +944,7 @@ class Hardware(BaseHardware):
                 if sensitivity >= len(self.towerAdjust["homingFast"]) - 2:
                     raise e
 
-                self.updateMotorSensitivity(Axis.TOWER, sensitivity)
+                self.updateMotorSensitivity(AxisId.TOWER, sensitivity)
 
                 continue
             tries -= 1
@@ -1028,12 +988,6 @@ class Hardware(BaseHardware):
         self.tilt.move_up()
         while not self.tilt.on_target_position:
             await asyncio.sleep(0.25)
-
-    def get_uv_check_pwms(self):
-        if self.is500khz:
-            return [40, 122, 243, 250]  # board rev 0.6c+
-
-        return [31, 94, 188, 219]  # board rev. < 0.6c
 
     @property
     def power_led(self) -> PowerLed:

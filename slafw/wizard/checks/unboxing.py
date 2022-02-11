@@ -5,7 +5,7 @@
 from asyncio import sleep
 from typing import Optional
 
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, Check
 from slafw.wizard.setup import Configuration, Resource
@@ -14,7 +14,7 @@ from slafw.wizard.setup import Configuration, Resource
 class MoveToFoam(Check):
     FOAM_TARGET_POSITION_NM = 30_000_000
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             WizardCheckType.MOVE_TO_FOAM, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
         )
@@ -39,7 +39,7 @@ class MoveToFoam(Check):
 
 
 class MoveToTank(Check):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(
             WizardCheckType.MOVE_TO_TANK, Configuration(None, None), [Resource.TOWER_DOWN, Resource.TOWER],
         )

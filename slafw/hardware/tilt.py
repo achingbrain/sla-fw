@@ -13,7 +13,7 @@ from PySignal import Signal
 from slafw.configs.hw import HwConfig
 from slafw.errors.errors import MotionControllerException
 from slafw.functions.decorators import safe_call
-from slafw.hardware.axis import Axis, AxisProfileBase
+from slafw.hardware.axis import AxisProfileBase, Axis
 
 
 @unique

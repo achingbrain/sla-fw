@@ -32,11 +32,10 @@ from slafw.errors.errors import ProjectErrorNotFound, ProjectErrorCantRead, Proj
 from slafw.errors.warnings import PrintingDirectlyFromMedia, ProjectSettingsModified, VariantMismatch, PrinterWarning
 from slafw.configs.project import ProjectConfig
 from slafw.functions.system import get_configured_printer_model
+from slafw.hardware.base import BaseHardware
 from slafw.project.functions import get_white_pixels
 from slafw.utils.bounding_box import BBox
 from slafw.api.decorators import range_checked
-from slafw.libHardware import Hardware
-from slafw.hardware.printer_model import PrinterModel
 
 
 @unique
@@ -89,7 +88,7 @@ class ProjectLayer:
 
 
 class Project:
-    def __init__(self, hw: Hardware, project_file: str):
+    def __init__(self, hw: BaseHardware, project_file: str):
         self.logger = logging.getLogger(__name__)
         self.params_changed = Signal()
         self.path_changed = Signal()

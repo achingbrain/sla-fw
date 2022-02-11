@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 
 from slafw import defines
 from slafw.configs.runtime import RuntimeConfig
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.libNetwork import Network
 from slafw.slicer.profile_downloader import ProfileDownloader
 from slafw.slicer.profile_parser import ProfileParser
@@ -53,7 +53,7 @@ class BackgroundNetworkCheck(ABC):
 
 
 class AdminCheck(BackgroundNetworkCheck):
-    def __init__(self, config: RuntimeConfig, hw: Hardware, inet: Network):
+    def __init__(self, config: RuntimeConfig, hw: BaseHardware, inet: Network):
         super().__init__(inet)
         self.config = config
         self.hw = hw

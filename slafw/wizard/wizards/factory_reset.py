@@ -4,7 +4,7 @@
 
 from slafw.configs.runtime import RuntimeConfig
 from slafw.functions.system import shut_down
-from slafw.libHardware import Hardware
+from slafw.hardware.base import BaseHardware
 from slafw.states.wizard import WizardId, WizardState
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.factory_reset import (
@@ -100,7 +100,7 @@ class FactoryResetWizard(Wizard):
     # pylint: disable=too-many-arguments
     def __init__(
         self,
-        hw: Hardware,
+        hw: BaseHardware,
         runtime_config: RuntimeConfig,
         erase_projects: bool = False,
     ):
@@ -120,7 +120,7 @@ class FactoryResetWizard(Wizard):
 
 
 class PackingWizard(Wizard):
-    def __init__(self, hw: Hardware, runtime_config: RuntimeConfig):
+    def __init__(self, hw: BaseHardware, runtime_config: RuntimeConfig):
         self._package = WizardDataPackage(
             hw=hw,
             runtime_config=runtime_config

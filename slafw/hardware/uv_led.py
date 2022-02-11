@@ -52,7 +52,7 @@ class UvLed:
                 pwms=(30, 250, 208),
                 intensity_error_threshold=1,
                 param_p=0.75,
-            ),
+            )
         }[self._printer_model]
 
     @property

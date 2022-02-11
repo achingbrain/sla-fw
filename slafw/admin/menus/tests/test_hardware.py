@@ -13,7 +13,6 @@ from slafw.libPrinter import Printer
 from slafw.libUvLedMeterMulti import UvLedMeterMulti
 from slafw.hardware.tilt import TiltProfile
 from slafw.errors.errors import TiltHomeFailed
-from slafw.functions.system import hw_all_off
 from slafw.hardware.power_led_action import WarningAction
 
 

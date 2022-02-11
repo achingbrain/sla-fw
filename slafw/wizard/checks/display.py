@@ -10,8 +10,7 @@ from asyncio import sleep, gather
 from slafw import defines
 from slafw.errors.errors import DisplayTestFailed
 from slafw.functions.system import FactoryMountedRW
-from slafw.libHardware import Hardware
-from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.base import BaseHardware
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
@@ -78,7 +77,7 @@ class DisplayTest(DangerousCheck):
 
 
 class RecordExpoPanelLog(Check):
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         super().__init__(WizardCheckType.RECORD_EXPO_PANEL_LOG)
         self._hw = hw
 

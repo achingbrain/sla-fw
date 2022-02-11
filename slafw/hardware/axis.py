@@ -36,7 +36,7 @@ class AxisProfile(AxisProfileBase, Enum):
 
 
 @unique
-class Axis(Enum):
+class AxisId(Enum):
     TOWER = 0
     TILT = 1
 
