@@ -1049,6 +1049,10 @@ class Hardware:
 
         self.mcc.do("!twcs", profileId)
 
+    def getTowerProfile(self):
+        """Get the last selected tower profile."""
+        return self._lastTowerProfile
+
     @safe_call(None, (MotionControllerException, ValueError))
     def setTowerCurrent(self, current):  # pylint: disable=unused-argument,no-self-use
         return

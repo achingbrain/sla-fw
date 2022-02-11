@@ -489,7 +489,7 @@ class Project:
         slow_layers = self._layers_slow - slow_layers_done
         if slow_layers < 0:
             slow_layers = 0
-        fast_layers = total_layers - layers_done - slow_layers
+        fast_layers = total_layers - layers_done - slow_layers - super_slow_layers_done
         # If we are using superSlow profile, there should not be any other
         superslow_layers = total_layers - super_slow_layers_done
 

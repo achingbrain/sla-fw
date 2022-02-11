@@ -600,17 +600,20 @@ class Exposure:
 
     def _do_frame(self, times_ms, was_stirring, second, layer_height_nm):
         position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
-        self._tilt_speed = TiltSpeed(self.project.exposure_user_profile)
+
         if self.hw.config.tilt:
             minimal_tower_hop_steps = self.hw.config.calcMicroSteps(self.hw.config.superSlowTowerHopHeight_mm)
             self.logger.info("%s tilt up", self._tilt_speed.name)
-            if self.hw.config.layerTowerHop and self._tilt_speed == TiltSpeed.SLOW or self._tilt_speed == TiltSpeed.SUPERSLOW:
+            if self.hw.config.layerTowerHop or self._tilt_speed == TiltSpeed.SUPERSLOW:
                 hop_position = position_steps + self.hw.config.layerTowerHop
                 if self._tilt_speed == TiltSpeed.SUPERSLOW:
-                    self.hw.setTowerProfile("superSlow")
+                    if self.hw.getTowerProfile() != "superSlow":
+                        self.hw.setTowerProfile("superSlow")
                     if self._tilt_speed == TiltSpeed.SUPERSLOW and self.hw.config.layerTowerHop < minimal_tower_hop_steps:
                         self.logger.info("%s forcing layerTowerHop = %s", self._tilt_speed.name, minimal_tower_hop_steps)
                         hop_position = position_steps + minimal_tower_hop_steps
+                elif self.hw.getTowerProfile() != "layer":
+                    self.hw.setTowerProfile("layer")
                 self.hw.towerMoveAbsoluteWait(hop_position)
                 self.hw.tilt.layer_up_wait(tilt_speed=self._tilt_speed)
                 self.hw.towerMoveAbsoluteWait(position_steps)
@@ -622,6 +625,8 @@ class Exposure:
             self.hw.towerMoveAbsoluteWait(position_steps + self.hw.config.layerTowerHop)
             self.hw.towerMoveAbsoluteWait(position_steps)
         self.hw.setTowerCurrent(defines.towerHoldCurrent)
+
+        self._tilt_speed = TiltSpeed(self.project.exposure_user_profile)
 
         white_pixels = self.exposure_image.sync_preloader()
         self.exposure_image.screenshot_rename(second)
@@ -684,6 +689,7 @@ class Exposure:
             elif self._tilt_speed in {TiltSpeed.DEFAULT} and self._force_slow_remain_nm > 0:
                 self._force_slow_remain_nm -= layer_height_nm
                 self._tilt_speed = TiltSpeed.SLOW
+
             # Force slow tilt on first layers or if user selected safe print profile
             if (
                 self.actual_layer < self.project.first_slow_layers and self._tilt_speed == TiltSpeed.DEFAULT
