@@ -27,10 +27,10 @@
 [
     [tilt_down_large_fill],
     [tilt_down_small_fill],
+    [tilt_down_superslow]
     [tilt_up_large_fill],
     [tilt_up_small_fill],
     [tilt_up_superslow],
-    [tilt_down_superslow]
 ]
 ```
 - the movement is split on slow and fast by `limit for fast tilt` parameter

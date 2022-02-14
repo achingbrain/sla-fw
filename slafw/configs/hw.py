@@ -106,11 +106,11 @@ class HwConfig(Config):
 
     @property
     def tuneTilt(self) -> List[List[int]]:
-        return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltupsuperslow, self.raw_tiltdownsuperslow]
+        return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltdownsuperslow, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltupsuperslow]
 
     @tuneTilt.setter
     def tuneTilt(self, value: List[List[int]]):
-        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltupsuperslow, self.raw_tiltdownsuperslow] = value
+        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltdownsuperslow, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltupsuperslow] = value
 
 
     stirringMoves = IntValue(3, minimum=1, maximum=10, doc="Number of stirring moves")

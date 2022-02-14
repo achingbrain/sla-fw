@@ -247,7 +247,7 @@ class TiltSL1(Tilt):
         elif tilt_speed == TiltSpeed.SLOW:
             profile = self._config.tuneTilt[0]
         elif tilt_speed == TiltSpeed.SUPERSLOW:
-            profile = self._config.tuneTilt[4]
+            profile = self._config.tuneTilt[2]
         else:
             assert False, "Invalid value"
 
@@ -297,11 +297,11 @@ class TiltSL1(Tilt):
             _tiltHeight = tiltHeight
         # profile = self._config.tuneTilt[2] if slowMove else self._config.tuneTilt[3]
 
-        profile = self._config.tuneTilt[3]
+        profile = self._config.tuneTilt[4]
         if tilt_speed == TiltSpeed.DEFAULT:
             pass
         elif tilt_speed == TiltSpeed.SLOW:
-            profile = self._config.tuneTilt[2]
+            profile = self._config.tuneTilt[3]
         elif tilt_speed == TiltSpeed.SUPERSLOW:
             profile = self._config.tuneTilt[5]
         else:
