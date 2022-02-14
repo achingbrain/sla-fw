@@ -1096,10 +1096,13 @@ class Hardware:
     def calcPercVolume(volume_ml):
         return 10 * ceil(10 * volume_ml / defines.resinMaxVolume)
 
-    @safe_call(0, MotionControllerException)
-    async def get_resin_sensor_position_mm(self) -> float:
+    async def tower_to_resin_measurement_start_position(self):
         self.setTowerProfile("homingFast")
         await self.towerMoveAbsoluteWaitAsync(self._towerResinStartPos)  # move quickly to safe distance
+
+    @safe_call(0, MotionControllerException)
+    async def get_resin_sensor_position_mm(self) -> float:
+        await self.tower_to_resin_measurement_start_position()
         try:
             self.resinSensor(True)
             await asyncio.sleep(1)

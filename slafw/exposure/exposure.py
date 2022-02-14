@@ -187,7 +187,7 @@ class FansCheck(ExposureCheckRunner):
 
 
 class ResinCheck(ExposureCheckRunner):
-    RETRIES = 3
+    RETRIES = 2
 
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.RESIN, *args, **kwargs)
@@ -214,10 +214,7 @@ class ResinCheck(ExposureCheckRunner):
             if volume_ml > defines.resinMaxVolume:
                 raise ResinTooHigh(volume_ml)
         except ResinMeasureFailed:
-            self.expo.hw.setTowerProfile("homingFast")
-            self.expo.hw.towerToTop()
-            while not await self.expo.hw.isTowerOnPositionAsync():
-                await asyncio.sleep(0.25)
+            await self.expo.hw.tower_to_resin_measurement_start_position()
             raise
         return volume_ml
 
