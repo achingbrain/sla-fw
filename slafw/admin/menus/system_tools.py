@@ -44,6 +44,7 @@ class SystemToolsMenu(SafeAdminMenu):
                 AdminBoolValue.from_property(self, SystemToolsMenu.ssh),
                 AdminBoolValue.from_property(self, SystemToolsMenu.serial),
                 AdminAction("Fake setup", self._fake_setup),
+                AdminAction("Download examples", self._download_examples),
             )
         )
         if self._printer.model == PrinterModel.SL1S:
@@ -123,11 +124,6 @@ class SystemToolsMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def _do_fake_setup(self, status: AdminLabel):
-        status.set("Downloading examples")
-        examples = Examples(self._printer.inet, self._printer.model)
-        examples.start()
-        examples.join()
-
         status.set("Saving dummy calibration data")
         writer = self._printer.hw.config.get_writer()
         writer.calibrated = True
@@ -142,6 +138,16 @@ class SystemToolsMenu(SafeAdminMenu):
             self._printer.hw.config.write_factory()
 
         status.set("Done")
+
+    def _download_examples(self):
+        self.enter(Wait(self._control, self._do_download_examples))
+
+    @SafeAdminMenu.safe_call
+    def _do_download_examples(self, status: AdminLabel):
+        status.set("Downloading examples")
+        examples = Examples(self._printer.inet, self._printer.model)
+        examples.start()
+        examples.join()
 
     def _switch_m1(self):
         self.enter(Wait(self._control, self._do_switch_m1))
