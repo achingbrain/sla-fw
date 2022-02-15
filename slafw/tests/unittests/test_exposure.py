@@ -25,10 +25,11 @@ from slafw.exposure.exposure import Exposure
 from slafw.states.exposure import ExposureState
 from slafw.tests.mocks.hardware import Hardware
 
-
+from slafw.project.project import ExposureUserProfile
 class TestExposure(SlafwTestCase):
     PROJECT = str(SlafwTestCase.SAMPLES_DIR / "numbers.sl1")
     PROJECT_LAYER_CHANGE = str(SlafwTestCase.SAMPLES_DIR / "layer_change.sl1")
+    PROJECT_SUPERSLOW = str(SlafwTestCase.SAMPLES_DIR / "super_slow.sl1")
     PROJECT_LAYER_CHANGE_SAFE = str(SlafwTestCase.SAMPLES_DIR / "layer_change_safe_profile.sl1")
     PROJECT_RESIN_CALIB = str(SlafwTestCase.SAMPLES_DIR / "Resin_calibration_linear_object.sl1")
     BROKEN_EMPTY_PROJECT = str(SlafwTestCase.SAMPLES_DIR / "empty_file.sl1")
@@ -250,6 +251,59 @@ class TestExposure(SlafwTestCase):
         # 13 slow layers at beginning + 4 large layers in project + 4 layers after area change
         self.assertEqual(exposure.slow_layers_done, 13 + 4 + 4)
 
+    def test_exposure_superslow_tilt(self):
+        """Make sure that all superslow layers are counted and no other counters are incremented"""
+        defines.livePreviewImage = str(self.TEMP_DIR / "live.png")
+        defines.displayUsageData = str(self.TEMP_DIR / "display_usage.npz")
+        hw = self.setupHw()
+        self._fake_calibration(hw)
+        print(hw.config.limit4fast)
+        hw.config.limit4fast = 45
+        exposure_image = ExposureImage(hw)
+        exposure_image.start()
+
+        hw.config.forceSlowTiltHeight = 0  # do not force any extra slow tilts
+        exposure = self._run_exposure(hw, TestExposure.PROJECT_SUPERSLOW, exposure_image, timeout_s=200)
+        self.assertEqual(exposure.state, ExposureState.FINISHED)
+        self.assertEqual(exposure.project.exposure_user_profile, ExposureUserProfile.SUPERSLOW, "The project must have the SUPERSLOW profile selected.")
+        self.assertEqual(exposure.super_slow_layers_done, exposure.project.total_layers, "All layers should be superslow")
+        self.assertEqual(exposure.slow_layers_done, 0, "There should be no slow layers if SUPERSLOW profile is selected")
+        t_first_estimate = exposure.estimated_total_time_ms
+
+        # Assert that SUPERSLOW beats attempts to force slow layers
+        hw.config.forceSlowTiltHeight = 100000  # 100 um -> force 2 slow layers
+        exposure = self._run_exposure(hw, TestExposure.PROJECT_SUPERSLOW, exposure_image, timeout_s=200)
+        self.assertEqual(exposure.state, ExposureState.FINISHED)
+        self.assertEqual(exposure.project.exposure_user_profile, ExposureUserProfile.SUPERSLOW, "The project must have the SUPERSLOW profile selected.")
+        self.assertEqual(exposure.super_slow_layers_done, exposure.project.total_layers)
+        self.assertEqual(exposure.slow_layers_done, 0, "There should be no slow layers if SUPERSLOW profile is selected")
+        t_second_estimate = exposure.estimated_total_time_ms
+
+        self.assertEqual(t_first_estimate, t_second_estimate, "Estimated time should be the same - slow layers should be ignored")
+
+    def test_superslow_time_estimate(self):
+        """Make sure that SUPERSLOW time estimate are lower than default(with normal slow layers)"""
+        defines.livePreviewImage = str(self.TEMP_DIR / "live.png")
+        defines.displayUsageData = str(self.TEMP_DIR / "display_usage.npz")
+        hw = self.setupHw()
+        self._fake_calibration(hw)
+        print(hw.config.limit4fast)
+        hw.config.limit4fast = 45
+        exposure_image = ExposureImage(hw)
+        exposure_image.start()
+
+        # Run SUPERSLOW project
+        exposure_superslow = self._run_exposure(hw, TestExposure.PROJECT_SUPERSLOW, exposure_image, timeout_s=200)
+        self.assertEqual(exposure_superslow.state, ExposureState.FINISHED)
+        t_superslow = exposure_superslow.estimated_total_time_ms
+
+        # It's the same project, but with default user profile, for comparison
+        exposure = self._run_exposure(hw, TestExposure.PROJECT_LAYER_CHANGE, exposure_image, timeout_s=50)
+        self.assertEqual(exposure.state, ExposureState.FINISHED)
+        t_normal = exposure.estimated_total_time_ms
+        self.assertLess(t_normal, t_superslow)
+        self.assertEqual(exposure.super_slow_layers_done, 0, "There should be no superslow layers when printing with default user profile")
+
     def test_exposure_user_profile(self):
         self.hw.config.limit4fast = 100
         exposure = self._run_exposure(self.hw, TestExposure.PROJECT_LAYER_CHANGE)
@@ -278,10 +332,10 @@ class TestExposure(SlafwTestCase):
         exposure.confirm_print_start()
         return exposure
 
-    def _run_exposure(self, hw, project = None, expo_img = None) -> Exposure:
+    def _run_exposure(self, hw, project=None, expo_img=None, timeout_s=50) -> Exposure:
         exposure = self._start_exposure(hw, project, expo_img)
 
-        for i in range(50):
+        for i in range(timeout_s):
             print(f"Waiting for exposure {i}, state: ", exposure.state)
             if exposure.state == ExposureState.CHECK_WARNING:
                 print(exposure.warning)
