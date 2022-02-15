@@ -11,7 +11,6 @@ This module is used to run a virtual printer. Virtual printer encompasses some o
 integration test mocks. All in all this launches the printer (similar to the one launched by main.py) that can run on
 a desktop computer without motion controller connected. This mode is intended for GUI testing.
 """
-import argparse
 import asyncio
 import builtins
 import concurrent
@@ -44,11 +43,7 @@ from slafw.tests.mocks.dbus.rauc import Rauc
 from slafw.tests.mocks.exposure_screen import ExposureScreen
 from slafw.tests.mocks.sl1s_uvled_booster import BoosterMock
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-p", "--printer_model", type=str,
-                    choices=[m.name.lower() for m in PrinterModel],
-                    help="let virtual printer start as specific printer model")
-args = parser.parse_args()
+printer_model = PrinterModel()
 
 # use system locale settings for translation
 gettext.install("slafw", defines.localedir, names=("ngettext",))
@@ -117,24 +112,17 @@ defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
 defines.uvCalibDataPathFactory = TEMP_DIR / "uv_calib_data_factory.toml"
 defines.counterLog = TEMP_DIR / defines.counterLogFilename
 
-# create initial printer model file.
-# usually model-detect.service takes care of this
-defines.printer_model_run = TEMP_DIR / "model_run"
-defines.printer_model_run.mkdir(exist_ok=True, parents=True)
-model_file = defines.printer_model_run / args.printer_model
-model_file.touch()
-
 # disable SL1SUpgradeDowngradeWizard by default
 defines.printer_model = TEMP_DIR / "model"
 defines.printer_model.mkdir(exist_ok=True, parents=True)
-model_file = defines.printer_model / args.printer_model
+model_file = defines.printer_model / printer_model.name.lower()
 model_file.touch()
 
 defines.firstboot = TEMP_DIR / "firstboot"
 defines.factory_enable = TEMP_DIR / "factory_mode_enabled"
 defines.factory_enable.touch()  # Enable factory mode
 defines.admincheckTemp = TEMP_DIR / "admincheck.json"
-defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / args.printer_model
+defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / printer_model.name.lower()
 
 
 class Virtual:
