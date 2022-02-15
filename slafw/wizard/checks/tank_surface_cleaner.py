@@ -12,7 +12,7 @@ from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from slafw.wizard.setup import Configuration, Resource
 from slafw.errors.errors import GarbageCollectorMissing
-
+from slafw.hardware.tilt import TiltSpeed
 @unique
 class GentlyUpProfile(Enum):
     """Gives meaning to the value config.tankCleaningGentlyUpProfile,
@@ -166,7 +166,7 @@ class GentlyUp(Check):
         up_profile = GentlyUpProfile(self._hw.config.tankCleaningGentlyUpProfile)
         self._logger.info("GentlyUp with %s -> %s", up_profile.name, up_profile.map_to_tower_profile_name())
         self._hw.setTowerProfile(up_profile.map_to_tower_profile_name())
-        await self._hw.tilt.layer_down_wait_async(slowMove=True)
+        await self._hw.tilt.layer_down_wait_async(TiltSpeed.SLOW)
         target_position = 50_000_000
         for _ in range(3):
             self._hw.tower_position_nm = target_position
