@@ -10,11 +10,11 @@ from slafw.image.exposure_image import ExposureImage
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from slafw.wizard.setup import Configuration, Resource
-from slafw.errors.errors import GarbageCollectorMissing
+from slafw.errors.errors import CleaningAdaptorMissing
 
 
 class HomeTower(DangerousCheck):
-    """ Home tower and request the user to attach the garbage collector to the platform """
+    """ Home tower and request the user to attach the cleaning adaptor to the platform """
 
     def __init__(self, hw: Hardware):
         super().__init__(
@@ -82,19 +82,19 @@ class TouchDown(DangerousCheck):
         while self._hw.isTowerMoving():
             await sleep(0.25)
         if target_position_nm == self._hw.tower_position_nm:
-            # Did you forget to put a garbage collector pin on corner of the platform?
+            # Did you forget to put a cleaning adapter pin on corner of the platform?
             self._hw.setTowerProfile("homingFast")
             await self._hw.tower_move_absolute_nm_wait_async(self._hw.config.tower_height_nm)
             self._hw.motorsRelease()
-            # Error: The garbage collector is not present, the platform moved to the exposure display without hitting it.
-            raise GarbageCollectorMissing()
-        self._logger.info("TouchDown did detect an obstacle - garbageCollector.?")
+            # Error: The cleaning adaptor is not present, the platform moved to the exposure display without hitting it.
+            raise CleaningAdaptorMissing()
+        self._logger.info("TouchDown did detect an obstacle - cleaningAdaptor.?")
 
 
-class ExposeGarbage(DangerousCheck):
+class ExposeDebris(DangerousCheck):
     def __init__(self, hw: Hardware, exposure_image: ExposureImage):
         super().__init__(
-            hw, WizardCheckType.EXPOSING_GARBAGE, Configuration(None, None),
+            hw, WizardCheckType.EXPOSING_DEBRIS, Configuration(None, None),
             [Resource.UV, Resource.FANS, Resource.TOWER_DOWN, Resource.TILT]
         )
         self._exposure_image = exposure_image

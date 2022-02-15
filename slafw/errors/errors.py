@@ -191,8 +191,8 @@ class TiltHomeCheckFailed(GeneralError):
     pass
 
 
-@with_code(Sl1Codes.GARBAGE_COLLECTOR_MISSING)
-class GarbageCollectorMissing(GeneralError):
+@with_code(Sl1Codes.CLEANING_ADAPTOR_MISSING)
+class CleaningAdaptorMissing(GeneralError):
     pass
 
 
