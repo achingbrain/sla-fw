@@ -761,10 +761,10 @@ class TankSurfaceCleanerTest(TestWizardsBase):
         def on_state_changed():
             if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
                 wizard.tank_surface_cleaner_init_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_GARBAGE_COLLECTOR:
-                wizard.insert_garbage_collector_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_GARBAGE:
-                wizard.remove_garbage_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_CLEANING_ADAPTOR:
+                wizard.insert_cleaning_adaptor_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_CLEANING_ADAPTOR:
+                wizard.remove_cleaning_adaptor_done()
 
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, limit_s=10)
@@ -775,20 +775,20 @@ class TankSurfaceCleanerTest(TestWizardsBase):
         def on_state_changed():
             if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
                 wizard.tank_surface_cleaner_init_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_GARBAGE_COLLECTOR:
-                wizard.insert_garbage_collector_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_GARBAGE:
-                wizard.remove_garbage_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_CLEANING_ADAPTOR:
+                wizard.insert_cleaning_adaptor_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_CLEANING_ADAPTOR:
+                wizard.remove_cleaning_adaptor_done()
 
         wizard.state_changed.connect(on_state_changed)
 
         def on_check_states_changed():
-            if WizardCheckType.EXPOSING_GARBAGE in wizard.check_state \
-                    and wizard.check_state[WizardCheckType.EXPOSING_GARBAGE] == WizardCheckState.RUNNING:
+            if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
+                    and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.RUNNING:
                 time.sleep(1)
                 wizard.cancel()
-            if WizardCheckType.EXPOSING_GARBAGE in wizard.check_state \
-                    and wizard.check_state[WizardCheckType.EXPOSING_GARBAGE] == WizardCheckState.CANCELED:
+            if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
+                    and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
                 assert not self.hw.getUvLedState()[0]
 
         wizard.check_states_changed.connect(on_check_states_changed)
@@ -800,19 +800,19 @@ class TankSurfaceCleanerTest(TestWizardsBase):
         def on_state_changed():
             if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
                 wizard.tank_surface_cleaner_init_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_GARBAGE_COLLECTOR:
-                wizard.insert_garbage_collector_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_GARBAGE:
-                wizard.remove_garbage_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_CLEANING_ADAPTOR:
+                wizard.insert_cleaning_adaptor_done()
+            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_CLEANING_ADAPTOR:
+                wizard.remove_cleaning_adaptor_done()
 
         wizard.state_changed.connect(on_state_changed)
 
         def on_check_states_changed():
-            if WizardCheckType.EXPOSING_GARBAGE in wizard.check_state \
-                    and wizard.check_state[WizardCheckType.EXPOSING_GARBAGE] == WizardCheckState.RUNNING:
+            if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
+                    and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.RUNNING:
                 self.exposure_start_time = time.time()
-            if WizardCheckType.EXPOSING_GARBAGE in wizard.check_state \
-                    and wizard.check_state[WizardCheckType.EXPOSING_GARBAGE] == WizardCheckState.CANCELED:
+            if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
+                    and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
                 self.exposure_end_time = time.time()
                 duration = self.exposure_end_time - self.exposure_start_time
                 time_diff = abs(duration - self.hw.config.tankCleaningExposureTime)

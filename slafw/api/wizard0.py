@@ -227,12 +227,12 @@ class Wizard0:
         self._wizard.tank_surface_cleaner_init_done()
 
     @auto_dbus
-    def insert_garbage_collector_done(self):
-        self._wizard.insert_garbage_collector_done()
+    def insert_cleaning_adaptor_done(self):
+        self._wizard.insert_cleaning_adaptor_done()
 
     @auto_dbus
-    def remove_garbage_done(self):
-        self._wizard.remove_garbage_done()
+    def remove_cleaning_adaptor_done(self):
+        self._wizard.remove_cleaning_adaptor_done()
 
     def _started_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"identifier": self.identifier}, [])
