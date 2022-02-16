@@ -29,6 +29,7 @@ import pydbus
 from gi.repository import GLib
 
 import slafw.tests.mocks.mc_port
+from slafw.functions.system import set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw import defines, test_runtime
 from slafw import libPrinter
@@ -114,9 +115,7 @@ defines.counterLog = TEMP_DIR / defines.counterLogFilename
 
 # disable SL1SUpgradeDowngradeWizard by default
 defines.printer_model = TEMP_DIR / "model"
-defines.printer_model.mkdir(exist_ok=True, parents=True)
-model_file = defines.printer_model / printer_model.name.lower()
-model_file.touch()
+set_configured_printer_model(printer_model)
 
 defines.firstboot = TEMP_DIR / "firstboot"
 defines.factory_enable = TEMP_DIR / "factory_mode_enabled"

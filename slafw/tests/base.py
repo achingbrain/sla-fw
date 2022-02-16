@@ -69,6 +69,7 @@ class SlafwTestCase(DBusTestCase):
     event_thread: threading.Thread = None
 
     exposure_screen_patcher = patch("slafw.hardware.base.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen)
+    printer_model = PrinterModel()
 
     @classmethod
     def setUpClass(cls):
@@ -126,14 +127,13 @@ class SlafwTestCase(DBusTestCase):
         defines.wizardDataPathFactory = self.TEMP_DIR / defines.wizardDataFilename
         defines.hwConfigPath = self.TEMP_DIR / "hwconfig.toml"
         defines.hwConfigPathFactory = self.TEMP_DIR / "hwconfig-factory.toml"
-        defines.printer_model_run = self.SAMPLES_DIR / "model"
         defines.printer_model = self.TEMP_DIR / "model"
-        set_configured_printer_model(PrinterModel.SL1) # Set SL1 as the current model
+        set_configured_printer_model(self.printer_model)
         defines.firstboot = self.TEMP_DIR / "firstboot"
         defines.expoPanelLogPath = self.TEMP_DIR / defines.expoPanelLogFileName
         defines.factory_enable = self.TEMP_DIR / "factory_mode_enabled"
         defines.factory_enable.touch()  # Enable factory mode
-        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / "sl1"
+        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / self.printer_model.name.lower()
 
         # DBus mocks
         nm = NetworkManager()
