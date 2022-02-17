@@ -2,7 +2,7 @@
 # Copyright (C) 2022 Prusa Research a.s - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from dataclasses import dataclass, field
 from typing import List
 
@@ -24,7 +24,7 @@ class UvLedParameters:
         self.safe_default_pwm = self.pwms[2]
 
 
-class UvLed:
+class UvLed(ABC):
     def __init__(self, printer_model: PrinterModel):
         self._printer_model = printer_model
         self._parameters = self.get_parameters()

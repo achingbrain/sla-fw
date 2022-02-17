@@ -5,17 +5,15 @@
 import json
 from datetime import datetime, timedelta
 from shutil import copyfile
-from time import sleep
 from typing import Optional
 from unittest.mock import Mock
 
+from slafw.tests.base import SlafwTestCase
 from slafw import defines
 from slafw.errors.errors import OldExpoPanel
 from slafw.functions.system import set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
-from slafw.states.wizard import WizardId
 from slafw.states.printer import PrinterState
-from slafw.tests.base import SlafwTestCase
 from slafw.libPrinter import Printer
 
 

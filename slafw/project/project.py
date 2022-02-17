@@ -164,9 +164,9 @@ class Project:
             self._config.read_text(zf.read(defines.configFile).decode("utf-8"))
             namelist = zf.namelist()
             zf.close()
-        except Exception as e:
-            self.logger.exception("zip read exception: %s", str(e))
-            raise ProjectErrorCantRead from e
+        except Exception as exception:
+            self.logger.exception("zip read exception")
+            raise ProjectErrorCantRead from exception
         return namelist
 
     def _check_filenames(self, namelist: list) -> list:
@@ -220,7 +220,7 @@ class Project:
         printer_model = get_configured_printer_model()
         if printer_model.name != self._config.printerModel:
             self.logger.error("Wrong printer model '%s', expected '%s'",
-                    self._config.printerModel, printer_model.name)
+                self._config.printerModel, printer_model.name)
             raise ProjectErrorWrongPrinterModel
         if defines.printerVariant != self._config.printerVariant:
             self.warnings.add(VariantMismatch(defines.printerVariant, self._config.printerVariant))

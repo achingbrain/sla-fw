@@ -9,6 +9,7 @@ import unittest
 import numpy
 from PIL import Image
 
+from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.base import SlafwTestCase
 from slafw.configs.hw import HwConfig
 from slafw.image.exposure_image import ExposureImage
@@ -36,7 +37,7 @@ class TestScreen(SlafwTestCase):
         hw_config = HwConfig(self.HW_CONFIG)
         hw_config.read_file()
         self.hw = HardwareMock(hw_config)
-        self.exposure_image = ExposureImage(self.hw)
+        self.exposure_image = ExposureImage(self.hw, PrinterModel.SL1)
         self.exposure_image.start()
 
     def tearDown(self):

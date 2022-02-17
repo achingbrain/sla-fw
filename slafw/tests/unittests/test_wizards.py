@@ -21,8 +21,7 @@ from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.configs.runtime import RuntimeConfig
 from slafw.errors.errors import UVTooDimm, UVTooBright, UVDeviationTooHigh, TowerHomeFailed, TowerEndstopNotReached
-from slafw.functions.system import get_configured_printer_model, \
-    set_configured_printer_model
+from slafw.functions.system import get_configured_printer_model, set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.states.wizard import WizardState, WizardId
 from slafw.tests.base import SlafwTestCase
@@ -206,7 +205,10 @@ class TestDisplayTest(TestWizardsBase):
 class TestUpgradeWizard(TestWizardsBase):
     def setUp(self) -> None:
         super().setUp()
-        self.hw = HardwareMock(HwConfig(defines.hwConfigPath, defines.hwConfigPathFactory, is_master=True))
+        self.hw = HardwareMock(
+            HwConfig(defines.hwConfigPath, defines.hwConfigPathFactory, is_master=True), PrinterModel.SL1S
+        )
+        set_configured_printer_model(PrinterModel.SL1)
 
     def tearDown(self) -> None:
         del self.hw
@@ -604,6 +606,7 @@ class TestUVCalibration(TestWizardsBase):
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock()
         self.exposure_image.printer_model = PrinterModel.SL1
+        set_configured_printer_model(PrinterModel.SL1)
         self.uv_meter = UVMeterMock(self.hw)
 
     def tearDown(self) -> None:

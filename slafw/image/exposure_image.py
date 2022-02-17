@@ -9,6 +9,7 @@ import logging
 from logging.handlers import QueueListener
 from multiprocessing import Process, shared_memory, Queue
 import os
+from pathlib import Path
 from time import monotonic
 from typing import Optional
 
@@ -18,6 +19,7 @@ from PIL import Image, ImageOps
 from slafw import defines
 from slafw.errors.errors import PreloadFailed
 from slafw.hardware.base import BaseHardware
+from slafw.hardware.printer_model import PrinterModel
 from slafw.project.project import Project
 from slafw.project.functions import get_white_pixels
 from slafw.image.resin_calibration import Calibration
@@ -39,8 +41,9 @@ def measure_time(what: str):
 
 class ExposureImage:
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, hardware: BaseHardware):
+    def __init__(self, hardware: BaseHardware, model: PrinterModel):
         self._hw = hardware
+        self._model = model
         self.logger = logging.getLogger(__name__)
         self._project: Optional[Project] = None
         self._calibration: Optional[Calibration] = None
@@ -130,8 +133,7 @@ class ExposureImage:
             try:
                 image1 = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
                 image1.readonly = False
-                image1.paste(self._open_image(os.path.join(
-                    defines.dataPath, defines.perPartesMask)))
+                image1.paste(self._open_image(Path(defines.dataPath) / self._model.name / defines.perPartesMask))
                 image2 = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
                 image2.readonly = False
                 image2.paste(ImageOps.invert(image1))

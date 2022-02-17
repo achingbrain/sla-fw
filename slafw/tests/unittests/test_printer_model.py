@@ -2,11 +2,14 @@
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-from slafw import defines
-from slafw.hardware.exposure_screen import ExposureScreen
-from slafw.hardware.uv_led import UvLed
+
+from unittest.mock import patch
+
 from slafw.tests.base import SlafwTestCase
+from slafw.hardware.exposure_screen import ExposureScreen
 from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.sl1.uv_led import UvLedSL1
+from slafw.tests.mocks.motion_controller import MotionControllerMock
 
 
 class TestPrinterModel(SlafwTestCase):
@@ -51,30 +54,35 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(options.has_UV_calibration, False)
         self.assertEqual(options.has_UV_calculation, False)
 
-    def test_uv_led_parameters(self):
-        # pylint: disable = too-many-function-args
-        uv_led = UvLed(PrinterModel.NONE, False)
+    def test_uv_led_parameters_none(self):
+        uv_led = UvLedSL1(MotionControllerMock.get_5a(), PrinterModel.NONE)
         self.assertEqual(uv_led.parameters.pwms, (0, 250, 0))
         self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)
         self.assertEqual(uv_led.parameters.param_p, 0.75)
         self.assertEqual(uv_led.parameters.min_pwm, 0)
         self.assertEqual(uv_led.parameters.max_pwm, 250)
         self.assertEqual(uv_led.parameters.safe_default_pwm, 0)
-        uv_led = UvLed(PrinterModel.SL1, False) # MC revision < 6c
+
+    def test_uv_led_parameters_sl1(self):
+        uv_led = UvLedSL1(MotionControllerMock.get_5a(), PrinterModel.SL1)  # MC revision < 6c
         self.assertEqual(uv_led.parameters.pwms, (125, 218, 125))
         self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)
         self.assertEqual(uv_led.parameters.param_p, 0.75)
         self.assertEqual(uv_led.parameters.min_pwm, 125)
         self.assertEqual(uv_led.parameters.max_pwm, 218)
         self.assertEqual(uv_led.parameters.safe_default_pwm, 125)
-        uv_led = UvLed(PrinterModel.SL1, True) # MC revision >= 6c
+
+    def test_uv_led_parameters_sl1_500khz(self):
+        uv_led = UvLedSL1(MotionControllerMock.get_6c(), PrinterModel.SL1)  # MC revision >= 6c
         self.assertEqual(uv_led.parameters.pwms, (150, 250, 150))
         self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)
         self.assertEqual(uv_led.parameters.param_p, 0.75)
         self.assertEqual(uv_led.parameters.min_pwm, 150)
         self.assertEqual(uv_led.parameters.max_pwm, 250)
         self.assertEqual(uv_led.parameters.safe_default_pwm, 150)
-        uv_led = UvLed(PrinterModel.SL1S, True)
+
+    def test_uv_led_parameters_sl1s(self):
+        uv_led = UvLedSL1(MotionControllerMock.get_6c(), PrinterModel.SL1S)
         self.assertEqual(uv_led.parameters.pwms, (30, 250, 208))
         self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)
         self.assertEqual(uv_led.parameters.param_p, 0.75)
@@ -82,9 +90,15 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(uv_led.parameters.max_pwm, 250)
         self.assertEqual(uv_led.parameters.safe_default_pwm, 208)
 
-    def test_exposure_screen_sn_transmittance(self):
-        # TODO: test M1
-        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / "sl1s"
-        screen = ExposureScreen(PrinterModel.SL1S)
-        self.assertEqual(screen.transmittance, 99.99)
-        self.assertEqual(screen.serial_number, "CZPX0712X004X061939")
+    def test_exposure_screen_sn_transmittance_sl1s(self):
+        self.exposure_screen_sn_transmittance(PrinterModel.SL1S)
+
+    def test_exposure_screen_sn_transmittance_m1(self):
+        self.exposure_screen_sn_transmittance(PrinterModel.M1)
+
+    def exposure_screen_sn_transmittance(self, model: PrinterModel):
+        hw_node = self.SAMPLES_DIR / "of_node" / model.name.lower()
+        with patch("slafw.defines.exposure_panel_of_node", hw_node):
+            screen = ExposureScreen(model)
+            self.assertEqual(3.99, screen.transmittance)
+            self.assertEqual("CZPX0712X004X061939", screen.serial_number)

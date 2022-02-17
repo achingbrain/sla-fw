@@ -20,6 +20,7 @@ import asyncio
 import glob
 import logging
 import os
+import weakref
 from abc import abstractmethod
 from asyncio import CancelledError, Task
 from datetime import datetime, timedelta, timezone
@@ -29,6 +30,7 @@ from queue import Queue, Empty
 from threading import Thread, Event, Lock
 from time import sleep, monotonic_ns
 from typing import Optional, Any, List, Dict
+from weakref import WeakMethod
 
 import psutil
 from PySignal import Signal
@@ -54,9 +56,9 @@ from slafw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough,
 from slafw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from slafw.functions.system import shut_down
 from slafw.hardware.base import BaseHardware
+from slafw.image.exposure_image import ExposureImage
 from slafw.project.functions import check_ready_to_print
 from slafw.project.project import Project, ExposureUserProfile
-from slafw.image.exposure_image import ExposureImage
 from slafw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from slafw.utils.traceable_collections import TraceableDict
 from slafw.hardware.power_led_action import WarningAction, ErrorAction
@@ -66,7 +68,7 @@ class ExposureCheckRunner:
     def __init__(self, check: ExposureCheck, expo: Exposure):
         self.logger = logging.getLogger(__name__)
         self.check_type = check
-        self.expo = expo
+        self.expo = weakref.proxy(expo)
         self.warnings: List[PrinterWarning] = []
 
     async def start(self):
@@ -287,10 +289,9 @@ class Exposure:
         self.runtime_config = runtime_config
         self.project: Optional[Project] = None
         self.hw = hw
-        self.exposure_image = exposure_image
+        self.exposure_image = weakref.proxy(exposure_image)
         self.resin_count = 0.0
         self.resin_volume = None
-        self._thread: Optional[Thread] = None
         self.tower_position_nm = 0
         self.actual_layer = 0
         self.slow_layers_done = 0
@@ -314,7 +315,8 @@ class Exposure:
         self.warning_result: Optional[Exception] = None
         self.pending_warning = Lock()
         self.estimated_total_time_ms = -1
-        self._thread = Thread(target=self.run)
+        weak_run = WeakMethod(self.run)
+        self._thread = Thread(target=lambda: weak_run()())  # pylint: disable = unnecessary-lambda
         self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
         self.hw.fans_error_changed.connect(self._on_fans_error)

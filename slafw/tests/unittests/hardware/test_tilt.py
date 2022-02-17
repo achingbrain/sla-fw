@@ -2,15 +2,16 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # Copyright (C) 2020-2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 import json
 import os
 import unittest
 from time import sleep
 
+from slafw.tests.base import SlafwTestCase
 from slafw.hardware.axis import AxisId
 from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.hardware.printer_model import PrinterModel
-from slafw.tests.base import SlafwTestCase
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.errors.errors import TiltPositionFailed

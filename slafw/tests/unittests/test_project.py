@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch, Mock
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
@@ -14,6 +14,7 @@ from slafw.errors.errors import ProjectErrorNotFound, ProjectErrorNotEnoughLayer
                                 ProjectErrorCorrupted, ProjectErrorWrongPrinterModel, \
                                 ProjectErrorCantRead, ProjectErrorCalibrationInvalid
 from slafw.errors.warnings import PrintingDirectlyFromMedia
+from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.project.project import Project, ProjectLayer, LayerCalibrationType, ExposureUserProfile
 from slafw.tests.base import SlafwTestCase
 from slafw.utils.bounding_box import BBox
@@ -43,7 +44,7 @@ class TestProject(SlafwTestCase):
         self.assertEqual.__self__.maxDiff = None
         self.hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
         self.hw_config.read_file()
-        self.hw = self.model_specific_hardware(self.hw_config, self.printer_model)
+        self.hw = HardwareSL1(self.hw_config, self.printer_model)
         self.file2copy = self.SAMPLES_DIR / "Resin_calibration_object.sl1"
         (dummy, filename) = os.path.split(self.file2copy)
         self.destfile = Path(os.path.join(defines.previousPrints, filename))
@@ -98,11 +99,9 @@ class TestProject(SlafwTestCase):
         defines.internalProjectPath = backup2
 
     def test_printer_model(self):
-        printer_model = PrinterModel.NONE
-        temp_model_dir = tempfile.TemporaryDirectory().name
-        Path(temp_model_dir / printer_model.name.lower()).touch()
-        with self.assertRaises(ProjectErrorWrongPrinterModel):
-            Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
+        with patch("slafw.project.project.get_configured_printer_model", Mock(return_value = PrinterModel.NONE)):
+            with self.assertRaises(ProjectErrorWrongPrinterModel):
+                Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
 
     def test_read(self):
         project = Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))

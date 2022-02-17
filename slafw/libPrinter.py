@@ -137,7 +137,7 @@ class Printer:
         self.inet = Network(self.hw.cpuSerialNo)
 
         self.logger.info("Initializing ExposureImage")
-        self.exposure_image = ExposureImage(self.hw)
+        self.exposure_image = ExposureImage(self.hw, self.model)
 
         self.logger.info("Registering config D-Bus services")
         self.system_bus = SystemBus()

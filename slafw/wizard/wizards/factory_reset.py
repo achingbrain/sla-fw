@@ -43,7 +43,7 @@ class ResetSettingsGroup(CheckGroup):
         hard_errors: bool = False,
     ):
         checks = [
-            ResetHostname(package.model, hard_errors=hard_errors),
+            ResetHostname(hard_errors=hard_errors),
             ResetAPIKey(hard_errors=hard_errors),
             ResetRemoteConfig(hard_errors=hard_errors),
             ResetHttpDigest(hard_errors=hard_errors),

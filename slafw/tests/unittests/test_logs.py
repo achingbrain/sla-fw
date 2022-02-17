@@ -2,14 +2,14 @@
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import asyncio
 import os
 import unittest
 from functools import partial
 from pathlib import Path
 from threading import Event
 from time import sleep
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pydbus
 from pydbus import SystemBus
@@ -19,6 +19,13 @@ from slafw.tests import mocks
 from slafw.tests.base import SlafwTestCase
 from slafw.api.logs0 import Logs0
 from slafw.states.logs import LogsState, StoreType
+
+
+async def fake_log_export_process(_, log_file: Path):
+    return await asyncio.create_subprocess_shell(
+        '(sleep 1; date) > "{0}"'.format(str(log_file)),
+        stderr=asyncio.subprocess.PIPE
+    )
 
 
 class TestLogs0(SlafwTestCase):
@@ -47,6 +54,7 @@ class TestLogs0(SlafwTestCase):
         self.assertEqual(0, self.logs0.export_progress)
         self.assertEqual(0, self.logs0.store_progress)
 
+    @patch("slafw.state_actions.logs.LogsExport._run_log_export_process", fake_log_export_process)
     def test_cancel(self):
         self.logs0.usb_save()
         for _ in range(50):
@@ -61,10 +69,11 @@ class TestLogs0(SlafwTestCase):
                 break
         self.assertEqual(LogsState.CANCELED.value, self.logs0.state)
 
+    @patch("slafw.state_actions.logs.LogsExport._run_log_export_process", fake_log_export_process)
     def test_usbsave(self):
         self.logs0.usb_save()
         self.waiter.set()
-        for _ in range(300):
+        for _ in range(600):
             sleep(0.1)
             if self.logs0.state in [LogsState.CANCELED.value, LogsState.FAILED.value, LogsState.FINISHED.value]:
                 break

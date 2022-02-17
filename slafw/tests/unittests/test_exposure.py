@@ -10,8 +10,9 @@ from typing import Optional
 
 from unittest.mock import Mock
 
-from slafw.hardware.base import BaseHardware
 from slafw.tests.base import SlafwTestCase
+from slafw.hardware.base import BaseHardware
+from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
 from slafw import defines
 from slafw.errors.errors import (
@@ -236,7 +237,7 @@ class TestExposure(SlafwTestCase):
         self._fake_calibration(hw)
         print(hw.config.limit4fast)
         hw.config.limit4fast = 45
-        exposure_image = ExposureImage(hw)
+        exposure_image = ExposureImage(hw, PrinterModel.SL1S)
         exposure_image.start()
 
         hw.config.forceSlowTiltHeight = 0  # do not force any extra slow tilts

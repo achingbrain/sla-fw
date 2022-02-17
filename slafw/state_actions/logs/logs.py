@@ -235,10 +235,7 @@ class LogsExport(ABC, Thread):
             self._logger.exception("Create display usage exception")
 
         self._logger.debug("Running log export script")
-        self.proc = await asyncio.create_subprocess_shell(
-            'export_logs.bash "{0}"'.format(str(log_file)),
-            stderr=asyncio.subprocess.PIPE
-        )
+        self.proc = await self._run_log_export_process(log_file)
 
         self._logger.debug("Waiting for log export to finish")
         _, stderr = await self.proc.communicate()
@@ -270,6 +267,14 @@ class LogsExport(ABC, Thread):
 
         if log_tar_file.is_file():
             return log_tar_file
+
+    @staticmethod
+    async def _run_log_export_process(log_file: Path) -> asyncio.subprocess:
+        return await asyncio.create_subprocess_shell(
+            'export_logs.bash "{0}"'.format(str(log_file)),
+            stderr=asyncio.subprocess.PIPE
+        )
+
 
     @abstractmethod
     async def store_log(self, src: Path):

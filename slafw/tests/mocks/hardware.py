@@ -13,6 +13,7 @@ from slafw.hardware.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.tests.mocks.exposure_screen import ExposureScreen
+from slafw.tests.mocks.motion_controller import MotionControllerMock
 
 
 class HardwareMock:
@@ -91,8 +92,8 @@ class HardwareMock:
         self.uv_led_overheat = False
         self.fans_error_changed = Signal()
 
-        self.mcc = Mock()
-        self.uv_led = UvLedSL1(self.mcc, self.printer_model)
+        self.mcc = MotionControllerMock.get_6c()
+        self.uv_led = UvLedSL1(self.mcc, printer_model)
 
     tower_position_nm = PropertyMock(return_value=150_000_000)
 

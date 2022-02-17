@@ -10,7 +10,9 @@ import unittest
 from time import sleep
 from unittest.mock import Mock, patch
 
+
 from slafw.hardware.base import BaseHardware
+from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.tests.base import SlafwTestCase
 from slafw import defines
 from slafw.configs.hw import HwConfig
@@ -24,7 +26,7 @@ class TestLibHardwareConnect(SlafwTestCase):
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
-        self.hw = self.model_specific_hardware(self.hw_config, self.printer_model)
+        self.hw = HardwareSL1(self.hw_config, self.printer_model)
 
         try:
             self.hw.connect()
@@ -71,7 +73,7 @@ class TestLibHardware(SlafwTestCase):
         super().__init__(*args, **kwargs)
         self.hw_config = None
         self.config = None
-        self.hw: BaseHardware = None
+        self.hw: HardwareSL1 = None
 
     def setUp(self):
         super().setUp()
@@ -80,7 +82,7 @@ class TestLibHardware(SlafwTestCase):
         defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
 
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg", is_master=True)
-        self.hw = self.model_specific_hardware(self.hw_config, self.printer_model)
+        self.hw = HardwareSL1(self.hw_config, self.printer_model)
 
         try:
             self.hw.connect()
