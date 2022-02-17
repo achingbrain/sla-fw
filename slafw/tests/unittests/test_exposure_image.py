@@ -11,10 +11,10 @@ from PIL import Image
 
 from slafw.tests.base import SlafwTestCase
 from slafw.configs.hw import HwConfig
-from slafw.tests.mocks.hardware import Hardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.project.project import Project
 from slafw import defines, test_runtime
+from slafw.tests.mocks.hardware import HardwareMock
 
 
 class TestScreen(SlafwTestCase):
@@ -35,7 +35,7 @@ class TestScreen(SlafwTestCase):
         test_runtime.testing = True
         hw_config = HwConfig(self.HW_CONFIG)
         hw_config.read_file()
-        self.hw = Hardware(hw_config)
+        self.hw = HardwareMock(hw_config)
         self.exposure_image = ExposureImage(self.hw)
         self.exposure_image.start()
 

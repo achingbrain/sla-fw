@@ -8,26 +8,28 @@ from typing import Optional
 from asyncio import sleep, gather
 
 from slafw import defines
+from slafw.configs.runtime import RuntimeConfig
 from slafw.errors.errors import DisplayTestFailed
 from slafw.functions.system import FactoryMountedRW
 from slafw.hardware.base import BaseHardware
+from slafw.image.exposure_image import ExposureImage
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from slafw.wizard.setup import Configuration, TankSetup, Resource
-from slafw.wizard.wizard import WizardDataPackage
 
 
 class DisplayTest(DangerousCheck):
-    def __init__(self, package: WizardDataPackage):
+    def __init__(self, hw: BaseHardware, exposure_image: ExposureImage,
+                 runtime_config: RuntimeConfig):
         super().__init__(
-            package.hw,
+            hw,
             WizardCheckType.DISPLAY,
             Configuration(TankSetup.REMOVED, None),
             [Resource.UV, Resource.TILT, Resource.TOWER_DOWN, Resource.TOWER],
         )
-        self._exposure_image = package.exposure_image
-        self._runtime_config = package.runtime_config
+        self._exposure_image = exposure_image
+        self._runtime_config = runtime_config
 
         self.result: Optional[bool] = None
 

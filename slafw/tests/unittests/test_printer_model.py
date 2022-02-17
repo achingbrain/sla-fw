@@ -52,6 +52,7 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(options.has_UV_calculation, False)
 
     def test_uv_led_parameters(self):
+        # pylint: disable = too-many-function-args
         uv_led = UvLed(PrinterModel.NONE, False)
         self.assertEqual(uv_led.parameters.pwms, (0, 250, 0))
         self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)

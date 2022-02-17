@@ -9,20 +9,21 @@ from PySignal import Signal
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.hardware.uv_led import UvLedSL1, UvLed2
-from slafw.hardware.sl1 import Fan
+from slafw.hardware.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.tests.mocks.exposure_screen import ExposureScreen
 
 
-class Hardware:
+class HardwareMock:
     # pylint: disable = too-many-instance-attributes
     # pylint: disable = no-self-use
     # pylint: disable = too-many-statements
-    def __init__(self, config: HwConfig = None):
+    def __init__(self, config: HwConfig = None,
+                 printer_model: PrinterModel = PrinterModel.SL1):
         if config is None:
             config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)    # TODO better!
-
+        self.printer_model = printer_model
         self.cpuSerialNo = "CZPX0819X009XC00151"
         self.mcSerialNo = "CZPX0619X678XC12345"
 
@@ -43,7 +44,7 @@ class Hardware:
         self.mcFwVersion = "1.0.0"
         self.mcBoardRevision = "6c"
 
-        self.exposure_screen = ExposureScreen()
+        self.exposure_screen = ExposureScreen(self.printer_model)
         self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 
         self.led_temp_idx = 0
@@ -91,10 +92,7 @@ class Hardware:
         self.fans_error_changed = Signal()
 
         self.mcc = Mock()
-        if self.printer_model in [PrinterModel.SL1, PrinterModel.SL1s, PrinterModel.M1]:
-            self.uv_led = UvLedSL1(self.mcc, self.printer_model)
-        else:
-            self.uv_led = UvLed2(self.mcc, self.printer_model)
+        self.uv_led = UvLedSL1(self.mcc, self.printer_model)
 
     tower_position_nm = PropertyMock(return_value=150_000_000)
 

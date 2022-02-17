@@ -9,13 +9,14 @@ import logging
 from time import sleep
 
 from slafw.configs.hw import HwConfig
-from slafw.hardware.sl1 import Hardware
+from slafw.hardware.hardware_sl1 import HardwareSL1
+from slafw.hardware.printer_model import PrinterModel
 
 logging.basicConfig(format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s", level = logging.DEBUG)
 
-
+printer_model = PrinterModel.SL1
 hw_config = HwConfig()
-hw = Hardware(hw_config)
+hw = HardwareSL1(hw_config, printer_model)
 
 hw.tilt.sync_wait()
 hw.tilt.move_absolute(5300)

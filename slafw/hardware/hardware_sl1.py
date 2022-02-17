@@ -21,7 +21,7 @@ from functools import cached_property, partial
 from math import ceil
 from threading import Thread
 from time import sleep, monotonic
-from typing import List, Optional, Any, Tuple, Dict
+from typing import List, Optional, Any, Tuple
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
@@ -535,7 +535,7 @@ class HardwareSL1(BaseHardware):
             # Avoid too frequent controls, MC does not report errors a few seconds after control
             return
 
-        if self.config.rpmControlOverride or not self.uv_fan.auto_control:
+        if self.config.rpmControlOverride or not self.fans[0].auto_control:
             self.logger.debug("Skipping auto UV fan control - disabled")
             return
 

@@ -54,7 +54,7 @@ class TestWizardsMenu(AdminMenu):
     def api_display_test(self):
         self._printer.action_manager.start_wizard(
             DisplayTestWizard(self._printer.hw, self._printer.exposure_image,
-                              self._printer.runtime_config, self._printer.model)
+                              self._printer.runtime_config)
         )
 
     def api_unpacking_c(self):

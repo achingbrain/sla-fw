@@ -23,7 +23,7 @@ class Options:
 
 
 class PrinterModelMeta(EnumMeta):
-    def __call__(cls, value=-1, *args, **kwargs):
+    def __call__(cls, *args, value=-1, **kwargs):
         if value == -1:
             value = PrinterModel.detect_model()
         return super().__call__(value, *args, **kwargs)

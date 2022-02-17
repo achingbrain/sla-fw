@@ -10,7 +10,6 @@ from pathlib import Path
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.tests.mocks.hardware import Hardware
 from slafw.errors.errors import ProjectErrorNotFound, ProjectErrorNotEnoughLayers, \
                                 ProjectErrorCorrupted, ProjectErrorWrongPrinterModel, \
                                 ProjectErrorCantRead, ProjectErrorCalibrationInvalid
@@ -44,7 +43,7 @@ class TestProject(SlafwTestCase):
         self.assertEqual.__self__.maxDiff = None
         self.hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
         self.hw_config.read_file()
-        self.hw = Hardware(self.hw_config)
+        self.hw = self.model_specific_hardware(self.hw_config, self.printer_model)
         self.file2copy = self.SAMPLES_DIR / "Resin_calibration_object.sl1"
         (dummy, filename) = os.path.split(self.file2copy)
         self.destfile = Path(os.path.join(defines.previousPrints, filename))
@@ -99,13 +98,11 @@ class TestProject(SlafwTestCase):
         defines.internalProjectPath = backup2
 
     def test_printer_model(self):
-        hw = Hardware(self.hw_config)
-
         printer_model = PrinterModel.NONE
         temp_model_dir = tempfile.TemporaryDirectory().name
         Path(temp_model_dir / printer_model.name.lower()).touch()
         with self.assertRaises(ProjectErrorWrongPrinterModel):
-            Project(hw, str(self.SAMPLES_DIR / "numbers.sl1"))
+            Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))
 
     def test_read(self):
         project = Project(self.hw, str(self.SAMPLES_DIR / "numbers.sl1"))

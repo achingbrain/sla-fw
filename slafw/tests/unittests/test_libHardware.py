@@ -8,13 +8,12 @@
 import os
 import unittest
 from time import sleep
-from typing import Optional
 from unittest.mock import Mock, patch
 
+from slafw.hardware.base import BaseHardware
 from slafw.tests.base import SlafwTestCase
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.hardware.sl1 import Hardware
 from slafw.errors.errors import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
 from slafw.hardware.power_led import PowerLedActions
 
@@ -25,7 +24,7 @@ class TestLibHardwareConnect(SlafwTestCase):
         defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
         defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
-        self.hw = Hardware(self.hw_config)
+        self.hw = self.model_specific_hardware(self.hw_config, self.printer_model)
 
         try:
             self.hw.connect()
@@ -72,7 +71,7 @@ class TestLibHardware(SlafwTestCase):
         super().__init__(*args, **kwargs)
         self.hw_config = None
         self.config = None
-        self.hw: Optional[Hardware] = None
+        self.hw: BaseHardware = None
 
     def setUp(self):
         super().setUp()
@@ -81,7 +80,7 @@ class TestLibHardware(SlafwTestCase):
         defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
 
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg", is_master=True)
-        self.hw = Hardware(self.hw_config)
+        self.hw = self.model_specific_hardware(self.hw_config, self.printer_model)
 
         try:
             self.hw.connect()

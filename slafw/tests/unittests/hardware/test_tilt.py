@@ -6,13 +6,13 @@ import json
 import os
 import unittest
 from time import sleep
-from typing import Optional
 
+from slafw.hardware.axis import AxisId
+from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.base import SlafwTestCase
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.hardware.sl1 import Hardware, Axis
 from slafw.errors.errors import TiltPositionFailed
 from slafw.hardware.tilt import TiltProfile
 
@@ -24,7 +24,7 @@ class TestTilt(SlafwTestCase):
         super().__init__(*args, **kwargs)
         self.hw_config = None
         self.config = None
-        self.hw: Optional[Hardware] = None
+        self.hw: HardwareSL1 = None
 
     def setUp(self):
         super().setUp()
@@ -33,7 +33,7 @@ class TestTilt(SlafwTestCase):
         defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
 
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
-        self.hw = Hardware(self.hw_config)
+        self.hw = HardwareSL1(self.hw_config, self.printer_model)
 
         try:
             self.hw.connect()
@@ -137,15 +137,15 @@ class TestTilt(SlafwTestCase):
 
     def test_sensitivity(self):
         with self.assertRaises(ValueError):
-            self.hw.updateMotorSensitivity(Axis.TILT, -3)
+            self.hw.updateMotorSensitivity(AxisId.TILT, -3)
         with self.assertRaises(ValueError):
-            self.hw.updateMotorSensitivity(Axis.TILT, 3)
+            self.hw.updateMotorSensitivity(AxisId.TILT, 3)
         sensitivities = [-2, -1, 0, 1, 2]
         with open(os.path.join(defines.dataPath, PrinterModel.SL1.name, "default.tilt"), "r") as f:
             original_profiles = json.loads(f.read())
         for sensitivity in sensitivities:
-            adjusted_profiles = self.hw.get_profiles_with_sensitivity(original_profiles, Axis.TILT, sensitivity)
-            self.hw.updateMotorSensitivity(Axis.TILT, sensitivity)
+            adjusted_profiles = self.hw.get_profiles_with_sensitivity(original_profiles, AxisId.TILT, sensitivity)
+            self.hw.updateMotorSensitivity(AxisId.TILT, sensitivity)
             self.assertEqual(self.hw.tilt.profiles, adjusted_profiles)
 
     #FIXME: test go_to_fullstep. Simulator behaves differently from real HW ()

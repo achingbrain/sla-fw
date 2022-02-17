@@ -26,7 +26,7 @@ from slafw import defines
 from slafw.functions.system import get_update_channel
 from slafw.configs.toml import TomlConfig
 from slafw.configs.stats import TomlConfigStats
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 
 
 def create_summary(hw: BaseHardware, logger: logging.Logger, summary_path:
@@ -155,7 +155,7 @@ def log_network() -> Mapping[str, Any]:
     return data
 
 
-def log_statistics(hw: Hardware) -> Mapping[str, Any]:
+def log_statistics(hw: BaseHardware) -> Mapping[str, Any]:
     data = TomlConfigStats(defines.statsData, None).load()
     data["UV LED Time Counter [h]"] = hw.getUvStatistics()[0] / 3600
     data["Display Time Counter [h]"] = hw.getUvStatistics()[1] / 3600

@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from typing import List
 
 from slafw.hardware.printer_model import PrinterModel
-from slafw.motion_controller.controller import MotionController
 
 
 @dataclass(eq=False)

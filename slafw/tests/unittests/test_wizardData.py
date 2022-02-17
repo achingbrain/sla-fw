@@ -7,8 +7,8 @@ from unittest.mock import Mock
 
 from slafw import defines
 from slafw.tests.base import SlafwTestCase
+from slafw.tests.mocks.hardware import HardwareMock
 from slafw.wizard.wizards.self_test import SelfTestWizard
-from slafw.tests.mocks.hardware import Hardware
 
 
 class TestSelfTestWizardDataPresent(SlafwTestCase):
@@ -21,7 +21,7 @@ class TestSelfTestWizardDataPresent(SlafwTestCase):
         except FileNotFoundError:
             pass
         defines.factoryMountPoint.mkdir(parents=True)
-        self.wizard = SelfTestWizard(Hardware(), Mock(), Mock())
+        self.wizard = SelfTestWizard(HardwareMock(), Mock(), Mock())
 
     def tearDown(self) -> None:
         del self.wizard

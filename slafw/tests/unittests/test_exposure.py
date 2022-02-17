@@ -10,6 +10,7 @@ from typing import Optional
 
 from unittest.mock import Mock
 
+from slafw.hardware.base import BaseHardware
 from slafw.tests.base import SlafwTestCase
 from slafw.image.exposure_image import ExposureImage
 from slafw import defines
@@ -23,7 +24,7 @@ from slafw.errors.warnings import PrintingDirectlyFromMedia, ResinNotEnough
 from slafw.configs.runtime import RuntimeConfig
 from slafw.exposure.exposure import Exposure
 from slafw.states.exposure import ExposureState
-from slafw.tests.mocks.hardware import Hardware
+from slafw.tests.mocks.hardware import HardwareMock
 
 
 class TestExposure(SlafwTestCase):
@@ -61,8 +62,8 @@ class TestExposure(SlafwTestCase):
         self.exposure_image.sync_preloader.return_value = 100
 
     @staticmethod
-    def setupHw() -> Hardware:
-        hw = Hardware()
+    def setupHw() -> HardwareMock:
+        hw = HardwareMock()
         hw.connect()
         hw.start()
         return hw
@@ -306,7 +307,7 @@ class TestExposure(SlafwTestCase):
         return exposure
 
     @staticmethod
-    def _fake_calibration(hw: Hardware):
+    def _fake_calibration(hw: BaseHardware):
         hw.config.uvPwm = 250
         hw.config.calibrated = True
 

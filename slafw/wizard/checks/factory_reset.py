@@ -32,7 +32,6 @@ from slafw.functions.system import FactoryMountedRW, reset_hostname, \
     compute_uvpwm, get_configured_printer_model
 from slafw.hardware.axis import AxisId
 from slafw.hardware.base import BaseHardware
-from slafw.hardware.printer_model import PrinterModel
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType, SyncCheck, DangerousCheck
 from slafw.wizard.wizards.self_test import SelfTestWizard
@@ -234,24 +233,24 @@ class DisableFactory(SyncCheck):
 
 
 class SendPrinterData(SyncCheck):
-    def __init__(self, hw: BaseHardware, printer_model: PrinterModel):
+    def __init__(self, hw: BaseHardware):
         super().__init__(WizardCheckType.SEND_PRINTER_DATA)
         self._hw = hw
-        self._printer_model = printer_model
 
     def task_run(self, actions: UserActionBroker):
         # pylint: disable = too-many-branches
+        printer_model = get_configured_printer_model()
         # Ensure some UV PWM is set, this ensure SL1 was UV calibrated
         if self._hw.config.uvPwm == 0:
             self._logger.error("Cannot do factory reset UV PWM not set (== 0)")
             raise MissingUVPWM()
 
         # Ensure the printer is able to compute UV PWM
-        if self._printer_model.options.has_UV_calculation:
+        if printer_model.options.has_UV_calculation:
             compute_uvpwm(self._hw)
 
         # Ensure examples are present
-        if not get_all_supported_files(self.printer_model, Path(defines.internalProjectPath)):
+        if not get_all_supported_files(printer_model, Path(defines.internalProjectPath)):
             raise MissingExamples()
 
         # Get wizard data
@@ -271,7 +270,7 @@ class SendPrinterData(SyncCheck):
         # Get UV calibration data
         calibration_dict = {}
         # only for printers with UV calibration
-        if self.printer_model.options.has_UV_calibration:
+        if printer_model.options.has_UV_calibration:
             try:
                 with (defines.factoryMountPoint / UVCalibrationWizard.get_data_filename()).open("rt") as file:
                     calibration_dict = json.load(file)

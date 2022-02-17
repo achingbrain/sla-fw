@@ -21,7 +21,6 @@ from pywayland.utils import AnonymousFile
 
 from slafw import defines
 from slafw.hardware.printer_model import PrinterModel
-from slafw.errors.errors import UnknownPrinterModel
 
 
 @dataclass(eq=False)
@@ -377,7 +376,7 @@ class ExposureScreen:
         self._wayland = Wayland(self.parameters)
 
     def start(self):
-        self._wayland.start(self.parameters, self._find_format())
+        self._wayland.start(self._find_format())
 
     def exit(self):
         self._wayland.exit()

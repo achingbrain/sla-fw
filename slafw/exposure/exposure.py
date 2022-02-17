@@ -500,7 +500,7 @@ class Exposure:
             ExposurePickler(pickle_io).dump(self)
 
     @staticmethod
-    def load(logger: Logger, hw: Hardware) -> Optional[Exposure]:
+    def load(logger: Logger, hw: BaseHardware) -> Optional[Exposure]:
         try:
             with open(defines.lastProjectPickler, "rb") as pickle_io:
                 exposure = ExposureUnpickler(pickle_io).load()

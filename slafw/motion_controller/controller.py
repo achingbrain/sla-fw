@@ -486,6 +486,7 @@ class MotionController:
 
     def getStateBits(self, request: List[str] = None, check_for_updates: bool = True):
         if not request:
+            # pylint: disable = no-member
             request = StatusBits.__members__.keys()  # type: ignore
 
         bits = self.doGetBoolList("?", bit_count=16)
@@ -495,6 +496,7 @@ class MotionController:
         if check_for_updates:
             self._handle_updates(bits)
 
+        # pylint: disable = unsubscriptable-object
         return {name: bits[StatusBits.__members__[name.upper()].value] for name in request}
 
     @safe_call(False, MotionControllerException)

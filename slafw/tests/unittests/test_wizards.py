@@ -13,6 +13,8 @@ from unittest.mock import Mock, AsyncMock, MagicMock, patch
 import time
 import pydbus
 import toml
+
+from slafw.tests.mocks.hardware import HardwareMock
 from slafw.wizard.wizards.new_expo_panel import NewExpoPanelWizard
 
 from slafw import defines
@@ -24,7 +26,6 @@ from slafw.functions.system import get_configured_printer_model, \
 from slafw.hardware.printer_model import PrinterModel
 from slafw.states.wizard import WizardState, WizardId
 from slafw.tests.base import SlafwTestCase
-from slafw.tests.mocks.hardware import Hardware
 from slafw.tests.mocks.uv_meter import UVMeterMock
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType, WizardCheckState
@@ -171,7 +172,7 @@ class TestWizardsBase(SlafwTestCase):
 
 class TestDisplayTest(TestWizardsBase):
     def test_display_test(self):
-        wizard = DisplayTestWizard(Hardware(), self.exposure_image, RuntimeConfig())
+        wizard = DisplayTestWizard(HardwareMock(), self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_DISPLAY_TEST:
@@ -185,7 +186,7 @@ class TestDisplayTest(TestWizardsBase):
         self._run_wizard(wizard)
 
     def test_display_test_fail(self):
-        wizard = DisplayTestWizard(Hardware(), self.exposure_image, RuntimeConfig())
+        wizard = DisplayTestWizard(HardwareMock(), self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
             if wizard.state == WizardState.PREPARE_DISPLAY_TEST:
@@ -205,7 +206,7 @@ class TestDisplayTest(TestWizardsBase):
 class TestUpgradeWizard(TestWizardsBase):
     def setUp(self) -> None:
         super().setUp()
-        self.hw = Hardware(HwConfig(defines.hwConfigPath, defines.hwConfigPathFactory, is_master=True))
+        self.hw = HardwareMock(HwConfig(defines.hwConfigPath, defines.hwConfigPathFactory, is_master=True))
 
     def tearDown(self) -> None:
         del self.hw
@@ -257,7 +258,7 @@ class TestWizards(TestWizardsBase):
         self.hw_config_factory_file = self.TEMP_DIR / "reset_config_factory.toml"
 
         hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True)
-        self.hw = Hardware(hw_config)
+        self.hw = HardwareMock(hw_config)
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock()  # wizards use weakly-reference to exposure_image
 
@@ -520,7 +521,7 @@ class TestWizards(TestWizardsBase):
         self.assertNotEqual(self.hostname.Hostname, "")
         self.assertNotEqual(self.hostname.StaticHostname, "")
         self.assertEqual(self.hostname.StaticHostname, self.hostname.Hostname)
-        printer_model = set_configured_printer_model()
+        printer_model = get_configured_printer_model()
         self.assertEqual(self.hostname.Hostname, defines.default_hostname + printer_model.name.lower())
         self.assertTrue(self.time_date.is_default_ntp(), "NTP reset to default")
         print(self.locale.Locale)
@@ -599,7 +600,7 @@ class TestUVCalibration(TestWizardsBase):
         defines.counterLog = self.TEMP_DIR / "counter.log"
 
         hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True)
-        self.hw = Hardware(hw_config)
+        self.hw = HardwareMock(hw_config)
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock()
         self.exposure_image.printer_model = PrinterModel.SL1
@@ -741,7 +742,7 @@ class TankSurfaceCleanerTest(TestWizardsBase):
 
         hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True)
         hw_config.tankCleaningExposureTime = 5  # Avoid waiting for long exposures
-        self.hw = Hardware(hw_config)
+        self.hw = HardwareMock(hw_config)
         # self.hw.config.tankCleaningExposureTime = 5.0
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock()

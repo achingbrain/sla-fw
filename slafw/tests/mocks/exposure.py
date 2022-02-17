@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from PySignal import Signal
 
 from slafw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
-from slafw.tests.mocks.hardware import Hardware
+from slafw.tests.mocks.hardware import HardwareMock
 from slafw.tests.mocks.project import Project
 
 
@@ -17,7 +17,7 @@ class Exposure:
         self.state = ExposureState.PRINTING
         self.instance_id = 1
         self.change = Signal()
-        self.hw = Hardware()
+        self.hw = HardwareMock()
         self.project = Project()
         self.progress = 0
         self.exception = None

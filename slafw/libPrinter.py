@@ -43,7 +43,8 @@ from slafw.errors.errors import (
     UvTempSensorFailed,
     FanFailed, PrinterException,
 )
-from slafw.functions.files import save_all_remain_wizard_history, get_all_supported_files
+from slafw.functions.files import save_all_remain_wizard_history, \
+    get_all_supported_files
 from slafw.functions.miscellaneous import toBase32hex
 from slafw.functions.system import (
     get_octoprint_auth,
@@ -53,12 +54,11 @@ from slafw.functions.system import (
     FactoryMountedRW,
     reset_hostname, compute_uvpwm,
 )
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
 from slafw.libAsync import AdminCheck
 from slafw.libAsync import SlicerProfileUpdater
-from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.libNetwork import Network
 from slafw.slicer.slicer_profile import SlicerProfile
 from slafw.state_actions.manager import ActionManager
@@ -67,8 +67,10 @@ from slafw.states.wizard import WizardState
 from slafw.wizard.wizards.calibration import CalibrationWizard
 from slafw.wizard.wizards.new_expo_panel import NewExpoPanelWizard
 from slafw.wizard.wizards.self_test import SelfTestWizard
-from slafw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard, SL1DowngradeWizard
-from slafw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
+from slafw.wizard.wizards.sl1s_upgrade import SL1SUpgradeWizard, \
+    SL1DowngradeWizard
+from slafw.wizard.wizards.unboxing import CompleteUnboxingWizard, \
+    KitUnboxingWizard
 from slafw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
 
@@ -292,7 +294,6 @@ class Printer:
         # has to detect its initial HW configuration on first start.
         # M1 is detected as SL1S and switched in admin
         if not defines.firstboot.exists():
-            aaa="aa"
             return
 
         self.hw.config.vatRevision = self.model.options.vat_revision

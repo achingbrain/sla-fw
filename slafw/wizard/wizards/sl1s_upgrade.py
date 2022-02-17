@@ -12,7 +12,7 @@ from slafw.hardware.base import BaseHardware
 from slafw.wizard.checks.sysinfo import SystemInfoTest
 
 from slafw.configs.runtime import RuntimeConfig
-from slafw.functions.system import shut_down, get_configured_printer_model
+from slafw.functions.system import shut_down
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
 from slafw.states.wizard import WizardId, WizardState
@@ -107,12 +107,12 @@ class SL1SUpgradeWizard(UpgradeWizardBase):
         return WizardId.SL1S_UPGRADE
 
     def get_groups(self):
-        self._package.model = PrinterModel.SL1S
         return (
             SingleCheckGroup(SystemInfoTest(self._package.hw)),  # Just save system info BEFORE any cleanups
             SL1SUpgradeCleanup(self._package),
             ShowResultsGroup(),
-            SingleCheckGroup(MarkPrinterModel(self._package.model, self._package.hw.config)),
+            SingleCheckGroup(MarkPrinterModel(PrinterModel.SL1S,
+                                              self._package.hw.config)),
         )
 
 
@@ -121,10 +121,10 @@ class SL1DowngradeWizard(UpgradeWizardBase):
         return WizardId.SL1_DOWNGRADE
 
     def get_groups(self):
-        self._package.model = PrinterModel.SL1
         return (
             SingleCheckGroup(SystemInfoTest(self._package.hw)),  # Just save system info BEFORE any cleanups
             SL1SUpgradeCleanup(self._package),
             ShowResultsGroup(),
-            SingleCheckGroup(MarkPrinterModel(self._package.model, self._package.hw.config)),
+            SingleCheckGroup(MarkPrinterModel(PrinterModel.SL1,
+                                              self._package.hw.config)),
         )

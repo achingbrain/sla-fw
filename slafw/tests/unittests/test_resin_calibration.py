@@ -7,10 +7,10 @@
 
 from slafw.tests.base import SlafwTestCase
 from slafw.image.resin_calibration import Area, AreaWithLabel, AreaWithLabelStripe, Calibration
+from slafw.tests.mocks.hardware import HardwareMock
 from slafw.utils.bounding_box import BBox
 
 from slafw.configs.hw import HwConfig
-from slafw.tests.mocks.hardware import Hardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.project.project import Project
 
@@ -200,7 +200,7 @@ class TestResinCalibration(SlafwTestCase):
         NUMBERS = SlafwTestCase.SAMPLES_DIR / "numbers.sl1"
         hw_config = HwConfig(HW_CONFIG)
         hw_config.read_file()
-        hw = Hardware(hw_config)
+        hw = HardwareMock(hw_config)
         exposure_image = ExposureImage(hw)
         project = Project(hw, NUMBERS)
         project.calibrate_regions = 9

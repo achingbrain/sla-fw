@@ -9,7 +9,7 @@ import os
 import re
 from abc import abstractmethod
 from time import sleep
-from typing import Union, Dict
+from typing import Dict
 
 import bitstring
 import pydbus
@@ -27,6 +27,7 @@ from slafw.motion_controller.controller import MotionController
 
 
 class BaseHardware:
+    # pylint: disable = too-many-instance-attributes
     def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
         self.logger = logging.getLogger(__name__)
         self.config = hw_config
@@ -143,6 +144,7 @@ class BaseHardware:
 
     @functools.lru_cache(maxsize=1)
     def read_cpu_serial(self):
+        # pylint: disable = too-many-locals
         ot = {0: "CZP"}
         sn = "*INVALID*"
         is_kit = True  # kit is more strict

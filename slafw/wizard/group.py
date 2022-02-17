@@ -77,6 +77,7 @@ class CheckGroup(ABC):
                 check.cancel()
 
     def _init_locks(self):
+        # pylint: disable = no-member
         self._locks = {resource: asyncio.Lock() for resource in Resource.__members__.values()}
 
 

@@ -17,8 +17,7 @@ from slafw.configs.value import Value, NumericValue, ListValue, TextValue
 from slafw.hardware.axis import AxisId
 
 if TYPE_CHECKING:
-    from slafw.hardware.sl1 import Hardware
-
+    from slafw.hardware.base import BaseHardware
 
 
 def wrap_hw_config(cls: Config0):
@@ -96,7 +95,7 @@ class Config0:
 
     PropertiesChanged = signal()
 
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: BaseHardware):
         self.hw = hw
         self.hw.config.add_onchange_handler(self._on_change)
 

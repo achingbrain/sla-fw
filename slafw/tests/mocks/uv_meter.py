@@ -10,11 +10,11 @@ from unittest.mock import Mock
 import numpy
 
 from slafw.libUvLedMeterMulti import UvCalibrationData
-from slafw.tests.mocks.hardware import Hardware
+from slafw.tests.mocks.hardware import HardwareMock
 
 
 class UVMeterMock:
-    def __init__(self, hw: Hardware):
+    def __init__(self, hw: HardwareMock):
         self.check_place = Mock(return_value=None)
         self.present = Mock(return_value=True)
         self.connect = Mock()
