@@ -6,21 +6,19 @@
 import os
 import shutil
 import weakref
-
 from pathlib import Path
 from shutil import copyfile
+from tempfile import TemporaryDirectory
 from threading import Thread
-
 # import cProfile
 from typing import Optional
-from tempfile import TemporaryDirectory
 
 from pydbus import SystemBus
 
-from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw import defines, test_runtime
 from slafw.api.printer0 import Printer0
 from slafw.libPrinter import Printer
+from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 
 
 class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):

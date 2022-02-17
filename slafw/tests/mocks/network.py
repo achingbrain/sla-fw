@@ -14,6 +14,7 @@ import re
 from PySignal import Signal
 
 from slafw import defines
+from slafw.functions.system import printer_model_regex
 from slafw.tests import samples
 
 
@@ -36,7 +37,7 @@ class Network:
         destination: str,
         progress_callback: Optional[Callable[[float], None]] = None,
     ):
-        dld_regex = re.compile(defines.examplesURL.replace("{PRINTER_MODEL}", "SL1S?"))
+        dld_regex = re.compile(defines.examplesURL.replace("{PRINTER_MODEL}", printer_model_regex(True)))
         if not dld_regex.match(url):
             raise ValueError(f"Unsupported mock url value: {url}")
         mini_examples = Path(samples.__file__).parent / "mini_examples.tar.gz"

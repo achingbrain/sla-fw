@@ -24,7 +24,6 @@ class HardwareMock:
                  printer_model: PrinterModel = PrinterModel.SL1):
         if config is None:
             config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)    # TODO better!
-        self.printer_model = printer_model
         self.cpuSerialNo = "CZPX0819X009XC00151"
         self.mcSerialNo = "CZPX0619X678XC12345"
 
@@ -45,7 +44,7 @@ class HardwareMock:
         self.mcFwVersion = "1.0.0"
         self.mcBoardRevision = "6c"
 
-        self.exposure_screen = ExposureScreen(self.printer_model)
+        self.exposure_screen = ExposureScreen(printer_model)
         self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 
         self.led_temp_idx = 0

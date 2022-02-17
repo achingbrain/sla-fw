@@ -656,7 +656,7 @@ class Printer0:
 
         :return: Set of extension strings
         """
-        return [".sl1"] #list(self.printer.model.extensions)
+        return list(self.printer.model.extensions)
 
     @auto_dbus
     def list_projects_raw(self) -> List[str]:  # pylint: disable=no-self-use

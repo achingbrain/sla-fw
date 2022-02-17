@@ -7,8 +7,8 @@ import unittest
 
 import pydbus
 
-from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
 from slafw.api.printer0 import Printer0
+from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
 
 
 class TestIntegrationConfig0(SlaFwIntegrationTestCaseBase):

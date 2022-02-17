@@ -6,6 +6,7 @@
 import gc
 import importlib
 import logging
+import os
 import sys
 import tempfile
 import threading
@@ -23,11 +24,13 @@ from gi.repository import GLib
 
 import slafw.tests.mocks.exposure_screen
 import slafw.tests.mocks.mc_port as mc_port
+import slafw.tests.mocks.sl1s_uvled_booster
 from slafw import defines, test_runtime
 from slafw.api.exposure0 import Exposure0
 from slafw.api.printer0 import Printer0
 from slafw.api.wizard0 import Wizard0
 from slafw.exposure.exposure import Exposure
+from slafw.functions.system import set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
 from slafw.libPrinter import Printer
@@ -58,7 +61,8 @@ class SlafwTestCase(TestCase):
         patch("slafw.motion_controller.controller.UInput"),
         patch("slafw.motion_controller.controller.serial", mc_port),
         patch("slafw.libUvLedMeterMulti.serial.tools.list_ports"),
-        patch("slafw.hardware.base.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen)
+        patch("slafw.hardware.base.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen),
+        patch("slafw.hardware.hardware_sl1.Booster", slafw.tests.mocks.sl1s_uvled_booster.BoosterMock)
     ]
 
     def setUp(self) -> None:
@@ -68,6 +72,12 @@ class SlafwTestCase(TestCase):
 
         # Make sure we use unmodified defines
         importlib.reload(defines)
+
+        # gitlab CI job creates model folder in different location due to restricted permissions in Docker container
+        # common path is /builds/project-0/model
+        if "CI" in os.environ:
+            defines.printer_model_run = Path(os.environ["CI_PROJECT_DIR"] + "/model")
+        printer_model = PrinterModel()
 
         # Set stream handler here in order to use stdout already captured by unittest
         self.stream_handler = logging.StreamHandler(sys.stdout)
@@ -100,11 +110,12 @@ class SlafwTestCase(TestCase):
         defines.hwConfigPath = self.TEMP_DIR / "hwconfig.toml"
         defines.hwConfigPathFactory = self.TEMP_DIR / "hwconfig-factory.toml"
         defines.printer_model = self.TEMP_DIR / "model"
+        set_configured_printer_model(printer_model)  # Do not run UpgradeWizard by default
         defines.firstboot = self.TEMP_DIR / "firstboot"
         defines.expoPanelLogPath = self.TEMP_DIR / defines.expoPanelLogFileName
         defines.factory_enable = self.TEMP_DIR / "factory_mode_enabled"
         defines.factory_enable.touch()  # Enable factory mode
-        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / PrinterModel.SL1.name.lower()
+        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / printer_model.name.lower()
         defines.cpuSNFile = self.SAMPLES_DIR / "nvmem"
 
     def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg=None):
@@ -164,8 +175,6 @@ class RefCheckTestCase(TestCase):
                 # Weak reference no longer valid
                 pass
         self.assertEqual(0, instances, f"Found {instances} of {t} left behind by test run")
-
-
 
 
 class SlafwTestCaseDBus(SlafwTestCase, DBusTestCase):

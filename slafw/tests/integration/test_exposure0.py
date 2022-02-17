@@ -10,11 +10,11 @@ from unittest.mock import patch
 
 import pydbus
 from prusaerrors.sl1.codes import Sl1Codes
-from slafw.errors.errors import PrinterException
 
-from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
 from slafw.api.exposure0 import Exposure0State, Exposure0
+from slafw.errors.errors import PrinterException
 from slafw.errors.warnings import AmbientTooHot
+from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
 
 
 class TestIntegrationExposure0(SlaFwIntegrationTestCaseBase):
@@ -30,12 +30,12 @@ class TestIntegrationExposure0(SlaFwIntegrationTestCaseBase):
         # Resolve printer and start the print
         self.bus = pydbus.SystemBus()
         self.printer0 = self.bus.get("cz.prusa3d.sl1.printer0")
-        expo_path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)
+        expo_path = self.printer0.print(str(self.SAMPLES_DIR / ("numbers" + self.printer.model.extension)), False)
         self.exposure0: Exposure0 = self.bus.get("cz.prusa3d.sl1.exposure0", expo_path)
 
     def test_init(self):
         self.assertEqual(Exposure0State.CONFIRM, Exposure0State(self.exposure0.state))
-        self.assertEqual("numbers.sl1", Path(self.exposure0.project_file).name)
+        self.assertEqual("numbers" + self.printer.model.extension, Path(self.exposure0.project_file).name)
         self.assertEqual("numbers", self.exposure0.project_name)
         self.assertEqual(0, self.exposure0.current_layer)
         self.assertEqual(0, self.exposure0.calibration_regions)

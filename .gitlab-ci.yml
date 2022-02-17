@@ -51,13 +51,35 @@ unittest:
   dependencies:
     - mcsim
   script:
+    - mkdir "$CI_PROJECT_DIR/model"
+    - touch "$CI_PROJECT_DIR/model/sl1"
     - sh unittest.sh
 
-integration:
+integration:sl1:
   stage: test
   dependencies:
     - mcsim
   script:
+    - mkdir "$CI_PROJECT_DIR/model"
+    - touch "$CI_PROJECT_DIR/model/sl1"
+    - sh integrationtest.sh
+
+integration:sl1s:
+  stage: test
+  dependencies:
+    - mcsim
+  script:
+    - mkdir "$CI_PROJECT_DIR/model"
+    - touch "$CI_PROJECT_DIR/model/sl1s"
+    - sh integrationtest.sh
+
+integration:m1:
+  stage: test
+  dependencies:
+    - mcsim
+  script:
+    - mkdir "$CI_PROJECT_DIR/model"
+    - touch "$CI_PROJECT_DIR/model/m1"
     - sh integrationtest.sh
 
 pylint:

@@ -199,7 +199,6 @@ class Printer:
         if self.model == PrinterModel.SL1 and not defines.printer_model.exists():
             set_configured_printer_model(self.model)  # Configure model for old SL1 printers
         self._model_update()
-        self.logger.info("Printer model: %s", self.model)
 
         # UV calibration
         if not self.hw.config.is_factory_read() and not self.hw.isKit and self.model == PrinterModel.SL1:

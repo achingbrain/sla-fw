@@ -12,11 +12,13 @@ from typing import Type
 
 import pydbus
 
-from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
-from slafw.exposure.exposure import Exposure
 from slafw.api.exposure0 import Exposure0
-from slafw.state_actions.manager import ActionManager
 from slafw.api.printer0 import Printer0State, Printer0
+from slafw.exposure.exposure import Exposure
+from slafw.functions.system import printer_model_regex
+from slafw.hardware.printer_model import PrinterModel
+from slafw.state_actions.manager import ActionManager
+from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
 
 
 class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
@@ -102,14 +104,16 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
             },
             self.printer0.fans
         )
-        self.assertEqual(
-            {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0},
-            self.printer0.temps
-        )
+        if self.printer.model is PrinterModel.SL1:
+            temps = {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0}
+        elif self.printer.model in [PrinterModel.SL1S, PrinterModel.M1]:
+            temps = {"temp0_celsius": 26.1, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0}
+        self.assertEqual(temps, self.printer0.temps)
         self.assertEqual(type(self.printer0.cpu_temp), float)
         self.assertEqual(
             self.printer0.leds,
-            {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0, "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.8},
+            {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0,
+             "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.8},
         )
         # TODO: Chained dbus call ends in deadlock
         # self.assertEqual(self.printer0.devlist, {})
@@ -134,14 +138,14 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
         self.assertTrue(project_list)
         for project in project_list:
             self.assertTrue(Path(project).is_file())
-            self.assertRegex(Path(project).name, r".*\.sl1")
+            self.assertRegex(Path(project).name, r".*\." + printer_model_regex())
 
     def test_print_start(self):
         # Fake calibration
         self.printer.hw.config.calibrated = True
 
         # Test print start
-        path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)
+        path = self.printer0.print(str(self.SAMPLES_DIR / ("numbers" + self.printer.model.extension)), False)
         self.assertNotEqual(path, "/")
         self.assertEqual(Printer0State.PRINTING, Printer0State(self.printer0.state))
 
@@ -154,7 +158,7 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
 
         # Start and cancel more than max exposures -> force exposure gc
         for _ in range(ActionManager.MAX_EXPOSURES + 1):
-            path = self.printer0.print(str(self.SAMPLES_DIR / "numbers.sl1"), False)
+            path = self.printer0.print(str(self.SAMPLES_DIR / ("numbers" + self.printer.model.extension)), False)
             exposure0 = pydbus.SystemBus().get("cz.prusa3d.sl1.exposure0", path)
             exposure0.cancel()
 

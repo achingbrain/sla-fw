@@ -192,6 +192,7 @@ class HardwareSL1(BaseHardware):
             self._value_refresh_task.cancel()
             self._value_refresh_thread.join()
         self.mcc.exit()
+        self.exposure_screen.exit()
 
     async def _value_refresh_task_body(self):
         checkers = [

@@ -100,5 +100,5 @@ class TestPrinterModel(SlafwTestCase):
         hw_node = self.SAMPLES_DIR / "of_node" / model.name.lower()
         with patch("slafw.defines.exposure_panel_of_node", hw_node):
             screen = ExposureScreen(model)
-            self.assertEqual(3.99, screen.transmittance)
+            self.assertEqual(4.17, screen.transmittance)
             self.assertEqual("CZPX0712X004X061939", screen.serial_number)

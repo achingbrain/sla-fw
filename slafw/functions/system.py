@@ -147,3 +147,17 @@ def set_hostname(hostname: str) -> None:
 def reset_hostname() -> None:
     printer_model = get_configured_printer_model()
     set_hostname(defines.default_hostname + printer_model.name.lower())
+
+def printer_model_regex(upper_case: bool = False) -> str:
+    """
+    upper_case: Names are in upper case if True. Default is False -> lowercase
+    returns regexp group matching one of the printer model names except for NONE. Ex.: (sl1|sl1s|m1)
+    """
+    model_string = "("
+    for model in PrinterModel:
+        if model is not PrinterModel.NONE:
+            if upper_case:
+                model_string += model.name + "|"
+            else:
+                model_string += model.name.lower() + "|"
+    return model_string[:-1] + ")"

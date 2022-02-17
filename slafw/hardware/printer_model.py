@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from enum import unique, Enum, EnumMeta
@@ -48,6 +49,8 @@ class PrinterModel(Enum, metaclass=PrinterModelMeta):
             if Path(defines.printer_model_run / m.name.lower()).exists():
                 model = m
                 break
+        logger = logging.getLogger()
+        logger.info("Printer model: %s", model)
         return model
 
     # TODO: remove code related to handling projects.
@@ -60,6 +63,15 @@ class PrinterModel(Enum, metaclass=PrinterModelMeta):
                 self.SL1S: {".sl1s"},
                 self.M1: {".m1"}
             }[self]
+
+    # TODO: remove code related to handling projects.
+    # Filemanager should be the only one who takes care about files
+    @property
+    def extension(self) -> str:
+        if self is PrinterModel.NONE:
+            return ""
+        return "." + str(self.name).lower()
+
 
     @property
     def options(self) -> Options:

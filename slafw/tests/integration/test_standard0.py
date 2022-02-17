@@ -12,8 +12,8 @@ from time import sleep
 from pydbus import SystemBus, Variant
 
 from slafw import defines
-from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
 from slafw.api.standard0 import Standard0, Standard0State
+from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
 
 
 class TestIntegrationStandard0(SlaFwIntegrationTestCaseBase):
@@ -25,7 +25,7 @@ class TestIntegrationStandard0(SlaFwIntegrationTestCaseBase):
         self.printer.hw.config.fanCheck = False
         self.printer.hw.config.coverCheck = False
         self.printer.hw.config.resinSensor = False
-        self.standard =  Standard0(self.printer)
+        self.standard = Standard0(self.printer)
 
         # dbus
         bus = SystemBus()
@@ -33,7 +33,7 @@ class TestIntegrationStandard0(SlaFwIntegrationTestCaseBase):
 
         # Resolve standard printer and open project
         self.standard0: Standard0 = bus.get("cz.prusa3d.sl1.standard0")
-        self.standard0.cmd_select(str(self.SAMPLES_DIR / "numbers.sl1"), False, False)
+        self.standard0.cmd_select(str(self.SAMPLES_DIR / ("numbers" + self.printer.model.extension)), False, False)
 
     def tearDown(self):
         self.standard0_dbus.unpublish()
@@ -52,7 +52,7 @@ class TestIntegrationStandard0(SlaFwIntegrationTestCaseBase):
         # self.assertEqual(type,  type(self.standard0.net_ip))
 
     def test_read_project_values(self):
-        self.assertEqual("numbers.sl1",  os.path.basename(self.standard0.project_path))
+        self.assertEqual("numbers" + self.printer.model.extension,  os.path.basename(self.standard0.project_path))
         self.assertDictEqual(
             {
                 'exposure_time_ms': 1000,

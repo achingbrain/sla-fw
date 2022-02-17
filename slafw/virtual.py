@@ -44,6 +44,10 @@ from slafw.tests.mocks.dbus.rauc import Rauc
 from slafw.tests.mocks.exposure_screen import ExposureScreen
 from slafw.tests.mocks.sl1s_uvled_booster import BoosterMock
 
+# gitlab CI job creates model folder in different location due to restricted permissions in Docker container
+# common path is /builds/project-0/model
+if "CI" in os.environ:
+    defines.printer_model_run = Path(os.environ["CI_PROJECT_DIR"] + "/model")
 printer_model = PrinterModel()
 
 # use system locale settings for translation

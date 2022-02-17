@@ -32,7 +32,7 @@ class TestStartupSL1S(SlafwTestCaseDBus, RefCheckTestCase):
         # Default setup
         self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
         self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1S)
-        self.printer.hw.exposure_screen.transmittance = 3.99
+        self.printer.hw.exposure_screen.transmittance = 4.17
         self.printer.hw.sl1s_booster = Mock()
         self.printer.hw.config.showUnboxing = False
         self.printer.hw.config.showWizard = False

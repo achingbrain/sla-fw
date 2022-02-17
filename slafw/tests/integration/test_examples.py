@@ -1,6 +1,7 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 import os
 import unittest
 from tempfile import TemporaryDirectory
@@ -10,10 +11,10 @@ from unittest.mock import patch
 import pydbus
 
 from slafw import defines
-from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
-from slafw.states.examples import ExamplesState
 from slafw.api.examples0 import Examples0
 from slafw.api.printer0 import Printer0
+from slafw.states.examples import ExamplesState
+from slafw.tests.integration.base import SlaFwIntegrationTestCaseBase
 from slafw.tests.mocks.network import Network
 
 
