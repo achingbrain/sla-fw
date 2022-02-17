@@ -249,14 +249,16 @@ class StartPositionsCheck(ExposureCheckRunner):
         # Go almost down, then go slowly the rest of the way
         if self.expo.project._exposure_user_profile == ExposureUserProfile.SUPERSLOW:  # pylint: disable=protected-access
             slow_movement_start_position_nm = 35_000_000
-            self.logger.info("SUPERSLOW tilt speed, going fast down, will slow down %d mm above the bottom",
-                             slow_movement_start_position_nm/1_000_000)
-            self.expo.hw.setTowerProfile("homingFast")
-            self.expo.hw.tower_position_nm = slow_movement_start_position_nm
-            while self.expo.hw.isTowerMoving():
-                await asyncio.sleep(0.25)
-            if abs(slow_movement_start_position_nm - self.expo.hw.tower_position_nm) > 10:
-                raise TowerMoveFailed()
+            # Only move to the slow_movement_start_position_nm if too high
+            if self.expo.hw.tower_position_nm > slow_movement_start_position_nm:
+                self.logger.info("SUPERSLOW tilt speed, going fast down, will slow down %d mm above the bottom",
+                                 slow_movement_start_position_nm/1_000_000)
+                self.expo.hw.setTowerProfile("homingFast")
+                self.expo.hw.tower_position_nm = slow_movement_start_position_nm
+                while self.expo.hw.isTowerMoving():
+                    await asyncio.sleep(0.25)
+                if abs(slow_movement_start_position_nm - self.expo.hw.tower_position_nm) > 10:
+                    raise TowerMoveFailed()
             self.logger.info("SUPERSLOW tilt speed, setting tower to superSlow profile")
             self.expo.hw.setTowerProfile("superSlow")
         else:
@@ -602,6 +604,8 @@ class Exposure:
         position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
 
         if self.hw.config.tilt:
+            if self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+                self._tilt_speed = TiltSpeed.SUPERSLOW
             minimal_tower_hop_steps = self.hw.config.calcMicroSteps(self.hw.config.superSlowTowerHopHeight_mm)
             self.logger.info("%s tilt up", self._tilt_speed.name)
             if self.hw.config.layerTowerHop or self._tilt_speed == TiltSpeed.SUPERSLOW:
@@ -627,7 +631,6 @@ class Exposure:
         self.hw.setTowerCurrent(defines.towerHoldCurrent)
 
         self._tilt_speed = TiltSpeed(self.project.exposure_user_profile)
-
         white_pixels = self.exposure_image.sync_preloader()
         self.exposure_image.screenshot_rename(second)
 
@@ -945,7 +948,7 @@ class Exposure:
             if command == "feedme" or self.low_resin:
                 self.hw.powerLed("warn")
                 if self.hw.config.tilt:
-                    self.hw.tilt.layer_up_wait()
+                    self.hw.tilt.layer_up_wait(self._tilt_speed)
                 self.state = ExposureState.FEED_ME
                 sub_command = self.doWait(self.low_resin)
 
@@ -993,6 +996,7 @@ class Exposure:
                 " 'remaining [ml]': %d,"
                 " 'RAM': '%.1f%%',"
                 " 'CPU': '%.1f%%'"
+                " 'tilt_speed: %s'"
                 " }",
                 self.actual_layer + 1,
                 project.total_layers,
@@ -1008,6 +1012,7 @@ class Exposure:
                 self.remain_resin_ml if self.remain_resin_ml else -1,
                 psutil.virtual_memory().percent,
                 psutil.cpu_percent(),
+                self._tilt_speed.name
             )
 
             times_ms = list(layer.times_ms)
