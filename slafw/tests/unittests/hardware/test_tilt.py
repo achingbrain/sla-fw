@@ -8,14 +8,14 @@ import os
 import unittest
 from time import sleep
 
-from slafw.tests.base import SlafwTestCase
-from slafw.hardware.axis import AxisId
-from slafw.hardware.hardware_sl1 import HardwareSL1
-from slafw.hardware.printer_model import PrinterModel
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.errors.errors import TiltPositionFailed
+from slafw.hardware.axis import AxisId
+from slafw.hardware.hardware_sl1 import HardwareSL1
+from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.tilt import TiltProfile
+from slafw.tests.base import SlafwTestCase
 
 
 class TestTilt(SlafwTestCase):

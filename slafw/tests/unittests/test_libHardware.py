@@ -10,14 +10,13 @@ import unittest
 from time import sleep
 from unittest.mock import Mock, patch
 
-
-from slafw.hardware.base import BaseHardware
-from slafw.hardware.hardware_sl1 import HardwareSL1
-from slafw.tests.base import SlafwTestCase
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.errors.errors import MotionControllerException, MotionControllerWrongRevision, MotionControllerWrongFw
+from slafw.errors.errors import MotionControllerException, \
+    MotionControllerWrongRevision, MotionControllerWrongFw
+from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.hardware.power_led import PowerLedActions
+from slafw.tests.base import SlafwTestCase
 
 
 class TestLibHardwareConnect(SlafwTestCase):

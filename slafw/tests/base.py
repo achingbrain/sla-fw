@@ -12,16 +12,26 @@ import threading
 import warnings
 import weakref
 from pathlib import Path
-from unittest.mock import Mock, patch
 from types import FrameType
+from unittest.mock import Mock, patch
 
 import pydbus
 from PIL import Image, ImageChops
 from dbusmock import DBusTestCase
 from gi.repository import GLib
 
-import slafw.tests.mocks.mc_port
 import slafw.tests.mocks.exposure_screen
+import slafw.tests.mocks.mc_port
+import slafw.tests.mocks.mc_port as mc_port
+from slafw import defines, test_runtime
+from slafw.api.exposure0 import Exposure0
+from slafw.api.printer0 import Printer0
+from slafw.api.wizard0 import Wizard0
+from slafw.exposure.exposure import Exposure
+from slafw.functions.system import set_configured_printer_model
+from slafw.hardware.printer_model import PrinterModel
+from slafw.image.exposure_image import ExposureImage
+from slafw.libPrinter import Printer
 from slafw.tests import samples
 from slafw.tests.mocks.dbus.filemanager0 import FileManager0
 from slafw.tests.mocks.dbus.hostname import Hostname
@@ -31,26 +41,7 @@ from slafw.tests.mocks.dbus.rauc import Rauc
 from slafw.tests.mocks.dbus.systemd import Systemd
 from slafw.tests.mocks.dbus.timedate import TimeDate
 from slafw.tests.mocks.gettext import fake_gettext
-
-fake_gettext()
-
-sys.modules["gpio"] = Mock()
-sys.modules["serial"] = slafw.tests.mocks.mc_port
-sys.modules["serial.tools.list_ports"] = Mock()
-sys.modules["evdev"] = Mock()
-
-# These needs to be imported after sys.module override
-# pylint: disable = wrong-import-position
-from slafw.libPrinter import Printer
-from slafw.api.printer0 import Printer0
-from slafw.exposure.exposure import Exposure
-from slafw.image.exposure_image import ExposureImage
 from slafw.wizard.wizard import Wizard
-from slafw.api.exposure0 import Exposure0
-from slafw.api.wizard0 import Wizard0
-from slafw.hardware.printer_model import PrinterModel
-from slafw import defines, test_runtime
-from slafw.functions.system import set_configured_printer_model
 
 
 class SlafwTestCase(DBusTestCase):
@@ -68,7 +59,14 @@ class SlafwTestCase(DBusTestCase):
     event_loop = GLib.MainLoop()
     event_thread: threading.Thread = None
 
-    exposure_screen_patcher = patch("slafw.hardware.base.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen)
+    patches = [
+        patch("slafw.motion_controller.controller.gpio"),
+        patch("slafw.motion_controller.controller.UInput"),
+        patch("slafw.motion_controller.controller.serial", mc_port),
+        patch("slafw.libUvLedMeterMulti.serial.tools.list_ports"),
+        patch("slafw.hardware.base.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen)
+    ]
+
     printer_model = PrinterModel()
 
     @classmethod
@@ -91,8 +89,10 @@ class SlafwTestCase(DBusTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        fake_gettext()
         self.do_ref_check = True
-        self.exposure_screen_patcher.start()
+        for p in self.patches:
+            p.start()
 
         # Make sure we use unmodified defines
         importlib.reload(defines)
@@ -174,7 +174,8 @@ class SlafwTestCase(DBusTestCase):
         for dbus_mock in self.dbus_mocks:
             dbus_mock.unpublish()
 
-        self.exposure_screen_patcher.stop()
+        for p in self.patches:
+            p.stop()
 
         super().tearDown()
 

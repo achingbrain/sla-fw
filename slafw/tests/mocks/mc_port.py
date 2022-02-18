@@ -7,116 +7,16 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from queue import Queue
 from subprocess import Popen, PIPE
 from time import monotonic_ns, sleep
 from typing import Optional
 
 from serial.serialutil import SerialTimeoutException
 
-from slafw import defines, test_runtime
+from slafw import test_runtime
 
 
 class Serial:
-    def __init__(self, *_, **kwargs):
-        self.implementation = None
-        self.port = None
-        if "port" in kwargs:
-            self.port = kwargs["port"]
-            self._set_implementation()
-
-    def _set_implementation(self):
-        if self.port == defines.motionControlDevice:
-            self.implementation = MCSerial()
-        elif self.port == defines.uv_meter_device:
-            self.implementation = UVSerial()
-        else:
-            raise ValueError(f"Port {self.port} has no mock implementation")
-
-    def open(self):
-        if not self.implementation:
-            self._set_implementation()
-
-        return self.implementation.open()
-
-    @property
-    def is_open(self):
-        return self.implementation.is_open
-
-    def close(self):
-        return self.implementation.close()
-
-    def write(self, data):
-        return self.implementation.write(data)
-
-    def read(self):
-        return self.implementation.read()
-
-    def inWaiting(self):
-        return self.implementation.inWaiting()
-
-    def readline(self):
-        return self.implementation.readline()
-
-
-class UVSerial:
-    def __init__(self):
-        self._data = Queue()
-        self._error_cnt = 0
-        self._connect()
-
-    def _connect(self):
-        self._data.put("<done".encode())
-
-    def open(self):
-        pass
-
-    @property
-    def is_open(self):
-        return True
-
-    def close(self):
-        pass
-
-    def write(self, data):
-        if data == b">all\n":
-            self._data.put(data)
-            if test_runtime.uv_on_until and test_runtime.uv_on_until > datetime.now() and not test_runtime.exposure_image.is_screen_black:
-                intensity = self._intensity_response(test_runtime.uv_pwm)
-            else:
-                intensity = 0
-            response = "<" + ",".join([str(intensity) for _ in range(60)]) + ",347"
-            self._data.put(response.encode())
-
-    def read(self):
-        raise NotImplementedError()
-
-    def readline(self):
-        self._simulate_error()
-        sleep(0.1)
-        return self._data.get()
-
-    def _simulate_error(self):
-        if not test_runtime.uv_error_each:
-            return
-
-        self._error_cnt += 1
-        if self._error_cnt > test_runtime.uv_error_each:
-            self._error_cnt = 0
-            self._data.put("<done".encode())
-            raise IOError("Injected error")
-
-    def inWaiting(self):
-        return self._data.qsize()
-
-    @staticmethod
-    def _intensity_response(pwm) -> float:
-        # Linear response
-        # 140 intensity at 200 PWM
-        return 140 * pwm / 200
-
-
-class MCSerial:
     TIMEOUT_MS = 3000
 
     def __init__(self):
