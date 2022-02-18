@@ -6,12 +6,12 @@
 from unittest.mock import Mock
 
 from slafw import defines
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCaseDBus
 from slafw.tests.mocks.hardware import HardwareMock
 from slafw.wizard.wizards.self_test import SelfTestWizard
 
 
-class TestSelfTestWizardDataPresent(SlafwTestCase):
+class TestSelfTestWizardDataPresent(SlafwTestCaseDBus):
     # pylint: disable = protected-access
     def setUp(self) -> None:
         super().setUp()

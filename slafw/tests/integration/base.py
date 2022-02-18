@@ -17,13 +17,13 @@ from tempfile import TemporaryDirectory
 
 from pydbus import SystemBus
 
+from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw import defines, test_runtime
 from slafw.api.printer0 import Printer0
 from slafw.libPrinter import Printer
-from slafw.tests.base import SlafwTestCase
 
 
-class SlaFwIntegrationTestCaseBase(SlafwTestCase):
+class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
     # pylint: disable = too-many-instance-attributes
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

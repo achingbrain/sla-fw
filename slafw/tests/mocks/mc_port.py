@@ -11,7 +11,7 @@ from subprocess import Popen, PIPE
 from time import monotonic_ns, sleep
 from typing import Optional
 
-from serial.serialutil import SerialTimeoutException
+from serial import SerialTimeoutException
 
 from slafw import test_runtime
 

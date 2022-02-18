@@ -7,16 +7,16 @@
 
 import unittest
 
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCaseDBus
 from slafw.slicer.slicer_profile import SlicerProfile
 from slafw.slicer.profile_parser import ProfileParser
 from slafw.slicer.profile_downloader import ProfileDownloader
 from slafw.libNetwork import Network
 
 
-class TestSlicerProfiles(SlafwTestCase):
-    INI = SlafwTestCase.SAMPLES_DIR / "slicer_profiles.ini"
-    CMP = SlafwTestCase.SAMPLES_DIR / "slicer_profiles.toml"
+class TestSlicerProfiles(SlafwTestCaseDBus):
+    INI = SlafwTestCaseDBus.SAMPLES_DIR / "slicer_profiles.ini"
+    CMP = SlafwTestCaseDBus.SAMPLES_DIR / "slicer_profiles.toml"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

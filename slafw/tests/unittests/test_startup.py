@@ -6,9 +6,9 @@ import json
 from datetime import datetime, timedelta
 from shutil import copyfile
 from typing import Optional
-from unittest.mock import Mock
+from unittest.mock import Mock, patch, PropertyMock
 
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw import defines
 from slafw.errors.errors import OldExpoPanel
 from slafw.functions.system import set_configured_printer_model
@@ -17,33 +17,22 @@ from slafw.states.printer import PrinterState
 from slafw.libPrinter import Printer
 
 
-class TestStartup(SlafwTestCase):
+class TestStartupSL1S(SlafwTestCaseDBus, RefCheckTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.printer: Optional[Printer] = None  # This is here to provide type hint on self.printer
 
+    @patch("slafw.hardware.printer_model.PrinterModel.detect_model", Mock(return_value=PrinterModel.SL1S))
     def setUp(self) -> None:
         super().setUp()
         set_configured_printer_model(PrinterModel.SL1S)  # Set SL1S as the current model
 
         self.printer = Printer()
 
-        # Init state
-        # Create mocks for registering callbacks being called. __name__ set to satisfy PySignal
-        unboxed_callback = Mock(__name__="unboxed_callback")
-        self_tested_callback = Mock(__name__="self_tested_callback")
-        mechanically_calibrated_callback = Mock(__name__="mechanically_calibrated_callback")
-        uv_calibrated_callback = Mock(__name__="uv_calibrated_callback")
-
-        # Connect callbacks
-        self.printer.unboxed_changed.connect(unboxed_callback)
-        self.printer.self_tested_changed.connect(self_tested_callback)
-        self.printer.mechanically_calibrated_changed.connect(mechanically_calibrated_callback)
-        self.printer.uv_calibrated_changed.connect(uv_calibrated_callback)
-
         # Default setup
         self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
         self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1S)
+        self.printer.hw.exposure_screen.transmittance = 3.99
         self.printer.hw.sl1s_booster = Mock()
         self.printer.hw.config.showUnboxing = False
         self.printer.hw.config.showWizard = False
@@ -67,27 +56,10 @@ class TestStartup(SlafwTestCase):
         self.assertEqual(self.printer.hw.exposure_screen.serial_number, log[last_key]["panel_sn"])
         self.assertRaises(KeyError, lambda: log[last_key]["counter_s"])
 
-    def test_expo_panel_log_sl1(self):
-        self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1)
-        set_configured_printer_model(PrinterModel.SL1)  # Set SL1 as the current model
-
-        self._run_printer()
-        self.assertEqual(self.printer.state, PrinterState.RUNNING)  # no wizard is running, no error is raised
-        with self.assertRaises(FileNotFoundError):
-            _ = open(defines.expoPanelLogPath, "r")
-
     def test_expo_panel_log_new_record(self):
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
 
         self._run_printer()
-        self.printer.run_make_ready_to_print()
-        for _ in range(100):
-            if self.printer.state == PrinterState.WIZARD:
-                break
-            sleep(0.1)
-        self.assertEqual(self.printer.state, PrinterState.WIZARD)  # wizard is running, no error is raised
-        self.assertEqual(
-            self.printer.action_manager._wizard.identifier, WizardId.NEW_EXPO_PANEL)  # pylint: disable=protected-access
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
         self.assertEqual(3, len(log))  # log holds records from sample file
@@ -99,20 +71,51 @@ class TestStartup(SlafwTestCase):
 
     def test_expo_panel_log_old_panel(self):
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
-        self.printer.hw.exposure_screen.serial_number = Mock(return_value="CZPX2921X021X000262")
+        type(self.printer.hw.exposure_screen).serial_number = PropertyMock(return_value="CZPX2921X021X000262")
         observer = Mock(__name__ = "MockObserver")
         self.printer.exception_occurred.connect(observer)
         self._run_printer()
-        self.printer.run_make_ready_to_print()
-        for _ in range(100):
-            if self.printer.state == PrinterState.WIZARD:
-                break
-            sleep(0.1)
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
         next_to_last_key = list(log)[-2]    # get counter_s from sample file
         observer.assert_called_with(OldExpoPanel(counter_h=round(log[next_to_last_key]["counter_s"] / 3600)))
-        self.assertEqual(self.printer.state, PrinterState.WIZARD)       # wizard is running
+
+    def _run_printer(self):
+        self.printer.setup()
+
+
+class TestStartupSL1(SlafwTestCaseDBus):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.printer: Optional[Printer] = None  # This is here to provide type hint on self.printer
+
+    @patch("slafw.hardware.printer_model.PrinterModel.detect_model", Mock(return_value=PrinterModel.SL1))
+    def setUp(self) -> None:
+        super().setUp()
+        set_configured_printer_model(PrinterModel.SL1)  # Set SL1S as the current model
+        self.printer = Printer()
+
+        # Default setup
+        self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
+        self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1)
+        self.printer.hw.config.showUnboxing = False
+        self.printer.hw.config.showWizard = False
+        self.printer.hw.config.calibrated = True
+        self.printer.hw.config.uvPwm = 208
+
+    def tearDown(self) -> None:
+        self.printer.stop()
+        del self.printer
+        super().tearDown()
+
+    def test_expo_panel_log_sl1(self):
+        self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1)
+        set_configured_printer_model(PrinterModel.SL1)  # Set SL1 as the current model
+
+        self._run_printer()
+        self.assertEqual(self.printer.state, PrinterState.RUNNING)  # no wizard is running, no error is raised
+        with self.assertRaises(FileNotFoundError):
+            _ = open(defines.expoPanelLogPath, "r")
 
     def _run_printer(self):
         self.printer.setup()

@@ -24,7 +24,7 @@ from slafw.errors.errors import UVTooDimm, UVTooBright, UVDeviationTooHigh, Towe
 from slafw.functions.system import get_configured_printer_model, set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.states.wizard import WizardState, WizardId
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCaseDBus
 from slafw.tests.mocks.uv_meter import UVMeterMock
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType, WizardCheckState
@@ -51,7 +51,7 @@ class TestGroup(CheckGroup):
         self.setup_mock(actions)
 
 
-class TestWizardInfrastructure(SlafwTestCase):
+class TestWizardInfrastructure(SlafwTestCaseDBus):
     # pylint: disable=no-self-use
 
     def test_wizard_group_run(self):
@@ -146,7 +146,7 @@ class TestWizardInfrastructure(SlafwTestCase):
         callback.assert_any_call(1)
 
 
-class TestWizardsBase(SlafwTestCase):
+class TestWizardsBase(SlafwTestCaseDBus):
     def setUp(self) -> None:
         super().setUp()
         self.exposure_image = Mock()  # wizards use weakly-reference to exposure_image

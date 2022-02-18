@@ -13,6 +13,7 @@ import warnings
 import weakref
 from pathlib import Path
 from types import FrameType
+from unittest import TestCase
 from unittest.mock import Mock, patch
 
 import pydbus
@@ -42,7 +43,7 @@ from slafw.tests.mocks.gettext import fake_gettext
 from slafw.wizard.wizard import Wizard
 
 
-class SlafwTestCase(DBusTestCase):
+class SlafwTestCase(TestCase):
     # pylint: disable = too-many-instance-attributes
     LOGGER_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 
@@ -52,11 +53,6 @@ class SlafwTestCase(DBusTestCase):
     SAMPLES_DIR = Path(samples.__file__).parent
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
 
-    dbus_started = False
-    dbus_mocks = []
-    event_loop = GLib.MainLoop()
-    event_thread: threading.Thread = None
-
     patches = [
         patch("slafw.motion_controller.controller.gpio"),
         patch("slafw.motion_controller.controller.UInput"),
@@ -65,28 +61,8 @@ class SlafwTestCase(DBusTestCase):
         patch("slafw.hardware.base.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen)
     ]
 
-    @classmethod
-    def setUpClass(cls):
-        DBusTestCase.setUpClass()
-        if not cls.dbus_started:
-            cls.start_system_bus()
-            cls.dbus_started = True
-
-        cls.event_thread = threading.Thread(target=cls.event_loop.run)
-        cls.event_thread.start()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.event_loop.quit()
-        cls.event_thread.join()
-        # TODO: Would be nice to properly terminate fake dbus bus and start new one next time
-        #       Unfortunately this does not work out of the box.
-        # DBusTestCase.tearDownClass()
-
     def setUp(self) -> None:
-        super().setUp()
         fake_gettext()
-        self.do_ref_check = True
         for p in self.patches:
             p.start()
 
@@ -129,6 +105,95 @@ class SlafwTestCase(DBusTestCase):
         defines.factory_enable = self.TEMP_DIR / "factory_mode_enabled"
         defines.factory_enable.touch()  # Enable factory mode
         defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / PrinterModel.SL1.name.lower()
+        defines.cpuSNFile = self.SAMPLES_DIR / "nvmem"
+
+    def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg=None):
+        if a.mode != b.mode:
+            a = a.convert(b.mode)
+        diff = ImageChops.difference(a, b).convert(mode="L")
+        thres = diff.point(lambda x: 1 if x > threshold else 0, mode="L")
+        if thres.getbbox():
+            msg = self._formatMessage(
+                msg, f"Images contain pixels different by mote than {threshold}."
+            )
+            a.save("assertSameImage-a.png")
+            b.save("assertSameImage-b.png")
+            raise self.failureException(msg)
+
+    def tearDown(self) -> None:
+        logging.getLogger().removeHandler(self.stream_handler)
+        self.temp_dir_obj.cleanup()
+
+        for p in self.patches:
+            p.stop()
+
+        super().tearDown()
+
+
+class RefCheckTestCase(TestCase):
+    def tearDown(self) -> None:
+        gc.collect()
+        self.ref_check_type(Printer0)
+        self.ref_check_type(Printer)
+        self.ref_check_type(Exposure0)
+        self.ref_check_type(Exposure)
+        self.ref_check_type(Wizard0)
+        self.ref_check_type(Wizard)
+        self.ref_check_type(ExposureImage)
+
+        super().tearDown()
+
+    def ref_check_type(self, t: type):
+        instances = 0
+        for obj in gc.get_objects():
+            try:
+                if isinstance(obj, (weakref.ProxyTypes, Mock)):
+                    continue
+                if isinstance(obj, t):
+                    print(f"Referrers to {t}:")
+                    for num, ref in enumerate(gc.get_referrers(obj)):
+                        # do NOT count "global" and "class 'frame'" referrers
+                        if isinstance(ref, FrameType):
+                            print(f"Not counted 'frame' referrer {num}: {ref}")
+                        elif isinstance(ref, list) and len(ref) > 100:
+                            print(f"Not counted 'global' referrer {num}: <100+ LONG LIST>")
+                        else:
+                            instances += 1
+                            print(f"Referrer {num}: {ref} - {type(ref)}")
+            except ReferenceError:
+                # Weak reference no longer valid
+                pass
+        self.assertEqual(0, instances, f"Found {instances} of {t} left behind by test run")
+
+
+
+
+class SlafwTestCaseDBus(SlafwTestCase, DBusTestCase):
+    dbus_started = False
+    dbus_mocks = []
+    event_loop = GLib.MainLoop()
+    event_thread: threading.Thread = None
+
+    @classmethod
+    def setUpClass(cls):
+        DBusTestCase.setUpClass()
+        if not cls.dbus_started:
+            cls.start_system_bus()
+            cls.dbus_started = True
+
+        cls.event_thread = threading.Thread(target=cls.event_loop.run)
+        cls.event_thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.event_loop.quit()
+        cls.event_thread.join()
+        # TODO: Would be nice to properly terminate fake dbus bus and start new one next time
+        #       Unfortunately this does not work out of the box.
+        # DBusTestCase.tearDownClass()
+
+    def setUp(self) -> None:
+        super().setUp()
 
         # DBus mocks
         nm = NetworkManager()
@@ -155,57 +220,7 @@ class SlafwTestCase(DBusTestCase):
         ]
 
     def tearDown(self) -> None:
-        logging.getLogger().removeHandler(self.stream_handler)
-        self.ref_check_type(Printer0)
-        self.ref_check_type(Printer)
-        self.ref_check_type(Exposure0)
-        self.ref_check_type(Exposure)
-        self.ref_check_type(Wizard0)
-        self.ref_check_type(Wizard)
-        self.ref_check_type(ExposureImage)
-
-        self.temp_dir_obj.cleanup()
-
         for dbus_mock in self.dbus_mocks:
             dbus_mock.unpublish()
 
-        for p in self.patches:
-            p.stop()
-
         super().tearDown()
-
-    def ref_check_type(self, t: type):
-        gc.collect()
-        instances = 0
-        for obj in gc.get_objects():
-            try:
-                if isinstance(obj, (weakref.ProxyTypes, Mock)):
-                    continue
-                if isinstance(obj, t):
-                    print(f"Referrers to {t}:")
-                    for num, ref in enumerate(gc.get_referrers(obj)):
-                        # do NOT count "global" and "class 'frame'" referrers
-                        if isinstance(ref, FrameType):
-                            print(f"Not counted 'frame' referrer {num}: {ref}")
-                        elif isinstance(ref, list) and len(ref) > 100:
-                            print(f"Not counted 'global' referrer {num}: <100+ LONG LIST>")
-                        else:
-                            instances += 1
-                            print(f"Referrer {num}: {ref} - {type(ref)}")
-            except ReferenceError:
-                # Weak reference no longer valid
-                pass
-        self.assertEqual(0, instances, f"Found {instances} of {t} left behind by test run")
-
-    def assertSameImage(self, a: Image, b: Image, threshold: int = 0, msg=None):
-        if a.mode != b.mode:
-            a = a.convert(b.mode)
-        diff = ImageChops.difference(a, b).convert(mode="L")
-        thres = diff.point(lambda x: 1 if x > threshold else 0, mode="L")
-        if thres.getbbox():
-            msg = self._formatMessage(
-                msg, f"Images contain pixels different by mote than {threshold}."
-            )
-            a.save("assertSameImage-a.png")
-            b.save("assertSameImage-b.png")
-            raise self.failureException(msg)

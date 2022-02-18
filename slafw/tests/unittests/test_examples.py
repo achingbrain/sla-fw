@@ -8,14 +8,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCaseDBus
 from slafw.state_actions.examples import Examples
 from slafw.states.examples import ExamplesState
 from slafw.tests.mocks.network import fake_network_system_bus, Network
 from slafw.hardware.printer_model import PrinterModel
 
 
-class TestExamples(SlafwTestCase):
+class TestExamples(SlafwTestCaseDBus):
     def setUp(self) -> None:
         super().setUp()
         self.download_happening = False

@@ -4,6 +4,9 @@
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+from unittest.mock import patch, Mock
+
 from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.base import SlafwTestCase
 from slafw.image.resin_calibration import Area, AreaWithLabel, AreaWithLabelStripe, Calibration
@@ -14,6 +17,8 @@ from slafw.configs.hw import HwConfig
 from slafw.image.exposure_image import ExposureImage
 from slafw.project.project import Project
 
+
+@patch("slafw.project.project.get_configured_printer_model", Mock(return_value=PrinterModel.SL1))
 class TestResinCalibration(SlafwTestCase):
 
     def setUp(self):

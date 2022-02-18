@@ -4,6 +4,8 @@
 # Copyright (C) 2019-2022 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass
 from enum import unique, Enum, EnumMeta
@@ -25,7 +27,7 @@ class Options:
 class PrinterModelMeta(EnumMeta):
     def __call__(cls, *args, value=-1, **kwargs):
         if value == -1:
-            value = PrinterModel.detect_model()
+            value = PrinterModel.detect_model().value
         return super().__call__(value, *args, **kwargs)
 
 
@@ -38,7 +40,7 @@ class PrinterModel(Enum, metaclass=PrinterModelMeta):
     M1 = 3
 
     @classmethod
-    def detect_model(cls) -> int:
+    def detect_model(cls) -> PrinterModel:
         model = None
         if len(os.listdir(defines.printer_model_run)) != 1:
             raise UnknownPrinterModel()
@@ -46,7 +48,7 @@ class PrinterModel(Enum, metaclass=PrinterModelMeta):
             if Path(defines.printer_model_run / m.name.lower()).exists():
                 model = m
                 break
-        return model.value
+        return model
 
     # TODO: remove code related to handling projects.
     # Filemanager should be the only one who takes care about files

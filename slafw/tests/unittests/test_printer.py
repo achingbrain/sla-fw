@@ -3,17 +3,19 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from typing import Optional
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from slafw.tests.base import SlafwTestCase
+from slafw.hardware.printer_model import PrinterModel
+from slafw.tests.base import RefCheckTestCase, SlafwTestCaseDBus
 from slafw.libPrinter import Printer
 
 
-class TestPrinter(SlafwTestCase):
+class TestPrinter(SlafwTestCaseDBus, RefCheckTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.printer: Optional[Printer] = None  # This is here to provide type hint on self.printer
 
+    @patch("slafw.hardware.printer_model.PrinterModel.detect_model", Mock(return_value=PrinterModel.SL1))
     def setUp(self) -> None:
         super().setUp()
 

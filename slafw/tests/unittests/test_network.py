@@ -11,16 +11,16 @@ from unittest.mock import Mock
 
 from slafw.libNetwork import Network
 from slafw.tests import samples
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw.tests.mocks.http_server import MockServer
 
 
 class MockHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, directory=Path(samples.__file__).parent)
+        super().__init__(*args, **kwargs, directory=Path(samples.__file__).parent.name)
 
 
-class TestExamples(SlafwTestCase):
+class TestExamples(SlafwTestCaseDBus, RefCheckTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.server = MockServer()

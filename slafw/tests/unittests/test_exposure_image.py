@@ -6,11 +6,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+from unittest.mock import patch, Mock
+
 import numpy
 from PIL import Image
 
 from slafw.hardware.printer_model import PrinterModel
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCase, RefCheckTestCase
 from slafw.configs.hw import HwConfig
 from slafw.image.exposure_image import ExposureImage
 from slafw.project.project import Project
@@ -18,7 +20,8 @@ from slafw import defines, test_runtime
 from slafw.tests.mocks.hardware import HardwareMock
 
 
-class TestScreen(SlafwTestCase):
+@patch("slafw.project.project.get_configured_printer_model", Mock(return_value=PrinterModel.SL1))
+class TestScreen(SlafwTestCase, RefCheckTestCase):
     # pylint: disable=too-many-public-methods
     HW_CONFIG = SlafwTestCase.SAMPLES_DIR / "hardware.cfg"
     NUMBERS = SlafwTestCase.SAMPLES_DIR / "numbers.sl1"

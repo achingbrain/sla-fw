@@ -8,9 +8,9 @@ from pathlib import Path
 from time import sleep
 from typing import Optional
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw.hardware.base import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
@@ -28,12 +28,13 @@ from slafw.states.exposure import ExposureState
 from slafw.tests.mocks.hardware import HardwareMock
 
 
-class TestExposure(SlafwTestCase):
-    PROJECT = str(SlafwTestCase.SAMPLES_DIR / "numbers.sl1")
-    PROJECT_LAYER_CHANGE = str(SlafwTestCase.SAMPLES_DIR / "layer_change.sl1")
-    PROJECT_LAYER_CHANGE_SAFE = str(SlafwTestCase.SAMPLES_DIR / "layer_change_safe_profile.sl1")
-    PROJECT_RESIN_CALIB = str(SlafwTestCase.SAMPLES_DIR / "Resin_calibration_linear_object.sl1")
-    BROKEN_EMPTY_PROJECT = str(SlafwTestCase.SAMPLES_DIR / "empty_file.sl1")
+@patch("slafw.project.project.get_configured_printer_model", Mock(return_value=PrinterModel.SL1))
+class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
+    PROJECT = str(SlafwTestCaseDBus.SAMPLES_DIR / "numbers.sl1")
+    PROJECT_LAYER_CHANGE = str(SlafwTestCaseDBus.SAMPLES_DIR / "layer_change.sl1")
+    PROJECT_LAYER_CHANGE_SAFE = str(SlafwTestCaseDBus.SAMPLES_DIR / "layer_change_safe_profile.sl1")
+    PROJECT_RESIN_CALIB = str(SlafwTestCaseDBus.SAMPLES_DIR / "Resin_calibration_linear_object.sl1")
+    BROKEN_EMPTY_PROJECT = str(SlafwTestCaseDBus.SAMPLES_DIR / "empty_file.sl1")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

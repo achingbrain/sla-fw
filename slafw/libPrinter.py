@@ -331,6 +331,7 @@ class Printer:
 
     def _compute_uv_pwm(self):
         if not self.model.options.has_UV_calculation:
+            self.logger.debug("Not computing UV PWM as printer model does not support UV calculation")
             return
 
         self._detect_new_expo_panel()

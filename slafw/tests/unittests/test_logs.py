@@ -16,7 +16,7 @@ from pydbus import SystemBus
 
 from slafw import defines
 from slafw.tests import mocks
-from slafw.tests.base import SlafwTestCase
+from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw.api.logs0 import Logs0
 from slafw.states.logs import LogsState, StoreType
 
@@ -28,7 +28,7 @@ async def fake_log_export_process(_, log_file: Path):
     )
 
 
-class TestLogs0(SlafwTestCase):
+class TestLogs0(SlafwTestCaseDBus, RefCheckTestCase):
     def setUp(self):
         super().setUp()
 
