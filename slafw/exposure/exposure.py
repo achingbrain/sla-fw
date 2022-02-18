@@ -784,14 +784,14 @@ class Exposure:
             self.logger.info("Exiting exposure thread on state: %s", self.state)
         except (Exception, CancelledError) as exception:
             self.logger.exception("Exposure thread exception")
+            if not isinstance(exception, CancelledError):
+                self.fatal_error = exception
             if not isinstance(exception, (TiltFailed, TowerFailed)):
                 self._final_go_up()
             if isinstance(exception, (WarningEscalation, CancelledError)):
                 self.state = ExposureState.CANCELED
             else:
                 self.state = ExposureState.FAILURE
-            if not isinstance(exception, CancelledError):
-                self.fatal_error = exception
 
         if self.project:
             self.project.data_close()
