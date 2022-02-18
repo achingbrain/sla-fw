@@ -38,13 +38,14 @@ def _layer_generator(name, count, height_nm, times_ms, layer_times_ms):
     return layers
 
 
+@patch("slafw.project.project.get_configured_printer_model", Mock(return_value=PrinterModel.SL1))
 class TestProject(SlafwTestCase):
     def setUp(self):
         super().setUp()
         self.assertEqual.__self__.maxDiff = None
         self.hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
         self.hw_config.read_file()
-        self.hw = HardwareSL1(self.hw_config, self.printer_model)
+        self.hw = HardwareSL1(self.hw_config, PrinterModel.SL1)
         self.file2copy = self.SAMPLES_DIR / "Resin_calibration_object.sl1"
         (dummy, filename) = os.path.split(self.file2copy)
         self.destfile = Path(os.path.join(defines.previousPrints, filename))

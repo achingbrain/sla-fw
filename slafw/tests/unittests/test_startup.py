@@ -24,7 +24,7 @@ class TestStartup(SlafwTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        set_configured_printer_model(PrinterModel.SL1S) # Set SL1S as the current model
+        set_configured_printer_model(PrinterModel.SL1S)  # Set SL1S as the current model
 
         self.printer = Printer()
 

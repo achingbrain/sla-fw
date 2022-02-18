@@ -34,7 +34,7 @@ class TestTilt(SlafwTestCase):
         defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
 
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
-        self.hw = HardwareSL1(self.hw_config, self.printer_model)
+        self.hw = HardwareSL1(self.hw_config, PrinterModel.SL1)
 
         try:
             self.hw.connect()
@@ -72,7 +72,7 @@ class TestTilt(SlafwTestCase):
         self.assertTrue(self.hw.tilt.on_target_position)
         self.assertEqual(self.hw.tilt.max, self.hw.tilt.position)
 
-    #TODO: test all possible scenarios
+    # TODO: test all possible scenarios
     def test_move(self):
         # nothing
         self.hw.tilt.position = 0
@@ -149,7 +149,7 @@ class TestTilt(SlafwTestCase):
             self.hw.updateMotorSensitivity(AxisId.TILT, sensitivity)
             self.assertEqual(self.hw.tilt.profiles, adjusted_profiles)
 
-    #FIXME: test go_to_fullstep. Simulator behaves differently from real HW ()
+    # FIXME: test go_to_fullstep. Simulator behaves differently from real HW ()
 
     def test_stir_resin(self):
         self.hw.tilt.stir_resin()
@@ -206,7 +206,7 @@ class TestTilt(SlafwTestCase):
     def test_profiles(self):
         profiles = self.hw.tilt.profiles
         self.assertEqual(type([]), type(profiles))
-        self.assertEqual(8, len(profiles)) # all except temp
+        self.assertEqual(8, len(profiles))  # all except temp
         for profile in profiles:
             self.assertEqual(7, len(profile))
             self.assertEqual(type([int]), type(profile))
@@ -256,6 +256,7 @@ class TestTilt(SlafwTestCase):
 
     def test_layer_down(self):
         self.hw.tilt.layer_down_wait()
+
 
 if __name__ == "__main__":
     unittest.main()

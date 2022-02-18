@@ -21,14 +21,12 @@ from dbusmock import DBusTestCase
 from gi.repository import GLib
 
 import slafw.tests.mocks.exposure_screen
-import slafw.tests.mocks.mc_port
 import slafw.tests.mocks.mc_port as mc_port
 from slafw import defines, test_runtime
 from slafw.api.exposure0 import Exposure0
 from slafw.api.printer0 import Printer0
 from slafw.api.wizard0 import Wizard0
 from slafw.exposure.exposure import Exposure
-from slafw.functions.system import set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
 from slafw.libPrinter import Printer
@@ -66,8 +64,6 @@ class SlafwTestCase(DBusTestCase):
         patch("slafw.libUvLedMeterMulti.serial.tools.list_ports"),
         patch("slafw.hardware.base.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen)
     ]
-
-    printer_model = PrinterModel()
 
     @classmethod
     def setUpClass(cls):
@@ -128,12 +124,11 @@ class SlafwTestCase(DBusTestCase):
         defines.hwConfigPath = self.TEMP_DIR / "hwconfig.toml"
         defines.hwConfigPathFactory = self.TEMP_DIR / "hwconfig-factory.toml"
         defines.printer_model = self.TEMP_DIR / "model"
-        set_configured_printer_model(self.printer_model)
         defines.firstboot = self.TEMP_DIR / "firstboot"
         defines.expoPanelLogPath = self.TEMP_DIR / defines.expoPanelLogFileName
         defines.factory_enable = self.TEMP_DIR / "factory_mode_enabled"
         defines.factory_enable.touch()  # Enable factory mode
-        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / self.printer_model.name.lower()
+        defines.exposure_panel_of_node = self.SAMPLES_DIR / "of_node" / PrinterModel.SL1.name.lower()
 
         # DBus mocks
         nm = NetworkManager()
