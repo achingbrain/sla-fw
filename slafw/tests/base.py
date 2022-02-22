@@ -73,12 +73,6 @@ class SlafwTestCase(TestCase):
         # Make sure we use unmodified defines
         importlib.reload(defines)
 
-        # gitlab CI job creates model folder in different location due to restricted permissions in Docker container
-        # common path is /builds/project-0/model
-        if "CI" in os.environ:
-            defines.printer_model_run = Path(os.environ["CI_PROJECT_DIR"] + "/model")
-        printer_model = PrinterModel()
-
         # Set stream handler here in order to use stdout already captured by unittest
         self.stream_handler = logging.StreamHandler(sys.stdout)
         self.stream_handler.name = self.LOGGER_STREAM_HANDLER_NAME
@@ -86,8 +80,15 @@ class SlafwTestCase(TestCase):
         logger = logging.getLogger()
         if any([handler.name == self.LOGGER_STREAM_HANDLER_NAME for handler in logger.handlers]):
             raise RuntimeError("Handler already installed !!! Failed to run super().tearDown in previous test ???")
+        logger.handlers.clear()  # remove handlers which might be present from imported modules. For example gpio.py
         logger.addHandler(self.stream_handler)
         logger.setLevel(logging.DEBUG)
+
+        # gitlab CI job creates model folder in different location due to restricted permissions in Docker container
+        # common path is /builds/project-0/model
+        if "CI" in os.environ:
+            defines.printer_model_run = Path(os.environ["CI_PROJECT_DIR"] + "/model")
+        printer_model = PrinterModel()
 
         # Test overrides
         warnings.simplefilter("always")
