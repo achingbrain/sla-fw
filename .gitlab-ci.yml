@@ -93,6 +93,7 @@ mypy:
   dependencies: []
   script:
     - sh mypy.sh
+  allow_failure: true
 
 i18n-complete:
   stage: i18n
