@@ -171,8 +171,6 @@ exposure_time_first_extra_layers = 2    # first layer always have exposure_time_
 exposure_safe_delay_before = 30         # [tenths of a second] applied when user selects ExposureUserProfile.SAFE
 exposure_slow_move_delay_before = 10    # [tenths of a second] applied when slow move of ExposureUserProfile.DEFAULT
 
-tank_surface_cleaning_exposure_time_s = 50 # seconds
-
 fan_check_override = test_runtime.testing
 default_hostname = "prusa-"
 mqtt_prusa_host = "mqttstage.prusa"

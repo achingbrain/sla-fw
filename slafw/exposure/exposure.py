@@ -188,7 +188,7 @@ class FansCheck(ExposureCheckRunner):
 
 
 class ResinCheck(ExposureCheckRunner):
-    RETRIES = 3
+    RETRIES = 2
 
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.RESIN, *args, **kwargs)
@@ -215,10 +215,7 @@ class ResinCheck(ExposureCheckRunner):
             if volume_ml > defines.resinMaxVolume:
                 raise ResinTooHigh(volume_ml)
         except ResinMeasureFailed:
-            self.expo.hw.setTowerProfile("homingFast")
-            self.expo.hw.towerToTop()
-            while not await self.expo.hw.isTowerOnPositionAsync():
-                await asyncio.sleep(0.25)
+            await self.expo.hw.tower_to_resin_measurement_start_position()
             raise
         return volume_ml
 
@@ -789,14 +786,14 @@ class Exposure:
             self.logger.info("Exiting exposure thread on state: %s", self.state)
         except (Exception, CancelledError) as exception:
             self.logger.exception("Exposure thread exception")
+            if not isinstance(exception, CancelledError):
+                self.fatal_error = exception
             if not isinstance(exception, (TiltFailed, TowerFailed)):
                 self._final_go_up()
             if isinstance(exception, (WarningEscalation, CancelledError)):
                 self.state = ExposureState.CANCELED
             else:
                 self.state = ExposureState.FAILURE
-            if not isinstance(exception, CancelledError):
-                self.fatal_error = exception
 
         if self.project:
             self.project.data_close()

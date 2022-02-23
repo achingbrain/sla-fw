@@ -104,8 +104,8 @@ class UserActionBroker:
 
         # Tank Surface Cleaner
         self.tank_surface_cleaner_init_done = UserAction()
-        self.insert_garbage_collector_done = UserAction()
-        self.remove_garbage_done = UserAction()
+        self.insert_cleaning_adaptor_done = UserAction()
+        self.remove_cleaning_adaptor_done = UserAction()
 
     def push_state(self, state: PushState, priority: bool = False):
         if priority:

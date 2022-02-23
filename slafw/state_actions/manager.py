@@ -54,10 +54,10 @@ class ActionManager:
         path = self._register_exposure(exposure)
         self._register_exposure_signal(path)
 
+        exposure.read_project(project)
+
         self._current_exposure = exposure
         self.exposure_change.emit()
-
-        exposure.read_project(project)
 
         return exposure
 

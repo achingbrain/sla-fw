@@ -125,7 +125,7 @@ class Hardware:
             "moveSlow": 3,
             "layer": 4,
             "layerMove": 5,
-            "<reserved2>": 6,
+            "superSlow": 6,
             "resinSensor": 7,
         }
 
@@ -1042,10 +1042,13 @@ class Hardware:
     def calcPercVolume(volume_ml):
         return 10 * ceil(10 * volume_ml / defines.resinMaxVolume)
 
-    @safe_call(0, MotionControllerException)
-    async def get_resin_sensor_position_mm(self) -> float:
+    async def tower_to_resin_measurement_start_position(self):
         self.setTowerProfile("homingFast")
         await self.tower_move_absolute_nm_wait_async(self._tower_resin_start_pos_nm)  # move quickly to safe distance
+
+    @safe_call(0, MotionControllerException)
+    async def get_resin_sensor_position_mm(self) -> float:
+        await self.tower_to_resin_measurement_start_position()
         try:
             self.resinSensor(True)
             await asyncio.sleep(1)

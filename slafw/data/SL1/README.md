@@ -68,7 +68,7 @@
     [...], # moveSlow
     [...], # layer
     [...], # layerMove
-    [...], # reserved2
+    [...], # superSlow
     [...]  # resinSensor
 ]
 ```
