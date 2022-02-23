@@ -159,7 +159,7 @@ class BaseHardware:
             if mcsc != mcs1 or mcsc ^ 255 != mcs2:
                 self.logger.error("MAC checksum FAIL (is %02x:%02x, should be %02x:%02x)", mcs1, mcs2, mcsc, mcsc ^ 255)
             else:
-                mac_hex = ":".join(re.findall("../..", mac.hex))
+                mac_hex = ":".join(re.findall("../../..", mac.hex))
                 self.logger.info("MAC: %s (checksum %02x:%02x)", mac_hex, mcs1, mcs2)
 
                 # byte order change

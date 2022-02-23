@@ -14,7 +14,7 @@ from PySignal import Signal
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.configs.project import ProjectConfig
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.utils.traceable_collections import TraceableDict, TraceableList
 

@@ -18,7 +18,7 @@ from PIL import Image, ImageOps
 
 from slafw import defines
 from slafw.errors.errors import PreloadFailed
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 from slafw.project.project import Project
 from slafw.project.functions import get_white_pixels
@@ -216,7 +216,7 @@ class ExposureImage:
         self._hw.exposure_screen.blank_area(area_index, sync = sync)
 
     def show_system_image(self, filename: str):
-        self.show_image_with_path(os.path.join(defines.dataPath, filename))
+        self.show_image_with_path(Path(defines.dataPath) / self._model.name / filename)
 
     @measure_time("show image")
     def show_image_with_path(self, filename_with_path: str):

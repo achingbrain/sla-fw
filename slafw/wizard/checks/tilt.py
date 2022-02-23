@@ -15,7 +15,7 @@ from slafw.errors.errors import (
     InvalidTiltAlignPosition,
     PrinterException,
 )
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw import test_runtime
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState

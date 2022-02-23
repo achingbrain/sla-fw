@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 
 from slafw import defines
 from slafw.configs.runtime import RuntimeConfig
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.libNetwork import Network
 from slafw.slicer.profile_downloader import ProfileDownloader
 from slafw.slicer.profile_parser import ProfileParser

@@ -12,7 +12,7 @@ from slafw.admin.menus.tests.test_hardware import TestHardwareMenu
 from slafw.admin.menus.tests.test_wizards import TestWizardsMenu
 from slafw.admin.safe_menu import SafeAdminMenu
 from slafw.configs.runtime import RuntimeConfig
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.libPrinter import Printer
 from slafw.states.wizard import WizardId
 from slafw.wizard.actions import UserActionBroker

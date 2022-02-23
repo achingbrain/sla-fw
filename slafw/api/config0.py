@@ -17,7 +17,7 @@ from slafw.configs.value import Value, NumericValue, ListValue, TextValue
 from slafw.hardware.axis import AxisId
 
 if TYPE_CHECKING:
-    from slafw.hardware.base import BaseHardware
+    from slafw.hardware.base.hardware import BaseHardware
 
 
 def wrap_hw_config(cls: Config0):

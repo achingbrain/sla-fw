@@ -145,7 +145,7 @@ class Virtual:
             "slafw.motion_controller.controller.gpio", Mock()
         ), patch(
             "slafw.functions.files.get_save_path", self.fake_save_path
-        ), patch("slafw.hardware.base.ExposureScreen", ExposureScreen
+        ), patch("slafw.hardware.hardware_sl1.ExposureScreenSL1", ExposureScreen
         ), patch(
             "slafw.hardware.hardware_sl1.HardwareSL1.isCoverClosed",
             Mock(return_value=True)

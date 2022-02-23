@@ -35,7 +35,7 @@ from slafw.hardware.sl1.tilt import TiltSL1
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.hardware.sl1s_uvled_booster import Booster
 from slafw.hardware.tilt import TiltProfile
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.motion_controller.controller import MotionController
 from slafw.utils.value_checker import ValueChecker, UpdateInterval
 from slafw.hardware.power_led_action import WarningAction
@@ -173,6 +173,7 @@ class HardwareSL1(BaseHardware):
         # MC have to be started first (beep, poweroff)
         self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
+        self.exposure_screen.start()
 
         self.uv_led = UvLedSL1(self.mcc, self._printer_model)
         self.tilt = TiltSL1(self.mcc, self.config)

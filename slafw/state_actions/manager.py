@@ -20,7 +20,7 @@ from slafw.api.exposure0 import Exposure0
 from slafw.api.wizard0 import Wizard0
 from slafw.configs.runtime import RuntimeConfig
 from slafw.exposure.exposure import Exposure
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.states.wizard import WizardState
 from slafw.wizard.wizard import Wizard

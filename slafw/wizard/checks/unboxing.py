@@ -5,7 +5,7 @@
 from asyncio import sleep
 from typing import Optional
 
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, Check
 from slafw.wizard.setup import Configuration, Resource

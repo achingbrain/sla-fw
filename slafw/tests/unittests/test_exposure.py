@@ -11,7 +11,7 @@ from typing import Optional
 from unittest.mock import Mock, patch
 
 from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 from slafw.image.exposure_image import ExposureImage
 from slafw import defines

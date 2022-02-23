@@ -30,7 +30,7 @@ from slafw.errors.errors import (
 )
 from slafw.functions.files import save_wizard_history
 from slafw.functions.system import FactoryMountedRW
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.libUvLedMeterMulti import UvLedMeterMulti, UvMeterState, UVCalibrationResult
 from slafw.states.wizard import WizardState

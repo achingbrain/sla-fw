@@ -13,7 +13,7 @@ from slafw import test_runtime
 from slafw.errors.errors import UVLEDsDisconnected, UVLEDsRowFailed, BoosterError
 from slafw.errors.errors import UVLEDsVoltagesDifferTooMuch
 from slafw.functions.system import get_configured_printer_model
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck
 from slafw.wizard.setup import Configuration, Resource

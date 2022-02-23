@@ -5,7 +5,7 @@
 from typing import Iterable
 
 from slafw.configs.runtime import RuntimeConfig
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.states.wizard import WizardId
 from slafw.states.wizard import WizardState

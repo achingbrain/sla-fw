@@ -23,7 +23,7 @@ from slafw.errors.errors import WizardNotCancelable, FailedToSerializeWizardData
     PrinterException
 from slafw.errors.warnings import PrinterWarning
 from slafw.functions.system import FactoryMountedRW
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.states.wizard import WizardState, WizardCheckState, WizardId
 from slafw.wizard.wizards.generic import ShowResultsGroup
 from slafw.wizard.actions import UserActionBroker, PushState

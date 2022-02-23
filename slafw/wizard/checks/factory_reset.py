@@ -31,7 +31,7 @@ from slafw.functions.files import ch_mode_owner, get_all_supported_files
 from slafw.functions.system import FactoryMountedRW, reset_hostname, \
     compute_uvpwm, get_configured_printer_model
 from slafw.hardware.axis import AxisId
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType, SyncCheck, DangerousCheck
 from slafw.wizard.wizards.self_test import SelfTestWizard

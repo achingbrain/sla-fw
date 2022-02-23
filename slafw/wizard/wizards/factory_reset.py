@@ -4,7 +4,7 @@
 
 from slafw.configs.runtime import RuntimeConfig
 from slafw.functions.system import shut_down
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.states.wizard import WizardId, WizardState
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.factory_reset import (

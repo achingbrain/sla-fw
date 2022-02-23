@@ -5,7 +5,7 @@
 import weakref
 
 from slafw.configs.runtime import RuntimeConfig
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.wizard.checks.tank_surface_cleaner import HomeTower, TiltHome, TiltUp, TowerSafeDistance, TouchDown, \
     GentlyUp, ExposeDebris, Check

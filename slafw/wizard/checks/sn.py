@@ -5,7 +5,7 @@
 import re
 
 from slafw.errors.warnings import WrongA64SerialFormat, WrongMCSerialFormat
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType
 from slafw.wizard.setup import Configuration

@@ -8,7 +8,7 @@ from asyncio import AbstractEventLoop, Task
 from functools import partial
 from typing import Iterable
 
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.checks.sysinfo import SystemInfoTest
 
 from slafw.configs.runtime import RuntimeConfig

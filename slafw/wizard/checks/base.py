@@ -10,7 +10,7 @@ from typing import Optional, List, Iterable, Dict, Any
 
 from PySignal import Signal
 
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.states.wizard import WizardCheckState
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.setup import Resource, Configuration

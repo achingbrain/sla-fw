@@ -6,7 +6,7 @@ from asyncio import sleep, gather
 from typing import Dict, Any
 
 from slafw.errors.errors import TowerBelowSurface, TowerAxisCheckFailed, TowerHomeFailed, TowerEndstopNotReached
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck
 from slafw.wizard.setup import Configuration, Resource, TankSetup, PlatformSetup

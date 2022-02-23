@@ -2,7 +2,7 @@
 # Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.states.wizard import WizardId
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker

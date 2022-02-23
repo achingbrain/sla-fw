@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 
 from slafw import defines
 from slafw.functions.system import shut_down
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, Check
 from slafw.wizard.setup import Configuration

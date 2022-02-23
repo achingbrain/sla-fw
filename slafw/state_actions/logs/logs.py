@@ -26,7 +26,7 @@ from slafw import defines
 from slafw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace, DisplayUsageError, NoExternalStorage
 from slafw.functions.files import get_save_path, usb_remount
 from slafw.functions.generate import display_usage_heatmap
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.state_actions.logs.summary import create_summary
 from slafw.states.logs import LogsState, StoreType
 

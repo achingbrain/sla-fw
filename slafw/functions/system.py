@@ -18,7 +18,7 @@ from slafw.errors.errors import (
     FailedUpdateChannelGet,
     ConfigException, PrinterException, DisplayTransmittanceNotValid, CalculatedUVPWMNotInRange
 )
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 
 

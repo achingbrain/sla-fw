@@ -7,7 +7,7 @@ from typing import Iterable
 from slafw.configs.runtime import RuntimeConfig
 from slafw.errors.errors import PrinterError
 from slafw.functions.system import get_configured_printer_model
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.libUvLedMeterMulti import UvLedMeterMulti, UVCalibrationResult
 from slafw.states.wizard import WizardId

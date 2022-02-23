@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from slafw.configs.hw import HwConfig
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.uv_led import UvLed
 from slafw.configs.writer import ConfigWriter
 from slafw.functions.system import set_configured_printer_model, set_factory_uvpwm

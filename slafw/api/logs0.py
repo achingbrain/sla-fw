@@ -11,7 +11,7 @@ from pydbus.generic import signal
 from slafw.errors.errors import PrinterException
 
 from slafw.api.decorators import dbus_api, auto_dbus, wrap_dict_data
-from slafw.hardware.base import BaseHardware
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.state_actions.logs import LogsExport, UsbExport, ServerUpload
 from slafw.states.logs import LogsState, StoreType
 from slafw import defines
