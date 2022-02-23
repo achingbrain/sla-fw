@@ -7,10 +7,12 @@
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
 
+import asyncio
 import logging
 import re
 import socket
 import subprocess
+from asyncio import Task, CancelledError
 from threading import Thread, Lock
 from time import sleep
 from typing import Optional, Callable, List, Any
@@ -31,6 +33,7 @@ from slafw.errors.errors import MotionControllerException, MotionControllerWrong
     MotionControllerNotResponding, MotionControllerWrongResponse
 from slafw.motion_controller.trace import LineTrace, LineMarker, Trace
 from slafw.functions.decorators import safe_call
+from slafw.utils.value_checker import ValueChecker, UpdateInterval
 
 
 class MotionController:
@@ -75,9 +78,15 @@ class MotionController:
         self.power_button_changed = Signal()
         self.cover_state_changed = Signal()
         self.fans_state_changed = Signal()
+        self.value_refresh_failed = Signal()
+        self.temps_changed = Signal()
 
         self.power_button_changed.connect(self._power_button_handler)
         self.cover_state_changed.connect(self._cover_state_handler)
+
+        self._value_refresh_thread = Thread(target=self._value_refresh_body, daemon=True)
+        self._value_refresh_task: Optional[Task] = None
+
 
     def open(self):
         self._port = serial.Serial()
@@ -111,6 +120,11 @@ class MotionController:
             self._port.close()
         if self.u_input:
             self.u_input.close()
+        if self._value_refresh_thread.is_alive():
+            while not self._value_refresh_task:
+                sleep(0.1)
+            self._value_refresh_task.cancel()
+            self._value_refresh_thread.join()
 
     def _port_read_thread(self):
         """
@@ -306,11 +320,15 @@ class MotionController:
             self.logger.warning("motion controller serial number is invalid")
             self.board['serial'] = "*INVALID*"
 
+        # Value refresh thread
+        self.temps_changed.emit(self._get_temperatures())  # Initial values for MC temperatures
+        self._value_refresh_thread.start()
+
     def doGetInt(self, *args):
         return self.do(*args, return_process=int)
 
     def doGetIntList(self, cmd, args=(), base=10, multiply: float = 1):
-        return self.do(cmd, *args, return_process=lambda ret: list([int(x, base) * multiply for x in ret.split(" ")]),)
+        return self.do(cmd, *args, return_process=lambda ret: list([int(x, base) * multiply for x in ret.split(" ")]), )
 
     def doGetBool(self, cmd, *args):
         return self.do(cmd, *args, return_process=lambda x: x == "1")
@@ -535,3 +553,32 @@ class MotionController:
 
     def _get_board_revision(self):
         return self.doGetIntList("?rev")
+
+    def _get_temperatures(self):
+        temps = self.doGetIntList("?temp", multiply=0.1)
+        if len(temps) != 4:
+            raise ValueError(f"TEMPs count not match! ({temps})")
+
+        return [round(temp, 1) for temp in temps]
+
+    def _value_refresh_body(self):
+        self.logger.info("Value refresh thread running")
+        try:
+            # Run refresh task
+            asyncio.run(self._value_refresh())
+        except CancelledError:
+            pass  # This is normal printer shutdown
+        except Exception:
+            self.logger.exception("Value checker crashed")
+            self.value_refresh_failed.emit()
+            raise
+        finally:
+            self.logger.info("Value refresh checker ended")
+
+    async def _value_refresh(self):
+        checkers = [
+            ValueChecker(self._get_temperatures, self.temps_changed, UpdateInterval.seconds(3)),
+        ]
+        checks = [checker.check() for checker in checkers]
+        self._value_refresh_task = asyncio.gather(*checks)
+        await self._value_refresh_task

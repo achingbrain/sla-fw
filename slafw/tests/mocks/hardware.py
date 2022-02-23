@@ -14,6 +14,7 @@ from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.tests.mocks.exposure_screen import ExposureScreen
 from slafw.tests.mocks.motion_controller import MotionControllerMock
+from slafw.tests.mocks.temp_sensor import MockTempSensor
 
 
 class HardwareMock:
@@ -47,12 +48,9 @@ class HardwareMock:
         self.exposure_screen = ExposureScreen(printer_model)
         self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 
-        self.led_temp_idx = 0
-        self.ambient_temp_idx = 1
         self.getUvLedState = Mock(return_value=(False, 0))
         self._led_stat_s = 6912
         self._display_stat_s = 3600
-        self.getMcTemperatures = Mock(return_value=[46.7, 26.1, 44.3, 0])
         self.get_resin_volume_async = AsyncMock(return_value=defines.resinMaxVolume)
         self.get_resin_sensor_position_mm = AsyncMock(return_value=12.8)
         self.tower_to_resin_measurement_start_position = AsyncMock()
@@ -61,7 +59,18 @@ class HardwareMock:
         self.getCpuTemperature = Mock(return_value=53.5)
 
         self.getVoltages = Mock(return_value=[11.203, 11.203, 11.203, 0])
-        self.getUvLedTemperature = Mock(return_value=46.7)
+
+        self.uv_led_temp = MockTempSensor(
+            "UV LED",
+            config.rpmControlUvLedMinTemp,
+            config.rpmControlUvLedMaxTemp,
+            critical=defines.maxUVTemp,
+            hysteresis=defines.uv_temp_hysteresis,
+            mock_value=46.7,
+        )
+        self.ambient_temp = MockTempSensor(
+            "Ambient", minimal=defines.minAmbientTemp, maximal=defines.maxAmbientTemp, mock_value=26.1
+        )
 
         self.getFansRpm = Mock(return_value=[self.config.fan1Rpm, self.config.fan2Rpm, self.config.fan3Rpm,])
         self.isTowerMoving = Mock(return_value=False)

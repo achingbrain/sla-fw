@@ -19,6 +19,7 @@ from slafw.functions.decorators import safe_call
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.hardware.base.exposure_screen import ExposureScreen
+from slafw.hardware.base.temp_sensor import TempSensor
 from slafw.hardware.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.tilt import TiltSL1
@@ -46,8 +47,6 @@ class BaseHardware:
         self.uv_statistics_changed = Signal()
         self.tower_position_changed = Signal()
         self.tilt_position_changed = Signal()
-        self.uv_led_overheat_changed = Signal()
-        self.uv_led_overheat = False
         self.fans_error_changed = Signal()
         self.fans_error = False
 
@@ -57,6 +56,7 @@ class BaseHardware:
         self.tilt: TiltSL1 = None
         self.fans: Dict[int, Fan] = None
         self.power_led: PowerLed = None
+        self.uv_led_temp: Optional[TempSensor] = None
 
     @abstractmethod
     def connect(self):

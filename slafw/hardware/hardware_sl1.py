@@ -17,7 +17,7 @@ import json
 import os
 from asyncio import Task, CancelledError
 from datetime import timedelta
-from functools import cached_property, partial
+from functools import cached_property
 from math import ceil
 from threading import Thread
 from time import sleep, monotonic
@@ -32,6 +32,7 @@ from slafw.hardware.axis import AxisId
 from slafw.hardware.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
+from slafw.hardware.sl1.temp_sensor import SL1TempSensorUV, SL1STempSensorUV, SL1TempSensorAmbient
 from slafw.hardware.sl1.tilt import TiltSL1
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.hardware.sl1s_uvled_booster import Booster
@@ -59,11 +60,6 @@ class HardwareSL1(BaseHardware):
         self._lastTowerProfile = None
 
         self._towerToPosition = 0
-
-        self._fanFailed = False
-        self._coolDownCounter = 0
-        self.led_temp_idx = 0
-        self.ambient_temp_idx = 1
 
         self._towerProfiles = {
             "homingFast": 0,
@@ -109,8 +105,6 @@ class HardwareSL1(BaseHardware):
         self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
         self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
         self.cpu_temp_changed.connect(self._check_cpu_overheat)
-        self.mc_temps_changed.connect(self._check_uv_led_overheat)
-        self.mc_temps_changed.connect(self.uv_fan_rpm_control)
         self.mcc.fans_state_changed.connect(self._fans_error_check)
 
         self._tilt_position_checker = ValueChecker(
@@ -139,6 +133,16 @@ class HardwareSL1(BaseHardware):
             1: self.blower_fan,
             2: self.rear_fan,
         }
+
+        if printer_model == PrinterModel.SL1:
+            self.uv_led_temp = SL1TempSensorUV(self.mcc, self.config)
+        elif printer_model in (PrinterModel.SL1S, PrinterModel.M1):
+            self.uv_led_temp = SL1STempSensorUV(self.mcc, self.config)
+        else:
+            raise NotImplementedError
+        self.uv_led_temp.value_changed.connect(self.uv_fan_rpm_control)
+
+        self.ambient_temp = SL1TempSensorAmbient(self.mcc)
 
     @cached_property
     def tower_min_nm(self) -> int:
@@ -181,7 +185,6 @@ class HardwareSL1(BaseHardware):
 
         if self._printer_model.options.has_booster:
             self.sl1s_booster.connect()
-            self.led_temp_idx = 2
 
     def start(self):
         self.initDefaults()
@@ -197,11 +200,9 @@ class HardwareSL1(BaseHardware):
         self.exposure_screen.exit()
 
     async def _value_refresh_task_body(self):
+        # This is deprecated, move value checkers to MotionController
         checkers = [
             ValueChecker(self.getFansRpm, self.fans_changed, UpdateInterval.seconds(3), pass_value=False),
-            ValueChecker(
-                partial(self.getMcTemperatures, False), self.mc_temps_changed, UpdateInterval.seconds(3),
-            ),
             ValueChecker(self.getCpuTemperature, self.cpu_temp_changed, UpdateInterval.seconds(3)),
             ValueChecker(self.getVoltages, self.led_voltages_changed, UpdateInterval.seconds(5)),
             ValueChecker(self.getResinSensorState, self.resin_sensor_state_changed),
@@ -218,12 +219,9 @@ class HardwareSL1(BaseHardware):
         try:
             asyncio.run(self._value_refresh_task_body())
         except CancelledError:
-            pass # This is normal printer shutdown
+            pass  # This is normal printer shutdown
         except Exception:
             self.logger.exception("Value checker thread crashed")
-            # Overheat check is not working, assuming we are overheated
-            self.uv_led_overheat = True
-            self.uv_led_overheat_changed.emit(True)
             raise
         finally:
             self.logger.info("Value refresh checker thread ended")
@@ -376,7 +374,7 @@ class HardwareSL1(BaseHardware):
             sleep(0.25)
 
     def uvLed(self, state, time_ms=0):
-        if state and self.uv_led_overheat:
+        if state and self.uv_led_temp.overheat:
             self.logger.error("Blocking attempt to set overheated UV LED on")
             return
 
@@ -533,7 +531,7 @@ class HardwareSL1(BaseHardware):
     def setFansRpm(self, rpms: List[int]):
         self.mcc.do("!frpm", " ".join(str(fan) for fan in rpms))
 
-    def uv_fan_rpm_control(self, temps: List[float]):
+    def uv_fan_rpm_control(self, uv_led_temperature: float):
         if self.last_rpm_control and monotonic() - self.last_rpm_control < self.FAN_CONTROL_MIN_DELAY_S:
             # Avoid too frequent controls, MC does not report errors a few seconds after control
             return
@@ -542,7 +540,6 @@ class HardwareSL1(BaseHardware):
             self.logger.debug("Skipping auto UV fan control - disabled")
             return
 
-        uv_led_temperature = temps[self.led_temp_idx]
         max_rpm = self.config.rpmControlUvFanMaxRpm
         min_rpm = self.config.rpmControlUvFanMinRpm
         max_temp = self.config.rpmControlUvLedMaxTemp
@@ -554,33 +551,6 @@ class HardwareSL1(BaseHardware):
         self.logger.debug("Fan RPM control setting RPMs: %s", fans_rpm)
         self.last_rpm_control = monotonic()
         self.setFansRpm(fans_rpm)
-
-    @safe_call([-273.2, -273.2, -273.2, -273.2], (MotionControllerException, ValueError))
-    def getMcTemperatures(self, logTemps=True):
-        temps = self.mcc.doGetIntList("?temp", multiply=0.1)
-        if len(temps) != 4:
-            raise ValueError(f"TEMPs count not match! ({temps})")
-
-        if logTemps:
-            self.logger.info("Temperatures [C]: %s", " ".join(["%.1f" % x for x in temps]))
-
-        return [round(temp, 1) for temp in temps]
-
-    def getUvLedTemperature(self):
-        return self.getMcTemperatures(logTemps=False)[self.led_temp_idx]
-
-    def _check_uv_led_overheat(self, temperatures: List[int]) -> None:
-        # TODO: Refactor temp (all value read) using some cache to avoid parsing at multiple places
-        temp = temperatures[self.led_temp_idx]
-        # TODO: < 0 is not an overheat, it is rather a read error (or it is an actual temperature)
-        old = self.uv_led_overheat
-        if temp < 0 or temp > defines.maxUVTemp:
-            self.logger.error("UV LED is overheating, temperature: %f", temp)
-            self.uv_led_overheat = True
-        if 0 < temp < defines.maxUVTemp - defines.uv_temp_hysteresis:
-            self.uv_led_overheat = False
-        if old != self.uv_led_overheat:
-            self.uv_led_overheat_changed.emit(self.uv_led_overheat)
 
     def _fans_error_check(self, fans_error: bool):
         """
@@ -596,9 +566,6 @@ class HardwareSL1(BaseHardware):
         if self.fans_error != fans_error:
             self.fans_error = fans_error
             self.fans_error_changed.emit(error)
-
-    def getAmbientTemperature(self):
-        return self.getMcTemperatures(logTemps=False)[self.ambient_temp_idx]
 
     def getSensorName(self, sensorNumber):
         return _(self._sensorsNames.get(sensorNumber, N_("unknown sensor")))
@@ -963,10 +930,9 @@ class HardwareSL1(BaseHardware):
         }
 
     def getTemperaturesDict(self):
-        temps = self.getMcTemperatures(logTemps = False)
         return {
-            'temp_led': temps[self.led_temp_idx],
-            'temp_amb': temps[self.ambient_temp_idx],
+            'temp_led': self.uv_led_temp.value,
+            'temp_amb': self.ambient_temp.value,
             'cpu_temp': self.getCpuTemperature()
         }
 

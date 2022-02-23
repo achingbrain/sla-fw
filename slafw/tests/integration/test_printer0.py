@@ -88,9 +88,6 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
                 break
         self.assertAlmostEqual(self.printer0.tilt_position, initial + offset, 12500)
 
-        # self.printer0.get_projects()
-        # self.printer0.get_firmwares()
-
     def test_info_read(self):
         self.assertEqual(self.printer0.serial_number, "CZPX0819X009XC00151")
         self.assertGreater(len(self.printer0.system_name), 3)
@@ -102,21 +99,20 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
                 "fan1": {"rpm": 0, "error": False},
                 "fan2": {"rpm": 0, "error": False},
             },
-            self.printer0.fans
+            self.printer0.fans,
         )
         if self.printer.model is PrinterModel.SL1:
             temps = {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0}
-        elif self.printer.model in [PrinterModel.SL1S, PrinterModel.M1]:
+        elif self.printer.model in (PrinterModel.SL1S, PrinterModel.M1):
             temps = {"temp0_celsius": 26.1, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0}
-        self.assertEqual(temps, self.printer0.temps)
+        else:
+            raise NotImplementedError
+        self.assertEqual(self.printer0.temps, temps)
         self.assertEqual(type(self.printer0.cpu_temp), float)
         self.assertEqual(
             self.printer0.leds,
-            {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0,
-             "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.8},
+            {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0, "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.8},
         )
-        # TODO: Chained dbus call ends in deadlock
-        # self.assertEqual(self.printer0.devlist, {})
         # TODO: Statistics report out of range integer
         # self.assertTrue('uv_stat0' in self.printer0.uv_statistics)
         self.assertRegex(self.printer0.controller_sw_version, ".*\\..*\\..*")
@@ -166,6 +162,17 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
         self.assertEqual(self._get_num_instances(Exposure0) - initial_exposure0, ActionManager.MAX_EXPOSURES)
         self.assertEqual(self._get_num_instances(Exposure) - initial_exposure, ActionManager.MAX_EXPOSURES)
 
+    def test_temps(self):
+        # SL1S, M1 have UV temp on index 2, but the simulator does not reflect the change
+        if self.printer.model == PrinterModel.SL1:
+            self.assertAlmostEqual(46.7, self.printer0.uv_led_temp)
+            self.assertAlmostEqual(26.1, self.printer0.ambient_temp)
+        elif self.printer.model in (PrinterModel.SL1S, PrinterModel.M1):
+            self.assertAlmostEqual(26.1, self.printer0.uv_led_temp)
+            self.assertAlmostEqual(26.1, self.printer0.ambient_temp)
+        else:
+            raise NotImplementedError
+
     @staticmethod
     def _get_num_instances(instance_type: Type) -> int:
         gc.collect()
@@ -178,6 +185,7 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
                 # Weak reference target just disappeared, does not count
                 pass
         return counter
+
 
 if __name__ == "__main__":
     unittest.main()

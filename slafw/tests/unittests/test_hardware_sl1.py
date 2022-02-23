@@ -7,7 +7,7 @@
 
 import unittest
 from time import sleep
-from unittest.mock import Mock
+from unittest.mock import Mock, PropertyMock, patch
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
@@ -255,28 +255,30 @@ class TestSL1Hardware(SlafwTestCase):
         self.assertEqual("blower fan", self.hw.fans[1].name)
         self.assertEqual("rear fan", self.hw.fans[2].name)
 
+    @patch("slafw.hardware.hardware_sl1.HardwareSL1.FAN_CONTROL_MIN_DELAY_S", 0)
     def test_uv_fan_rpm_control(self):
         fans = {0: True, 1: True, 2: True}
         self.hw.setFans(fans)
         self.hw_config.rpmControlOverride = True
         rpms = self.hw.getFansRpm()
-        self.hw.uv_fan_rpm_control(self.hw.getMcTemperatures())
+        self.hw.uv_fan_rpm_control(self.hw.uv_led_temp.value)
         self.assertEqual(rpms, self.hw.getFansRpm())
         self.hw_config.rpmControlOverride = False
-        self.hw.getUvLedTemperature = Mock(return_value=self.hw_config.rpmControlUvLedMinTemp)
-        self.hw.uv_fan_rpm_control(self.hw.getMcTemperatures())
+        self.hw.uv_led_temp = Mock()
+        type(self.hw.uv_led_temp).value = PropertyMock(return_value=self.hw_config.rpmControlUvLedMinTemp)
+        self.hw.uv_fan_rpm_control(self.hw.uv_led_temp.value)
         rpms = self.hw.getFansRpm()
-        self.assertLessEqual(self.hw_config.rpmControlUvFanMinRpm , rpms[0])
-        self.hw.getUvLedTemperature = Mock(return_value=self.hw_config.rpmControlUvLedMaxTemp) #due to rounding in MC
-        self.hw.uv_fan_rpm_control(self.hw.getMcTemperatures())
+        self.assertLessEqual(self.hw_config.rpmControlUvFanMinRpm, rpms[0])
+        # due to rounding in MC
+        type(self.hw.uv_led_temp).value = PropertyMock(return_value=self.hw_config.rpmControlUvLedMaxTemp)
+        self.hw.uv_fan_rpm_control(self.hw.uv_led_temp.value)
         rpms = self.hw.getFansRpm()
-        self.assertLessEqual(self.hw_config.rpmControlUvFanMaxRpm , rpms[0])  #due to rounding in MC
+        # due to rounding in MC
+        self.assertLessEqual(self.hw_config.rpmControlUvFanMaxRpm, rpms[0])
 
     def test_temperatures(self):
-        temps = self.hw.getMcTemperatures()
-        for temp in temps:
-            self.assertGreaterEqual(temp, 0)
-        self.assertGreaterEqual(self.hw.getUvLedTemperature(), 0)
+        self.assertGreaterEqual(self.hw.uv_led_temp.value, 0)
+        self.assertGreaterEqual(self.hw.ambient_temp.value, 0)
         self.assertEqual(53.5, self.hw.getCpuTemperature())
 
         # TODO: This is weak test, The simulated value seems random 0, 52, 58, 125

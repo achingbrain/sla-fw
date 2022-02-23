@@ -15,6 +15,7 @@ from typing import List, Dict, TYPE_CHECKING, Any, Optional
 
 import distro
 import pydbus
+from deprecation import deprecated
 from pydbus.generic import signal
 from slafw.errors import tests
 
@@ -25,12 +26,13 @@ from slafw.api.decorators import (
     cached,
     auto_dbus,
     DBusObjectPath,
-    wrap_dict_data, auto_dbus_signal,
+    wrap_dict_data,
+    auto_dbus_signal,
 )
 from slafw.api.examples0 import Examples0
 from slafw.api.exposure0 import Exposure0
 from slafw.configs.stats import TomlConfigStats
-from slafw.errors.errors import ReprintWithoutHistory, PrinterException
+from slafw.errors.errors import ReprintWithoutHistory, PrinterException, AmbientTempSensorFailed, UVLEDTempSensorFailed
 from slafw.functions.files import get_all_supported_files
 from slafw.functions.system import shut_down
 from slafw.project.functions import check_ready_to_print
@@ -88,7 +90,8 @@ class Printer0:
         self.printer.api_key_changed.connect(self._on_api_key_changed)
         self.printer.data_privacy_changed.connect(self._on_data_privacy_changed)
         self.printer.hw.fans_changed.connect(self._on_fans_changed)
-        self.printer.hw.mc_temps_changed.connect(self._on_temps_changed)
+        self.printer.hw.uv_led_temp.value_changed.connect(self._on_uv_temp_changed)
+        self.printer.hw.ambient_temp.value_changed.connect(self._on_ambient_temp_changed)
         self.printer.hw.cpu_temp_changed.connect(self._on_cpu_temp_changed)
         self.printer.hw.led_voltages_changed.connect(self._on_led_voltages_changed)
         self.printer.hw.resin_sensor_state_changed.connect(self._on_resin_sensor_changed)
@@ -127,8 +130,27 @@ class Printer0:
     def _on_fans_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
 
-    def _on_temps_changed(self, value):
-        self.PropertiesChanged(self.__INTERFACE__, {"temps": self._format_temps(value)}, [])
+    def _on_uv_temp_changed(self, uv_temp: float):
+        self.PropertiesChanged(self.__INTERFACE__, {"uv_led_temp": uv_temp}, [])
+
+        # Legacy value update
+        try:
+            self.PropertiesChanged(
+                self.__INTERFACE__, {"temps": self._format_temps(uv_temp, self.printer.hw.ambient_temp.value)}, []
+            )
+        except AmbientTempSensorFailed:
+            pass
+
+    def _on_ambient_temp_changed(self, ambient_temp: float):
+        self.PropertiesChanged(self.__INTERFACE__, {"ambient_temp": ambient_temp}, [])
+
+        # Legacy value update
+        try:
+            self.PropertiesChanged(
+                self.__INTERFACE__, {"temps": self._format_temps(self.printer.hw.uv_led_temp.value, ambient_temp)}, []
+            )
+        except UVLEDTempSensorFailed:
+            pass
 
     def _on_cpu_temp_changed(self, value):
         self.PropertiesChanged(self.__INTERFACE__, {"cpu_temp": value}, [])
@@ -384,6 +406,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @deprecated("Use dedicated properties for different sensors")
     @cached(validity_s=5)
     def temps(self) -> Dict[str, float]:
         """
@@ -395,10 +418,21 @@ class Printer0:
 
         :return: Dictionary mapping from temp sensor name to temperature in celsius
         """
-        return self._format_temps(self.printer.hw.getMcTemperatures(False))
+        return self._format_temps(self.printer.hw.uv_led_temp.value, self.printer.hw.ambient_temp.value)
 
-    def _format_temps(self, temps):
-        t = (temps[self.printer.hw.led_temp_idx], temps[self.printer.hw.ambient_temp_idx], 0.0, 0.0)
+    @auto_dbus
+    @property
+    def uv_led_temp(self) -> float:
+        return self.printer.hw.uv_led_temp.value
+
+    @auto_dbus
+    @property
+    def ambient_temp(self) -> float:
+        return self.printer.hw.ambient_temp.value
+
+    @staticmethod
+    def _format_temps(uv_led_temp: float, ambient_temp: float):
+        t = (uv_led_temp, ambient_temp, 0.0, 0.0)
         return {"temp%d_celsius" % i: v for i, v in enumerate(t)}
 
     @auto_dbus
@@ -592,9 +626,7 @@ class Printer0:
         This raises subset of exceptions the print raises, but does not do anything on success
         :return: None
         """
-        check_ready_to_print(
-            self.printer.hw.config, self.printer.hw.uv_led.parameters
-        )
+        check_ready_to_print(self.printer.hw.config, self.printer.hw.uv_led.parameters)
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
@@ -608,7 +640,10 @@ class Printer0:
         :returns: Print task object
         """
         expo = self.printer.action_manager.new_exposure(
-            self.printer.hw, self.printer.exposure_image, self.printer.runtime_config, project_path,
+            self.printer.hw,
+            self.printer.exposure_image,
+            self.printer.runtime_config,
+            project_path,
         )
         if auto_advance:
             expo.confirm_print_start()
@@ -631,7 +666,10 @@ class Printer0:
 
         last_exposure = self.printer.action_manager.exposure
         exposure = self.printer.action_manager.reprint_exposure(
-            last_exposure, self.printer.hw, self.printer.exposure_image, self.printer.runtime_config,
+            last_exposure,
+            self.printer.hw,
+            self.printer.exposure_image,
+            self.printer.runtime_config,
         )
         if auto_advance:
             exposure.confirm_print_start()
@@ -661,6 +699,7 @@ class Printer0:
         return list(self.printer.model.extensions)
 
     @auto_dbus
+    @deprecated("Use filemanager instead")
     def list_projects_raw(self) -> List[str]:  # pylint: disable=no-self-use
         """
         List available projects
@@ -719,17 +758,11 @@ class Printer0:
 
     @auto_dbus
     def run_unboxing_wizard(self) -> None:
-        self.printer.action_manager.start_wizard(
-            CompleteUnboxingWizard(
-                self.printer.hw, self.printer.runtime_config
-            )
-        )
+        self.printer.action_manager.start_wizard(CompleteUnboxingWizard(self.printer.hw, self.printer.runtime_config))
 
     @auto_dbus
     def run_kit_unboxing_wizard(self) -> None:
-        self.printer.action_manager.start_wizard(
-            KitUnboxingWizard(self.printer.hw, self.printer.runtime_config)
-        )
+        self.printer.action_manager.start_wizard(KitUnboxingWizard(self.printer.hw, self.printer.runtime_config))
 
     @auto_dbus
     def run_self_test_wizard(self) -> None:
@@ -739,9 +772,7 @@ class Printer0:
 
     @auto_dbus
     def run_calibration_wizard(self) -> None:
-        self.printer.action_manager.start_wizard(
-            CalibrationWizard(self.printer.hw, self.printer.runtime_config)
-        )
+        self.printer.action_manager.start_wizard(CalibrationWizard(self.printer.hw, self.printer.runtime_config))
 
     @auto_dbus
     def run_tank_surface_cleaner_wizard(self) -> None:
@@ -752,15 +783,9 @@ class Printer0:
     @auto_dbus
     def run_factory_reset_wizard(self) -> None:
         if self.printer.runtime_config.factory_mode:
-            self.printer.action_manager.start_wizard(
-                PackingWizard(self.printer.hw, self.printer.runtime_config)
-            )
+            self.printer.action_manager.start_wizard(PackingWizard(self.printer.hw, self.printer.runtime_config))
         else:
-            self.printer.action_manager.start_wizard(
-                FactoryResetWizard(
-                    self.printer.hw, self.printer.runtime_config
-                )
-            )
+            self.printer.action_manager.start_wizard(FactoryResetWizard(self.printer.hw, self.printer.runtime_config))
 
     @auto_dbus
     def run_uv_calibration_wizard(self, display_replaced: bool, led_module_replaced: bool) -> None:

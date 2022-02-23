@@ -44,13 +44,13 @@ class UVFansTest(DangerousCheck):
         # set UV LED to max PWM
         self._hw.uvLedPwm = self._hw.uv_led.get_check_pwms[3]
 
-        uv_temp = self._hw.getUvLedTemperature()
+        uv_temp = self._hw.uv_led_temp.value
         fan_error = self._hw.getFansError()
         try: # check may be interrupted by another check or canceled
             for countdown in range(self._hw.config.uvWarmUpTime, 0, -1):
                 self.progress = 1 - countdown / self._hw.config.uvWarmUpTime
 
-                uv_temp = self._hw.getUvLedTemperature()
+                uv_temp = self._hw.uv_led_temp.value
                 fan_error = self._hw.getFansError()
                 if uv_temp > defines.maxUVTemp:
                     self._logger.error("Skipping UV Fan check due to overheat")

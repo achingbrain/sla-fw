@@ -32,6 +32,9 @@ class Serial:
         ready = self.process.stdout.readline()
         self.logger.debug("MC serial simulator ready = %s", ready)
         assert ready == b"ready\n"
+        # Wait for MC sim to initialize
+        # When asked directly after ready it tends to respond ?temp with 0,0,0,0
+        sleep(0.2)
 
     @property
     def is_open(self) -> bool:

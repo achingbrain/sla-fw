@@ -43,25 +43,23 @@ from slafw.errors.errors import (
     TiltFailed,
     TowerFailed,
     TowerMoveFailed,
-    TempSensorFailed,
     FanFailed,
     ResinMeasureFailed,
     ResinTooLow,
     ResinTooHigh,
     WarningEscalation,
     NotAvailableInState,
-    ExposureCheckDisabled, ExposureError,
-)
+    ExposureCheckDisabled, ExposureError, )
 from slafw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough, PrinterWarning, ExpectOverheating
 from slafw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from slafw.functions.system import shut_down
 from slafw.hardware.base.hardware import BaseHardware
+from slafw.hardware.power_led_action import WarningAction, ErrorAction
 from slafw.image.exposure_image import ExposureImage
 from slafw.project.functions import check_ready_to_print
 from slafw.project.project import Project, ExposureUserProfile
 from slafw.states.exposure import ExposureState, ExposureCheck, ExposureCheckResult
 from slafw.utils.traceable_collections import TraceableDict
-from slafw.hardware.power_led_action import WarningAction, ErrorAction
 
 
 class ExposureCheckRunner:
@@ -106,17 +104,15 @@ class TempsCheck(ExposureCheckRunner):
     async def run(self):
         if test_runtime.injected_preprint_warning:
             self.raise_warning(test_runtime.injected_preprint_warning)
-        temperatures = self.expo.hw.getMcTemperatures()
-        failed = [i for i in (self.expo.hw.led_temp_idx, self.expo.hw.ambient_temp_idx) if temperatures[i] < 0]
-        if failed:
-            failed_names = [self.expo.hw.getSensorName(i) for i in failed]
-            failed_names = ", ".join(failed_names)
-            raise TempSensorFailed(failed_names)
 
-        if temperatures[1] < defines.minAmbientTemp:
-            self.raise_warning(AmbientTooCold(temperatures[1]))
-        elif temperatures[1] > defines.maxAmbientTemp:
-            self.raise_warning(AmbientTooHot(temperatures[1]))
+        # Try reading UV temp, this raises exceptions if something goes wrong
+        _ = self.expo.hw.uv_led_temp.value
+
+        ambient = self.expo.hw.ambient_temp
+        if ambient.value < ambient.min:
+            self.raise_warning(AmbientTooCold(ambient.value))
+        elif ambient.value > ambient.max:
+            self.raise_warning(AmbientTooHot(ambient.value))
 
 
 class CoverCheck(ExposureCheckRunner):
@@ -609,10 +605,6 @@ class Exposure:
             self.logger.info("stirringDelay [s]: %f", self.hw.config.stirringDelay / 10.0)
             sleep(self.hw.config.stirringDelay / 10.0)
 
-        # FIXME WTF?
-        if self.hw.config.tilt:
-            self.hw.getMcTemperatures()
-
         self.exposure_image.blit_image(second)
 
         exp_time_ms = sum(times_ms)
@@ -627,11 +619,10 @@ class Exposure:
         self.logger.info("exposure done")
         self.exposure_image.preload_image(self.actual_layer + 1)
 
-        temperatures = self.hw.getMcTemperatures()
         self.logger.info(
             "UV temperature [C]: %.1f  Ambient temperature [C]: %.1f",
-            temperatures[self.hw.led_temp_idx],
-            temperatures[self.hw.ambient_temp_idx],
+            self.hw.uv_led_temp.value,
+            self.hw.ambient_temp.value,
         )
 
         if self.hw.config.delayAfterExposure:
@@ -722,7 +713,7 @@ class Exposure:
         return command
 
     def _wait_uv_cool_down(self) -> Optional[str]:
-        if not self.hw.uv_led_overheat:
+        if not self.hw.uv_led_temp.overheat:
             return None
 
         self.logger.error("UV LED overheat - waiting for cooldown")
@@ -734,7 +725,7 @@ class Exposure:
                     return "exit"
             except Empty:
                 pass
-            if not self.hw.uv_led_overheat:
+            if not self.hw.uv_led_temp.overheat:
                 break
             self.hw.beepAlarm(3)
             sleep(3)

@@ -329,10 +329,22 @@ class TempSensorFailed(ExposureError):
     sensor: str
 
 
+class AmbientTempSensorFailed(TempSensorFailed):
+    # TODO: This is not translated, lets define separate error codes for different sensors
+    def __init__(self):
+        super().__init__("Ambient")
+
+
 @with_code(Sl1Codes.TEMPERATURE_OUT_OF_RANGE)
 @dataclass(frozen=True)
 class TempSensorNotInRange(GeneralError):
     sensor: str
+    temperature: float
+
+
+# TODO: Add code
+@dataclass(frozen=True)
+class UVLEDOverheat(GeneralError):
     temperature: float
 
 
@@ -580,7 +592,7 @@ class UnknownPrinterModel(PrinterError):
 
 
 @with_code(Sl1Codes.UV_TEMP_SENSOR_FAILED)
-class UvTempSensorFailed(PrinterError):
+class UVLEDTempSensorFailed(PrinterError):
     pass
 
 

@@ -40,7 +40,7 @@ from slafw.errors.errors import (
     MotionControllerWrongResponse,
     UVPWMComputationError,
     OldExpoPanel,
-    UvTempSensorFailed,
+    UVLEDTempSensorFailed,
     FanFailed, PrinterException,
 )
 from slafw.functions.files import save_all_remain_wizard_history, \
@@ -120,7 +120,7 @@ class Printer:
         self.logger.info("Initializing libHardware")
         self.hw = HardwareSL1(hw_config, self.model)
 
-        self.hw.uv_led_overheat_changed.connect(self._on_uv_led_temp_overheat)
+        self.hw.uv_led_temp.overheat_changed.connect(self._on_uv_led_temp_overheat)
         self.hw.fans_error_changed.connect(self._on_fans_error)
 
 
@@ -628,10 +628,11 @@ class Printer:
                 self.hw.uvLed(False)
             self.set_state(PrinterState.OVERHEATED, True)
 
-            if self.hw.getUvLedTemperature() < 0:
+            if self.hw.uv_led_temp.value < 0:
+                # TODO: Raise an exception instead of negative value
                 self.logger.error("UV temperature reading failed")
                 self.hw.uvLed(False)
-                self.exception_occurred.emit(UvTempSensorFailed())
+                self.exception_occurred.emit(UVLEDTempSensorFailed())
 
     def _on_fans_error(self, fans_error: Dict[str, bool]):
         if not any(fans_error.values()):
