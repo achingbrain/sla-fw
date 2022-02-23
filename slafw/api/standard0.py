@@ -329,7 +329,7 @@ class Standard0:
             "exposureTime": project.exposure_time_ms,
             "exposureTimeFirst": project.exposure_time_first_ms,
             "exposureUserProfile": project.exposure_user_profile,
-            "path": str(project.path),
+            "path": str(project.origin_path),
         }
         if exposure.printStartTime.microsecond == 0:
             data["time_elapsed"] = 0

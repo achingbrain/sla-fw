@@ -93,6 +93,9 @@ class Project:
         self.path_changed = Signal()
         self._hw = hw
         self.warnings: Set[PrinterWarning] = set()
+        # Origin path: `local` or `usb`
+        self.origin_path = project_file
+        # When printing points to `previous-prints`
         self.path = project_file
         self._config = ProjectConfig()
         self.layers: List[ProjectLayer] = []
