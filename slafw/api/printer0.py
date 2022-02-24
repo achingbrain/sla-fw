@@ -44,6 +44,7 @@ from slafw.wizard.wizards.self_test import SelfTestWizard
 from slafw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from slafw.wizard.wizards.uv_calibration import UVCalibrationWizard
 from slafw.wizard.wizards.tank_surface_cleaner import TankSurfaceCleaner
+from slafw.hardware.power_led_action import WarningAction
 
 if TYPE_CHECKING:
     from slafw.libPrinter import Printer
@@ -248,7 +249,8 @@ class Printer0:
 
         :return: None
         """
-        self.printer.hw.tilt.level()
+        with WarningAction(self.printer.hw.power_led):
+            self.printer.hw.tilt.level()
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
