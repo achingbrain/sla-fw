@@ -20,6 +20,12 @@ class TestPrinterModel(SlafwTestCase):
         model = PrinterModel.SL1S
         self.assertEqual(model.name, "SL1S")
 
+    def test_value(self):
+        self.assertEqual(0, PrinterModel.NONE.value)
+        self.assertEqual(1, PrinterModel.SL1.value)
+        self.assertEqual(2, PrinterModel.SL1S.value)
+        self.assertEqual(3, PrinterModel.M1.value)
+
     def test_extensions(self):
         model = PrinterModel.NONE
         self.assertEqual(model.extensions, {""})

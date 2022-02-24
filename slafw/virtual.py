@@ -31,6 +31,7 @@ from gi.repository import GLib
 import slafw.tests.mocks.mc_port
 from slafw.functions.system import set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
+import slafw.hardware.sl1.printer_model
 from slafw import defines, test_runtime
 from slafw import libPrinter
 from slafw.admin.manager import AdminManager

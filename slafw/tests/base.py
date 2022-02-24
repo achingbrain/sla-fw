@@ -44,6 +44,7 @@ from slafw.tests.mocks.dbus.systemd import Systemd
 from slafw.tests.mocks.dbus.timedate import TimeDate
 from slafw.tests.mocks.gettext import fake_gettext
 from slafw.wizard.wizard import Wizard
+import slafw.hardware.sl1.printer_model
 
 
 class SlafwTestCase(TestCase):

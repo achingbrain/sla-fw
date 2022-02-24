@@ -6,103 +6,64 @@
 
 from __future__ import annotations
 
-import logging
-import os
-from dataclasses import dataclass
-from enum import unique, Enum, EnumMeta
-from pathlib import Path
-
 from slafw import defines
 from slafw.errors.errors import UnknownPrinterModel
+from slafw.hardware.base.printer_model import PrinterModelBase
+from slafw.hardware.printer_options import PrinterOptions
 
 
-@dataclass(eq=False)
-class Options:
-    has_tilt: bool
-    has_booster: bool
-    vat_revision: int
-    has_UV_calibration: bool
-    has_UV_calculation: bool
+class PrinterModelMeta(type):
+    def __getattr__(cls, item):
+        if item in cls.MODELS:
+            return cls.MODELS[item]
+        return super().__getattribute__(item)
+
+    def __iter__(cls):
+        return cls.MODELS.values().__iter__()
 
 
-class PrinterModelMeta(EnumMeta):
-    def __call__(cls, *args, value=-1, **kwargs):
-        if value == -1:
-            value = PrinterModel.detect_model().value
-        return super().__call__(value, *args, **kwargs)
+class PrinterModel(metaclass=PrinterModelMeta):
+    # TODO: This mimics existing PrinterModel behaviour defined by enum. Maybe this is not the best way to handle
+    # TODO: dynamic registration of models. Maybe a class factory method on base model would be more readable.
+    MODELS = {}
 
+    def __new__(cls):
+        return cls.detect_model()
 
-@unique
-class PrinterModel(Enum, metaclass=PrinterModelMeta):
-    # FORBIDDEN = -1
-    NONE = 0
-    SL1 = 1
-    SL1S = 2
-    M1 = 3
+    @classmethod
+    def register_model(cls, model: PrinterModelBase):
+        cls.MODELS[model.name.upper()] = model
 
     @classmethod
     def detect_model(cls) -> PrinterModel:
-        model = None
-        if len(os.listdir(defines.printer_model_run)) != 1:
-            raise UnknownPrinterModel()
-        for m in cls:
-            if Path(defines.printer_model_run / m.name.lower()).exists():
-                model = m
-                break
-        logger = logging.getLogger()
-        logger.info("Printer model: %s", model)
-        return model
+        for model in cls.MODELS.values():
+            if (defines.printer_model_run / model.name.lower()).exists():
+                return model
+        raise UnknownPrinterModel
 
-    # TODO: remove code related to handling projects.
-    # Filemanager should be the only one who takes care about files
+
+class PrinterModelNone(PrinterModelBase):
     @property
-    def extensions(self) -> set:
-        return {
-                self.NONE: {""},
-                self.SL1: {".sl1"},
-                self.SL1S: {".sl1s"},
-                self.M1: {".m1"}
-            }[self]
+    def name(self) -> str:
+        return "NONE"
 
-    # TODO: remove code related to handling projects.
-    # Filemanager should be the only one who takes care about files
+    @property
+    def value(self) -> int:
+        return 0
+
     @property
     def extension(self) -> str:
-        if self is PrinterModel.NONE:
-            return ""
-        return "." + str(self.name).lower()
-
+        return ""
 
     @property
-    def options(self) -> Options:
-        return {
-                self.NONE: Options(
-                    has_tilt = False,
-                    has_booster = False,
-                    vat_revision = 0,
-                    has_UV_calibration = False,
-                    has_UV_calculation = False,
-                    ),
-                self.SL1: Options(
-                    has_tilt = True,
-                    has_booster = False,
-                    vat_revision = 0,
-                    has_UV_calibration = True,
-                    has_UV_calculation = False,
-                    ),
-                self.SL1S: Options(
-                    has_tilt = True,
-                    has_booster = True,
-                    vat_revision = 1,
-                    has_UV_calibration = False,
-                    has_UV_calculation = True,
-                    ),
-                # same as SL1S
-                self.M1: Options(
-                    has_tilt = True,
-                    has_booster = True,
-                    vat_revision = 1,
-                    has_UV_calibration = False,
-                    has_UV_calculation = True,
-                    )
-            }[self]
+    def options(self) -> PrinterOptions:
+        return PrinterOptions(
+            has_tilt=False,
+            has_booster=False,
+            vat_revision=0,
+            has_UV_calibration=False,
+            has_UV_calculation=False,
+        )
+
+
+PrinterModel.register_model(PrinterModelNone())
