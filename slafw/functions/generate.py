@@ -10,7 +10,7 @@ from PIL import Image
 
 from slafw.errors.errors import DisplayUsageError, NoUvCalibrationData, DataFromUnknownUvSensor
 from slafw.configs.toml import TomlConfig
-from slafw.hardware.exposure_screen import ExposureScreenParameters
+from slafw.hardware.base.exposure_screen import ExposureScreenParameters
 from slafw.libUvLedMeterMulti import UvLedMeterMulti
 
 def display_usage_heatmap(

@@ -9,7 +9,7 @@ import os
 import re
 from abc import abstractmethod
 from time import sleep
-from typing import Dict
+from typing import Dict, Optional
 
 import bitstring
 import pydbus
@@ -18,7 +18,7 @@ from PySignal import Signal
 from slafw.functions.decorators import safe_call
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.hardware.exposure_screen import ExposureScreen
+from slafw.hardware.base.exposure_screen import ExposureScreen
 from slafw.hardware.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.tilt import TiltSL1
@@ -33,7 +33,7 @@ class BaseHardware:
         self.config = hw_config
         self._printer_model = printer_model
 
-        self.exposure_screen = ExposureScreen(printer_model)
+        self.exposure_screen: Optional[ExposureScreen]
 
         self.fans_changed = Signal()
         self.mc_temps_changed = Signal()

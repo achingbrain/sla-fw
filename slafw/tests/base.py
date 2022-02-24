@@ -62,7 +62,7 @@ class SlafwTestCase(TestCase):
         patch("slafw.motion_controller.controller.UInput"),
         patch("slafw.motion_controller.controller.serial", mc_port),
         patch("slafw.libUvLedMeterMulti.serial.tools.list_ports"),
-        patch("slafw.hardware.base.hardware.ExposureScreen", slafw.tests.mocks.exposure_screen.ExposureScreen),
+        patch("slafw.hardware.hardware_sl1.ExposureScreenSL1", slafw.tests.mocks.exposure_screen.ExposureScreen),
         patch("slafw.hardware.hardware_sl1.Booster", slafw.tests.mocks.sl1s_uvled_booster.BoosterMock)
     ]
 

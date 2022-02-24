@@ -31,6 +31,7 @@ from slafw.functions.decorators import safe_call
 from slafw.hardware.axis import AxisId
 from slafw.hardware.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
 from slafw.hardware.sl1.tilt import TiltSL1
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.hardware.sl1s_uvled_booster import Booster
@@ -50,7 +51,7 @@ class HardwareSL1(BaseHardware):
 
         self.mcc = MotionController(defines.motionControlDevice)
         self.sl1s_booster = Booster()
-
+        self.exposure_screen = ExposureScreenSL1(printer_model)
 
         self._printer_model = printer_model
         self.towerSynced = False

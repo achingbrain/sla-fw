@@ -6,14 +6,14 @@
 
 from unittest.mock import Mock
 from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.exposure_screen import ExposureScreen as RealExposureScreen
+from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
 
 
 class ExposureScreen:
     # pylint: disable = too-few-public-methods
     # pylint: disable = too-many-instance-attributes
     def __init__(self, printer_model: PrinterModel):
-        real_expo_screen = RealExposureScreen(printer_model)
+        real_expo_screen = ExposureScreenSL1(printer_model)
         self.parameters = real_expo_screen.parameters
 
         self.start = Mock()

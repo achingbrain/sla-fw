@@ -7,6 +7,7 @@
 import functools
 import logging
 import mmap
+from abc import ABC, abstractmethod
 from time import monotonic, sleep
 from threading import Thread, Event
 from typing import Optional, Any, List, Tuple
@@ -367,7 +368,7 @@ class Wayland:
         self.calibration_layer.surfaces[area_index].wl_subsurface.place_above(main_surface)
 
 
-class ExposureScreen:
+class ExposureScreen(ABC):
     def __init__(self, printer_model: PrinterModel):
         self.logger = logging.getLogger(__name__)
         self._parameters = self.get_parameters(printer_model)
@@ -407,43 +408,9 @@ class ExposureScreen:
         self._wayland.blank_area(sync, area_index)
 
     @staticmethod
-    def get_parameters(printer_model: PrinterModel) -> \
-            ExposureScreenParameters:
-        return {
-                PrinterModel.NONE: ExposureScreenParameters(
-                    size_px = (0, 0),
-                    thumbnail_factor = 1,
-                    pixel_size_nm = 0,
-                    refresh_delay_ms = 0,
-                    monochromatic = False,
-                    bgr_pixels = False,
-                    ),
-                PrinterModel.SL1: ExposureScreenParameters(
-                    size_px = (1440, 2560),
-                    thumbnail_factor = 5,
-                    pixel_size_nm = 46875,
-                    refresh_delay_ms = 0,
-                    monochromatic = False,
-                    bgr_pixels = False,
-                    ),
-                PrinterModel.SL1S: ExposureScreenParameters(
-                    size_px = (1620, 2560),
-                    thumbnail_factor = 5,
-                    pixel_size_nm = 50000,
-                    refresh_delay_ms = 0,
-                    monochromatic = True,
-                    bgr_pixels = True,
-                    ),
-                # same as SL1S
-                PrinterModel.M1: ExposureScreenParameters(
-                    size_px = (1620, 2560),
-                    thumbnail_factor = 5,
-                    pixel_size_nm = 50000,
-                    refresh_delay_ms = 0,
-                    monochromatic = True,
-                    bgr_pixels = True,
-                    )
-            }[printer_model]
+    @abstractmethod
+    def get_parameters(printer_model: PrinterModel) -> ExposureScreenParameters:
+        ...
 
     @property
     def parameters(self) -> ExposureScreenParameters:

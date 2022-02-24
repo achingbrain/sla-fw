@@ -5,8 +5,8 @@
 
 from unittest.mock import patch
 
+from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
 from slafw.tests.base import SlafwTestCase
-from slafw.hardware.exposure_screen import ExposureScreen
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.tests.mocks.motion_controller import MotionControllerMock
@@ -33,7 +33,7 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(model.extensions, {".sl1s"})
 
     def test_exposure_screen_parameters(self):
-        screen = ExposureScreen(PrinterModel.NONE)
+        screen = ExposureScreenSL1(PrinterModel.NONE)
         self.assertEqual(screen.parameters.size_px, (0, 0))
         self.assertEqual(screen.parameters.pixel_size_nm, 0)
         self.assertEqual(screen.parameters.refresh_delay_ms, 0)
@@ -42,7 +42,7 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(screen.parameters.width_px, 0)
         self.assertEqual(screen.parameters.height_px, 0)
         self.assertEqual(screen.parameters.detected_size_px, (0, 0))
-        screen = ExposureScreen(PrinterModel.SL1S)
+        screen = ExposureScreenSL1(PrinterModel.SL1S)
         self.assertEqual(screen.parameters.size_px, (1620, 2560))
         self.assertEqual(screen.parameters.pixel_size_nm, 50000)
         self.assertEqual(screen.parameters.refresh_delay_ms, 0)
@@ -105,6 +105,6 @@ class TestPrinterModel(SlafwTestCase):
     def exposure_screen_sn_transmittance(self, model: PrinterModel):
         hw_node = self.SAMPLES_DIR / "of_node" / model.name.lower()
         with patch("slafw.defines.exposure_panel_of_node", hw_node):
-            screen = ExposureScreen(model)
+            screen = ExposureScreenSL1(model)
             self.assertEqual(4.17, screen.transmittance)
             self.assertEqual("CZPX0712X004X061939", screen.serial_number)
