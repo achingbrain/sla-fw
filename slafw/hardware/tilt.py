@@ -106,6 +106,10 @@ class Tilt(Axis):
             names.append(profile.name)
         return names
 
+    @abstractmethod
+    def level(self) -> None:
+        """Level tilt (print position)"""
+
 
 class TiltSL1(Tilt):
     # pylint: disable=too-many-instance-attributes

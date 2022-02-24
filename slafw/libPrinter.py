@@ -59,6 +59,7 @@ from slafw.image.exposure_image import ExposureImage
 from slafw.libAsync import AdminCheck
 from slafw.libAsync import SlicerProfileUpdater
 from slafw.libHardware import Hardware
+from slafw.libHardware2 import Hardware2
 from slafw.libNetwork import Network
 from slafw.slicer.slicer_profile import SlicerProfile
 from slafw.state_actions.manager import ActionManager
@@ -115,7 +116,7 @@ class Printer:
         self.logger.info(str(hw_config))
 
         self.logger.info("Initializing libHardware")
-        self.hw = Hardware(hw_config)
+        self.hw = Hardware2(hw_config)
         self.hw.uv_led_overheat_changed.connect(self._on_uv_led_temp_overheat)
         self.hw.fans_error_changed.connect(self._on_fans_error)
 
@@ -239,6 +240,7 @@ class Printer:
 
         self.logger.info("Starting libHardware")
         self.hw.start()
+        self.logger.info("Starting ExposureImage")
         self.logger.info("Starting ExposureImage")
         self.exposure_image.start()
         self.hw.uvLed(False)

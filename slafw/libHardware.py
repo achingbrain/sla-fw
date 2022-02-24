@@ -13,22 +13,16 @@
 # pylint: disable=too-many-branches
 
 import asyncio
-from functools import cached_property, partial
 import json
-import logging
 import os
-import re
 from asyncio import Task, CancelledError
 from datetime import timedelta
 from enum import unique, Enum
+from functools import cached_property, partial
 from math import ceil
 from threading import Thread
 from time import sleep, monotonic
 from typing import List, Optional, Any, Tuple
-
-import bitstring
-import pydbus
-from PySignal import Signal
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
@@ -37,8 +31,8 @@ from slafw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
 from slafw.functions.decorators import safe_call
 from slafw.hardware.exposure_screen import ExposureScreen
 from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.sl1s_uvled_booster import Booster
 from slafw.hardware.tilt import Tilt, TiltSL1, TiltProfile
+from slafw.libHardwareBase import BaseHardware
 from slafw.motion_controller.controller import MotionController
 from slafw.utils.value_checker import ValueChecker, UpdateInterval
 from slafw.hardware.power_led_action import WarningAction
@@ -100,12 +94,11 @@ class Axis(Enum):
     TILT = 1
 
 
-class Hardware:
+class Hardware(BaseHardware):
     FAN_CONTROL_MIN_DELAY_S = 30
 
     def __init__(self, hw_config: HwConfig):
-        self.logger = logging.getLogger(__name__)
-        self.config = hw_config
+        super().__init__(hw_config)
 
         self.towerSynced = False
 
@@ -159,12 +152,8 @@ class Hardware:
 
         self.tilt: Optional[Tilt] = None
 
-        self.boardData = self.readCpuSerial()
-        self._emmc_serial = self._read_emmc_serial()
-
         self._tower_moving = False
         self._towerPositionRetries: int = 1
-        self.sl1s_booster = Booster()
 
         self._value_refresh_thread = Thread(daemon=True, target=self._value_refresh_body)
         self._value_refresh_task: Optional[Task] = None
@@ -172,22 +161,6 @@ class Hardware:
         self.exposure_screen = ExposureScreen()
         self.printer_model = PrinterModel.NONE
         self.check_cover_override = False
-
-        self.fans_changed = Signal()
-        self.mc_temps_changed = Signal()
-        self.cpu_temp_changed = Signal()
-        self.led_voltages_changed = Signal()
-        self.resin_sensor_state_changed = Signal()
-        self.cover_state_changed = Signal()
-        self.power_button_state_changed = Signal()
-        self.mc_sw_version_changed = Signal()
-        self.uv_statistics_changed = Signal()
-        self.tower_position_changed = Signal()
-        self.tilt_position_changed = Signal()
-        self.uv_led_overheat_changed = Signal()
-        self.uv_led_overheat = False
-        self.fans_error_changed = Signal()
-        self.fans_error = False
 
         self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
         self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
@@ -380,133 +353,9 @@ class Hardware:
         return self.mcc.board["serial"]
 
     @property
-    def cpuSerialNo(self):
-        return self.boardData[0]
-
-    @property
-    def isKit(self):
-        return self.boardData[1]
-
-    @property
-    def emmc_serial(self) -> str:
-        return self._emmc_serial
-
-    @property
     def is500khz(self):
         # FIXME this will not work for board "7a"
         return self.mcc.board["revision"] >= 6 and self.mcc.board["subRevision"] == "c"
-
-    def readCpuSerial(self):
-        ot = {0: "CZP"}
-        sn = "*INVALID*"
-        is_kit = True  # kit is more strict
-        try:
-            with open(defines.cpuSNFile, "rb") as nvmem:
-                s = bitstring.BitArray(bytes=nvmem.read())
-
-            # pylint: disable = unbalanced-tuple-unpacking
-            # pylint does not understand tuples passed by bitstring
-            mac, mcs1, mcs2, snbe = s.unpack("pad:192, bits:48, uint:8, uint:8, pad:224, uintbe:64")
-            mcsc = mac.count(1)
-            if mcsc != mcs1 or mcsc ^ 255 != mcs2:
-                self.logger.error("MAC checksum FAIL (is %02x:%02x, should be %02x:%02x)", mcs1, mcs2, mcsc, mcsc ^ 255)
-            else:
-                mac_hex = ":".join(re.findall("..", mac.hex))
-                self.logger.info("MAC: %s (checksum %02x:%02x)", mac_hex, mcs1, mcs2)
-
-                # byte order change
-                # pylint: disable = unbalanced-tuple-unpacking
-                # pylint does not understand tuples passed by bitstring
-                sn = bitstring.BitArray(length=64, uintle=snbe)
-
-                scs2, scs1, snnew = sn.unpack("uint:8, uint:8, bits:48")
-                scsc = snnew.count(1)
-                if scsc != scs1 or scsc ^ 255 != scs2:
-                    self.logger.warning(
-                        "SN checksum FAIL (is %02x:%02x, should be %02x:%02x), getting old SN format",
-                        scs1,
-                        scs2,
-                        scsc,
-                        scsc ^ 255,
-                    )
-                    sequence_number, is_kit, ean_pn, year, week, origin = sn.unpack(
-                        "pad:14, uint:17, bool, uint:10, uint:6, pad:2, uint:6, pad:2, uint:4"
-                    )
-                    prefix = "*"
-                else:
-                    sequence_number, is_kit, ean_pn, year, week, origin = snnew.unpack(
-                        "pad:4, uint:17, bool, uint:10, uint:6, uint:6, uint:4"
-                    )
-                    prefix = ""
-
-                sn = "%s%3sX%02u%02uX%03uX%c%05u" % (
-                    prefix,
-                    ot.get(origin, "UNK"),
-                    week,
-                    year,
-                    ean_pn,
-                    "K" if is_kit else "C",
-                    sequence_number,
-                )
-                self.logger.info("SN: %s", sn)
-
-        except Exception:
-            self.logger.exception("CPU serial:")
-
-        return sn, is_kit
-
-    @staticmethod
-    def _read_emmc_serial() -> str:
-        with open(defines.emmc_serial_path) as f:
-            return f.read().strip()
-
-    def checkFailedBoot(self):
-        """
-        Check for failed boot by comparing current and last boot slot
-
-        :return: True is last boot failed, false otherwise
-        """
-        try:
-            # Get slot statuses
-            rauc = pydbus.SystemBus().get("de.pengutronix.rauc", "/")["de.pengutronix.rauc.Installer"]
-            status = rauc.GetSlotStatus()
-
-            a = "no-data"
-            b = "no-data"
-
-            for slot, data in status:
-                if slot == "rootfs.0":
-                    a = data["boot-status"]
-                elif slot == "rootfs.1":
-                    b = data["boot-status"]
-
-            self.logger.info("Slot A boot status: %s", a)
-            self.logger.info("Slot B boot status: %s", b)
-
-            if a == "good" and b == "good":
-                # Device is booting fine, remove stamp
-                if os.path.isfile(defines.bootFailedStamp):
-                    os.remove(defines.bootFailedStamp)
-
-                return False
-
-            self.logger.error("Detected broken boot slot !!!")
-            # Device has boot problems
-            if os.path.isfile(defines.bootFailedStamp):
-                # The problem is already reported
-                return False
-
-            # This is a new problem, create stamp, report problem
-            if not os.path.exists(defines.persistentStorage):
-                os.makedirs(defines.persistentStorage)
-
-            open(defines.bootFailedStamp, "a").close()
-            return True
-
-        except Exception:
-            self.logger.exception("Failed to check for failed boot")
-            # Something went wrong during check, expect the worst
-            return True
 
     def eraseEeprom(self):
         self.mcc.do("!eecl")
@@ -559,13 +408,10 @@ class Hardware:
 
         return samplesList
 
-    def beep(self, frequency, lenght):
-        if not self.config.mute:
-            self.mcc.do("!beep", frequency, int(lenght * 1000))
-
-    def beepEcho(self) -> None:
+    def beep(self, frequency_hz: int, length_s: float):
         try:
-            self.beep(1800, 0.05)
+            if not self.config.mute:
+                self.mcc.do("!beep", frequency_hz, int(length_s * 1000))
         except MotionControllerException:
             self.logger.exception("Failed to beep")
 
@@ -579,12 +425,12 @@ class Hardware:
             self.beep(1900, 0.05)
             sleep(0.25)
 
-    def uvLed(self, state, time=0):
+    def uvLed(self, state, time_ms=0):
         if state and self.uv_led_overheat:
             self.logger.error("Blocking attempt to set overheated UV LED on")
             return
 
-        self.mcc.do("!uled", 1 if state else 0, int(time))
+        self.mcc.do("!uled", 1 if state else 0, int(time_ms))
 
     @safe_call([0, 0], (ValueError, MotionControllerException))
     def getUvLedState(self):
@@ -807,11 +653,6 @@ class Hardware:
     def getSensorName(self, sensorNumber):
         return _(self._sensorsNames.get(sensorNumber, N_("unknown sensor")))
 
-    @safe_call(-273.2, Exception)
-    def getCpuTemperature(self):  # pylint: disable=no-self-use
-        with open(defines.cpuTempFile, "r") as f:
-            return round((int(f.read()) / 1000.0), 1)
-
     def _check_cpu_overheat(self, A64temperature):
         if A64temperature > defines.maxA64Temp: # 80 C
             self.logger.warning("Printer is overheating! Measured %.1f °C on A64.", A64temperature)
@@ -893,15 +734,7 @@ class Hardware:
 
             await asyncio.sleep(0.25)
 
-    def tower_move_absolute_nm_wait(self, position_nm):
-        return asyncio.run(self.tower_move_absolute_nm_wait_async(position_nm))
-
-    async def tower_move_absolute_nm_wait_async(self, position_nm: int):
-        self.tower_position_nm = position_nm
-        while not await self.isTowerOnPositionAsync():
-            await asyncio.sleep(0.25)
-
-    def _towerMoveAbsolute(self, position):
+    def _towerMoveAbsolute(self, position: int):
         self._towerToPosition = position
         self.mcc.do("!twma", position)
 
@@ -913,10 +746,6 @@ class Hardware:
         if self.mcc.doGetInt("?mot") & 1:
             return True
         return False
-
-    @safe_call(False, MotionControllerException)
-    def isTowerOnPosition(self, retries: int = 1) -> bool:
-        return asyncio.run(self.isTowerOnPositionAsync(retries))
 
     @safe_call(False, MotionControllerException)
     async def isTowerOnPositionAsync(self, retries: int = 1) -> bool:

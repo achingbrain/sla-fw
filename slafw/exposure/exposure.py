@@ -248,6 +248,7 @@ class StartPositionsCheck(ExposureCheckRunner):
         self.expo.hw.tower_position_nm = 0.25 * 1_000_000  # TODO: Constant in code, seems important
         while not await self.expo.hw.isTowerOnPositionAsync(retries=2):
             await asyncio.sleep(0.25)
+        self.logger.debug("Tower on print start position")
 
         if self.expo.hw.towerPositonFailed():
             exception = TowerMoveFailed()
@@ -260,6 +261,7 @@ class StartPositionsCheck(ExposureCheckRunner):
             raise exception
         while self.expo.hw.tilt.moving:
             await asyncio.sleep(0.25)
+        self.logger.debug("Tilt on print start position")
 
 
 class StirringCheck(ExposureCheckRunner):

@@ -115,6 +115,7 @@ defines.printer_model.mkdir()
 defines.sl1_model_file.touch()  # Set SL1 as the current model
 defines.factory_enable = TEMP_DIR / "factory_mode_enabled"
 defines.factory_enable.touch()  # Enable factory mode
+defines.admincheckTemp = TEMP_DIR / "admincheck.json"
 
 
 class Virtual:
@@ -135,7 +136,7 @@ class Virtual:
         ), patch(
             "slafw.functions.files.get_save_path", self.fake_save_path
         ), patch(
-            "slafw.libHardware.ExposureScreen", ExposureScreen
+            "slafw.libHardwareBase.ExposureScreen", ExposureScreen
         ), patch(
             "slafw.libHardware.Hardware.isCoverClosed", Mock(return_value=True)
         ), patch(
@@ -157,7 +158,7 @@ class Virtual:
             self.printer.hw.config.calibrated = True
             self.printer.hw.config.fanCheck = False
             self.printer.hw.config.coverCheck = False
-            self.printer.hw.config.resinSensor = True
+            self.printer.hw.config.resinSensor = False
 
             print("Publishing printer on D-Bus")
             self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
