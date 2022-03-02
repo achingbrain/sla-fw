@@ -20,7 +20,7 @@ from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.hardware.base.exposure_screen import ExposureScreen
 from slafw.hardware.base.temp_sensor import TempSensor
-from slafw.hardware.fan import Fan
+from slafw.hardware.base.fan import Fan
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.tilt import TiltSL1
 from slafw.hardware.sl1.uv_led import UvLedSL1
@@ -36,7 +36,6 @@ class BaseHardware:
 
         self.exposure_screen: Optional[ExposureScreen]
 
-        self.fans_changed = Signal()
         self.mc_temps_changed = Signal()
         self.cpu_temp_changed = Signal()
         self.led_voltages_changed = Signal()
@@ -47,16 +46,18 @@ class BaseHardware:
         self.uv_statistics_changed = Signal()
         self.tower_position_changed = Signal()
         self.tilt_position_changed = Signal()
-        self.fans_error_changed = Signal()
-        self.fans_error = False
 
         # to be inicialized in connect()
-        self.mcc: MotionController = None
-        self.uv_led: UvLedSL1 = None
-        self.tilt: TiltSL1 = None
-        self.fans: Dict[int, Fan] = None
-        self.power_led: PowerLed = None
+        self.mcc: Optional[MotionController] = None
+        self.uv_led: Optional[UvLedSL1] = None
+        self.tilt: Optional[TiltSL1] = None
+        self.uv_led_fan: Optional[Fan] = None
+        self.blower_fan: Optional[Fan] = None
+        self.rear_fan: Optional[Fan] = None
+        self.fans: Optional[Dict[int, Fan]] = None
+        self.power_led: Optional[PowerLed] = None
         self.uv_led_temp: Optional[TempSensor] = None
+        self.ambient_temp: Optional[TempSensor] = None
 
     @abstractmethod
     def connect(self):

@@ -29,7 +29,7 @@ from logging import Logger
 from queue import Queue, Empty
 from threading import Thread, Event, Lock
 from time import sleep, monotonic_ns
-from typing import Optional, Any, List, Dict
+from typing import Optional, Any, List
 from weakref import WeakMethod
 
 import psutil
@@ -43,13 +43,12 @@ from slafw.errors.errors import (
     TiltFailed,
     TowerFailed,
     TowerMoveFailed,
-    FanFailed,
     ResinMeasureFailed,
     ResinTooLow,
     ResinTooHigh,
     WarningEscalation,
     NotAvailableInState,
-    ExposureCheckDisabled, ExposureError, )
+    ExposureCheckDisabled, ExposureError, UVLEDFanFailed, BlowerFanFailed, RearFanFailed, )
 from slafw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough, PrinterWarning, ExpectOverheating
 from slafw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from slafw.functions.system import shut_down
@@ -175,13 +174,16 @@ class FansCheck(ExposureCheckRunner):
 
         # Check fans
         self.logger.info("Checking fan errors")
-        fans_state = self.expo.hw.getFansError().values()
-        if any(fans_state) and not defines.fan_check_override:
-            failed_fans = [num for num, state in enumerate(fans_state) if state]
-            self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
-            failed_fan_names = [self.expo.hw.fans[i].name for i in failed_fans]
-            failed_fans_text = ",".join(failed_fan_names)
-            raise FanFailed(failed_fans, failed_fan_names, failed_fans_text)
+        if not defines.fan_check_override:
+            if self.expo.hw.uv_led_fan.error:
+                self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
+                raise UVLEDFanFailed()
+            if self.expo.hw.blower_fan.error:
+                self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
+                raise BlowerFanFailed()
+            if self.expo.hw.rear_fan.error:
+                self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
+                raise RearFanFailed()
         self.logger.info("Fans OK")
 
 
@@ -315,7 +317,9 @@ class Exposure:
         self._thread = Thread(target=lambda: weak_run()())  # pylint: disable = unnecessary-lambda
         self._slow_move: bool = True  # slow tilt up before first layer
         self._force_slow_remain_nm: int = 0
-        self.hw.fans_error_changed.connect(self._on_fans_error)
+        self.hw.uv_led_fan.error_changed.connect(self._on_uv_led_fan_error)
+        self.hw.blower_fan.error_changed.connect(self._on_blower_fan_error)
+        self.hw.rear_fan.error_changed.connect(self._on_rear_fan_error)
         self._checks_task: Optional[Task] = None
 
     def read_project(self, project_file: str):
@@ -1070,9 +1074,17 @@ class Exposure:
         self.hw.saveUvStatistics()
         self.printEndTime = datetime.now(tz=timezone.utc)
 
-    def _on_fans_error(self, fans_error: Dict[str, bool]):
-        if any(fans_error.values()):
-            self.warning_occurred.emit(ExpectOverheating(failed_fans_text=self.hw.getFansErrorText()))
+    def _on_uv_led_fan_error(self, error: bool):
+        if error:
+            self.warning_occurred.emit(ExpectOverheating(failed_fans_text="UV LED"))
+
+    def _on_blower_fan_error(self, error: bool):
+        if error:
+            self.warning_occurred.emit(ExpectOverheating(failed_fans_text="Blower"))
+
+    def _on_rear_fan_error(self, error: bool):
+        if error:
+            self.warning_occurred.emit(ExpectOverheating(failed_fans_text="Rear"))
 
     def inject_fatal_error(self):
         self.logger.info("Scheduling exception inject")

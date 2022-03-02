@@ -101,6 +101,27 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
             },
             self.printer0.fans,
         )
+        self.assertEqual(
+            {
+                "rpm": 0,
+                "error": 0,
+            },
+            self.printer0.uv_led_fan
+        )
+        self.assertEqual(
+            {
+                "rpm": 0,
+                "error": 0,
+            },
+            self.printer0.blower_fan
+        )
+        self.assertEqual(
+            {
+                "rpm": 0,
+                "error": 0,
+            },
+            self.printer0.rear_fan
+        )
         if self.printer.model is PrinterModel.SL1:
             temps = {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0}
         elif self.printer.model in (PrinterModel.SL1S, PrinterModel.M1):

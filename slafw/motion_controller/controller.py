@@ -15,7 +15,7 @@ import subprocess
 from asyncio import Task, CancelledError
 from threading import Thread, Lock
 from time import sleep
-from typing import Optional, Callable, List, Any
+from typing import Optional, Callable, List, Any, Tuple
 
 import gpio
 import serial
@@ -77,15 +77,18 @@ class MotionController:
         self.tilt_status_changed = Signal()
         self.power_button_changed = Signal()
         self.cover_state_changed = Signal()
-        self.fans_state_changed = Signal()
         self.value_refresh_failed = Signal()
         self.temps_changed = Signal()
+        self.fans_rpm_changed = Signal()
+        self.fans_error_changed = Signal()
 
         self.power_button_changed.connect(self._power_button_handler)
         self.cover_state_changed.connect(self._cover_state_handler)
 
         self._value_refresh_thread = Thread(target=self._value_refresh_body, daemon=True)
         self._value_refresh_task: Optional[Task] = None
+        self._fans_mask = {0: False, 1: False, 2: False}
+        self._fans_rpm = {0: defines.fanMinRPM, 1: defines.fanMinRPM, 2: defines.fanMinRPM}
 
 
     def open(self):
@@ -538,7 +541,7 @@ class MotionController:
             self.cover_state_changed.emit(state_bits[cover_idx])
         fans_ids = StatusBits.FANS.value
         if not self._old_state_bits or state_bits[fans_ids] != self._old_state_bits[fans_ids]:
-            self.fans_state_changed.emit(state_bits[fans_ids])
+            self.fans_error_changed.emit(self.get_fans_error())
         self._old_state_bits = state_bits
 
     def _power_button_handler(self, state: bool):
@@ -578,7 +581,42 @@ class MotionController:
     async def _value_refresh(self):
         checkers = [
             ValueChecker(self._get_temperatures, self.temps_changed, UpdateInterval.seconds(3)),
+            ValueChecker(self._get_fans_rpm, self.fans_rpm_changed, UpdateInterval.seconds(3)),
         ]
         checks = [checker.check() for checker in checkers]
         self._value_refresh_task = asyncio.gather(*checks)
         await self._value_refresh_task
+
+
+
+
+
+    def set_fan_enabled(self, index: int, enabled: bool):
+        self._fans_mask[index] = enabled
+        self.doSetBoolList("!fans", self._fans_mask.values())
+
+    def set_fan_rpm(self, index: int, rpm: int):
+        self._fans_rpm[index] = rpm
+        self.do("!frpm", " ".join([str(v) for v in self._fans_rpm.values()]))
+
+    def _get_fans_rpm(self) -> Tuple[int, int, int]:
+        rpms = self.doGetIntList("?frpm", multiply=1)
+        if not rpms or len(rpms) != 3:
+            raise MotionControllerException(f"RPMs count not match! ({rpms})")
+
+        return rpms
+
+    @safe_call({0: True, 1: True, 2: True}, (MotionControllerException, ValueError))
+    def get_fans_error(self):
+        state = self.getStateBits(["fans"], check_for_updates=False)
+        if "fans" not in state:
+            raise ValueError(f"'fans' not in state: {state}")
+
+        return self.get_fans_bits("?fane", (0, 1, 2))
+
+    def get_fans_bits(self, cmd, request):
+        bits = self.doGetBoolList(cmd, bit_count=3)
+        if len(bits) != 3:
+            raise ValueError(f"Fans bits count not match! {bits}")
+
+        return {idx: bits[idx] for idx in request}

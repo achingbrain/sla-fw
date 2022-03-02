@@ -9,32 +9,58 @@ from PySignal import Signal
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.hardware.fan import Fan
+from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.tests.mocks.exposure_screen import ExposureScreen
+from slafw.tests.mocks.fan import MockFan
 from slafw.tests.mocks.motion_controller import MotionControllerMock
 from slafw.tests.mocks.temp_sensor import MockTempSensor
 
 
-class HardwareMock:
+class HardwareMock(BaseHardware):
     # pylint: disable = too-many-instance-attributes
     # pylint: disable = no-self-use
     # pylint: disable = too-many-statements
-    def __init__(self, config: HwConfig = None,
-                 printer_model: PrinterModel = PrinterModel.SL1):
+    def __init__(self, config: HwConfig = None, printer_model: PrinterModel = PrinterModel.SL1):
         if config is None:
-            config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)    # TODO better!
-        self.cpuSerialNo = "CZPX0819X009XC00151"
+            config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)  # TODO better!
+        super().__init__(config, printer_model)
         self.mcSerialNo = "CZPX0619X678XC12345"
 
         self._tower_position_nm = defines.defaultTowerHeight * 1000 * 1000
 
         self.config = config
+
+        self.uv_led_temp = MockTempSensor(
+            "UV LED",
+            config.rpmControlUvLedMinTemp,
+            config.rpmControlUvLedMaxTemp,
+            critical=defines.maxUVTemp,
+            hysteresis=defines.uv_temp_hysteresis,
+            mock_value=Mock(return_value=46.7),
+        )
+        self.ambient_temp = MockTempSensor(
+            "Ambient",
+            minimal=defines.minAmbientTemp,
+            maximal=defines.maxAmbientTemp,
+            mock_value=Mock(return_value=26.1),
+        )
+
+        self.uv_led_fan = MockFan(
+            "UV LED",
+            defines.fanMinRPM,
+            defines.fanMaxRPM,
+            2000,
+            reference=self.uv_led_temp,
+            auto_control_inhibitor=lambda: self.config.rpmControlOverride,
+        )
+        self.blower_fan = MockFan("UV LED", defines.fanMinRPM, defines.fanMaxRPM, 3300)
+        self.rear_fan = MockFan("UV LED", defines.fanMinRPM, defines.fanMaxRPM, 1000)
         self.fans = {
-            0: Fan("UV LED fan", defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled, auto_control=True),
-            1: Fan("blower fan", defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled,),
-            2: Fan("rear fan", defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled,),
+            0: self.uv_led_fan,
+            1: self.blower_fan,
+            2: self.rear_fan,
         }
 
         self.tower_end_nm = 150_000_000
@@ -46,7 +72,6 @@ class HardwareMock:
         self.mcBoardRevision = "6c"
 
         self.exposure_screen = ExposureScreen(printer_model)
-        self.white_pixels_threshold = self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
 
         self.getUvLedState = Mock(return_value=(False, 0))
         self._led_stat_s = 6912
@@ -55,24 +80,8 @@ class HardwareMock:
         self.get_resin_sensor_position_mm = AsyncMock(return_value=12.8)
         self.tower_to_resin_measurement_start_position = AsyncMock()
         self.towerPositonFailed = Mock(return_value=False)
-        self.getFansError = Mock(return_value={0: False, 1: False, 2: False})
         self.getCpuTemperature = Mock(return_value=53.5)
-
         self.getVoltages = Mock(return_value=[11.203, 11.203, 11.203, 0])
-
-        self.uv_led_temp = MockTempSensor(
-            "UV LED",
-            config.rpmControlUvLedMinTemp,
-            config.rpmControlUvLedMaxTemp,
-            critical=defines.maxUVTemp,
-            hysteresis=defines.uv_temp_hysteresis,
-            mock_value=46.7,
-        )
-        self.ambient_temp = MockTempSensor(
-            "Ambient", minimal=defines.minAmbientTemp, maximal=defines.maxAmbientTemp, mock_value=26.1
-        )
-
-        self.getFansRpm = Mock(return_value=[self.config.fan1Rpm, self.config.fan2Rpm, self.config.fan3Rpm,])
         self.isTowerMoving = Mock(return_value=False)
         self.isTowerOnPositionAsync = AsyncMock(return_value=True)
 
@@ -97,13 +106,19 @@ class HardwareMock:
         self.sl1s_booster.board_serial_no = "FAKE BOOSTER SERIAL"
 
         self.cover_state_changed = Signal()
-        self.uv_led_overheat = False
-        self.fans_error_changed = Signal()
 
         self.mcc = MotionControllerMock.get_6c()
         self.uv_led = UvLedSL1(self.mcc, printer_model)
 
+        self.power_led = Mock()
+
+        self.mock_serial = "CZPX0819X009XC00151"
+        self.mock_is_kit = False
+
     tower_position_nm = PropertyMock(return_value=150_000_000)
+
+    def read_cpu_serial(self):
+        return self.mock_serial, self.mock_is_kit
 
     def exit(self):
         self.cover_state_changed.clear()
@@ -122,6 +137,22 @@ class HardwareMock:
 
     def calcPercVolume(self, _):
         return 42
+
+    def startFans(self):
+        for fan in self.fans.values():
+            fan.enabled = True
+
+    def connect(self):
+        pass
+
+    def start(self):
+        pass
+
+    def beep(self, frequency_hz: int, length_s: float):
+        pass
+
+    async def isTowerOnPositionAsync(self, retries: int = 1) -> bool:
+        return True
 
     def __reduce__(self):
         return (Mock, ())

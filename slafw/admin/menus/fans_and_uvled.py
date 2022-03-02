@@ -8,6 +8,7 @@ from slafw.admin.menu import AdminMenu
 from slafw.admin.menus.dialogs import Confirm, Error, Info
 from slafw.errors.errors import ConfigException
 from slafw.functions.system import FactoryMountedRW
+from slafw.hardware.base.fan import FanState
 from slafw.libPrinter import Printer
 
 
@@ -18,8 +19,9 @@ class FansAndUVLedMenu(AdminMenu):
         super().__init__(control)
         self._printer = printer
         self._temp = self._printer.hw.config.get_writer()
-        self._init_fans = self._printer.hw.getFans()
-        self._override_fans = self._printer.hw.getFans()
+        self._init_uv_led_fan = FanState(self._printer.hw.uv_led_fan)
+        self._init_blower_fan = FanState(self._printer.hw.blower_fan)
+        self._init_rear_fan = FanState(self._printer.hw.rear_fan)
         uv_led_state = self._printer.hw.getUvLedState()
         self._init_uv_led = uv_led_state[0] and uv_led_state[1] == 0
         self._uv_pwm_print = self._temp.uvPwmPrint
@@ -58,35 +60,34 @@ class FansAndUVLedMenu(AdminMenu):
         )
 
     def on_leave(self):
-        self._printer.hw.setFans(self._init_fans)
+        self._init_uv_led_fan.restore()
+        self._init_blower_fan.restore()
+        self._init_rear_fan.restore()
         self._printer.hw.uvLed(self._init_uv_led)
 
     @property
     def uv_led_fan(self) -> bool:
-        return self._printer.hw.getFans()[0]
+        return self._printer.hw.uv_led_fan.enabled
 
     @uv_led_fan.setter
     def uv_led_fan(self, value: bool):
-        self._override_fans[0] = value
-        self._printer.hw.setFans(self._override_fans)
+        self._printer.hw.uv_led_fan.enabled = value
 
     @property
     def blower_fan(self) -> bool:
-        return self._printer.hw.getFans()[1]
+        return self._printer.hw.blower_fan.enabled
 
     @blower_fan.setter
     def blower_fan(self, value: bool):
-        self._override_fans[1] = value
-        self._printer.hw.setFans(self._override_fans)
+        self._printer.hw.blower_fan.enabled = value
 
     @property
     def rear_fan(self) -> bool:
-        return self._printer.hw.getFans()[2]
+        return self._printer.hw.rear_fan.enabled
 
     @rear_fan.setter
     def rear_fan(self, value: bool):
-        self._override_fans[2] = value
-        self._printer.hw.setFans(self._override_fans)
+        self._printer.hw.rear_fan.enabled = value
 
     @property
     def uv_led(self) -> bool:
@@ -118,9 +119,8 @@ class FansAndUVLedMenu(AdminMenu):
         del self._printer.hw.config.fan1Rpm
         del self._printer.hw.config.fan2Rpm
         del self._printer.hw.config.fan3Rpm
-        self._printer.hw.setFans(
-            {0: self._printer.hw.config.fan1Rpm, 1: self._printer.hw.config.fan2Rpm, 2: self._printer.hw.config.fan3Rpm}
-        )
+        for fan in self._printer.hw.fans.values():
+            fan.target_rpm = fan.default_rpm
         self._printer.hw.uvLedPwm = self._printer.hw.config.uvPwmPrint
         self._temp.reset()
         try:

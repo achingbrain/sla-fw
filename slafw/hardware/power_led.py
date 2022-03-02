@@ -15,7 +15,6 @@ class PowerLedActions(str, Enum):
 
 
 class PowerLed:
-
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self._error_level_counter = 0

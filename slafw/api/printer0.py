@@ -1,6 +1,7 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # TODO: Fix following pylint problems
@@ -89,7 +90,12 @@ class Printer0:
         self.printer.http_digest_changed.connect(self._on_http_digest_changed)
         self.printer.api_key_changed.connect(self._on_api_key_changed)
         self.printer.data_privacy_changed.connect(self._on_data_privacy_changed)
-        self.printer.hw.fans_changed.connect(self._on_fans_changed)
+        self.printer.hw.uv_led_fan.rpm_changed.connect(self._on_uv_led_fan_changed)
+        self.printer.hw.uv_led_fan.error_changed.connect(self._on_uv_led_fan_changed)
+        self.printer.hw.blower_fan.rpm_changed.connect(self._on_blower_fan_changed)
+        self.printer.hw.blower_fan.error_changed.connect(self._on_blower_fan_changed)
+        self.printer.hw.rear_fan.rpm_changed.connect(self._on_rear_fan_changed)
+        self.printer.hw.rear_fan.error_changed.connect(self._on_rear_fan_changed)
         self.printer.hw.uv_led_temp.value_changed.connect(self._on_uv_temp_changed)
         self.printer.hw.ambient_temp.value_changed.connect(self._on_ambient_temp_changed)
         self.printer.hw.cpu_temp_changed.connect(self._on_cpu_temp_changed)
@@ -127,7 +133,16 @@ class Printer0:
             self.__INTERFACE__, {"data_privacy": self.data_privacy, "help_page_url": self.help_page_url}, []
         )
 
-    def _on_fans_changed(self):
+    def _on_uv_led_fan_changed(self, _):
+        self.PropertiesChanged(self.__INTERFACE__, {"uv_led_fan": self.uv_led_fan}, [])
+        self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
+
+    def _on_blower_fan_changed(self, _):
+        self.PropertiesChanged(self.__INTERFACE__, {"blower_fan": self.uv_led_fan}, [])
+        self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
+
+    def _on_rear_fan_changed(self, _):
+        self.PropertiesChanged(self.__INTERFACE__, {"rear_fan": self.uv_led_fan}, [])
         self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
 
     def _on_uv_temp_changed(self, uv_temp: float):
@@ -391,6 +406,7 @@ class Printer0:
 
     @auto_dbus
     @property
+    @deprecated("Use properties for separate fans")
     @cached(validity_s=5)
     def fans(self) -> Dict[str, Dict[str, int]]:
         """
@@ -398,11 +414,34 @@ class Printer0:
 
         :return: Dictionary mapping from fan names to RPMs and errors
         """
-        return self._format_fans(self.printer.hw.getFansRpm(), self.printer.hw.getFansError())
+        return {
+            f"fan{i}": {
+                "rpm": fan.rpm if fan.rpm is not None else 0,
+                "error": 1 if fan.error else 0,
+            } for i, fan in self.printer.hw.fans.items()
+        }
+
+    @auto_dbus
+    @property
+    def uv_led_fan(self) -> Dict[str, int]:
+        return self._format_fan(self.printer.hw.uv_led_fan)
+
+    @auto_dbus
+    @property
+    def blower_fan(self) -> Dict[str, int]:
+        return self._format_fan(self.printer.hw.blower_fan)
+
+    @auto_dbus
+    @property
+    def rear_fan(self) -> Dict[str, int]:
+        return self._format_fan(self.printer.hw.rear_fan)
 
     @staticmethod
-    def _format_fans(rpms, errors):
-        return {f"fan{i}": {"rpm": rpm, "error": error} for i, (rpm, error) in enumerate(zip(rpms, errors.values()))}
+    def _format_fan(fan):
+        return {
+            "rpm": fan.rpm,
+            "error": 1 if fan.error else 0
+        }
 
     @auto_dbus
     @property

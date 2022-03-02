@@ -378,7 +378,7 @@ class TestWizards(TestWizardsBase):
         self._assert_final_state("showWizard", expected_value=False)
 
     def test_self_test_fail(self):
-        self.hw.config.uvWarmUpTime = 0
+        self.hw.config.uvWarmUpTime = 1
         wizard = SelfTestWizard(self.hw, self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
@@ -456,41 +456,46 @@ class TestWizards(TestWizardsBase):
 
     def test_packing_complete(self):
         self.hw.config.showWizard = False
+        self.hw.config.calibrated = True
+        self.hw.config.tower_height_nm = 0
         self.runtime_config.factory_mode = True
-        self.hw.boardData = ("TEST complete", False)
-        self._run_wizard(PackingWizard(self.hw, self.runtime_config))
+        wizard = PackingWizard(self.hw, self.runtime_config)
+
+        def state_callback():
+            if wizard.state == WizardState.INSERT_FOAM:
+                wizard.foam_inserted()
+
+        wizard.state_changed.connect(state_callback)
+        self._run_wizard(wizard)
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_packing_kit(self):
         self.hw.config.showWizard = False
         self.runtime_config.factory_mode = True
-        self.hw.boardData = ("TEST kit", True)
+        self.hw.mock_is_kit = True
         self._run_wizard(PackingWizard(self.hw, self.runtime_config))
         self._check_factory_reset(unboxing=True, factory_mode=True)
 
     def test_factory_reset_complete(self):
         self.runtime_config.factory_mode = False
-        self.hw.boardData = ("TEST complete", False)
         self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def test_factory_reset_complete_sl1s(self):
         set_configured_printer_model(PrinterModel.SL1S)
         self.runtime_config.factory_mode = False
-        self.hw.boardData = ("TEST complete", False)
         self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def test_factory_reset_complete_m1(self):
         set_configured_printer_model(PrinterModel.M1)
         self.runtime_config.factory_mode = False
-        self.hw.boardData = ("TEST complete", False)
         self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 
     def test_factory_reset_kit(self):
         self.runtime_config.factory_mode = False
-        self.hw.boardData = ("TEST kit", True)
+        self.hw.mock_is_kit = True
         self._run_wizard(FactoryResetWizard(self.hw, self.runtime_config, True))
         self._check_factory_reset(unboxing=False, factory_mode=False)
 

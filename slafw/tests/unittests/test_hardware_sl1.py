@@ -7,6 +7,7 @@
 
 import unittest
 from time import sleep
+from typing import Optional
 from unittest.mock import Mock, PropertyMock, patch
 
 from slafw import defines
@@ -20,15 +21,21 @@ from slafw.tests.base import SlafwTestCase
 class TestSL1Hardware(SlafwTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.hw_config = None
-        self.config = None
-        self.hw: HardwareSL1 = None
+        self.hw_config: Optional[HwConfig] = None
+        self.hw: Optional[HardwareSL1] = None
 
     def setUp(self):
         super().setUp()
-        defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
-        defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
+
+        self.sl1_hardware_patches = [
+            patch("slafw.hardware.base.fan.Fan.AUTO_CONTROL_INTERVAL_S", 1),
+            patch("slafw.defines.cpuSNFile", str(self.SAMPLES_DIR / "nvmem")),
+            patch("slafw.defines.cpuTempFile", str(self.SAMPLES_DIR / "cputemp")),
+            patch("slafw.defines.counterLog", str(self.TEMP_DIR / "uvcounter-log.json")),
+        ]
+
+        for p in self.sl1_hardware_patches:
+            p.start()
 
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg", is_master=True)
         self.hw = HardwareSL1(self.hw_config, PrinterModel.SL1)
@@ -42,6 +49,10 @@ class TestSL1Hardware(SlafwTestCase):
 
     def tearDown(self):
         self.hw.exit()
+
+        for p in self.sl1_hardware_patches:
+            p.stop()
+
         if self.EEPROM_FILE.exists():
             self.EEPROM_FILE.unlink()
         super().tearDown()
@@ -199,31 +210,44 @@ class TestSL1Hardware(SlafwTestCase):
     def test_fans(self):
         self.assertFalse(self.hw.mcc.checkState('fans'))
 
-        self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
+        self.assertFalse(self.hw.uv_led_fan.enabled)
+        self.assertFalse(self.hw.blower_fan.enabled)
+        self.assertFalse(self.hw.rear_fan.enabled)
 
         self.hw.startFans()
-        self.assertEqual({0: True, 1: True, 2: True}, self.hw.getFans())
+        self.assertTrue(self.hw.uv_led_fan.enabled)
+        self.assertTrue(self.hw.blower_fan.enabled)
+        self.assertTrue(self.hw.rear_fan.enabled)
 
-        fans = {0: True, 1: False, 2: True}
-        self.hw.setFans(fans)
-        self.assertEqual({0: True, 1: False, 2: True}, self.hw.getFans())
+        self.hw.uv_led_fan.enabled = True
+        self.hw.blower_fan.enabled = False
+        self.hw.rear_fan.enabled = True
+
+        self.assertTrue(self.hw.uv_led_fan.enabled)
+        self.assertFalse(self.hw.blower_fan.enabled)
+        self.assertTrue(self.hw.rear_fan.enabled)
 
         self.hw.stopFans()
-        self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
+        self.assertFalse(self.hw.uv_led_fan.enabled)
+        self.assertFalse(self.hw.blower_fan.enabled)
+        self.assertFalse(self.hw.rear_fan.enabled)
+
         # TODO: Unreliable
         # self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
 
         # RPMs
-        rpms = [0, 0, 0]
-        self.assertEqual(rpms, self.hw.getFansRpm())
-        fans = {0: True, 1: True, 2: True}
-        self.hw.setFans(fans)
-        rpms = [self.hw.config.fan1Rpm, self.hw.config.fan2Rpm, self.hw.config.fan3Rpm]
-        self.assertLessEqual(rpms, self.hw.getFansRpm()) # due to rounding
+        self.assertEqual(0, self.hw.uv_led_fan.rpm)
+        self.assertEqual(0, self.hw.blower_fan.rpm)
+        self.assertEqual(0, self.hw.rear_fan.rpm)
+        self.hw.startFans()
+        sleep(3)  # Wait for fans to stabilize
+        self.assertLessEqual(self.hw.config.fan1Rpm, self.hw.uv_led_fan.rpm)  # due to rounding
+        self.assertLessEqual(self.hw.config.fan2Rpm, self.hw.blower_fan.rpm)  # due to rounding
+        self.assertLessEqual(self.hw.config.fan3Rpm, self.hw.rear_fan.rpm)  # due to rounding
 
-        # setters
-        self.assertEqual(len(fans), len(self.hw.fans))
-        for key in fans:
+        # Setters
+        self.assertEqual(3, len(self.hw.fans))
+        for key in self.hw.fans:
             # max RPM
             self.hw.fans[key].target_rpm = defines.fanMaxRPM[key]
             self.assertEqual(defines.fanMaxRPM[key], self.hw.fans[key].target_rpm)
@@ -234,47 +258,31 @@ class TestSL1Hardware(SlafwTestCase):
             self.assertEqual(defines.fanMinRPM, self.hw.fans[key].target_rpm)
             self.assertEqual(True, self.hw.fans[key].enabled)
 
-            # below min RPM (disabled)
-            self.hw.fans[key].target_rpm = defines.fanMinRPM - 1
-            self.assertEqual(defines.fanMinRPM, self.hw.fans[key].target_rpm)
-            self.assertEqual(False, self.hw.fans[key].enabled)
+            # below min RPM (exception)
+            with self.assertRaises(ValueError):
+                self.hw.fans[key].target_rpm = defines.fanMinRPM - 1
 
-        # override start by enabled
-        for key in fans:
-            self.hw.fans[key].target_rpm = defines.fanMaxRPM[key]
-        self.hw.startFans()
-        self.assertEqual({0: True, 1: True, 2: True}, self.hw.getFans())
-
-        for key in fans:
-            self.hw.fans[key].target_rpm = defines.fanMinRPM - 1
-        self.hw.startFans()
-        self.assertEqual({0: False, 1: False, 2: False}, self.hw.getFans())
-
-        # Names
-        self.assertEqual("UV LED fan", self.hw.fans[0].name)
-        self.assertEqual("blower fan", self.hw.fans[1].name)
-        self.assertEqual("rear fan", self.hw.fans[2].name)
-
-    @patch("slafw.hardware.hardware_sl1.HardwareSL1.FAN_CONTROL_MIN_DELAY_S", 0)
     def test_uv_fan_rpm_control(self):
-        fans = {0: True, 1: True, 2: True}
-        self.hw.setFans(fans)
-        self.hw_config.rpmControlOverride = True
-        rpms = self.hw.getFansRpm()
-        self.hw.uv_fan_rpm_control(self.hw.uv_led_temp.value)
-        self.assertEqual(rpms, self.hw.getFansRpm())
-        self.hw_config.rpmControlOverride = False
+        self.hw.uv_led_fan.enabled = True
+        # self.hw_config.rpmControlOverride = True
+        sleep(1)
+        self.hw.uv_led_fan.auto_control = False
+        rpm = self.hw.uv_led_fan.rpm
+        sleep(1)
+        self.assertEqual(rpm, self.hw.uv_led_fan.rpm)
+        # self.hw_config.rpmControlOverride = False
+        self.hw.uv_led_fan.auto_control = True
         self.hw.uv_led_temp = Mock()
         type(self.hw.uv_led_temp).value = PropertyMock(return_value=self.hw_config.rpmControlUvLedMinTemp)
-        self.hw.uv_fan_rpm_control(self.hw.uv_led_temp.value)
-        rpms = self.hw.getFansRpm()
-        self.assertLessEqual(self.hw_config.rpmControlUvFanMinRpm, rpms[0])
+        sleep(1)  # Wait for fans to stabilize
+        rpm = self.hw.uv_led_fan.rpm
+        self.assertLessEqual(self.hw_config.rpmControlUvFanMinRpm, rpm)
         # due to rounding in MC
         type(self.hw.uv_led_temp).value = PropertyMock(return_value=self.hw_config.rpmControlUvLedMaxTemp)
-        self.hw.uv_fan_rpm_control(self.hw.uv_led_temp.value)
-        rpms = self.hw.getFansRpm()
+        sleep(1)  # Wait for fans to stabilize
+        rpm = self.hw.uv_led_fan.rpm
         # due to rounding in MC
-        self.assertLessEqual(self.hw_config.rpmControlUvFanMaxRpm, rpms[0])
+        self.assertLessEqual(self.hw_config.rpmControlUvFanMaxRpm, rpm)
 
     def test_temperatures(self):
         self.assertGreaterEqual(self.hw.uv_led_temp.value, 0)
@@ -282,9 +290,6 @@ class TestSL1Hardware(SlafwTestCase):
         self.assertEqual(53.5, self.hw.getCpuTemperature())
 
         # TODO: This is weak test, The simulated value seems random 0, 52, 58, 125
-
-    def test_sensor_naming(self):
-        self.assertEqual("UV LED temperature", self.hw.getSensorName(0))
 
     def test_tower_hold_tilt_release(self):
         self.hw.towerHoldTiltRelease()

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from typing import Optional
+from unittest.mock import Mock
 
 from slafw.hardware.base.temp_sensor import TempSensor
 
@@ -16,11 +17,11 @@ class MockTempSensor(TempSensor):
         maximal: Optional[float] = None,
         critical: Optional[float] = None,
         hysteresis: float = 0,
-        mock_value: float = 20,
+        mock_value: Mock = Mock(return_value=20),
     ):
         super().__init__(name, minimal, maximal, critical, hysteresis=hysteresis)
         self._mock_value = mock_value
 
     @property
     def value(self) -> float:
-        return self._mock_value
+        return self._mock_value()

@@ -15,7 +15,7 @@ import threading
 from datetime import datetime
 from pathlib import Path
 from time import monotonic
-from typing import Optional, Set, Any, Dict
+from typing import Optional, Set, Any
 
 import distro
 from PySignal import Signal
@@ -41,7 +41,7 @@ from slafw.errors.errors import (
     UVPWMComputationError,
     OldExpoPanel,
     UVLEDTempSensorFailed,
-    FanFailed, PrinterException,
+    PrinterException, UVLEDFanFailed, BlowerFanFailed, RearFanFailed,
 )
 from slafw.functions.files import save_all_remain_wizard_history, \
     get_all_supported_files
@@ -121,9 +121,9 @@ class Printer:
         self.hw = HardwareSL1(hw_config, self.model)
 
         self.hw.uv_led_temp.overheat_changed.connect(self._on_uv_led_temp_overheat)
-        self.hw.fans_error_changed.connect(self._on_fans_error)
-
-
+        self.hw.uv_led_fan.error_changed.connect(self._on_uv_fan_error)
+        self.hw.blower_fan.error_changed.connect(self._on_blower_fan_error)
+        self.hw.rear_fan.error_changed.connect(self._on_rear_fan_error)
 
         # needed before init of other components (display etc)
         # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
@@ -634,20 +634,17 @@ class Printer:
                 self.hw.uvLed(False)
                 self.exception_occurred.emit(UVLEDTempSensorFailed())
 
-    def _on_fans_error(self, fans_error: Dict[str, bool]):
-        if not any(fans_error.values()):
-            self.logger.debug("Fans recovered")
-            return
+    def _on_uv_fan_error(self, error: bool):
+        if not self.has_state(PrinterState.PRINTING) and error:
+            self.exception_occurred.emit(UVLEDFanFailed())
 
-        failed_fans_text = self.hw.getFansErrorText()
-        self.logger.error("Detected fan error, text: %s", failed_fans_text)
-        # Report error only if not printing to avoid mixing exposure and printer error reports
-        if not self.has_state(PrinterState.PRINTING):
-            fans_state = self.hw.getFansError().values()
-            failed_fans = [num for num, state in enumerate(fans_state) if state]
-            failed_fan_names = [self.hw.fans[i].name for i in failed_fans]
-            failed_fans_text = self.hw.getFansErrorText()
-            self.exception_occurred.emit(FanFailed(failed_fans, failed_fan_names, failed_fans_text))
+    def _on_blower_fan_error(self, error: bool):
+        if not self.has_state(PrinterState.PRINTING) and error:
+            self.exception_occurred.emit(BlowerFanFailed())
+
+    def _on_rear_fan_error(self, error: bool):
+        if not self.has_state(PrinterState.PRINTING) and error:
+            self.exception_occurred.emit(RearFanFailed())
 
     def hw_all_off(self):
         self.exposure_image.blank_screen()

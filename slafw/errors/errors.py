@@ -354,12 +354,30 @@ class A64Overheat(GeneralError):
     temperature: float
 
 
+class FanFailure(ExposureError):
+    pass
+
 @with_code(Sl1Codes.FAN_FAILED)
 @dataclass(frozen=True)
-class FanFailed(ExposureError):
+class FanFailed(FanFailure):
     failed_fans: List[int]
     failed_fan_names: List[str]
     failed_fans_text: str
+
+
+# TODO: Missing code
+class UVLEDFanFailed(FanFailure):
+    pass
+
+
+# TODO: Missing code
+class BlowerFanFailed(FanFailure):
+    pass
+
+
+# TODO: Missing code
+class RearFanFailed(FanFailure):
+    pass
 
 
 @with_code(Sl1Codes.RESIN_MEASURE_FAILED)

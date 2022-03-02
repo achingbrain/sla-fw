@@ -65,7 +65,6 @@ Path):
 
 
 def log_hw(hw: BaseHardware) -> Mapping[str, Any]:
-    fans_rpm = hw.getFansRpm()
     voltages = hw.getVoltages()
     try:
         locales = SystemBus().get("org.freedesktop.locale1").Locale[0]
@@ -79,9 +78,9 @@ def log_hw(hw: BaseHardware) -> Mapping[str, Any]:
         "UV LED Temperature": hw.uv_led_temp.value,
         "Ambient Temperature": hw.ambient_temp.value,
         "CPU Temperature": hw.getCpuTemperature(),
-        "UV LED fan [rpm]": fans_rpm[0],
-        "Blower fan [rpm]": fans_rpm[1],
-        "Rear fan [rpm]": fans_rpm[2],
+        "UV LED fan [rpm]": hw.uv_led_fan.rpm,
+        "Blower fan [rpm]": hw.blower_fan.rpm,
+        "Rear fan [rpm]": hw.rear_fan.rpm,
         "A64 Controller SN": hw.cpuSerialNo,
         "MC FW version": hw.mcFwVersion,
         "MC HW Reversion": hw.mcBoardRevision,

@@ -20,7 +20,7 @@ from datetime import timedelta
 from functools import cached_property
 from math import ceil
 from threading import Thread
-from time import sleep, monotonic
+from time import sleep
 from typing import List, Optional, Any, Tuple
 
 from slafw import defines
@@ -29,19 +29,19 @@ from slafw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
     MotionControllerException, ConfigException
 from slafw.functions.decorators import safe_call
 from slafw.hardware.axis import AxisId
-from slafw.hardware.fan import Fan
+from slafw.hardware.base.hardware import BaseHardware
+from slafw.hardware.power_led_action import WarningAction
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
+from slafw.hardware.sl1.fan import SL1FanUVLED, SL1FanBlower, SL1FanRear
+from slafw.hardware.sl1.power_led import PowerLedSL1
 from slafw.hardware.sl1.temp_sensor import SL1TempSensorUV, SL1STempSensorUV, SL1TempSensorAmbient
 from slafw.hardware.sl1.tilt import TiltSL1
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.hardware.sl1s_uvled_booster import Booster
 from slafw.hardware.tilt import TiltProfile
-from slafw.hardware.base.hardware import BaseHardware
 from slafw.motion_controller.controller import MotionController
 from slafw.utils.value_checker import ValueChecker, UpdateInterval
-from slafw.hardware.power_led_action import WarningAction
-from slafw.hardware.sl1.power_led import PowerLedSL1
 
 
 class HardwareSL1(BaseHardware):
@@ -84,13 +84,6 @@ class HardwareSL1(BaseHardware):
 
         self.config.add_onchange_handler(self._fan_values_refresh)
 
-        self._sensorsNames = {
-            0: N_("UV LED temperature"),    # SL1
-            1: N_("Ambient temperature"),
-            2: N_("UV LED temperature"),    # SL1S
-            3: N_("<reserved2>"),
-        }
-
         self._tower_moving = False
         self._towerPositionRetries: int = 1
 
@@ -101,11 +94,9 @@ class HardwareSL1(BaseHardware):
 
         self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
         self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
-        self.mcc.fans_state_changed.connect(lambda x: self.fans_changed.emit())
         self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
         self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
         self.cpu_temp_changed.connect(self._check_cpu_overheat)
-        self.mcc.fans_state_changed.connect(self._fans_error_check)
 
         self._tilt_position_checker = ValueChecker(
             lambda: self.tilt.position,
@@ -123,26 +114,29 @@ class HardwareSL1(BaseHardware):
         self.mcc.tower_status_changed.connect(self._tower_position_checker.set_rapid_update)
         self.last_rpm_control: Optional[float] = None
 
-        self.uv_fan = Fan(
-            N_("UV LED fan"), defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled, auto_control=True
-        )
-        self.blower_fan = Fan(N_("blower fan"), defines.fanMaxRPM[1], self.config.fan2Rpm, self.config.fan2Enabled)
-        self.rear_fan = Fan(N_("rear fan"), defines.fanMaxRPM[2], self.config.fan3Rpm, self.config.fan3Enabled)
-        self.fans = {
-            0: self.uv_fan,
-            1: self.blower_fan,
-            2: self.rear_fan,
-        }
-
+        # Temperature sensors
         if printer_model == PrinterModel.SL1:
             self.uv_led_temp = SL1TempSensorUV(self.mcc, self.config)
         elif printer_model in (PrinterModel.SL1S, PrinterModel.M1):
             self.uv_led_temp = SL1STempSensorUV(self.mcc, self.config)
         else:
             raise NotImplementedError
-        self.uv_led_temp.value_changed.connect(self.uv_fan_rpm_control)
-
         self.ambient_temp = SL1TempSensorAmbient(self.mcc)
+
+        # Fans
+        self.uv_led_fan = SL1FanUVLED(
+            self.mcc,
+            self.config,
+            self.uv_led_temp,
+            auto_control_inhibitor=lambda: self.config.rpmControlOverride
+        )
+        self.blower_fan = SL1FanBlower(self.mcc, self.config)
+        self.rear_fan = SL1FanRear(self.mcc, self.config)
+        self.fans = {
+            0: self.uv_led_fan,
+            1: self.blower_fan,
+            2: self.rear_fan,
+        }
 
     @cached_property
     def tower_min_nm(self) -> int:
@@ -202,7 +196,6 @@ class HardwareSL1(BaseHardware):
     async def _value_refresh_task_body(self):
         # This is deprecated, move value checkers to MotionController
         checkers = [
-            ValueChecker(self.getFansRpm, self.fans_changed, UpdateInterval.seconds(3), pass_value=False),
             ValueChecker(self.getCpuTemperature, self.cpu_temp_changed, UpdateInterval.seconds(3)),
             ValueChecker(self.getVoltages, self.led_voltages_changed, UpdateInterval.seconds(5)),
             ValueChecker(self.getResinSensorState, self.resin_sensor_state_changed),
@@ -212,7 +205,13 @@ class HardwareSL1(BaseHardware):
             ValueChecker(self.mcc.getStateBits, None, UpdateInterval(timedelta(milliseconds=500))),
         ]
 
-        self._value_refresh_task = asyncio.gather(*[checker.check() for checker in checkers])
+        tasks = [checker.check() for checker in checkers]
+
+        # TODO: This is temporary
+        # We should have a thread for running component services and get rid of the value checker thread
+        tasks.extend([fan.run() for fan in self.fans.values()])
+
+        self._value_refresh_task = asyncio.gather(*tasks)
         await self._value_refresh_task
 
     def _value_refresh_body(self):
@@ -229,14 +228,12 @@ class HardwareSL1(BaseHardware):
     def _fan_values_refresh(self, key: str, _: Any):
         """ Re-load the fan RPM settings from configuration, should be used as a callback """
         if key in {"fan1Rpm", "fan2Rpm", "fan3Rpm", "fan1Enabled", "fan2Enabled", "fan3Enabled", }:
-            self.fans[0].default_rpm = self.config.fan1Rpm
-            self.fans[0].enabled = self.config.fan1Enabled
-            self.fans[1].default_rpm = self.config.fan2Rpm
-            self.fans[1].enabled = self.config.fan2Enabled
-            self.fans[2].default_rpm = self.config.fan3Rpm
-            self.fans[2].enabled = self.config.fan3Enabled
-            mask = self.getFans()
-            self.setFans(mask)
+            self.uv_led_fan.default_rpm = self.config.fan1Rpm
+            self.uv_led_fan.enabled = self.config.fan1Enabled
+            self.blower_fan.default_rpm = self.config.fan2Rpm
+            self.blower_fan.enabled = self.config.fan2Enabled
+            self.rear_fan.default_rpm = self.config.fan3Rpm
+            self.rear_fan.enabled = self.config.fan3Enabled
 
     def initDefaults(self):
         self.motorsRelease()
@@ -471,104 +468,12 @@ class HardwareSL1(BaseHardware):
         return self.mcc.checkState("button")
 
     def startFans(self):
-        self.setFans(mask={0: True, 1: True, 2: True})
+        for fan in self.fans.values():
+            fan.enabled = True
 
     def stopFans(self):
-        self.setFans(mask={0: False, 1: False, 2: False})
-
-    def setFans(self, mask):
-        out = list()
-        for key in self.fans:
-            if self.fans[key].enabled and mask.get(key):
-                out.append(True)
-            else:
-                out.append(False)
-        self.mcc.doSetBoolList("!fans", out)
-        self.mcc.do("!frpm", " ".join(str(fan.target_rpm) for fan in self.fans.values()))
-
-    def getFans(self, request=(0, 1, 2)):
-        return self.getFansBits("?fans", request)
-
-    @safe_call({0: False, 1: False, 2: False}, (MotionControllerException, ValueError))
-    def getFansError(self):
-        state = self.mcc.getStateBits(["fans"], check_for_updates=False)
-        if "fans" not in state:
-            raise ValueError(f"'fans' not in state: {state}")
-
-        fansError = self.getFansBits("?fane", (0, 1, 2))
-        return fansError
-
-    def getFansErrorText(self) -> str:
-        failed_fans = []
-        fans_state = self.getFansError()
-        for num, state in fans_state.items():
-            if state:
-                failed_fans.append(self.fans[num].name)
-        return ", ".join(failed_fans)
-
-    def getFansBits(self, cmd, request):
-        try:
-            bits = self.mcc.doGetBoolList(cmd, bit_count=3)
-            if len(bits) != 3:
-                raise ValueError(f"Fans bits count not match! {bits}")
-
-            return {idx: bits[idx] for idx in request}
-        except (MotionControllerException, ValueError):
-            self.logger.exception("getFansBits failed")
-            return dict.fromkeys(request, False)
-
-    def getFansRpm(self, request=(0, 1, 2)):
-        try:
-            rpms = self.mcc.doGetIntList("?frpm", multiply=1)
-            if not rpms or len(rpms) != 3:
-                raise ValueError(f"RPMs count not match! ({rpms})")
-
-            return rpms
-        except (MotionControllerException, ValueError):
-            self.logger.exception("getFansRpm failed")
-            return dict.fromkeys(request, 0)
-
-    def setFansRpm(self, rpms: List[int]):
-        self.mcc.do("!frpm", " ".join(str(fan) for fan in rpms))
-
-    def uv_fan_rpm_control(self, uv_led_temperature: float):
-        if self.last_rpm_control and monotonic() - self.last_rpm_control < self.FAN_CONTROL_MIN_DELAY_S:
-            # Avoid too frequent controls, MC does not report errors a few seconds after control
-            return
-
-        if self.config.rpmControlOverride or not self.fans[0].auto_control:
-            self.logger.debug("Skipping auto UV fan control - disabled")
-            return
-
-        max_rpm = self.config.rpmControlUvFanMaxRpm
-        min_rpm = self.config.rpmControlUvFanMinRpm
-        max_temp = self.config.rpmControlUvLedMaxTemp
-        min_temp = self.config.rpmControlUvLedMinTemp
-        map_constant = (max_rpm - min_rpm) / (max_temp - min_temp)
-        uv_fan_temp_rpm = round((uv_led_temperature - min_temp) * map_constant + min_rpm)
-        uv_fan_temp_rpm = max(min(uv_fan_temp_rpm, defines.fanMaxRPM[0]), defines.fanMinRPM)
-        fans_rpm = [uv_fan_temp_rpm, self.fans[1].target_rpm, self.fans[2].target_rpm]
-        self.logger.debug("Fan RPM control setting RPMs: %s", fans_rpm)
-        self.last_rpm_control = monotonic()
-        self.setFansRpm(fans_rpm)
-
-    def _fans_error_check(self, fans_error: bool):
-        """
-        Report fan failure
-
-        @param fans_error: fan operation status, True - working, False - broken
-        """
-        error = self.getFansError()
-        if not any(error.values()):
-            self.logger.debug("Ignoring fan error from status as no fan is failing")
-            fans_error = False  # False positive, fans are actually ok ???
-
-        if self.fans_error != fans_error:
-            self.fans_error = fans_error
-            self.fans_error_changed.emit(error)
-
-    def getSensorName(self, sensorNumber):
-        return _(self._sensorsNames.get(sensorNumber, N_("unknown sensor")))
+        for fan in self.fans.values():
+            fan.enabled = False
 
     def _check_cpu_overheat(self, A64temperature):
         if A64temperature > defines.maxA64Temp: # 80 C
@@ -922,11 +827,10 @@ class HardwareSL1(BaseHardware):
         return sensitivity
 
     def getFansRpmDict(self):
-        rpms = self.getFansRpm()
         return {
-            "uv_led": rpms[0],
-            "blower": rpms[1],
-            "rear": rpms[2]
+            "uv_led": self.uv_led_fan.rpm,
+            "blower": self.blower_fan.rpm,
+            "rear": self.rear_fan.rpm,
         }
 
     def getTemperaturesDict(self):

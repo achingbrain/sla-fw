@@ -2,16 +2,16 @@
 # Copyright (C) 2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from unittest import TestCase
 from unittest.mock import Mock
 
 from slafw.configs.hw import HwConfig
 from slafw.errors.errors import UVLEDTempSensorFailed, AmbientTempSensorFailed
 from slafw.hardware.sl1.temp_sensor import SL1TempSensorUV, SL1STempSensorUV, SL1TempSensorAmbient
+from slafw.tests.base import SlafwTestCase
 from slafw.tests.mocks.motion_controller import MotionControllerMock
 
 
-class TestTempSensors(TestCase):
+class TestTempSensors(SlafwTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.mcc = MotionControllerMock.get_6c()

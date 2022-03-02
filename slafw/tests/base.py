@@ -57,18 +57,19 @@ class SlafwTestCase(TestCase):
     SAMPLES_DIR = Path(samples.__file__).parent
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
 
-    patches = [
-        patch("slafw.motion_controller.controller.gpio"),
-        patch("slafw.motion_controller.controller.UInput"),
-        patch("slafw.motion_controller.controller.serial", mc_port),
-        patch("slafw.libUvLedMeterMulti.serial.tools.list_ports"),
-        patch("slafw.hardware.hardware_sl1.ExposureScreenSL1", slafw.tests.mocks.exposure_screen.ExposureScreen),
-        patch("slafw.hardware.hardware_sl1.Booster", slafw.tests.mocks.sl1s_uvled_booster.BoosterMock)
-    ]
-
     def setUp(self) -> None:
         fake_gettext()
-        for p in self.patches:
+
+        self.__base_patches = [
+            patch("slafw.motion_controller.controller.gpio"),
+            patch("slafw.motion_controller.controller.UInput"),
+            patch("slafw.motion_controller.controller.serial", mc_port),
+            patch("slafw.libUvLedMeterMulti.serial.tools.list_ports"),
+            patch("slafw.hardware.hardware_sl1.ExposureScreenSL1", slafw.tests.mocks.exposure_screen.ExposureScreen),
+            patch("slafw.hardware.hardware_sl1.Booster", slafw.tests.mocks.sl1s_uvled_booster.BoosterMock)
+        ]
+
+        for p in self.__base_patches:
             p.start()
 
         # Make sure we use unmodified defines
@@ -137,7 +138,7 @@ class SlafwTestCase(TestCase):
         logging.getLogger().removeHandler(self.stream_handler)
         self.temp_dir_obj.cleanup()
 
-        for p in self.patches:
+        for p in self.__base_patches:
             p.stop()
 
         super().tearDown()
