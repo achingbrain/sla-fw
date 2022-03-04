@@ -71,7 +71,7 @@ class Preloader(Process):
                 self._params.display_usage_size_px[1],
                 self._params.thumbnail_factor,
         )
-        self._black_image = Image.new("L", self._params.size_px)
+        self._black_image = Image.new("L", self._params.apparent_size_px)
         self._project_serial: Optional[int] = None
         self._calibration: Optional[Calibration] = None
         self._shm = [
@@ -143,7 +143,7 @@ class Preloader(Process):
             self._project_serial = self._sl[SLIDX.PROJECT_SERIAL]
             self._calibration = None
             if self._sl[SLIDX.PROJECT_CALIBRATE_REGIONS]:
-                self._calibration = Calibration(self._params.size_px)
+                self._calibration = Calibration(self._params.apparent_size_px)
                 if not self._calibration.new_project(
                         BBox(self._read_SL(self._shm[SHMIDX.PROJECT_BBOX])),
                         BBox(self._read_SL(self._shm[SHMIDX.PROJECT_FL_BBOX])),
@@ -154,8 +154,8 @@ class Preloader(Process):
                         self._sl[SLIDX.PROJECT_CALIBRATE_TEXT_SIZE_PX],
                         self._sl[SLIDX.PROJECT_CALIBRATE_PAD_SPACING_PX]):
                     self._logger.warning("Calibration is invalid!")
-        input_image = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
-        output_image = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.OUTPUT_IMAGE1].buf, "raw", "L", 0, 1)
+        input_image = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
+        output_image = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.OUTPUT_IMAGE1].buf, "raw", "L", 0, 1)
         output_image.readonly = False
         if self._calibration and self._calibration.areas:
             start_time = monotonic()
@@ -168,7 +168,7 @@ class Preloader(Process):
         else:
             output_image.paste(input_image)
         if self._sl[SLIDX.PROJECT_FLAGS] & ProjectFlags.USE_MASK:
-            mask = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
+            mask = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
             output_image.paste(self._black_image, mask=mask)
         start_time = monotonic()
         pixels = numpy.memmap(
@@ -188,12 +188,12 @@ class Preloader(Process):
         self._logger.debug("pixels manipulations done in %f ms, white pixels: %d",
                 1e3 * (monotonic() - start_time), white_pixels)
         if self._sl[SLIDX.PROJECT_FLAGS] & ProjectFlags.PER_PARTES and white_pixels > self._sl[SLIDX.WHITE_PIXELS_THRESHOLD]:
-            output_image_second = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.OUTPUT_IMAGE2].buf, "raw", "L", 0, 1)
+            output_image_second = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.OUTPUT_IMAGE2].buf, "raw", "L", 0, 1)
             output_image_second.readonly = False
             output_image_second.paste(output_image)
-            mask = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
+            mask = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
             output_image.paste(self._black_image, mask=mask)
-            mask = Image.frombuffer("L", self._params.size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
+            mask = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
             output_image_second.paste(self._black_image, mask=mask)
             self._screenshot(output_image_second, "2")
         self._screenshot(output_image, "1")

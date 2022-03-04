@@ -66,4 +66,29 @@ class PrinterModelNone(PrinterModelBase):
         )
 
 
+class PrinterModelVirtual(PrinterModelBase):
+    @property
+    def name(self) -> str:
+        return "VIRTUAL"
+
+    @property
+    def value(self) -> int:
+        return 999
+
+    @property
+    def extension(self) -> str:
+        return ".sl1"
+
+    @property
+    def options(self) -> PrinterOptions:
+        return PrinterOptions(
+            has_tilt=False,
+            has_booster=False,
+            vat_revision=0,
+            has_UV_calibration=False,
+            has_UV_calculation=False,
+        )
+
+
 PrinterModel.register_model(PrinterModelNone())
+PrinterModel.register_model(PrinterModelVirtual())

@@ -27,6 +27,7 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(1, PrinterModel.SL1.value)
         self.assertEqual(2, PrinterModel.SL1S.value)
         self.assertEqual(3, PrinterModel.M1.value)
+        self.assertEqual(999, PrinterModel.VIRTUAL.value)
 
     def test_extensions(self):
         model = PrinterModel.NONE
@@ -35,24 +36,28 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(model.extensions, {".sl1s"})
 
     def test_exposure_screen_parameters(self):
-        screen = ExposureScreenSL1(PrinterModel.NONE)
-        self.assertEqual(screen.parameters.size_px, (0, 0))
-        self.assertEqual(screen.parameters.pixel_size_nm, 0)
+        screen = ExposureScreenSL1(PrinterModel.VIRTUAL)
+        self.assertEqual(screen.parameters.size_px, (360, 640))
+        self.assertEqual(screen.parameters.pixel_size_nm, 46875)
         self.assertEqual(screen.parameters.refresh_delay_ms, 0)
         self.assertEqual(screen.parameters.monochromatic, False)
         self.assertEqual(screen.parameters.bgr_pixels, False)
-        self.assertEqual(screen.parameters.width_px, 0)
-        self.assertEqual(screen.parameters.height_px, 0)
-        self.assertEqual(screen.parameters.detected_size_px, (0, 0))
+        self.assertEqual(screen.parameters.width_px, 360)
+        self.assertEqual(screen.parameters.height_px, 640)
+        self.assertEqual(screen.parameters.apparent_size_px, (1440, 2560))
+        self.assertEqual(screen.parameters.apparent_width_px, 1440)
+        self.assertEqual(screen.parameters.apparent_height_px, 2560)
         screen = ExposureScreenSL1(PrinterModel.SL1S)
-        self.assertEqual(screen.parameters.size_px, (1620, 2560))
+        self.assertEqual(screen.parameters.size_px, (540, 2560))
         self.assertEqual(screen.parameters.pixel_size_nm, 50000)
         self.assertEqual(screen.parameters.refresh_delay_ms, 0)
         self.assertEqual(screen.parameters.monochromatic, True)
         self.assertEqual(screen.parameters.bgr_pixels, True)
-        self.assertEqual(screen.parameters.width_px, 1620)
+        self.assertEqual(screen.parameters.width_px, 540)
         self.assertEqual(screen.parameters.height_px, 2560)
-        self.assertEqual(screen.parameters.detected_size_px, (540, 2560))
+        self.assertEqual(screen.parameters.apparent_size_px, (1620, 2560))
+        self.assertEqual(screen.parameters.apparent_width_px, 1620)
+        self.assertEqual(screen.parameters.apparent_height_px, 2560)
 
     def test_options(self):
         options = PrinterModel.NONE.options

@@ -106,7 +106,7 @@ class HardwareSL1(BaseHardware):
         self.mcc.tilt_status_changed.connect(self._tilt_position_checker.set_rapid_update)
         self.mcc.tower_status_changed.connect(self._tower_position_checker.set_rapid_update)
 
-        if self._printer_model == PrinterModel.SL1:
+        if self._printer_model in (PrinterModel.SL1, PrinterModel.VIRTUAL):
             self.uv_led_temp = SL1TempSensorUV(self.mcc, self.config)
         elif self._printer_model in (PrinterModel.SL1S, PrinterModel.M1):
             self.uv_led_temp = SL1STempSensorUV(self.mcc, self.config)
@@ -121,7 +121,7 @@ class HardwareSL1(BaseHardware):
         self.blower_fan = SL1FanBlower(self.mcc, self.config)
         self.rear_fan = SL1FanRear(self.mcc, self.config)
 
-        if self._printer_model == PrinterModel.SL1:
+        if self._printer_model in (PrinterModel.SL1, PrinterModel.VIRTUAL):
             self.uv_led = SL1UVLED(self.mcc, self.uv_led_temp)
         elif self._printer_model in (PrinterModel.SL1S, PrinterModel.M1):
             self.uv_led = SL1SUVLED(self.mcc, self.sl1s_booster, self.uv_led_temp)

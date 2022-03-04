@@ -7,7 +7,7 @@
 import functools
 import logging
 import mmap
-from abc import ABC, abstractmethod
+from abc import ABC
 from time import monotonic, sleep
 from threading import Thread, Event
 from typing import Optional, Any, List, Tuple
@@ -40,6 +40,7 @@ class ExposureScreenParameters:
     #pylint: disable=too-many-instance-attributes
     size_px: tuple
     thumbnail_factor: int
+    output_factor: int
     pixel_size_nm: int
     refresh_delay_ms: int
     monochromatic: bool
@@ -47,25 +48,24 @@ class ExposureScreenParameters:
     width_px: int = field(init=False)
     height_px: int = field(init=False)
     bytes_per_pixel: int = field(init=False)
+    apparent_size_px: tuple = field(init=False)
     apparent_width_px: int = field(init=False)
-    detected_size_px: tuple = field(init=False)
+    apparent_height_px: int = field(init=False)
     display_usage_size_px: tuple = field(init=False)
     live_preview_size_px: tuple = field(init=False)
-    surface_area_px: tuple = field(init=False)
 
     def __post_init__(self):
         self.width_px = self.size_px[0]
         self.height_px = self.size_px[1]
         self.bytes_per_pixel = 3 if self.monochromatic else 1
-        self.apparent_width_px = self.size_px[0] // self.bytes_per_pixel
-        self.detected_size_px = (self.size_px[0] // self.bytes_per_pixel,
-                                 self.size_px[1])
+        self.apparent_width_px = self.width_px * self.output_factor * self.bytes_per_pixel
+        self.apparent_height_px = self.height_px * self.output_factor
+        self.apparent_size_px = (self.apparent_width_px, self.apparent_height_px)
         # numpy uses reversed axis indexing
-        self.display_usage_size_px = (self.size_px[1] // self.thumbnail_factor,
-                                      self.size_px[0] // self.thumbnail_factor)
-        self.live_preview_size_px = (self.size_px[0] // self.thumbnail_factor,
-                                     self.size_px[1] // self.thumbnail_factor)
-        self.surface_area_px = (0, 0, self.apparent_width_px, self.height_px)
+        self.display_usage_size_px = (self.apparent_height_px // self.thumbnail_factor,
+                                      self.apparent_width_px // self.thumbnail_factor)
+        self.live_preview_size_px = (self.apparent_width_px // self.thumbnail_factor,
+                                     self.apparent_height_px // self.thumbnail_factor)
 
 
 class Layer:
@@ -226,7 +226,7 @@ class Wayland:
             raise RuntimeError("no suitable shm format available")
         self.main_layer = Layer(
                 self.bindings,
-                self.parameters.width_px // self.parameters.bytes_per_pixel,
+                self.parameters.width_px,
                 self.parameters.height_px,
                 self.parameters.bytes_per_pixel)
         self.main_layer.add_surface(self.bindings.compositor)
@@ -236,7 +236,8 @@ class Wayland:
         xdg_toplevel = xdg_surface.get_toplevel()
         xdg_toplevel.set_title("SLA-FW Exposure Output")
         xdg_toplevel.set_app_id("cz.prusa3d.slafw")
-        xdg_toplevel.set_fullscreen(self.bindings.output)
+        if self.parameters.output_factor == 1:
+            xdg_toplevel.set_fullscreen(self.bindings.output)
         xdg_toplevel.dispatcher["configure"] = self._xdg_toplevel_configure_handler
         xdg_toplevel.dispatcher["close"] = self._xdg_toplevel_close_handler
         self.blank_layer = Layer(
@@ -302,10 +303,15 @@ class Wayland:
 
     def _output_handler(self, wl_output, flags, width, height, refresh):
         self.logger.debug("found output - %dx%d@%.1f flags:%d ", width, height, refresh / 1e3, flags)
-        if width == self.parameters.width_px // self.parameters.bytes_per_pixel and height == self.parameters.height_px:
-            self.logger.debug("got wl_output")
-            self.bindings.output = wl_output
+        if self.parameters.output_factor == 1:
+            if width == self.parameters.width_px and height == self.parameters.height_px:
+                self.logger.debug("got wl_output")
+                self.bindings.output = wl_output
         else:
+            if width >= self.parameters.width_px and height >= self.parameters.height_px:
+                self.logger.debug("got wl_output (window)")
+                self.bindings.output = wl_output
+        if not self.bindings.output:
             self.logger.debug("wrong resolution (%dx%d) - output ignored", width, height)
 
     def _xdg_toplevel_configure_handler(self, xdg_toplevel, width, height, states):
@@ -390,12 +396,16 @@ class ExposureScreen(ABC):
         return WlShm.format.rgb888.value
 
     def show(self, image: Image, sync: bool = True):
-        if image.size != self.parameters.size_px:
+        if image.size != self.parameters.apparent_size_px:
             self.logger.error("Invalid image size %s. Output is %s", str(image.size), str(self.parameters.size_px))
             return
         if image.mode != "L":
             self.logger.error("Invalid pixel format %s. 'L' is required.", image.mode)
             return
+        if self.parameters.output_factor != 1:
+            self.logger.debug("resize from: %s", image.size)
+            image = image.resize(self.parameters.size_px, Image.BICUBIC)
+            self.logger.debug("resize to: %s", image.size)
         self._wayland.show(sync, image.tobytes())
 
     def blank_screen(self, sync: bool = True):
@@ -408,9 +418,27 @@ class ExposureScreen(ABC):
         self._wayland.blank_area(sync, area_index)
 
     @staticmethod
-    @abstractmethod
     def get_parameters(printer_model: PrinterModel) -> ExposureScreenParameters:
-        ...
+        return {
+            PrinterModel.NONE: ExposureScreenParameters(
+                size_px=(0, 0),
+                thumbnail_factor=1,
+                output_factor=1,
+                pixel_size_nm=0,
+                refresh_delay_ms=0,
+                monochromatic=False,
+                bgr_pixels=False,
+            ),
+            PrinterModel.VIRTUAL: ExposureScreenParameters(
+                size_px=(360, 640),
+                thumbnail_factor=5,
+                output_factor=4,
+                pixel_size_nm=46875,
+                refresh_delay_ms=0,
+                monochromatic=False,
+                bgr_pixels=False,
+            ),
+        }.get(printer_model, None)
 
     @property
     def parameters(self) -> ExposureScreenParameters:

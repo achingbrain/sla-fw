@@ -59,7 +59,7 @@ class ExposureImage:
 
     def start(self):
         # numpy uses reversed axis indexing
-        image_bytes_count = self._hw.exposure_screen.parameters.width_px * self._hw.exposure_screen.parameters.height_px
+        image_bytes_count = self._hw.exposure_screen.parameters.apparent_width_px * self._hw.exposure_screen.parameters.apparent_height_px
         temp_usage = numpy.zeros(self._hw.exposure_screen.parameters.display_usage_size_px, dtype=numpy.float64, order='C')
         # see SLIDX!!!
         self._sl = shared_memory.ShareableList(sequence=[
@@ -87,7 +87,7 @@ class ExposureImage:
                                     self._preloader_log_queue)
         self._preloader_log_listener.start()
         self._preloader.start()
-        self._buffer = Image.new("L", self._hw.exposure_screen.parameters.size_px)
+        self._buffer = Image.new("L", self._hw.exposure_screen.parameters.apparent_size_px)
 
     def exit(self):
         if self._preloader:
@@ -131,10 +131,10 @@ class ExposureImage:
         usage.fill(0.0)
         if self._project.per_partes:
             try:
-                image1 = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
+                image1 = Image.frombuffer("L", self._hw.exposure_screen.parameters.apparent_size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
                 image1.readonly = False
                 image1.paste(self._open_image(Path(defines.dataPath) / self._model.name / defines.perPartesMask))
-                image2 = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
+                image2 = Image.frombuffer("L", self._hw.exposure_screen.parameters.apparent_size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
                 image2.readonly = False
                 image2.paste(ImageOps.invert(image1))
                 project_flags |= ProjectFlags.PER_PARTES
@@ -144,7 +144,7 @@ class ExposureImage:
                 # reset the flag for Exposure
                 self._project.per_partes = False
         try:
-            mask = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
+            mask = Image.frombuffer("L", self._hw.exposure_screen.parameters.apparent_size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
             mask.readonly = False
             mask.paste(ImageOps.invert(self._project.read_image(defines.maskFilename)))
             project_flags |= ProjectFlags.USE_MASK
@@ -156,7 +156,7 @@ class ExposureImage:
         if self._project.calibrate_regions:
             self._project.analyze()
             self._calibration = Calibration(
-                self._hw.exposure_screen.parameters.size_px)
+                self._hw.exposure_screen.parameters.apparent_size_px)
             if not self._calibration.new_project(
                     self._project.bbox,
                     self._project.layers[0].bbox,
@@ -202,8 +202,9 @@ class ExposureImage:
     @measure_time("open screen")
     def open_screen(self):
         """ Turn all pixels of the exposure display transparent(white) """
-        self._buffer.paste(255, (0, 0, self._hw.exposure_screen.parameters.width_px, self._hw.exposure_screen.parameters.height_px))
-        self._hw.exposure_screen.show(self._buffer)
+        expo = self._hw.exposure_screen
+        self._buffer.paste(255, (0, 0, expo.parameters.apparent_width_px, expo.parameters.apparent_height_px))
+        expo.show(self._buffer)
 
     @measure_time("fill area")
     def fill_area(self, area_index, color=0):
@@ -242,7 +243,7 @@ class ExposureImage:
         except Exception as e:
             self.logger.exception("read image exception:")
             raise PreloadFailed() from e
-        image = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
+        image = Image.frombuffer("L", self._hw.exposure_screen.parameters.apparent_size_px, self._shm[SHMIDX.PROJECT_IMAGE].buf, "raw", "L", 0, 1)
         image.readonly = False
         image.paste(input_image)
         self._start_preload.put(layer.calibration_type.value)
@@ -258,7 +259,7 @@ class ExposureImage:
     @measure_time("get result and blit")
     def blit_image(self, second=False):
         source_shm = self._shm[SHMIDX.OUTPUT_IMAGE2].buf if second else self._shm[SHMIDX.OUTPUT_IMAGE1].buf
-        self._buffer = Image.frombuffer("L", self._hw.exposure_screen.parameters.size_px, source_shm, "raw", "L", 0, 1).copy()
+        self._buffer = Image.frombuffer("L", self._hw.exposure_screen.parameters.apparent_size_px, source_shm, "raw", "L", 0, 1).copy()
         self._hw.exposure_screen.show(self._buffer)
 
     @measure_time("rename")
