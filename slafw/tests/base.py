@@ -1,6 +1,6 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
-# Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2018-2022 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import gc
@@ -42,7 +42,6 @@ from slafw.tests.mocks.dbus.networkmanager import NetworkManager
 from slafw.tests.mocks.dbus.rauc import Rauc
 from slafw.tests.mocks.dbus.systemd import Systemd
 from slafw.tests.mocks.dbus.timedate import TimeDate
-from slafw.tests.mocks.gettext import fake_gettext
 from slafw.wizard.wizard import Wizard
 import slafw.hardware.sl1.printer_model
 
@@ -58,8 +57,6 @@ class SlafwTestCase(TestCase):
     EEPROM_FILE = Path.cwd() / "EEPROM.dat"
 
     def setUp(self) -> None:
-        fake_gettext()
-
         self.__base_patches = [
             patch("slafw.motion_controller.controller.gpio"),
             patch("slafw.motion_controller.controller.UInput"),

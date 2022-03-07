@@ -3,18 +3,15 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
-# Copyright (C) 2020-2021 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2020-2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import builtins
-import gettext
 import logging
 import warnings
 
 from gi.repository import GLib
 from pydbus import SystemBus
 
-from slafw import defines
 from slafw import libPrinter
 from slafw.api.admin0 import Admin0
 from slafw.api.printer0 import Printer0
@@ -31,10 +28,6 @@ else:
     logger.info("Embedded logger configuration was used")
 
 logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
-
-# use system locale settings for translation
-gettext.install("slafw", defines.localedir, names=("ngettext",))
-builtins.N_ = lambda x: x  # type: ignore
 
 warnings.simplefilter("ignore")
 

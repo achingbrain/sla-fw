@@ -1,20 +1,11 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
-# Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
+# Copyright (C) 2018-2022 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import subprocess
 from glob import glob
 
-import setuptools.command.build_py
 from setuptools import setup, find_packages
-
-
-class BuildPyWithLocalesCommand(setuptools.command.build_py.build_py):
-    def run(self):
-        subprocess.check_call(["make", "-C", "slafw/locales"])
-        setuptools.command.build_py.build_py.run(self)
-
 
 data_files = [
     ('/usr/share/slafw/scripts', glob('slafw/scripts/*')),
@@ -32,9 +23,6 @@ setup(
     scripts=['slafw/main.py', 'slafw/scripts/export_logs.bash'],
     package_data={'slafw': ['data/*', 'data/*/*', 'locales/*/LC_MESSAGES/*.mo']},
     data_files=data_files,
-    cmdclass={
-        'build_py': BuildPyWithLocalesCommand
-    },
     url="https://gitlab.com/prusa3d/sl1/sla-fw",
     license="GNU General Public License v3 or later (GPLv3+)",
     classifiers=[

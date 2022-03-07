@@ -3,7 +3,6 @@ image: prusa/sl1fw
 stages:
   - build
   - test
-  - i18n
   - deploy
 
 before_script:
@@ -24,15 +23,6 @@ mcsim:
   artifacts:
     paths:
       - SLA-control-01.elf
-
-pot:
-  stage: build
-  script:
-    - make -C slafw/locales extract
-    - cp slafw/locales/slafw.pot ./
-  artifacts:
-    paths:
-      - slafw.pot
 
 sphinx:
   stage: build
@@ -95,39 +85,12 @@ mypy:
     - sh mypy.sh
   allow_failure: true
 
-i18n-complete:
-  stage: i18n
-  dependencies:
-    - pot
-  script:
-    - make --keep-going -C slafw/locales check
-  allow_failure: true
-
-pot-deploy:
-  stage: deploy
-  dependencies:
-    - pot
-  only:
-    refs:
-      - master
-      - /[0-9]*\.[0-9]*/
-  script:
-    - cp slafw.pot ${CI_COMMIT_REF_NAME}-slafw.pot
-    - >
-        lftp -c "
-        set sftp:ssl-force yes;
-        open -u ${DEPLOY_FTP_USER},${DEPLOY_FTP_PASS} ${DEPLOY_FTP_HOST};
-        put -O ${DEPLOY_FTP_DEST} ${CI_COMMIT_REF_NAME}-slafw.pot;
-        "
-
 pages:
   stage: deploy
   dependencies:
     - sphinx
-    - pot
   script:
     - mv documentation public
-    - mv slafw.pot public/
   artifacts:
     paths:
       - public
