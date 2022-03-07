@@ -46,7 +46,7 @@ class LayerCalibrationType(IntEnum):
 class ExposureUserProfile(IntEnum):
     DEFAULT = 0
     SAFE = 1
-    SUPERSLOW = 2
+    HIGH_VISCOSITY = 2
     #CUSTOM2 = 3
 
 class ProjectLayer:
@@ -363,7 +363,7 @@ class Project:
     def exposure_user_profile(self) -> int:
         return self._exposure_user_profile.value
 
-    @range_checked(ExposureUserProfile.DEFAULT, ExposureUserProfile.SUPERSLOW)
+    @range_checked(ExposureUserProfile.DEFAULT, ExposureUserProfile.HIGH_VISCOSITY)
     @exposure_user_profile.setter
     def exposure_user_profile(self, value: int) -> None:
         if ExposureUserProfile(value) != self._exposure_user_profile:
@@ -497,8 +497,8 @@ class Project:
         if self._hw.config.tilt:
             if self._exposure_user_profile == ExposureUserProfile.SAFE:
                 time_remain_ms += (fast_layers + slow_layers) * self._hw.config.tiltSlowTime * 1000
-            elif self._exposure_user_profile == ExposureUserProfile.SUPERSLOW:
-                time_remain_ms += superslow_layers * self._hw.config.tiltSuperSlowTime * 1000
+            elif self._exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:
+                time_remain_ms += superslow_layers * self._hw.config.tiltHighViscosityTime * 1000
             else:
                 time_remain_ms += fast_layers * self._hw.config.tiltFastTime * 1000
                 time_remain_ms += slow_layers * self._hw.config.tiltSlowTime * 1000
@@ -507,7 +507,7 @@ class Project:
         delay_before_exposure = self._hw.config.delayBeforeExposure
         if self._exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before_exposure = defines.exposure_safe_delay_before
-        elif self._exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+        elif self._exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:
             delay_before_exposure = defines.exposure_superslow_delay_before
         else:
             time_remain_ms += slow_layers * defines.exposure_slow_move_delay_before * 100

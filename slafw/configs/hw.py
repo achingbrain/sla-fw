@@ -95,22 +95,22 @@ class HwConfig(Config):
     raw_tiltdownsmallfill = IntListValue([5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill", doc="Definitions for tilt down where printed area < limit4fast. Profiles, offsets and wait times.")
     raw_tiltuplargefill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltuplargefill", doc="Definitions for tilt up where printed area > limit4fast. Profiles, offsets and wait times.")
     raw_tiltupsmallfill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltupsmallfill", doc="Definitions for tilt up where printed area < limit4fast. Profiles, offsets and wait times.")
-    raw_tiltupsuperslow = IntListValue([4, 2200, 1000, 7, 1, 0, 64, 3], length=8, key="tiltupsuperslow", doc="Definitions for tilt up where printed area < limit4fast. Profiles, offsets and wait times.")
-    raw_tiltdownsuperslow = IntListValue([7, 2200,    0, 4, 1, 0,  0, 0], length=8, key="tiltdownsuperslow ", doc="Definitions for tilt up when superslow movement profile is selected. Profiles, offsets and wait times.")
+    raw_tiltuphighviscosity = IntListValue([4, 2200, 1000, 7, 1, 0, 64, 3], length=8, key="tiltuphighviscosity", doc="Definitions for tilt up where printed area < limit4fast. Profiles, offsets and wait times.")
+    raw_tiltdownhighviscosity = IntListValue([7, 2200, 0, 4, 1, 0, 0, 0], length=8, key="tiltdownhighviscosity", doc="Definitions for tilt up when superslow movement profile is selected. Profiles, offsets and wait times.")
     limit4fast = IntValue(35, minimum=0, maximum=100, doc="Fast tearing is used if layer area is under this value. [%]")
     tiltFastTime = FloatValue(5.5, doc="Time necessary to perform fast tear off. [seconds]")
     tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off. [seconds]")
-    tiltSuperSlowTime = FloatValue(14.0, doc="Time necessary to perform super slow tear off. [seconds]")
+    tiltHighViscosityTime = FloatValue(14.0, doc="Time necessary to perform High Viscosity tear off. [seconds]")
 
     superSlowTowerHopHeight_mm = FloatValue(5.0, doc="Minimal layerTowerHop enforced for the superSlow movement profile")
 
     @property
     def tuneTilt(self) -> List[List[int]]:
-        return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltdownsuperslow, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltupsuperslow]
+        return [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltdownhighviscosity, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltuphighviscosity]
 
     @tuneTilt.setter
     def tuneTilt(self, value: List[List[int]]):
-        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltdownsuperslow, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltupsuperslow] = value
+        [self.raw_tiltdownlargefill, self.raw_tiltdownsmallfill, self.raw_tiltdownhighviscosity, self.raw_tiltuplargefill, self.raw_tiltupsmallfill, self.raw_tiltuphighviscosity] = value
 
 
     stirringMoves = IntValue(3, minimum=1, maximum=10, doc="Number of stirring moves")

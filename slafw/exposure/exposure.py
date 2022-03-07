@@ -247,11 +247,11 @@ class StartPositionsCheck(ExposureCheckRunner):
                          self.expo.project._exposure_user_profile.name)  # pylint: disable=protected-access
 
         # Go almost down, then go slowly the rest of the way
-        if self.expo.project._exposure_user_profile == ExposureUserProfile.SUPERSLOW:  # pylint: disable=protected-access
+        if self.expo.project._exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:  # pylint: disable=protected-access
             slow_movement_start_position_nm = 35_000_000
             # Only move to the slow_movement_start_position_nm if too high
             if self.expo.hw.tower_position_nm > slow_movement_start_position_nm:
-                self.logger.info("SUPERSLOW tilt speed, going fast down, will slow down %d mm above the bottom",
+                self.logger.info("HIGH_VISCOSITY tilt speed, going fast down, will slow down %d mm above the bottom",
                                  slow_movement_start_position_nm/1_000_000)
                 self.expo.hw.setTowerProfile("homingFast")
                 self.expo.hw.tower_position_nm = slow_movement_start_position_nm
@@ -259,7 +259,7 @@ class StartPositionsCheck(ExposureCheckRunner):
                     await asyncio.sleep(0.25)
                 if abs(slow_movement_start_position_nm - self.expo.hw.tower_position_nm) > 10:
                     raise TowerMoveFailed()
-            self.logger.info("SUPERSLOW tilt speed, setting tower to superSlow profile")
+            self.logger.info("HIGH_VISCOSITY tilt speed, setting tower to superSlow profile")
             self.expo.hw.setTowerProfile("superSlow")
         else:
             self.expo.hw.setTowerProfile("homingFast")
@@ -288,7 +288,7 @@ class StirringCheck(ExposureCheckRunner):
         if not self.expo.hw.config.tilt:
             raise ExposureCheckDisabled()
         # Stirring is run at the start, when the correct tilt_speed is not yet set
-        stirring_tilt_speed = TiltSpeed.SUPERSLOW if self.expo.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW else TiltSpeed.DEFAULT
+        stirring_tilt_speed = TiltSpeed.SUPERSLOW if self.expo.project.exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY else TiltSpeed.DEFAULT
         await self.expo.hw.tilt.stir_resin_async(stirring_tilt_speed)
 
 
@@ -433,9 +433,9 @@ class Exposure:
 
     def prepare(self):
         self.exposure_image.preload_image(0)
-        if self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+        if self.project.exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:
             self.hw.setTowerProfile("superSlow")
-            self.logger.info("%s now going slowly rest of the way", "SUPERSLOW")
+            self.logger.info("%s now going slowly rest of the way", "HIGH_VISCOSITY")
         else:
             self.hw.setTowerProfile("layer")
 
@@ -604,7 +604,7 @@ class Exposure:
         position_steps = self.hw.config.nm_to_tower_microsteps(self.tower_position_nm) + self.hw.config.calibTowerOffset
 
         if self.hw.config.tilt:
-            if self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+            if self.project.exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:
                 self._tilt_speed = TiltSpeed.SUPERSLOW
             minimal_tower_hop_steps = self.hw.config.calcMicroSteps(self.hw.config.superSlowTowerHopHeight_mm)
             self.logger.info("%s tilt up", self._tilt_speed.name)
@@ -636,7 +636,7 @@ class Exposure:
 
         if self.project.exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before = defines.exposure_safe_delay_before
-        elif self.project.exposure_user_profile == ExposureUserProfile.SUPERSLOW:
+        elif self.project.exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:
             delay_before = defines.exposure_superslow_delay_before
         elif self._tilt_speed == TiltSpeed.SLOW:
             delay_before = defines.exposure_slow_move_delay_before

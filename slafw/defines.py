@@ -170,7 +170,7 @@ exposure_time_calibrate_max_ms = 5000
 exposure_time_first_extra_layers = 2    # first layer always have exposure_time_first
 exposure_safe_delay_before = 30         # [tenths of a second] applied when user selects ExposureUserProfile.SAFE
 exposure_slow_move_delay_before = 10    # [tenths of a second] applied when slow move of ExposureUserProfile.DEFAULT
-exposure_superslow_delay_before = 35    # [tenths of a second] ExposureUserProfile.SUPERSLOW
+exposure_superslow_delay_before = 35    # [tenths of a second] ExposureUserProfile.HIGH_VISCOSITY
 
 fan_check_override = test_runtime.testing
 default_hostname = "prusa-"

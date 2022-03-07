@@ -265,24 +265,24 @@ class TestExposure(SlafwTestCase):
         hw.config.forceSlowTiltHeight = 0  # do not force any extra slow tilts
         exposure = self._run_exposure(hw, TestExposure.PROJECT_SUPERSLOW, exposure_image, timeout_s=200)
         self.assertEqual(exposure.state, ExposureState.FINISHED)
-        self.assertEqual(exposure.project.exposure_user_profile, ExposureUserProfile.SUPERSLOW, "The project must have the SUPERSLOW profile selected.")
+        self.assertEqual(exposure.project.exposure_user_profile, ExposureUserProfile.HIGH_VISCOSITY, "The project must have the HIGH_VISCOSITY profile selected.")
         self.assertEqual(exposure.super_slow_layers_done, exposure.project.total_layers, "All layers should be superslow")
-        self.assertEqual(exposure.slow_layers_done, 0, "There should be no slow layers if SUPERSLOW profile is selected")
+        self.assertEqual(exposure.slow_layers_done, 0, "There should be no slow layers if HIGH_VISCOSITY profile is selected")
         t_first_estimate = exposure.estimated_total_time_ms
 
-        # Assert that SUPERSLOW beats attempts to force slow layers
+        # Assert that HIGH_VISCOSITY beats attempts to force slow layers
         hw.config.forceSlowTiltHeight = 100000  # 100 um -> force 2 slow layers
         exposure = self._run_exposure(hw, TestExposure.PROJECT_SUPERSLOW, exposure_image, timeout_s=200)
         self.assertEqual(exposure.state, ExposureState.FINISHED)
-        self.assertEqual(exposure.project.exposure_user_profile, ExposureUserProfile.SUPERSLOW, "The project must have the SUPERSLOW profile selected.")
+        self.assertEqual(exposure.project.exposure_user_profile, ExposureUserProfile.HIGH_VISCOSITY, "The project must have the HIGH_VISCOSITY profile selected.")
         self.assertEqual(exposure.super_slow_layers_done, exposure.project.total_layers)
-        self.assertEqual(exposure.slow_layers_done, 0, "There should be no slow layers if SUPERSLOW profile is selected")
+        self.assertEqual(exposure.slow_layers_done, 0, "There should be no slow layers if HIGH_VISCOSITY profile is selected")
         t_second_estimate = exposure.estimated_total_time_ms
 
         self.assertEqual(t_first_estimate, t_second_estimate, "Estimated time should be the same - slow layers should be ignored")
 
     def test_superslow_time_estimate(self):
-        """Make sure that SUPERSLOW time estimate are lower than default(with normal slow layers)"""
+        """Make sure that HIGH_VISCOSITY time estimate are lower than default(with normal slow layers)"""
         defines.livePreviewImage = str(self.TEMP_DIR / "live.png")
         defines.displayUsageData = str(self.TEMP_DIR / "display_usage.npz")
         hw = self.setupHw()
@@ -292,7 +292,7 @@ class TestExposure(SlafwTestCase):
         exposure_image = ExposureImage(hw)
         exposure_image.start()
 
-        # Run SUPERSLOW project
+        # Run HIGH_VISCOSITY project
         exposure_superslow = self._run_exposure(hw, TestExposure.PROJECT_SUPERSLOW, exposure_image, timeout_s=200)
         self.assertEqual(exposure_superslow.state, ExposureState.FINISHED)
         t_superslow = exposure_superslow.estimated_total_time_ms
