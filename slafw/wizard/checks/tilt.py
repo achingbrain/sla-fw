@@ -154,7 +154,7 @@ class TiltTimingTest(DangerousCheck):
 
         # SuperSlow has special requirements: layerTowerHop
         hop_normal_position_nm = 100_000_000
-        hop_top_position = hop_normal_position_nm - self._hw.config.superSlowTowerHopHeight_mm * 10**6
+        hop_top_position = hop_normal_position_nm - self._hw.config.highViscosityTowerHopHeight_mm * 10**6
 
         async def move_tower_nm(target_position):
             """Move tower to position and raise error if that is not possible."""

@@ -606,7 +606,7 @@ class Exposure:
         if self.hw.config.tilt:
             if self.project.exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:
                 self._tilt_speed = TiltSpeed.SUPERSLOW
-            minimal_tower_hop_steps = self.hw.config.calcMicroSteps(self.hw.config.superSlowTowerHopHeight_mm)
+            minimal_tower_hop_steps = self.hw.config.calcMicroSteps(self.hw.config.highViscosityTowerHopHeight_mm)
             self.logger.info("%s tilt up", self._tilt_speed.name)
             if self.hw.config.layerTowerHop or self._tilt_speed == TiltSpeed.SUPERSLOW:
                 hop_position = position_steps + self.hw.config.layerTowerHop

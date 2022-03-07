@@ -102,7 +102,7 @@ class HwConfig(Config):
     tiltSlowTime = FloatValue(8.0, doc="Time necessary to perform slow tear off. [seconds]")
     tiltHighViscosityTime = FloatValue(14.0, doc="Time necessary to perform High Viscosity tear off. [seconds]")
 
-    superSlowTowerHopHeight_mm = FloatValue(5.0, doc="Minimal layerTowerHop enforced for the superSlow movement profile")
+    highViscosityTowerHopHeight_mm = FloatValue(5.0, doc="Minimal layerTowerHop enforced for the superSlow movement profile")
 
     @property
     def tuneTilt(self) -> List[List[int]]:
