@@ -637,11 +637,11 @@ class Exposure:
         if self.project.exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before = defines.exposure_safe_delay_before
         elif self.project.exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:
-            delay_before = defines.exposure_superslow_delay_before
+            delay_before = defines.exposure_high_viscosity_delay_before
         elif self._tilt_speed == TiltSpeed.SLOW:
             delay_before = defines.exposure_slow_move_delay_before
         elif self._tilt_speed == TiltSpeed.SUPERSLOW:
-            delay_before = defines.exposure_superslow_delay_before
+            delay_before = defines.exposure_high_viscosity_delay_before
         else:
             delay_before = self.hw.config.delayBeforeExposure
 

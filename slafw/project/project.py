@@ -508,7 +508,7 @@ class Project:
         if self._exposure_user_profile == ExposureUserProfile.SAFE:
             delay_before_exposure = defines.exposure_safe_delay_before
         elif self._exposure_user_profile == ExposureUserProfile.HIGH_VISCOSITY:
-            delay_before_exposure = defines.exposure_superslow_delay_before
+            delay_before_exposure = defines.exposure_high_viscosity_delay_before
         else:
             time_remain_ms += slow_layers * defines.exposure_slow_move_delay_before * 100
         time_remain_ms += (total_layers - layers_done) * (
