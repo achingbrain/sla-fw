@@ -23,6 +23,7 @@ from pydbus import SystemBus
 
 from slafw import defines
 from slafw.api.config0 import Config0
+from slafw.api.devices import HardwareDeviceId
 from slafw.api.logs0 import Logs0
 from slafw.configs.hw import HwConfig
 from slafw.configs.runtime import RuntimeConfig
@@ -40,8 +41,8 @@ from slafw.errors.errors import (
     MotionControllerWrongResponse,
     UVPWMComputationError,
     OldExpoPanel,
-    UVLEDTempSensorFailed,
-    PrinterException, UVLEDFanFailed, BlowerFanFailed, RearFanFailed,
+    UvTempSensorFailed,
+    PrinterException, FanFailed,
 )
 from slafw.functions.files import save_all_remain_wizard_history, \
     get_all_supported_files
@@ -632,19 +633,19 @@ class Printer:
                 # TODO: Raise an exception instead of negative value
                 self.logger.error("UV temperature reading failed")
                 self.hw.uvLed(False)
-                self.exception_occurred.emit(UVLEDTempSensorFailed())
+                self.exception_occurred.emit(UvTempSensorFailed())
 
     def _on_uv_fan_error(self, error: bool):
         if not self.has_state(PrinterState.PRINTING) and error:
-            self.exception_occurred.emit(UVLEDFanFailed())
+            self.exception_occurred.emit(FanFailed(HardwareDeviceId.UV_LED_FAN.value))
 
     def _on_blower_fan_error(self, error: bool):
         if not self.has_state(PrinterState.PRINTING) and error:
-            self.exception_occurred.emit(BlowerFanFailed())
+            self.exception_occurred.emit(FanFailed(HardwareDeviceId.BLOWER_FAN.value))
 
     def _on_rear_fan_error(self, error: bool):
         if not self.has_state(PrinterState.PRINTING) and error:
-            self.exception_occurred.emit(RearFanFailed())
+            self.exception_occurred.emit(FanFailed(HardwareDeviceId.REAR_FAN.value))
 
     def hw_all_off(self):
         self.exposure_image.blank_screen()

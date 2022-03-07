@@ -72,6 +72,10 @@ FAKE_ARGS = {
     "pwm_max: int": 250,
     "transmittance: float": -1,
     "counter_h: int": 500,
+    "fan__map_HardwareDeviceId: int": 2000,
+    "sensor__map_HardwareDeviceId: int": 1000,
+    "min: float": 5.0,
+    "max: float": 55.0,
 }
 
 IGNORED_ARGS = {"self", "args", "kwargs"}

@@ -6,9 +6,9 @@ from abc import abstractmethod
 from typing import Optional, List
 
 from slafw import defines
-
+from slafw.api.devices import HardwareDeviceId
 from slafw.configs.hw import HwConfig
-from slafw.errors.errors import UVLEDTempSensorFailed, AmbientTempSensorFailed
+from slafw.errors.errors import UvTempSensorFailed, TempSensorFailed
 from slafw.hardware.base.temp_sensor import TempSensor
 from slafw.motion_controller.controller import MotionController
 
@@ -73,7 +73,7 @@ class SL1XTempSensorUV(SL1TempSensor):
     @property
     def value(self) -> float:
         if self._value is None:
-            raise UVLEDTempSensorFailed()
+            raise UvTempSensorFailed()
         return self._value
 
 
@@ -103,5 +103,5 @@ class SL1TempSensorAmbient(SL1TempSensor):
     @property
     def value(self) -> float:
         if self._value is None:
-            raise AmbientTempSensorFailed()
+            raise TempSensorFailed(HardwareDeviceId.AMBIENT_TEMP.value)
         return self._value

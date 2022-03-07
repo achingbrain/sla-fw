@@ -10,6 +10,8 @@ from pathlib import Path
 
 from gi.repository.GLib import Variant
 from prusaerrors.sl1.codes import Sl1Codes
+
+from slafw.api.devices import HardwareDeviceId
 from slafw.errors.errors import PrinterException
 
 import slafw
@@ -49,7 +51,12 @@ class TestExceptions(unittest.TestCase):
                     type_name: str = getattr(field.type, "__name__", str(field.type))
                     type_name = type_name.replace("typing.", "")
                     field_type = f"{field.name}: {type_name}"
-                    arguments[field.name] = FAKE_ARGS[field_type]
+                    if field.name.endswith("__map_HardwareDeviceId"):
+                        # Sensor name is special. UI looks it up in an enum dictionary and translates name.
+                        arguments[field.name] = HardwareDeviceId(FAKE_ARGS[field_type]).name
+                    else:
+                        arguments[field.name] = FAKE_ARGS[field_type]
+
             print(f"Arguments:{arguments}")
 
             # Note simplified processing in the UI does not have problems with standalone '%' character.

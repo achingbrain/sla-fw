@@ -323,29 +323,19 @@ class ProjectErrorCantRemove(ExposureError):
     pass
 
 
-@with_code(Sl1Codes.TEMP_SENSOR_FAILED)
+@with_code(Sl1Codes.TEMP_SENSOR_FAILED_ID)
 @dataclass(frozen=True)
 class TempSensorFailed(ExposureError):
-    sensor: str
+    sensor__map_HardwareDeviceId: int
 
 
-class AmbientTempSensorFailed(TempSensorFailed):
-    # TODO: This is not translated, lets define separate error codes for different sensors
-    def __init__(self):
-        super().__init__("Ambient")
-
-
-@with_code(Sl1Codes.TEMPERATURE_OUT_OF_RANGE)
+@with_code(Sl1Codes.TEMPERATURE_OUT_OF_RANGE_ID)
 @dataclass(frozen=True)
 class TempSensorNotInRange(GeneralError):
-    sensor: str
+    sensor__map_HardwareDeviceId: int
     temperature: float
-
-
-# TODO: Add code
-@dataclass(frozen=True)
-class UVLEDOverheat(GeneralError):
-    temperature: float
+    min: float
+    max: float
 
 
 @with_code(Sl1Codes.A64_OVERHEAT)
@@ -354,30 +344,10 @@ class A64Overheat(GeneralError):
     temperature: float
 
 
-class FanFailure(ExposureError):
-    pass
-
-@with_code(Sl1Codes.FAN_FAILED)
+@with_code(Sl1Codes.FAN_FAILED_ID)
 @dataclass(frozen=True)
-class FanFailed(FanFailure):
-    failed_fans: List[int]
-    failed_fan_names: List[str]
-    failed_fans_text: str
-
-
-# TODO: Missing code
-class UVLEDFanFailed(FanFailure):
-    pass
-
-
-# TODO: Missing code
-class BlowerFanFailed(FanFailure):
-    pass
-
-
-# TODO: Missing code
-class RearFanFailed(FanFailure):
-    pass
+class FanFailed(ExposureError):
+    fan__map_HardwareDeviceId: int
 
 
 @with_code(Sl1Codes.RESIN_MEASURE_FAILED)
@@ -610,7 +580,7 @@ class UnknownPrinterModel(PrinterError):
 
 
 @with_code(Sl1Codes.UV_TEMP_SENSOR_FAILED)
-class UVLEDTempSensorFailed(PrinterError):
+class UvTempSensorFailed(PrinterError):
     pass
 
 

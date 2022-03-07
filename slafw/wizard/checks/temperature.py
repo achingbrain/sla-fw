@@ -8,8 +8,8 @@ from time import sleep
 from typing import Dict, Any, Optional
 
 from slafw import defines
-from slafw.errors.errors import A64Overheat, UVLEDOverheat
-from slafw.errors.warnings import AmbientTooCold, AmbientTooHot
+from slafw.api.devices import HardwareDeviceId
+from slafw.errors.errors import A64Overheat, TempSensorNotInRange
 from slafw.functions.system import shut_down
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.actions import UserActionBroker
@@ -48,14 +48,12 @@ class TemperatureTest(Check):
         # Checking MC temperatures
         self._logger.info("Checking MC temperatures")
         uv = self._hw.uv_led_temp
-        if uv.value > uv.critical:
-            raise UVLEDOverheat(uv.value)
+        if not uv.min < uv.value < uv.critical:
+            raise TempSensorNotInRange(HardwareDeviceId.UV_LED_TEMP.value, uv.min, uv.max)
 
         ambient = self._hw.ambient_temp
-        if ambient.value < ambient.min:
-            raise AmbientTooCold(ambient.value)
-        if ambient.value > ambient.max:
-            raise AmbientTooHot(ambient.value)
+        if not ambient.min < ambient.value < ambient.max:
+            raise TempSensorNotInRange(HardwareDeviceId.AMBIENT_TEMP.value, ambient.value, ambient.min, ambient.max)
 
         self._check_data = CheckData(uv.value, ambient.value, a64_temperature)
 

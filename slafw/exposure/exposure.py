@@ -1,7 +1,7 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
-# Copyright (C) 2020 Prusa Development a.s. - www.prusa3d.com
+# Copyright (C) 2020-2022 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # TODO: Fix following pylint problems
@@ -36,6 +36,7 @@ import psutil
 from PySignal import Signal
 
 from slafw import defines, test_runtime
+from slafw.api.devices import HardwareDeviceId
 from slafw.configs.runtime import RuntimeConfig
 from slafw.configs.stats import TomlConfigStats
 from slafw.errors import tests
@@ -48,7 +49,10 @@ from slafw.errors.errors import (
     ResinTooHigh,
     WarningEscalation,
     NotAvailableInState,
-    ExposureCheckDisabled, ExposureError, UVLEDFanFailed, BlowerFanFailed, RearFanFailed, )
+    ExposureCheckDisabled,
+    ExposureError,
+    FanFailed,
+)
 from slafw.errors.warnings import AmbientTooHot, AmbientTooCold, ResinNotEnough, PrinterWarning, ExpectOverheating
 from slafw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from slafw.functions.system import shut_down
@@ -177,13 +181,13 @@ class FansCheck(ExposureCheckRunner):
         if not defines.fan_check_override:
             if self.expo.hw.uv_led_fan.error:
                 self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
-                raise UVLEDFanFailed()
+                raise FanFailed(HardwareDeviceId.UV_LED_FAN.value)
             if self.expo.hw.blower_fan.error:
                 self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
-                raise BlowerFanFailed()
+                raise FanFailed(HardwareDeviceId.BLOWER_FAN.value)
             if self.expo.hw.rear_fan.error:
                 self.expo.check_results[ExposureCheck.FAN] = ExposureCheckResult.FAILURE
-                raise RearFanFailed()
+                raise FanFailed(HardwareDeviceId.REAR_FAN.value)
         self.logger.info("Fans OK")
 
 
@@ -547,7 +551,7 @@ class Exposure:
         uv_on_remain_ms = times_ms[0]
         uv_is_on = True
         self.logger.debug("uv on")
-        self.hw.uvLed(True, uv_on_remain_ms + 1)    # FIXME workaround for MC FW (1 ms shorted UV LED time)
+        self.hw.uvLed(True, uv_on_remain_ms + 1)  # FIXME workaround for MC FW (1 ms shorted UV LED time)
         while uv_is_on:
             sleep(uv_on_remain_ms / 1100.0)
             uv_is_on, uv_on_remain_ms = self.hw.getUvLedState()
@@ -832,11 +836,7 @@ class Exposure:
             self.check_results.update({check: ExposureCheckResult.SCHEDULED})
 
         with WarningAction(self.hw.power_led):
-            await asyncio.gather(
-                FansCheck(self).start(),
-                TempsCheck(self).start(),
-                ProjectDataCheck(self).start()
-                )
+            await asyncio.gather(FansCheck(self).start(), TempsCheck(self).start(), ProjectDataCheck(self).start())
             await CoverCheck(self).start()
             await ResinCheck(self).start()
             await StartPositionsCheck(self).start()
@@ -974,7 +974,7 @@ class Exposure:
 
             # /1e21 (1e7 ** 3) - we want cm3 (=ml) not nm3
             self.resin_count += (
-                white_pixels * self.hw.exposure_screen.parameters.pixel_size_nm ** 2 * layer.height_nm / 1e21
+                white_pixels * self.hw.exposure_screen.parameters.pixel_size_nm**2 * layer.height_nm / 1e21
             )
             self.logger.debug("resin_count: %f", self.resin_count)
 

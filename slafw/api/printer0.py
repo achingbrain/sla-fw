@@ -18,7 +18,6 @@ import distro
 import pydbus
 from deprecation import deprecated
 from pydbus.generic import signal
-from slafw.errors import tests
 
 from slafw import defines
 from slafw.api.decorators import (
@@ -33,9 +32,12 @@ from slafw.api.decorators import (
 from slafw.api.examples0 import Examples0
 from slafw.api.exposure0 import Exposure0
 from slafw.configs.stats import TomlConfigStats
-from slafw.errors.errors import ReprintWithoutHistory, PrinterException, AmbientTempSensorFailed, UVLEDTempSensorFailed
+from slafw.errors import tests
+from slafw.errors.errors import ReprintWithoutHistory, PrinterException, UvTempSensorFailed, \
+    TempSensorFailed
 from slafw.functions.files import get_all_supported_files
 from slafw.functions.system import shut_down
+from slafw.hardware.power_led_action import WarningAction
 from slafw.project.functions import check_ready_to_print
 from slafw.state_actions.examples import Examples
 from slafw.states.examples import ExamplesState
@@ -44,10 +46,9 @@ from slafw.wizard.wizards.calibration import CalibrationWizard
 from slafw.wizard.wizards.displaytest import DisplayTestWizard
 from slafw.wizard.wizards.factory_reset import PackingWizard, FactoryResetWizard
 from slafw.wizard.wizards.self_test import SelfTestWizard
+from slafw.wizard.wizards.tank_surface_cleaner import TankSurfaceCleaner
 from slafw.wizard.wizards.unboxing import CompleteUnboxingWizard, KitUnboxingWizard
 from slafw.wizard.wizards.uv_calibration import UVCalibrationWizard
-from slafw.wizard.wizards.tank_surface_cleaner import TankSurfaceCleaner
-from slafw.hardware.power_led_action import WarningAction
 
 if TYPE_CHECKING:
     from slafw.libPrinter import Printer
@@ -153,7 +154,7 @@ class Printer0:
             self.PropertiesChanged(
                 self.__INTERFACE__, {"temps": self._format_temps(uv_temp, self.printer.hw.ambient_temp.value)}, []
             )
-        except AmbientTempSensorFailed:
+        except TempSensorFailed:
             pass
 
     def _on_ambient_temp_changed(self, ambient_temp: float):
@@ -164,7 +165,7 @@ class Printer0:
             self.PropertiesChanged(
                 self.__INTERFACE__, {"temps": self._format_temps(self.printer.hw.uv_led_temp.value, ambient_temp)}, []
             )
-        except UVLEDTempSensorFailed:
+        except UvTempSensorFailed:
             pass
 
     def _on_cpu_temp_changed(self, value):
