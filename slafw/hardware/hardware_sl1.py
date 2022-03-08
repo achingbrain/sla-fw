@@ -40,7 +40,7 @@ from slafw.hardware.base.hardware import BaseHardware
 from slafw.motion_controller.controller import MotionController
 from slafw.utils.value_checker import ValueChecker, UpdateInterval
 from slafw.hardware.power_led_action import WarningAction
-from slafw.hardware.power_led import PowerLed
+from slafw.hardware.sl1.power_led import PowerLedSL1
 
 
 class HardwareSL1(BaseHardware):
@@ -128,7 +128,6 @@ class HardwareSL1(BaseHardware):
         self.mcc.tilt_status_changed.connect(self._tilt_position_checker.set_rapid_update)
         self.mcc.tower_status_changed.connect(self._tower_position_checker.set_rapid_update)
         self.last_rpm_control: Optional[float] = None
-        self._power_led = PowerLed(self.mcc)
 
         self.uv_fan = Fan(
             N_("UV LED fan"), defines.fanMaxRPM[0], self.config.fan1Rpm, self.config.fan1Enabled, auto_control=True
@@ -178,6 +177,7 @@ class HardwareSL1(BaseHardware):
 
         self.uv_led = UvLedSL1(self.mcc, self._printer_model)
         self.tilt = TiltSL1(self.mcc, self.config)
+        self.power_led = PowerLedSL1(self.mcc)
 
         if self._printer_model.options.has_booster:
             self.sl1s_booster.connect()
@@ -243,7 +243,7 @@ class HardwareSL1(BaseHardware):
     def initDefaults(self):
         self.motorsRelease()
         self.uvLedPwm = self.config.uvPwm
-        self._power_led.powerLedPwm = self.config.pwrLedPwm
+        self.power_led.intensity = self.config.pwrLedPwm
         self.resinSensor(False)
         self.stopFans()
         if self.config.lockProfiles:
@@ -991,7 +991,3 @@ class HardwareSL1(BaseHardware):
         self.tilt.move_up()
         while not self.tilt.on_target_position:
             await asyncio.sleep(0.25)
-
-    @property
-    def power_led(self) -> PowerLed:
-        return self._power_led

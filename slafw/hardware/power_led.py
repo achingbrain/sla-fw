@@ -4,9 +4,7 @@
 
 from enum import Enum
 import logging
-
-from slafw.motion_controller.controller import MotionController
-from slafw.errors.errors import MotionControllerException
+from abc import abstractmethod
 
 class PowerLedActions(str, Enum):
     Normal = 'normal'
@@ -18,56 +16,30 @@ class PowerLedActions(str, Enum):
 
 class PowerLed:
 
-    def __init__(self, mcc: MotionController):
+    def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self._mcc = mcc
         self._error_level_counter = 0
         self._warn_level_counter  = 0
-        self._modes = {
-            # (mode, speed)
-            PowerLedActions.Normal: (1, 2),
-            PowerLedActions.Warning: (2, 10),
-            PowerLedActions.Error: (3, 15),
-            PowerLedActions.Off: (3, 64)
-        }
 
     @property
+    @abstractmethod
     def mode(self) -> PowerLedActions:
-        result = PowerLedActions.Unspecified
-        try:
-            mode = self._mcc.doGetInt("?pled")
-            speed = self._mcc.doGetInt("?pspd")
-            for k, v in self._modes.items():
-                if v[0] == mode and v[1] == speed:
-                    result = k
-        except MotionControllerException:
-            self.logger.exception("Failed to read power led pwm")
-        return result
+        """returns current power led operation mode"""
 
     @mode.setter
+    @abstractmethod
     def mode(self, value: PowerLedActions):
-        m, s = self._modes[value]
-        try:
-            self._mcc.do("!pled", m)
-            self._mcc.do("!pspd", s)
-        except MotionControllerException:
-            self.logger.exception("Failed to read power led pwm")
+        """abstract mode setter"""
 
     @property
+    @abstractmethod
     def intensity(self):
-        try:
-            pwm = self._mcc.do("?ppwm")
-            return int(pwm) * 5
-        except MotionControllerException:
-            self.logger.exception("Failed to read power led pwm")
-            return -1
+        """returns current power led brightness"""
 
     @intensity.setter
-    def intensity(self, pwm):
-        try:
-            self._mcc.do("!ppwm", int(pwm / 5))
-        except MotionControllerException:
-            self.logger.exception("Failed to set power led pwm")
+    @abstractmethod
+    def intensity(self, pwm) -> int:
+        """abstract intensity setter"""
 
     def set_error(self) -> int:
         if self._error_level_counter == 0:

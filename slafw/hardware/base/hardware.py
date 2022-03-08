@@ -24,7 +24,7 @@ from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.tilt import TiltSL1
 from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.motion_controller.controller import MotionController
-
+from slafw.hardware.power_led import PowerLed
 
 class BaseHardware:
     # pylint: disable = too-many-instance-attributes
@@ -56,6 +56,7 @@ class BaseHardware:
         self.uv_led: UvLedSL1 = None
         self.tilt: TiltSL1 = None
         self.fans: Dict[int, Fan] = None
+        self.power_led: PowerLed = None
 
     @abstractmethod
     def connect(self):

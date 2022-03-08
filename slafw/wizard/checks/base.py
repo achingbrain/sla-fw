@@ -14,6 +14,7 @@ from slafw.hardware.base.hardware import BaseHardware
 from slafw.states.wizard import WizardCheckState
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.setup import Resource, Configuration
+from slafw.hardware.power_led_action import WarningAction
 
 
 @unique
@@ -168,24 +169,25 @@ class BaseCheck(ABC):
             await locks[resource].acquire()
         self._logger.info("Locked resources: %s", type(self).__name__)
 
-        try:
-            await asyncio.sleep(0.1)  # This allows to break asyncio program in case the wizard is canceled
-            self._logger.info("Running check: %s", type(self).__name__)
-            await self.run_wrapper(actions, sync_executor)
-        except asyncio.CancelledError:
-            self._logger.warning("Check canceled: %s", type(self).__name__)
-            self.state = WizardCheckState.CANCELED
-            raise
-        except Exception as e:
-            self._logger.exception("Exception: %s", type(self).__name__)
-            self.exception = e
-            self.state = WizardCheckState.FAILURE
-            raise
-        finally:
-            self._logger.info("Freeing resources: %s", type(self).__name__)
-            for resource in self.resources:
-                locks[resource].release()
-            self._logger.info("Freed resources: %s", type(self).__name__)
+        with WarningAction(actions.led_warn):
+            try:
+                await asyncio.sleep(0.1)  # This allows to break asyncio program in case the wizard is canceled
+                self._logger.info("Running check: %s", type(self).__name__)
+                await self.run_wrapper(actions, sync_executor)
+            except asyncio.CancelledError:
+                self._logger.warning("Check canceled: %s", type(self).__name__)
+                self.state = WizardCheckState.CANCELED
+                raise
+            except Exception as e:
+                self._logger.exception("Exception: %s", type(self).__name__)
+                self.exception = e
+                self.state = WizardCheckState.FAILURE
+                raise
+            finally:
+                self._logger.info("Freeing resources: %s", type(self).__name__)
+                for resource in self.resources:
+                    locks[resource].release()
+                self._logger.info("Freed resources: %s", type(self).__name__)
 
         if not self.warnings:
             self.state = WizardCheckState.SUCCESS

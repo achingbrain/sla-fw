@@ -22,15 +22,14 @@ class TowerHomeTest(DangerousCheck):
         self.config_writer = config_writer
 
     async def async_task_run(self, actions: UserActionBroker):
-        with actions.led_warn:
-            for _ in range(3):
+        for _ in range(3):
+            await sleep(0.1)
+            try:
+                await self._hw.towerSyncWaitAsync(retries=0)
+            except (TowerHomeFailed, TowerEndstopNotReached) as e:
+                self._logger.exception(e)
                 await sleep(0.1)
-                try:
-                    await self._hw.towerSyncWaitAsync(retries=0)
-                except (TowerHomeFailed, TowerEndstopNotReached) as e:
-                    self._logger.exception(e)
-                    await sleep(0.1)
-                    self.config_writer.towerSensitivity = await self._hw.get_tower_sensitivity_async()
+                self.config_writer.towerSensitivity = await self._hw.get_tower_sensitivity_async()
 
     def get_result_data(self) -> Dict[str, Any]:
         return {
@@ -47,32 +46,31 @@ class TowerRangeTest(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
-        with actions.led_warn:
-            await gather(self._hw.verify_tower(), self._hw.verify_tilt())
-            self._hw.set_tower_position_nm(self._hw.tower_end_nm)
-            self._hw.setTowerProfile("homingFast")
-            self._hw.tower_position_nm = 0
+        await gather(self._hw.verify_tower(), self._hw.verify_tilt())
+        self._hw.set_tower_position_nm(self._hw.tower_end_nm)
+        self._hw.setTowerProfile("homingFast")
+        self._hw.tower_position_nm = 0
+        while self._hw.isTowerMoving():
+            await sleep(0.25)
+
+        if self._hw.tower_position_nm == 0:
+            # stop 10 mm before end-stop to change sensitive profile
+            self._hw.tower_position_nm = self._hw.tower_end_nm - 10_000_000
             while self._hw.isTowerMoving():
                 await sleep(0.25)
 
-            if self._hw.tower_position_nm == 0:
-                # stop 10 mm before end-stop to change sensitive profile
-                self._hw.tower_position_nm = self._hw.tower_end_nm - 10_000_000
-                while self._hw.isTowerMoving():
-                    await sleep(0.25)
+            self._hw.setTowerProfile("homingSlow")
+            self._hw.tower_position_nm = self._hw.tower_max_nm
+            while self._hw.isTowerMoving():
+                await sleep(0.25)
 
-                self._hw.setTowerProfile("homingSlow")
-                self._hw.tower_position_nm = self._hw.tower_max_nm
-                while self._hw.isTowerMoving():
-                    await sleep(0.25)
-
-            position_nm = self._hw.tower_position_nm
-            # MC moves tower by 1024 steps forward in last step of !twho
-            maximum_nm = self._hw.tower_end_nm + self._hw.config.tower_microsteps_to_nm(1024 + 127)
-            if (
-                position_nm < self._hw.tower_end_nm or position_nm > maximum_nm
-            ):  # add tolerance half full-step
-                raise TowerAxisCheckFailed(position_nm)
+        position_nm = self._hw.tower_position_nm
+        # MC moves tower by 1024 steps forward in last step of !twho
+        maximum_nm = self._hw.tower_end_nm + self._hw.config.tower_microsteps_to_nm(1024 + 127)
+        if (
+            position_nm < self._hw.tower_end_nm or position_nm > maximum_nm
+        ):  # add tolerance half full-step
+            raise TowerAxisCheckFailed(position_nm)
 
 
 class TowerAlignTest(DangerousCheck):
@@ -87,64 +85,63 @@ class TowerAlignTest(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
-        with actions.led_warn:
-            self._logger.info("Starting platform calibration")
-            self._hw.tilt.profile_id = TiltProfile.layerMoveSlow # set higher current
-            self._hw.set_tower_position_nm(0)
-            self._hw.setTowerProfile("homingFast")
+        self._logger.info("Starting platform calibration")
+        self._hw.tilt.profile_id = TiltProfile.layerMoveSlow # set higher current
+        self._hw.set_tower_position_nm(0)
+        self._hw.setTowerProfile("homingFast")
 
-            self._logger.info("Moving platform to above position")
-            self._hw.tower_position_nm = self._hw.tower_above_surface_nm
-            while self._hw.isTowerMoving():
-                await sleep(0.25)
+        self._logger.info("Moving platform to above position")
+        self._hw.tower_position_nm = self._hw.tower_above_surface_nm
+        while self._hw.isTowerMoving():
+            await sleep(0.25)
 
-            self._logger.info("tower position above: %d nm", self._hw.tower_position_nm)
-            if self._hw.tower_position_nm != self._hw.tower_above_surface_nm:
-                self._logger.error(
-                    "Platform calibration [above] failed %s != %s nm",
-                    self._hw.tower_position_nm,
-                    self._hw.tower_above_surface_nm,
-                )
-                self._hw.beepAlarm(3)
-                await self._hw.towerSyncWaitAsync()
-                raise TowerBelowSurface(self._hw.tower_position_nm)
+        self._logger.info("tower position above: %d nm", self._hw.tower_position_nm)
+        if self._hw.tower_position_nm != self._hw.tower_above_surface_nm:
+            self._logger.error(
+                "Platform calibration [above] failed %s != %s nm",
+                self._hw.tower_position_nm,
+                self._hw.tower_above_surface_nm,
+            )
+            self._hw.beepAlarm(3)
+            await self._hw.towerSyncWaitAsync()
+            raise TowerBelowSurface(self._hw.tower_position_nm)
 
-            self._logger.info("Moving platform to min position")
-            self._hw.setTowerProfile("homingSlow")
-            self._hw.towerToMin()
-            while self._hw.isTowerMoving():
-                await sleep(0.25)
-            self._logger.info("tower position min: %d nm", self._hw.tower_position_nm)
-            if self._hw.tower_position_nm <= self._hw.tower_min_nm:
-                self._logger.error(
-                    "Platform calibration [min] failed %s != %s",
-                    self._hw.tower_position_nm,
-                    self._hw.tower_min_nm,
-                )
-                self._hw.beepAlarm(3)
-                await self._hw.towerSyncWaitAsync()
-                raise TowerBelowSurface(self._hw.tower_position_nm)
+        self._logger.info("Moving platform to min position")
+        self._hw.setTowerProfile("homingSlow")
+        self._hw.towerToMin()
+        while self._hw.isTowerMoving():
+            await sleep(0.25)
+        self._logger.info("tower position min: %d nm", self._hw.tower_position_nm)
+        if self._hw.tower_position_nm <= self._hw.tower_min_nm:
+            self._logger.error(
+                "Platform calibration [min] failed %s != %s",
+                self._hw.tower_position_nm,
+                self._hw.tower_min_nm,
+            )
+            self._hw.beepAlarm(3)
+            await self._hw.towerSyncWaitAsync()
+            raise TowerBelowSurface(self._hw.tower_position_nm)
 
-            self._logger.debug("Moving tower to calib position x3")
-            self._hw.tower_position_nm += self._hw.tower_calib_pos_nm * 3
-            while self._hw.isTowerMoving():
-                await sleep(0.25)
+        self._logger.debug("Moving tower to calib position x3")
+        self._hw.tower_position_nm += self._hw.tower_calib_pos_nm * 3
+        while self._hw.isTowerMoving():
+            await sleep(0.25)
 
-            self._logger.debug("Moving tower to min")
-            self._hw.towerToMin()
-            while self._hw.isTowerMoving():
-                await sleep(0.25)
+        self._logger.debug("Moving tower to min")
+        self._hw.towerToMin()
+        while self._hw.isTowerMoving():
+            await sleep(0.25)
 
-            self._logger.debug("Moving tower to calib position")
-            self._hw.tower_position_nm += self._hw.tower_calib_pos_nm
-            while self._hw.isTowerMoving():
-                await sleep(0.25)
-            tower_position_nm = self._hw.tower_position_nm
-            self._logger.info("tower position: %d nm", tower_position_nm)
-            self._config_writer.tower_height_nm = -tower_position_nm
+        self._logger.debug("Moving tower to calib position")
+        self._hw.tower_position_nm += self._hw.tower_calib_pos_nm
+        while self._hw.isTowerMoving():
+            await sleep(0.25)
+        tower_position_nm = self._hw.tower_position_nm
+        self._logger.info("tower position: %d nm", tower_position_nm)
+        self._config_writer.tower_height_nm = -tower_position_nm
 
-            self._hw.setTowerProfile("homingFast")
-            # TODO: Allow to repeat align step on exception
+        self._hw.setTowerProfile("homingFast")
+        # TODO: Allow to repeat align step on exception
 
     def get_result_data(self) -> Dict[str, Any]:
         return {

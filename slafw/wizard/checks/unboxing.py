@@ -22,20 +22,19 @@ class MoveToFoam(Check):
         self.hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        with actions.led_warn:
-            self.hw.set_tower_position_nm(0)
-            self.hw.setTowerProfile("homingFast")
-            initial_pos_nm = self.hw.tower_position_nm
-            self.hw.tower_position_nm = self.FOAM_TARGET_POSITION_NM
-            while self.hw.isTowerMoving():
-                if self.FOAM_TARGET_POSITION_NM != initial_pos_nm:
-                    self.progress = (self.hw.tower_position_nm - initial_pos_nm) / (
-                        self.FOAM_TARGET_POSITION_NM - initial_pos_nm
-                    )
-                else:
-                    self.progress = 1
-                await sleep(0.5)
-            self.hw.motorsRelease()
+        self.hw.set_tower_position_nm(0)
+        self.hw.setTowerProfile("homingFast")
+        initial_pos_nm = self.hw.tower_position_nm
+        self.hw.tower_position_nm = self.FOAM_TARGET_POSITION_NM
+        while self.hw.isTowerMoving():
+            if self.FOAM_TARGET_POSITION_NM != initial_pos_nm:
+                self.progress = (self.hw.tower_position_nm - initial_pos_nm) / (
+                    self.FOAM_TARGET_POSITION_NM - initial_pos_nm
+                )
+            else:
+                self.progress = 1
+            await sleep(0.5)
+        self.hw.motorsRelease()
 
 
 class MoveToTank(Check):
@@ -47,6 +46,5 @@ class MoveToTank(Check):
         self.hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        with actions.led_warn:
-            await self.hw.towerSyncWaitAsync(retries=3)  # Let this fail fast, allow for proper tower synced check
-            self.hw.motorsRelease()
+        await self.hw.towerSyncWaitAsync(retries=3)  # Let this fail fast, allow for proper tower synced check
+        self.hw.motorsRelease()

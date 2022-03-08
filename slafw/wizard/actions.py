@@ -11,8 +11,6 @@ from PySignal import Signal
 
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.states.wizard import WizardState
-from slafw.hardware.power_led import PowerLedActions
-
 
 @dataclass
 class PushState:
@@ -37,22 +35,6 @@ class UserAction:
         self.callback = None
 
 
-class WarnLevelCounter:
-    def __init__(self, hw: BaseHardware):
-        self._hw = hw
-        self._level_counter = 0
-
-    def __enter__(self):
-        self._level_counter += 1
-        self._hw.power_led.mode = PowerLedActions.Warning
-
-    def __exit__(self, *_):
-        assert self._level_counter > 0
-        self._level_counter -= 1
-        if self._level_counter == 0:
-            self._hw.power_led.mode = PowerLedActions.Normal
-
-
 class UserActionBroker:
     # pylint: disable=too-many-instance-attributes
     def __init__(self, hw: BaseHardware):
@@ -60,7 +42,6 @@ class UserActionBroker:
         self._states: Deque[PushState] = deque()
         self.states_changed = Signal()
         self._hw = hw
-        self._warn_level_counter = WarnLevelCounter(hw)
 
         self.prepare_calibration_platform_align_done = UserAction()
         self.prepare_calibration_tilt_align_done = UserAction()
@@ -122,4 +103,4 @@ class UserActionBroker:
 
     @property
     def led_warn(self):
-        return self._warn_level_counter
+        return self._hw.power_led
