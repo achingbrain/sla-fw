@@ -26,6 +26,7 @@ class TestIntegrationConfig0(SlaFwIntegrationTestCaseBase):
         self.assertEqual(0, self.config0.tiltSensitivity)
         self.assertEqual(40, self.config0.calibTowerOffset)
         self.assertEqual(8.0, self.config0.tiltSlowTime)
+        self.assertEqual(14.0, self.config0.tiltHighViscosityTime)
         self.assertFalse(self.config0.calibrated)
         self.assertEqual(96000, self.config0.towerHeight)
         self.assertEqual(-1, self.config0.towerSensitivity)

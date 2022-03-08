@@ -176,6 +176,7 @@ class Config0:
         "tiltHeight": {"calibrated"},
         "tiltFastTime": {"tiltFastTime"},
         "tiltSlowTime": {"tiltSlowTime"},
+        "tiltHighViscosityTime": {"tiltHighViscosityTime"},
         "limit4fast": {"limit4fast"},
         "tankCleaningExposureTime": {"tankCleaningExposureTime"}
     }
