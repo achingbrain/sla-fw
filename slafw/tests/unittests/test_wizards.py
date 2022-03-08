@@ -323,7 +323,7 @@ class TestWizards(TestWizardsBase):
             super()._run_wizard(wizard, limit_s, expected_state)
 
     def _run_self_test(self, expected_state=WizardState.DONE) -> dict:
-        self.hw.config.uvWarmUpTime = 0
+        self.hw.config.uvWarmUpTime = 2
         wizard = SelfTestWizard(self.hw, self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
@@ -350,6 +350,8 @@ class TestWizards(TestWizardsBase):
             data = serializer.load(file)
             return data
 
+    @patch("slafw.defines.fanWizardStabilizeTime", 0)
+    @patch("slafw.defines.fanStartStopTime", 0)
     def test_self_test_success(self):
         data = self._run_self_test()
         self.assertEqual("CZPX0819X009XC00151", data["a64SerialNo"])
@@ -397,6 +399,8 @@ class TestWizards(TestWizardsBase):
         else:
             self.assertEqual(expected_value, getattr(conf, item))
 
+    @patch("slafw.defines.fanWizardStabilizeTime", 0)
+    @patch("slafw.defines.fanStartStopTime", 0)
     def test_self_test_tower_sensitivity_change(self):
         # side_effect = [
         #   TowerHomeFailed() - causes call hw.get_tower_sensitivity_async

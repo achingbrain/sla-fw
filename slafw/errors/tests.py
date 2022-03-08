@@ -76,6 +76,12 @@ FAKE_ARGS = {
     "sensor__map_HardwareDeviceId: int": 1000,
     "min: float": 5.0,
     "max: float": 55.0,
+    "min_rpm: int": 1000,
+    "max_rpm: int": 5000,
+    "avg_rpm: int": 500,
+    "lower_bound_rpm: int": 1200,
+    "upper_bound_rpm: int": 1800,
+    "error: int": 1,
 }
 
 IGNORED_ARGS = {"self", "args", "kwargs"}

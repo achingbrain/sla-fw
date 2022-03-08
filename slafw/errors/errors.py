@@ -7,8 +7,8 @@
 import json
 from dataclasses import dataclass, is_dataclass, asdict
 from enum import Enum
-from typing import Dict, Optional
 from typing import List
+from typing import Optional
 
 from prusaerrors.shared.codes import Code
 from prusaerrors.sl1.codes import Sl1Codes
@@ -230,13 +230,16 @@ class InvalidTiltAlignPosition(GeneralError):
     tilt_position: Optional[int]
 
 
-@with_code(Sl1Codes.FAN_RPM_OUT_OF_TEST_RANGE)
+@with_code(Sl1Codes.FAN_RPM_OUT_OF_TEST_RANGE_ID)
 @dataclass(frozen=True)
 class FanRPMOutOfTestRange(GeneralError):
-    fan: str
-    rpm: Optional[int]
-    avg: Optional[int]
-    fanError: Dict[int, bool]
+    fan__map_HardwareDeviceId: int
+    min_rpm: int
+    max_rpm: int
+    avg_rpm: int
+    lower_bound_rpm: int
+    upper_bound_rpm: int
+    error: int
 
 
 @with_code(Sl1Codes.WIZARD_NOT_CANCELABLE)
