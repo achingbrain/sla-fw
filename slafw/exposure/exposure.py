@@ -835,15 +835,16 @@ class Exposure:
         for check in ExposureCheck:
             self.check_results.update({check: ExposureCheckResult.SCHEDULED})
 
-        await asyncio.gather(
-            FansCheck(self).start(),
-            TempsCheck(self).start(),
-            ProjectDataCheck(self).start()
-            )
-        await CoverCheck(self).start()
-        await ResinCheck(self).start()
-        await StartPositionsCheck(self).start()
-        await StirringCheck(self).start()
+        with WarningAction(self.hw.power_led):
+            await asyncio.gather(
+                FansCheck(self).start(),
+                TempsCheck(self).start(),
+                ProjectDataCheck(self).start()
+                )
+            await CoverCheck(self).start()
+            await ResinCheck(self).start()
+            await StartPositionsCheck(self).start()
+            await StirringCheck(self).start()
 
     def run_exposure(self):
         # TODO: Where is this supposed to be called from?
