@@ -774,10 +774,11 @@ class Exposure:
                     break
 
                 if command == "pour_resin_in":
-                    self.hw.check_cover_override = True
-                    asyncio.run(self._home_axis())
-                    self.state = ExposureState.POUR_IN_RESIN
-                    continue
+                    with WarningAction(self.hw.power_led):
+                        self.hw.check_cover_override = True
+                        asyncio.run(self._home_axis())
+                        self.state = ExposureState.POUR_IN_RESIN
+                        continue
 
                 if command == "checks":
                     self.hw.check_cover_override = False
