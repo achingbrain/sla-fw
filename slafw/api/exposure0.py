@@ -144,7 +144,7 @@ class Exposure0:
         pass
 
     def _on_warning_occurred(self, warning: Warning):
-        self.exception(wrap_dict_data(PrinterException.as_dict(warning)))
+        self.exception(wrap_dict_data(PrinterWarning.as_dict(warning)))
 
     @auto_dbus
     @property
