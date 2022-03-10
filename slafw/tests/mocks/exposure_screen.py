@@ -22,5 +22,6 @@ class ExposureScreen:
         self.blank_screen = Mock()
         self.create_areas = Mock()
         self.blank_area = Mock()
+        self.draw_pattern = Mock()
         self.serial_number = real_expo_screen.serial_number
         self.transmittance = real_expo_screen.transmittance

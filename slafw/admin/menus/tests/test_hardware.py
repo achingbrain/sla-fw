@@ -14,6 +14,7 @@ from slafw.libUvLedMeterMulti import UvLedMeterMulti
 from slafw.hardware.tilt import TiltProfile
 from slafw.errors.errors import TiltHomeFailed
 from slafw.hardware.power_led_action import WarningAction
+from slafw.image.cairo import draw_chess
 
 
 class TestHardwareMenu(AdminMenu):
@@ -258,7 +259,7 @@ class InfiniteTestMenu(AdminMenu):
         # down = 3
 
         with WarningAction(self._printer.hw.power_led):
-            self._printer.exposure_image.show_system_image("chess16.png")
+            self._printer.hw.exposure_screen.draw_pattern(draw_chess, 16)
             self._printer.hw.start_fans()
             self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwm
             self._printer.hw.uv_led.on()
@@ -305,5 +306,4 @@ class InfiniteTestMenu(AdminMenu):
                         self._printer.hw.tilt.profile_id = TiltProfile.homingFast
                         self._printer.hw.tilt.sync_wait()
                 sleep(0.25)
-            self._printer.hw.powerLed("normal")
             self._printer.hw_all_off()

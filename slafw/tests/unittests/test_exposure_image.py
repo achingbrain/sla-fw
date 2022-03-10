@@ -61,8 +61,6 @@ class TestScreen(SlafwTestCase, RefCheckTestCase):
         self.assertTrue(self.exposure_image.is_screen_black, "Test init")
         self.exposure_image.open_screen()
         self.assertFalse(self.exposure_image.is_screen_black, "Test open screen")
-        self.exposure_image.inverse()
-        self.assertTrue(self.exposure_image.is_screen_black, "Test inverse")
 
     def test_show_image(self):
         self.exposure_image.show_image_with_path(TestScreen.ZABA)

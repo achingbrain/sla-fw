@@ -9,7 +9,6 @@ import logging
 from logging.handlers import QueueListener
 from multiprocessing import Process, shared_memory, Queue
 import os
-from pathlib import Path
 from time import monotonic
 from typing import Optional
 
@@ -216,9 +215,6 @@ class ExposureImage:
     def blank_area(self, area_index, sync):
         self._hw.exposure_screen.blank_area(area_index, sync = sync)
 
-    def show_system_image(self, filename: str):
-        self.show_image_with_path(Path(defines.dataPath) / self._model.name / filename)
-
     @measure_time("show image")
     def show_image_with_path(self, filename_with_path: str):
         self._buffer = self._open_image(filename_with_path)
@@ -268,11 +264,6 @@ class ExposureImage:
             os.rename(defines.livePreviewImage + "-tmp%s.png" % ("2" if second else "1"), defines.livePreviewImage)
         except Exception:
             self.logger.exception("Screenshot rename exception:")
-
-    @measure_time("inverse")
-    def inverse(self):
-        self._buffer = ImageOps.invert(self._buffer)
-        self._hw.exposure_screen.show(self._buffer)
 
     def save_display_usage(self):
         usage = numpy.ndarray(

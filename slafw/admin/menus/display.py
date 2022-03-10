@@ -22,6 +22,7 @@ from slafw.libPrinter import Printer
 from slafw.hardware.tilt import TiltProfile
 from slafw.libUvLedMeterMulti import UvLedMeterMulti
 from slafw.hardware.power_led_action import WarningAction
+from slafw.image.cairo import inverse, draw_chess, draw_grid, draw_gradient
 
 class DisplayRootMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
@@ -169,15 +170,18 @@ class DisplayControlMenu(SafeAdminMenu):
         self.add_items(
             (
                 AdminBoolValue("UV", self.get_uv, self.set_uv),
+                AdminAction("Open screen", self.open),
+                AdminAction("Close screen", self.close),
+                AdminAction("Inverse", self.invert),
                 AdminAction("Chess 8", self.chess_8),
                 AdminAction("Chess 16", self.chess_16),
                 AdminAction("Grid 8", self.grid_8),
                 AdminAction("Grid 16", self.grid_16),
-                AdminAction("Maze", self.maze),
+                AdminAction("Gradient vertical", self.gradient_vertical),
+                AdminAction("Gradient horizontal", self.gradient_horizontal),
+
                 AdminAction("USB:/test.png", self.usb_test),
-                AdminAction("Prusa logo", self.prusa),
-                AdminAction("White", self.white),
-                AdminAction("Inverse", self.invert),
+                AdminAction("Prusa logo PNG", self.prusa_png),
             )
         )
 
@@ -198,24 +202,43 @@ class DisplayControlMenu(SafeAdminMenu):
             self._printer.hw.uv_led.off()
 
     @SafeAdminMenu.safe_call
+    def open(self):
+        self._printer.exposure_image.open_screen()
+
+    @SafeAdminMenu.safe_call
+    def close(self):
+        self._printer.exposure_image.blank_screen()
+
+    @SafeAdminMenu.safe_call
+    def invert(self):
+        self._printer.hw.exposure_screen.draw_pattern(inverse)
+
+    @SafeAdminMenu.safe_call
     def chess_8(self):
-        self._printer.exposure_image.show_system_image("chess8.png")
+        self._printer.hw.exposure_screen.draw_pattern(draw_chess, 8)
 
     @SafeAdminMenu.safe_call
     def chess_16(self):
-        self._printer.exposure_image.show_system_image("chess16.png")
+        self._printer.hw.exposure_screen.draw_pattern(draw_chess, 16)
 
     @SafeAdminMenu.safe_call
     def grid_8(self):
-        self._printer.exposure_image.show_system_image("grid8.png")
+        self._printer.hw.exposure_screen.draw_pattern(draw_grid, 7, 1)
 
     @SafeAdminMenu.safe_call
     def grid_16(self):
-        self._printer.exposure_image.show_system_image("grid16.png")
+        self._printer.hw.exposure_screen.draw_pattern(draw_grid, 14, 2)
 
     @SafeAdminMenu.safe_call
-    def maze(self):
-        self._printer.exposure_image.show_system_image("maze.png")
+    def gradient_horizontal(self):
+        self._printer.hw.exposure_screen.draw_pattern(draw_gradient, False)
+
+    @SafeAdminMenu.safe_call
+    def gradient_vertical(self):
+        self._printer.hw.exposure_screen.draw_pattern(draw_gradient, True)
+
+
+
 
     @SafeAdminMenu.safe_call
     def usb_test(self):
@@ -228,16 +251,8 @@ class DisplayControlMenu(SafeAdminMenu):
         self._printer.exposure_image.show_image_with_path(str(test_file))
 
     @SafeAdminMenu.safe_call
-    def prusa(self):
+    def prusa_png(self):
         self._printer.exposure_image.show_system_image("logo.png")
-
-    @SafeAdminMenu.safe_call
-    def white(self):
-        self._printer.exposure_image.open_screen()
-
-    @SafeAdminMenu.safe_call
-    def invert(self):
-        self._printer.exposure_image.inverse()
 
 
 class DirectPwmSetMenu(SafeAdminMenu):
@@ -260,7 +275,8 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self.add_items(
             (
                 AdminBoolValue.from_value("UV LED", self, "uv_led"),
-                AdminAction("Inverse", self.invert),
+                AdminAction("Open screen", self.open),
+                AdminAction("Close screen", self.close),
                 AdminAction("Calculate PWM from display transmittance", self.calculate_pwm),
                 self.uv_pwm_print_item,
                 uv_pwm_item,
@@ -356,8 +372,12 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._uv_pwm_print = value
 
     @SafeAdminMenu.safe_call
-    def invert(self):
-        self._printer.exposure_image.inverse()
+    def open(self):
+        self._printer.exposure_image.open_screen()
+
+    @SafeAdminMenu.safe_call
+    def close(self):
+        self._printer.exposure_image.blank_screen()
 
     @SafeAdminMenu.safe_call
     def save(self):

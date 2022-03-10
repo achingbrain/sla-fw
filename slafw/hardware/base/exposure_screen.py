@@ -336,9 +336,16 @@ class Wayland:
         self.logger.warning("discarded feedback")
 
     @sync_call
-    def show(self, main_surface, image: bytes):
+    def show_bytes(self, main_surface, image: bytes):
         self.main_layer.shm_data.seek(0)   # type: ignore
         self.main_layer.shm_data.write(image)  # type: ignore
+        self._show(main_surface)
+
+    @sync_call
+    def show_shm(self, main_surface):
+        self._show(main_surface)
+
+    def _show(self, main_surface):
         self.main_layer.redraw()
         self.blank_layer.base_wl_subsurface.place_below(main_surface)
         if self.calibration_layer:
@@ -406,7 +413,7 @@ class ExposureScreen(ABC):
             self.logger.debug("resize from: %s", image.size)
             image = image.resize(self.parameters.size_px, Image.BICUBIC)
             self.logger.debug("resize to: %s", image.size)
-        self._wayland.show(sync, image.tobytes())
+        self._wayland.show_bytes(sync, image.tobytes())
 
     def blank_screen(self, sync: bool = True):
         self._wayland.blank_screen(sync)
@@ -416,6 +423,10 @@ class ExposureScreen(ABC):
 
     def blank_area(self, area_index: int, sync: bool = True):
         self._wayland.blank_area(sync, area_index)
+
+    def draw_pattern(self, drawfce, *args, **kwargs):
+        drawfce(self._wayland.main_layer, *args, **kwargs)
+        self._wayland.show_shm(True) # synced
 
     @staticmethod
     def get_parameters(printer_model: PrinterModel) -> ExposureScreenParameters:
