@@ -721,29 +721,29 @@ class Exposure:
         self.logger.error("UV LED overheat - waiting for cooldown")
         state = self.state
         self.state = ExposureState.COOLING_DOWN
-        while True:
-            try:
-                if self.commands.get_nowait() == "exit":
-                    return "exit"
-            except Empty:
-                pass
-            if not self.hw.uv_led_temp.overheat:
-                break
-            self.hw.beepAlarm(3)
-            sleep(3)
-        self.state = state
-        return None
+        with ErrorAction(self.hw.power_led):
+            while True:
+                try:
+                    if self.commands.get_nowait() == "exit":
+                        return "exit"
+                except Empty:
+                    pass
+                if not self.hw.uv_led_overheat:
+                    break
+                self.hw.beepAlarm(3)
+                sleep(3)
+            self.state = state
+            return None
 
     def doStuckRelease(self):
 
         self.state = ExposureState.STUCK
 
-        with ErrorAction(self.hw.power_led):
+        with WarningAction(self.hw.power_led):
             self.hw.towerHoldTiltRelease()
             if self.doWait(True) == "back":
                 raise TiltFailed()
 
-        with WarningAction(self.hw.power_led):
             self.state = ExposureState.STUCK_RECOVERY
             self.hw.tilt.sync_wait()
             self.state = ExposureState.STIRRING
@@ -854,131 +854,131 @@ class Exposure:
         was_stirring = True
         exposure_compensation = 0
 
-        while self.actual_layer < project.total_layers:
-            try:
-                command = self.commands.get_nowait()
-            except Empty:
-                command = None
-            except Exception:
-                self.logger.exception("getCommand exception")
-                command = None
+        with WarningAction(self.hw.power_led):
+            while self.actual_layer < project.total_layers:
+                try:
+                    command = self.commands.get_nowait()
+                except Empty:
+                    command = None
+                except Exception:
+                    self.logger.exception("getCommand exception")
+                    command = None
 
-            if command == "updown":
-                self.upAndDown()
-                was_stirring = True
-                exposure_compensation = self.hw.config.upAndDownExpoComp * 100
+                if command == "updown":
+                    self.upAndDown()
+                    was_stirring = True
+                    exposure_compensation = self.hw.config.upAndDownExpoComp * 100
 
-            if command == "exit":
-                break
-
-            if command == "inject_tower_fail":
-                self.logger.error("Injecting fatal tower fail")
-                raise TowerFailed()
-
-            if command == "pause":
-                if self.doWait(False) == "exit":
+                if command == "exit":
                     break
 
-            if self._wait_uv_cool_down() == "exit":
-                break
+                if command == "inject_tower_fail":
+                    self.logger.error("Injecting fatal tower fail")
+                    raise TowerFailed()
 
-            if self.resin_volume:
-                self._update_resin()
+                if command == "pause":
+                    if self.doWait(False) == "exit":
+                        break
 
-            if command == "feedme" or self.low_resin:
-                with WarningAction(self.hw.power_led):
-                    if self.hw.config.tilt:
-                        self.hw.tilt.layer_up_wait()
-                    self.state = ExposureState.FEED_ME
-                    sub_command = self.doWait(self.low_resin)
+                if self._wait_uv_cool_down() == "exit":
+                    break
 
-                    if sub_command == "continue":
-                        # update resin volume
-                        self.setResinVolume(defines.resinMaxVolume)
+                if self.resin_volume:
+                    self._update_resin()
 
-                    # Force user to close the cover
-                    self._wait_cover_close()
+                if command == "feedme" or self.low_resin:
+                    with ErrorAction(self.hw.power_led):
+                        if self.hw.config.tilt:
+                            self.hw.tilt.layer_up_wait()
+                        self.state = ExposureState.FEED_ME
+                        sub_command = self.doWait(self.low_resin)
 
-                    # Stir resin before resuming print
-                    if self.hw.config.tilt:
-                        self.state = ExposureState.STIRRING
-                        self.hw.tilt.sync_wait()
-                        self.hw.tilt.stir_resin()
+                        if sub_command == "continue":
+                            # update resin volume
+                            self.setResinVolume(defines.resinMaxVolume)
+
+                        # Force user to close the cover
+                        self._wait_cover_close()
+
+                        # Stir resin before resuming print
+                        if self.hw.config.tilt:
+                            self.state = ExposureState.STIRRING
+                            self.hw.tilt.sync_wait()
+                            self.hw.tilt.stir_resin()
+                        was_stirring = True
+
+                    # Resume print
+                    self.state = ExposureState.PRINTING
+
+                if (
+                    self.hw.config.upAndDownEveryLayer
+                    and self.actual_layer
+                    and not self.actual_layer % self.hw.config.upAndDownEveryLayer
+                ):
+                    self.doUpAndDown()
                     was_stirring = True
+                    exposure_compensation = self.hw.config.upAndDownExpoComp * 100
 
-                # Resume print
-                self.state = ExposureState.PRINTING
+                layer = project.layers[self.actual_layer]
 
-            if (
-                self.hw.config.upAndDownEveryLayer
-                and self.actual_layer
-                and not self.actual_layer % self.hw.config.upAndDownEveryLayer
-            ):
-                self.doUpAndDown()
-                was_stirring = True
-                exposure_compensation = self.hw.config.upAndDownExpoComp * 100
+                self.tower_position_nm += layer.height_nm
 
-            layer = project.layers[self.actual_layer]
+                self.logger.info(
+                    "Layer started » {"
+                    " 'layer': '%04d/%04d (%s)',"
+                    " 'exposure [ms]': %s,"
+                    " 'slow_layers_done': %d,"
+                    " 'height [mm]': '%.3f/%.3f',"
+                    " 'elapsed [min]': %d,"
+                    " 'remain [ms]': %d,"
+                    " 'used [ml]': %d,"
+                    " 'remaining [ml]': %d,"
+                    " 'RAM': '%.1f%%',"
+                    " 'CPU': '%.1f%%'"
+                    " }",
+                    self.actual_layer + 1,
+                    project.total_layers,
+                    layer.image.replace(project.name, project_hash),
+                    str(layer.times_ms),
+                    self.slow_layers_done,
+                    self.tower_position_nm / 1e6,
+                    project.total_height_nm / 1e6,
+                    int(round((datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds() / 60)),
+                    self.estimate_remain_time_ms(),
+                    self.resin_count,
+                    self.remain_resin_ml if self.remain_resin_ml else -1,
+                    psutil.virtual_memory().percent,
+                    psutil.cpu_percent(),
+                )
 
-            self.tower_position_nm += layer.height_nm
+                times_ms = list(layer.times_ms)
+                times_ms[0] += exposure_compensation
 
-            self.logger.info(
-                "Layer started » {"
-                " 'layer': '%04d/%04d (%s)',"
-                " 'exposure [ms]': %s,"
-                " 'slow_layers_done': %d,"
-                " 'height [mm]': '%.3f/%.3f',"
-                " 'elapsed [min]': %d,"
-                " 'remain [ms]': %d,"
-                " 'used [ml]': %d,"
-                " 'remaining [ml]': %d,"
-                " 'RAM': '%.1f%%',"
-                " 'CPU': '%.1f%%'"
-                " }",
-                self.actual_layer + 1,
-                project.total_layers,
-                layer.image.replace(project.name, project_hash),
-                str(layer.times_ms),
-                self.slow_layers_done,
-                self.tower_position_nm / 1e6,
-                project.total_height_nm / 1e6,
-                int(round((datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds() / 60)),
-                self.estimate_remain_time_ms(),
-                self.resin_count,
-                self.remain_resin_ml if self.remain_resin_ml else -1,
-                psutil.virtual_memory().percent,
-                psutil.cpu_percent(),
-            )
-
-            times_ms = list(layer.times_ms)
-            times_ms[0] += exposure_compensation
-
-            success, white_pixels = self._do_frame(times_ms, was_stirring, False, layer.height_nm)
-            if not success:
-                self.doStuckRelease()
-
-            # exposure of the second part
-            if project.per_partes and white_pixels > self.hw.white_pixels_threshold:
-                success, dummy = self._do_frame(times_ms, was_stirring, True, layer.height_nm)
+                success, white_pixels = self._do_frame(times_ms, was_stirring, False, layer.height_nm)
                 if not success:
-                    self.doStuckRelease()
+                    with ErrorAction(self.hw.power_led):
+                        self.doStuckRelease()
 
-            was_stirring = False
-            exposure_compensation = 0
+                # exposure of the second part
+                if project.per_partes and white_pixels > self.hw.white_pixels_threshold:
+                    success, dummy = self._do_frame(times_ms, was_stirring, True, layer.height_nm)
+                    if not success:
+                        with ErrorAction(self.hw.power_led):
+                            self.doStuckRelease()
 
-            # /1e21 (1e7 ** 3) - we want cm3 (=ml) not nm3
-            self.resin_count += (
-                white_pixels * self.hw.exposure_screen.parameters.pixel_size_nm**2 * layer.height_nm / 1e21
-            )
-            self.logger.debug("resin_count: %f", self.resin_count)
+                # /1e21 (1e7 ** 3) - we want cm3 (=ml) not nm3
+                self.resin_count += (
+                    white_pixels * self.hw.exposure_screen.parameters.pixel_size_nm ** 2 * layer.height_nm / 1e21
+                )
+                self.logger.debug("resin_count: %f", self.resin_count)
 
-            seconds = (datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds()
+                seconds = (datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds()
 
-            if self.hw.config.trigger:
-                self.logger.error("Trigger not implemented")
-                # sleep(self.hw.config.trigger / 10.0)
+                if self.hw.config.trigger:
+                    self.logger.error("Trigger not implemented")
+                    # sleep(self.hw.config.trigger / 10.0)
 
-            self.actual_layer += 1
+                self.actual_layer += 1
 
         self._final_go_up()
 
