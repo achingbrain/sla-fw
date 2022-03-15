@@ -102,7 +102,8 @@ class TouchDown(DangerousCheck):
         self._hw.setTowerProfile("resinSensor")
         # Note: Do not use towerMoveAbsoluteWaitAsync here. It's periodically calling isTowerOnPosition which
         # is causing the printer to try to fix the tower position
-        target_position_nm = 1_800_000
+
+        target_position_nm = self._hw.config.tankCleaningAdaptorHeight_nm - 3_000_000
         self._hw.tower_position_nm = target_position_nm
         while self._hw.isTowerMoving():
             await sleep(0.25)

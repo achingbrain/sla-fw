@@ -188,6 +188,8 @@ class HwConfig(Config):
     tankCleaningExposureTime = IntValue(0, minimum=5, maximum=120, doc="Exposure time when running the tank surface cleaning wizard, default 0 needs to be overwritten once the printer model is known.")
     tankCleaningGentlyUpProfile = IntValue(1, minimum=0, maximum=3, doc="Select the profile used for the upward movement of the platform in the tank surface cleaning wizard(should be cast into GentlyUpProfile enum).")
     tankCleaningMinDistance_nm = IntValue(100_000, minimum=0, maximum=5_000_000, doc="Distance of the garbage collector from the resin tank bottom when moving down.")
+    tankCleaningAdaptorHeight_nm = IntValue(25_000_000, minimum=3_000_000, maximum=200_000_000, doc="Expected cleaning adapter height, the platform will descend at most 3mm below this height")
+
     currentProfilesSet = TextValue("n/a", doc="Last applied profiles set")
 
     raw_calibrated = BoolValue(False, key="calibrated")
