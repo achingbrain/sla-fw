@@ -24,7 +24,7 @@ from slafw.project.functions import get_white_pixels
 from slafw.image.resin_calibration import Calibration
 from slafw.image.preloader import Preloader, SLIDX, SHMIDX, ProjectFlags
 from slafw.errors.errors import ProjectErrorCalibrationInvalid
-from slafw.errors.warnings import PerPartesPrintNotAvaiable, PrintMaskNotAvaiable, PrintedObjectWasCropped
+from slafw.errors.warnings import PrintMaskNotAvaiable, PrintedObjectWasCropped
 
 
 def measure_time(what: str):
@@ -73,8 +73,6 @@ class ExposureImage:
         # see SHMIDX!!!
         self._shm = [
                 shared_memory.SharedMemory(create=True, size=image_bytes_count, name=shm_prefix+SHMIDX.PROJECT_IMAGE.name),
-                shared_memory.SharedMemory(create=True, size=image_bytes_count, name=shm_prefix+SHMIDX.PROJECT_PPM1.name),
-                shared_memory.SharedMemory(create=True, size=image_bytes_count, name=shm_prefix+SHMIDX.PROJECT_PPM2.name),
                 shared_memory.SharedMemory(create=True, size=image_bytes_count, name=shm_prefix+SHMIDX.PROJECT_MASK.name),
                 shared_memory.SharedMemory(create=True, size=image_bytes_count, name=shm_prefix+SHMIDX.OUTPUT_IMAGE1.name),
                 shared_memory.SharedMemory(create=True, size=image_bytes_count, name=shm_prefix+SHMIDX.OUTPUT_IMAGE2.name),
@@ -129,19 +127,7 @@ class ExposureImage:
                 buffer=self._shm[SHMIDX.DISPLAY_USAGE].buf)
         usage.fill(0.0)
         if self._project.per_partes:
-            try:
-                image1 = Image.frombuffer("L", self._hw.exposure_screen.parameters.apparent_size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
-                image1.readonly = False
-                image1.paste(self._open_image(Path(defines.dataPath) / self._model.name / defines.perPartesMask))
-                image2 = Image.frombuffer("L", self._hw.exposure_screen.parameters.apparent_size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
-                image2.readonly = False
-                image2.paste(ImageOps.invert(image1))
-                project_flags |= ProjectFlags.PER_PARTES
-            except Exception:
-                self.logger.exception("per partes masks exception")
-                self._project.warnings.add(PerPartesPrintNotAvaiable())
-                # reset the flag for Exposure
-                self._project.per_partes = False
+            project_flags |= ProjectFlags.PER_PARTES
         try:
             mask = Image.frombuffer("L", self._hw.exposure_screen.parameters.apparent_size_px, self._shm[SHMIDX.PROJECT_MASK].buf, "raw", "L", 0, 1)
             mask.readonly = False

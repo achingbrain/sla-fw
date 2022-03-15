@@ -18,6 +18,7 @@ from PIL import Image
 from slafw import defines
 from slafw.hardware.base.exposure_screen import ExposureScreenParameters
 from slafw.image.resin_calibration import Calibration
+from slafw.image.cairo import draw_perpartes_mask, inverse
 from slafw.project.functions import get_white_pixels
 from slafw.utils.bounding_box import BBox
 
@@ -31,15 +32,13 @@ class ProjectFlags(IntFlag):
 @unique
 class SHMIDX(IntEnum):
     PROJECT_IMAGE = 0
-    PROJECT_PPM1 = 1
-    PROJECT_PPM2 = 2
-    PROJECT_MASK = 3
-    OUTPUT_IMAGE1 = 4
-    OUTPUT_IMAGE2 = 5
-    DISPLAY_USAGE = 6
-    PROJECT_BBOX = 7
-    PROJECT_FL_BBOX = 8
-    PROJECT_TIMES_MS = 9
+    PROJECT_MASK = 1
+    OUTPUT_IMAGE1 = 2
+    OUTPUT_IMAGE2 = 3
+    DISPLAY_USAGE = 4
+    PROJECT_BBOX = 5
+    PROJECT_FL_BBOX = 6
+    PROJECT_TIMES_MS = 7
 
 @unique
 class SLIDX(IntEnum):
@@ -62,7 +61,7 @@ class Preloader(Process):
         self._start_preload = start_preload
         self._preload_result = preload_result
         self._dev_shm_prefix = '/dev/shm/' + shm_prefix
-        self._shm: Optional[List[Any]] = None  # TODO: List of heterogeneous types, "self._shm[SHMIDX.PROJECT_PPM1].buf"
+        self._shm: Optional[List[Any]] = None  # TODO: List of heterogeneous types, "self._shm[SHMIDX.PROJECT_IMAGE].buf"
         self._sl: Optional[shared_memory.ShareableList] = None
         self._stoprequest = Event()
         self._display_usage_shape = (
@@ -72,12 +71,15 @@ class Preloader(Process):
                 self._params.thumbnail_factor,
         )
         self._black_image = Image.new("L", self._params.apparent_size_px)
+        data = numpy.empty(shape=self._params.apparent_size_px, dtype=numpy.uint8)
+        draw_perpartes_mask(data, self._params.apparent_width_px, self._params.apparent_height_px, 20)
+        self._ppm1 = Image.frombytes("L", self._params.apparent_size_px, data)
+        inverse(data, self._params.apparent_width_px, self._params.apparent_height_px)
+        self._ppm2 = Image.frombytes("L", self._params.apparent_size_px, data)
         self._project_serial: Optional[int] = None
         self._calibration: Optional[Calibration] = None
         self._shm = [
                 shared_memory.SharedMemory(name=shm_prefix+SHMIDX.PROJECT_IMAGE.name),
-                shared_memory.SharedMemory(name=shm_prefix+SHMIDX.PROJECT_PPM1.name),
-                shared_memory.SharedMemory(name=shm_prefix+SHMIDX.PROJECT_PPM2.name),
                 shared_memory.SharedMemory(name=shm_prefix+SHMIDX.PROJECT_MASK.name),
                 shared_memory.SharedMemory(name=shm_prefix+SHMIDX.OUTPUT_IMAGE1.name),
                 shared_memory.SharedMemory(name=shm_prefix+SHMIDX.OUTPUT_IMAGE2.name),
@@ -191,10 +193,8 @@ class Preloader(Process):
             output_image_second = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.OUTPUT_IMAGE2].buf, "raw", "L", 0, 1)
             output_image_second.readonly = False
             output_image_second.paste(output_image)
-            mask = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.PROJECT_PPM1].buf, "raw", "L", 0, 1)
-            output_image.paste(self._black_image, mask=mask)
-            mask = Image.frombuffer("L", self._params.apparent_size_px, self._shm[SHMIDX.PROJECT_PPM2].buf, "raw", "L", 0, 1)
-            output_image_second.paste(self._black_image, mask=mask)
+            output_image.paste(self._black_image, mask=self._ppm1)
+            output_image_second.paste(self._black_image, mask=self._ppm2)
             self._screenshot(output_image_second, "2")
         self._screenshot(output_image, "1")
         self._logger.debug("whole preload done in %f ms", 1e3 * (monotonic() - start_time_first))

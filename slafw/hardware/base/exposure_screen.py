@@ -424,8 +424,9 @@ class ExposureScreen(ABC):
     def blank_area(self, area_index: int, sync: bool = True):
         self._wayland.blank_area(sync, area_index)
 
-    def draw_pattern(self, drawfce, *args, **kwargs):
-        drawfce(self._wayland.main_layer, *args, **kwargs)
+    def draw_pattern(self, drawfce, *args):
+        l = self._wayland.main_layer
+        drawfce(l.shm_data, l.width, l.height, *args)
         self._wayland.show_shm(True) # synced
 
     @staticmethod

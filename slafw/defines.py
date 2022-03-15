@@ -56,8 +56,6 @@ uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename  # deprecated
 
 uvCalibDuration = 60 # 1 minute countdown
 
-perPartesMask = "perpartes_mask.png"
-
 configFile = "config.ini"
 maskFilename = "mask.png"
 previousPrints = os.path.join(persistentStorage, "previous-prints")

@@ -5,23 +5,21 @@
 import functools
 import cairo
 
-from slafw.hardware.base.exposure_screen import Layer
-
 def draftsman(function):
     @functools.wraps(function)
-    def inner(layer: Layer, *args):
+    def inner(data, width: int, height: int, *args):
         cf = cairo.Format.A8
         surface = cairo.ImageSurface.create_for_data(
-                layer.shm_data,
+                data,
                 cf,
-                layer.width,
-                layer.height,
-                cf.stride_for_width(layer.width))
+                width,
+                height,
+                cf.stride_for_width(width))
         function(
                 cairo.Context(surface),
                 *args,
-                width = layer.width,
-                height = layer.height)
+                width = width,
+                height = height)
         surface.finish()
     return inner
 
@@ -87,5 +85,10 @@ def inverse(ctx: cairo.Context, **kwargs):
     ctx.paint()
 
 @draftsman
-def draw_perpartes_mask(ctx: cairo.Context, **kwargs):
-    pass
+def draw_perpartes_mask(ctx: cairo.Context, stripes: int, width: int, height: int):
+    _fill_white(ctx)
+    ctx.set_operator(cairo.Operator.DEST_OUT)
+    size = height // stripes
+    for y in range(0, height, 2 * size):
+        ctx.rectangle(0, y, width, size)
+    ctx.fill()

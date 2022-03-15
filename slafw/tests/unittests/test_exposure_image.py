@@ -97,7 +97,6 @@ class TestScreen(SlafwTestCase, RefCheckTestCase):
         self.exposure_image.new_project(project)
         self.exposure_image.preload_image(0)
         self.assertFalse(project.warnings)
-        self.assertTrue(project.per_partes)
         second = False
         white_pixels = self.exposure_image.sync_preloader()
         self.assertEqual(233600, white_pixels)

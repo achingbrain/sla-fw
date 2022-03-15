@@ -74,10 +74,11 @@ class PrintingDirectlyFromMedia(ExposureWarning):
     pass
 
 
-@with_code(Sl1Codes.PERPARTES_NOAVAIL_WARNING)
-@dataclass(frozen=True)
-class PerPartesPrintNotAvaiable(ExposureWarning):
-    pass
+# no longer used
+#@with_code(Sl1Codes.PERPARTES_NOAVAIL_WARNING)
+#@dataclass(frozen=True)
+#class PerPartesPrintNotAvaiable(ExposureWarning):
+#    pass
 
 
 @with_code(Sl1Codes.MASK_NOAVAIL_WARNING)
