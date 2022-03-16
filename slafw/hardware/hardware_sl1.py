@@ -169,13 +169,13 @@ class HardwareSL1(BaseHardware):
     # MUST be called before start()
     def connect(self):
         # MC have to be started first (beep, poweroff)
+        self.power_led = PowerLedSL1(self.mcc)
         self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
         self.exposure_screen.start()
 
         self.uv_led = UvLedSL1(self.mcc, self._printer_model)
         self.tilt = TiltSL1(self.mcc, self.config)
-        self.power_led = PowerLedSL1(self.mcc)
 
         if self._printer_model.options.has_booster:
             self.sl1s_booster.connect()
