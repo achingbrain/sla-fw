@@ -7,7 +7,7 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 from time import monotonic_ns, sleep
 from typing import Optional
 
@@ -26,7 +26,7 @@ class Serial:
         self.process: Optional[Popen] = None
 
     def open(self):
-        self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE)
+        self.process = Popen(["SLA-control-01.elf"], stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         mcusr = self.process.stdout.readline()
         self.logger.debug("MC serial simulator MCUSR = %s", mcusr)
         ready = self.process.stdout.readline()
