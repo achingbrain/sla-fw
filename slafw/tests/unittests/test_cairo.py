@@ -8,9 +8,10 @@ import unittest
 import numpy
 from PIL import Image
 
+from slafw import defines
 from slafw.tests.base import SlafwTestCaseDBus
 from slafw.project.functions import get_white_pixels
-import slafw.image.cairo as cairo
+from slafw.image import cairo
 
 
 class TestCairo(SlafwTestCaseDBus):
@@ -82,6 +83,12 @@ class TestCairo(SlafwTestCaseDBus):
         img = Image.frombytes("L", size, data)
         self.assertSameImage(img, Image.open(self.SAMPLES_DIR / "cairo" / "ppm_sl1s.png"))
 
+    def test_logo(self):
+        size = self.SL1_SIZE
+        data = numpy.empty(shape=size, dtype=numpy.uint8)
+        cairo.draw_svg_expand(data, *size, defines.prusa_logo_file, True)
+        img = Image.frombytes("L", size, data)
+        self.assertSameImage(img, Image.open(self.SAMPLES_DIR / "cairo" / "logo_sl1.png"))
 
 if __name__ == '__main__':
     unittest.main()

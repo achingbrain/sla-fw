@@ -8,6 +8,9 @@ from datetime import timedelta, datetime
 from itertools import chain
 from threading import Thread
 from dataclasses import asdict
+from functools import partial
+from pathlib import Path
+from glob import iglob
 
 from slafw import defines
 from slafw.admin.control import AdminControl
@@ -22,7 +25,7 @@ from slafw.libPrinter import Printer
 from slafw.hardware.tilt import TiltProfile
 from slafw.libUvLedMeterMulti import UvLedMeterMulti
 from slafw.hardware.power_led_action import WarningAction
-from slafw.image.cairo import inverse, draw_chess, draw_grid, draw_gradient
+from slafw.image import cairo
 
 class DisplayRootMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
@@ -179,9 +182,11 @@ class DisplayControlMenu(SafeAdminMenu):
                 AdminAction("Grid 16", self.grid_16),
                 AdminAction("Gradient vertical", self.gradient_vertical),
                 AdminAction("Gradient horizontal", self.gradient_horizontal),
-
-                AdminAction("USB:/test.png", self.usb_test),
-                AdminAction("Prusa logo PNG", self.prusa_png),
+                AdminAction("Prusa logo", self.prusa_logo),
+                AdminAction(
+                    "file from USB",
+                    lambda: self._control.enter(UsbFileMenu(self._control, self._printer))
+                ),
             )
         )
 
@@ -211,48 +216,69 @@ class DisplayControlMenu(SafeAdminMenu):
 
     @SafeAdminMenu.safe_call
     def invert(self):
-        self._printer.hw.exposure_screen.draw_pattern(inverse)
+        self._printer.hw.exposure_screen.draw_pattern(cairo.inverse)
 
     @SafeAdminMenu.safe_call
     def chess_8(self):
-        self._printer.hw.exposure_screen.draw_pattern(draw_chess, 8)
+        self._printer.hw.exposure_screen.draw_pattern(cairo.draw_chess, 8)
 
     @SafeAdminMenu.safe_call
     def chess_16(self):
-        self._printer.hw.exposure_screen.draw_pattern(draw_chess, 16)
+        self._printer.hw.exposure_screen.draw_pattern(cairo.draw_chess, 16)
 
     @SafeAdminMenu.safe_call
     def grid_8(self):
-        self._printer.hw.exposure_screen.draw_pattern(draw_grid, 7, 1)
+        self._printer.hw.exposure_screen.draw_pattern(cairo.draw_grid, 7, 1)
 
     @SafeAdminMenu.safe_call
     def grid_16(self):
-        self._printer.hw.exposure_screen.draw_pattern(draw_grid, 14, 2)
+        self._printer.hw.exposure_screen.draw_pattern(cairo.draw_grid, 14, 2)
 
     @SafeAdminMenu.safe_call
     def gradient_horizontal(self):
-        self._printer.hw.exposure_screen.draw_pattern(draw_gradient, False)
+        self._printer.hw.exposure_screen.draw_pattern(cairo.draw_gradient, False)
 
     @SafeAdminMenu.safe_call
     def gradient_vertical(self):
-        self._printer.hw.exposure_screen.draw_pattern(draw_gradient, True)
-
-
-
+        self._printer.hw.exposure_screen.draw_pattern(cairo.draw_gradient, True)
 
     @SafeAdminMenu.safe_call
-    def usb_test(self):
-        save_path = files.get_save_path()
-        if save_path is None:
-            raise ValueError("No USB path")
-        test_file = save_path / "test.png"
-        if not test_file.exists():
-            raise FileNotFoundError(f"Test image not found: {test_file}")
-        self._printer.exposure_image.show_image_with_path(str(test_file))
+    def prusa_logo(self):
+        self._printer.hw.exposure_screen.draw_pattern(cairo.draw_svg_expand, defines.prusa_logo_file, True)
+
+
+class UsbFileMenu(SafeAdminMenu):
+    def __init__(self, control: AdminControl, printer: Printer):
+        super().__init__(control)
+        self._printer = printer
+        self.add_back()
+        usb_path = files.get_save_path()
+        if usb_path is None:
+            self.add_label("USB not present. To get files from USB, plug the USB and re-enter.")
+        else:
+            self._list_files(usb_path, "png")
+            self._list_files(usb_path, "svg")
+
+    def _list_files(self, path: Path, suffix: str):
+#        all_files = iglob("**/*." + suffix, root_dir=path, recursive=True) # TODO python 3.10
+        all_files = iglob(str(path / "**/*.") + suffix, recursive=True)
+        cut_off = len(str(path))+1
+        for file in all_files:
+            self.add_item(AdminAction(
+                file[cut_off:],
+                partial(self._usb_test, path, file)
+            ))
 
     @SafeAdminMenu.safe_call
-    def prusa_png(self):
-        self._printer.exposure_image.show_system_image("logo.png")
+    def _usb_test(self, path: Path, name: str):
+        fullname = path / name
+        if not fullname.exists():
+            raise FileNotFoundError(f"Test image not found: {name}")
+        if fullname.suffix == ".svg":
+            es = self._printer.hw.exposure_screen
+            es.draw_pattern(cairo.draw_svg_dpi, str(fullname), False, es.parameters.dpi)
+        else:
+            self._printer.exposure_image.show_image_with_path(str(fullname))
 
 
 class DirectPwmSetMenu(SafeAdminMenu):

@@ -76,6 +76,7 @@ livePreviewImage = os.path.join(ramdiskPath, "live.png")
 displayUsageData = os.path.join(persistentStorage, "display_usage.npz")
 displayUsagePalette = os.path.join(dataPath, "heatmap_palette.txt")
 fullscreenImage = os.path.join(ramdiskPath, "fsimage.png")
+prusa_logo_file = os.path.join(dataPath, "logo.svg")
 
 profilesFile = "slicer_profiles.toml"
 slicerProfilesFallback = Path(dataPath) / profilesFile

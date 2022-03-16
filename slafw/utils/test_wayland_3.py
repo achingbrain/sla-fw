@@ -192,6 +192,7 @@ def draw_cairo(surface_data):
     ctx.fill()
     # draw transparent logo
     svg = Rsvg.Handle().new_from_file("../data/logo.svg")
+    svg.set_dpi(300)
     print(svg.get_intrinsic_size_in_pixels())
     viewport = Rsvg.Rectangle()
     viewport.x = 0
@@ -268,7 +269,7 @@ def main():
     if window.shm is None:
         raise RuntimeError("no wl_shm found")
 
-    window.background = Layer(320, 200)
+    window.background = Layer(200, 320)
     window.background.surface.append(Surface(window.compositor))
     bg_wl_surface = window.background.base_wl_surface
 

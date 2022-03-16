@@ -53,6 +53,7 @@ class ExposureScreenParameters:
     apparent_height_px: int = field(init=False)
     display_usage_size_px: tuple = field(init=False)
     live_preview_size_px: tuple = field(init=False)
+    dpi: float = field(init=False)
 
     def __post_init__(self):
         self.width_px = self.size_px[0]
@@ -66,6 +67,7 @@ class ExposureScreenParameters:
                                       self.apparent_width_px // self.thumbnail_factor)
         self.live_preview_size_px = (self.apparent_width_px // self.thumbnail_factor,
                                      self.apparent_height_px // self.thumbnail_factor)
+        self.dpi = 1e6 / self.pixel_size_nm * 25.4
 
 
 class Layer:
@@ -164,8 +166,10 @@ def sync_call(function):
             feedback = self.bindings.presentation.feedback(main_surface)
             feedback.dispatcher["presented"] = self.feedback_presented_handler
             feedback.dispatcher["discarded"] = self.feedback_discarded_handler
+        start_time = monotonic()
         function(self, main_surface, *args)
         main_surface.commit()
+        self.logger.debug("%s done in %f ms", function.__name__, 1e3 * (monotonic() - start_time))
         # show immediately
         self.display.flush()
         if sync:
@@ -404,11 +408,9 @@ class ExposureScreen(ABC):
 
     def show(self, image: Image, sync: bool = True):
         if image.size != self.parameters.apparent_size_px:
-            self.logger.error("Invalid image size %s. Output is %s", str(image.size), str(self.parameters.size_px))
-            return
+            raise RuntimeError(f"Wrong image size {image.size} for output {self.parameters.apparent_size_px}")
         if image.mode != "L":
-            self.logger.error("Invalid pixel format %s. 'L' is required.", image.mode)
-            return
+            raise RuntimeError(f"Invalid pixel format {image.mode}")
         if self.parameters.output_factor != 1:
             self.logger.debug("resize from: %s", image.size)
             image = image.resize(self.parameters.size_px, Image.BICUBIC)
@@ -425,8 +427,10 @@ class ExposureScreen(ABC):
         self._wayland.blank_area(sync, area_index)
 
     def draw_pattern(self, drawfce, *args):
+        start_time = monotonic()
         l = self._wayland.main_layer
-        drawfce(l.shm_data, l.width, l.height, *args)
+        drawfce(l.shm_data, l.width * l.bytes_per_pixel, l.height, *args)
+        self.logger.debug("%s done in %f ms", drawfce.__name__, 1e3 * (monotonic() - start_time))
         self._wayland.show_shm(True) # synced
 
     @staticmethod
@@ -436,7 +440,7 @@ class ExposureScreen(ABC):
                 size_px=(0, 0),
                 thumbnail_factor=1,
                 output_factor=1,
-                pixel_size_nm=0,
+                pixel_size_nm=50000,
                 refresh_delay_ms=0,
                 monochromatic=False,
                 bgr_pixels=False,

@@ -13,6 +13,7 @@ from slafw.errors.errors import DisplayTestFailed
 from slafw.functions.system import FactoryMountedRW
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.image.exposure_image import ExposureImage
+from slafw.image.cairo import draw_svg_expand
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
@@ -42,7 +43,7 @@ class DisplayTest(DangerousCheck):
         await gather(self._hw.verify_tower(), self._hw.verify_tilt())
         old_state = False     # turn LEDs on for first time
         self._hw.start_fans()
-        self._exposure_image.show_system_image("logo.png")
+        self._hw.exposure_screen.draw_pattern(draw_svg_expand, defines.prusa_logo_file, True)
         self._logger.debug("Registering display test user resolution callback")
         actions.report_display.register_callback(self.user_callback)
         display_check_state = PushState(WizardState.TEST_DISPLAY)

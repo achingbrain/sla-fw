@@ -4,6 +4,9 @@
 
 import functools
 import cairo
+import gi
+gi.require_version('Rsvg', '2.0')
+from gi.repository import Rsvg  # pylint: disable = wrong-import-position
 
 def draftsman(function):
     @functools.wraps(function)
@@ -17,14 +20,24 @@ def draftsman(function):
                 cf.stride_for_width(width))
         function(
                 cairo.Context(surface),
-                *args,
-                width = width,
-                height = height)
+                width,
+                height,
+                *args)
         surface.finish()
     return inner
 
 def _fill_white(ctx: cairo.Context):
     ctx.set_operator(cairo.Operator.OVER)
+    ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+    ctx.paint()
+
+def _fill_black(ctx: cairo.Context):
+    ctx.set_operator(cairo.Operator.DEST_OUT)
+    ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+    ctx.paint()
+
+def _inverse(ctx: cairo.Context):
+    ctx.set_operator(cairo.Operator.XOR)
     ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
     ctx.paint()
 
@@ -34,11 +47,12 @@ def _offsets(size: int, width: int, height: int):
     return offset_w, offset_h
 
 @draftsman
-def draw_white(ctx: cairo.Context, **kwargs):
+def draw_white(ctx: cairo.Context, width: int, height: int):
+    # pylint: disable = unused-argument
     _fill_white(ctx)
 
 @draftsman
-def draw_chess(ctx: cairo.Context, size: int, width: int, height: int):
+def draw_chess(ctx: cairo.Context, width: int, height: int, size: int):
     _fill_white(ctx)
     ctx.set_operator(cairo.Operator.DEST_OUT)
     offset_w, offset_h = _offsets(size, width, height)
@@ -56,7 +70,7 @@ def draw_chess(ctx: cairo.Context, size: int, width: int, height: int):
     ctx.stroke()
 
 @draftsman
-def draw_grid(ctx: cairo.Context, square: int, line: int, width: int, height: int):
+def draw_grid(ctx: cairo.Context, width: int, height: int, square: int, line: int):
     _fill_white(ctx)
     ctx.set_operator(cairo.Operator.DEST_OUT)
     size = square + line
@@ -69,7 +83,7 @@ def draw_grid(ctx: cairo.Context, square: int, line: int, width: int, height: in
     ctx.stroke()
 
 @draftsman
-def draw_gradient(ctx: cairo.Context, vertical: bool, width: int, height: int):
+def draw_gradient(ctx: cairo.Context, width: int, height: int, vertical: bool):
     _fill_white(ctx)
     ctx.set_operator(cairo.Operator.DEST_OUT)
     pat = cairo.LinearGradient(0, 0, width * (not vertical), height * vertical)
@@ -79,16 +93,52 @@ def draw_gradient(ctx: cairo.Context, vertical: bool, width: int, height: int):
     ctx.paint()
 
 @draftsman
-def inverse(ctx: cairo.Context, **kwargs):
-    ctx.set_operator(cairo.Operator.XOR)
-    ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
-    ctx.paint()
+def inverse(ctx: cairo.Context, width: int, height: int):
+    # pylint: disable = unused-argument
+    _inverse(ctx)
 
 @draftsman
-def draw_perpartes_mask(ctx: cairo.Context, stripes: int, width: int, height: int):
+def draw_perpartes_mask(ctx: cairo.Context, width: int, height: int, stripes: int):
     _fill_white(ctx)
     ctx.set_operator(cairo.Operator.DEST_OUT)
     size = height // stripes
     for y in range(0, height, 2 * size):
         ctx.rectangle(0, y, width, size)
     ctx.fill()
+
+@draftsman
+def draw_svg_expand(ctx: cairo.Context, width: int, height: int, image_path: str, invert: bool):
+    _fill_black(ctx)
+    ctx.set_operator(cairo.Operator.XOR)
+    svg = Rsvg.Handle().new_from_file(image_path)
+    viewport = Rsvg.Rectangle()
+    viewport.x = 0
+    viewport.y = 0
+    viewport.width = width
+    viewport.height = height
+    svg.render_document(ctx, viewport)
+    if invert:
+        _inverse(ctx)
+
+@draftsman
+def draw_svg_dpi(ctx: cairo.Context, width: int, height: int, image_path: str, invert: bool, dpi: float):
+    # pylint: disable = too-many-arguments
+    _fill_black(ctx)
+    ctx.set_operator(cairo.Operator.XOR)
+    svg = Rsvg.Handle().new_from_file(image_path)
+    svg.set_dpi(dpi)
+    result = svg.get_intrinsic_size_in_pixels()
+    if not result[0]:
+        raise RuntimeError("No size information in SVG")
+    svg_width_px = round(result[1])
+    svg_heigt_px = round(result[2])
+    if svg_width_px > width or svg_heigt_px > height:
+        raise RuntimeError(f"Wrong image size ({svg_width_px}, {svg_heigt_px}), max. ({width}, {height})")
+    viewport = Rsvg.Rectangle()
+    viewport.x = (width - svg_width_px) // 2
+    viewport.y = (height - svg_heigt_px) // 2
+    viewport.width = svg_width_px
+    viewport.height = svg_heigt_px
+    svg.render_document(ctx, viewport)
+    if invert:
+        _inverse(ctx)
