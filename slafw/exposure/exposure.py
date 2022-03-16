@@ -627,12 +627,6 @@ class Exposure:
         self.logger.info("exposure done")
         self.exposure_image.preload_image(self.actual_layer + 1)
 
-        self.logger.info(
-            "UV temperature [C]: %.1f  Ambient temperature [C]: %.1f",
-            self.hw.uv_led_temp.value,
-            self.hw.ambient_temp.value,
-        )
-
         if self.hw.config.delayAfterExposure:
             self.logger.info("delayAfterExposure [s]: %f", self.hw.config.delayAfterExposure / 10.0)
             sleep(self.hw.config.delayAfterExposure / 10.0)
