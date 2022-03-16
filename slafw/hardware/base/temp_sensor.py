@@ -18,6 +18,8 @@ class TempSensor(HardwareComponent, ABC):
     # pylint: disable = too-many-instance-attributes
     # pylint: disable = too-many-arguments
 
+    VALUE_LOGGING_THRESHOLD_DEG_C = 1
+
     def __init__(
         self,
         name: str,
@@ -36,6 +38,7 @@ class TempSensor(HardwareComponent, ABC):
         self.value_changed.connect(self._on_value_change)
         self.overheat_changed = Signal()
         self._overheat = False
+        self._last_logged_temp: Optional[float] = None
 
     @property
     @abstractmethod
@@ -77,7 +80,11 @@ class TempSensor(HardwareComponent, ABC):
         return self._overheat
 
     def _on_value_change(self, value: float):
-        self._logger.info("%f°C", value)
+        if value is not None and (
+            self._last_logged_temp is None or abs(self._last_logged_temp - value) > self.VALUE_LOGGING_THRESHOLD_DEG_C
+        ):
+            self._logger.info("%f°C", value)
+            self._last_logged_temp = value
 
         if self._critical is not None:
             self._check_overheat(value)

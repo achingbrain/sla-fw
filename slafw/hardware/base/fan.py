@@ -37,6 +37,7 @@ class Fan(HardwareComponent, ABC):
     # pylint: disable = too-many-instance-attributes
 
     AUTO_CONTROL_INTERVAL_S = 30
+    VALUE_LOGGING_THRESHOLD_RPM = 500
 
     def __init__(
         self,
@@ -56,6 +57,7 @@ class Fan(HardwareComponent, ABC):
         self._reference = reference
         self._auto_control = bool(reference)
         self._auto_control_inhibitor = auto_control_inhibitor
+        self._last_logged_rpm: Optional[int] = None
 
         self.rpm_changed.connect(self._on_rpm_changed)
         self.error_changed.connect(self._on_error_changed)
@@ -164,7 +166,11 @@ class Fan(HardwareComponent, ABC):
         self.target_rpm = rpm
 
     def _on_rpm_changed(self, rpm: int):
-        self._logger.info("%d RPMs", rpm)
+        if rpm is not None and (
+            self._last_logged_rpm is None or abs(self._last_logged_rpm - rpm) > self.VALUE_LOGGING_THRESHOLD_RPM
+        ):
+            self._logger.info("%d RPMs", rpm)
+            self._last_logged_rpm = rpm
 
     def _on_error_changed(self, error: bool):
         if error:
