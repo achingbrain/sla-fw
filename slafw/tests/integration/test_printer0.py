@@ -95,14 +95,6 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
         self.assertEqual(type(self.printer0.system_version), str)
         self.assertEqual(
             {
-                "fan0": {"rpm": 0, "error": False},
-                "fan1": {"rpm": 0, "error": False},
-                "fan2": {"rpm": 0, "error": False},
-            },
-            self.printer0.fans,
-        )
-        self.assertEqual(
-            {
                 "rpm": 0,
                 "error": 0,
             },
@@ -122,13 +114,6 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
             },
             self.printer0.rear_fan
         )
-        if self.printer.model is PrinterModel.SL1:
-            temps = {"temp0_celsius": 46.7, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0}
-        elif self.printer.model in (PrinterModel.SL1S, PrinterModel.M1):
-            temps = {"temp0_celsius": 26.1, "temp1_celsius": 26.1, "temp2_celsius": 0.0, "temp3_celsius": 0.0}
-        else:
-            raise NotImplementedError
-        self.assertEqual(self.printer0.temps, temps)
         self.assertEqual(type(self.printer0.cpu_temp), float)
         self.assertEqual(
             self.printer0.leds,

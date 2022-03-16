@@ -33,10 +33,10 @@ from slafw.api.examples0 import Examples0
 from slafw.api.exposure0 import Exposure0
 from slafw.configs.stats import TomlConfigStats
 from slafw.errors import tests
-from slafw.errors.errors import ReprintWithoutHistory, PrinterException, UvTempSensorFailed, \
-    TempSensorFailed
+from slafw.errors.errors import ReprintWithoutHistory, PrinterException
 from slafw.functions.files import get_all_supported_files
 from slafw.functions.system import shut_down
+from slafw.hardware.base.fan import Fan
 from slafw.hardware.power_led_action import WarningAction
 from slafw.project.functions import check_ready_to_print
 from slafw.state_actions.examples import Examples
@@ -136,37 +136,18 @@ class Printer0:
 
     def _on_uv_led_fan_changed(self, _):
         self.PropertiesChanged(self.__INTERFACE__, {"uv_led_fan": self.uv_led_fan}, [])
-        self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
 
     def _on_blower_fan_changed(self, _):
-        self.PropertiesChanged(self.__INTERFACE__, {"blower_fan": self.uv_led_fan}, [])
-        self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
+        self.PropertiesChanged(self.__INTERFACE__, {"blower_fan": self.blower_fan}, [])
 
     def _on_rear_fan_changed(self, _):
-        self.PropertiesChanged(self.__INTERFACE__, {"rear_fan": self.uv_led_fan}, [])
-        self.PropertiesChanged(self.__INTERFACE__, {"fans": self.fans}, [])
+        self.PropertiesChanged(self.__INTERFACE__, {"rear_fan": self.rear_fan}, [])
 
     def _on_uv_temp_changed(self, uv_temp: float):
         self.PropertiesChanged(self.__INTERFACE__, {"uv_led_temp": uv_temp}, [])
 
-        # Legacy value update
-        try:
-            self.PropertiesChanged(
-                self.__INTERFACE__, {"temps": self._format_temps(uv_temp, self.printer.hw.ambient_temp.value)}, []
-            )
-        except TempSensorFailed:
-            pass
-
     def _on_ambient_temp_changed(self, ambient_temp: float):
         self.PropertiesChanged(self.__INTERFACE__, {"ambient_temp": ambient_temp}, [])
-
-        # Legacy value update
-        try:
-            self.PropertiesChanged(
-                self.__INTERFACE__, {"temps": self._format_temps(self.printer.hw.uv_led_temp.value, ambient_temp)}, []
-            )
-        except UvTempSensorFailed:
-            pass
 
     def _on_cpu_temp_changed(self, value):
         self.PropertiesChanged(self.__INTERFACE__, {"cpu_temp": value}, [])
@@ -407,23 +388,6 @@ class Printer0:
 
     @auto_dbus
     @property
-    @deprecated("Use properties for separate fans")
-    @cached(validity_s=5)
-    def fans(self) -> Dict[str, Dict[str, int]]:
-        """
-        Get fan RPMs and errors
-
-        :return: Dictionary mapping from fan names to RPMs and errors
-        """
-        return {
-            f"fan{i}": {
-                "rpm": fan.rpm if fan.rpm is not None else 0,
-                "error": 1 if fan.error else 0,
-            } for i, fan in self.printer.hw.fans.items()
-        }
-
-    @auto_dbus
-    @property
     def uv_led_fan(self) -> Dict[str, int]:
         return self._format_fan(self.printer.hw.uv_led_fan)
 
@@ -438,27 +402,11 @@ class Printer0:
         return self._format_fan(self.printer.hw.rear_fan)
 
     @staticmethod
-    def _format_fan(fan):
+    def _format_fan(fan: Fan):
         return {
             "rpm": fan.rpm,
             "error": 1 if fan.error else 0
         }
-
-    @auto_dbus
-    @property
-    @deprecated("Use dedicated properties for different sensors")
-    @cached(validity_s=5)
-    def temps(self) -> Dict[str, float]:
-        """
-        Get temperatures
-        temp0_celsius -> UV LED temperature
-        temp1_celsius -> Ambient temperature
-        temp2_celsius -> 0.0
-        temp3_celsius -> 0.0
-
-        :return: Dictionary mapping from temp sensor name to temperature in celsius
-        """
-        return self._format_temps(self.printer.hw.uv_led_temp.value, self.printer.hw.ambient_temp.value)
 
     @auto_dbus
     @property
@@ -469,11 +417,6 @@ class Printer0:
     @property
     def ambient_temp(self) -> float:
         return self.printer.hw.ambient_temp.value
-
-    @staticmethod
-    def _format_temps(uv_led_temp: float, ambient_temp: float):
-        t = (uv_led_temp, ambient_temp, 0.0, 0.0)
-        return {"temp%d_celsius" % i: v for i, v in enumerate(t)}
 
     @auto_dbus
     @property
