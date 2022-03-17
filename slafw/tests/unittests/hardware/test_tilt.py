@@ -7,6 +7,8 @@ import json
 import os
 import unittest
 from time import sleep
+from typing import List
+from unittest.mock import patch
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
@@ -27,11 +29,15 @@ class TestTilt(SlafwTestCase):
         self.config = None
         self.hw: HardwareSL1 = None
 
+    def patches(self) -> List[patch]:
+        return super().patches() + [
+            patch("slafw.hardware.a64.temp_sensor.A64CPUTempSensor.CPU_TEMP_PATH", self.SAMPLES_DIR / "cputemp"),
+            patch("slafw.defines.cpuSNFile", str(self.SAMPLES_DIR / "nvmem")),
+            patch("slafw.defines.counterLog", self.TEMP_DIR / defines.counterLogFilename),
+        ]
+
     def setUp(self):
         super().setUp()
-        defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
-        defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.counterLog = str(self.TEMP_DIR / "uvcounter-log.json")
 
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg")
         self.hw = HardwareSL1(self.hw_config, PrinterModel.SL1)

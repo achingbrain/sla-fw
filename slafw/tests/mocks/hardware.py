@@ -46,6 +46,10 @@ class HardwareMock(BaseHardware):
             maximal=defines.maxAmbientTemp,
             mock_value=Mock(return_value=26.1),
         )
+        self.cpu_temp = MockTempSensor(
+            "CPU",
+            mock_value=Mock(return_value=40)
+        )
 
         self.uv_led_fan = MockFan(
             "UV LED",
@@ -80,7 +84,6 @@ class HardwareMock(BaseHardware):
         self.get_resin_sensor_position_mm = AsyncMock(return_value=12.8)
         self.tower_to_resin_measurement_start_position = AsyncMock()
         self.towerPositonFailed = Mock(return_value=False)
-        self.getCpuTemperature = Mock(return_value=53.5)
         self.getVoltages = Mock(return_value=[11.203, 11.203, 11.203, 0])
         self.isTowerMoving = Mock(return_value=False)
         self.isTowerOnPositionAsync = AsyncMock(return_value=True)

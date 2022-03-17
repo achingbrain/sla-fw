@@ -7,11 +7,12 @@
 
 import unittest
 from time import sleep
-from typing import Optional
+from typing import Optional, List
 from unittest.mock import Mock, PropertyMock, patch
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
+from slafw.hardware.a64.temp_sensor import A64CPUTempSensor
 from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.hardware.power_led import PowerLedActions
 from slafw.hardware.printer_model import PrinterModel
@@ -27,16 +28,7 @@ class TestSL1Hardware(SlafwTestCase):
     def setUp(self):
         super().setUp()
 
-        self.sl1_hardware_patches = [
-            patch("slafw.hardware.base.fan.Fan.AUTO_CONTROL_INTERVAL_S", 1),
-            patch("slafw.defines.cpuSNFile", str(self.SAMPLES_DIR / "nvmem")),
-            patch("slafw.defines.cpuTempFile", str(self.SAMPLES_DIR / "cputemp")),
-            patch("slafw.defines.counterLog", str(self.TEMP_DIR / "uvcounter-log.json")),
-        ]
-
-        for p in self.sl1_hardware_patches:
-            p.start()
-
+        A64CPUTempSensor.CPU_TEMP_PATH.write_text("53500")
         self.hw_config = HwConfig(file_path=self.SAMPLES_DIR / "hardware.cfg", is_master=True)
         self.hw = HardwareSL1(self.hw_config, PrinterModel.SL1)
 
@@ -50,12 +42,17 @@ class TestSL1Hardware(SlafwTestCase):
     def tearDown(self):
         self.hw.exit()
 
-        for p in self.sl1_hardware_patches:
-            p.stop()
-
         if self.EEPROM_FILE.exists():
             self.EEPROM_FILE.unlink()
         super().tearDown()
+
+    def patches(self) -> List[patch]:
+        return super().patches() + [
+            patch("slafw.hardware.base.fan.Fan.AUTO_CONTROL_INTERVAL_S", 1),
+            patch("slafw.defines.cpuSNFile", str(self.SAMPLES_DIR / "nvmem")),
+            patch("slafw.hardware.a64.temp_sensor.A64CPUTempSensor.CPU_TEMP_PATH", self.TEMP_DIR / "cputemp"),
+            patch("slafw.defines.counterLog", str(self.TEMP_DIR / "uvcounter-log.json")),
+        ]
 
     def test_cpu_read(self):
         self.assertEqual("CZPX0819X009XC00151", self.hw.cpuSerialNo)
@@ -287,7 +284,7 @@ class TestSL1Hardware(SlafwTestCase):
     def test_temperatures(self):
         self.assertGreaterEqual(self.hw.uv_led_temp.value, 0)
         self.assertGreaterEqual(self.hw.ambient_temp.value, 0)
-        self.assertEqual(53.5, self.hw.getCpuTemperature())
+        self.assertEqual(53.5, self.hw.cpu_temp.value)
 
         # TODO: This is weak test, The simulated value seems random 0, 52, 58, 125
 
@@ -373,6 +370,7 @@ class TestSL1Hardware(SlafwTestCase):
         current = 32
         self.hw.setTowerCurrent(current)
         # TODO: test result
+
 
 if __name__ == '__main__':
     unittest.main()

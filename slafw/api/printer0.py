@@ -99,7 +99,7 @@ class Printer0:
         self.printer.hw.rear_fan.error_changed.connect(self._on_rear_fan_changed)
         self.printer.hw.uv_led_temp.value_changed.connect(self._on_uv_temp_changed)
         self.printer.hw.ambient_temp.value_changed.connect(self._on_ambient_temp_changed)
-        self.printer.hw.cpu_temp_changed.connect(self._on_cpu_temp_changed)
+        self.printer.hw.cpu_temp.value_changed.connect(self._on_cpu_temp_changed)
         self.printer.hw.led_voltages_changed.connect(self._on_led_voltages_changed)
         self.printer.hw.resin_sensor_state_changed.connect(self._on_resin_sensor_changed)
         self.printer.hw.cover_state_changed.connect(self._on_cover_state_changed)
@@ -149,8 +149,8 @@ class Printer0:
     def _on_ambient_temp_changed(self, ambient_temp: float):
         self.PropertiesChanged(self.__INTERFACE__, {"ambient_temp": ambient_temp}, [])
 
-    def _on_cpu_temp_changed(self, value):
-        self.PropertiesChanged(self.__INTERFACE__, {"cpu_temp": value}, [])
+    def _on_cpu_temp_changed(self, cpu_temp: float):
+        self.PropertiesChanged(self.__INTERFACE__, {"cpu_temp": cpu_temp}, [])
 
     def _on_led_voltages_changed(self, value):
         self.PropertiesChanged(self.__INTERFACE__, {"leds": self._format_leds(value)}, [])
@@ -427,7 +427,7 @@ class Printer0:
 
         :return: A64 CPU temperature
         """
-        return self.printer.hw.getCpuTemperature()
+        return self.printer.hw.cpu_temp.value
 
     @auto_dbus
     @property

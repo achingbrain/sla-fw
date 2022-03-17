@@ -11,7 +11,8 @@ from shutil import copyfile
 from tempfile import TemporaryDirectory
 from threading import Thread
 # import cProfile
-from typing import Optional
+from typing import Optional, List
+from unittest.mock import patch
 
 from pydbus import SystemBus
 
@@ -32,24 +33,9 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
     def setUp(self):
         super().setUp()
 
-        self.hardware_file = self.TEMP_DIR / "slafw.hardware.cfg"
-        self.sdl_audio_file = self.TEMP_DIR / "slafw.sdl_audio.raw"
-        self.api_key_file = self.TEMP_DIR / "api.key"
-        self.uv_calib_data_file = self.TEMP_DIR / defines.uvCalibDataFilename
-        self.uv_calib_factory_data_file = (
-            self.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}"
-        )
-        self.counter_log = self.TEMP_DIR / defines.counterLogFilename
-        self.wizard_data_file = self.TEMP_DIR / defines.wizardDataFilename
-        self.hardwarwe_factory_file = self.TEMP_DIR / "hardware.toml"
-
         print(f"<<<<<===== {self.id()} =====>>>>>")
         copyfile(self.SAMPLES_DIR / "hardware.cfg", self.hardware_file)
-        copyfile(self.SAMPLES_DIR / "hardware.toml", self.hardwarwe_factory_file)
-        self.temp_dir_project = TemporaryDirectory()
-        self.temp_dir_wizard_history = TemporaryDirectory()
-
-        self.rewriteDefines()
+        copyfile(self.SAMPLES_DIR / "hardware.toml", self.hardware_factory_file)
 
         Path(self.api_key_file).touch()
         defines.nginx_http_digest.touch()
@@ -74,40 +60,45 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
         )
         self.try_start_printer()
 
-    def rewriteDefines(self) -> None:
-        defines.wizardHistoryPath = Path(self.temp_dir_wizard_history.name)
-        defines.cpuSNFile = str(self.SAMPLES_DIR / "nvmem")
-        defines.cpuTempFile = str(self.SAMPLES_DIR / "cputemp")
-        defines.hwConfigPathFactory = self.hardwarwe_factory_file
-        defines.templates = str(self.SLAFW_DIR / "intranet" / "templates")
-        defines.hwConfigPath = self.hardware_file
-        defines.internalProjectPath = str(self.SAMPLES_DIR)
-        defines.octoprintAuthFile = str(self.SAMPLES_DIR / "slicer-upload-api.key")
-        defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
-        defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")
-        defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
-        defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
-        defines.fan_check_override = True
-        defines.loggingConfig = self.TEMP_DIR / "logger_config.json"
+    def patches(self) -> List[patch]:
+        self.hardware_factory_file = self.TEMP_DIR / "hardware.toml"
+        self.hardware_file = self.TEMP_DIR / "slafw.hardware.cfg"
+        self.temp_dir_wizard_history = TemporaryDirectory()
+        self.sdl_audio_file = self.TEMP_DIR / "slafw.sdl_audio.raw"
+        self.api_key_file = self.TEMP_DIR / "api.key"
+        self.uv_calib_data_file = self.TEMP_DIR / defines.uvCalibDataFilename
+        self.uv_calib_factory_data_file = (self.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}")
+        self.counter_log = self.TEMP_DIR / defines.counterLogFilename
+        self.wizard_data_file = self.TEMP_DIR / defines.wizardDataFilename
+        self.temp_dir_project = TemporaryDirectory()
 
-        defines.previousPrints = self.temp_dir_project.name
-        defines.lastProjectHwConfig = self._change_dir(defines.lastProjectHwConfig)
-        defines.lastProjectFactoryFile = self._change_dir(
-            defines.lastProjectFactoryFile
-        )
-        defines.lastProjectConfigFile = self._change_dir(defines.lastProjectConfigFile)
-        defines.lastProjectPickler = self._change_dir(defines.lastProjectPickler)
-
-        defines.last_job = Path(defines.ramdiskPath) / "last_job"
-        defines.last_log_token = Path(defines.ramdiskPath) / "last_log_token"
-
-        # factory reset
-        defines.uvCalibDataPath = self.uv_calib_data_file
-        defines.uvCalibDataPathFactory = self.uv_calib_factory_data_file
-        defines.counterLog = self.counter_log
-        defines.wizardDataPathFactory = str(self.wizard_data_file)
-
-        defines.nginx_http_digest = self.TEMP_DIR / "http_digest_enabled"
+        return super().patches() + [
+            patch("slafw.defines.wizardHistoryPath", Path(self.temp_dir_wizard_history.name)),
+            patch("slafw.defines.cpuSNFile", str(self.SAMPLES_DIR / "nvmem")),
+            patch("slafw.defines.hwConfigPathFactory", self.hardware_factory_file),
+            patch("slafw.defines.templates", str(self.SLAFW_DIR / "intranet" / "templates")),
+            patch("slafw.defines.hwConfigPath", self.hardware_file),
+            patch("slafw.defines.internalProjectPath", str(self.SAMPLES_DIR)),
+            patch("slafw.defines.octoprintAuthFile", str(self.SAMPLES_DIR / "slicer-upload-api.key")),
+            patch("slafw.defines.livePreviewImage", str(self.TEMP_DIR / "live.png")),
+            patch("slafw.defines.displayUsageData", str(self.TEMP_DIR / "display_usage.npz")),
+            patch("slafw.defines.serviceData", str(self.TEMP_DIR / "service.toml")),
+            patch("slafw.defines.statsData", str(self.TEMP_DIR / "stats.toml")),
+            patch("slafw.defines.fan_check_override", True),
+            patch("slafw.defines.loggingConfig", self.TEMP_DIR / "logger_config.json"),
+            patch("slafw.defines.previousPrints", self.temp_dir_project.name),
+            patch("slafw.defines.lastProjectHwConfig", self._change_dir(defines.lastProjectHwConfig)),
+            patch("slafw.defines.lastProjectFactoryFile", self._change_dir(defines.lastProjectFactoryFile)),
+            patch("slafw.defines.lastProjectConfigFile", self._change_dir(defines.lastProjectConfigFile)),
+            patch("slafw.defines.lastProjectPickler", self._change_dir(defines.lastProjectPickler)),
+            patch("slafw.defines.last_job", self.TEMP_DIR / "last_job"),
+            patch("slafw.defines.last_log_token", self.TEMP_DIR / "last_log_token"),
+            patch("slafw.defines.uvCalibDataPath", self.uv_calib_data_file),
+            patch("slafw.defines.uvCalibDataPathFactory", self.uv_calib_factory_data_file),
+            patch("slafw.defines.counterLog", self.counter_log),
+            patch("slafw.defines.wizardDataPathFactory", str(self.wizard_data_file)),
+            patch("slafw.defines.nginx_http_digest", self.TEMP_DIR / "http_digest_enabled"),
+        ]
 
     def _change_dir(self, path) -> str:
         return self.temp_dir_project.name + "/" + os.path.basename(path)

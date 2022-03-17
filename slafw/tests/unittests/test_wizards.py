@@ -374,7 +374,7 @@ class TestWizards(TestWizardsBase):
         self.assertEqual(46.7, data["wizardTempUvInit"])
         self.assertEqual(46.7, data["wizardTempUvWarm"])
         self.assertEqual(26.1, data["wizardTempAmbient"])
-        self.assertEqual(53.5, data["wizardTempA64"])
+        self.assertEqual(40, data["wizardTempA64"])
         self.assertEqual(12.8, data["wizardResinTriggeredMM"])
         self.assertEqual(0, data["towerSensitivity"])
         self._assert_final_state("showWizard", expected_value=False)

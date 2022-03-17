@@ -96,7 +96,7 @@ class SystemInfoMenu(AdminMenu):
             self.fast_tilt.set(f"Fast tilt time: {'%0.1f' % self._printer.hw.config.tiltFastTime} s")
             self.resin_sensor.set(f"Resin sensor triggered: {self._printer.hw.getResinSensorState()}")
             self.cover.set(f"Cover closed: {self._printer.hw.isCoverClosed()}")
-            self.cpu_temp.set(f"CPU temperature: {self._printer.hw.getCpuTemperature()}")
+            self.cpu_temp.set(f"CPU temperature: {self._printer.hw.cpu_temp.value}")
             self.uv_led_temp.set(f"UV LED temperature: {self._printer.hw.uv_led_temp.value}")
             self.ambient_temp.set(f"Ambient temperature: {self._printer.hw.ambient_temp.value}")
             self.fans.set(f"Fan: {self._printer.hw.getFansRpmDict()} RPM")

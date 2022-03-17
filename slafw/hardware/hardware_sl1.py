@@ -28,6 +28,7 @@ from slafw.configs.hw import HwConfig
 from slafw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
     MotionControllerException, ConfigException
 from slafw.functions.decorators import safe_call
+from slafw.hardware.a64.temp_sensor import A64CPUTempSensor
 from slafw.hardware.axis import AxisId
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.power_led_action import WarningAction
@@ -92,12 +93,6 @@ class HardwareSL1(BaseHardware):
 
         self.check_cover_override = False
 
-        self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
-        self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
-        self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
-        self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
-        self.cpu_temp_changed.connect(self._check_cpu_overheat)
-
         self._tilt_position_checker = ValueChecker(
             lambda: self.tilt.position,
             self.tilt_position_changed,
@@ -122,6 +117,7 @@ class HardwareSL1(BaseHardware):
         else:
             raise NotImplementedError
         self.ambient_temp = SL1TempSensorAmbient(self.mcc)
+        self.cpu_temp = A64CPUTempSensor()
 
         # Fans
         self.uv_led_fan = SL1FanUVLED(
@@ -137,6 +133,12 @@ class HardwareSL1(BaseHardware):
             1: self.blower_fan,
             2: self.rear_fan,
         }
+
+        self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
+        self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
+        self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
+        self.mcc.tilt_status_changed.connect(lambda x: self.tilt_position_changed.emit())
+        self.cpu_temp.overheat_changed.connect(self._cpu_overheat)
 
     @cached_property
     def tower_min_nm(self) -> int:
@@ -196,7 +198,6 @@ class HardwareSL1(BaseHardware):
     async def _value_refresh_task_body(self):
         # This is deprecated, move value checkers to MotionController
         checkers = [
-            ValueChecker(self.getCpuTemperature, self.cpu_temp_changed, UpdateInterval.seconds(3)),
             ValueChecker(self.getVoltages, self.led_voltages_changed, UpdateInterval.seconds(5)),
             ValueChecker(self.getResinSensorState, self.resin_sensor_state_changed),
             ValueChecker(self.getUvStatistics, self.uv_statistics_changed, UpdateInterval.seconds(30)),
@@ -210,6 +211,7 @@ class HardwareSL1(BaseHardware):
         # TODO: This is temporary
         # We should have a thread for running component services and get rid of the value checker thread
         tasks.extend([fan.run() for fan in self.fans.values()])
+        tasks.append(self.cpu_temp.run())
 
         self._value_refresh_task = asyncio.gather(*tasks)
         await self._value_refresh_task
@@ -475,9 +477,9 @@ class HardwareSL1(BaseHardware):
         for fan in self.fans.values():
             fan.enabled = False
 
-    def _check_cpu_overheat(self, A64temperature):
-        if A64temperature > defines.maxA64Temp: # 80 C
-            self.logger.warning("Printer is overheating! Measured %.1f °C on A64.", A64temperature)
+    def _cpu_overheat(self, overheat: bool):
+        if overheat:
+            self.logger.warning("Printer is overheating! Measured %.1f °C on A64.", self.cpu_temp.value)
             if not any(fan.enabled for fan in self.fans.values()):
                 self.startFans()
             #self.checkCooling = True #shouldn't this start the fan check also?
@@ -837,7 +839,7 @@ class HardwareSL1(BaseHardware):
         return {
             'temp_led': self.uv_led_temp.value,
             'temp_amb': self.ambient_temp.value,
-            'cpu_temp': self.getCpuTemperature()
+            'cpu_temp': self.cpu_temp.value,
         }
 
     async def verify_tower(self):

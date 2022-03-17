@@ -15,7 +15,6 @@ import bitstring
 import pydbus
 from PySignal import Signal
 
-from slafw.functions.decorators import safe_call
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.hardware.base.exposure_screen import ExposureScreen
@@ -27,6 +26,7 @@ from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.motion_controller.controller import MotionController
 from slafw.hardware.power_led import PowerLed
 
+
 class BaseHardware:
     # pylint: disable = too-many-instance-attributes
     def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
@@ -37,7 +37,6 @@ class BaseHardware:
         self.exposure_screen: Optional[ExposureScreen]
 
         self.mc_temps_changed = Signal()
-        self.cpu_temp_changed = Signal()
         self.led_voltages_changed = Signal()
         self.resin_sensor_state_changed = Signal()
         self.cover_state_changed = Signal()
@@ -58,6 +57,7 @@ class BaseHardware:
         self.power_led: Optional[PowerLed] = None
         self.uv_led_temp: Optional[TempSensor] = None
         self.ambient_temp: Optional[TempSensor] = None
+        self.cpu_temp: Optional[TempSensor] = None
 
     @abstractmethod
     def connect(self):
@@ -211,14 +211,14 @@ class BaseHardware:
         with open(defines.emmc_serial_path) as f:
             return f.read().strip()
 
-    @safe_call(-273.2, Exception)
-    def getCpuTemperature(self):  # pylint: disable=no-self-use
-        with open(defines.cpuTempFile, "r") as f:
-            return round((int(f.read()) / 1000.0), 1)
-
     @property
     def white_pixels_threshold(self) -> int:
-        return self.exposure_screen.parameters.width_px * self.exposure_screen.parameters.height_px * self.config.limit4fast // 100
+        return (
+            self.exposure_screen.parameters.width_px
+            * self.exposure_screen.parameters.height_px
+            * self.config.limit4fast
+            // 100
+        )
 
     @property
     @abstractmethod

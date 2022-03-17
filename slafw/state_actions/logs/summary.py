@@ -77,7 +77,7 @@ def log_hw(hw: BaseHardware) -> Mapping[str, Any]:
         "Power Switch State": hw.getPowerswitchState(),
         "UV LED Temperature": hw.uv_led_temp.value,
         "Ambient Temperature": hw.ambient_temp.value,
-        "CPU Temperature": hw.getCpuTemperature(),
+        "CPU Temperature": hw.cpu_temp.value,
         "UV LED fan [rpm]": hw.uv_led_fan.rpm,
         "Blower fan [rpm]": hw.blower_fan.rpm,
         "Rear fan [rpm]": hw.rear_fan.rpm,

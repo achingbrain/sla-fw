@@ -87,7 +87,6 @@ slicerProfilesCheckProblem = 14400   # every four hours
 slicerProfilesCheckOK = 86400   # once per day
 
 cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
-cpuTempFile = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 
 scriptDir = "/usr/share/slafw/scripts"
 flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
@@ -132,7 +131,6 @@ fanMinRPM = 800
 
 minAmbientTemp = 16.0  # 18 C from manual. Capsule is not calibrated, add some tolerance
 maxAmbientTemp = 34.0  # 32 C from manual. Capsule is not calibrated, add some tolerance
-maxA64Temp = 80.0  # maximal temperature of A64 is 125 C according to datasheet
 maxUVTemp = 55.0
 uv_temp_hysteresis = 10  # 10 deg C hysteresis
 

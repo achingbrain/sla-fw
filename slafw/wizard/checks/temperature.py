@@ -7,7 +7,6 @@ from threading import Thread
 from time import sleep
 from typing import Dict, Any, Optional
 
-from slafw import defines
 from slafw.api.devices import HardwareDeviceId
 from slafw.errors.errors import A64Overheat, TempSensorNotInRange
 from slafw.functions.system import shut_down
@@ -40,10 +39,9 @@ class TemperatureTest(Check):
 
         # A64 overheat check
         self._logger.info("Checking A64 for overheating")
-        a64_temperature = self._hw.getCpuTemperature()
-        if a64_temperature > defines.maxA64Temp:
+        if self._hw.cpu_temp.overheat:
             Thread(target=self._overheat, daemon=True).start()
-            raise A64Overheat(a64_temperature)
+            raise A64Overheat(self._hw.cpu_temp.value)
 
         # Checking MC temperatures
         self._logger.info("Checking MC temperatures")
@@ -55,7 +53,7 @@ class TemperatureTest(Check):
         if not ambient.min < ambient.value < ambient.max:
             raise TempSensorNotInRange(HardwareDeviceId.AMBIENT_TEMP.value, ambient.value, ambient.min, ambient.max)
 
-        self._check_data = CheckData(uv.value, ambient.value, a64_temperature)
+        self._check_data = CheckData(uv.value, ambient.value, self._hw.cpu_temp.value)
 
     def _overheat(self):
         for _ in range(10):

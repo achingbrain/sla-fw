@@ -83,7 +83,6 @@ defines.hwConfigPathFactory = HARDWARE_FILE_FACTORY
 defines.templates = str(SLAFW_DIR / "intranet" / "templates")
 test_runtime.testing = True
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
-defines.cpuTempFile = str(SAMPLES_DIR / "cputemp")
 defines.internalProjectPath = str(SAMPLES_DIR)
 defines.ramdiskPath = str(TEMP_DIR)
 defines.octoprintAuthFile = SAMPLES_DIR / "slicer-upload-api.key"
@@ -146,14 +145,19 @@ class Virtual:
             "slafw.motion_controller.controller.gpio", Mock()
         ), patch(
             "slafw.functions.files.get_save_path", self.fake_save_path
-        ), patch("slafw.hardware.hardware_sl1.ExposureScreenSL1", ExposureScreen
         ), patch(
-            "slafw.hardware.hardware_sl1.HardwareSL1.isCoverClosed",
-            Mock(return_value=True)
+            "slafw.hardware.hardware_sl1.ExposureScreenSL1", ExposureScreen
+        ), patch(
+            "slafw.hardware.hardware_sl1.HardwareSL1.isCoverClosed", Mock(return_value=True)
         ), patch(
             # fake resin measurement 100 ml
-            "slafw.hardware.hardware_sl1.HardwareSL1.get_resin_volume_async", AsyncMock(return_value=100)
-        ), patch("slafw.hardware.hardware_sl1.Booster", BoosterMock):
+            "slafw.hardware.hardware_sl1.HardwareSL1.get_resin_volume_async",
+            AsyncMock(return_value=100),
+        ), patch(
+            "slafw.hardware.hardware_sl1.Booster", BoosterMock
+        ), patch(
+            "slafw.hardware.a64.temp_sensor.A64CPUTempSensor.CPU_TEMP_PATH", SAMPLES_DIR / "cputemp"
+        ):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
             print("Publishing Rauc mock")
