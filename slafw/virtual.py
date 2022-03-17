@@ -3,7 +3,7 @@
 # This file is part of the SLA firmware
 # Copyright (C) 2014-2018 Futur3d - www.futur3d.net
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
-# Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2021-2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
@@ -11,6 +11,7 @@ This module is used to run a virtual printer. Virtual printer encompasses some o
 integration test mocks. All in all this launches the printer (similar to the one launched by main.py) that can run on
 a desktop computer without motion controller connected. This mode is intended for GUI testing.
 """
+
 import asyncio
 import builtins
 import concurrent
@@ -23,6 +24,7 @@ import threading
 import warnings
 from pathlib import Path
 from shutil import copyfile
+from typing import List
 from unittest.mock import patch, Mock, AsyncMock
 
 import pydbus
@@ -57,78 +59,19 @@ builtins.N_ = lambda x: x  # type: ignore
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
 
-
 # Display warnings only once
 warnings.simplefilter("once")
 
-temp_dir_obj = tempfile.TemporaryDirectory()
-TEMP_DIR = Path(temp_dir_obj.name)
 SAMPLES_DIR = Path(samples.__file__).parent
 SLAFW_DIR = Path(slafw.__file__).parent
-HARDWARE_FILE = TEMP_DIR / "slafw.hardware.cfg"
-copyfile(SAMPLES_DIR / "hardware-virtual.cfg", HARDWARE_FILE)
-HARDWARE_FILE_FACTORY = TEMP_DIR / "slafw.hardware.cfg.factory"
-copyfile(SAMPLES_DIR / "hardware.toml", HARDWARE_FILE_FACTORY)
-
-defines.expoPanelLogPath = TEMP_DIR / defines.expoPanelLogFileName
-copyfile(SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
 
 
 def change_dir(path):
     return os.path.join(defines.previousPrints, os.path.basename(path))
 
 
-defines.hwConfigPath = HARDWARE_FILE
-defines.hwConfigPathFactory = HARDWARE_FILE_FACTORY
-defines.templates = str(SLAFW_DIR / "intranet" / "templates")
-test_runtime.testing = True
-defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
-defines.internalProjectPath = str(SAMPLES_DIR)
-defines.ramdiskPath = str(TEMP_DIR)
-defines.octoprintAuthFile = SAMPLES_DIR / "slicer-upload-api.key"
-defines.livePreviewImage = str(Path(defines.ramdiskPath) / "live.png")
-defines.displayUsageData = str(Path(defines.ramdiskPath) / "display_usage.npz")
-defines.serviceData = str(Path(defines.ramdiskPath) / "service.toml")
-defines.statsData = str(Path(defines.ramdiskPath) / "stats.toml")
-defines.fan_check_override = True
-defines.mediaRootPath = str(SAMPLES_DIR)
-prev_prints = TEMP_DIR / "previous_prints"
-prev_prints.mkdir(exist_ok=True)
-defines.previousPrints = str(prev_prints)
-defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
-defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
-defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
-defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
-defines.uvCalibDataPath = Path(defines.ramdiskPath) / defines.uvCalibDataFilename
-defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
-defines.loggingConfig = TEMP_DIR / "logging_config.json"
-defines.last_job = Path(defines.ramdiskPath) / "last_job"
-defines.last_log_token = Path(defines.ramdiskPath) / "last_log_token"
-defines.printer_summary = Path(defines.ramdiskPath) / "printer_summary"
-defines.firmwareListTemp = str(Path(defines.ramdiskPath) / "updates.json")
-defines.slicerProfilesFile = Path(defines.ramdiskPath) / "slicer_profiles.toml"
-defines.firmwareTempFile = str(Path(defines.ramdiskPath) / "update.raucb")
-defines.emmc_serial_path = SAMPLES_DIR / "cid"
-defines.factoryMountPoint = TEMP_DIR
-defines.wizardHistoryPath = TEMP_DIR / "wizard_history" / "user_data"
-defines.wizardHistoryPath.mkdir(exist_ok=True, parents=True)
-defines.wizardHistoryPathFactory = TEMP_DIR / "wizard_history" / "factory_data"
-defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
-defines.uvCalibDataPathFactory = TEMP_DIR / "uv_calib_data_factory.toml"
-defines.counterLog = TEMP_DIR / defines.counterLogFilename
-
-# disable SL1SUpgradeDowngradeWizard by default
-defines.printer_model = TEMP_DIR / "model"
-set_configured_printer_model(printer_model)
-
-defines.firstboot = TEMP_DIR / "firstboot"
-defines.factory_enable = TEMP_DIR / "factory_mode_enabled"
-defines.factory_enable.touch()  # Enable factory mode
-defines.admincheckTemp = TEMP_DIR / "admincheck.json"
-defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / printer_model.name.lower()
-
-
 class Virtual:
+    # pylint: disable = too-many-instance-attributes
     def __init__(self):
         self.printer = None
         self.rauc_mocks = None
@@ -138,69 +81,125 @@ class Virtual:
         self.admin_manager = None
         self.admin0_dbus = None
 
+        self.temp_dir_obj = tempfile.TemporaryDirectory()
+        self.temp = Path(self.temp_dir_obj.name)
+
     def __call__(self):
-        with patch("slafw.motion_controller.controller.serial", slafw.tests.mocks.mc_port), patch(
-            "slafw.libUvLedMeterMulti.serial", slafw.tests.mocks.mc_port
-        ), patch("slafw.motion_controller.controller.UInput", Mock()), patch(
-            "slafw.motion_controller.controller.gpio", Mock()
-        ), patch(
-            "slafw.functions.files.get_save_path", self.fake_save_path
-        ), patch(
-            "slafw.hardware.hardware_sl1.ExposureScreenSL1", ExposureScreen
-        ), patch(
-            "slafw.hardware.hardware_sl1.HardwareSL1.isCoverClosed", Mock(return_value=True)
-        ), patch(
-            # fake resin measurement 100 ml
-            "slafw.hardware.hardware_sl1.HardwareSL1.get_resin_volume_async",
-            AsyncMock(return_value=100),
-        ), patch(
-            "slafw.hardware.hardware_sl1.Booster", BoosterMock
-        ), patch(
-            "slafw.hardware.a64.temp_sensor.A64CPUTempSensor.CPU_TEMP_PATH", SAMPLES_DIR / "cputemp"
-        ):
-            print("Resolving system bus")
-            bus = pydbus.SystemBus()
-            print("Publishing Rauc mock")
-            self.rauc_mocks = bus.publish(Rauc.__OBJECT__, ("/", Rauc()))
+        hardware_file = self.temp / "slafw.hardware.cfg"
+        hardware_file_factory = self.temp / "slafw.hardware.cfg.factory"
+        prev_prints = self.temp / "previous_prints"
 
-            print("Initializing printer")
-            self.printer = libPrinter.Printer()
+        patches: List[patch] = [
+            patch("slafw.motion_controller.controller.serial", slafw.tests.mocks.mc_port),
+            patch("slafw.libUvLedMeterMulti.serial", slafw.tests.mocks.mc_port),
+            patch("slafw.motion_controller.controller.UInput", Mock()),
+            patch("slafw.motion_controller.controller.gpio", Mock()),
+            patch("slafw.functions.files.get_save_path", self.fake_save_path),
+            patch("slafw.hardware.hardware_sl1.ExposureScreenSL1", ExposureScreen),
+            patch("slafw.hardware.hardware_sl1.HardwareSL1.isCoverClosed", Mock(return_value=True)),
+            patch(
+                "slafw.hardware.hardware_sl1.HardwareSL1.get_resin_volume_async",
+                AsyncMock(return_value=100),
+            ),
+            patch("slafw.hardware.hardware_sl1.Booster", BoosterMock),
+            patch("slafw.hardware.a64.temp_sensor.A64CPUTempSensor.CPU_TEMP_PATH", SAMPLES_DIR / "cputemp"),
+            patch("slafw.defines.hwConfigPath", hardware_file),
+            patch("slafw.defines.hwConfigPathFactory", hardware_file_factory),
+            patch("slafw.defines.templates", str(SLAFW_DIR / "intranet" / "templates")),
+            patch("slafw.test_runtime.testing", True),
+            patch("slafw.defines.cpuSNFile", str(SAMPLES_DIR / "nvmem")),
+            patch("slafw.defines.internalProjectPath", str(SAMPLES_DIR)),
+            patch("slafw.defines.ramdiskPath", str(self.temp)),
+            patch("slafw.defines.octoprintAuthFile", SAMPLES_DIR / "slicer-upload-api.key"),
+            patch("slafw.defines.livePreviewImage", str(self.temp / "live.png")),
+            patch("slafw.defines.displayUsageData", str(self.temp / "display_usage.npz")),
+            patch("slafw.defines.serviceData", str(self.temp / "service.toml")),
+            patch("slafw.defines.statsData", str(self.temp / "stats.toml")),
+            patch("slafw.defines.fan_check_override", True),
+            patch("slafw.defines.mediaRootPath", str(SAMPLES_DIR)),
+            patch("slafw.defines.previousPrints", str(prev_prints)),
+            patch("slafw.defines.lastProjectHwConfig", change_dir(defines.lastProjectHwConfig)),
+            patch("slafw.defines.lastProjectFactoryFile", change_dir(defines.lastProjectFactoryFile)),
+            patch("slafw.defines.lastProjectConfigFile", change_dir(defines.lastProjectConfigFile)),
+            patch("slafw.defines.lastProjectPickler", change_dir(defines.lastProjectPickler)),
+            patch("slafw.defines.uvCalibDataPath", self.temp / defines.uvCalibDataFilename),
+            patch("slafw.defines.slicerProfilesFile", self.temp / defines.profilesFile),
+            patch("slafw.defines.loggingConfig", self.temp / "logging_config.json"),
+            patch("slafw.defines.last_job", self.temp / "last_job"),
+            patch("slafw.defines.last_log_token", self.temp / "last_log_token"),
+            patch("slafw.defines.printer_summary", self.temp / "printer_summary"),
+            patch("slafw.defines.firmwareListTemp", str(self.temp / "updates.json")),
+            patch("slafw.defines.slicerProfilesFile", self.temp / "slicer_profiles.toml"),
+            patch("slafw.defines.firmwareTempFile", str(self.temp / "update.raucb")),
+            patch("slafw.defines.emmc_serial_path", SAMPLES_DIR / "cid"),
+            patch("slafw.defines.factoryMountPoint", self.temp),
+            patch("slafw.defines.wizardHistoryPath", self.temp / "wizard_history" / "user_data"),
+            patch("slafw.defines.wizardHistoryPathFactory", self.temp / "wizard_history" / "factory_data"),
+            patch("slafw.defines.uvCalibDataPathFactory", self.temp / "uv_calib_data_factory.toml"),
+            patch("slafw.defines.counterLog", self.temp / defines.counterLogFilename),
+            patch("slafw.defines.printer_model", self.temp / "model"),
+            patch("slafw.defines.firstboot", self.temp / "firstboot"),
+            patch("slafw.defines.factory_enable", self.temp / "factory_mode_enabled"),
+            patch("slafw.defines.admincheckTemp", self.temp / "admincheck.json"),
+            patch("slafw.defines.exposure_panel_of_node", SAMPLES_DIR / "of_node" / printer_model.name.lower()),
+            patch("slafw.defines.expoPanelLogPath", self.temp / defines.expoPanelLogFileName),
+        ]
 
-            test_runtime.exposure_image = self.printer.exposure_image
+        copyfile(SAMPLES_DIR / "hardware-virtual.cfg", hardware_file)
+        copyfile(SAMPLES_DIR / "hardware.toml", hardware_file_factory)
 
-            print("Overriding printer settings")
-            self.printer.hw.config.calibrated = True
-            self.printer.hw.config.fanCheck = False
-            self.printer.hw.config.coverCheck = False
-            self.printer.hw.config.resinSensor = False
+        for p in patches:
+            p.start()
 
-            print("Publishing printer on D-Bus")
-            self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
-            self.standard0 = bus.publish(Standard0.__INTERFACE__, Standard0(self.printer))
-            self.admin_manager = AdminManager()
-            self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
-            print("Running printer")
-            threading.Thread(target=self.printer.setup).start()  # Does not block, but requires Rauc on DBus
+        set_configured_printer_model(printer_model)
+        copyfile(SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
+        slafw.defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
+        defines.wizardHistoryPath.mkdir(exist_ok=True, parents=True)
+        defines.factory_enable.touch()  # Enable factory mode
+        prev_prints.mkdir(exist_ok=True, parents=True)
 
-            self.glib_loop = GLib.MainLoop().run()
+        print("Resolving system bus")
+        bus = pydbus.SystemBus()
+        print("Publishing Rauc mock")
+        self.rauc_mocks = bus.publish(Rauc.__OBJECT__, ("/", Rauc()))
 
-            def tear_down(signum, _):
-                if signum not in [signal.SIGTERM, signal.SIGINT]:
-                    return
+        print("Initializing printer")
+        self.printer = libPrinter.Printer()
 
-                print("Running virtual printer tear down")
-                asyncio.run(self.async_tear_down())
-                print("Virtual printer teardown finished")
+        test_runtime.exposure_image = self.printer.exposure_image
 
-            signal.signal(signal.SIGINT, tear_down)
-            signal.signal(signal.SIGTERM, tear_down)
+        print("Overriding printer settings")
+        self.printer.hw.config.calibrated = True
+        self.printer.hw.config.fanCheck = False
+        self.printer.hw.config.coverCheck = False
+        self.printer.hw.config.resinSensor = False
 
-            print("Running glib mainloop")
-            self.glib_loop.run()  # type: ignore[attr-defined]
+        print("Publishing printer on D-Bus")
+        self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
+        self.standard0 = bus.publish(Standard0.__INTERFACE__, Standard0(self.printer))
+        self.admin_manager = AdminManager()
+        self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
+        print("Running printer")
+        threading.Thread(target=self.printer.setup).start()  # Does not block, but requires Rauc on DBus
 
-    @staticmethod
-    def fake_save_path():
-        return Path(TEMP_DIR)
+        self.glib_loop = GLib.MainLoop().run()
+
+        def tear_down(signum, _):
+            if signum not in [signal.SIGTERM, signal.SIGINT]:
+                return
+
+            print("Running virtual printer tear down")
+            asyncio.run(self.async_tear_down())
+            print("Virtual printer teardown finished")
+
+        signal.signal(signal.SIGINT, tear_down)
+        signal.signal(signal.SIGTERM, tear_down)
+
+        print("Running glib mainloop")
+        self.glib_loop.run()  # type: ignore[attr-defined]
+
+    def fake_save_path(self):
+        return Path(self.temp)
 
     async def async_tear_down(self):
         loop = asyncio.get_running_loop()
