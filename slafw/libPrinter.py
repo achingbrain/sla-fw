@@ -250,7 +250,7 @@ class Printer:
         self.hw.start()
         self.logger.info("Starting ExposureImage")
         self.exposure_image.start()
-        self.hw.uvLed(False)
+        self.hw.uv_led.off()
         self.hw.power_led.reset()
 
     def _register_event_handlers(self):
@@ -627,13 +627,13 @@ class Printer:
             self.logger.error("UV LED overheated")
             self.hw.power_led.set_error()
             if not self.has_state(PrinterState.PRINTING):
-                self.hw.uvLed(False)
+                self.hw.uv_led.off()
             self.set_state(PrinterState.OVERHEATED, True)
 
             if self.hw.uv_led_temp.value < 0:
                 # TODO: Raise an exception instead of negative value
                 self.logger.error("UV temperature reading failed")
-                self.hw.uvLed(False)
+                self.hw.uv_led.off()
                 self.exception_occurred.emit(UvTempSensorFailed())
 
     def _on_uv_fan_error(self, error: bool):
@@ -650,6 +650,6 @@ class Printer:
 
     def hw_all_off(self):
         self.exposure_image.blank_screen()
-        self.hw.uvLed(False)
+        self.hw.uv_led.off()
         self.hw.stopFans()
         self.hw.motorsRelease()

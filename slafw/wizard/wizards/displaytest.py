@@ -23,7 +23,7 @@ class DisplayTestCheckGroup(CheckGroup):
         super().__init__(
             Configuration(TankSetup.REMOVED, None),
             [
-                UVLEDsTest.get_test(package.hw),
+                UVLEDsTest(package.hw),
                 DisplayTest(
                     package.hw,
                     package.exposure_image,

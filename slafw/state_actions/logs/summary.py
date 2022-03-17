@@ -65,13 +65,12 @@ Path):
 
 
 def log_hw(hw: BaseHardware) -> Mapping[str, Any]:
-    voltages = hw.getVoltages()
     try:
         locales = SystemBus().get("org.freedesktop.locale1").Locale[0]
     except Exception:
         locales = "No info"
 
-    data: Mapping[str, Any] = {
+    return {
         "Resin Sensor State": hw.getResinSensorState(),
         "Cover State": hw.isCoverClosed(),
         "Power Switch State": hw.getPowerswitchState(),
@@ -85,17 +84,12 @@ def log_hw(hw: BaseHardware) -> Mapping[str, Any]:
         "MC FW version": hw.mcFwVersion,
         "MC HW Reversion": hw.mcBoardRevision,
         "MC Serial number": hw.mcSerialNo,
-        "UV LED Line 1 Voltage": voltages[0],
-        "UV LED Line 2 Voltage": voltages[1],
-        "UV LED Line 3 Voltage": voltages[2],
-        "Power Supply Voltage": voltages[3],
         "Free Space in eMMC": subprocess.check_output("df -h", shell=True).decode("ascii").split("\n")[:-1],
         "RAM statistics": psutil.virtual_memory()._asdict(),
         "CPU usage per core": psutil.cpu_percent(percpu=True),
         "CPU times": psutil.cpu_times()._asdict(),
         "Language": locales,
-    }
-    return data
+    } | hw.uv_led.info
 
 
 def log_system() -> Mapping[str, Any]:
@@ -156,8 +150,8 @@ def log_network() -> Mapping[str, Any]:
 
 def log_statistics(hw: BaseHardware) -> Mapping[str, Any]:
     data = TomlConfigStats(defines.statsData, None).load()
-    data["UV LED Time Counter [h]"] = hw.getUvStatistics()[0] / 3600
-    data["Display Time Counter [h]"] = hw.getUvStatistics()[1] / 3600
+    data["UV LED Time Counter [h]"] = hw.uv_led.usage_s / 3600
+    data["Display Time Counter [h]"] = hw.display.usage_s / 3600
     return data
 
 

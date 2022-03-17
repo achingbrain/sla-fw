@@ -81,6 +81,7 @@ class MotionController:
         self.temps_changed = Signal()
         self.fans_rpm_changed = Signal()
         self.fans_error_changed = Signal()
+        self.statistics_changed = Signal()
 
         self.power_button_changed.connect(self._power_button_handler)
         self.cover_state_changed.connect(self._cover_state_handler)
@@ -585,14 +586,11 @@ class MotionController:
         checkers = [
             ValueChecker(self._get_temperatures, self.temps_changed, UpdateInterval.seconds(3)),
             ValueChecker(self._get_fans_rpm, self.fans_rpm_changed, UpdateInterval.seconds(3)),
+            ValueChecker(self._get_statistics, self.statistics_changed, UpdateInterval.seconds(30)),
         ]
         checks = [checker.check() for checker in checkers]
         self._value_refresh_task = asyncio.gather(*checks)
         await self._value_refresh_task
-
-
-
-
 
     def set_fan_enabled(self, index: int, enabled: bool):
         self._fans_mask[index] = enabled
@@ -608,6 +606,13 @@ class MotionController:
             raise MotionControllerException(f"RPMs count not match! ({rpms})")
 
         return rpms
+
+    def _get_statistics(self):
+        data = self.doGetIntList("?usta")  # time counter [s] #TODO add uv average current, uv average temperature
+        if len(data) != 2:
+            raise ValueError(f"UV statistics data count not match! ({data})")
+
+        return data
 
     @safe_call({0: True, 1: True, 2: True}, (MotionControllerException, ValueError))
     def get_fans_error(self):

@@ -21,24 +21,24 @@ from functools import cached_property
 from math import ceil
 from threading import Thread
 from time import sleep
-from typing import List, Optional, Any, Tuple
+from typing import List, Optional, Any
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
-from slafw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, \
-    MotionControllerException, ConfigException
+from slafw.errors.errors import TowerHomeFailed, TowerEndstopNotReached, MotionControllerException, ConfigException
 from slafw.functions.decorators import safe_call
 from slafw.hardware.a64.temp_sensor import A64CPUTempSensor
 from slafw.hardware.axis import AxisId
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.power_led_action import WarningAction
 from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.sl1.display import PrintDisplaySL1
 from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
 from slafw.hardware.sl1.fan import SL1FanUVLED, SL1FanBlower, SL1FanRear
 from slafw.hardware.sl1.power_led import PowerLedSL1
 from slafw.hardware.sl1.temp_sensor import SL1TempSensorUV, SL1STempSensorUV, SL1TempSensorAmbient
 from slafw.hardware.sl1.tilt import TiltSL1
-from slafw.hardware.sl1.uv_led import UvLedSL1
+from slafw.hardware.sl1.uv_led import SL1UVLED, SL1SUVLED
 from slafw.hardware.sl1s_uvled_booster import Booster
 from slafw.hardware.tilt import TiltProfile
 from slafw.motion_controller.controller import MotionController
@@ -134,6 +134,14 @@ class HardwareSL1(BaseHardware):
             2: self.rear_fan,
         }
 
+        if printer_model == PrinterModel.SL1:
+            self.uv_led = SL1UVLED(self.mcc, self.uv_led_temp)
+        elif printer_model in (PrinterModel.SL1S, PrinterModel.M1):
+            self.uv_led = SL1SUVLED(self.mcc, self.sl1s_booster, self.uv_led_temp)
+        else:
+            raise NotImplementedError
+        self.display = PrintDisplaySL1(self.mcc)
+
         self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
         self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
         self.mcc.tower_status_changed.connect(lambda x: self.tower_position_changed.emit())
@@ -176,7 +184,6 @@ class HardwareSL1(BaseHardware):
         self.mc_sw_version_changed.emit()
         self.exposure_screen.start()
 
-        self.uv_led = UvLedSL1(self.mcc, self._printer_model)
         self.tilt = TiltSL1(self.mcc, self.config)
 
         if self._printer_model.options.has_booster:
@@ -198,9 +205,7 @@ class HardwareSL1(BaseHardware):
     async def _value_refresh_task_body(self):
         # This is deprecated, move value checkers to MotionController
         checkers = [
-            ValueChecker(self.getVoltages, self.led_voltages_changed, UpdateInterval.seconds(5)),
             ValueChecker(self.getResinSensorState, self.resin_sensor_state_changed),
-            ValueChecker(self.getUvStatistics, self.uv_statistics_changed, UpdateInterval.seconds(30)),
             self._tilt_position_checker,
             self._tower_position_checker,
             ValueChecker(self.mcc.getStateBits, None, UpdateInterval(timedelta(milliseconds=500))),
@@ -239,7 +244,7 @@ class HardwareSL1(BaseHardware):
 
     def initDefaults(self):
         self.motorsRelease()
-        self.uvLedPwm = self.config.uvPwm
+        self.uv_led.pwm = self.config.uvPwm
         self.power_led.intensity = self.config.pwrLedPwm
         self.resinSensor(False)
         self.stopFans()
@@ -371,72 +376,6 @@ class HardwareSL1(BaseHardware):
         for _ in range(count):
             self.beep(1900, 0.05)
             sleep(0.25)
-
-    def uvLed(self, state, time_ms=0):
-        if state and self.uv_led_temp.overheat:
-            self.logger.error("Blocking attempt to set overheated UV LED on")
-            return
-
-        self.mcc.do("!uled", 1 if state else 0, int(time_ms))
-
-    @safe_call([0, 0], (ValueError, MotionControllerException))
-    def getUvLedState(self):
-        uvData = self.mcc.doGetIntList("?uled")
-        if uvData and len(uvData) < 3:
-            return uvData if len(uvData) == 2 else list((uvData[0], 0))
-
-        raise ValueError(f"UV data count not match! ({uvData})")
-
-    @property
-    def uvLedPwm(self) -> int:
-        if self._printer_model.options.has_booster:
-            return self.sl1s_booster.pwm
-        return self.mcc.doGetInt("?upwm")
-
-    @uvLedPwm.setter
-    def uvLedPwm(self, pwm) -> None:
-        if self._printer_model.options.has_booster:
-            self.sl1s_booster.pwm = int(pwm)
-        else:
-            self.mcc.do("!upwm", int(pwm))
-
-    @safe_call([0], (MotionControllerException, ValueError))
-    def getUvStatistics(self) -> Tuple[Any, Any]:
-        uvData = self.mcc.doGetIntList("?usta")  # time counter [s] #TODO add uv average current, uv average temperature
-        if len(uvData) != 2:
-            raise ValueError(f"UV statistics data count not match! ({uvData})")
-
-        return uvData
-
-    def saveUvStatistics(self):
-        self.mcc.do("!usta", 0)
-
-    def clearUvStatistics(self):
-        """
-        Call if UV led was replaced
-        """
-        self.mcc.do("!usta", 1)
-
-    def clearDisplayStatistics(self):
-        """
-        Call if print display was replaced
-        """
-        self.mcc.do("!usta", 2)
-        try:
-            os.remove(defines.displayUsageData)
-        except Exception:
-            self.logger.exception("Display usage data file was not deleted.")
-
-    @safe_call(None, MotionControllerException)
-    def uvDisplayCounter(self, mask) -> None:
-        self.mcc.do("!ulcd", int(mask))
-
-    @safe_call([0, 0, 0, 0], (ValueError, MotionControllerException))
-    def getVoltages(self, precision = 3):
-        volts = self.mcc.doGetIntList("?volt", multiply=0.001)
-        if len(volts) != 4:
-            raise ValueError(f"Volts count not match! ({volts})")
-        return [round(volt, precision) for volt in volts]
 
     def resinSensor(self, state):
         """Enable/Disable resin sensor"""

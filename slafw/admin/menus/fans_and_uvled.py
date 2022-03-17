@@ -22,8 +22,7 @@ class FansAndUVLedMenu(AdminMenu):
         self._init_uv_led_fan = FanState(self._printer.hw.uv_led_fan)
         self._init_blower_fan = FanState(self._printer.hw.blower_fan)
         self._init_rear_fan = FanState(self._printer.hw.rear_fan)
-        uv_led_state = self._printer.hw.getUvLedState()
-        self._init_uv_led = uv_led_state[0] and uv_led_state[1] == 0
+        self._init_uv_led = self._printer.hw.uv_led.active and self._printer.hw.uv_led.pulse_remaining == 0
         self._uv_pwm_print = self._temp.uvPwmPrint
 
         self.add_back()
@@ -63,7 +62,10 @@ class FansAndUVLedMenu(AdminMenu):
         self._init_uv_led_fan.restore()
         self._init_blower_fan.restore()
         self._init_rear_fan.restore()
-        self._printer.hw.uvLed(self._init_uv_led)
+        if self._init_uv_led:
+            self._printer.hw.uv_led.on()
+        else:
+            self._printer.hw.uv_led.off()
 
     @property
     def uv_led_fan(self) -> bool:
@@ -91,20 +93,20 @@ class FansAndUVLedMenu(AdminMenu):
 
     @property
     def uv_led(self) -> bool:
-        uv_led_state = self._printer.hw.getUvLedState()
-        return uv_led_state[0]
+        return self._printer.hw.uv_led.active
 
     @uv_led.setter
     def uv_led(self, value: bool):
         if value:
             self._printer.hw.startFans()
-            self._printer.hw.uvLedPwm = self._uv_pwm_print
+            self._printer.hw.uv_led.pwm = self._uv_pwm_print
+            self._printer.hw.uv_led.on()
         else:
             self._printer.hw.stopFans()
-        self._printer.hw.uvLed(value)
+            self._printer.hw.uv_led.off()
 
     def save(self):
-        self._printer.hw.saveUvStatistics()
+        self._printer.hw.uv_led.save_usage()
         self._temp.commit(write=True)
         self._control.enter(Info(self._control, "Configuration saved"))
 
@@ -121,7 +123,7 @@ class FansAndUVLedMenu(AdminMenu):
         del self._printer.hw.config.fan3Rpm
         for fan in self._printer.hw.fans.values():
             fan.target_rpm = fan.default_rpm
-        self._printer.hw.uvLedPwm = self._printer.hw.config.uvPwmPrint
+        self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwmPrint
         self._temp.reset()
         try:
             self._printer.hw.config.write()
@@ -159,7 +161,7 @@ class FansAndUVLedMenu(AdminMenu):
 
     def _do_save_to_booster(self):
         try:
-            self._printer.hw.uvLedPwm = self._uv_pwm_print
+            self._printer.hw.uv_led.pwm = self._uv_pwm_print
             self._printer.hw.sl1s_booster.save_permanently()
         except Exception:
             self._control.enter(Error(self._control, text="!!! Failed to save PWM to boosterV2 board !!!", pop=1))
@@ -179,4 +181,4 @@ class FansAndUVLedMenu(AdminMenu):
     def _uv_pwm_changed(self):
         # TODO: simplify work with config and config writer
         self._uv_pwm_print = self._temp.uvPwm + self._temp.uvPwmTune
-        self._printer.hw.uvLedPwm = self._uv_pwm_print
+        self._printer.hw.uv_led.pwm = self._uv_pwm_print

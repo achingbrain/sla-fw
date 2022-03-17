@@ -9,12 +9,12 @@ from PIL import Image
 
 from slafw.errors.errors import NotUVCalibrated, NotMechanicallyCalibrated
 from slafw.configs.hw import HwConfig
-from slafw.hardware.uv_led import UvLedParameters
+from slafw.hardware.base.uv_led import UvLedParameters
 
 
 def get_white_pixels(image: Image) -> int:
     np_array = numpy.array(image.histogram())
-    return int(numpy.sum(np_array[128:]))  # simple treshold
+    return int(numpy.sum(np_array[128:]))  # simple threshold
 
 
 def check_ready_to_print(config: HwConfig, uv_parameters: UvLedParameters) -> None:

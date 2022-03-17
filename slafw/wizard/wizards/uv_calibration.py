@@ -38,7 +38,7 @@ class UVCalibrationPrepare(CheckGroup):
         super().__init__(
             Configuration(TankSetup.REMOVED, PlatformSetup.PRINT),
             [
-                UVLEDsTest.get_test(package.hw),
+                UVLEDsTest(package.hw),
                 DisplayTest(package.hw, package.exposure_image, package.runtime_config),
                 SystemInfoTest(package.hw),
             ],
@@ -148,7 +148,7 @@ class UVCalibrationWizard(Wizard):
         try:
             super().run()
         finally:
-            self._package.hw.uvLed(False)
+            self._package.hw.uv_led.off()
             self._package.hw.stopFans()
             self._package.uv_meter.close()
 

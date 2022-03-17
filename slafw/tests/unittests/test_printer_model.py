@@ -3,13 +3,15 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
+from slafw.hardware.sl1.uv_led import SL1UVLED, SL1SUVLED
 from slafw.tests.base import SlafwTestCase
 from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.sl1.uv_led import UvLedSL1
 from slafw.tests.mocks.motion_controller import MotionControllerMock
+from slafw.tests.mocks.temp_sensor import MockTempSensor
+from slafw.tests.mocks.uv_led import MockUVLED
 
 
 class TestPrinterModel(SlafwTestCase):
@@ -61,17 +63,15 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(options.has_UV_calculation, False)
 
     def test_uv_led_parameters_none(self):
-        uv_led = UvLedSL1(MotionControllerMock.get_5a(), PrinterModel.NONE)
-        self.assertEqual(uv_led.parameters.pwms, (0, 250, 0))
-        self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)
+        uv_led = MockUVLED()
+        self.assertEqual(uv_led.parameters.intensity_error_threshold, 5)
         self.assertEqual(uv_led.parameters.param_p, 0.75)
-        self.assertEqual(uv_led.parameters.min_pwm, 0)
+        self.assertEqual(uv_led.parameters.min_pwm, 1)
         self.assertEqual(uv_led.parameters.max_pwm, 250)
-        self.assertEqual(uv_led.parameters.safe_default_pwm, 0)
+        self.assertEqual(uv_led.parameters.safe_default_pwm, 123)
 
     def test_uv_led_parameters_sl1(self):
-        uv_led = UvLedSL1(MotionControllerMock.get_5a(), PrinterModel.SL1)  # MC revision < 6c
-        self.assertEqual(uv_led.parameters.pwms, (125, 218, 125))
+        uv_led = SL1UVLED(MotionControllerMock.get_5a(), MockTempSensor("UV"))  # MC revision < 6c
         self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)
         self.assertEqual(uv_led.parameters.param_p, 0.75)
         self.assertEqual(uv_led.parameters.min_pwm, 125)
@@ -79,8 +79,7 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(uv_led.parameters.safe_default_pwm, 125)
 
     def test_uv_led_parameters_sl1_500khz(self):
-        uv_led = UvLedSL1(MotionControllerMock.get_6c(), PrinterModel.SL1)  # MC revision >= 6c
-        self.assertEqual(uv_led.parameters.pwms, (150, 250, 150))
+        uv_led = SL1UVLED(MotionControllerMock.get_6c(), MockTempSensor("UV"))  # MC revision >= 6c
         self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)
         self.assertEqual(uv_led.parameters.param_p, 0.75)
         self.assertEqual(uv_led.parameters.min_pwm, 150)
@@ -88,8 +87,7 @@ class TestPrinterModel(SlafwTestCase):
         self.assertEqual(uv_led.parameters.safe_default_pwm, 150)
 
     def test_uv_led_parameters_sl1s(self):
-        uv_led = UvLedSL1(MotionControllerMock.get_6c(), PrinterModel.SL1S)
-        self.assertEqual(uv_led.parameters.pwms, (30, 250, 208))
+        uv_led = SL1SUVLED(MotionControllerMock.get_6c(), Mock(), MockTempSensor("UV"))
         self.assertEqual(uv_led.parameters.intensity_error_threshold, 1)
         self.assertEqual(uv_led.parameters.param_p, 0.75)
         self.assertEqual(uv_led.parameters.min_pwm, 30)

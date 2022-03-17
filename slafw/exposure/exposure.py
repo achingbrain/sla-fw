@@ -340,7 +340,7 @@ class Exposure:
             self.logger.exception("Exposure init exception")
             self.fatal_error = exception
             self.state = ExposureState.FAILURE
-            self.hw.uvLed(False)
+            self.hw.uv_led.off()
             self.hw.stopFans()
             self.hw.motorsRelease()
             raise
@@ -422,8 +422,8 @@ class Exposure:
         self.hw.tower_move_absolute_nm_wait(0)  # first layer will move up
 
         self.exposure_image.blank_screen()
-        self.hw.uvLedPwm = self.hw.config.uvPwmPrint
-        self.hw.uvDisplayCounter(True)
+        self.hw.uv_led.pwm = self.hw.config.uvPwmPrint
+        self.hw.display.start_counting_usage()
 
     @property
     def in_progress(self):
@@ -549,12 +549,10 @@ class Exposure:
 
     def _exposure_simple(self, times_ms):
         uv_on_remain_ms = times_ms[0]
-        uv_is_on = True
-        self.logger.debug("uv on")
-        self.hw.uvLed(True, uv_on_remain_ms + 1)  # FIXME workaround for MC FW (1 ms shorted UV LED time)
-        while uv_is_on:
+        self.hw.uv_led.pulse(uv_on_remain_ms)
+        while uv_on_remain_ms > 0:
             sleep(uv_on_remain_ms / 1100.0)
-            uv_is_on, uv_on_remain_ms = self.hw.getUvLedState()
+            uv_on_remain_ms = self.hw.uv_led.pulse_remaining
         self.exposure_image.blank_screen()
 
     def _exposure_calibration(self, times_ms):
@@ -566,7 +564,7 @@ class Exposure:
         i = 0
         last = len(ends) - 1
         self.logger.debug("uv on")
-        self.hw.uvLed(True)
+        self.hw.uv_led.on()
         for end in ends:
             diff = 0
             while diff >= 0:
@@ -576,7 +574,7 @@ class Exposure:
             i += 1
             if abs(diff) > 1e7:
                 self.logger.warning("Exposure end delayed %f ms", abs(diff) / 1e6)
-        self.hw.uvLed(False)
+        self.hw.uv_led.off()
 
     def _do_frame(self, times_ms, was_stirring, second, layer_height_nm):
         position_nm = self.tower_position_nm + self.hw.config.calib_tower_offset_nm
@@ -659,7 +657,7 @@ class Exposure:
     def upAndDown(self):
         with WarningAction(self.hw.power_led):
             if self.hw.config.upAndDownUvOn:
-                self.hw.uvLed(True)
+                self.hw.uv_led.on()
 
             self.state = ExposureState.GOING_UP
             self.hw.setTowerProfile("homingFast")
@@ -1061,11 +1059,12 @@ class Exposure:
             sleep(0.25)
 
     def _print_end_hw_off(self):
-        self.hw.uvLed(False)
+        self.hw.uv_led.off()
         self.hw.stopFans()
         self.hw.motorsRelease()
-        self.hw.uvDisplayCounter(False)
-        self.hw.saveUvStatistics()
+        self.hw.display.stop_counting_usage()
+        self.hw.uv_led.save_usage()
+        # TODO: Save also display statistics once we have display component
         self.printEndTime = datetime.now(tz=timezone.utc)
 
     def _on_uv_led_fan_error(self, error: bool):

@@ -42,12 +42,11 @@ class UVFansTest(DangerousCheck):
         self._hw.uv_led_fan.auto_control = False
         for fan in self._hw.fans.values():
             fan.target_rpm = fan.default_rpm
-        self._hw.uvLed(True)
+        self._hw.uv_led.on()
         rpm: List[List[int]] = [[], [], []]
         fans_wait_time = defines.fanWizardStabilizeTime + defines.fanStartStopTime
 
-        # set UV LED to max PWM
-        self._hw.uvLedPwm = self._hw.uv_led.get_check_pwms[3]
+        self._hw.uv_led.pwm = self._hw.uv_led.max_pwm
 
         uv_temp = self._hw.uv_led_temp.value
         try:  # check may be interrupted by another check or canceled
@@ -69,7 +68,7 @@ class UVFansTest(DangerousCheck):
 
                 await sleep(1)
         finally:
-            self._hw.uvLed(False)
+            self._hw.uv_led.off()
             self._hw.uv_led_fan.auto_control = True
             self._hw.stopFans()
 

@@ -27,7 +27,7 @@ def shut_down(hw: BaseHardware, reboot=False):
         print("Skipping poweroff due to testing")
         return
 
-    hw.uvLed(False)
+    hw.uv_led.off()
     hw.motorsRelease()
 
     if reboot:

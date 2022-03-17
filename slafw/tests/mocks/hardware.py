@@ -11,11 +11,12 @@ from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.sl1.uv_led import UvLedSL1
+from slafw.tests.mocks.display import MockPrintDisplay
 from slafw.tests.mocks.exposure_screen import ExposureScreen
 from slafw.tests.mocks.fan import MockFan
 from slafw.tests.mocks.motion_controller import MotionControllerMock
 from slafw.tests.mocks.temp_sensor import MockTempSensor
+from slafw.tests.mocks.uv_led import MockUVLED
 
 
 class HardwareMock(BaseHardware):
@@ -77,14 +78,10 @@ class HardwareMock(BaseHardware):
 
         self.exposure_screen = ExposureScreen(printer_model)
 
-        self.getUvLedState = Mock(return_value=(False, 0))
-        self._led_stat_s = 6912
-        self._display_stat_s = 3600
         self.get_resin_volume_async = AsyncMock(return_value=defines.resinMaxVolume)
         self.get_resin_sensor_position_mm = AsyncMock(return_value=12.8)
         self.tower_to_resin_measurement_start_position = AsyncMock()
         self.towerPositonFailed = Mock(return_value=False)
-        self.getVoltages = Mock(return_value=[11.203, 11.203, 11.203, 0])
         self.isTowerMoving = Mock(return_value=False)
         self.isTowerOnPositionAsync = AsyncMock(return_value=True)
 
@@ -111,7 +108,8 @@ class HardwareMock(BaseHardware):
         self.cover_state_changed = Signal()
 
         self.mcc = MotionControllerMock.get_6c()
-        self.uv_led = UvLedSL1(self.mcc, printer_model)
+        self.uv_led = MockUVLED()
+        self.display = MockPrintDisplay()
 
         self.power_led = Mock()
 
@@ -125,15 +123,6 @@ class HardwareMock(BaseHardware):
 
     def exit(self):
         self.cover_state_changed.clear()
-
-    def getUvStatistics(self):
-        return self._led_stat_s, self._display_stat_s
-
-    def clearUvStatistics(self):
-        self._led_stat_s = 0
-
-    def clearDisplayStatistics(self):
-        self._display_stat_s = 0
 
     def getPowerswitchState(self):
         return False

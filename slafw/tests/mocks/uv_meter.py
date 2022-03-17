@@ -44,7 +44,10 @@ class UVMeterMock:
     def get_intensity_data(self) -> List[float]:
         # Linear response
         # 140 intensity at 200 PWM
-        intensity = 140 * self.multiplier * self._hw.uvLedPwm / 200
-        print(f"UV intensity mock: pwm: {self._hw.uvLedPwm}, intensity: {intensity}")
+        intensity = 140 * self.multiplier * self._hw.uv_led.pwm / 200
+        print(f"UV intensity mock: pwm: {self._hw.uv_led.pwm}, intensity: {intensity}")
         random.seed(0)
         return [intensity + random.random() * 2 * self.noise - self.noise for _ in range(15)]
+
+    def close(self):
+        pass

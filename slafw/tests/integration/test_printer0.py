@@ -115,10 +115,13 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
             self.printer0.rear_fan
         )
         self.assertEqual(type(self.printer0.cpu_temp), float)
-        self.assertEqual(
-            self.printer0.leds,
-            {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0, "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.8},
-        )
+        if PrinterModel() == PrinterModel.SL1:
+            self.assertEqual(
+                self.printer0.leds,
+                {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0, "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.8},
+            )
+        else:
+            self.assertEqual(self.printer0.leds, {})
         # TODO: Statistics report out of range integer
         # self.assertTrue('uv_stat0' in self.printer0.uv_statistics)
         self.assertRegex(self.printer0.controller_sw_version, ".*\\..*\\..*")

@@ -39,7 +39,6 @@ class SystemInfoTest(Check):
     async def async_task_run(self, actions: UserActionBroker):
         self._logger.debug("Obtaining system information")
 
-        uv_led, display = self._hw.getUvStatistics()
         printer_model = get_configured_printer_model()
         self._result_data = CheckData(
             distro.version(),
@@ -47,8 +46,8 @@ class SystemInfoTest(Check):
             self._hw.mcSerialNo,
             self._hw.mcFwVersion,
             self._hw.mcBoardRevision,
-            uv_led,
-            display,
+            self._hw.uv_led.usage_s,
+            self._hw.display.usage_s,
             printer_model.name,
         )
 

@@ -68,25 +68,25 @@ class DisplayServiceMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def erase_uv_led_counter(self):
         self.logger.info("About to erase UV LED statistics")
-        self.logger.info("Current statistics %s", self._printer.hw.getUvStatistics())
+        self.logger.info("Current statistics UV LED usage seconds %s", self._printer.hw.uv_led.usage_s)
         self._control.enter(
             Confirm(
                 self._control,
                 self._do_erase_uv_led_counter,
                 text=f"Do you really want to clear the UV LED counter?\n\n"
-                f"UV counter: {timedelta(seconds=self._printer.hw.getUvStatistics()[0])}\n"
+                f"UV counter: {timedelta(seconds=self._printer.hw.uv_led.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )
         )
 
     def _do_erase_uv_led_counter(self):
-        self._printer.hw.clearUvStatistics()
+        self._printer.hw.uv_led.clear_usage()
         self._control.enter(
             Info(
                 self._control,
                 text="UV counter has been erased.\n\n"
-                f"UV counter: {timedelta(seconds=self._printer.hw.getUvStatistics()[0])}\n"
+                f"UV counter: {timedelta(seconds=self._printer.hw.uv_led.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )
@@ -95,26 +95,27 @@ class DisplayServiceMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def erase_display_counter(self):
         self.logger.info("About to erase display statistics")
-        self.logger.info("Current statistics %s", self._printer.hw.getUvStatistics())
+        self.logger.info("Current UV LED usage %d seconds", self._printer.hw.uv_led.usage_s)
+        self.logger.info("Current display usage %d seconds", self._printer.hw.display.usage_s)
 
         self._control.enter(
             Confirm(
                 self._control,
                 self._do_erase_display_counter,
                 text=f"Do you really want to clear the Display counter?\n\n"
-                f"Display counter: {timedelta(seconds=self._printer.hw.getUvStatistics()[1])}\n"
+                f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )
         )
 
     def _do_erase_display_counter(self):
-        self._printer.hw.clearDisplayStatistics()
+        self._printer.hw.display.clear_usage()
         self._control.enter(
             Info(
                 self._control,
                 text="Display counter has been erased.\n\n"
-                f"Display counter: {timedelta(seconds=self._printer.hw.getUvStatistics()[1])}\n"
+                f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )
@@ -181,20 +182,20 @@ class DisplayControlMenu(SafeAdminMenu):
         )
 
     def on_leave(self):
-        self._printer.hw.saveUvStatistics()
+        self._printer.hw.uv_led.save_usage()
         self._printer.hw_all_off()
 
     def get_uv(self):
-        return self._printer.hw.getUvLedState()[0]
+        return self._printer.hw.uv_led.active
 
     def set_uv(self, enabled: bool):
         if enabled:
             self._printer.hw.startFans()
-            self._printer.hw.uvLedPwm = self._printer.hw.config.uvPwmPrint # use final UV PWM, due to possible test
+            self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwmPrint  # use final UV PWM, due to possible test
+            self._printer.hw.uv_led.on()
         else:
             self._printer.hw.stopFans()
-
-        self._printer.hw.uvLed(enabled)
+            self._printer.hw.uv_led.off()
 
     @SafeAdminMenu.safe_call
     def chess_8(self):
@@ -286,7 +287,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
     def on_leave(self):
         self._run = False
         self._printer.hw_all_off()
-        self._printer.hw.saveUvStatistics()
+        self._printer.hw.uv_led.save_usage()
         if self._temp.changed():
             self._control.enter(Info(self._control, "Configuration has been changed but NOT saved."))
         self._thread.join()
@@ -328,23 +329,23 @@ class DirectPwmSetMenu(SafeAdminMenu):
 
         status.set("<h3>Tilt leveled<h3>")
         self._printer.hw.startFans()
-        self._printer.hw.uvLedPwm = self._uv_pwm_print
-        self._printer.hw.uvLed(True)
+        self._printer.hw.uv_led.pwm = self._uv_pwm_print
+        self._printer.hw.uv_led.off()
         self._printer.exposure_image.open_screen()
 
     @property
     def uv_led(self) -> bool:
-        uv_led_state = self._printer.hw.getUvLedState()
-        return uv_led_state[0]
+        return self._printer.hw.uv_led.active
 
     @uv_led.setter
     def uv_led(self, value: bool):
         if value:
             self._printer.hw.startFans()
-            self._printer.hw.uvLedPwm = self._uv_pwm_print
+            self._printer.hw.uv_led.pwm = self._uv_pwm_print
+            self._printer.hw.uv_led.on()
         else:
             self._printer.hw.stopFans()
-        self._printer.hw.uvLed(value)
+            self._printer.hw.uv_led.off()
 
     @property
     def uv_pwm_print(self) -> str:
@@ -370,7 +371,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
     def _uv_pwm_changed(self):
         # TODO: simplify work with config and config writer
         self.uv_pwm_print_item.set_value(self._temp.uvPwm + self._temp.uvPwmTune)
-        self._printer.hw.uvLedPwm = self._uv_pwm_print
+        self._printer.hw.uv_led.pwm = self._uv_pwm_print
 
     def calculate_pwm(self):
         try:

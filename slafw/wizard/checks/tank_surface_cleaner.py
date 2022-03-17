@@ -141,7 +141,7 @@ class ExposeDebris(DangerousCheck):
             # Exposure display turn "white"
             self._exposure_image.open_screen()
             self._hw.startFans()
-            self._hw.uvLed(True)
+            self._hw.uv_led.on()
             start_time = time()
             finish_time = time() + self._hw.config.tankCleaningExposureTime
             while time() < finish_time:
@@ -150,7 +150,7 @@ class ExposeDebris(DangerousCheck):
         finally:
             # Return the display to black
             self._exposure_image.blank_screen()
-            self._hw.uvLed(False)
+            self._hw.uv_led.off()
             self._hw.stopFans()
 
 

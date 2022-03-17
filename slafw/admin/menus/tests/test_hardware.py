@@ -56,7 +56,7 @@ class TestHardwareMenu(AdminMenu):
         )
 
     def do_infinite_test(self):
-        self._printer.hw.saveUvStatistics()
+        self._printer.hw.uv_led.save_usage()
         self.enter(InfiniteTestMenu(self._control, self._printer))
 
 
@@ -260,8 +260,8 @@ class InfiniteTestMenu(AdminMenu):
         with WarningAction(self._printer.hw.power_led):
             self._printer.exposure_image.show_system_image("chess16.png")
             self._printer.hw.startFans()
-            self._printer.hw.uvLedPwm = self._printer.hw.config.uvPwm
-            self._printer.hw.uvLed(True)
+            self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwm
+            self._printer.hw.uv_led.on()
             self._printer.hw.towerSyncWait()
             self._printer.hw.tilt.sync_wait()
             while self._run:
@@ -271,7 +271,7 @@ class InfiniteTestMenu(AdminMenu):
                         self.tower = tower_counter
                         self.logger.info("towerCounter: %d, tiltCounter: %d", tower_counter, tilt_counter)
                         if (tower_counter % 100) == 0:  # save uv statistics every 100 tower cycles
-                            self._printer.hw.saveUvStatistics()
+                            self._printer.hw.uv_led.save_usage()
                         self._printer.hw.set_tower_position_nm(0)
                         self._printer.hw.setTowerProfile("homingFast")
                         tower_target_position_nm = self._printer.hw.tower_above_surface_nm

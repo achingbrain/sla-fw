@@ -6,6 +6,7 @@
 
 import subprocess
 from slafw.configs.toml import TomlConfig
+from slafw.hardware.base.hardware import BaseHardware
 
 
 class TomlConfigStatsException(Exception):
@@ -13,7 +14,7 @@ class TomlConfigStatsException(Exception):
 
 
 class TomlConfigStats(TomlConfig):
-    def __init__(self, filename, hw):
+    def __init__(self, filename, hw: BaseHardware):
         super(TomlConfigStats, self).__init__(filename)
         self.hw = hw
 
@@ -51,7 +52,7 @@ class TomlConfigStats(TomlConfig):
             return self.data[key]
 
         if key == "total_seconds":
-            return self.hw.getUvStatistics()[0]
+            return self.hw.uv_led.usage_s
 
         if key in ["started_projects", "finished_projects"]:
             return self.data.get("projects", 0)

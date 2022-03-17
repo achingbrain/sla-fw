@@ -4,9 +4,9 @@
 
 from slafw.configs.hw import HwConfig
 from slafw.hardware.base.hardware import BaseHardware
-from slafw.hardware.uv_led import UvLed
 from slafw.configs.writer import ConfigWriter
 from slafw.functions.system import set_configured_printer_model, set_factory_uvpwm
+from slafw.hardware.base.uv_led import UVLED
 from slafw.hardware.printer_model import PrinterModel
 
 from slafw.wizard.actions import UserActionBroker
@@ -14,7 +14,7 @@ from slafw.wizard.checks.base import Check, WizardCheckType
 
 
 class ResetUVPWM(Check):
-    def __init__(self, writer: ConfigWriter, uv_led: UvLed):
+    def __init__(self, writer: ConfigWriter, uv_led: UVLED):
         super().__init__(WizardCheckType.ERASE_UV_PWM)
         self._writer = writer
         self._uv_led = uv_led
@@ -54,8 +54,8 @@ class ResetHwCounters(Check):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.clearUvStatistics()
-        self._hw.clearDisplayStatistics()
+        self._hw.uv_led.clear_usage()
+        self._hw.display.clear_usage()
 
 
 class MarkPrinterModel(Check):

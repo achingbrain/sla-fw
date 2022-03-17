@@ -40,7 +40,7 @@ class SelfTestPart1CheckGroup(CheckGroup):
                 TiltHomeTest(package.hw),
                 TiltRangeTest(package.hw),
                 TowerHomeTest(package.hw, package.config_writer),
-                UVLEDsTest.get_test(package.hw),
+                UVLEDsTest(package.hw),
                 UVFansTest(package.hw),
                 DisplayTest(package.hw, package.exposure_image, package.runtime_config),
                 CalibrationInfo(package.hw.config),

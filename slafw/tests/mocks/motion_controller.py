@@ -8,6 +8,7 @@ from PySignal import Signal
 
 
 class MotionControllerMock:
+    # pylint: disable = too-many-instance-attributes
     def __init__(self, revision: int, subrevision: str):
         self.board = {"revision": revision, "subRevision": subrevision}
         self.temps_changed = Signal()
@@ -16,6 +17,7 @@ class MotionControllerMock:
         self.fans_rpm_changed = Signal()
         self.set_fan_rpm = Mock()
         self.set_fan_enabled = Mock()
+        self.statistics_changed = Signal()
 
     @staticmethod
     def get_5a():

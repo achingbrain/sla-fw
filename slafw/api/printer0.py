@@ -38,6 +38,7 @@ from slafw.functions.files import get_all_supported_files
 from slafw.functions.system import shut_down
 from slafw.hardware.base.fan import Fan
 from slafw.hardware.power_led_action import WarningAction
+from slafw.hardware.sl1.uv_led import SL1UVLED
 from slafw.project.functions import check_ready_to_print
 from slafw.state_actions.examples import Examples
 from slafw.states.examples import ExamplesState
@@ -100,13 +101,13 @@ class Printer0:
         self.printer.hw.uv_led_temp.value_changed.connect(self._on_uv_temp_changed)
         self.printer.hw.ambient_temp.value_changed.connect(self._on_ambient_temp_changed)
         self.printer.hw.cpu_temp.value_changed.connect(self._on_cpu_temp_changed)
-        self.printer.hw.led_voltages_changed.connect(self._on_led_voltages_changed)
         self.printer.hw.resin_sensor_state_changed.connect(self._on_resin_sensor_changed)
         self.printer.hw.cover_state_changed.connect(self._on_cover_state_changed)
         self.printer.hw.power_button_state_changed.connect(self._on_power_switch_state_changed)
         self.printer.action_manager.exposure_change.connect(self._on_exposure_change)
         self.printer.hw.mc_sw_version_changed.connect(self._on_controller_sw_version_change)
-        self.printer.hw.uv_statistics_changed.connect(self._on_uv_statistics_changed)
+        self.printer.hw.uv_led.usage_s_changed.connect(self._on_uv_usage_changed)
+        self.printer.hw.display.usage_s_changed.connect(self._on_display_usage_changed)
         self.printer.runtime_config.factory_mode_changed.connect(self._on_factory_mode_changed)
         self.printer.runtime_config.show_admin_changed.connect(self._on_admin_enabled_changed)
         self.printer.hw.tower_position_changed.connect(self._on_tower_position_changed)
@@ -152,9 +153,6 @@ class Printer0:
     def _on_cpu_temp_changed(self, cpu_temp: float):
         self.PropertiesChanged(self.__INTERFACE__, {"cpu_temp": cpu_temp}, [])
 
-    def _on_led_voltages_changed(self, value):
-        self.PropertiesChanged(self.__INTERFACE__, {"leds": self._format_leds(value)}, [])
-
     def _on_resin_sensor_changed(self, value: bool):
         self.PropertiesChanged(self.__INTERFACE__, {"resin_sensor_state": value}, [])
 
@@ -170,8 +168,11 @@ class Printer0:
     def _on_controller_sw_version_change(self):
         self.PropertiesChanged(self.__INTERFACE__, {"controller_sw_version": self.controller_sw_version}, [])
 
-    def _on_uv_statistics_changed(self, value):
-        self.PropertiesChanged(self.__INTERFACE__, {"uv_statistics": self._format_uv_statistics(value)}, [])
+    def _on_uv_usage_changed(self, usage_s: int):
+        self.PropertiesChanged(self.__INTERFACE__, {"uv_led_usage_s": self._limit_to_32bit(usage_s)}, [])
+
+    def _on_display_usage_changed(self, usage_s: int):
+        self.PropertiesChanged(self.__INTERFACE__, {"display_usage_s": self._limit_to_32bit(usage_s)}, [])
 
     def _on_factory_mode_changed(self, value):
         self.PropertiesChanged(self.__INTERFACE__, {"factory_mode": value}, [])
@@ -249,7 +250,7 @@ class Printer0:
         if do_shutdown:
             shut_down(self.printer.hw, reboot=reboot)
         else:
-            self.printer.hw.uvLed(False)
+            self.printer.hw.uv_led.off()
             self.printer.hw.motorsRelease()
 
     @auto_dbus
@@ -438,14 +439,31 @@ class Printer0:
 
         :return: Dictionary mapping from LED channel name to voltage value
         """
-        return self._format_leds(self.printer.hw.getVoltages(1))
+        if not isinstance(self.printer.hw.uv_led, SL1UVLED):
+            return {}
+        return self._format_leds(self.printer.hw.uv_led.read_voltages(precision=1))
 
     @staticmethod
     def _format_leds(leds):
         return {"led%d_voltage_volt" % i: v for i, v in enumerate(leds)}
 
+    @staticmethod
+    def _limit_to_32bit(value: int):
+        return min(value, 0x7FFFFFFF)
+
     @auto_dbus
     @property
+    def uv_led_usage_s(self) -> int:
+        return self._limit_to_32bit(self.printer.hw.uv_led.usage_s)
+
+    @auto_dbus
+    @property
+    def display_usage_s(self) -> int:
+        return self._limit_to_32bit(self.printer.hw.display.usage_s)
+
+    @auto_dbus
+    @property
+    @deprecated("Use dedicated usage from display and UV LED, this is already missing update signal")
     @cached(validity_s=5)
     def uv_statistics(self) -> Dict[str, int]:
         """
@@ -453,13 +471,12 @@ class Printer0:
 
         :return: Dictionary mapping from statistics name to integer value
         """
-        return self._format_uv_statistics(self.printer.hw.getUvStatistics())
+        return self._format_uv_statistics((self.printer.hw.uv_led.usage_s, self.printer.hw.display.usage_s))
 
     @staticmethod
     def _format_uv_statistics(statistics):
-        # Saturate the value at max 32bit signed int due to DBus and UI
-        # DBus can handle more if we pass
-        return {"uv_stat%d" % i: min(v, 0x7FFFFFFF) for i, v in enumerate(statistics)}
+        # Saturate the value at max 32bit signed int due to the UI limitation
+        return {"uv_stat%d" % i: Printer0._limit_to_32bit(v) for i, v in enumerate(statistics)}
         # uv_stats0 - time counter [s] # TODO: add uv average current,
 
     @auto_dbus

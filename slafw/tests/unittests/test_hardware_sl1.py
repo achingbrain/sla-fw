@@ -16,6 +16,7 @@ from slafw.hardware.a64.temp_sensor import A64CPUTempSensor
 from slafw.hardware.hardware_sl1 import HardwareSL1
 from slafw.hardware.power_led import PowerLedActions
 from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.sl1.uv_led import SL1UVLED
 from slafw.tests.base import SlafwTestCase
 
 
@@ -65,19 +66,19 @@ class TestSL1Hardware(SlafwTestCase):
 
     def test_uv_led(self):
         # Default state
-        self.assertEqual([0, 0], self.hw.getUvLedState())
+        self.assertEqual(0, self.hw.uv_led.active)
+        self.assertEqual(0, self.hw.uv_led.pulse_remaining)
         sleep(1)
 
         # Active state
-        self.hw.uvLed(1, 10000)
-        state = self.hw.getUvLedState()
-        self.assertEqual(1, state[0])
-        self.assertGreater(state[1], 5000)
+        self.hw.uv_led.pulse(10000)
+        self.assertEqual(1, self.hw.uv_led.active)
+        self.assertGreater(self.hw.uv_led.pulse_remaining, 5000)
 
         # Current settings
         pwm = 233
-        self.hw.uvLedPwm = pwm
-        self.assertEqual(pwm, self.hw.uvLedPwm)
+        self.hw.uv_led.pwm = pwm
+        self.assertEqual(pwm, self.hw.uv_led.pwm)
 
     # TODO: Fix test / functionality
     def test_mcc_debug(self):
@@ -153,36 +154,47 @@ class TestSL1Hardware(SlafwTestCase):
 
     def test_uv_statistics(self):
         # clear any garbage
-        self.hw.clearUvStatistics()
-        self.hw.clearDisplayStatistics()
+        self.hw.uv_led.clear_usage()
+        self.hw.display.clear_usage()
 
-        self.assertEqual([0, 0], self.hw.getUvStatistics())
-        self.hw.uvLed(1, 1000)
+        self.assertEqual(0, self.hw.uv_led.usage_s)
+        self.assertEqual(0, self.hw.display.usage_s)
+        self.hw.uv_led.pulse(1000)
         sleep(1)
-        self.assertEqual([1, 1], self.hw.getUvStatistics())
-        self.hw.clearUvStatistics()
-        self.assertEqual([0, 1], self.hw.getUvStatistics())
-        self.hw.clearDisplayStatistics()
-        self.assertEqual([0, 0], self.hw.getUvStatistics())
+        self.assertEqual(1, self.hw.uv_led.usage_s)
+        self.assertEqual(1, self.hw.display.usage_s)
+        self.hw.uv_led.clear_usage()
+        self.assertEqual(0, self.hw.uv_led.usage_s)
+        self.assertEqual(1, self.hw.display.usage_s)
+        self.hw.display.clear_usage()
+        self.assertEqual(0, self.hw.uv_led.usage_s)
+        self.assertEqual(0, self.hw.display.usage_s)
 
     def test_uv_display_counter(self):
-        self.hw.uvLed(0)
+        self.hw.uv_led.off()
         # clear any garbage
-        self.hw.clearUvStatistics()
-        self.hw.clearDisplayStatistics()
+        self.hw.uv_led.clear_usage()
+        self.hw.display.clear_usage()
 
-        self.assertEqual([0, 0], self.hw.getUvStatistics())
-        stats = self.hw.getUvStatistics()
+        self.assertEqual(0, self.hw.uv_led.usage_s)
+        self.assertEqual(0, self.hw.display.usage_s)
+        uv_stats = self.hw.uv_led.usage_s
+        display_stats = self.hw.display.usage_s
         sleep(1)
-        self.assertEqual(0, stats[0])
-        self.assertGreater(1, stats[1])
-        self.hw.uvDisplayCounter(False)
-        stats = self.hw.getUvStatistics()
+        self.assertEqual(0, uv_stats)
+        self.assertGreater(1, display_stats)
+        self.hw.display.stop_counting_usage()
+        uv_stats = self.hw.uv_led.usage_s
+        display_stats = self.hw.display.usage_s
         sleep(1)
-        self.assertEqual(stats, self.hw.getUvStatistics())
+        self.assertEqual(uv_stats, self.hw.uv_led.usage_s)
+        self.assertEqual(display_stats, self.hw.display.usage_s)
 
     def test_voltages(self):
-        voltages = self.hw.getVoltages()
+        if not isinstance(self.hw.uv_led, SL1UVLED):
+            return
+
+        voltages = self.hw.uv_led.read_voltages()
         self.assertEqual(4, len(voltages))
         for voltage in voltages:
             self.assertEqual(float, type(voltage))

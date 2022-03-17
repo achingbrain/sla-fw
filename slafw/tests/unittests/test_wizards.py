@@ -230,10 +230,10 @@ class TestUpgradeWizard(TestWizardsBase):
         config = HwConfig(defines.hwConfigPath, defines.hwConfigPathFactory)
         config.read_file()
         self.assertEqual(1, config.vatRevision)
-        self.assertEqual(208, config.uvPwm)
+        self.assertEqual(123, config.uvPwm)
         self.assertEqual(0, config.uvPwmTune)
-        self.assertEqual(208, config.uvPwmPrint)
-        self.assertEqual(208, config.get_values()["uvPwm"].get_factory_value(config))
+        self.assertEqual(123, config.uvPwmPrint)
+        self.assertEqual(123, config.get_values()["uvPwm"].get_factory_value(config))
 
     def test_sl1s_upgrade_reject(self):
         wizard = SL1SUpgradeWizard(self.hw, Mock(), RuntimeConfig())
@@ -364,9 +364,7 @@ class TestWizards(TestWizardsBase):
         self.assertEqual(4928, data["tiltHeight"])
         self.assertIn("uvPwm", data)
 
-        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow1"])
-        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow2"])
-        self.assertListEqual([11203, 11203, 11203], data["wizardUvVoltageRow3"])
+        self.assertEqual(42, data["mock selftest result"])
         self.assertListEqual(
             [self.hw.config.fan1Rpm, self.hw.config.fan2Rpm, self.hw.config.fan3Rpm],
             data["wizardFanRpm"],
@@ -580,7 +578,8 @@ class TestWizards(TestWizardsBase):
     def test_new_expo_panel(self):
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
 
-        uv_statistics = self.hw.getUvStatistics()
+        uv_usage = self.hw.uv_led.usage_s
+        display_usage = self.hw.display.usage_s
         wizard = NewExpoPanelWizard(self.hw)
 
         def on_state_changed():
@@ -590,14 +589,14 @@ class TestWizards(TestWizardsBase):
         wizard.state_changed.connect(on_state_changed)
         self._run_wizard(wizard, limit_s=15, expected_state=WizardState.DONE)
 
-        self.assertEqual(self.hw.getUvStatistics()[0], uv_statistics[0])
-        self.assertEqual(self.hw.getUvStatistics()[1], 0)
+        self.assertEqual(self.hw.uv_led.usage_s, uv_usage)
+        self.assertEqual(self.hw.display.usage_s, 0)
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
         last_key = list(log)[-1]
         self.assertEqual(log[last_key]["panel_sn"], self.hw.exposure_screen.serial_number)
         next_to_last_key = list(log)[-2]
-        self.assertEqual(log[next_to_last_key]["counter_s"], uv_statistics[1])
+        self.assertEqual(log[next_to_last_key]["counter_s"], display_usage)
         self._assert_final_state(item="showWizard", expected_value=True)
         self._assert_final_state(item="calibrated", expected_value=False)
 
@@ -636,15 +635,12 @@ class TestUVCalibration(TestWizardsBase):
         self.assertEqual(6912, wizard.data["uvLedCounter_s"])
         self.assertEqual(3600, wizard.data["displayCounter_s"])
         self.assertEqual(0, wizard.data["uvSensorType"])
-        self.assertListEqual(
-            [140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0, 140.0],
-            wizard.data["uvSensorData"],
-        )
-        self.assertEqual(140.0, wizard.data["uvMean"])
+        self.assertListEqual([140.7 for _ in range(15)], wizard.data["uvSensorData"])
+        self.assertEqual(140.7, wizard.data["uvMean"])
         self.assertEqual(0.0, wizard.data["uvStdDev"])
-        self.assertEqual(140.0, wizard.data["uvMinValue"])
-        self.assertEqual(140.0, wizard.data["uvMaxValue"])
-        self.assertEqual(200, wizard.data["uvFoundPwm"])
+        self.assertEqual(140.7, wizard.data["uvMinValue"])
+        self.assertEqual(140.7, wizard.data["uvMaxValue"])
+        self.assertEqual(201, wizard.data["uvFoundPwm"])
         self._assert_final_uv_pwm(self.hw.uv_led.parameters.min_pwm)
 
     def test_uv_calibration_boost(self):
@@ -673,8 +669,8 @@ class TestUVCalibration(TestWizardsBase):
             self._run_uv_calibration(wizard)
             self.assertFalse(wizard.data["boost"])  # Not boosted despite difference from previous setup, setup changed
 
-            self.assertEqual(0, self.hw.getUvStatistics()[1])  # Display replaced
-            self.assertEqual(6912, self.hw.getUvStatistics()[0])  # UV LED stays
+            self.assertEqual(0, self.hw.display.usage_s)  # Display replaced
+            self.assertEqual(6912, self.hw.uv_led.usage_s)  # UV LED stays
             self.assertTrue(defines.counterLog.exists())  # Counter log written as display was replaced
             with defines.counterLog.open("r") as f:
                 log = toml.load(f)
@@ -691,8 +687,8 @@ class TestUVCalibration(TestWizardsBase):
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Too weak needs boost even when changed
 
-            self.assertEqual(3600, self.hw.getUvStatistics()[1])  # Display stays
-            self.assertEqual(0, self.hw.getUvStatistics()[0])  # UV LED replaced
+            self.assertEqual(3600, self.hw.display.usage_s)  # Display stays
+            self.assertEqual(0, self.hw.uv_led.usage_s)  # UV LED replaced
             self.assertTrue(defines.counterLog.exists())  # Counter log written as UV LED was replaced
         self._assert_final_uv_pwm(self.hw.uv_led.parameters.min_pwm)
 
@@ -804,7 +800,7 @@ class TankSurfaceCleanerTest(TestWizardsBase):
                 wizard.cancel()
             if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
                     and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
-                assert not self.hw.getUvLedState()[0]
+                assert not self.hw.uv_led.active
 
         wizard.check_states_changed.connect(on_check_states_changed)
         self._run_wizard(wizard, limit_s=60, expected_state=WizardState.CANCELED)

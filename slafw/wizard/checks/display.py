@@ -54,17 +54,17 @@ class DisplayTest(DangerousCheck):
                     old_state = actual_state
                     if actual_state:
                         # TODO: create uv_led.set_default_pwm()
-                        self._hw.uvLedPwm = self._hw.uv_led.parameters.safe_default_pwm
-                        self._hw.uvLed(True)
+                        self._hw.uv_led.pwm = self._hw.uv_led.parameters.safe_default_pwm
+                        self._hw.uv_led.on()
                     else:
-                        self._hw.uvLed(False)
+                        self._hw.uv_led.off()
                 await sleep(0.1)
         finally:
             actions.report_display.unregister_callback()
             actions.drop_state(display_check_state)
             self._logger.debug("Finishing display test")
-            self._hw.saveUvStatistics()
-            self._hw.uvLed(False)
+            self._hw.uv_led.off()
+            self._hw.uv_led.save_usage()
             self._hw.stopFans()
             self._exposure_image.blank_screen()
 
@@ -90,8 +90,8 @@ class RecordExpoPanelLog(Check):
             log = json.load(f)
         last_key = list(log)[-1]
         log[last_key]["counter_s"] = \
-            self._hw.getUvStatistics()[1]  # write display counter to the previous panel
-        self._hw.clearDisplayStatistics()  # clear only UV statistics for display counter
+            self._hw.display.usage_s  # write display counter to the previous panel
+        self._hw.display.clear_usage()  # clear only UV statistics for display counter
         log[timestamp] = {"panel_sn": panel_sn}  # create new record
 
         with FactoryMountedRW():

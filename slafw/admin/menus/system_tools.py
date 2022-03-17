@@ -130,7 +130,7 @@ class SystemToolsMenu(SafeAdminMenu):
         writer.showWizard = False
         writer.showUnboxing = False
         writer.uvPwm = self._printer.hw.uv_led.parameters.safe_default_pwm
-        self._printer.hw.uvLedPwm = writer.uvPwm
+        self._printer.hw.uv_led.pwm = writer.uvPwm
         writer.commit()
 
         status.set("Saving dummy factory data")
