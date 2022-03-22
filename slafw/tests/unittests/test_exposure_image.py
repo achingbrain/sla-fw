@@ -120,7 +120,7 @@ class TestScreen(SlafwTestCase, RefCheckTestCase):
         self.exposure_image.preload_image(0)
         self.assertFalse(project.warnings)
         white_pixels = self.exposure_image.sync_preloader()
-        self.assertEqual(1293509, white_pixels)
+        self.assertEqual(1289032, white_pixels)
         self.exposure_image.blit_image()
         self.assertSameImage(self.exposure_image.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_pad.png"))
 
@@ -131,7 +131,7 @@ class TestScreen(SlafwTestCase, RefCheckTestCase):
         self.exposure_image.preload_image(10)
         self.assertFalse(project.warnings)
         white_pixels = self.exposure_image.sync_preloader()
-        self.assertLess(abs(1166913 - white_pixels), 50)
+        self.assertLess(abs(1166191 - white_pixels), 50)
         self.exposure_image.blit_image()
         self.assertSameImage(self.exposure_image.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib.png"), threshold=40)
 
@@ -187,7 +187,7 @@ class TestScreen(SlafwTestCase, RefCheckTestCase):
         self.exposure_image.preload_image(0)
         self.assertFalse(project.warnings)
         white_pixels = self.exposure_image.sync_preloader()
-        self.assertLess(abs(3591170 - white_pixels), 50)
+        self.assertLess(abs(3587460 - white_pixels), 50)
         self.exposure_image.blit_image()
         self.assertSameImage(self.exposure_image.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_pad_10.png"))
 
@@ -197,7 +197,7 @@ class TestScreen(SlafwTestCase, RefCheckTestCase):
         self.assertFalse(project.warnings)
         self.exposure_image.preload_image(10)
         white_pixels = self.exposure_image.sync_preloader()
-        self.assertLess(abs(1781967 - white_pixels), 50)
+        self.assertLess(abs(1780994 - white_pixels), 50)
         self.exposure_image.blit_image()
         self.assertSameImage(self.exposure_image.buffer, Image.open(self.SAMPLES_DIR / "fbdev" / "calib_10.png"), threshold=40)
 

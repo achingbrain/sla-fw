@@ -433,7 +433,7 @@ class ExposureScreen(ABC):
                 size_px=(360, 640),
                 thumbnail_factor=5,
                 output_factor=4,
-                pixel_size_nm=46875,
+                pixel_size_nm=47250,
                 refresh_delay_ms=0,
                 monochromatic=False,
                 bgr_pixels=False,

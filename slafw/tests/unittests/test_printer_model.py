@@ -38,7 +38,7 @@ class TestPrinterModel(SlafwTestCase):
     def test_exposure_screen_parameters(self):
         screen = ExposureScreenSL1(PrinterModel.VIRTUAL)
         self.assertEqual(screen.parameters.size_px, (360, 640))
-        self.assertEqual(screen.parameters.pixel_size_nm, 46875)
+        self.assertEqual(screen.parameters.pixel_size_nm, 47250)
         self.assertEqual(screen.parameters.refresh_delay_ms, 0)
         self.assertEqual(screen.parameters.monochromatic, False)
         self.assertEqual(screen.parameters.bgr_pixels, False)

@@ -14,7 +14,7 @@ class ExposureScreenSL1(ExposureScreen):
                 size_px=(1440, 2560),
                 thumbnail_factor=5,
                 output_factor=1,
-                pixel_size_nm=46875,
+                pixel_size_nm=47250,
                 refresh_delay_ms=0,
                 monochromatic=False,
                 bgr_pixels=False,

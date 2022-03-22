@@ -120,8 +120,8 @@ class TestProject(SlafwTestCase):
         print(project)
         result[0].bbox = BBox((605, 735, 835, 1825))
         result[1].bbox = BBox((605, 735, 835, 1825))
-        result[0].consumed_resin_nl = 25664
-        result[1].consumed_resin_nl = 20819
+        result[0].consumed_resin_nl = 26076
+        result[1].consumed_resin_nl = 21153
         self.assertEqual(project.layers, result, "Analyzed base layers")
         # FIXME project usedMaterial is wrong (modified project)
         #self.assertAlmostEqual(consumed_resin_slicer, project.used_material_nl / 1e6, delta=0.1, msg="Resin count")
