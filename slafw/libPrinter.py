@@ -237,8 +237,9 @@ class Printer:
             self.hw.connect()
         except (MotionControllerWrongFw, MotionControllerNotResponding,
                 MotionControllerWrongResponse):
-            self.logger.info(
-                "HW connect failed with a recoverable error, flashing MC firmware")
+            # Log this as info, this is usually not an error. Show exec info to enable debugging this actually
+            # is an error (flashing in a loop, broken MC).
+            self.logger.info("HW connect failed with a recoverable error, flashing MC firmware", exc_info=True)
             self.set_state(PrinterState.UPDATING_MC)
             self.hw.flashMC()
             self.hw.connect()

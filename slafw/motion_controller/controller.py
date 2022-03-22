@@ -311,10 +311,13 @@ class MotionController:
             )
             raise MotionControllerWrongFw(trace=self.trace)
         self.fw['version'] = self.do("?ver")
+        self.logger.info("Motion controller firmware version: %s", self.fw['version'])
         if mc_version_check:
             if self.fw['version'] != defines.reqMcVersion:
-                raise MotionControllerWrongFw(trace=self.trace)
-        self.logger.info("motion controller firmware version: %s", self.fw['version'])
+                raise MotionControllerWrongFw(
+                    message="Incorrect firmware, version %s is required" % defines.reqMcVersion,
+                    trace=self.trace
+                )
 
         self.board['serial'] = self.do("?ser")
         if self.board['serial']:
