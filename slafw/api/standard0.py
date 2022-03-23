@@ -275,7 +275,21 @@ class Standard0:
                 'cpu_temp': 40.0
             }
         """
-        return self._printer.hw.getTemperaturesDict()
+        return self.getTemperaturesDict()
+
+    def getFansRpmDict(self):
+        return {
+            "uv_led": self._printer.hw.uv_led_fan.rpm,
+            "blower": self._printer.hw.blower_fan.rpm,
+            "rear": self._printer.hw.rear_fan.rpm,
+        }
+
+    def getTemperaturesDict(self):
+        return {
+            'temp_led': self._printer.hw.uv_led_temp.value,
+            'temp_amb': self._printer.hw.ambient_temp.value,
+            'cpu_temp': self._printer.hw.cpu_temp.value,
+        }
 
     @auto_dbus
     @property
@@ -294,7 +308,7 @@ class Standard0:
             }
 
         """
-        return self._printer.hw.getFansRpmDict()
+        return self.getFansRpmDict()
 
     @auto_dbus
     @property
@@ -371,8 +385,8 @@ class Standard0:
         return wrap_dict_data(
             {
                 "cover_closed": self._printer.hw.isCoverClosed(),
-                "temperatures": self._printer.hw.getTemperaturesDict(),
-                "fans": self._printer.hw.getFansRpmDict(),
+                "temperatures": self.getTemperaturesDict(),
+                "fans": self.getFansRpmDict(),
                 "state": self._state.value,
             }
         )

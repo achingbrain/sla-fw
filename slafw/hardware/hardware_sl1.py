@@ -828,20 +828,6 @@ class HardwareSL1(BaseHardware):
 
         return sensitivity
 
-    def getFansRpmDict(self):
-        return {
-            "uv_led": self.uv_led_fan.rpm,
-            "blower": self.blower_fan.rpm,
-            "rear": self.rear_fan.rpm,
-        }
-
-    def getTemperaturesDict(self):
-        return {
-            'temp_led': self.uv_led_temp.value,
-            'temp_amb': self.ambient_temp.value,
-            'cpu_temp': self.cpu_temp.value,
-        }
-
     async def verify_tower(self):
         if not self.towerSynced:
             self.setTowerProfile("homingFast")
