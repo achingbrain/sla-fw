@@ -619,7 +619,7 @@ class TestWizards(TestWizardsBase):
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
 
         uv_usage = self.hw.uv_led.usage_s
-        display_usage = self.hw.display.usage_s
+        display_usage = self.hw.exposure_screen.usage_s
         wizard = NewExpoPanelWizard(self.hw)
 
         def on_state_changed():
@@ -630,7 +630,7 @@ class TestWizards(TestWizardsBase):
         self._run_wizard(wizard, limit_s=15, expected_state=WizardState.DONE)
 
         self.assertEqual(self.hw.uv_led.usage_s, uv_usage)
-        self.assertEqual(self.hw.display.usage_s, 0)
+        self.assertEqual(self.hw.exposure_screen.usage_s, 0)
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
         last_key = list(log)[-1]
@@ -709,7 +709,7 @@ class TestUVCalibration(TestWizardsBase):
             self._run_uv_calibration(wizard)
             self.assertFalse(wizard.data["boost"])  # Not boosted despite difference from previous setup, setup changed
 
-            self.assertEqual(0, self.hw.display.usage_s)  # Display replaced
+            self.assertEqual(0, self.hw.exposure_screen.usage_s)  # Display replaced
             self.assertEqual(6912, self.hw.uv_led.usage_s)  # UV LED stays
             self.assertTrue(defines.counterLog.exists())  # Counter log written as display was replaced
             with defines.counterLog.open("r") as f:
@@ -727,7 +727,7 @@ class TestUVCalibration(TestWizardsBase):
             self._run_uv_calibration(wizard)
             self.assertTrue(wizard.data["boost"])  # Too weak needs boost even when changed
 
-            self.assertEqual(3600, self.hw.display.usage_s)  # Display stays
+            self.assertEqual(3600, self.hw.exposure_screen.usage_s)  # Display stays
             self.assertEqual(0, self.hw.uv_led.usage_s)  # UV LED replaced
             self.assertTrue(defines.counterLog.exists())  # Counter log written as UV LED was replaced
         self._assert_final_uv_pwm(self.hw.uv_led.parameters.min_pwm)

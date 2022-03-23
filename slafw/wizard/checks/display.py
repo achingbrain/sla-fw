@@ -91,8 +91,8 @@ class RecordExpoPanelLog(Check):
             log = json.load(f)
         last_key = list(log)[-1]
         log[last_key]["counter_s"] = \
-            self._hw.display.usage_s  # write display counter to the previous panel
-        self._hw.display.clear_usage()  # clear only UV statistics for display counter
+            self._hw.exposure_screen.usage_s  # write display counter to the previous panel
+        self._hw.exposure_screen.clear_usage()  # clear only UV statistics for display counter
         log[timestamp] = {"panel_sn": panel_sn}  # create new record
 
         with FactoryMountedRW():

@@ -7,21 +7,22 @@
 import functools
 import logging
 import mmap
-from abc import ABC
-from time import monotonic, sleep
-from threading import Thread, Event
-from typing import Optional, Any, List, Tuple
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from PIL import Image
+from threading import Thread, Event
+from time import monotonic, sleep
+from typing import Optional, Any, List, Tuple
 
+from PIL import Image
+from PySignal import Signal
 from pywayland.client import Display
+from pywayland.protocol.presentation_time import WpPresentation
 from pywayland.protocol.wayland import WlCompositor, WlSubcompositor, WlShm, WlOutput
 from pywayland.protocol.xdg_shell import XdgWmBase
-from pywayland.protocol.presentation_time import WpPresentation
 from pywayland.utils import AnonymousFile
 
 from slafw import defines
-from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.base.component import HardwareComponent
 
 
 @dataclass(eq=False)
@@ -385,13 +386,13 @@ class Wayland:
         self.calibration_layer.surfaces[area_index].wl_subsurface.place_above(main_surface)
 
 
-class ExposureScreen(ABC):
-    def __init__(self, printer_model: PrinterModel):
-        self.logger = logging.getLogger(__name__)
-        self._parameters = self.get_parameters(printer_model)
-        self.logger.info("Exposure panel serial number: %s", self.serial_number)
-        self.logger.info("Exposure panel transmittance: %s", self.transmittance)
+class ExposureScreen(HardwareComponent, ABC):
+    def __init__(self):
+        super().__init__("Exposure screen")
+        self._logger.info("Exposure panel serial number: %s", self.serial_number)
+        self._logger.info("Exposure panel transmittance: %s", self.transmittance)
         self._wayland = Wayland(self.parameters)
+        self.usage_s_changed = Signal()
 
     def start(self):
         self._wayland.start(self._find_format())
@@ -412,9 +413,9 @@ class ExposureScreen(ABC):
         if image.mode != "L":
             raise RuntimeError(f"Invalid pixel format {image.mode}")
         if self.parameters.output_factor != 1:
-            self.logger.debug("resize from: %s", image.size)
+            self._logger.debug("resize from: %s", image.size)
             image = image.resize(self.parameters.size_px, Image.BICUBIC)
-            self.logger.debug("resize to: %s", image.size)
+            self._logger.debug("resize to: %s", image.size)
         self._wayland.show_bytes(sync, image.tobytes())
 
     def blank_screen(self, sync: bool = True):
@@ -430,35 +431,13 @@ class ExposureScreen(ABC):
         start_time = monotonic()
         l = self._wayland.main_layer
         drawfce(l.shm_data, l.width * l.bytes_per_pixel, l.height, *args)
-        self.logger.debug("%s done in %f ms", drawfce.__name__, 1e3 * (monotonic() - start_time))
+        self._logger.debug("%s done in %f ms", drawfce.__name__, 1e3 * (monotonic() - start_time))
         self._wayland.show_shm(True) # synced
 
-    @staticmethod
-    def get_parameters(printer_model: PrinterModel) -> ExposureScreenParameters:
-        return {
-            PrinterModel.NONE: ExposureScreenParameters(
-                size_px=(0, 0),
-                thumbnail_factor=1,
-                output_factor=1,
-                pixel_size_nm=50000,
-                refresh_delay_ms=0,
-                monochromatic=False,
-                bgr_pixels=False,
-            ),
-            PrinterModel.VIRTUAL: ExposureScreenParameters(
-                size_px=(360, 640),
-                thumbnail_factor=5,
-                output_factor=4,
-                pixel_size_nm=47250,
-                refresh_delay_ms=0,
-                monochromatic=False,
-                bgr_pixels=False,
-            ),
-        }.get(printer_model, None)
-
-    @property
+    @functools.cached_property
+    @abstractmethod
     def parameters(self) -> ExposureScreenParameters:
-        return self._parameters
+        ...
 
     @property
     def serial_number(self) -> str:
@@ -470,3 +449,36 @@ class ExposureScreen(ABC):
         path = defines.exposure_panel_of_node / "transmittance"
         return int.from_bytes(path.read_bytes(), byteorder='big') / 100.0 \
             if path.exists() else 0.0
+
+    @abstractmethod
+    def start_counting_usage(self):
+        """
+        Start counting display usage
+        """
+
+    @abstractmethod
+    def stop_counting_usage(self):
+        """
+        Stop counting UV display usage
+        """
+
+    @property
+    @abstractmethod
+    def usage_s(self) -> int:
+        """
+        How long has the UV LED been used
+        """
+
+    @abstractmethod
+    def save_usage(self):
+        """
+        Store usage to permanent storage
+        """
+
+    @abstractmethod
+    def clear_usage(self):
+        """
+        Clear usage
+
+        Use this when UV LED is replaced
+        """

@@ -72,26 +72,26 @@ class ExposureDisplayMenu(SafeAdminMenu):
     def erase_display_counter(self):
         self.logger.info("About to erase display statistics")
         self.logger.info("Current UV LED usage %d seconds", self._printer.hw.uv_led.usage_s)
-        self.logger.info("Current display usage %d seconds", self._printer.hw.display.usage_s)
+        self.logger.info("Current display usage %d seconds", self._printer.hw.exposure_screen.usage_s)
 
         self._control.enter(
             Confirm(
                 self._control,
                 self._do_erase_display_counter,
                 headline="Do you really want to clear the Display counter?",
-                text=f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}\n"
+                text=f"Display counter: {timedelta(seconds=self._printer.hw.exposure_screen.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )
         )
 
     def _do_erase_display_counter(self):
-        self._printer.hw.display.clear_usage()
+        self._printer.hw.exposure_screen.clear_usage()
         self._control.enter(
             Info(
                 self._control,
                 headline="Display counter has been erased.",
-                text=f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}\n"
+                text=f"Display counter: {timedelta(seconds=self._printer.hw.exposure_screen.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )

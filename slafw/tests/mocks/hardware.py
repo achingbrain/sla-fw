@@ -14,12 +14,12 @@ from slafw.hardware.axis import Axis
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 from slafw.tests.mocks.axis import MockTower, MockTilt
-from slafw.tests.mocks.display import MockPrintDisplay
-from slafw.tests.mocks.exposure_screen import ExposureScreen
+from slafw.tests.mocks.exposure_screen import MockExposureScreen
 from slafw.tests.mocks.fan import MockFan
 from slafw.tests.mocks.motion_controller import MotionControllerMock
 from slafw.tests.mocks.temp_sensor import MockTempSensor
 from slafw.tests.mocks.uv_led import MockUVLED
+
 
 
 class HardwareMock(BaseHardware):
@@ -27,7 +27,7 @@ class HardwareMock(BaseHardware):
     # pylint: disable = no-self-use
     # pylint: disable = too-many-statements
     # pylint: disable = too-many-public-methods
-    def __init__(self, config: HwConfig = None, printer_model: PrinterModel = PrinterModel.SL1):
+    def __init__(self, config: HwConfig = None, printer_model: PrinterModel = PrinterModel.NONE):
         if config is None:
             config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)  # TODO better!
             config.coverCheck = False
@@ -60,7 +60,7 @@ class HardwareMock(BaseHardware):
         )
         self.blower_fan = MockFan("UV LED", defines.fanMinRPM, defines.fanMaxRPM, 3300)
         self.rear_fan = MockFan("UV LED", defines.fanMinRPM, defines.fanMaxRPM, 1000)
-        self.exposure_screen = ExposureScreen(printer_model)  # type: ignore[assignment]
+        self.exposure_screen = MockExposureScreen()
         self.mcc = MotionControllerMock.get_6c()
         self.power_led = Mock()
         self.tower = MockTower(self.mcc, self.config, self.power_led)
@@ -68,7 +68,12 @@ class HardwareMock(BaseHardware):
         self.sl1s_booster = Mock()
         self.sl1s_booster.board_serial_no = "FAKE BOOSTER SERIAL"
         self.uv_led = MockUVLED()
-        self.display = MockPrintDisplay()
+
+        def update_expo_screen_usage(usage_s: int):
+            if isinstance(self.exposure_screen, MockExposureScreen):
+                self.exposure_screen.fake_usage_s += usage_s
+
+        self.uv_led.usage_s_changed.connect(update_expo_screen_usage)
 
         self.cover_state_changed = Signal()
         self.mock_serial = "CZPX0819X009XC00151"

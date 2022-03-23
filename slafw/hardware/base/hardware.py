@@ -17,7 +17,6 @@ from PySignal import Signal
 from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.hardware.axis import Axis
-from slafw.hardware.base.display import PrintDisplay
 from slafw.hardware.base.exposure_screen import ExposureScreen
 from slafw.hardware.base.fan import Fan
 from slafw.hardware.base.temp_sensor import TempSensor
@@ -33,7 +32,6 @@ class BaseHardware:
     # pylint: disable = too-many-instance-attributes
     # pylint: disable = too-many-public-methods
     uv_led: UVLED
-    display: PrintDisplay
     tilt: Tilt
     tower: Tower
     uv_led_fan: Fan

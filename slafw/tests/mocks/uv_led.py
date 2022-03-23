@@ -22,6 +22,7 @@ class MockUVLED(UVLED):
 
     def pulse(self, time_ms: int):
         self._usage_s += time_ms / 1000
+        self.usage_s_changed.emit(self._usage_s)
 
     @property
     def active(self) -> bool:

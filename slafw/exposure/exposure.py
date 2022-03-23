@@ -421,7 +421,7 @@ class Exposure:
 
         self.exposure_image.blank_screen()
         self.hw.uv_led.pwm = self.hw.config.uvPwmPrint
-        self.hw.display.start_counting_usage()
+        self.hw.exposure_screen.start_counting_usage()
 
     @property
     def in_progress(self):
@@ -1053,7 +1053,7 @@ class Exposure:
         self.hw.uv_led.off()
         self.hw.stop_fans()
         self.hw.motors_release()
-        self.hw.display.stop_counting_usage()
+        self.hw.exposure_screen.stop_counting_usage()
         self.hw.uv_led.save_usage()
         # TODO: Save also display statistics once we have display component
         self.printEndTime = datetime.now(tz=timezone.utc)

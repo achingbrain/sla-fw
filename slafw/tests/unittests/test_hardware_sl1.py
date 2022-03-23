@@ -148,40 +148,40 @@ class TestSL1Hardware(SlafwTestCase):
     def test_uv_statistics(self):
         # clear any garbage
         self.hw.uv_led.clear_usage()
-        self.hw.display.clear_usage()
+        self.hw.exposure_screen.clear_usage()
 
         self.assertEqual(0, self.hw.uv_led.usage_s)
-        self.assertEqual(0, self.hw.display.usage_s)
+        self.assertEqual(0, self.hw.exposure_screen.usage_s)
         self.hw.uv_led.pulse(1000)
         sleep(1)
         self.assertEqual(1, self.hw.uv_led.usage_s)
-        self.assertEqual(1, self.hw.display.usage_s)
+        self.assertEqual(1, self.hw.exposure_screen.usage_s)
         self.hw.uv_led.clear_usage()
         self.assertEqual(0, self.hw.uv_led.usage_s)
-        self.assertEqual(1, self.hw.display.usage_s)
-        self.hw.display.clear_usage()
+        self.assertEqual(1, self.hw.exposure_screen.usage_s)
+        self.hw.exposure_screen.clear_usage()
         self.assertEqual(0, self.hw.uv_led.usage_s)
-        self.assertEqual(0, self.hw.display.usage_s)
+        self.assertEqual(0, self.hw.exposure_screen.usage_s)
 
     def test_uv_display_counter(self):
         self.hw.uv_led.off()
         # clear any garbage
         self.hw.uv_led.clear_usage()
-        self.hw.display.clear_usage()
+        self.hw.exposure_screen.clear_usage()
 
         self.assertEqual(0, self.hw.uv_led.usage_s)
-        self.assertEqual(0, self.hw.display.usage_s)
+        self.assertEqual(0, self.hw.exposure_screen.usage_s)
         uv_stats = self.hw.uv_led.usage_s
-        display_stats = self.hw.display.usage_s
+        display_stats = self.hw.exposure_screen.usage_s
         sleep(1)
         self.assertEqual(0, uv_stats)
         self.assertGreater(1, display_stats)
-        self.hw.display.stop_counting_usage()
+        self.hw.exposure_screen.stop_counting_usage()
         uv_stats = self.hw.uv_led.usage_s
-        display_stats = self.hw.display.usage_s
+        display_stats = self.hw.exposure_screen.usage_s
         sleep(1)
         self.assertEqual(uv_stats, self.hw.uv_led.usage_s)
-        self.assertEqual(display_stats, self.hw.display.usage_s)
+        self.assertEqual(display_stats, self.hw.exposure_screen.usage_s)
 
     def test_voltages(self):
         if not isinstance(self.hw.uv_led, SL1UVLED):

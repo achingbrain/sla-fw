@@ -120,7 +120,7 @@ class Printer0:
             self.printer.hw.power_button_state_changed.connect(self._on_power_switch_state_changed)
             self.printer.hw.mc_sw_version_changed.connect(self._on_controller_sw_version_change)
             self.printer.hw.uv_led.usage_s_changed.connect(self._on_uv_usage_changed)
-            self.printer.hw.display.usage_s_changed.connect(self._on_display_usage_changed)
+            self.printer.hw.exposure_screen.usage_s_changed.connect(self._on_display_usage_changed)
             self.printer.hw.tower_position_changed.connect(self._on_tower_position_changed)
             self.printer.hw.tilt_position_changed.connect(self._on_tilt_position_changed)
 
@@ -476,7 +476,7 @@ class Printer0:
     @auto_dbus
     @property
     def display_usage_s(self) -> int:
-        return self._limit_to_32bit(self.printer.hw.display.usage_s)
+        return self._limit_to_32bit(self.printer.hw.exposure_screen.usage_s)
 
     @auto_dbus
     @property
@@ -488,7 +488,7 @@ class Printer0:
 
         :return: Dictionary mapping from statistics name to integer value
         """
-        return self._format_uv_statistics((self.printer.hw.uv_led.usage_s, self.printer.hw.display.usage_s))
+        return self._format_uv_statistics((self.printer.hw.uv_led.usage_s, self.printer.hw.exposure_screen.usage_s))
 
     @staticmethod
     def _format_uv_statistics(statistics):

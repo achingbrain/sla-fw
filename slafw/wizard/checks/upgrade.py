@@ -55,7 +55,7 @@ class ResetHwCounters(Check):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.uv_led.clear_usage()
-        self._hw.display.clear_usage()
+        self._hw.exposure_screen.clear_usage()
 
 
 class MarkPrinterModel(Check):

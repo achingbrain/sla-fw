@@ -107,7 +107,7 @@ class SystemInfoMenu(AdminMenu):
             uv_led_info_list = [f'<li>{key}: {value}</li>' for key, value in self._printer.hw.uv_led.info.items()]
             self.uv_led.set(f"UV LED: <ul>{''.join(uv_led_info_list)}</ul>")
             self.uv_counter.set(f"UV LED counter: {timedelta(seconds=self._printer.hw.uv_led.usage_s)}")
-            self.display_counter.set(f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}")
+            self.display_counter.set(f"Display counter: {timedelta(seconds=self._printer.hw.exposure_screen.usage_s)}")
             sys_stats = TomlConfigStats(defines.statsData, self._printer.hw)
             self.started_projects.set(f"Total started projects: {sys_stats['started_projects']}")
             self.finished_projects.set(f"Total finished projects: {sys_stats['finished_projects']}")

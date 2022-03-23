@@ -439,7 +439,7 @@ class UVCalibrateApply(Check):
                     "total_seconds": stats["total_seconds"],
                     "total_resin": stats["total_resin"],
                     "uvLed_seconds": self._hw.uv_led.usage_s,
-                    "display_seconds": self._hw.display.usage_s,
+                    "display_seconds": self._hw.exposure_screen.usage_s,
                     "factoryMode": self._runtime_config.factory_mode,
                     "resetDisplayCounter": self._reset_display_counter,
                     "resetUvLedCounter": self._reset_led_counter,
@@ -463,4 +463,4 @@ class UVCalibrateApply(Check):
 
         # Reset Display counter in MC
         if self._reset_display_counter:
-            self._hw.display.clear_usage()
+            self._hw.exposure_screen.clear_usage()

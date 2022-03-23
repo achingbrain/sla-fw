@@ -32,8 +32,7 @@ from slafw.hardware.a64.temp_sensor import A64CPUTempSensor
 from slafw.hardware.axis import Axis
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.sl1.display import PrintDisplaySL1
-from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
+from slafw.hardware.sl1.exposure_screen import SL1ExposureScreen, SL1SExposureScreen
 from slafw.hardware.sl1.fan import SL1FanUVLED, SL1FanBlower, SL1FanRear
 from slafw.hardware.sl1.power_led import PowerLedSL1
 from slafw.hardware.sl1.temp_sensor import SL1TempSensorUV, SL1STempSensorUV, SL1TempSensorAmbient
@@ -51,7 +50,14 @@ class HardwareSL1(BaseHardware):
 
         self.mcc = MotionController(defines.motionControlDevice)
         self.sl1s_booster = Booster()
-        self.exposure_screen = ExposureScreenSL1(printer_model)
+
+        if printer_model == PrinterModel.SL1:
+            self.exposure_screen = SL1ExposureScreen(self.mcc)
+        elif printer_model in (PrinterModel.SL1S, PrinterModel.M1):
+            self.exposure_screen = SL1SExposureScreen(self.mcc)
+        else:
+            raise NotImplementedError
+
         self._printer_model = printer_model
 
         self.config.add_onchange_handler(self._fan_values_refresh)
@@ -86,7 +92,6 @@ class HardwareSL1(BaseHardware):
         self.power_led = PowerLedSL1(self.mcc)
         self.tower = TowerSL1(self.mcc, self.config, self.power_led)
         self.tilt = TiltSL1(self.mcc, self.config, self.power_led, self.tower)
-        self.display = PrintDisplaySL1(self.mcc)
 
         self._tilt_position_checker = ValueChecker(
             lambda: self.tilt.position,

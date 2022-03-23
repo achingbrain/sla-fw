@@ -66,7 +66,7 @@ class TestStartupSL1S(SlafwTestCaseDBus, RefCheckTestCase):
         self.printer.exception_occurred.connect(observer)
         copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
         with patch(
-            "slafw.hardware.hardware_sl1.ExposureScreenSL1.serial_number",
+            "slafw.hardware.hardware_sl1.SL1SExposureScreen.serial_number",
             PropertyMock(return_value="CZPX2921X021X000262"),
         ):
             self._run_printer()
@@ -81,9 +81,6 @@ class TestStartupSL1S(SlafwTestCaseDBus, RefCheckTestCase):
 
         # Default setup
         self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
-        self.printer.hw.exposure_screen.start.return_value = PrinterModel.SL1S
-        type(self.printer.hw.exposure_screen).transmittance = PropertyMock(return_value=4.17)
-        self.printer.hw.sl1s_booster = Mock()
         self.printer.hw.config.showUnboxing = False
         self.printer.hw.config.showWizard = False
         self.printer.hw.config.calibrated = True

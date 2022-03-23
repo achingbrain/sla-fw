@@ -149,7 +149,7 @@ def log_network() -> Mapping[str, Any]:
 def log_statistics(hw: BaseHardware) -> Mapping[str, Any]:
     data = TomlConfigStats(defines.statsData, None).load()
     data["UV LED Time Counter [h]"] = hw.uv_led.usage_s / 3600
-    data["Display Time Counter [h]"] = hw.display.usage_s / 3600
+    data["Display Time Counter [h]"] = hw.exposure_screen.usage_s / 3600
     return data
 
 

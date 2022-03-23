@@ -27,7 +27,7 @@ class TestPrinterSetup(SlafwTestCaseDBus):
         self.printer.setup()
         self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
 
-    @patch("slafw.hardware.hardware_sl1.ExposureScreenSL1.start", Mock(side_effect = UnknownPrinterModel()))
+    @patch("slafw.hardware.hardware_sl1.SL1ExposureScreen.start", Mock(side_effect = UnknownPrinterModel()))
     def test_setup_fail(self) -> None:
         self.printer = Printer()
         observer = Mock(__name__="mock")

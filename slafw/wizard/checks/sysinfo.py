@@ -47,7 +47,7 @@ class SystemInfoTest(Check):
             self._hw.mcFwVersion,
             self._hw.mcBoardRevision,
             self._hw.uv_led.usage_s,
-            self._hw.display.usage_s,
+            self._hw.exposure_screen.usage_s,
             printer_model.name,  # type: ignore[attr-defined]
         )
 

@@ -28,21 +28,20 @@ from unittest.mock import patch, Mock, AsyncMock
 import pydbus
 from gi.repository import GLib
 
-import slafw.tests.mocks.mc_port
-from slafw.functions.system import set_configured_printer_model
-from slafw.hardware.printer_model import PrinterModel
 import slafw.hardware.sl1.printer_model
+import slafw.tests.mocks.mc_port
 from slafw import defines, test_runtime
 from slafw import libPrinter
 from slafw.admin.manager import AdminManager
 from slafw.api.admin0 import Admin0
 from slafw.api.printer0 import Printer0
 from slafw.api.standard0 import Standard0
+from slafw.functions.system import set_configured_printer_model
+from slafw.hardware.printer_model import PrinterModel
 from slafw.tests import samples
 from slafw.tests.mocks.dbus.rauc import Rauc
-
 # Initialize parser
-from slafw.tests.mocks.exposure_screen import ExposureScreen
+from slafw.tests.mocks.exposure_screen import MockExposureScreen
 from slafw.tests.mocks.sl1s_uvled_booster import BoosterMock
 
 # gitlab CI job creates model folder in different location due to restricted permissions in Docker container
@@ -91,7 +90,8 @@ class Virtual:
             patch("slafw.motion_controller.controller.find_line", Mock()),
             patch("slafw.motion_controller.controller.line_request", Mock()),
             patch("slafw.functions.files.get_save_path", self.fake_save_path),
-            patch("slafw.hardware.hardware_sl1.ExposureScreenSL1", ExposureScreen),
+            patch("slafw.hardware.hardware_sl1.SL1ExposureScreen", MockExposureScreen),
+            patch("slafw.hardware.hardware_sl1.SL1SExposureScreen", MockExposureScreen),
             patch("slafw.hardware.hardware_sl1.HardwareSL1.isCoverClosed", Mock(return_value=True)),
             patch(
                 "slafw.hardware.hardware_sl1.HardwareSL1.get_resin_volume_async",

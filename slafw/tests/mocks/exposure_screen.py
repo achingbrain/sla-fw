@@ -4,34 +4,81 @@
 # Copyright (C) 2019-2022 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from functools import cached_property
 from unittest.mock import Mock
 
-from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
+from slafw.hardware.base.exposure_screen import ExposureScreen, ExposureScreenParameters
 
 
-class ExposureScreen:
+class MockExposureScreen(ExposureScreen):
     # pylint: disable = too-few-public-methods
     # pylint: disable = too-many-instance-attributes
-    def __init__(self, printer_model: PrinterModel):
-        self._real_expo_screen = ExposureScreenSL1(printer_model)
+    def __init__(self, *_, **__):
+        super().__init__()
 
-    start = Mock()
-    exit = Mock()
-    show = Mock()
-    blank_screen = Mock()
-    create_areas = Mock()
-    blank_area = Mock()
-    draw_pattern = Mock()
+        self.start = Mock()
+        self.exit = Mock()
+        self.show = Mock()
+        self.blank_screen = Mock()
+        self.create_areas = Mock()
+        self.blank_area = Mock()
+        self.draw_pattern = Mock()
+        self.fake_usage_s = 3600
+
+    @cached_property
+    def parameters(self) -> ExposureScreenParameters:
+        return ExposureScreenParameters(
+            size_px=(1440, 2560),
+            thumbnail_factor=5,
+            output_factor=1,
+            pixel_size_nm=47250,
+            refresh_delay_ms=0,
+            monochromatic=False,
+            bgr_pixels=False,
+        )
+
+    def start_counting_usage(self):
+        pass
+
+    def stop_counting_usage(self):
+        pass
 
     @property
-    def parameters(self):
-        return self._real_expo_screen.parameters
+    def usage_s(self) -> int:
+        return self.fake_usage_s
+
+    def save_usage(self):
+        pass
+
+    def clear_usage(self):
+        self.fake_usage_s = 0
+
+
+class VirtualExposureScreen(ExposureScreen):
+    @cached_property
+    def parameters(self) -> ExposureScreenParameters:
+        return ExposureScreenParameters(
+            size_px=(360, 640),
+            thumbnail_factor=5,
+            output_factor=4,
+            pixel_size_nm=47250,
+            refresh_delay_ms=0,
+            monochromatic=False,
+            bgr_pixels=False,
+        )
+
+    def start_counting_usage(self):
+        pass
+
+    def stop_counting_usage(self):
+        pass
 
     @property
-    def transmittance(self):
-        return self._real_expo_screen.transmittance
+    def usage_s(self) -> int:
+        return 0
 
-    @property
-    def serial_number(self):
-        return self._real_expo_screen.serial_number
+    def save_usage(self):
+        pass
+
+    def clear_usage(self):
+        pass

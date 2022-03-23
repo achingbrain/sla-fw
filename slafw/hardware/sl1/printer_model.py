@@ -62,6 +62,7 @@ class PrinterModelM1(PrinterModelSL1SCommon):
     def value(self) -> int:
         return 3
 
+
 PrinterModel.register_model(PrinterModelSL1())
 PrinterModel.register_model(PrinterModelSL1S())
 PrinterModel.register_model(PrinterModelM1())
