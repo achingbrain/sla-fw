@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import asyncio
-import functools
 import logging
 import os
 import re
 from abc import abstractmethod
+from functools import cached_property, lru_cache
 from time import sleep
-from typing import Dict, Optional
+from typing import Dict
 
 import bitstring
 import pydbus
@@ -19,25 +19,34 @@ from slafw import defines
 from slafw.configs.hw import HwConfig
 from slafw.hardware.base.display import PrintDisplay
 from slafw.hardware.base.exposure_screen import ExposureScreen
-from slafw.hardware.base.temp_sensor import TempSensor
 from slafw.hardware.base.fan import Fan
+from slafw.hardware.base.temp_sensor import TempSensor
 from slafw.hardware.base.uv_led import UVLED
-from slafw.hardware.printer_model import PrinterModel
-from slafw.hardware.sl1.tilt import TiltSL1
-from slafw.motion_controller.controller import MotionController
 from slafw.hardware.power_led import PowerLed
+from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.tilt import Tilt
 
 
 class BaseHardware:
     # pylint: disable = too-many-instance-attributes
+    # pylint: disable = too-many-public-methods
+    uv_led: UVLED
+    display: PrintDisplay
+    tilt: Tilt
+    uv_led_fan: Fan
+    blower_fan: Fan
+    rear_fan: Fan
+    uv_led_temp: TempSensor
+    ambient_temp: TempSensor
+    cpu_temp: TempSensor
+    exposure_screen: ExposureScreen
+    power_led: PowerLed
+
     def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
         self.logger = logging.getLogger(__name__)
         self.config = hw_config
         self._printer_model = printer_model
 
-        self.exposure_screen: Optional[ExposureScreen]
-
-        self.mc_temps_changed = Signal()
         self.resin_sensor_state_changed = Signal()
         self.cover_state_changed = Signal()
         self.power_button_state_changed = Signal()
@@ -45,19 +54,21 @@ class BaseHardware:
         self.tower_position_changed = Signal()
         self.tilt_position_changed = Signal()
 
-        # to be inicialized in connect()
-        self.mcc: Optional[MotionController] = None
-        self.uv_led: Optional[UVLED] = None
-        self.display: Optional[PrintDisplay] = None
-        self.tilt: Optional[TiltSL1] = None
-        self.uv_led_fan: Optional[Fan] = None
-        self.blower_fan: Optional[Fan] = None
-        self.rear_fan: Optional[Fan] = None
-        self.fans: Optional[Dict[int, Fan]] = None
-        self.power_led: Optional[PowerLed] = None
-        self.uv_led_temp: Optional[TempSensor] = None
-        self.ambient_temp: Optional[TempSensor] = None
-        self.cpu_temp: Optional[TempSensor] = None
+    @cached_property
+    def fans(self) -> Dict[int, Fan]:
+        return {
+            0: self.uv_led_fan,
+            1: self.blower_fan,
+            2: self.rear_fan,
+        }
+
+    def start_fans(self):
+        for fan in self.fans.values():
+            fan.enabled = True
+
+    def stop_fans(self):
+        for fan in self.fans.values():
+            fan.enabled = False
 
     @abstractmethod
     def connect(self):
@@ -144,7 +155,7 @@ class BaseHardware:
             # Something went wrong during check, expect the worst
             return True
 
-    @functools.lru_cache(maxsize=1)
+    @lru_cache(maxsize=1)
     def read_cpu_serial(self):
         # pylint: disable = too-many-locals
         ot = {0: "CZP"}
@@ -205,8 +216,7 @@ class BaseHardware:
 
         return sn, is_kit
 
-    @property
-    @functools.lru_cache(1)
+    @cached_property
     def emmc_serial(self) -> str:  # pylint: disable = no-self-use
         with open(defines.emmc_serial_path) as f:
             return f.read().strip()

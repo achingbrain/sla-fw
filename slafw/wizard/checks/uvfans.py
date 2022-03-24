@@ -38,7 +38,7 @@ class UVFansTest(DangerousCheck):
         await self.wait_cover_closed()
 
         fan_diff = 200
-        self._hw.startFans()
+        self._hw.start_fans()
         self._hw.uv_led_fan.auto_control = False
         for fan in self._hw.fans.values():
             fan.target_rpm = fan.default_rpm
@@ -70,7 +70,7 @@ class UVFansTest(DangerousCheck):
         finally:
             self._hw.uv_led.off()
             self._hw.uv_led_fan.auto_control = True
-            self._hw.stopFans()
+            self._hw.stop_fans()
 
         # evaluate fans data
         avg_rpms = list()

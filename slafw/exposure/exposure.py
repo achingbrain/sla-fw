@@ -69,7 +69,7 @@ class ExposureCheckRunner:
     def __init__(self, check: ExposureCheck, expo: Exposure):
         self.logger = logging.getLogger(__name__)
         self.check_type = check
-        self.expo = weakref.proxy(expo)
+        self.expo: Exposure = weakref.proxy(expo)
         self.warnings: List[PrinterWarning] = []
 
     async def start(self):
@@ -169,7 +169,7 @@ class FansCheck(ExposureCheckRunner):
     async def run(self):
         # Warm-up fans
         self.logger.info("Warming up fans")
-        self.expo.hw.startFans()
+        self.expo.hw.start_fans()
         if not test_runtime.testing:
             self.logger.debug("Waiting %.2f secs for fans", defines.fanStartStopTime)
             await asyncio.sleep(defines.fanStartStopTime)
@@ -341,7 +341,7 @@ class Exposure:
             self.fatal_error = exception
             self.state = ExposureState.FAILURE
             self.hw.uv_led.off()
-            self.hw.stopFans()
+            self.hw.stop_fans()
             self.hw.motorsRelease()
             raise
         self.logger.info("Created new exposure object id: %s", self.instance_id)
@@ -1060,7 +1060,7 @@ class Exposure:
 
     def _print_end_hw_off(self):
         self.hw.uv_led.off()
-        self.hw.stopFans()
+        self.hw.stop_fans()
         self.hw.motorsRelease()
         self.hw.display.stop_counting_usage()
         self.hw.uv_led.save_usage()

@@ -41,7 +41,7 @@ class DisplayTest(DangerousCheck):
         await self.wait_cover_closed()
         await gather(self._hw.verify_tower(), self._hw.verify_tilt())
         old_state = False     # turn LEDs on for first time
-        self._hw.startFans()
+        self._hw.start_fans()
         self._exposure_image.show_system_image("logo.png")
         self._logger.debug("Registering display test user resolution callback")
         actions.report_display.register_callback(self.user_callback)
@@ -65,7 +65,7 @@ class DisplayTest(DangerousCheck):
             self._logger.debug("Finishing display test")
             self._hw.uv_led.off()
             self._hw.uv_led.save_usage()
-            self._hw.stopFans()
+            self._hw.stop_fans()
             self._exposure_image.blank_screen()
 
         if not self.result:

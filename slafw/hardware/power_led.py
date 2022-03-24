@@ -6,6 +6,7 @@ from enum import Enum
 import logging
 from abc import abstractmethod
 
+
 class PowerLedActions(str, Enum):
     Normal = 'normal'
     Warning = 'warn'
@@ -18,7 +19,7 @@ class PowerLed:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self._error_level_counter = 0
-        self._warn_level_counter  = 0
+        self._warn_level_counter = 0
 
     @property
     @abstractmethod
@@ -53,7 +54,7 @@ class PowerLed:
             if self._warn_level_counter > 0:
                 self.mode = PowerLedActions.Warning
             else:
-                self.mode =PowerLedActions.Normal
+                self.mode = PowerLedActions.Normal
         return self._error_level_counter
 
     def set_warning(self) -> int:

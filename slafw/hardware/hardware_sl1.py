@@ -46,8 +46,6 @@ from slafw.utils.value_checker import ValueChecker, UpdateInterval
 
 
 class HardwareSL1(BaseHardware):
-    FAN_CONTROL_MIN_DELAY_S = 30
-
     def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
         super().__init__(hw_config, printer_model)
 
@@ -107,40 +105,31 @@ class HardwareSL1(BaseHardware):
         )
         self.mcc.tilt_status_changed.connect(self._tilt_position_checker.set_rapid_update)
         self.mcc.tower_status_changed.connect(self._tower_position_checker.set_rapid_update)
-        self.last_rpm_control: Optional[float] = None
 
-        # Temperature sensors
-        if printer_model == PrinterModel.SL1:
+        if self._printer_model == PrinterModel.SL1:
             self.uv_led_temp = SL1TempSensorUV(self.mcc, self.config)
-        elif printer_model in (PrinterModel.SL1S, PrinterModel.M1):
+        elif self._printer_model in (PrinterModel.SL1S, PrinterModel.M1):
             self.uv_led_temp = SL1STempSensorUV(self.mcc, self.config)
         else:
             raise NotImplementedError
         self.ambient_temp = SL1TempSensorAmbient(self.mcc)
         self.cpu_temp = A64CPUTempSensor()
 
-        # Fans
         self.uv_led_fan = SL1FanUVLED(
-            self.mcc,
-            self.config,
-            self.uv_led_temp,
-            auto_control_inhibitor=lambda: self.config.rpmControlOverride
+            self.mcc, self.config, self.uv_led_temp, auto_control_inhibitor=lambda: self.config.rpmControlOverride
         )
         self.blower_fan = SL1FanBlower(self.mcc, self.config)
         self.rear_fan = SL1FanRear(self.mcc, self.config)
-        self.fans = {
-            0: self.uv_led_fan,
-            1: self.blower_fan,
-            2: self.rear_fan,
-        }
 
-        if printer_model == PrinterModel.SL1:
+        if self._printer_model == PrinterModel.SL1:
             self.uv_led = SL1UVLED(self.mcc, self.uv_led_temp)
-        elif printer_model in (PrinterModel.SL1S, PrinterModel.M1):
+        elif self._printer_model in (PrinterModel.SL1S, PrinterModel.M1):
             self.uv_led = SL1SUVLED(self.mcc, self.sl1s_booster, self.uv_led_temp)
         else:
             raise NotImplementedError
+        self.tilt = TiltSL1(self.mcc, self.config)
         self.display = PrintDisplaySL1(self.mcc)
+        self.power_led = PowerLedSL1(self.mcc)
 
         self.mcc.power_button_changed.connect(self.power_button_state_changed.emit)
         self.mcc.cover_state_changed.connect(self.cover_state_changed.emit)
@@ -179,12 +168,9 @@ class HardwareSL1(BaseHardware):
     # MUST be called before start()
     def connect(self):
         # MC have to be started first (beep, poweroff)
-        self.power_led = PowerLedSL1(self.mcc)
         self.mcc.connect(self.config.MCversionCheck)
         self.mc_sw_version_changed.emit()
         self.exposure_screen.start()
-
-        self.tilt = TiltSL1(self.mcc, self.config)
 
         if self._printer_model.options.has_booster:
             self.sl1s_booster.connect()
@@ -247,7 +233,7 @@ class HardwareSL1(BaseHardware):
         self.uv_led.pwm = self.config.uvPwm
         self.power_led.intensity = self.config.pwrLedPwm
         self.resinSensor(False)
-        self.stopFans()
+        self.stop_fans()
         if self.config.lockProfiles:
             self.logger.warning("Printer profiles will not be overwriten")
         else:
@@ -408,19 +394,11 @@ class HardwareSL1(BaseHardware):
     def getPowerswitchState(self):
         return self.mcc.checkState("button")
 
-    def startFans(self):
-        for fan in self.fans.values():
-            fan.enabled = True
-
-    def stopFans(self):
-        for fan in self.fans.values():
-            fan.enabled = False
-
     def _cpu_overheat(self, overheat: bool):
         if overheat:
             self.logger.warning("Printer is overheating! Measured %.1f °C on A64.", self.cpu_temp.value)
             if not any(fan.enabled for fan in self.fans.values()):
-                self.startFans()
+                self.start_fans()
             #self.checkCooling = True #shouldn't this start the fan check also?
 
     # --- motors ---

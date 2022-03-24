@@ -77,7 +77,7 @@ class UVWarmupCheck(DangerousCheck):
         await self.wait_cover_closed()
 
         try:
-            self._hw.startFans()
+            self._hw.start_fans()
             self._hw.uv_led.pwm = self._hw.uv_led.parameters.max_pwm
             self._exposure_image.blank_screen()
             self._hw.uv_led.on()
@@ -90,7 +90,7 @@ class UVWarmupCheck(DangerousCheck):
                     await sleep(1)
         except (Exception, CancelledError):
             self._hw.uv_led.off()
-            self._hw.stopFans()
+            self._hw.stop_fans()
             raise
 
         self._hw.uv_led.pwm = self._hw.uv_led.parameters.min_pwm
@@ -122,7 +122,7 @@ class CheckUVMeterPlacement(DangerousCheck):
                 raise UnknownUVMeasurementFailure(error)
         except (Exception, CancelledError):
             self._hw.uv_led.off()
-            self._hw.stopFans()
+            self._hw.stop_fans()
             raise
 
 
@@ -205,7 +205,7 @@ class UVCalibrateCenter(UVCalibrate):
                 await self.calibrate()
         except (Exception, CancelledError):
             self._hw.uv_led.off()
-            self._hw.stopFans()
+            self._hw.stop_fans()
             raise
 
     async def calibrate(self):
@@ -220,7 +220,7 @@ class UVCalibrateCenter(UVCalibrate):
         data = None
 
         # Calibrate LED Power
-        self._hw.startFans()
+        self._hw.start_fans()
         for iteration in range(0, self.TUNING_ITERATIONS):
             await sleep(0)
             self._hw.uv_led.pwm = round(self.pwm)
@@ -303,7 +303,7 @@ class UVCalibrateEdge(UVCalibrate):
             self._hw.uv_led.off()
             # All the previous checks stop fans in case of exception as the fans are supposed to run for the whole
             # group of checks. This one is run the last so it is supposed to turn the fans off.
-            self._hw.stopFans()
+            self._hw.stop_fans()
             self._exposure_image.blank_screen()
 
     async def calibrate(self):

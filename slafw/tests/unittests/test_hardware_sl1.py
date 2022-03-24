@@ -49,6 +49,7 @@ class TestSL1Hardware(SlafwTestCase):
 
     def patches(self) -> List[patch]:
         return super().patches() + [
+            patch("slafw.motion_controller.controller.MotionController.TEMP_UPDATE_INTERVAL_S", 0.1),
             patch("slafw.motion_controller.controller.MotionController.FAN_UPDATE_INTERVAL_S", 0.1),
             patch("slafw.hardware.base.fan.Fan.AUTO_CONTROL_INTERVAL_S", 0.1),
             patch("slafw.defines.cpuSNFile", str(self.SAMPLES_DIR / "nvmem")),
@@ -220,14 +221,13 @@ class TestSL1Hardware(SlafwTestCase):
     def test_fans(self):
         self.assertFalse(self.hw.mcc.checkState('fans'))
 
-        self.assertFalse(self.hw.uv_led_fan.enabled)
-        self.assertFalse(self.hw.blower_fan.enabled)
-        self.assertFalse(self.hw.rear_fan.enabled)
+        for fan in self.hw.fans.values():
+            self.assertFalse(fan.enabled)
 
-        self.hw.startFans()
-        self.assertTrue(self.hw.uv_led_fan.enabled)
-        self.assertTrue(self.hw.blower_fan.enabled)
-        self.assertTrue(self.hw.rear_fan.enabled)
+        self.hw.start_fans()
+
+        for fan in self.hw.fans.values():
+            self.assertTrue(fan.enabled)
 
         self.hw.uv_led_fan.enabled = True
         self.hw.blower_fan.enabled = False
@@ -237,20 +237,20 @@ class TestSL1Hardware(SlafwTestCase):
         self.assertFalse(self.hw.blower_fan.enabled)
         self.assertTrue(self.hw.rear_fan.enabled)
 
-        self.hw.stopFans()
-        self.assertFalse(self.hw.uv_led_fan.enabled)
-        self.assertFalse(self.hw.blower_fan.enabled)
-        self.assertFalse(self.hw.rear_fan.enabled)
+        self.hw.stop_fans()
+        sleep(1)  # Wait for fans to stabilize and MC to report RPMs
+        for fan in self.hw.fans.values():
+            self.assertFalse(fan.enabled)
 
-        # TODO: Unreliable
-        # self.assertEqual({ 0:False, 1:False, 2:False }, self.hw.getFansError())
+        for fan in self.hw.fans.values():
+            self.assertFalse(fan.error)
 
         # RPMs
-        self.assertEqual(0, self.hw.uv_led_fan.rpm)
-        self.assertEqual(0, self.hw.blower_fan.rpm)
-        self.assertEqual(0, self.hw.rear_fan.rpm)
-        self.hw.startFans()
-        sleep(3)  # Wait for fans to stabilize
+        for fan in self.hw.fans.values():
+            self.assertEqual(0, fan.rpm)
+
+        self.hw.start_fans()
+        sleep(1)  # Wait for fans to stabilize and MC to report RPMs
         self.assertLessEqual(self.hw.config.fan1Rpm, self.hw.uv_led_fan.rpm)  # due to rounding
         self.assertLessEqual(self.hw.config.fan2Rpm, self.hw.blower_fan.rpm)  # due to rounding
         self.assertLessEqual(self.hw.config.fan3Rpm, self.hw.rear_fan.rpm)  # due to rounding
@@ -291,6 +291,7 @@ class TestSL1Hardware(SlafwTestCase):
         self.assertGreaterEqual(self.hw.uv_led_fan.rpm, self.hw_config.rpmControlUvFanMaxRpm)
 
     def test_temperatures(self):
+        sleep(1)  # Wait for MC to report temp values
         self.assertGreaterEqual(self.hw.uv_led_temp.value, 0)
         self.assertGreaterEqual(self.hw.ambient_temp.value, 0)
         self.assertEqual(53.5, self.hw.cpu_temp.value)

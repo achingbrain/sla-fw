@@ -140,7 +140,7 @@ class ExposeDebris(DangerousCheck):
         try:  # Handle the possible interruption
             # Exposure display turn "white"
             self._exposure_image.open_screen()
-            self._hw.startFans()
+            self._hw.start_fans()
             self._hw.uv_led.on()
             start_time = time()
             finish_time = time() + self._hw.config.tankCleaningExposureTime
@@ -151,7 +151,7 @@ class ExposeDebris(DangerousCheck):
             # Return the display to black
             self._exposure_image.blank_screen()
             self._hw.uv_led.off()
-            self._hw.stopFans()
+            self._hw.stop_fans()
 
 
 class GentlyUp(Check):

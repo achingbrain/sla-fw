@@ -6,13 +6,14 @@ from slafw.motion_controller.controller import MotionController
 from slafw.errors.errors import MotionControllerException
 from slafw.hardware.power_led import PowerLedActions, PowerLed
 
+
 class PowerLedSL1(PowerLed):
 
     def __init__(self, mcc: MotionController):
         super().__init__()
         self._mcc = mcc
         self._error_level_counter = 0
-        self._warn_level_counter  = 0
+        self._warn_level_counter = 0
         self._modes = {
             # (mode, speed)
             PowerLedActions.Normal: (1, 2),

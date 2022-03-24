@@ -47,10 +47,7 @@ class HardwareMock(BaseHardware):
             maximal=defines.maxAmbientTemp,
             mock_value=Mock(return_value=26.1),
         )
-        self.cpu_temp = MockTempSensor(
-            "CPU",
-            mock_value=Mock(return_value=40)
-        )
+        self.cpu_temp = MockTempSensor("CPU", mock_value=Mock(return_value=40))
 
         self.uv_led_fan = MockFan(
             "UV LED",
@@ -130,7 +127,7 @@ class HardwareMock(BaseHardware):
     def calcPercVolume(self, _):
         return 42
 
-    def startFans(self):
+    def start_fans(self):
         for fan in self.fans.values():
             fan.enabled = True
 

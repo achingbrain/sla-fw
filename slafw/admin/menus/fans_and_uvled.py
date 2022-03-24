@@ -98,11 +98,11 @@ class FansAndUVLedMenu(AdminMenu):
     @uv_led.setter
     def uv_led(self, value: bool):
         if value:
-            self._printer.hw.startFans()
+            self._printer.hw.start_fans()
             self._printer.hw.uv_led.pwm = self._uv_pwm_print
             self._printer.hw.uv_led.on()
         else:
-            self._printer.hw.stopFans()
+            self._printer.hw.stop_fans()
             self._printer.hw.uv_led.off()
 
     def save(self):

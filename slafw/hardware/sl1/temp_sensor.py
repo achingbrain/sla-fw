@@ -53,7 +53,7 @@ class SL1TempSensor(TempSensor):
         self.value_changed.emit(None)
 
 
-class SL1XTempSensorUV(SL1TempSensor):
+class SL1xTempSensorUV(SL1TempSensor):
     def __init__(
         self,
         mcc: MotionController,
@@ -77,13 +77,13 @@ class SL1XTempSensorUV(SL1TempSensor):
         return self._value
 
 
-class SL1TempSensorUV(SL1XTempSensorUV):
+class SL1TempSensorUV(SL1xTempSensorUV):
     # pylint: disable = too-many-arguments
     def __init__(self, mcc: MotionController, config: HwConfig):
         super().__init__(mcc=mcc, index=0, config=config)
 
 
-class SL1STempSensorUV(SL1XTempSensorUV):
+class SL1STempSensorUV(SL1xTempSensorUV):
     # pylint: disable = too-many-arguments
     def __init__(self, mcc: MotionController, config: HwConfig):
         super().__init__(mcc=mcc, index=2, config=config)

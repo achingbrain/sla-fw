@@ -458,7 +458,7 @@ class Page:
         if A64temperature > defines.maxA64Temp: # 80 C
             self.logger.warning("Printer is overheating! Measured %.1f °C on A64.", A64temperature)
             if not any(fan.enabled for fan in self.display.hw.fans.values()):
-                self.display.hw.startFans()
+                self.display.hw.start_fans()
             #self.checkCooling = True #shouldn't this start the fan check also?
         #endif
     #enddef

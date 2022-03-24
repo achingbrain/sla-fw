@@ -149,7 +149,7 @@ class UVCalibrationWizard(Wizard):
             super().run()
         finally:
             self._package.hw.uv_led.off()
-            self._package.hw.stopFans()
+            self._package.hw.stop_fans()
             self._package.uv_meter.close()
 
     def wizard_failed(self):

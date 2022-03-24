@@ -259,7 +259,7 @@ class InfiniteTestMenu(AdminMenu):
 
         with WarningAction(self._printer.hw.power_led):
             self._printer.exposure_image.show_system_image("chess16.png")
-            self._printer.hw.startFans()
+            self._printer.hw.start_fans()
             self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwm
             self._printer.hw.uv_led.on()
             self._printer.hw.towerSyncWait()

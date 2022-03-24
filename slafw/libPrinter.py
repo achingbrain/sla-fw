@@ -20,6 +20,7 @@ from typing import Optional, Set, Any
 import distro
 from PySignal import Signal
 from pydbus import SystemBus
+from slafw.hardware.base.hardware import BaseHardware
 
 from slafw import defines
 from slafw.api.config0 import Config0
@@ -119,7 +120,7 @@ class Printer:
         self.logger.info(str(hw_config))
 
         self.logger.info("Initializing libHardware")
-        self.hw = HardwareSL1(hw_config, self.model)
+        self.hw: BaseHardware = HardwareSL1(hw_config, self.model)
 
         self.hw.uv_led_temp.overheat_changed.connect(self._on_uv_led_temp_overheat)
         self.hw.uv_led_fan.error_changed.connect(self._on_uv_fan_error)
@@ -651,5 +652,5 @@ class Printer:
     def hw_all_off(self):
         self.exposure_image.blank_screen()
         self.hw.uv_led.off()
-        self.hw.stopFans()
+        self.hw.stop_fans()
         self.hw.motorsRelease()

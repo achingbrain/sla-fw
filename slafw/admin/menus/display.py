@@ -190,11 +190,11 @@ class DisplayControlMenu(SafeAdminMenu):
 
     def set_uv(self, enabled: bool):
         if enabled:
-            self._printer.hw.startFans()
+            self._printer.hw.stop_fans()
             self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwmPrint  # use final UV PWM, due to possible test
             self._printer.hw.uv_led.on()
         else:
-            self._printer.hw.stopFans()
+            self._printer.hw.stop_fans()
             self._printer.hw.uv_led.off()
 
     @SafeAdminMenu.safe_call
@@ -328,7 +328,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
             self._printer.hw.tilt.move_up_wait()
 
         status.set("<h3>Tilt leveled<h3>")
-        self._printer.hw.startFans()
+        self._printer.hw.start_fans()
         self._printer.hw.uv_led.pwm = self._uv_pwm_print
         self._printer.hw.uv_led.off()
         self._printer.exposure_image.open_screen()
@@ -340,11 +340,11 @@ class DirectPwmSetMenu(SafeAdminMenu):
     @uv_led.setter
     def uv_led(self, value: bool):
         if value:
-            self._printer.hw.startFans()
+            self._printer.hw.start_fans()
             self._printer.hw.uv_led.pwm = self._uv_pwm_print
             self._printer.hw.uv_led.on()
         else:
-            self._printer.hw.stopFans()
+            self._printer.hw.stop_fans()
             self._printer.hw.uv_led.off()
 
     @property
