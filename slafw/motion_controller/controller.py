@@ -50,6 +50,8 @@ class MotionController:
     BAUD_RATE_NORMAL = 115200
     BAUD_RATE_BOOTLOADER = 19200
     TIMEOUT_SEC = 3
+    TEMP_UPDATE_INTERVAL_S = 3
+    FAN_UPDATE_INTERVAL_S = 3
 
     commOKStr = re.compile("^(.*)ok$")
     commErrStr = re.compile("^e(.)$")
@@ -584,8 +586,10 @@ class MotionController:
 
     async def _value_refresh(self):
         checkers = [
-            ValueChecker(self._get_temperatures, self.temps_changed, UpdateInterval.seconds(3)),
-            ValueChecker(self._get_fans_rpm, self.fans_rpm_changed, UpdateInterval.seconds(3)),
+            ValueChecker(
+                self._get_temperatures, self.temps_changed, UpdateInterval.seconds(self.TEMP_UPDATE_INTERVAL_S)
+            ),
+            ValueChecker(self._get_fans_rpm, self.fans_rpm_changed, UpdateInterval.seconds(self.FAN_UPDATE_INTERVAL_S)),
             ValueChecker(self._get_statistics, self.statistics_changed, UpdateInterval.seconds(30)),
         ]
         checks = [checker.check() for checker in checkers]

@@ -3,11 +3,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import asyncio
+import logging
 from abc import ABC, abstractmethod
+from asyncio import CancelledError
 from functools import cached_property, wraps
 from threading import Thread, Event, Lock
 from typing import Optional
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from slafw.configs.hw import HwConfig
 from slafw.hardware.base.fan import Fan
@@ -18,6 +20,8 @@ from slafw.tests.mocks.temp_sensor import MockTempSensor
 
 
 class TestFan(Fan):
+    AUTO_CONTROL_INTERVAL_S = 0
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._target_rpm = 0
@@ -71,7 +75,6 @@ class OutOfControlExecutor:
         self._control_performed.wait(self.MAX_CONTROL_WAIT_S)
 
 
-@patch("slafw.hardware.base.fan.Fan.AUTO_CONTROL_INTERVAL_S", 0)
 class TestBaseFan(SlafwTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -94,11 +97,18 @@ class TestBaseFan(SlafwTestCase):
         asyncio.run(self._run_components_async())
 
     async def _run_components_async(self):
-        self._task = asyncio.create_task(self.fan.run())
-        await self._task
+        try:
+            self._task = asyncio.create_task(self.fan.run())
+            await self._task
+        except CancelledError:
+            pass  # This is standard end of the test
+        except Exception:
+            logging.getLogger().exception("Test component runner exception")
+            raise
 
     def test_auto_control(self):
         with self.env_setter:
+            self.fan.target_rpm = self.fan.min_rpm
             self.temp_value.return_value = self.temp.max
         self.assertEqual(self.fan.max_rpm, self.fan.target_rpm)
 
@@ -111,22 +121,22 @@ class TestBaseFan(SlafwTestCase):
         self.assertEqual((self.fan.min_rpm + self.fan.max_rpm) / 2, self.fan.target_rpm)
 
     def test_auto_control_disable(self):
-        rpm = self.fan.target_rpm
         with self.env_setter:
             self.fan.auto_control = False
+            self.fan.target_rpm = self.fan.min_rpm
         self.temp_value.return_value = self.temp.max
-        self.assertEqual(rpm, self.fan.target_rpm)
+        self.assertEqual(self.fan.min_rpm, self.fan.target_rpm)
 
         with self.env_setter:
             self.fan.auto_control = True
         self.assertEqual(self.fan.max_rpm, self.fan.target_rpm)
 
     def test_auto_control_inhibit(self):
-        rpm = self.fan.target_rpm
         with self.env_setter:
             self.inhibitor_value.return_value = True
             self.temp_value.return_value = self.temp.max
-        self.assertEqual(rpm, self.fan.target_rpm)
+            self.fan.target_rpm = self.fan.min_rpm
+        self.assertEqual(self.fan.min_rpm, self.fan.target_rpm)
 
         with self.env_setter:
             self.inhibitor_value.return_value = False

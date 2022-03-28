@@ -8,7 +8,7 @@
 import unittest
 from time import sleep
 from typing import Optional, List
-from unittest.mock import Mock, PropertyMock, patch
+from unittest.mock import PropertyMock, patch
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
@@ -49,7 +49,8 @@ class TestSL1Hardware(SlafwTestCase):
 
     def patches(self) -> List[patch]:
         return super().patches() + [
-            patch("slafw.hardware.base.fan.Fan.AUTO_CONTROL_INTERVAL_S", 1),
+            patch("slafw.motion_controller.controller.MotionController.FAN_UPDATE_INTERVAL_S", 0.1),
+            patch("slafw.hardware.base.fan.Fan.AUTO_CONTROL_INTERVAL_S", 0.1),
             patch("slafw.defines.cpuSNFile", str(self.SAMPLES_DIR / "nvmem")),
             patch("slafw.hardware.a64.temp_sensor.A64CPUTempSensor.CPU_TEMP_PATH", self.TEMP_DIR / "cputemp"),
             patch("slafw.defines.counterLog", str(self.TEMP_DIR / "uvcounter-log.json")),
@@ -276,22 +277,18 @@ class TestSL1Hardware(SlafwTestCase):
         # self.hw_config.rpmControlOverride = True
         sleep(1)
         self.hw.uv_led_fan.auto_control = False
-        rpm = self.hw.uv_led_fan.rpm
         sleep(1)
-        self.assertEqual(rpm, self.hw.uv_led_fan.rpm)
+        self.assertEqual(self.hw.uv_led_fan.rpm, self.hw.uv_led_fan.rpm)
         # self.hw_config.rpmControlOverride = False
         self.hw.uv_led_fan.auto_control = True
-        self.hw.uv_led_temp = Mock()
         type(self.hw.uv_led_temp).value = PropertyMock(return_value=self.hw_config.rpmControlUvLedMinTemp)
         sleep(1)  # Wait for fans to stabilize
-        rpm = self.hw.uv_led_fan.rpm
-        self.assertLessEqual(self.hw_config.rpmControlUvFanMinRpm, rpm)
+        self.assertGreaterEqual(self.hw.uv_led_fan.rpm, self.hw_config.rpmControlUvFanMinRpm)
         # due to rounding in MC
         type(self.hw.uv_led_temp).value = PropertyMock(return_value=self.hw_config.rpmControlUvLedMaxTemp)
         sleep(1)  # Wait for fans to stabilize
-        rpm = self.hw.uv_led_fan.rpm
         # due to rounding in MC
-        self.assertLessEqual(self.hw_config.rpmControlUvFanMaxRpm, rpm)
+        self.assertGreaterEqual(self.hw.uv_led_fan.rpm, self.hw_config.rpmControlUvFanMaxRpm)
 
     def test_temperatures(self):
         self.assertGreaterEqual(self.hw.uv_led_temp.value, 0)
