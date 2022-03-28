@@ -58,7 +58,11 @@ class Booster:
             DAC_status = self._dac_read(self.DAC_STATUS)
         except Exception as e:
             raise BoosterError("DAC read status") from e
-        if (DAC_status & 0x3F) != 0x14:
+        if (DAC_status & 0x3F) == 0x14:
+            self._logger.info("DAC43401 (8bit) detected")
+        elif (DAC_status & 0x3F) == 0x0C:
+            self._logger.info("DAC53401 (10bit) detected")
+        else:
             raise BoosterError("DAC wrong status (0x%04X)" % DAC_status)
         # Spock! TODO something!
         if DAC_status & (1 << 12):
