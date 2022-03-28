@@ -118,7 +118,12 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
         if PrinterModel() == PrinterModel.SL1:
             self.assertEqual(
                 self.printer0.leds,
-                {"led0_voltage_volt": 0.0, "led1_voltage_volt": 0.0, "led2_voltage_volt": 0.0, "led3_voltage_volt": 17.8},
+                {
+                    "led0_voltage_volt": 0.0,
+                    "led1_voltage_volt": 0.0,
+                    "led2_voltage_volt": 0.0,
+                    "led3_voltage_volt": 24.0,
+                },
             )
         else:
             self.assertEqual(self.printer0.leds, {})
@@ -174,11 +179,11 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
     def test_temps(self):
         # SL1S, M1 have UV temp on index 2, but the simulator does not reflect the change
         if self.printer.model == PrinterModel.SL1:
-            self.assertAlmostEqual(46.7, self.printer0.uv_led_temp)
-            self.assertAlmostEqual(26.1, self.printer0.ambient_temp)
+            self.assertAlmostEqual(40, self.printer0.uv_led_temp)
+            self.assertAlmostEqual(20, self.printer0.ambient_temp)
         elif self.printer.model in (PrinterModel.SL1S, PrinterModel.M1):
-            self.assertAlmostEqual(26.1, self.printer0.uv_led_temp)
-            self.assertAlmostEqual(26.1, self.printer0.ambient_temp)
+            self.assertAlmostEqual(20, self.printer0.uv_led_temp)
+            self.assertAlmostEqual(20, self.printer0.ambient_temp)
         else:
             raise NotImplementedError
 

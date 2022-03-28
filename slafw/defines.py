@@ -10,7 +10,7 @@ from pathlib import Path
 import slafw
 from slafw import test_runtime
 
-reqMcVersion = "1.1.5"
+reqMcVersion = "1.1.7"
 
 printerVariant = "default"
 
