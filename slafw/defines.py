@@ -185,4 +185,4 @@ nginx_http_digest = Path("/etc/nginx/http_digest_enabled")
 
 printer_model_run = Path("/run/model")
 printer_model = configDir / "model"
-firstboot = Path("/tmp/firstboot")
+firstboot = Path("/run/firstboot")
