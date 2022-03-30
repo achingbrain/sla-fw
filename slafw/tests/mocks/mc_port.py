@@ -50,8 +50,14 @@ class Serial:
         if self.process:
             self.process.terminate()
             self.process.wait(timeout=3)
-            self.process.stdin.close()
-            self.process.stdout.close()
+            try:
+                self.process.stdin.close()
+            except BrokenPipeError:
+                self.logger.exception("Failed to close stdin")
+            try:
+                self.process.stdout.close()
+            except BrokenPipeError:
+                self.logger.exception("Failed to close stderr")
 
     def write(self, data: bytes):
         """

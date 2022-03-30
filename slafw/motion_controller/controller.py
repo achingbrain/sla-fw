@@ -445,28 +445,36 @@ class MotionController:
                 raise MotionControllerException("MC command resulted in non-response line", self.trace)
 
     def soft_reset(self) -> None:
-        with self._command_lock:
-            try:
-                self._read_garbage()
-                self.trace.append_trace(LineTrace(LineMarker.RESET, b"Motion controller soft reset"))
-                self.write_port("!rst\n".encode("ascii"))
+        with self._exclusive_lock, self._command_lock:
+            if self._flash_lock.acquire(blocking=False):
+                try:
+                    self._read_garbage()
+                    self.trace.append_trace(LineTrace(LineMarker.RESET, b"Motion controller soft reset"))
+                    self.write_port("!rst\n".encode("ascii"))
+                    self._ensure_ready(after_soft_reset=True)
+                except Exception as e:
+                    raise MotionControllerException("Reset failed", self.trace) from e
+                finally:
+                    self._flash_lock.release()
+            else:
+                raise MotionControllerException("MC flash in progress", self.trace)
 
-                self._ensure_ready()
-            except Exception as e:
-                raise MotionControllerException("Reset failed", self.trace) from e
-
-    def _ensure_ready(self) -> None:
+    def _ensure_ready(self, after_soft_reset=False) -> None:
         """
         Ensure MC is ready after reset/flash
         This assumes portLock to be already acquired
         """
         try:
-            self.logger.debug('"MCUSR..." read resulted in: "%s"', self.read_port_text())
+            mcusr = self.read_port_text()
+            if after_soft_reset and self.commOKStr.match(mcusr):
+                # This handles a bug in MC, !rst is sometimes not responded with ok. Correct solution is to ensure "ok"
+                # is returned and handling soft reset as general command. This just eats the "ok" in case it is present.
+                self.logger.debug("Detected \"ok\" instead of MCUSR, skipping")
+                mcusr = self.read_port_text()
+            self.logger.debug('"MCUSR..." read resulted in: "%s"', mcusr)
             ready = self.read_port_text()
             if ready != "ready":
-                self.logger.info(
-                    '"ready" read resulted in: "%s". Sleeping to ensure MC is ready.', ready,
-                )
+                self.logger.info('"ready" read resulted in: "%s". Sleeping to ensure MC is ready.', ready)
                 sleep(1.5)
                 self._read_garbage()
         except Exception as e:
