@@ -190,7 +190,7 @@ class DisplayControlMenu(SafeAdminMenu):
 
     def set_uv(self, enabled: bool):
         if enabled:
-            self._printer.hw.stop_fans()
+            self._printer.hw.start_fans()
             self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwmPrint  # use final UV PWM, due to possible test
             self._printer.hw.uv_led.on()
         else:
