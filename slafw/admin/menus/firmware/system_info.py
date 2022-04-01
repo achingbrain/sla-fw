@@ -1,5 +1,5 @@
 # This file is part of the SLA firmware
-# Copyright (C) 2021 Prusa Development a.s. - www.prusa3d.com
+# Copyright (C) 2021-2022 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from datetime import datetime, timedelta
