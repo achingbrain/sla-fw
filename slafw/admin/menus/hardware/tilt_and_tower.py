@@ -6,7 +6,7 @@ from time import sleep
 from slafw.admin.control import AdminControl
 from slafw.admin.items import AdminAction, AdminLabel
 from slafw.admin.menus.dialogs import Wait, Error
-from slafw.admin.menus.profiles_sets import ProfilesSetsMenu
+from slafw.admin.menus.hardware.profiles_sets import ProfilesSetsMenu
 from slafw.admin.safe_menu import SafeAdminMenu
 from slafw.libPrinter import Printer
 from slafw.errors.errors import TiltHomeFailed, TowerHomeFailed

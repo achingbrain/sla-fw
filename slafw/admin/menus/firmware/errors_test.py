@@ -12,7 +12,7 @@ from slafw.libPrinter import Printer
 from slafw.errors.tests import get_classes, get_instance
 
 
-class TestExceptionMenu(AdminMenu):
+class ExceptionTestMenu(AdminMenu):
 
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
@@ -41,14 +41,14 @@ class TestExceptionMenu(AdminMenu):
         self._printer.exception_occurred.emit(get_instance(cls))
 
 
-class TestWarningsMenu(TestExceptionMenu):
+class WarningsTestMenu(ExceptionTestMenu):
 
     @staticmethod
     def _get_classes_list():
         return get_classes(get_warnings=True)
 
 
-class TestErrorsMenu(TestExceptionMenu):
+class ErrorsTestMenu(ExceptionTestMenu):
 
     @staticmethod
     def _get_classes_list():

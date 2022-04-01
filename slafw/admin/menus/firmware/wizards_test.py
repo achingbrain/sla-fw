@@ -22,13 +22,12 @@ from slafw.wizard.checks.tilt import TiltTimingTest
 from slafw.wizard.checks.uvfans import UVFansTest
 
 
-class TestWizardsMenu(AdminMenu):
+class WizardsTestMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
         self._printer = printer
 
         self.add_back()
-
         self.add_items(
             (
                 AdminAction("Display test", self.api_display_test),

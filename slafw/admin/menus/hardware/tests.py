@@ -19,7 +19,7 @@ from slafw.hardware.power_led_action import WarningAction
 from slafw.image.cairo import draw_chess
 
 
-class TestHardwareMenu(AdminMenu):
+class HardwareTestMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
         self._printer = printer
@@ -29,7 +29,8 @@ class TestHardwareMenu(AdminMenu):
             (
                 AdminAction("Resin sensor test", self.resin_sensor_test),
                 AdminAction("Infinite UV calibrator test", self.infinite_uv_calibrator_test),
-                AdminAction("Infinite test", self.infinite_test),
+                AdminAction("Infinite complex test", self.infinite_test),
+                AdminAction("Touchscreen test", self._control.touchscreen_test),
             )
         )
 
@@ -38,7 +39,8 @@ class TestHardwareMenu(AdminMenu):
             Confirm(
                 self._control,
                 self.do_resin_sensor_test,
-                text="Is there the correct amount of resin in the tank?\n\nIs the tank secured with both screws?",
+                text="Is there the correct amount of resin in the tank?\n"
+                    "Is the tank secured with both screws?",
             )
         )
 
@@ -53,8 +55,9 @@ class TestHardwareMenu(AdminMenu):
             Confirm(
                 self._control,
                 self.do_infinite_test,
-                text="It is strongly recommended to NOT run this test. This is an infinite routine "
-                "which tests durability of exposition display and mechanical parts."
+                text="It is strongly recommended to NOT run this test.\n"
+                    "This is an infinite routine which tests durability\n"
+                    "of exposition display and mechanical parts.",
             )
         )
 

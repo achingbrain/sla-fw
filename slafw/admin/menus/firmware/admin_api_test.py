@@ -16,7 +16,7 @@ from slafw.admin.menu import AdminMenu
 from slafw.admin.menus.dialogs import Error, Info, Confirm, Wait
 
 
-class TestMenu(AdminMenu):
+class ApiTestMenu(AdminMenu):
     def __init__(self, control: AdminControl):
         super().__init__(control)
         self._a = 42
@@ -26,13 +26,13 @@ class TestMenu(AdminMenu):
         self._run = True
 
         self.add_back()
-        self.add_item(AdminTextValue.from_property(self, TestMenu.text))
+        self.add_item(AdminTextValue.from_property(self, ApiTestMenu.text))
         self.add_item(AdminAction("Print hello", self.print_hello))
         self.add_label(
             "Long text Long text Long text Long text Long" " text Long text Long text Long text Long text Long text"
         )
-        self.add_item(AdminIntValue.from_property(self, TestMenu.a, 1))
-        self.add_item(AdminIntValue.from_property(self, TestMenu.b, 3))
+        self.add_item(AdminIntValue.from_property(self, ApiTestMenu.a, 1))
+        self.add_item(AdminIntValue.from_property(self, ApiTestMenu.b, 3))
         self.add_item(AdminAction("Test 2", self.test2))
         self.add_label("<center>Centered</center><br/><h1>Headline</h1>")
         self.add_item(AdminAction("<b>Exit</b>", self.exit))

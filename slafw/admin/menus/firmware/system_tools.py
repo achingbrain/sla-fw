@@ -12,6 +12,14 @@ from slafw.admin.control import AdminControl
 from slafw.admin.items import AdminAction, AdminTextValue, AdminBoolValue, AdminLabel
 from slafw.admin.menus.dialogs import Error, Wait
 from slafw.admin.safe_menu import SafeAdminMenu
+from slafw.configs.runtime import RuntimeConfig
+from slafw.hardware.base.hardware import BaseHardware
+from slafw.states.wizard import WizardId
+from slafw.wizard.actions import UserActionBroker
+from slafw.wizard.checks.factory_reset import SendPrinterData
+from slafw.wizard.group import CheckGroup
+from slafw.wizard.setup import Configuration
+from slafw.wizard.wizard import Wizard, WizardDataPackage
 from slafw.errors.errors import FailedUpdateChannelSet
 from slafw.functions.system import (
     FactoryMountedRW,
@@ -43,6 +51,7 @@ class SystemToolsMenu(SafeAdminMenu):
                 AdminBoolValue.from_property(self, SystemToolsMenu.factory_mode),
                 AdminBoolValue.from_property(self, SystemToolsMenu.ssh),
                 AdminBoolValue.from_property(self, SystemToolsMenu.serial),
+                AdminAction("Send wizard data", self._send_printer_data),
                 AdminAction("Fake setup", self._fake_setup),
                 AdminAction("Download examples", self._download_examples),
             )
@@ -119,6 +128,10 @@ class SystemToolsMenu(SafeAdminMenu):
         self.systemd.Reload()
         self.systemd.StopUnit(service, "replace")
 
+    @SafeAdminMenu.safe_call
+    def _send_printer_data(self):
+        self._printer.action_manager.start_wizard(SendPrinterDataWizard(self._printer.hw, self._printer.runtime_config))
+
     def _fake_setup(self):
         self.enter(Wait(self._control, self._do_fake_setup))
 
@@ -142,12 +155,15 @@ class SystemToolsMenu(SafeAdminMenu):
     def _download_examples(self):
         self.enter(Wait(self._control, self._do_download_examples))
 
-    @SafeAdminMenu.safe_call
     def _do_download_examples(self, status: AdminLabel):
         status.set("Downloading examples")
         examples = Examples(self._printer.inet, self._printer.model)
         examples.start()
         examples.join()
+        if examples.exception:
+            self._control.enter(
+                Error(self._control, text=str(examples.exception), headline="Failed to download examples", pop=2)
+            )
 
     def _switch_m1(self):
         self.enter(Wait(self._control, self._do_switch_m1))
@@ -176,16 +192,53 @@ class SystemToolsMenu(SafeAdminMenu):
             self._control.enter(
                 Error(self._control, text="Failed to set update channel", pop=2)
             )
+            return
         status.set("Setting printer model")
-        set_configured_printer_model(printer_model)
+        try:
+            set_configured_printer_model(printer_model)
+        except Exception:
+            self.logger.exception("Failed to set printer model")
+            self._control.enter(
+                Error(self._control, text="Failed to set printer model", pop=2)
+            )
+            return
         status.set("Setting hostname")
-        reset_hostname()
+        try:
+            reset_hostname()
+        except Exception:
+            self.logger.exception("Failed to set hostname")
+            self._control.enter(
+                Error(self._control, text="Failed to set hostname", pop=2)
+            )
+            return
         # new examples remove the old ones
         status.set("Downloading examples")
         examples = Examples(self._printer.inet, printer_model)
         examples.start()
         examples.join()
+        if examples.exception:
+            self._control.enter(
+                Error(self._control, text=str(examples.exception), headline="Failed to download examples", pop=2)
+            )
+            return
         shut_down(self._printer.hw, reboot=True)
+
+
+class SendPrinterDataGroup(CheckGroup):
+    async def setup(self, actions: UserActionBroker):
+        pass
+
+    def __init__(self, hw: BaseHardware):
+        super().__init__(Configuration(None, None), (SendPrinterData(hw),))
+
+
+class SendPrinterDataWizard(Wizard):
+    def __init__(self, hw: BaseHardware, runtime_config: RuntimeConfig):
+        super().__init__(
+            WizardId.PACKING,
+            (SendPrinterDataGroup(hw),),
+            WizardDataPackage(hw, hw.config.get_writer(), runtime_config),
+        )
 
 
 class SetChannelMenu(SafeAdminMenu):

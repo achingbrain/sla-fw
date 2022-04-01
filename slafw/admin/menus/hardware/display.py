@@ -27,7 +27,7 @@ from slafw.libUvLedMeterMulti import UvLedMeterMulti
 from slafw.hardware.power_led_action import WarningAction
 from slafw.image import cairo
 
-class DisplayRootMenu(AdminMenu):
+class ExposureDisplayMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
         self._printer = printer
@@ -36,11 +36,11 @@ class DisplayRootMenu(AdminMenu):
         self.add_items(
             (
                 AdminAction(
-                    "Display service",
+                    "Exposure display service",
                     lambda: self._control.enter(DisplayServiceMenu(self._control, self._printer))
                 ),
                 AdminAction(
-                    "Display control",
+                    "Exposure display control",
                     lambda: self._control.enter(DisplayControlMenu(self._control, self._printer))
                 ),
                 AdminAction(
@@ -60,7 +60,7 @@ class DisplayServiceMenu(SafeAdminMenu):
         self.add_items(
             (
                 AdminAction("Erase UV LED counter", self.erase_uv_led_counter),
-                AdminAction("Erase Display counter", self.erase_display_counter),
+                AdminAction("Erase display counter", self.erase_display_counter),
                 AdminAction(
                     "Show UV calibration data",
                     lambda: self._control.enter(ShowCalibrationMenu(self._control, self._printer))
@@ -77,8 +77,8 @@ class DisplayServiceMenu(SafeAdminMenu):
             Confirm(
                 self._control,
                 self._do_erase_uv_led_counter,
-                text=f"Do you really want to clear the UV LED counter?\n\n"
-                f"UV counter: {timedelta(seconds=self._printer.hw.uv_led.usage_s)}\n"
+                headline="Do you really want to clear the UV LED counter?",
+                text=f"UV counter: {timedelta(seconds=self._printer.hw.uv_led.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )
@@ -89,8 +89,8 @@ class DisplayServiceMenu(SafeAdminMenu):
         self._control.enter(
             Info(
                 self._control,
-                text="UV counter has been erased.\n\n"
-                f"UV counter: {timedelta(seconds=self._printer.hw.uv_led.usage_s)}\n"
+                headline="UV counter has been erased.",
+                text=f"UV counter: {timedelta(seconds=self._printer.hw.uv_led.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )
@@ -106,8 +106,8 @@ class DisplayServiceMenu(SafeAdminMenu):
             Confirm(
                 self._control,
                 self._do_erase_display_counter,
-                text=f"Do you really want to clear the Display counter?\n\n"
-                f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}\n"
+                headline="Do you really want to clear the Display counter?",
+                text=f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )
@@ -118,8 +118,8 @@ class DisplayServiceMenu(SafeAdminMenu):
         self._control.enter(
             Info(
                 self._control,
-                text="Display counter has been erased.\n\n"
-                f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}\n"
+                headline="Display counter has been erased.",
+                text=f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}\n"
                 f"Serial number: {self._printer.hw.cpuSerialNo}\n"
                 f"IP address: {self._printer.inet.ip}",
             )

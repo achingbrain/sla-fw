@@ -26,8 +26,9 @@ class SafeAdminMenu(AdminMenu):
                 try:
                     obj(*args, **kwargs)
                 except Exception as exception:
+                    text = f"{type(exception).__name__}\n{Exception.__str__(exception)}"
                     self._control.enter(
-                        Error(self._control, text=f"{type(exception)}:{exception}", headline="Failed to execute admin action", pop=1)
+                        Error(self._control, text=text, headline="Failed to execute admin action", pop=1)
                     )
                     raise
 
