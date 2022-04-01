@@ -513,6 +513,7 @@ class Printer:
         threading.Thread(target=self._make_ready_to_print, daemon=True).start()
 
     def _make_ready_to_print(self):
+        passing = True
         if not self.runtime_config.factory_mode and self.hw.config.showUnboxing:
             if self.hw.isKit:
                 unboxing = self.action_manager.start_wizard(
@@ -525,36 +526,40 @@ class Printer:
             self.logger.info("Running unboxing wizard")
             self.set_state(PrinterState.WIZARD, active=True)
             unboxing.join()
+            passing = unboxing.state is WizardState.DONE
             self.logger.info("Unboxing wizard finished")
 
-        if self._run_expo_panel_wizard:
+        if self._run_expo_panel_wizard and passing:
             self.logger.info("Running new expo panel wizard")
             new_expo_panel_wizard = self.action_manager.start_wizard(
                 NewExpoPanelWizard(self.hw), handle_state_transitions=False
             )
             self.set_state(PrinterState.WIZARD, active=True)
             new_expo_panel_wizard.join()
+            passing = new_expo_panel_wizard.state is WizardState.DONE
             self.logger.info("New expo panel wizard finished")
 
-        if self.hw.config.showWizard:
+        if self.hw.config.showWizard and passing:
             self.logger.info("Running selftest wizard")
             selftest = self.action_manager.start_wizard(
                 SelfTestWizard(self.hw, self.exposure_image, self.runtime_config), handle_state_transitions=False
             )
             self.set_state(PrinterState.WIZARD, active=True)
             selftest.join()
+            passing = selftest.state is WizardState.DONE
             self.logger.info("Selftest wizard finished")
 
-        if not self.hw.config.calibrated:
+        if not self.hw.config.calibrated and passing:
             self.logger.info("Running calibration wizard")
             calibration = self.action_manager.start_wizard(
                 CalibrationWizard(self.hw, self.runtime_config), handle_state_transitions=False
             )
             self.set_state(PrinterState.WIZARD, active=True)
             calibration.join()
+            passing = calibration.state is WizardState.DONE
             self.logger.info("Calibration wizard finished")
 
-        if not self.uv_calibrated:
+        if not self.uv_calibrated and passing:
             # delete also both counters and save calibration to factory partition. It's new KIT or something went wrong.
             self.logger.info("Running UV calibration wizard")
             uv_calibration = self.action_manager.start_wizard(
@@ -565,6 +570,7 @@ class Printer:
             )
             self.set_state(PrinterState.WIZARD, active=True)
             uv_calibration.join()
+            passing = uv_calibration.state is WizardState.DONE
             self.logger.info("UV calibration wizard finished")
 
         self.set_state(PrinterState.WIZARD, active=False)
