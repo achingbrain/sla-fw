@@ -43,12 +43,23 @@ class ExposureDisplayMenu(AdminMenu):
                     "Exposure display control",
                     lambda: self._control.enter(DisplayControlMenu(self._control, self._printer))
                 ),
-                AdminAction(
-                    "Direct UV PWM settings",
-                    lambda: self._control.enter(DirectPwmSetMenu(self._control, self._printer))
-                ),
+                AdminAction("Direct UV PWM settings", self.enter_direct_uvpwm),
             )
         )
+
+    def enter_direct_uvpwm(self):
+        self._control.enter(
+            Confirm(
+                self._control,
+                self._do_enter_direct_uvpwm,
+                headline="Do you really want to enter the menu?",
+                text="It will turn on the UV LED, open the exposure display\n"
+                "and move the tilt. Do not enter during active print job.",
+            )
+        )
+
+    def _do_enter_direct_uvpwm(self):
+        self._control.enter(DirectPwmSetMenu(self._control, self._printer))
 
 
 class DisplayServiceMenu(SafeAdminMenu):
@@ -192,7 +203,6 @@ class DisplayControlMenu(SafeAdminMenu):
 
     def on_leave(self):
         self._printer.hw.uv_led.save_usage()
-        self._printer.hw_all_off()
 
     def get_uv(self):
         return self._printer.hw.uv_led.active
@@ -309,7 +319,6 @@ class DirectPwmSetMenu(SafeAdminMenu):
                 uv_pwm_tune_item,
                 AdminLabel.from_property(self, DirectPwmSetMenu.status),
                 AdminAction("Show measured data", functools.partial(self.show_calibration)),
-                AdminAction("Save", self.save),
             )
         )
         self._thread = Thread(target=self._measure)
@@ -330,8 +339,11 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._run = False
         self._printer.hw_all_off()
         self._printer.hw.uv_led.save_usage()
-        if self._temp.changed():
-            self._control.enter(Info(self._control, "Configuration has been changed but NOT saved."))
+        self._temp.commit(write=True)
+        if self._data:
+            file_path = defines.wizardHistoryPathFactory / f"{defines.manual_uvc_filename}.{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+            with file_path.open("w") as file:
+                json.dump(asdict(self._data), file, indent=2, sort_keys=True)
         self._thread.join()
 
     def _measure(self):
@@ -372,7 +384,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
         status.set("<h3>Tilt leveled<h3>")
         self._printer.hw.start_fans()
         self._printer.hw.uv_led.pwm = self._uv_pwm_print
-        self._printer.hw.uv_led.off()
+        self._printer.hw.uv_led.on()
         self._printer.exposure_image.open_screen()
 
     @property
@@ -404,15 +416,6 @@ class DirectPwmSetMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def close(self):
         self._printer.exposure_image.blank_screen()
-
-    @SafeAdminMenu.safe_call
-    def save(self):
-        self._temp.commit(write=True)
-        if self._data:
-            file_path = defines.wizardHistoryPathFactory / f"{defines.manual_uvc_filename}.{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
-            with file_path.open("w") as file:
-                json.dump(asdict(self._data), file, indent=2, sort_keys=True)
-        self._control.enter(Info(self._control, "Configuration saved"))
 
     def _uv_pwm_changed(self):
         # TODO: simplify work with config and config writer
