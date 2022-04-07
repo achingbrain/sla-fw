@@ -47,7 +47,7 @@ class TemperatureTest(Check):
         self._logger.info("Checking MC temperatures")
         uv = self._hw.uv_led_temp
         if not uv.min < uv.value < uv.critical:
-            raise TempSensorNotInRange(HardwareDeviceId.UV_LED_TEMP.value, uv.min, uv.max)
+            raise TempSensorNotInRange(HardwareDeviceId.UV_LED_TEMP.value, uv.value, uv.min, uv.max)
 
         ambient = self._hw.ambient_temp
         if not ambient.min < ambient.value < ambient.max:
