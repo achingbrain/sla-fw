@@ -6,8 +6,9 @@ from slafw.libPrinter import Printer
 from slafw.admin.control import AdminControl
 from slafw.admin.items import AdminIntValue, AdminBoolValue, AdminAction
 from slafw.admin.safe_menu import SafeAdminMenu
+from slafw.admin.menus.dialogs import Info, Confirm
 from slafw.admin.menus.settings.base import SettingsMenu
-from slafw.admin.menus.dialogs import Info
+from slafw.admin.menus.settings.direct_uvpwm import DirectPwmSetMenu
 
 
 class UVLedMenu(SettingsMenu):
@@ -25,6 +26,7 @@ class UVLedMenu(SettingsMenu):
 
         self.add_items(
             (
+                AdminAction("Direct UV PWM settings", self.enter_direct_uvpwm),
                 AdminBoolValue.from_value("UV LED", self, "uv_led"),
                 uv_pwm_item,
                 uv_pwm_tune_item,
@@ -64,3 +66,17 @@ class UVLedMenu(SettingsMenu):
         # TODO: simplify work with config and config writer
         self._uv_pwm_print = self._temp.uvPwm + self._temp.uvPwmTune
         self._printer.hw.uv_led.pwm = self._uv_pwm_print
+
+    def enter_direct_uvpwm(self):
+        self._control.enter(
+            Confirm(
+                self._control,
+                self._do_enter_direct_uvpwm,
+                headline="Do you really want to enter the menu?",
+                text="It will turn on the UV LED, open the exposure display\n"
+                "and move the tilt. Do not enter during active print job.",
+            )
+        )
+
+    def _do_enter_direct_uvpwm(self):
+        self._control.enter(DirectPwmSetMenu(self._control, self._printer))
