@@ -16,15 +16,14 @@ from slafw.admin.menus.firmware.tests import FirmwareTestMenu
 class FirmwareRoot(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
-        self._printer = printer
 
         self.add_back()
         self.add_items(
             (
-                AdminAction("Net update", lambda: self.enter(NetUpdate(self._control, self._printer))),
-                AdminAction("Logging", lambda: self.enter(LoggingMenu(self._control, self._printer))),
-                AdminAction("System tools", lambda: self.enter(SystemToolsMenu(self._control, self._printer))),
-                AdminAction("System information", lambda: self.enter(SystemInfoMenu(self._control, self._printer))),
-                AdminAction("Firmware tests", lambda: self.enter(FirmwareTestMenu(self._control, self._printer))),
+                AdminAction("Net update", lambda: self.enter(NetUpdate(self._control, printer))),
+                AdminAction("Logging", lambda: self.enter(LoggingMenu(self._control, printer))),
+                AdminAction("System tools", lambda: self.enter(SystemToolsMenu(self._control, printer))),
+                AdminAction("System information", lambda: self.enter(SystemInfoMenu(self._control, printer))),
+                AdminAction("Firmware tests", lambda: self.enter(FirmwareTestMenu(self._control, printer))),
             ),
         )

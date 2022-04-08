@@ -14,13 +14,12 @@ from slafw.admin.menus.firmware.root import FirmwareRoot
 class RootMenu(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
-        self._printer = printer
 
         self.add_items(
             (
                 AdminAction("<b>Leave admin</b>", self.exit),
-                AdminAction("Settings", lambda: self.enter(SettingsRoot(self._control, self._printer))),
-                AdminAction("Hardware", lambda: self.enter(HardwareRoot(self._control, self._printer))),
-                AdminAction("Firmware", lambda: self.enter(FirmwareRoot(self._control, self._printer))),
+                AdminAction("Settings", lambda: self.enter(SettingsRoot(self._control, printer))),
+                AdminAction("Hardware", lambda: self.enter(HardwareRoot(self._control, printer))),
+                AdminAction("Firmware", lambda: self.enter(FirmwareRoot(self._control, printer))),
             ),
         )

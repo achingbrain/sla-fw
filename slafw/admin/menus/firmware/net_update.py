@@ -27,7 +27,7 @@ class NetUpdate(AdminMenu):
         self._status = "Downloading list of updates"
 
         self.add_back()
-        self.add_label("<h2>Custom updates to latest dev builds</h2>")
+        self.add_label("<b>Custom updates to latest dev builds</b>")
         self.add_item(AdminTextValue.from_property(self, NetUpdate.status))
 
         self._thread = Thread(target=self._download_list)

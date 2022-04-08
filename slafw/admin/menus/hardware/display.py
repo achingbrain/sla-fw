@@ -2,7 +2,6 @@
 # Copyright (C) 2021-2022 Prusa Development a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import functools
 import json
 from datetime import timedelta, datetime
 from itertools import chain
@@ -74,7 +73,7 @@ class DisplayServiceMenu(SafeAdminMenu):
                 AdminAction("Erase display counter", self.erase_display_counter),
                 AdminAction(
                     "Show UV calibration data",
-                    lambda: self._control.enter(ShowCalibrationMenu(self._control, self._printer))
+                    lambda: self._control.enter(ShowCalibrationMenu(self._control))
                 ),
                 AdminAction("Display usage heatmap", self.display_usage_heatmap),
             )
@@ -147,9 +146,8 @@ class DisplayServiceMenu(SafeAdminMenu):
 
 
 class ShowCalibrationMenu(SafeAdminMenu):
-    def __init__(self, control: AdminControl, printer: Printer):
+    def __init__(self, control: AdminControl):
         super().__init__(control)
-        self._printer = printer
 
         self.add_back()
         data_paths = (
@@ -165,7 +163,7 @@ class ShowCalibrationMenu(SafeAdminMenu):
         if filenames:
             for fn in filenames:
                 prefix = "F:" if fn.parent == defines.wizardHistoryPathFactory else "U:"
-                self.add_item(AdminAction(prefix + fn.name, functools.partial(self.show_calibration, fn)))
+                self.add_item(AdminAction(prefix + fn.name, partial(self.show_calibration, fn)))
         else:
             self.add_label("(no data)")
 
@@ -318,7 +316,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
                 uv_pwm_item,
                 uv_pwm_tune_item,
                 AdminLabel.from_property(self, DirectPwmSetMenu.status),
-                AdminAction("Show measured data", functools.partial(self.show_calibration)),
+                AdminAction("Show measured data", partial(self.show_calibration)),
             )
         )
         self._thread = Thread(target=self._measure)
@@ -339,7 +337,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._run = False
         self._printer.hw_all_off()
         self._printer.hw.uv_led.save_usage()
-        self._temp.commit(write=True)
+        self._temp.commit()
         if self._data:
             file_path = defines.wizardHistoryPathFactory / f"{defines.manual_uvc_filename}.{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
             with file_path.open("w") as file:

@@ -4,7 +4,6 @@
 
 import logging
 from collections import OrderedDict
-from functools import partial
 from typing import Dict, Optional, Iterable
 
 from PySignal import Signal
@@ -17,20 +16,6 @@ from slafw.admin.items import (
     AdminAction,
     AdminLabel,
 )
-
-
-def part(func, *args, **kwargs):
-    """
-    None aware partial function
-
-    :param func: Function, can be None
-    :param obj: Parameters
-    :return: Function with params fixed or None if no input function
-    """
-    if not func:
-        return func
-
-    return partial(func, *args, **kwargs)
 
 
 class AdminMenu(AdminMenuBase):

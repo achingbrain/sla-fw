@@ -15,17 +15,16 @@ from slafw.admin.menus.hardware.tilt_and_tower import TiltAndTowerMenu
 class HardwareRoot(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
-        self._printer = printer
 
         self.add_back()
         self.add_items(
             (
-                AdminAction("Exposure display", lambda: self.enter(ExposureDisplayMenu(self._control, self._printer))),
+                AdminAction("Exposure display", lambda: self.enter(ExposureDisplayMenu(self._control, printer))),
                 # TODO separate Tilt and Tower
-                AdminAction("Tilt and tower", lambda: self.enter(TiltAndTowerMenu(self._control, self._printer))),
+                AdminAction("Tilt and tower", lambda: self.enter(TiltAndTowerMenu(self._control, printer))),
                 AdminAction(
-                    "Motion controller", lambda: self.enter(MotionControllerMenu(self._control, self._printer))
+                    "Motion controller", lambda: self.enter(MotionControllerMenu(self._control, printer))
                 ),
-                AdminAction("Hardware tests", lambda: self.enter(HardwareTestMenu(self._control, self._printer))),
+                AdminAction("Hardware tests", lambda: self.enter(HardwareTestMenu(self._control, printer))),
             ),
         )
