@@ -19,24 +19,24 @@ class UVLedMenu(SettingsMenu):
 
         self._uv_pwm_print = self._temp.uvPwmPrint
 
-        uv_pwm_item = AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1)
+        uv_pwm_item = AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1, "uv_calibration")
         uv_pwm_item.changed.connect(self._uv_pwm_changed)
-        uv_pwm_tune_item = AdminIntValue.from_value("UV LED PWM fine tune", self._temp, "uvPwmTune", 1)
+        uv_pwm_tune_item = AdminIntValue.from_value("UV LED PWM fine tune", self._temp, "uvPwmTune", 1, "change_color")
         uv_pwm_tune_item.changed.connect(self._uv_pwm_changed)
 
         self.add_items(
             (
-                AdminAction("Direct UV PWM settings", self.enter_direct_uvpwm),
-                AdminBoolValue.from_value("UV LED", self, "uv_led"),
+                AdminAction("Direct UV PWM settings", self.enter_direct_uvpwm, "display_test_color"),
+                AdminBoolValue.from_value("UV LED", self, "uv_led", "led_set_replacement"),
                 uv_pwm_item,
                 uv_pwm_tune_item,
-                AdminIntValue.from_value("UV calib. warm-up [s]", self._temp, "uvWarmUpTime", 1),
-                AdminIntValue.from_value("UV calib. intensity", self._temp, "uvCalibIntensity", 1),
-                AdminIntValue.from_value("UV cal. min. int. edge", self._temp, "uvCalibMinIntEdge", 1),
+                AdminIntValue.from_value("UV calibration warm-up [s]", self._temp, "uvWarmUpTime", 1, "exposure_times_color"),
+                AdminIntValue.from_value("UV calibration intensity", self._temp, "uvCalibIntensity", 1, "brightness_color"),
+                AdminIntValue.from_value("UV calibration min. intensity edge", self._temp, "uvCalibMinIntEdge", 1, "brightness_color"),
             )
         )
         if self._printer.model.options.has_booster:
-            self.add_item(AdminAction("Write PWM to booster board", self._write_to_booster))
+            self.add_item(AdminAction("Write PWM to booster board", self._write_to_booster, "firmware-icon"))
 
     def on_leave(self):
         super().on_leave()

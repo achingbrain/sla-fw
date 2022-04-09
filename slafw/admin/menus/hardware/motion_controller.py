@@ -20,10 +20,14 @@ class MotionControllerMenu(SafeAdminMenu):
         self._printer = printer
 
         self.add_back()
-        self.add_item(AdminAction("Flash MC", self.flash_mc))
-        self.add_item(AdminAction("Erase MC EEPROM", self.erase_mc_eeprom))
-        self.add_item(AdminAction("MC2Net (bootloader)", self.mc2net_boot))
-        self.add_item(AdminAction("MC2Net (firmware)", self.mc2net_firmware))
+        self.add_items(
+            (
+                AdminAction("Flash MC", self.flash_mc, "firmware-icon"),
+                AdminAction("Erase MC EEPROM", self.erase_mc_eeprom, "delete_small_white"),
+                AdminAction("MC2Net (bootloader)", self.mc2net_boot, "remote_small_white"),
+                AdminAction("MC2Net (firmware)", self.mc2net_firmware, "remote_control_color"),
+            ),
+        )
 
     def flash_mc(self):
         self._control.enter(
@@ -47,7 +51,7 @@ class MotionControllerMenu(SafeAdminMenu):
             Confirm(
                 self._control,
                 self._do_erase_mc_eeprom,
-                text="This will erase all profiles and other motion controller settings.",
+                text="This will erase all profiles\nand other motion controller settings.",
             )
         )
 
@@ -67,7 +71,7 @@ class MotionControllerMenu(SafeAdminMenu):
             Confirm(
                 self._control,
                 partial(self._do_mc2net, True),
-                text="This will freeze the printer and connect the MC bootloader to TCP port.",
+                text="This will freeze the printer\nand connect the MC bootloader to TCP port.",
             )
         )
 
@@ -91,10 +95,11 @@ class MotionControllerMenu(SafeAdminMenu):
         self._control.enter(
             Info(
                 self._control,
-                text="Listening for motion controller debugging connection.\n\n"
-                f"Serial line is redirected to {ip}:{defines.mc_debug_port}.\n\n"
-                "Press continue to use the printer. The debugging will begin with new connection"
-                "and will end as soon as the connection terminates.",
+                headline="Listening for motion controller debugging connection.",
+                text=f"Serial line is redirected to {ip}:{defines.mc_debug_port}.\n\n"
+                "Press continue to use the printer. The debugging will\n"
+                "begin with new connection and will end as soon as\n"
+                "the connection terminates.",
                 pop=2,
             )
         )

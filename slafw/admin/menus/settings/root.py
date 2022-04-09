@@ -23,13 +23,13 @@ class SettingsRoot(AdminMenu):
         self.add_back()
         self.add_items(
             (
-                AdminAction("Fans", lambda: self.enter(FansMenu(self._control, self._printer))),
-                AdminAction("UV LED", lambda: self.enter(UVLedMenu(self._control, self._printer))),
-                AdminAction("Hardware setup", lambda: self.enter(HardwareSettingsMenu(self._control, self._printer))),
-                AdminAction("Exposure setup", lambda: self.enter(ExposureSettingsMenu(self._control, self._printer))),
-                AdminAction("All config items", lambda: self.enter(HwConfigMenu(self._control, self._printer))),
-                AdminAction("Restore configuration to factory defaults", self.reset_to_defaults),
-                AdminAction("Save configuration as factory defaults", self.save_as_defaults),
+                AdminAction("Fans", lambda: self.enter(FansMenu(self._control, self._printer)), "fan_color"),
+                AdminAction("UV LED", lambda: self.enter(UVLedMenu(self._control, self._printer)), "led_set_replacement"),
+                AdminAction("Hardware setup", lambda: self.enter(HardwareSettingsMenu(self._control, self._printer)), "firmware-icon"),
+                AdminAction("Exposure setup", lambda: self.enter(ExposureSettingsMenu(self._control, self._printer)), "change_color"),
+                AdminAction("All config items", lambda: self.enter(HwConfigMenu(self._control, self._printer)), "edit_white"),
+                AdminAction("Restore configuration to factory defaults", self.reset_to_defaults, "factory_color"),
+                AdminAction("Save configuration as factory defaults", self.save_as_defaults, "save_color"),
             ),
         )
 

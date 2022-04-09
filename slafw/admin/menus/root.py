@@ -17,9 +17,9 @@ class RootMenu(AdminMenu):
 
         self.add_items(
             (
-                AdminAction("<b>Leave admin</b>", self.exit),
-                AdminAction("Settings", lambda: self.enter(SettingsRoot(self._control, printer))),
-                AdminAction("Hardware", lambda: self.enter(HardwareRoot(self._control, printer))),
-                AdminAction("Firmware", lambda: self.enter(FirmwareRoot(self._control, printer))),
+                AdminAction("<b>Leave admin</b>", self.exit, "back_arrow_white"),
+                AdminAction("Settings", lambda: self.enter(SettingsRoot(self._control, printer)), "settings_color"),
+                AdminAction("Hardware", lambda: self.enter(HardwareRoot(self._control, printer)), "usb_color"),
+                AdminAction("Firmware", lambda: self.enter(FirmwareRoot(self._control, printer)), "firmware-icon"),
             ),
         )

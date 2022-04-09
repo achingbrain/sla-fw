@@ -39,6 +39,11 @@ class Admin0ActionItem:
         return self._item.name
 
     @auto_dbus
+    @property
+    def icon(self) -> str:
+        return self._item.icon
+
+    @auto_dbus
     def execute(self):
         print(f"Running action: {self.name}")
         self._item.execute()
@@ -61,6 +66,11 @@ class Admin0IntValueItem:
     @property
     def name(self) -> str:
         return self._item.name
+
+    @auto_dbus
+    @property
+    def icon(self) -> str:
+        return self._item.icon
 
     @auto_dbus
     @property
@@ -98,6 +108,11 @@ class Admin0FixedValueItem:
     @property
     def name(self) -> str:
         return self._item.name
+
+    @auto_dbus
+    @property
+    def icon(self) -> str:
+        return self._item.icon
 
     @auto_dbus
     @property
@@ -143,6 +158,11 @@ class Admin0FloatValueItem:
 
     @auto_dbus
     @property
+    def icon(self) -> str:
+        return self._item.icon
+
+    @auto_dbus
+    @property
     def value(self) -> float:
         return self._item.get_value()
 
@@ -180,6 +200,11 @@ class Admin0BoolValueItem:
 
     @auto_dbus
     @property
+    def icon(self) -> str:
+        return self._item.icon
+
+    @auto_dbus
+    @property
     def value(self) -> bool:
         return self._item.get_value()
 
@@ -209,6 +234,11 @@ class Admin0TextValueItem:
     @property
     def name(self) -> str:
         return self._item.name
+
+    @auto_dbus
+    @property
+    def icon(self) -> str:
+        return self._item.icon
 
     @auto_dbus
     @property

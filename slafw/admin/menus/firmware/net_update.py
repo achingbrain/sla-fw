@@ -27,8 +27,8 @@ class NetUpdate(AdminMenu):
         self._status = "Downloading list of updates"
 
         self.add_back()
-        self.add_label("<b>Custom updates to latest dev builds</b>")
-        self.add_item(AdminTextValue.from_property(self, NetUpdate.status))
+        self.add_label("<b>Custom updates to latest dev builds</b>", "network-icon")
+        self.add_item(AdminTextValue.from_property(self, NetUpdate.status, "sandclock_color"))
 
         self._thread = Thread(target=self._download_list)
         self._thread.start()
@@ -55,7 +55,7 @@ class NetUpdate(AdminMenu):
             firmwares = json.load(list_file)
             self.add_items(
                 [
-                    AdminAction(firmware["version"], functools.partial(self._install_fw, firmware))
+                    AdminAction(firmware["version"], functools.partial(self._install_fw, firmware), "firmware-icon")
                     for firmware in firmwares
                 ]
             )
@@ -69,7 +69,7 @@ class NetUpdate(AdminMenu):
             Confirm(
                 self._control,
                 functools.partial(self._do_install_fw, firmware),
-                text=f"Really install firmware: {firmware['version']}",
+                headline=f"Really install firmware: {firmware['version']}?",
             )
         )
 
@@ -85,8 +85,8 @@ class FwInstall(AdminMenu):
         self._firmware = firmware
         self._status = "Downloading firmware"
 
-        self.add_label(f"<h2>Updating firmware</h2><br/>Version: {self._firmware['version']}")
-        self.add_item(AdminTextValue.from_property(self, FwInstall.status))
+        self.add_label(f"<b>Updating firmware</b>\nVersion: {self._firmware['version']}", "sandclock_color")
+        self.add_item(AdminTextValue.from_property(self, FwInstall.status, "sandclock_color"))
 
         self._thread = Thread(target=self._install, daemon=True)
         self._thread.start()
@@ -117,6 +117,7 @@ class FwInstall(AdminMenu):
             rauc.InstallBundle(fw_file, dict())
         except Exception as e:
             self._logger.error("Rauc install call failed: %s", str(e))
+            self._control.enter(Error(self._control, text="Firmware install failed"))
             return
 
         self.status = "Updating firmware"

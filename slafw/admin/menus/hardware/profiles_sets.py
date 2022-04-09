@@ -32,9 +32,9 @@ class ProfilesSetsMenu(SafeAdminMenu):
         if usbPath is None:
             self.add_label("USB not present. To get profiles from USB, plug the USB and re-enter.")
         else:
-            self.add_label("<h2>USB</h2>")
+            self.add_label("<b>USB</b>")
             self._listProfiles(usbPath, internal = False)
-        self.add_label("<h2>Internal</h2>")
+        self.add_label("<b>Internal</b>")
         for model in PrinterModel:
             self._listProfiles(os.path.join(defines.dataPath, model.name), internal=True)
 

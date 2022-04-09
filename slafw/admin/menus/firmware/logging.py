@@ -29,9 +29,9 @@ class LoggingMenu(SafeAdminMenu):
         self.add_back()
         self.add_items(
             (
-                AdminBoolValue("Debug logging", self._get_debug_enabled, self._set_debug_enabled),
-                AdminAction("Truncate logs", self._truncate_logs),
-                AdminAction("Upload to Cucek", self._upload_dev),
+                AdminBoolValue("Debug logging", self._get_debug_enabled, self._set_debug_enabled, "logs-icon"),
+                AdminAction("Truncate logs", self._truncate_logs, "delete_small_white"),
+                AdminAction("Upload to Cucek", self._upload_dev, "upload_cloud_color"),
             )
         )
 

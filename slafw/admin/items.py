@@ -12,14 +12,15 @@ from PySignal import Signal
 
 class AdminItem:
     # pylint: disable=too-few-public-methods
-    def __init__(self, name: str):
+    def __init__(self, name: str, icon: str=""):
         self.name = name
+        self.icon = icon
 
 
 class AdminAction(AdminItem):
     # pylint: disable=too-few-public-methods
-    def __init__(self, name: str, action: Callable):
-        super().__init__(name)
+    def __init__(self, name: str, action: Callable, icon: str=""):
+        super().__init__(name, icon)
         self._action = action
 
     def execute(self):
@@ -27,8 +28,8 @@ class AdminAction(AdminItem):
 
 
 class AdminValue(AdminItem):
-    def __init__(self, name: str, getter: Callable, setter: Callable):
-        super().__init__(name)
+    def __init__(self, name: str, getter: Callable, setter: Callable, icon: str=""):
+        super().__init__(name, icon)
         self._getter = getter
         self._setter = setter
         self.changed = Signal()
@@ -66,24 +67,25 @@ class AdminValue(AdminItem):
 
 
 class AdminIntValue(AdminValue):
-    def __init__(self, name: str, getter: Callable, setter: Callable, step: int):
-        super().__init__(name, getter, setter)
+    # pylint: disable = too-many-arguments
+    def __init__(self, name: str, getter: Callable, setter: Callable, step: int, icon: str=""):
+        super().__init__(name, getter, setter, icon)
         self._step = step
 
     @classmethod
-    def from_value(cls, name: str, obj: object, prop: str, step: int) -> AdminIntValue:
+    def from_value(cls, name: str, obj: object, prop: str, step: int, icon: str="") -> AdminIntValue:
         def g():
             return getattr(obj, prop)
 
         def s(value):
             setattr(obj, prop, value)
 
-        return AdminIntValue(name, g, s, step)
+        return AdminIntValue(name, g, s, step, icon)
 
     @classmethod
-    def from_property(cls, obj: object, prop: property, step: int) -> AdminIntValue:
+    def from_property(cls, obj: object, prop: property, step: int, icon: str="") -> AdminIntValue:
         prop_name = cls._get_prop_name(obj, prop)
-        value = AdminIntValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), step)
+        value = AdminIntValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), step, icon)
         cls._map_prop(obj, prop, value, prop_name)
         return value
 
@@ -94,25 +96,25 @@ class AdminIntValue(AdminValue):
 
 class AdminFixedValue(AdminValue):
     # pylint: disable = too-many-arguments
-    def __init__(self, name: str, getter: Callable, setter: Callable, step: int, fractions: int):
-        super().__init__(name, getter, setter)
+    def __init__(self, name: str, getter: Callable, setter: Callable, step: int, fractions: int, icon: str=""):
+        super().__init__(name, getter, setter, icon)
         self._step = step
         self._fractions = fractions
 
     @classmethod
-    def from_value(cls, name: str, obj: object, prop: str, step: int, fractions: int) -> AdminFixedValue:
+    def from_value(cls, name: str, obj: object, prop: str, step: int, fractions: int, icon: str="") -> AdminFixedValue:
         def g():
             return getattr(obj, prop)
 
         def s(value):
             setattr(obj, prop, value)
 
-        return AdminFixedValue(name, g, s, step, fractions)
+        return AdminFixedValue(name, g, s, step, fractions, icon)
 
     @classmethod
-    def from_property(cls, obj: object, prop: property, step: int, fractions: int) -> AdminFixedValue:
+    def from_property(cls, obj: object, prop: property, step: int, fractions: int, icon: str="") -> AdminFixedValue:
         prop_name = cls._get_prop_name(obj, prop)
-        value = AdminFixedValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), step, fractions)
+        value = AdminFixedValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), step, fractions, icon)
         cls._map_prop(obj, prop, value, prop_name)
         return value
 
@@ -126,24 +128,25 @@ class AdminFixedValue(AdminValue):
 
 
 class AdminFloatValue(AdminValue):
-    def __init__(self, name: str, getter: Callable, setter: Callable, step: float):
-        super().__init__(name, getter, setter)
+    # pylint: disable = too-many-arguments
+    def __init__(self, name: str, getter: Callable, setter: Callable, step: float, icon: str=""):
+        super().__init__(name, getter, setter, icon)
         self._step = step
 
     @classmethod
-    def from_value(cls, name: str, obj: object, prop: str, step: float) -> AdminFloatValue:
+    def from_value(cls, name: str, obj: object, prop: str, step: float, icon: str="") -> AdminFloatValue:
         def g():
             return getattr(obj, prop)
 
         def s(value):
             setattr(obj, prop, value)
 
-        return AdminFloatValue(name, g, s, step)
+        return AdminFloatValue(name, g, s, step, icon)
 
     @classmethod
-    def from_property(cls, obj: object, prop: property, step: float) -> AdminFloatValue:
+    def from_property(cls, obj: object, prop: property, step: float, icon: str="") -> AdminFloatValue:
         prop_name = cls._get_prop_name(obj, prop)
-        value = AdminFloatValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), step)
+        value = AdminFloatValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), step, icon)
         cls._map_prop(obj, prop, value, prop_name)
         return value
 
@@ -154,26 +157,26 @@ class AdminFloatValue(AdminValue):
 
 class AdminBoolValue(AdminValue):
     @classmethod
-    def from_value(cls, name: str, obj: object, prop: str) -> AdminBoolValue:
-        return AdminBoolValue(name, partial(getattr, obj, prop), partial(setattr, obj, prop))
+    def from_value(cls, name: str, obj: object, prop: str, icon: str="") -> AdminBoolValue:
+        return AdminBoolValue(name, partial(getattr, obj, prop), partial(setattr, obj, prop), icon)
 
     @classmethod
-    def from_property(cls, obj: object, prop: property) -> AdminBoolValue:
+    def from_property(cls, obj: object, prop: property, icon: str="") -> AdminBoolValue:
         prop_name = cls._get_prop_name(obj, prop)
-        value = AdminBoolValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj))
+        value = AdminBoolValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), icon)
         cls._map_prop(obj, prop, value, prop_name)
         return value
 
 
 class AdminTextValue(AdminValue):
     @classmethod
-    def from_value(cls, name: str, obj: object, prop: str):
-        return AdminTextValue(name, partial(getattr, obj, prop), partial(setattr, obj, prop))
+    def from_value(cls, name: str, obj: object, prop: str, icon: str=""):
+        return AdminTextValue(name, partial(getattr, obj, prop), partial(setattr, obj, prop), icon)
 
     @classmethod
-    def from_property(cls, obj: object, prop: property):
+    def from_property(cls, obj: object, prop: property, icon: str=""):
         prop_name = cls._get_prop_name(obj, prop)
-        value = AdminTextValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj))
+        value = AdminTextValue(prop_name, partial(prop.fget, obj), partial(prop.fset, obj), icon)
         cls._map_prop(obj, prop, value, prop_name)
         return value
 
@@ -181,8 +184,8 @@ class AdminTextValue(AdminValue):
 class AdminLabel(AdminTextValue):
     INSTANCE_COUNTER = 0
 
-    def __init__(self, initial_text: Optional[str] = None):
-        super().__init__(f"Admin label {AdminLabel.INSTANCE_COUNTER}", self.label_get_value, self.set)
+    def __init__(self, initial_text: Optional[str] = None, icon: str=""):
+        super().__init__(f"Admin label {AdminLabel.INSTANCE_COUNTER}", self.label_get_value, self.set, icon)
         AdminLabel.INSTANCE_COUNTER += 1
         self._label_value = initial_text if initial_text is not None else self.name
 

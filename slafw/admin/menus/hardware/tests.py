@@ -27,10 +27,10 @@ class HardwareTestMenu(AdminMenu):
         self.add_back()
         self.add_items(
             (
-                AdminAction("Resin sensor test", self.resin_sensor_test),
-                AdminAction("Infinite UV calibrator test", self.infinite_uv_calibrator_test),
-                AdminAction("Infinite complex test", self.infinite_test),
-                AdminAction("Touchscreen test", self._control.touchscreen_test),
+                AdminAction("Resin sensor test", self.resin_sensor_test, "refill_color"),
+                AdminAction("Infinite UV calibrator test", self.infinite_uv_calibrator_test, "uv_calibration"),
+                AdminAction("Infinite complex test", self.infinite_test, "restart"),
+                AdminAction("Touchscreen test", self._control.touchscreen_test, "touchscreen-icon"),
             )
         )
 
@@ -73,10 +73,10 @@ class InfiniteUVCalibratorMenu(AdminMenu):
 
         self.add_items(
             (
-                AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.status),
-                AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.value),
-                AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.iteration),
-                AdminAction("Stop", self.stop),
+                AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.status, "sandclock_color"),
+                AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.value, "info_off_small_white"),
+                AdminTextValue.from_property(self, InfiniteUVCalibratorMenu.iteration, "info_off_small_white"),
+                AdminAction("Stop", self.stop, "cancel_color"),
             )
         )
 
@@ -155,7 +155,7 @@ class ResinSensorTestMenu(AdminMenu):
 
         self._printer = printer
         self._status = "Initializing"
-        self.add_item(AdminTextValue.from_property(self, ResinSensorTestMenu.status))
+        self.add_item(AdminTextValue.from_property(self, ResinSensorTestMenu.status, "sandclock_color"))
         self._thread = Thread(target=self._runner)
         self._thread.start()
 
@@ -208,10 +208,10 @@ class InfiniteTestMenu(AdminMenu):
 
         self.add_items(
             (
-                AdminTextValue.from_property(self, InfiniteTestMenu.status),
-                AdminTextValue.from_property(self, InfiniteTestMenu.tower),
-                AdminTextValue.from_property(self, InfiniteTestMenu.tilt),
-                AdminAction("Stop", self.stop),
+                AdminTextValue.from_property(self, InfiniteTestMenu.status, "sandclock_color"),
+                AdminTextValue.from_property(self, InfiniteTestMenu.tower, "info_off_small_white"),
+                AdminTextValue.from_property(self, InfiniteTestMenu.tilt, "info_off_small_white"),
+                AdminAction("Stop", self.stop, "cancel_color"),
             )
         )
         self._printer = printer

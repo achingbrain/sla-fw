@@ -23,11 +23,11 @@ class FirmwareTestMenu(SafeAdminMenu):
         self.add_back()
         self.add_items(
             (
-                AdminAction("Errors test", lambda: self.enter(ErrorsTestMenu(self._control, self._printer))),
-                AdminAction("Warnings test", lambda: self.enter(WarningsTestMenu(self._control, self._printer))),
-                AdminAction("Wizards test", lambda: self.enter(WizardsTestMenu(self._control, self._printer))),
+                AdminAction("Errors test", lambda: self.enter(ErrorsTestMenu(self._control, self._printer)), "error_small_white"),
+                AdminAction("Warnings test", lambda: self.enter(WarningsTestMenu(self._control, self._printer)), "warning_white"),
+                AdminAction("Wizards test", lambda: self.enter(WizardsTestMenu(self._control, self._printer)), "wizard_color"),
                 AdminAction("Admin API test", lambda: self.enter(ApiTestMenu(self._control))),
-                AdminAction("Simulate disconnected display", self.simulate_disconnected_display),
+                AdminAction("Simulate disconnected display", self.simulate_disconnected_display, "error_small_white"),
             )
         )
 

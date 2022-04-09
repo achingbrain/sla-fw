@@ -48,14 +48,14 @@ class AdminMenu(AdminMenuBase):
             self.add_item(item, emit_changed=False)
         self.items_changed.emit()
 
-    def add_label(self, initial_text: Optional[str] = None):
-        label = AdminLabel(initial_text)
+    def add_label(self, initial_text: Optional[str]=None, icon=""):
+        label = AdminLabel(initial_text, icon)
         self.add_item(label)
         return label
 
     def add_back(self, bold=True):
         text = "<b>Back</b>" if bold else "Back"
-        self.add_item(AdminAction(text, self._control.pop))
+        self.add_item(AdminAction(text, self._control.pop, "prev"))
 
     def del_item(self, item: AdminItem):
         del self._items[item.name]

@@ -46,20 +46,21 @@ class SystemToolsMenu(SafeAdminMenu):
             (
                 AdminAction(
                     "Update channel",
-                    lambda: self._control.enter(SetChannelMenu(self._control))
+                    lambda: self._control.enter(SetChannelMenu(self._control)),
+                    "support_color"
                 ),
-                AdminBoolValue.from_property(self, SystemToolsMenu.factory_mode),
-                AdminBoolValue.from_property(self, SystemToolsMenu.ssh),
-                AdminBoolValue.from_property(self, SystemToolsMenu.serial),
-                AdminAction("Send wizard data", self._send_printer_data),
-                AdminAction("Fake setup", self._fake_setup),
-                AdminAction("Download examples", self._download_examples),
+                AdminBoolValue.from_property(self, SystemToolsMenu.factory_mode, "factory_color"),
+                AdminBoolValue.from_property(self, SystemToolsMenu.ssh, "network-icon"),
+                AdminBoolValue.from_property(self, SystemToolsMenu.serial, "remote_control_color"),
+                AdminAction("Send wizard data", self._send_printer_data, "upload_cloud_color"),
+                AdminAction("Fake setup", self._fake_setup, "settings_color"),
+                AdminAction("Download examples", self._download_examples, "download"),
             )
         )
         if self._printer.model == PrinterModel.SL1S:
-            self.add_item(AdminAction("Switch to M1", self._switch_m1))
+            self.add_item(AdminAction("Switch to M1", self._switch_m1, "cover_color"))
         if self._printer.model == PrinterModel.M1:
-            self.add_item(AdminAction("Switch to SL1S", self._switch_sl1s))
+            self.add_item(AdminAction("Switch to SL1S", self._switch_sl1s, "cover_color"))
 
 
     @property
@@ -248,16 +249,17 @@ class SetChannelMenu(SafeAdminMenu):
             "Channel",
             lambda: f"Update channel: {get_update_channel()}",
             self._set_update_channel,
+            "support_color"
         )
 
         self.add_back()
         self.add_items(
             (
                 self._channel_value,
-                AdminAction("Switch to stable", partial(self._set_update_channel, "stable")),
-                AdminAction("Switch to beta", partial(self._set_update_channel, "beta")),
-                AdminAction("Switch to dev", partial(self._set_update_channel, "dev")),
-                AdminAction("Switch to medic", partial(self._set_update_channel, "medic")),
+                AdminAction("Switch to stable", partial(self._set_update_channel, "stable"), "support_color"),
+                AdminAction("Switch to beta", partial(self._set_update_channel, "beta"), "support_color"),
+                AdminAction("Switch to dev", partial(self._set_update_channel, "dev"), "support_color"),
+                AdminAction("Switch to medic", partial(self._set_update_channel, "medic"), "support_color"),
             )
         )
 

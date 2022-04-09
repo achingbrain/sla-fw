@@ -14,10 +14,11 @@ class Confirm(AdminMenu):
     def __init__(self, control: AdminControl, target: Callable[[], None], headline="Confirm", text=""):
         super().__init__(control)
         self._target = target
-        self._headline = self.add_label(f"<h2>{headline}</h2>")
-        self._text = self.add_label(text)
+        self._headline = self.add_label(f"<b>{headline}</b>", "confirm_small_white")
+        if text:
+            self._text = self.add_label(text, "confirm_small_white")
         self.add_back(bold=False)
-        self.add_item(AdminAction("<b>Continue</b>", self.cont))
+        self.add_item(AdminAction("<b>Continue</b>", self.cont, "yes_green"))
 
     def cont(self):
         self._control.pop()
@@ -27,10 +28,11 @@ class Confirm(AdminMenu):
 class Error(AdminMenu):
     def __init__(self, control: AdminControl, headline="Error", text="", pop=2):
         super().__init__(control)
-        self._headline = self.add_label(f"<h2>{headline}</h2>")
-        self._text = self.add_label(text)
+        self._headline = self.add_label(f"<b>{headline}</b>", "error_small_white")
+        if text:
+            self._text = self.add_label(text, "error_small_white")
         self._pop_num = pop
-        self.add_item(AdminAction("Ok", self.ok))
+        self.add_item(AdminAction("Ok", self.ok, "yes_green"))
 
     def ok(self):
         self._control.pop(self._pop_num)
@@ -39,10 +41,10 @@ class Error(AdminMenu):
 class Info(AdminMenu):
     def __init__(self, control: AdminControl, text: str, headline="Info", pop=1):
         super().__init__(control)
-        self._headline = self.add_label(f"<h2>{headline}</h2>")
-        self._text = self.add_label(text)
+        self._headline = self.add_label(f"<b>{headline}</b>", "info_off_small_white")
+        self._text = self.add_label(text, "info_off_small_white")
         self._pop_num = pop
-        self.add_item(AdminAction("Ok", self.ok))
+        self.add_item(AdminAction("Ok", self.ok, "yes_green"))
 
     def ok(self):
         self._control.pop(self._pop_num)
@@ -53,8 +55,8 @@ class Wait(AdminMenu):
         super().__init__(control)
         self._body = body
         self._thread = Thread(target=self._run)
-        self.headline = self.add_label("<h2>Wait...</h2>")
-        self.status = self.add_label()
+        self.headline = self.add_label("<b>Wait...</b>", "sandclock_color")
+        self.status = self.add_label(None, "sandclock_color")
         self._num_pop = pop
 
     def on_enter(self):

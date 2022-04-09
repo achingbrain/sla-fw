@@ -20,10 +20,10 @@ class FirmwareRoot(AdminMenu):
         self.add_back()
         self.add_items(
             (
-                AdminAction("Net update", lambda: self.enter(NetUpdate(self._control, printer))),
-                AdminAction("Logging", lambda: self.enter(LoggingMenu(self._control, printer))),
-                AdminAction("System tools", lambda: self.enter(SystemToolsMenu(self._control, printer))),
-                AdminAction("System information", lambda: self.enter(SystemInfoMenu(self._control, printer))),
-                AdminAction("Firmware tests", lambda: self.enter(FirmwareTestMenu(self._control, printer))),
+                AdminAction("Net update", lambda: self.enter(NetUpdate(self._control, printer)), "network-icon"),
+                AdminAction("Logging", lambda: self.enter(LoggingMenu(self._control, printer)), "logs-icon"),
+                AdminAction("System tools", lambda: self.enter(SystemToolsMenu(self._control, printer)), "about_us_color"),
+                AdminAction("System information", lambda: self.enter(SystemInfoMenu(self._control, printer)), "system_info_color"),
+                AdminAction("Firmware tests", lambda: self.enter(FirmwareTestMenu(self._control, printer)), "limit_color"),
             ),
         )

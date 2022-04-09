@@ -20,21 +20,21 @@ class FansMenu(SettingsMenu):
         self._init_blower_fan = FanState(self._printer.hw.blower_fan)
         self._init_rear_fan = FanState(self._printer.hw.rear_fan)
 
-        uv_led_fan_rpm_item = AdminIntValue.from_value("UV LED fan RPM", self._temp, "fan1Rpm", 100)
+        uv_led_fan_rpm_item = AdminIntValue.from_value("UV LED fan RPM", self._temp, "fan1Rpm", 100, "limit_color")
         uv_led_fan_rpm_item.changed.connect(self._uv_led_fan_changed)
-        blower_fan_rpm_item = AdminIntValue.from_value("Blower fan RPM", self._temp, "fan2Rpm", 100)
+        blower_fan_rpm_item = AdminIntValue.from_value("Blower fan RPM", self._temp, "fan2Rpm", 100, "limit_color")
         blower_fan_rpm_item.changed.connect(self._blower_fan_changed)
-        rear_fan_rpm_item = AdminBoolValue.from_value("Rear fan", self, "rear_fan")
+        rear_fan_rpm_item = AdminBoolValue.from_value("Rear fan", self, "rear_fan", "fan_color")
         rear_fan_rpm_item.changed.connect(self._rear_fan_changed)
 
         self.add_items(
             (
-                AdminBoolValue.from_value("UV LED fan", self, "uv_led_fan"),
+                AdminBoolValue.from_value("UV LED fan", self, "uv_led_fan", "fan_color"),
                 uv_led_fan_rpm_item,
-                AdminBoolValue.from_value("Blower fan", self, "blower_fan"),
+                AdminBoolValue.from_value("Blower fan", self, "blower_fan", "fan_color"),
                 blower_fan_rpm_item,
                 rear_fan_rpm_item,
-                AdminIntValue.from_value("Rear fan RPM", self._temp, "fan3Rpm", 100),
+                AdminIntValue.from_value("Rear fan RPM", self._temp, "fan3Rpm", 100, "limit_color"),
             )
         )
 

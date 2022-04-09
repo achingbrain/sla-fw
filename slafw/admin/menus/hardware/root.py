@@ -19,12 +19,14 @@ class HardwareRoot(AdminMenu):
         self.add_back()
         self.add_items(
             (
-                AdminAction("Exposure display", lambda: self.enter(ExposureDisplayMenu(self._control, printer))),
+                AdminAction("Exposure display", lambda: self.enter(ExposureDisplayMenu(self._control, printer)), "display_replacement"),
                 # TODO separate Tilt and Tower
                 AdminAction("Tilt and tower", lambda: self.enter(TiltAndTowerMenu(self._control, printer))),
                 AdminAction(
-                    "Motion controller", lambda: self.enter(MotionControllerMenu(self._control, printer))
+                    "Motion controller",
+                    lambda: self.enter(MotionControllerMenu(self._control, printer)),
+                    "control_color"
                 ),
-                AdminAction("Hardware tests", lambda: self.enter(HardwareTestMenu(self._control, printer))),
+                AdminAction("Hardware tests", lambda: self.enter(HardwareTestMenu(self._control, printer)), "limit_color"),
             ),
         )

@@ -28,15 +28,17 @@ class ExposureDisplayMenu(SafeAdminMenu):
             (
                 AdminAction(
                     "Exposure display control",
-                    lambda: self._control.enter(DisplayControlMenu(self._control, self._printer))
+                    lambda: self._control.enter(DisplayControlMenu(self._control, self._printer)),
+                    "display_test_color"
                 ),
-                AdminAction("Display usage heatmap", self.display_usage_heatmap),
+                AdminAction("Display usage heatmap", self.display_usage_heatmap, "frequency"),
                 AdminAction(
                     "Show UV calibration data",
-                    lambda: self._control.enter(ShowCalibrationMenu(self._control))
+                    lambda: self._control.enter(ShowCalibrationMenu(self._control)),
+                    "logs-icon"
                 ),
-                AdminAction("Erase display counter", self.erase_display_counter),
-                AdminAction("Erase UV LED counter", self.erase_uv_led_counter),
+                AdminAction("Erase display counter", self.erase_display_counter, "display_replacement"),
+                AdminAction("Erase UV LED counter", self.erase_uv_led_counter, "led_set_replacement"),
             )
         )
 
@@ -124,9 +126,9 @@ class ShowCalibrationMenu(SafeAdminMenu):
         if filenames:
             for fn in filenames:
                 prefix = "F:" if fn.parent == defines.wizardHistoryPathFactory else "U:"
-                self.add_item(AdminAction(prefix + fn.name, partial(self.show_calibration, fn)))
+                self.add_item(AdminAction(prefix + fn.name, partial(self.show_calibration, fn), "logs-icon"))
         else:
-            self.add_label("(no data)")
+            self.add_label("(no data)", "info_off_small_white")
 
     @SafeAdminMenu.safe_call
     def show_calibration(self, filename):
@@ -142,20 +144,21 @@ class DisplayControlMenu(SafeAdminMenu):
         self.add_back()
         self.add_items(
             (
-                AdminBoolValue("UV", self.get_uv, self.set_uv),
-                AdminAction("Open screen", self.open),
-                AdminAction("Close screen", self.close),
-                AdminAction("Inverse", self.invert),
-                AdminAction("Chess 8", self.chess_8),
-                AdminAction("Chess 16", self.chess_16),
-                AdminAction("Grid 8", self.grid_8),
-                AdminAction("Grid 16", self.grid_16),
-                AdminAction("Gradient vertical", self.gradient_vertical),
-                AdminAction("Gradient horizontal", self.gradient_horizontal),
-                AdminAction("Prusa logo", self.prusa_logo),
+                AdminBoolValue("UV", self.get_uv, self.set_uv, "uv_calibration"),
+                AdminAction("Open screen", self.open, "display_test_color"),
+                AdminAction("Close screen", self.close, "display_test_color"),
+                AdminAction("Inverse", self.invert, "display_test_color"),
+                AdminAction("Chess 8", self.chess_8, "display_test_color"),
+                AdminAction("Chess 16", self.chess_16, "display_test_color"),
+                AdminAction("Grid 8", self.grid_8, "display_test_color"),
+                AdminAction("Grid 16", self.grid_16, "display_test_color"),
+                AdminAction("Gradient vertical", self.gradient_vertical, "display_test_color"),
+                AdminAction("Gradient horizontal", self.gradient_horizontal, "display_test_color"),
+                AdminAction("Prusa logo", self.prusa_logo, "display_test_color"),
                 AdminAction(
                     "file from USB",
-                    lambda: self._control.enter(UsbFileMenu(self._control, self._printer))
+                    lambda: self._control.enter(UsbFileMenu(self._control, self._printer)),
+                    "usb_color"
                 ),
             )
         )
@@ -223,7 +226,7 @@ class UsbFileMenu(SafeAdminMenu):
         self.add_back()
         usb_path = files.get_save_path()
         if usb_path is None:
-            self.add_label("USB not present. To get files from USB, plug the USB and re-enter.")
+            self.add_label("USB not present. To get files from USB, plug the USB\nand re-enter.", "error_small_white")
         else:
             self._list_files(usb_path, "png")
             self._list_files(usb_path, "svg")
@@ -235,7 +238,8 @@ class UsbFileMenu(SafeAdminMenu):
         for file in all_files:
             self.add_item(AdminAction(
                 file[cut_off:],
-                partial(self._usb_test, path, file)
+                partial(self._usb_test, path, file),
+                "usb_color"
             ))
 
     @SafeAdminMenu.safe_call

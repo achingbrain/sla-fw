@@ -27,6 +27,11 @@ class ExceptionTestMenu(AdminMenu):
         """ implemented in children """
 
     @staticmethod
+    @abstractmethod
+    def _get_icon():
+        """ implemented in children """
+
+    @staticmethod
     def _sort_classes(data):
         name, cls = data
         return f"{cls.CODE}-{name}"
@@ -34,7 +39,10 @@ class ExceptionTestMenu(AdminMenu):
     def _get_items(self):
         items = []
         for _, cls in sorted(self._get_classes_list(), key=self._sort_classes):
-            items.append(AdminAction(f"{cls.CODE.code} - {cls.CODE.title}\n{cls.__name__}", functools.partial(self.do_error, cls)))
+            items.append(AdminAction(f"{cls.CODE.code} - {cls.CODE.title}\n{cls.__name__}",
+                functools.partial(self.do_error, cls),
+                self._get_icon())
+            )
         return items
 
     def do_error(self, cls):
@@ -47,9 +55,16 @@ class WarningsTestMenu(ExceptionTestMenu):
     def _get_classes_list():
         return get_classes(get_warnings=True)
 
+    @staticmethod
+    def _get_icon():
+        return "warning_white"
 
 class ErrorsTestMenu(ExceptionTestMenu):
 
     @staticmethod
     def _get_classes_list():
         return get_classes(get_errors=True)
+
+    @staticmethod
+    def _get_icon():
+        return "error_small_white"

@@ -29,27 +29,27 @@ class DirectPwmSetMenu(SafeAdminMenu):
         self._printer = printer
         self._temp = self._printer.hw.config.get_writer()
         self._run = True
-        self._status = "<h3>UV meter disconnected<h3>"
+        self._status = "<b>UV meter disconnected<b>"
         self._data = None
         self._uv_pwm_print = self._temp.uvPwmPrint
 
         self.add_back()
-        uv_pwm_item = AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1)
+        uv_pwm_item = AdminIntValue.from_value("UV LED PWM", self._temp, "uvPwm", 1, "uv_calibration")
         uv_pwm_item.changed.connect(self._uv_pwm_changed)
-        uv_pwm_tune_item = AdminIntValue.from_value("UV LED PWM fine tune", self._temp, "uvPwmTune", 1)
+        uv_pwm_tune_item = AdminIntValue.from_value("UV LED PWM fine tune", self._temp, "uvPwmTune", 1, "change_color")
         uv_pwm_tune_item.changed.connect(self._uv_pwm_changed)
-        self.uv_pwm_print_item = AdminLabel.from_property(self, DirectPwmSetMenu.uv_pwm_print)
+        self.uv_pwm_print_item = AdminLabel.from_property(self, DirectPwmSetMenu.uv_pwm_print, "system_info_color")
         self.add_items(
             (
-                AdminBoolValue.from_value("UV LED", self, "uv_led"),
-                AdminAction("Open screen", self.open),
-                AdminAction("Close screen", self.close),
-                AdminAction("Calculate PWM from display transmittance", self.calculate_pwm),
+                AdminBoolValue.from_value("UV LED", self, "uv_led", "led_set_replacement"),
+                AdminAction("Open screen", self.open, "print_color"),
+                AdminAction("Close screen", self.close, "disabled_color"),
+                AdminAction("Calculate PWM from display transmittance", self.calculate_pwm, "statistics_color"),
                 self.uv_pwm_print_item,
                 uv_pwm_item,
                 uv_pwm_tune_item,
-                AdminLabel.from_property(self, DirectPwmSetMenu.status),
-                AdminAction("Show measured data", partial(self.show_calibration)),
+                AdminLabel.from_property(self, DirectPwmSetMenu.status, "system_info_color"),
+                AdminAction("Show measured data", partial(self.show_calibration), "logs-icon"),
             )
         )
         self._thread = Thread(target=self._measure)
@@ -85,16 +85,16 @@ class DirectPwmSetMenu(SafeAdminMenu):
                 if meter.read():
                     self._data = meter.get_data(plain_mean=True)
                     self._data.uvFoundPwm = self._uv_pwm_print
-                    self.status = "<h3>ø:%.1f σ:%.1f %.1f°C<h3>" % (
+                    self.status = "<b>ø:%.1f σ:%.1f %.1f°C<b>" % (
                         self._data.uvMean,
                         self._data.uvStdDev,
                         self._data.uvTemperature,
                     )
                 else:
-                    self.status = "<h3>UV meter disconnected<h3>"
+                    self.status = "<b>UV meter disconnected<b>"
                     connected = False
             elif meter.connect():
-                self.status = "<h3>UV meter connected<h3>"
+                self.status = "<b>UV meter connected<b>"
                 connected = True
         meter.close()
 
@@ -106,13 +106,13 @@ class DirectPwmSetMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def _do_prepare(self, status: AdminLabel):
         with WarningAction(self._printer.hw.power_led):
-            status.set("<h3>Tilt is going to level<h3>")
+            status.set("<b>Tilt is going to level<b>")
             self._printer.hw.tilt.profile_id = TiltProfile.homingFast
             self._printer.hw.tilt.sync_ensure()
             self._printer.hw.tilt.profile_id = TiltProfile.moveFast
             self._printer.hw.tilt.move_ensure(self._printer.hw.config.tiltHeight)  # move to level
 
-        status.set("<h3>Tilt leveled<h3>")
+        status.set("<b>Tilt leveled<b>")
         self._printer.hw.start_fans()
         self._printer.hw.uv_led.pwm = self._uv_pwm_print
         self._printer.hw.uv_led.on()
@@ -134,7 +134,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
 
     @property
     def uv_pwm_print(self) -> str:
-        return "<h3>Final UV PWM value: " + str(self._uv_pwm_print) + "</h3>"
+        return "<b>Final UV PWM value: " + str(self._uv_pwm_print) + "</b>"
 
     @uv_pwm_print.setter
     def uv_pwm_print(self, value):
