@@ -104,7 +104,8 @@ class SystemInfoMenu(AdminMenu):
             self.uv_led_fan.set(f"UV LED fan RPM: {self._printer.hw.uv_led_fan.rpm}")
             self.blower_fan.set(f"Blower fan RPM: {self._printer.hw.blower_fan.rpm}")
             self.rear_fan.set(f"Rear fan RPM: {self._printer.hw.rear_fan.rpm}")
-            self.uv_led.set(f"UV LED: {self._printer.hw.uv_led.info}")
+            uv_led_info_list = [f'<li>{key}: {value}</li>' for key, value in self._printer.hw.uv_led.info.items()]
+            self.uv_led.set(f"UV LED: <ul>{''.join(uv_led_info_list)}</ul>")
             self.uv_counter.set(f"UV LED counter: {timedelta(seconds=self._printer.hw.uv_led.usage_s)}")
             self.display_counter.set(f"Display counter: {timedelta(seconds=self._printer.hw.display.usage_s)}")
             sys_stats = TomlConfigStats(defines.statsData, self._printer.hw)
