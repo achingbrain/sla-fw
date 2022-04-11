@@ -218,8 +218,7 @@ class BaseHardware:
 
     @cached_property
     def emmc_serial(self) -> str:  # pylint: disable = no-self-use
-        with open(defines.emmc_serial_path) as f:
-            return f.read().strip()
+        return defines.emmc_serial_path.read_text().strip()
 
     @property
     def white_pixels_threshold(self) -> int:
