@@ -6,6 +6,7 @@ from asyncio import sleep
 from typing import Optional
 
 from slafw.hardware.base.hardware import BaseHardware
+from slafw.hardware.sl1.tower import TowerProfile
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, Check
 from slafw.wizard.setup import Configuration, Resource
@@ -22,19 +23,19 @@ class MoveToFoam(Check):
         self.hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        self.hw.set_tower_position_nm(0)
-        self.hw.setTowerProfile("homingFast")
-        initial_pos_nm = self.hw.tower_position_nm
-        self.hw.tower_position_nm = self.FOAM_TARGET_POSITION_NM
-        while self.hw.isTowerMoving():
+        self.hw.tower.position = 0
+        self.hw.tower.profile_id = TowerProfile.homingFast
+        initial_pos_nm = self.hw.tower.position
+        self.hw.tower.move(self.FOAM_TARGET_POSITION_NM)
+        while self.hw.tower.moving:
             if self.FOAM_TARGET_POSITION_NM != initial_pos_nm:
-                self.progress = (self.hw.tower_position_nm - initial_pos_nm) / (
+                self.progress = (self.hw.tower.position - initial_pos_nm) / (
                     self.FOAM_TARGET_POSITION_NM - initial_pos_nm
                 )
             else:
                 self.progress = 1
             await sleep(0.5)
-        self.hw.motorsRelease()
+        self.hw.tower.release()
 
 
 class MoveToTank(Check):
@@ -46,5 +47,5 @@ class MoveToTank(Check):
         self.hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        await self.hw.towerSyncWaitAsync(retries=3)  # Let this fail fast, allow for proper tower synced check
-        self.hw.motorsRelease()
+        await self.hw.tower.sync_wait_async(retries=3)  # Let this fail fast, allow for proper tower synced check
+        self.hw.tower.release()

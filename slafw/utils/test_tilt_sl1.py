@@ -19,7 +19,7 @@ hw_config = HwConfig()
 hw = HardwareSL1(hw_config, printer_model)
 
 hw.tilt.sync_wait()
-hw.tilt.move_absolute(5300)
+hw.tilt.move(5300)
 while hw.tilt.moving:
     sleep(0.1)
 #endwhile
@@ -32,7 +32,7 @@ for sgt in range(10, 30):
     hw.mcc.do("!ticf", ' '.join(str(num) for num in profile))
     hw.mcc.do("?ticf")
     hw.mcc.do("!sgbd")
-    hw.tilt.move_absolute(0)
+    hw.tilt.move(0)
     while hw.tilt.moving:
         sgbd.extend(hw.getStallguardBuffer())
         sleep(0.1)
@@ -43,7 +43,7 @@ for sgt in range(10, 30):
             result[avg] = ' '.join(str(num) for num in profile)
 
     hw.mcc.do("!tics", 0)
-    hw.tilt.move_absolute(5300)
+    hw.tilt.move(5300)
     while hw.tilt.moving:
         sleep(0.1)
     #endwhile

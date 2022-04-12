@@ -9,7 +9,7 @@ from slafw.admin.menus.dialogs import Wait, Error
 from slafw.admin.menus.profiles_sets import ProfilesSetsMenu
 from slafw.admin.safe_menu import SafeAdminMenu
 from slafw.libPrinter import Printer
-from slafw.errors.errors import TiltHomeFailed
+from slafw.errors.errors import TiltHomeFailed, TowerHomeFailed
 from slafw.hardware.power_led_action import WarningAction
 
 
@@ -91,7 +91,7 @@ class TiltAndTowerMenu(SafeAdminMenu):
         status.set("Tilt home calibration")
         with WarningAction(self._printer.hw.power_led):
             self._printer.hw.tilt.home_calibrate_wait()
-            self._printer.hw.motorsRelease()
+            self._printer.hw.tilt.release()
 
     @SafeAdminMenu.safe_call
     def tower_home(self):
@@ -103,11 +103,13 @@ class TiltAndTowerMenu(SafeAdminMenu):
 
     def _sync_tower(self, status: AdminLabel):
         status.set("Tower home")
-        if not self._printer.hw.towerSyncWait(retries=2):
+        try:
+            self._printer.hw.tower.sync_wait()
+            status.set("Tower home done")
+            return True
+        except TowerHomeFailed:
             self._control.enter(Error(self._control, text="Failed to sync tower"))
             return False
-        status.set("Tower home done")
-        return True
 
     @SafeAdminMenu.safe_call
     def tower_test(self):
@@ -119,11 +121,11 @@ class TiltAndTowerMenu(SafeAdminMenu):
         with WarningAction(self._printer.hw.power_led):
             if self._sync_tower(status):
                 status.set("Moving platform to zero")
-                self._printer.hw.towerToZero()
+                self._printer.hw.tower.move(self._printer.hw.config.calib_tower_offset_nm)
                 status2 = self.add_label()
-                while not self._printer.hw.isTowerOnPosition():
+                while self._printer.hw.tower.moving:
                     sleep(0.25)
-                    status2.set(self._printer.hw.getTowerPosition())
+                    status2.set(self._printer.hw.tower.position)
 
     @SafeAdminMenu.safe_call
     def tower_profiles(self):
@@ -136,12 +138,12 @@ class TiltAndTowerMenu(SafeAdminMenu):
     def _do_test_home_calib(self, status: AdminLabel):
         status.set("Tower home calibration")
         with WarningAction(self._printer.hw.power_led):
-            self._printer.hw.towerHomeCalibrateWait()
-            self._printer.hw.motorsRelease()
+            self._printer.hw.tower.home_calibrate_wait_async()
+            self._printer.hw.tower.release()
 
     @SafeAdminMenu.safe_call
     def turn_off_motors(self):
-        self._printer.hw.motorsRelease()
+        self._printer.hw.motors_release()
 
     @SafeAdminMenu.safe_call
     def tune_tilt(self):

@@ -28,7 +28,7 @@ def shut_down(hw: BaseHardware, reboot=False):
         return
 
     hw.uv_led.off()
-    hw.motorsRelease()
+    hw.motors_release()
 
     if reboot:
         os.system("reboot")

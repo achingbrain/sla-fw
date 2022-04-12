@@ -58,6 +58,7 @@ from slafw.exposure.persistance import ExposurePickler, ExposureUnpickler
 from slafw.functions.system import shut_down
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.power_led_action import WarningAction, ErrorAction
+from slafw.hardware.sl1.tower import TowerProfile
 from slafw.image.exposure_image import ExposureImage
 from slafw.project.functions import check_ready_to_print
 from slafw.project.project import Project, ExposureUserProfile
@@ -219,7 +220,7 @@ class ResinCheck(ExposureCheckRunner):
             if volume_ml > defines.resinMaxVolume:
                 raise ResinTooHigh(volume_ml)
         except ResinMeasureFailed:
-            await self.expo.hw.tower_to_resin_measurement_start_position()
+            await self.expo.hw.tower.move_ensure_async(self.expo.hw.tower.resin_start_pos_nm)
             raise
         return volume_ml
 
@@ -248,21 +249,17 @@ class StartPositionsCheck(ExposureCheckRunner):
         # tilt is handled by StirringCheck
 
         self.logger.info("Tower to print start position")
-        self.expo.hw.setTowerProfile("homingFast")
-        self.expo.hw.tower_position_nm = 0.25 * 1_000_000  # TODO: Constant in code, seems important
-        while not await self.expo.hw.isTowerOnPositionAsync(retries=2):
-            await asyncio.sleep(0.25)
-        self.logger.debug("Tower on print start position")
-
-        if self.expo.hw.towerPositonFailed():
-            exception = TowerMoveFailed()
+        self.expo.hw.tower.profile_id = TowerProfile.homingFast
+        try:
+            # TODO: Constant in code, seems important
+            await self.expo.hw.tower.move_ensure_async(0.25 * 1_000_000, retries=2)
+            self.logger.debug("Tower on print start position")
+        except TowerMoveFailed as e:
+            exception = e
             self.expo.exception = exception
-            self.expo.hw.setTowerProfile("homingFast")
-            self.expo.hw.towerToTop()
-            while not await self.expo.hw.isTowerOnPositionAsync():
-                await asyncio.sleep(0.25)
-
-            raise exception
+            self.expo.hw.tower.profile_id = TowerProfile.homingFast
+            await self.expo.hw.tower.move_ensure_async(self.expo.hw.config.tower_height_nm)
+            raise TowerMoveFailed from exception
         while self.expo.hw.tilt.moving:
             await asyncio.sleep(0.25)
         self.logger.debug("Tilt on print start position")
@@ -342,7 +339,7 @@ class Exposure:
             self.state = ExposureState.FAILURE
             self.hw.uv_led.off()
             self.hw.stop_fans()
-            self.hw.motorsRelease()
+            self.hw.motors_release()
             raise
         self.logger.info("Created new exposure object id: %s", self.instance_id)
 
@@ -418,8 +415,8 @@ class Exposure:
 
     def prepare(self):
         self.exposure_image.preload_image(0)
-        self.hw.setTowerProfile("layer")
-        self.hw.tower_move_absolute_nm_wait(0)  # first layer will move up
+        self.hw.tower.profile_id = TowerProfile.layer
+        self.hw.tower.move_ensure(0)  # first layer will move up
 
         self.exposure_image.blank_screen()
         self.hw.uv_led.pwm = self.hw.config.uvPwmPrint
@@ -582,16 +579,15 @@ class Exposure:
         if self.hw.config.tilt:
             self.logger.info("%s tilt up", "Slow" if self._slow_move else "Fast")
             if self.hw.config.layerTowerHop:
-                self.hw.tower_move_absolute_nm_wait(position_nm + self.hw.config.layer_tower_hop_nm)
+                self.hw.tower.move_ensure(position_nm + self.hw.config.layer_tower_hop_nm)
                 self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
-                self.hw.tower_move_absolute_nm_wait(position_nm)
+                self.hw.tower.move_ensure(position_nm)
             else:
-                self.hw.tower_move_absolute_nm_wait(position_nm)
+                self.hw.tower.move_ensure(position_nm)
                 self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
         else:
-            self.hw.tower_move_absolute_nm_wait(position_nm + self.hw.config.layer_tower_hop_nm)
-            self.hw.tower_move_absolute_nm_wait(position_nm)
-        self.hw.setTowerCurrent(defines.towerHoldCurrent)
+            self.hw.tower.move_ensure(position_nm + self.hw.config.layer_tower_hop_nm)
+            self.hw.tower.move_ensure(position_nm)
 
         white_pixels = self.exposure_image.sync_preloader()
         self.exposure_image.screenshot_rename(second)
@@ -660,10 +656,8 @@ class Exposure:
                 self.hw.uv_led.on()
 
             self.state = ExposureState.GOING_UP
-            self.hw.setTowerProfile("homingFast")
-            self.hw.towerToTop()
-            while not self.hw.isTowerOnPosition():
-                sleep(0.25)
+            self.hw.tower.profile_id = TowerProfile.homingFast
+            self.hw.tower.move_ensure(self.hw.config.tower_height_nm)
 
             self.state = ExposureState.WAITING
             for sec in range(self.hw.config.upAndDownWait):
@@ -684,10 +678,8 @@ class Exposure:
             position_nm = self.hw.config.up_and_down_z_offset_nm
             if position_nm < 0:
                 position_nm = 0
-            self.hw.tower_position_nm = position_nm
-            while not self.hw.isTowerOnPosition():
-                sleep(0.25)
-            self.hw.setTowerProfile("layer")
+            self.hw.tower.move_ensure(position_nm)
+            self.hw.tower.profile_id = TowerProfile.layer
 
             self.state = ExposureState.PRINTING
 
@@ -738,7 +730,7 @@ class Exposure:
         self.state = ExposureState.STUCK
 
         with WarningAction(self.hw.power_led):
-            self.hw.towerHoldTiltRelease()
+            self.hw.tilt.release()
             if self.doWait(True) == "back":
                 raise TiltFailed()
 
@@ -812,10 +804,10 @@ class Exposure:
                 raise self.warning_result  # pylint: disable = raising-bad-type
 
     async def _home_axis(self):
-        if not self.hw.towerSynced or not self.hw.tilt.synced:
+        if not self.hw.tower.synced or not self.hw.tilt.synced:
             self.state = ExposureState.HOMING_AXIS
             self.logger.info("Homing axis to pour resin")
-            await asyncio.gather(self.hw.verify_tower(), self.hw.verify_tilt())
+            await asyncio.gather(self.hw.tower.verify_async(), self.hw.tilt.verify_async())
 
     async def _run_checks(self):
         self._checks_task = asyncio.create_task(self._run_checks_task())
@@ -1052,16 +1044,14 @@ class Exposure:
 
     def _final_go_up(self):
         self.state = ExposureState.GOING_UP
-        self.hw.motorsStop()
-        self.hw.setTowerProfile("homingFast")
-        self.hw.towerToTop()
-        while not self.hw.isTowerOnPosition():
-            sleep(0.25)
+        self.hw.motors_stop()
+        self.hw.tower.profile_id = TowerProfile.homingFast
+        self.hw.tower.move_ensure(self.hw.config.tower_height_nm)
 
     def _print_end_hw_off(self):
         self.hw.uv_led.off()
         self.hw.stop_fans()
-        self.hw.motorsRelease()
+        self.hw.motors_release()
         self.hw.display.stop_counting_usage()
         self.hw.uv_led.save_usage()
         # TODO: Save also display statistics once we have display component

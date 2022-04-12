@@ -354,7 +354,7 @@ class PageTowerProfiles(ProfilesPage):
     def __init__(self, display):
         super(PageTowerProfiles, self).__init__(display)
         self.profilesFilename = "tower_profiles.json"
-        self.profilesNames = display.hw.getTowerProfilesNames()
+        self.profilesNames = display.hw.tower.profile_names
         self.pageTitle = "Tower Profiles"
     #enddef
 
@@ -383,7 +383,7 @@ class PageTowerProfiles(ProfilesPage):
                 })
         super(PageTowerProfiles, self).show()
         if not self.profiles:
-            self.profiles = self.display.hw.getTowerProfiles()
+            self.profiles = self.display.hw.tower.profiles
         #endif
         self._setProfile()
         self.display.pages['towermove'].changeProfiles(False)
@@ -392,7 +392,7 @@ class PageTowerProfiles(ProfilesPage):
 
     def button3ButtonRelease(self):
         ''' test '''
-        self.display.hw.setTowerTempProfile(self.profiles[self.actualProfile])
+        self.display.hw.tower.profile = self.profiles[self.actualProfile]
         return "towermove"
     #enddef
 
@@ -400,7 +400,7 @@ class PageTowerProfiles(ProfilesPage):
     def button4ButtonRelease(self):
         ''' save '''
         self.display.pages['towermove'].changeProfiles(True)
-        self.display.hw.setTowerProfiles(self.profiles)
+        self.display.hw.tower.profiles = self.profiles
         self.profiles = None
         self.reset_current_profiles_set()
         return super(PageTowerProfiles, self).backButtonRelease()

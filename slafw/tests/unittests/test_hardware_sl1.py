@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # pylint: disable=too-many-public-methods
-
 import unittest
 from time import sleep
 from typing import Optional, List
@@ -88,14 +87,6 @@ class TestSL1Hardware(SlafwTestCase):
 
     def test_erase(self):
         self.hw.eraseEeprom()
-
-    def test_profiles(self):
-        tower_profiles = self.hw.getTowerProfiles()
-        self.assertEqual(type([]), type(tower_profiles))
-
-        # TODO: This just set the profiles, should be nice to set different value and check it is changed
-        self.hw.setTowerProfiles(tower_profiles)
-        self.hw.setTowerTempProfile(tower_profiles[0])
 
     def test_stallguard_buffer(self):
         self.assertEqual([], self.hw.getStallguardBuffer())
@@ -295,91 +286,7 @@ class TestSL1Hardware(SlafwTestCase):
         self.assertGreaterEqual(self.hw.uv_led_temp.value, 0)
         self.assertGreaterEqual(self.hw.ambient_temp.value, 0)
         self.assertEqual(53.5, self.hw.cpu_temp.value)
-
         # TODO: This is weak test, The simulated value seems random 0, 52, 58, 125
-
-    def test_tower_hold_tilt_release(self):
-        self.hw.towerHoldTiltRelease()
-        # TODO: test result
-
-    def test_tower_home_calibrate_wait(self):
-        self.hw.towerHomeCalibrateWait()
-        # TODO: test result
-
-    def test_tower_sync(self):
-        self.hw.towerSync()
-        self.assertTrue(self.hw.isTowerMoving())
-        while self.hw.isTowerMoving():
-            self.assertFalse(self.hw.isTowerSynced())
-            sleep(0.25)
-        self.assertTrue(self.hw.isTowerSynced())
-
-    def test_tower_sync_wait(self):
-        self.hw.towerSyncWait()
-        self.assertTrue(self.hw.isTowerSynced())
-
-    def test_tower_printstart(self):
-        self.hw.setTowerProfile('homingFast')
-        self.hw.tower_position_nm = 0.25 * 1_000_000
-        while not self.hw.isTowerOnPosition(retries=2):
-            sleep(0.25)
-        self.assertFalse(self.hw.towerPositonFailed())
-
-    def test_tower_move(self):
-        position = 100000
-        self.hw.tower_position_nm = position
-        self.assertTrue(self.hw.isTowerMoving())
-        while self.hw.isTowerMoving():
-            sleep(0.1)
-        self.assertFalse(self.hw.isTowerMoving())
-        self.assertEqual(position, self.hw.tower_position_nm)
-
-    def test_tower_move_wait(self):
-        position = 100000
-        self.hw.tower_move_absolute_nm_wait(position)
-        self.assertFalse(self.hw.isTowerMoving())
-        self.assertEqual(position, self.hw.tower_position_nm)
-        self.assertTrue(self.hw.isTowerOnPosition(retries=5))
-
-    def test_tower_to_position(self):
-        position_nm = 10_000_000
-        self.hw.tower_position_nm = position_nm
-        while self.hw.isTowerMoving():
-            sleep(0.1)
-        self.assertEqual(position_nm, self.hw.tower_position_nm)
-
-    def test_tower_stop(self):
-        position = 100000
-        self.hw.tower_position_nm = position
-        self.assertTrue(self.hw.isTowerMoving())
-        self.hw.towerStop()
-        self.assertFalse(self.hw.isTowerMoving())
-
-    def test_tower_max(self):
-        self.hw.towerToMax()
-        while self.hw.isTowerMoving():
-            sleep(0.1)
-        self.assertTrue(self.hw.isTowerOnMax())
-
-    def test_tower_min(self):
-        self.hw.towerToMin()
-        while self.hw.isTowerMoving():
-            sleep(0.1)
-        self.assertTrue(self.hw.isTowerOnMin())
-
-    def test_tower_position(self):
-        position = 1000000
-        self.hw.set_tower_position_nm(position)
-        self.assertEqual(position, self.hw.tower_position_nm)
-
-    def test_tower_profile(self):
-        self.hw.setTowerProfile("homingFast")
-        # TODO: test result
-
-    def test_tower_current(self):
-        current = 32
-        self.hw.setTowerCurrent(current)
-        # TODO: test result
 
 
 if __name__ == '__main__':

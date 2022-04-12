@@ -7,6 +7,7 @@ from time import time
 from enum import Enum, unique
 
 from slafw.hardware.base.hardware import BaseHardware
+from slafw.hardware.sl1.tower import TowerProfile
 from slafw.image.exposure_image import ExposureImage
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
@@ -25,17 +26,17 @@ class GentlyUpProfile(Enum):
     SPEED2 = 2
     SPEED3 = 3
 
-    def map_to_tower_profile_name(self) -> str:
+    def map_to_tower_profile_name(self) -> TowerProfile:
         """Transform the value passed from the frontend via configuration into a name of an actual tower profile"""
         if self == GentlyUpProfile.SPEED0:  # pylint: disable=no-else-return
-            return "moveSlow"
+            return TowerProfile.moveSlow
         elif self == GentlyUpProfile.SPEED1:
-            return "superSlow"
+            return TowerProfile.superSlow
         elif self == GentlyUpProfile.SPEED2:
-            return "homingSlow"
+            return TowerProfile.homingSlow
         elif self == GentlyUpProfile.SPEED3:
-            return "resinSensor"
-        return "moveSlow"
+            return TowerProfile.resinSensor
+        return TowerProfile.moveSlow
 
 
 class HomeTower(DangerousCheck):
@@ -48,7 +49,7 @@ class HomeTower(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        await self._hw.towerSyncWaitAsync(retries=2)
+        await self._hw.tower.sync_wait_async()
 
 
 class TiltHome(DangerousCheck):
@@ -60,7 +61,7 @@ class TiltHome(DangerousCheck):
         )
 
     async def async_task_run(self, actions: UserActionBroker):
-        await self._hw.tilt.sync_wait_async(retries=2)
+        await self._hw.tilt.sync_wait_async()
 
 
 class TiltUp(DangerousCheck):
@@ -83,10 +84,8 @@ class TowerSafeDistance(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.setTowerProfile("homingFast")
-        await self._hw.tower_move_absolute_nm_wait_async(36_000_000)
-        while self._hw.isTowerMoving():
-            await sleep(0.25)
+        self._hw.tower.profile_id = TowerProfile.homingFast
+        await self._hw.tower.move_ensure_async(36_000_000)
 
 
 class TouchDown(DangerousCheck):
@@ -99,32 +98,32 @@ class TouchDown(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.setTowerProfile("resinSensor")
+        self._hw.tower.profile_id = TowerProfile.resinSensor
         # Note: Do not use towerMoveAbsoluteWaitAsync here. It's periodically calling isTowerOnPosition which
         # is causing the printer to try to fix the tower position
 
         target_position_nm = self._hw.config.tankCleaningAdaptorHeight_nm - 3_000_000
-        self._hw.tower_position_nm = target_position_nm
-        while self._hw.isTowerMoving():
+        self._hw.tower.move(target_position_nm)
+        while self._hw.tower.moving:
             await sleep(0.25)
-        if target_position_nm == self._hw.tower_position_nm:
+        if target_position_nm == self._hw.tower.position:
             # Did you forget to put a cleaning adapter pin on corner of the platform?
-            self._hw.setTowerProfile("homingFast")
-            await self._hw.tower_move_absolute_nm_wait_async(self._hw.config.tower_height_nm)
-            self._hw.motorsRelease()
+            self._hw.tower.profile_id = TowerProfile.homingFast
+            await self._hw.tower.move_ensure_async(self._hw.config.tower_height_nm)
+            self._hw.motors_release()
             # Error: The cleaning adaptor is not present, the platform moved to the exposure display without hitting it.
             raise CleaningAdaptorMissing()
         self._logger.info("TouchDown did detect an obstacle - cleaningAdaptor.?")
 
         self._logger.info("Moving up to the configured height(%d nm)...", self._hw.config.tankCleaningMinDistance_nm)
-        lifted_position = self._hw.tower_position_nm + self._hw.config.tankCleaningMinDistance_nm
-        self._hw.tower_position_nm = lifted_position
-        while self._hw.isTowerMoving():
+        lifted_position = self._hw.tower.position + self._hw.config.tankCleaningMinDistance_nm
+        self._hw.tower.move(lifted_position)
+        while self._hw.tower.moving:
             await sleep(0.25)
-        if lifted_position == self._hw.tower_position_nm:
+        if lifted_position == self._hw.tower.position:
             self._logger.info("Garbage collector successfully lifted to the initial position.")
         else:
-            self._logger.warning("Garbage collector failed to be lifted to the initial position(should be %d, is %d). Continuing anyway.", lifted_position, self._hw.tower_position_nm)
+            self._logger.warning("Garbage collector failed to be lifted to the initial position(should be %d, is %d). Continuing anyway.", lifted_position, self._hw.tower.position)
 
 
 class ExposeDebris(DangerousCheck):
@@ -166,13 +165,14 @@ class GentlyUp(Check):
     async def async_task_run(self, actions: UserActionBroker):
         up_profile = GentlyUpProfile(self._hw.config.tankCleaningGentlyUpProfile)
         self._logger.info("GentlyUp with %s -> %s", up_profile.name, up_profile.map_to_tower_profile_name())
-        self._hw.setTowerProfile(up_profile.map_to_tower_profile_name())
+        self._hw.tower.profile_id = up_profile.map_to_tower_profile_name()
 
         await self._hw.tilt.layer_down_wait_async(slowMove=True)
+        # TODO: constant in code !!!
         target_position = 50_000_000
         for _ in range(3):
-            self._hw.tower_position_nm = target_position
-            while self._hw.isTowerMoving():
+            self._hw.tower.move(target_position)
+            while self._hw.tower.moving:
                 await asyncio.sleep(0.25)
-            if abs(target_position - self._hw.tower_position_nm) < 10:
+            if abs(target_position - self._hw.tower.position) < 10:
                 break

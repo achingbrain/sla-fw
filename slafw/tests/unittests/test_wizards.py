@@ -324,6 +324,15 @@ class TestWizards(TestWizardsBase):
 
     def _run_self_test(self, expected_state=WizardState.DONE) -> dict:
         self.hw.config.uvWarmUpTime = 2
+        original_move = self.hw.tower.move
+
+        def side_effect_move(position):
+            if position == self.hw.tower.max_nm:
+                original_move(self.hw.tower.end_nm)
+            else:
+                original_move(position)
+
+        self.hw.tower.move = MagicMock(side_effect=side_effect_move)
         wizard = SelfTestWizard(self.hw, self.exposure_image, RuntimeConfig())
 
         def on_state_changed():
@@ -341,7 +350,7 @@ class TestWizards(TestWizardsBase):
                 wizard.show_results_done()
 
         wizard.state_changed.connect(on_state_changed)
-        self._run_wizard(wizard, expected_state=expected_state)
+        self._run_wizard(wizard, expected_state=expected_state, limit_s=100000)
 
         wizard_data_path = defines.configDir / wizard.get_data_filename()
         self.assertTrue(wizard_data_path.exists(), "Wizard data file exists")
@@ -401,29 +410,52 @@ class TestWizards(TestWizardsBase):
     @patch("slafw.defines.fanStartStopTime", 0)
     def test_self_test_tower_sensitivity_change(self):
         # side_effect = [
-        #   TowerHomeFailed() - causes call hw.get_tower_sensitivity_async
-        #   TowerHomeFailed() - causes homing fail called inside hw.get_tower_sensitivity_async to increment sensitivity
+        #   TowerHomeFailed() - causes tower to update sensitivity to 0
+        #   TowerHomeFailed() - causes tower to update sensitivity to 1
         #   True - the rest of the homing are successful
         # ]
-        self.hw.towerSyncWaitAsync.side_effect = [TowerHomeFailed(), TowerHomeFailed(), True]
-        self.hw.get_tower_sensitivity_async.side_effect = [0, 1]
+
+        self.hw.tower.sync_wait_async = MagicMock(side_effect=[
+            TowerHomeFailed(),
+            AsyncMock().__call__(),
+            AsyncMock().__call__(),
+            AsyncMock().__call__()])
+        data = self._run_self_test()
+        self.assertEqual(0, data["towerSensitivity"])
+
+        self.hw.tower.sync_wait_async = MagicMock(side_effect=[
+            TowerHomeFailed(),
+            TowerHomeFailed(),
+            AsyncMock().__call__(),
+            AsyncMock().__call__(),
+            AsyncMock().__call__()])
         data = self._run_self_test()
         self.assertEqual(1, data["towerSensitivity"])
 
-        self.hw.towerSyncWaitAsync.side_effect = [TowerEndstopNotReached(), TowerEndstopNotReached(), True]
-        self.hw.get_tower_sensitivity_async.side_effect = [0, 1]
+        self.hw.tower.sync_wait_async = MagicMock(side_effect=[
+            TowerEndstopNotReached(),
+            TowerEndstopNotReached(),
+            AsyncMock().__call__(),
+            AsyncMock().__call__(),
+            AsyncMock().__call__()])
         data = self._run_self_test()
         self.assertEqual(1, data["towerSensitivity"])
 
-        self.hw.towerSyncWaitAsync.side_effect = [TowerHomeFailed(), TowerHomeFailed(), TowerHomeFailed(), True]
-        self.hw.get_tower_sensitivity_async.side_effect = [0, 1, 2]
+        self.hw.tower.sync_wait_async = MagicMock(side_effect=[
+            TowerHomeFailed(),
+            TowerHomeFailed(),
+            TowerHomeFailed(),
+            AsyncMock().__call__(),
+            AsyncMock().__call__(),
+            AsyncMock().__call__()])
         data = self._run_self_test()
         self.assertEqual(2, data["towerSensitivity"])
 
-        self.hw.towerSyncWaitAsync.side_effect = TowerHomeFailed()
+        self.hw.tower.sync_wait_async = Mock(side_effect=TowerHomeFailed())
         self._run_self_test(expected_state=WizardState.FAILED)
 
-        self.hw.towerSyncWaitAsync.side_effect = TowerEndstopNotReached()
+        self.hw.tower.sync_wait_async = Mock(
+            side_effect=TowerEndstopNotReached())
         self._run_self_test(expected_state=WizardState.FAILED)
 
     def test_unboxing_complete(self):
@@ -543,6 +575,15 @@ class TestWizards(TestWizardsBase):
         self.assertFalse(defines.local_time_path.exists(), "Timezone reset to default")
 
     def test_calibration_success(self):
+        original_move = self.hw.tower.move
+
+        def side_effect_move(position):
+            if position == self.hw.tower.min_nm:
+                original_move(self.hw.tower.min_nm + 1)
+            else:
+                original_move(position)
+
+        self.hw.tower.move = MagicMock(side_effect=side_effect_move)
         wizard = CalibrationWizard(self.hw, RuntimeConfig())
 
         def on_state_changed():
@@ -741,24 +782,34 @@ class TestUVCalibration(TestWizardsBase):
 
 
 class TankSurfaceCleanerTest(TestWizardsBase):
+    # pylint: disable=too-many-instance-attributes
     def setUp(self) -> None:
         super().setUp()
 
         self.hw_config_file = self.TEMP_DIR / "reset_config.toml"
         self.hw_config_factory_file = self.TEMP_DIR / "reset_config_factory.toml"
-        # defines.counterLog = self.TEMP_DIR / "counter.log"
 
         hw_config = HwConfig(self.hw_config_file, self.hw_config_factory_file, is_master=True)
         hw_config.tankCleaningExposureTime = 5  # Avoid waiting for long exposures
         self.hw = HardwareMock(hw_config)
-        # self.hw.config.tankCleaningExposureTime = 5.0
         self.runtime_config = RuntimeConfig()
         self.exposure_image = Mock()
         self.exposure_image.printer_model = PrinterModel.SL1
+        self.wizard = TankSurfaceCleaner(self.hw, self.exposure_image, self.runtime_config)
+        self.wizard.state_changed.connect(self.on_state_changed)
 
         self.exposure_start_time = None
         self.exposure_end_time = None
-        # self.uv_meter = UVMeterMock(self.hw)
+
+        original_move = self.hw.tower.move
+
+        def side_effect_move(position):
+            if position == self.hw.config.tankCleaningAdaptorHeight_nm - 3_000_000:
+                original_move(self.hw.config.tankCleaningAdaptorHeight_nm)
+            else:
+                original_move(position)
+
+        self.hw.tower.move = MagicMock(side_effect=side_effect_move)
 
     def tearDown(self) -> None:
         del self.hw
@@ -766,71 +817,44 @@ class TankSurfaceCleanerTest(TestWizardsBase):
         del self.exposure_image
         super().tearDown()
 
+    def on_state_changed(self):
+        if self.wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
+            self.wizard.tank_surface_cleaner_init_done()
+        if self.wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_CLEANING_ADAPTOR:
+            self.wizard.insert_cleaning_adaptor_done()
+        if self.wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_CLEANING_ADAPTOR:
+            self.wizard.remove_cleaning_adaptor_done()
+
     def test_tank_surface_cleaner(self):
-        wizard = TankSurfaceCleaner(self.hw, self.exposure_image, self.runtime_config)
-
-        def on_state_changed():
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
-                wizard.tank_surface_cleaner_init_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_CLEANING_ADAPTOR:
-                wizard.insert_cleaning_adaptor_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_CLEANING_ADAPTOR:
-                wizard.remove_cleaning_adaptor_done()
-
-        wizard.state_changed.connect(on_state_changed)
-        self._run_wizard(wizard, limit_s=10)
+        self._run_wizard(self.wizard, limit_s=10000)
 
     def test_tank_surface_cleaner_fail_safe(self):
-        wizard = TankSurfaceCleaner(self.hw, self.exposure_image, self.runtime_config)
-
-        def on_state_changed():
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
-                wizard.tank_surface_cleaner_init_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_CLEANING_ADAPTOR:
-                wizard.insert_cleaning_adaptor_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_CLEANING_ADAPTOR:
-                wizard.remove_cleaning_adaptor_done()
-
-        wizard.state_changed.connect(on_state_changed)
-
         def on_check_states_changed():
-            if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
-                    and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.RUNNING:
+            if WizardCheckType.EXPOSING_DEBRIS in self.wizard.check_state \
+                    and  self.wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.RUNNING:
                 time.sleep(1)
-                wizard.cancel()
-            if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
-                    and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
+                self.wizard.cancel()
+            if WizardCheckType.EXPOSING_DEBRIS in  self.wizard.check_state \
+                    and  self.wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
                 assert not self.hw.uv_led.active
 
-        wizard.check_states_changed.connect(on_check_states_changed)
-        self._run_wizard(wizard, limit_s=60, expected_state=WizardState.CANCELED)
+        self.wizard.check_states_changed.connect(on_check_states_changed)
+        self._run_wizard(self.wizard, limit_s=60, expected_state=WizardState.CANCELED)
 
     def test_tank_surface_cleaner_exposure_time(self):
-        wizard = TankSurfaceCleaner(self.hw, self.exposure_image, self.runtime_config)
-
-        def on_state_changed():
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INIT:
-                wizard.tank_surface_cleaner_init_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_INSERT_CLEANING_ADAPTOR:
-                wizard.insert_cleaning_adaptor_done()
-            if wizard.state == WizardState.TANK_SURFACE_CLEANER_REMOVE_CLEANING_ADAPTOR:
-                wizard.remove_cleaning_adaptor_done()
-
-        wizard.state_changed.connect(on_state_changed)
-
         def on_check_states_changed():
-            if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
-                    and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.RUNNING:
+            if WizardCheckType.EXPOSING_DEBRIS in self.wizard.check_state \
+                    and self.wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.RUNNING:
                 self.exposure_start_time = time.time()
-            if WizardCheckType.EXPOSING_DEBRIS in wizard.check_state \
-                    and wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
+            if WizardCheckType.EXPOSING_DEBRIS in self.wizard.check_state \
+                    and self.wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
                 self.exposure_end_time = time.time()
                 duration = self.exposure_end_time - self.exposure_start_time
                 time_diff = abs(duration - self.hw.config.tankCleaningExposureTime)
                 assert time_diff < 1
 
-        wizard.check_states_changed.connect(on_check_states_changed)
-        self._run_wizard(wizard, limit_s=60)
+        self.wizard.check_states_changed.connect(on_check_states_changed)
+        self._run_wizard(self.wizard, limit_s=60)
 
 
 if __name__ == "__main__":

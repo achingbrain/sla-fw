@@ -22,7 +22,7 @@ from slafw.errors.errors import DisplayTransmittanceNotValid, CalculatedUVPWMNot
 from slafw.functions.system import compute_uvpwm
 from slafw.functions import files, generate
 from slafw.libPrinter import Printer
-from slafw.hardware.tilt import TiltProfile
+from slafw.hardware.sl1.tilt import TiltProfile
 from slafw.libUvLedMeterMulti import UvLedMeterMulti
 from slafw.hardware.power_led_action import WarningAction
 from slafw.image import cairo
@@ -367,7 +367,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
             self._printer.hw.tilt.profile_id = TiltProfile.homingFast
             self._printer.hw.tilt.sync_wait()
             self._printer.hw.tilt.profile_id = TiltProfile.moveFast
-            self._printer.hw.tilt.move_up_wait()
+            self._printer.hw.tilt.move_ensure(self._printer.hw.config.tiltHeight)  # move to level
 
         status.set("<h3>Tilt leveled<h3>")
         self._printer.hw.start_fans()

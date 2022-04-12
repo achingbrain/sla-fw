@@ -13,7 +13,7 @@ from slafw.admin.control import AdminControl
 from slafw.admin.items import AdminAction, AdminBoolValue
 from slafw.admin.menus.dialogs import Info, Confirm
 from slafw.admin.safe_menu import SafeAdminMenu
-from slafw.hardware.axis import AxisId
+from slafw.hardware.axis import Axis
 from slafw.libPrinter import Printer
 from slafw.functions.files import get_save_path
 from slafw.errors.errors import ConfigException
@@ -42,30 +42,30 @@ class ProfilesSetsMenu(SafeAdminMenu):
         self.add_item(AdminAction("Save", self._save))
 
     def _listProfiles(self, basePath: Path, internal: bool):
-        files = glob(os.path.join(basePath, "*." + defines.tiltProfilesSuffix))
-        files.extend(glob(os.path.join(basePath, "*." + defines.tuneTiltProfilesSuffix)))
-        files.extend(glob(os.path.join(basePath, "*." + defines.towerProfilesSuffix)))
+        files = glob(os.path.join(basePath, "*.tilt"))
+        files.extend(glob(os.path.join(basePath, "*.tune_tilt")))
+        files.extend(glob(os.path.join(basePath, "*.tower")))
         for filePath in files:
             itemName = os.path.basename(filePath)
             if internal:
                 itemName = os.path.basename(basePath) + " - " + itemName
-            if filePath.endswith("." + defines.tiltProfilesSuffix):
+            if filePath.endswith(".tilt"):
                 self.add_item(AdminAction(
                     itemName,
-                    partial(self._confirm, AxisId.TILT, self._setAxisProfiles, itemName, filePath)
+                    partial(self._confirm, self._printer.hw.tilt, self._setAxisProfiles, itemName, filePath)
                 ))
-            elif filePath.endswith("." + defines.tuneTiltProfilesSuffix):
+            elif filePath.endswith(".tune_tilt"):
                 self.add_item(AdminAction(
                     itemName,
-                    partial(self._confirm, AxisId.TILT, self._setTuneTilt, itemName, filePath)
+                    partial(self._confirm, self._printer.hw.tilt, self._setTuneTilt, itemName, filePath)
                 ))
-            elif filePath.endswith("." + defines.towerProfilesSuffix):
+            elif filePath.endswith(".tower"):
                 self.add_item(AdminAction(
                     itemName,
-                    partial(self._confirm, AxisId.TOWER, self._setAxisProfiles, itemName, filePath)
+                    partial(self._confirm, self._printer.hw.tower, self._setAxisProfiles, itemName, filePath)
                 ))
 
-    def _confirm(self, axis: AxisId, action = None, itemName = None, path = None):
+    def _confirm(self, axis: Axis, action = None, itemName = None, path = None):
         self._control.enter(
             Confirm(
                 self._control,
@@ -74,14 +74,11 @@ class ProfilesSetsMenu(SafeAdminMenu):
             )
         )
 
-    def _setAxisProfiles(self, path, axis: AxisId):
+    def _setAxisProfiles(self, path, axis: Axis):
         with open(path, "r") as f:
             profiles = json.loads(f.read())
             self.logger.info("Overwriting %s profiles to: %s", axis.name, profiles)
-            if axis is AxisId.TOWER:
-                self._printer.hw.setTowerProfiles(profiles)
-            else:
-                self._printer.hw.tilt.profiles = profiles
+            axis.profiles = profiles
 
     def _setTuneTilt(self, path, _):
         with open(path, "r") as f:

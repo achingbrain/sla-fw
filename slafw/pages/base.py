@@ -260,7 +260,7 @@ class Page:
 
 
     def _syncTower(self):
-        if not self.display.hw.towerSyncWait(retries = 2):
+        if not self.display.hw.tower.sync_wait():
             self.display.pages['error'].setParams(code=Sl1Codes.TOWER_HOME_FAILED.raw_code)
             return "error"
         #endif

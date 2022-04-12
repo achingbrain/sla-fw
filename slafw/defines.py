@@ -41,10 +41,6 @@ printer_m1_enabled = factoryMountPoint / "printer_m1_enabled"
 expoPanelLogFileName = "expo_panel_log.json"
 expoPanelLogPath = factoryMountPoint / expoPanelLogFileName
 
-tiltProfilesSuffix = "tilt"
-tuneTiltProfilesSuffix = "tune_tilt"
-towerProfilesSuffix = "tower"
-
 # Deprecated. Used be calibration data show, but this does not respect new format used by API based wizards.
 # TODO: This needs to be fixed in order to be able to display recent wizard data properly.
 wizardDataFilename = "wizard_data.toml"  # deprecated

@@ -166,6 +166,10 @@ class TiltPositionFailed(GeneralError):
     pass
 
 
+class TowerPositionFailed(GeneralError):
+    pass
+
+
 @with_code(Sl1Codes.TOWER_HOME_FAILED)
 class TowerHomeFailed(GeneralError):
     pass

@@ -40,7 +40,7 @@ class DisplayTest(DangerousCheck):
     async def async_task_run(self, actions: UserActionBroker):
         self.reset()
         await self.wait_cover_closed()
-        await gather(self._hw.verify_tower(), self._hw.verify_tilt())
+        await gather(self._hw.tower.verify_async(), self._hw.tilt.verify_async())
         old_state = False     # turn LEDs on for first time
         self._hw.start_fans()
         self._hw.exposure_screen.draw_pattern(draw_svg_expand, defines.prusa_logo_file, True)

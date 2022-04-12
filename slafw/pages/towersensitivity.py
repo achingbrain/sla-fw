@@ -39,7 +39,7 @@ class PageTowerSensitivity(Page):
         pageWait.show()
 
         try:
-            tower_sensitivity = self.display.hw.get_tower_sensitivity()
+            tower_sensitivity = self.display.hw.tower.sensitivity
         except TowerEndstopNotReached:
             self.display.pages["error"].setParams(code=Sl1Codes.TOWER_ENDSTOP_NOT_REACHED.raw_code)
             return "error"

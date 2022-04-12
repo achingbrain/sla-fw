@@ -4,105 +4,60 @@
 
 import asyncio
 from abc import abstractmethod
-from enum import unique, Enum
-from time import sleep
-from typing import List
+from functools import cached_property
 
-from PySignal import Signal
-
-from slafw.configs.hw import HwConfig
-from slafw.errors.errors import MotionControllerException
-from slafw.functions.decorators import safe_call
-from slafw.hardware.axis import AxisProfileBase, Axis
-
-
-@unique
-class TiltProfile(AxisProfileBase, Enum):
-    temp = -1
-    homingFast = 0
-    homingSlow = 1
-    moveFast = 2
-    moveSlow = 3
-    layerMoveSlow = 4
-    layerRelease = 5
-    layerMoveFast = 6
-    reserved2 = 7
+from slafw.errors.errors import TiltMoveFailed, TiltHomeFailed
+from slafw.hardware.axis import Axis
 
 
 class Tilt(Axis):
-    def __init__(self, config: HwConfig):
-        super().__init__()
-        self.movement_ended = Signal()
-        self._config = config
 
-    @abstractmethod
-    def go_to_fullstep(self, goUp: int):
-        """move axis to the fullstep (stable position) in given direction"""
+    @property
+    def name(self) -> str:
+        return "tilt"
 
-    @abstractmethod
-    def move_down(self):
-        """move tilt to zero"""
+    @cached_property
+    def sensitivity(self) -> int:
+        return self._config.tiltSensitivity
 
-    @safe_call(False, MotionControllerException)
-    def move_down_wait(self):
-        self.move_down()
-        while not self.on_target_position:
-            sleep(0.1)
+    @cached_property
+    def home_position(self) -> int:
+        return 0
 
-    @abstractmethod
-    def move_up(self):
-        """move tilt to max"""
+    @cached_property
+    def config_height_position(self) -> int:
+        return self._config.tiltHeight
 
-    @safe_call(False, MotionControllerException)
-    def move_up_wait(self):
-        self.move_up()
-        while not self.on_target_position:
-            sleep(0.1)
-
+    # TODO: force unit check
     @abstractmethod
     def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
         """tilt up during the print"""
 
+
     def layer_down_wait(self, slowMove: bool = False) -> None:
-        """tilt up during the print"""
         asyncio.run(self.layer_down_wait_async(slowMove=slowMove))
 
     @abstractmethod
     async def layer_down_wait_async(self, slowMove: bool = False) -> None:
         """tilt up during the print"""
 
-    @safe_call(False, MotionControllerException)
     def stir_resin(self) -> None:
         asyncio.run(self.stir_resin_async())
 
-    @safe_call(False, MotionControllerException)
+    @abstractmethod
     async def stir_resin_async(self) -> None:
-        for _ in range(self._config.stirringMoves):
-            self.profile_id = TiltProfile.homingFast
-            # do not verify end positions
-            self.move_up()
-            while self.moving:
-                sleep(0.1)
-            self.move_down()
-            while self.moving:
-                sleep(0.1)
-            await self.sync_wait_async()
+        """stiring moves of tilt."""
 
-    def home_calibrate_wait(self):
-        """test and save tilt motor phase for accurate homing"""
-        return asyncio.run(self.home_calibrate_wait_async())
+    def _move_api_min(self) -> None:
+        self.move(self.home_position)
 
-    @abstractmethod
-    async def home_calibrate_wait_async(self):
-        """test and save tilt motor phase for accurate homing"""
+    def _move_api_max(self) -> None:
+        self.move(self._config.tiltMax)
 
-    @property
-    def profile_names(self) -> List[str]:
-        names = list()
-        for profile in TiltProfile:
-            names.append(profile.name)
-        return names
+    @staticmethod
+    def _raise_move_failed():
+        raise TiltMoveFailed()
 
-    @abstractmethod
-    def level(self) -> None:
-        """Level tilt (print position)"""
+    @staticmethod
+    def _raise_home_failed():
+        raise TiltHomeFailed()

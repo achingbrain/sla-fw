@@ -15,13 +15,15 @@ from slafw.errors.errors import (
     InvalidTiltAlignPosition,
     PrinterException,
 )
+from slafw.hardware.axis import HomingStatus
 from slafw.hardware.base.hardware import BaseHardware
 from slafw import test_runtime
+from slafw.hardware.sl1.tower import TowerProfile
 from slafw.states.wizard import WizardState
 from slafw.wizard.actions import UserActionBroker, PushState
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck, Check
 from slafw.wizard.setup import Configuration, Resource, TankSetup
-from slafw.hardware.tilt import TiltProfile
+from slafw.hardware.sl1.tilt import TiltProfile
 from slafw.configs.writer import ConfigWriter
 
 
@@ -58,23 +60,21 @@ class TiltLevelTest(DangerousCheck):
         # TODO: We should have such a method in Hardware
         self._hw.tilt.profile_id = TiltProfile.homingFast
         self._hw.tilt.sync()
-        home_status = self._hw.tilt.homing_status
-        while home_status != 0:
-            if home_status == -2:
+        home_status = self._hw.tilt.homing_status.value
+        while home_status != HomingStatus.SYNCED.value:
+            if home_status == HomingStatus.ENDSTOP_NOT_REACHED.value:
                 raise TiltEndstopNotReached()
-            if home_status == -3:
+            if home_status == HomingStatus.BLOCKED_AXIS.value:
                 raise TiltHomeCheckFailed()
-            if home_status < 0:
+            if home_status < HomingStatus.SYNCED.value:
                 raise PrinterException("Unknown printer home error")
             await asyncio.sleep(0.25)
-            home_status = self._hw.tilt.homing_status
+            home_status = self._hw.tilt.homing_status.value
         self._hw.tilt.position = 0
 
         # Set tilt to leveled position
         self._hw.tilt.profile_id = TiltProfile.moveFast
-        self._hw.tilt.move_up()
-        while self._hw.tilt.moving:
-            await asyncio.sleep(0.25)
+        await self._hw.tilt.move_ensure_async(self._hw.config.tiltHeight)
 
 
 class TiltRangeTest(DangerousCheck):
@@ -85,18 +85,18 @@ class TiltRangeTest(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.tilt.profile_id = TiltProfile.moveFast
-        self._hw.tilt.move_absolute(self._hw.tilt.max)
+        self._hw.tilt.move(defines.tiltMax)
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
         self.progress = 0.25
 
-        self._hw.tilt.move_absolute(512)  # go down fast before endstop
+        self._hw.tilt.move(512)  # go down fast before endstop
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
         self.progress = 0.5
 
         self._hw.tilt.profile_id = TiltProfile.homingSlow  # finish measurement with slow profile (more accurate)
-        self._hw.tilt.move_absolute(self._hw.tilt.min)
+        self._hw.tilt.move(self._hw.config.tiltMin)
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
         self.progress = 0.75
@@ -108,7 +108,7 @@ class TiltRangeTest(DangerousCheck):
         ) and not test_runtime.testing:
             raise TiltAxisCheckFailed(self._hw.tilt.position)
         self._hw.tilt.profile_id = TiltProfile.moveFast
-        self._hw.tilt.move_absolute(defines.defaultTiltHeight)
+        self._hw.tilt.move(defines.defaultTiltHeight)
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
 
@@ -121,19 +121,17 @@ class TiltTimingTest(DangerousCheck):
         self._config_writer = config_writer
 
     async def async_task_run(self, actions: UserActionBroker):
-        self._hw.towerSync()
-        while not self._hw.isTowerSynced():
+        self._hw.tower.sync()
+        while not self._hw.tower.synced:
             await asyncio.sleep(0.25)
 
         await self._hw.tilt.sync_wait_async()  # FIXME MC cant properly home tilt while tower is moving
         self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(slow_move=True)
         self._config_writer.tiltFastTime = await self._get_tilt_time_sec(slow_move=False)
-        self._hw.setTowerProfile("homingFast")
+        self._hw.tower.profile_id = TowerProfile.homingFast
         self._hw.tilt.profile_id = TiltProfile.moveFast
         self.progress = 1
-        self._hw.tilt.move_up()
-        while self._hw.tilt.moving:
-            await asyncio.sleep(0.25)
+        await self._hw.tilt.move_ensure_async(self._hw.config.tiltHeight)
 
     async def _get_tilt_time_sec(self, slow_move: bool) -> float:
         """
@@ -174,7 +172,7 @@ class TiltCalibrationStartTest(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.tilt.profile_id = TiltProfile.homingFast
-        self._hw.tilt.move_absolute(defines.tiltCalibrationStart)
+        self._hw.tilt.move(defines.tiltCalibrationStart)
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
 
@@ -212,7 +210,7 @@ class TiltAlignTest(Check):
 
     def tilt_move(self, direction: int):
         self._logger.debug("Tilt move direction: %s", direction)
-        self._hw.tilt.move(direction, fullstep=True)
+        self._hw.tilt.move_api(direction, fullstep=True)
 
     def get_result_data(self) -> Dict[str, Any]:
         return {"tiltHeight": self._config_writer.tiltHeight}

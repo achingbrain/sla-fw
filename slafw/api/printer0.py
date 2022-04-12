@@ -251,7 +251,7 @@ class Printer0:
             shut_down(self.printer.hw, reboot=reboot)
         else:
             self.printer.hw.uv_led.off()
-            self.printer.hw.motorsRelease()
+            self.printer.hw.motors_release()
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
@@ -259,7 +259,7 @@ class Printer0:
         """
         Home tower axis
         """
-        self.printer.hw.tower_home()
+        self.printer.hw.tower.sync_wait()
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
@@ -270,7 +270,11 @@ class Printer0:
         :return: None
         """
         with WarningAction(self.printer.hw.power_led):
-            self.printer.hw.tilt.level()
+            self.printer.hw.tilt.position = self.printer.hw.config.tiltMax
+            self.printer.hw.tilt.layer_down_wait()
+            if not self.printer.hw.tilt.synced:
+                self.printer.hw.tilt.sync_wait()
+            self.printer.hw.tilt.layer_up_wait()
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
@@ -282,7 +286,7 @@ class Printer0:
 
         :return: None
         """
-        self.printer.hw.motorsRelease()
+        self.printer.hw.motors_release()
 
     @auto_dbus
     @state_checked([Printer0State.IDLE, Printer0State.WIZARD])
@@ -304,7 +308,7 @@ class Printer0:
             :2: Fast up
         :return: True on success, False otherwise
         """
-        return self.printer.hw.tower_move(speed)
+        return self.printer.hw.tower.move_api(speed)
 
     @auto_dbus
     @state_checked([Printer0State.IDLE, Printer0State.WIZARD])
@@ -326,20 +330,20 @@ class Printer0:
            :2: Fast up
         :return: True on success, False otherwise
         """
-        return self.printer.hw.tilt.move(speed)
+        return self.printer.hw.tilt.move_api(speed)
 
     @property
     def tower_position_nm(self) -> int:
         """
         Read or set tower position in nm
         """
-        return self.printer.hw.tower_position_nm
+        return self.printer.hw.tower.position
 
     @auto_dbus
     @tower_position_nm.setter
     @state_checked(Printer0State.IDLE)
     def tower_position_nm(self, position_nm: int) -> None:
-        self.printer.hw.tower_position_nm = position_nm
+        self.printer.hw.tower.position = position_nm
 
     @property
     def tilt_position(self) -> int:

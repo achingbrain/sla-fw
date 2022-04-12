@@ -195,7 +195,7 @@ class Wizard(Thread, UserActionBroker):
             self._store_data()
             raise
         finally:
-            self._hw.motorsRelease()
+            self._hw.motors_release()
             if self.state not in [WizardState.CANCELED, WizardState.FAILED]:
                 self.state = WizardState.DONE
             self._logger.info("Wizard %s finished with state %s", type(self).__name__, self.state)
@@ -229,7 +229,7 @@ class Wizard(Thread, UserActionBroker):
 #                break
 #            except (CancelledError, PrinterException):
 #                self.state = WizardState.STOPPED
-#                self._hw.motorsRelease()
+#                self._hw.motors_release()
 #                self._logger.exception("Wizard group stopped by exception")
 #                if not self.unstop_result.get():
 #                    raise

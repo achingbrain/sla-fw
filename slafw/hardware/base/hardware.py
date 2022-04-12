@@ -2,14 +2,13 @@
 # Copyright (C) 2022 Prusa Research a.s - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import asyncio
 import logging
 import os
 import re
 from abc import abstractmethod
 from functools import cached_property, lru_cache
 from time import sleep
-from typing import Dict
+from typing import Dict, List
 
 import bitstring
 import pydbus
@@ -17,6 +16,7 @@ from PySignal import Signal
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
+from slafw.hardware.axis import Axis
 from slafw.hardware.base.display import PrintDisplay
 from slafw.hardware.base.exposure_screen import ExposureScreen
 from slafw.hardware.base.fan import Fan
@@ -25,6 +25,7 @@ from slafw.hardware.base.uv_led import UVLED
 from slafw.hardware.power_led import PowerLed
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.tilt import Tilt
+from slafw.hardware.tower import Tower
 
 
 class BaseHardware:
@@ -33,6 +34,7 @@ class BaseHardware:
     uv_led: UVLED
     display: PrintDisplay
     tilt: Tilt
+    tower: Tower
     uv_led_fan: Fan
     blower_fan: Fan
     rear_fan: Fan
@@ -60,6 +62,14 @@ class BaseHardware:
             0: self.uv_led_fan,
             1: self.blower_fan,
             2: self.rear_fan,
+        }
+
+    # MC stores axes in bitmap. Keep it same. Tower 1, Tilt 2
+    @cached_property
+    def axes(self) -> Dict[int, Axis]:
+        return {
+            1: self.tower,
+            2: self.tilt,
         }
 
     def start_fans(self):
@@ -229,34 +239,32 @@ class BaseHardware:
             // 100
         )
 
-    @property
-    @abstractmethod
-    def tower_position_nm(self) -> int:
-        ...
-
-    @tower_position_nm.setter
-    @abstractmethod
-    def tower_position_nm(self, value: int):
-        ...
-
-    async def tower_move_absolute_nm_wait_async(self, position_nm: int):
-        self.tower_position_nm = position_nm
-        while not await self.isTowerOnPositionAsync():
-            await asyncio.sleep(0.25)
-
-    def setTowerCurrent(self, current):  # pylint: disable=unused-argument,no-self-use
-        return
-
-    def tower_move_absolute_nm_wait(self, position_nm):
-        return asyncio.run(self.tower_move_absolute_nm_wait_async(position_nm))
-
-    @abstractmethod
-    async def isTowerOnPositionAsync(self, retries: int = 1) -> bool:
-        ...
-
-    def isTowerOnPosition(self, retries: int = 1) -> bool:
-        return asyncio.run(self.isTowerOnPositionAsync(retries))
-
     @abstractmethod
     def exit(self):
         ...
+
+    @staticmethod
+    @abstractmethod
+    def _get_profiles_with_sensitivity(axis: Axis, profiles: List[List[int]] = None, sens: int = None) -> List[List[int]]:
+        """
+        Get list of adjusted profiles.
+        Adjustment means rewriting SGTHRS and CURRENT of homingFast and homingSlow profiles.
+
+        :param: axis
+        :param: profiles - if None, profiles are red from MC
+        :param: sens - if None, sensitivity is red from config
+
+        :return: list of adjusted profiles by given sensitivity
+        """
+
+    @abstractmethod
+    def set_stepper_sensitivity(self, axis: Axis, sens: int) -> None:
+        """
+        Rewrites profiles inside MC according to given sensitivity.
+        """
+
+    @abstractmethod
+    def motors_release(self) -> None:
+        """
+        Disables all stepper motors
+        """

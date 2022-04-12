@@ -8,7 +8,7 @@ from pathlib import Path
 from time import sleep
 from typing import Optional
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw.hardware.base.hardware import BaseHardware
@@ -125,7 +125,7 @@ class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
     def test_stuck_recovery_success(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.tilt.layer_down_wait.side_effect = TiltHomeFailed()
+        hw.tilt.layer_down_wait = MagicMock(side_effect=TiltHomeFailed())
         exposure = self._start_exposure(hw)
 
         for i in range(30):
@@ -152,7 +152,7 @@ class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
     def test_stuck_recovery_fail(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.tilt.layer_down_wait.side_effect = TiltHomeFailed()
+        hw.tilt.layer_down_wait = MagicMock(side_effect=TiltHomeFailed())
         exposure = self._start_exposure(hw)
 
         for i in range(30):
@@ -168,7 +168,7 @@ class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
                 self.assertEqual(exposure.state, ExposureState.FAILURE)
                 return
             if exposure.state == ExposureState.STUCK:
-                hw.tilt.sync_wait.side_effect = TiltHomeFailed()
+                hw.tilt.sync_wait = MagicMock(side_effect=TiltHomeFailed())
                 exposure.doContinue()
             if exposure.state == ExposureState.POUR_IN_RESIN:
                 exposure.confirm_resin_in()

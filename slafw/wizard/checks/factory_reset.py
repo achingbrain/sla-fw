@@ -30,13 +30,13 @@ from slafw.errors.warnings import FactoryResetCheckFailure
 from slafw.functions.files import ch_mode_owner, get_all_supported_files
 from slafw.functions.system import FactoryMountedRW, reset_hostname, \
     compute_uvpwm, get_configured_printer_model
-from slafw.hardware.axis import AxisId
 from slafw.hardware.base.hardware import BaseHardware
+from slafw.hardware.sl1.tower import TowerProfile
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import Check, WizardCheckType, SyncCheck, DangerousCheck
 from slafw.wizard.wizards.self_test import SelfTestWizard
 from slafw.wizard.wizards.uv_calibration import UVCalibrationWizard
-from slafw.hardware.tilt import TiltProfile
+from slafw.hardware.sl1.tilt import TiltProfile
 
 
 class ResetCheck(SyncCheck):
@@ -216,8 +216,8 @@ class ResetHomingProfiles(ResetCheck):
         self._hw = hw
 
     def reset_task_run(self, actions: UserActionBroker):
-        self._hw.updateMotorSensitivity(AxisId.TOWER)
-        self._hw.updateMotorSensitivity(AxisId.TILT)
+        self._hw.set_stepper_sensitivity(self._hw.tower, 0)
+        self._hw.set_stepper_sensitivity(self._hw.tilt, 0)
 
 
 class DisableFactory(SyncCheck):
@@ -309,19 +309,17 @@ class InitiatePackingMoves(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        await gather(self._hw.verify_tower(), self._hw.verify_tilt())
+        await gather(self._hw.tower.verify_async(), self._hw.tilt.verify_async())
 
         # move tilt and tower to packing position
         self._hw.tilt.profile_id = TiltProfile.homingFast
-        self._hw.tilt.move_absolute(defines.defaultTiltHeight)
+        self._hw.tilt.move(defines.defaultTiltHeight)
         while self._hw.tilt.moving:
             await sleep(0.25)
 
-        self._hw.setTowerProfile("homingFast")
+        self._hw.tower.profile_id = TowerProfile.homingFast
         # TODO: Constant in code !!!
-        self._hw.tower_position_nm = self._hw.config.tower_height_nm - 74_000_000
-        while self._hw.isTowerMoving():
-            await sleep(0.25)
+        await self._hw.tower.move_ensure_async(self._hw.config.tower_height_nm - 74_000_000)
 
 
 class FinishPackingMoves(Check):
@@ -332,9 +330,7 @@ class FinishPackingMoves(Check):
     async def async_task_run(self, actions: UserActionBroker):
         # slightly press the foam against printers base
         # TODO: Constant in code !!!
-        self._hw.tower_position_nm = self._hw.config.tower_height_nm - 93_000_000
-        while self._hw.isTowerMoving():
-            await sleep(0.25)
+        await self._hw.tower.move_ensure_async(self._hw.config.tower_height_nm - 93_000_000)
 
 
 class DisableAccess(SyncCheck):

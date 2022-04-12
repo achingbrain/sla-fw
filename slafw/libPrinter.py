@@ -641,4 +641,4 @@ class Printer:
         self.exposure_image.blank_screen()
         self.hw.uv_led.off()
         self.hw.stop_fans()
-        self.hw.motorsRelease()
+        self.hw.motors_release()
