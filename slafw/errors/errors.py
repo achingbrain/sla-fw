@@ -277,7 +277,12 @@ class TowerFailed(ExposureError):
 
 
 @with_code(Sl1Codes.TOWER_MOVE_FAILED)
-class TowerMoveFailed(ExposureError):
+class TowerMoveFailed(PrinterError):
+    pass
+
+
+@with_code(Sl1Codes.TILT_MOVE_FAILED)
+class TiltMoveFailed(PrinterError):
     pass
 
 
