@@ -210,7 +210,7 @@ class TiltSL1(Tilt):
         return self._mcc.doGetIntList("?ticf")
 
     @profile.setter
-    def profile(self, profile):
+    def profile(self, profile: List[int]):
         """update values of currently selected profile in MC"""
         if self.moving:
             raise MotionControllerException(
@@ -240,7 +240,4 @@ class TiltSL1(Tilt):
 
     @property
     def profile_names(self) -> List[str]:
-        names = list()
-        for profile in TiltProfile:
-            names.append(profile.name)
-        return names
+        return [profile.name for profile in TiltProfile]

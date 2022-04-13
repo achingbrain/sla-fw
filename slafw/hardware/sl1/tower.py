@@ -119,7 +119,7 @@ class TowerSL1(Tower):
         return self._mcc.doGetIntList("?twcf")
 
     @profile.setter
-    def profile(self, profile):
+    def profile(self, profile: List[int]):
         if self.moving:
             raise MotionControllerException(
                 "Cannot edit profile while tower is moving.", None
@@ -146,10 +146,7 @@ class TowerSL1(Tower):
 
     @property
     def profile_names(self) -> List[str]:
-        names = list()
-        for profile in TowerProfile:
-            names.append(profile.name)
-        return names
+        return [profile.name for profile in TowerProfile]
 
     def _move_api_get_profile(self, speed) -> TowerProfile:
         if abs(speed) < 2:
