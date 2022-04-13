@@ -13,7 +13,7 @@ from slafw.hardware.sl1.tower import TowerProfile
 from slafw.libPrinter import Printer
 from slafw.libUvLedMeterMulti import UvLedMeterMulti
 from slafw.hardware.sl1.tilt import TiltProfile
-from slafw.errors.errors import TiltHomeFailed
+from slafw.errors.errors import TiltHomeFailed, TowerHomeFailed
 from slafw.hardware.power_led_action import WarningAction
 from slafw.image.cairo import draw_chess
 
@@ -168,8 +168,11 @@ class ResinSensorTestMenu(AdminMenu):
         with WarningAction(self._printer.hw.power_led):
             self.status = "Moving platform to the top..."
 
-            if not self._printer.hw.tower.sync_wait():
+            try:
+                self._printer.hw.tower.sync_wait()
+            except TowerHomeFailed:
                 self._control.enter(Error(self._control, text="Failed to sync tower"))
+                self._printer.hw.motors_release()
                 return
 
             self.status = "Homing tilt..."
@@ -177,10 +180,11 @@ class ResinSensorTestMenu(AdminMenu):
                 self._printer.hw.tilt.sync_wait()
             except TiltHomeFailed:
                 self._control.enter(Error(self._control, text="Failed to sync tilt"))
+                self._printer.hw.motors_release()
                 return
 
             self._printer.hw.tilt.profile_id = TiltProfile.moveFast
-            self._printer.hw.tilt.move_wait(self._printer.hw.config.tiltHeight)
+            self._printer.hw.tilt.move_ensure(self._printer.hw.config.tiltHeight)
 
             self.status = "Measuring...\nDo NOT TOUCH the printer"
             volume = round(self._printer.hw.get_precise_resin_volume_ml())
