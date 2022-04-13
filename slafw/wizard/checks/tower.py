@@ -27,7 +27,7 @@ class TowerHomeTest(DangerousCheck):
             sensitivity_failed = False
             for _ in range(3):
                 try:
-                    await self._hw.tower.sync_wait_async(retries=0)
+                    await self._hw.tower.sync_ensure_async(retries=0)
                 except (TowerHomeFailed, TowerEndstopNotReached) as e:
                     sensitivity_failed = True
                     self._logger.exception(e)
@@ -109,7 +109,7 @@ class TowerAlignTest(DangerousCheck):
                 self._hw.tower.above_surface_nm,
             )
             self._hw.beepAlarm(3)
-            await self._hw.tower.sync_wait_async()
+            await self._hw.tower.sync_ensure_async()
             raise TowerBelowSurface(self._hw.tower.position)
 
         self._logger.info("Moving platform to min position")
@@ -125,7 +125,7 @@ class TowerAlignTest(DangerousCheck):
                 self._hw.tower.min_nm,
             )
             self._hw.beepAlarm(3)
-            await self._hw.tower.sync_wait_async()
+            await self._hw.tower.sync_ensure_async()
             raise TowerBelowSurface(self._hw.tower.position)
 
         self._logger.debug("Moving tower to calib position x3")

@@ -168,7 +168,7 @@ class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
                 self.assertEqual(exposure.state, ExposureState.FAILURE)
                 return
             if exposure.state == ExposureState.STUCK:
-                hw.tilt.sync_wait = MagicMock(side_effect=TiltHomeFailed())
+                hw.tilt.sync_ensure = MagicMock(side_effect=TiltHomeFailed())
                 exposure.doContinue()
             if exposure.state == ExposureState.POUR_IN_RESIN:
                 exposure.confirm_resin_in()

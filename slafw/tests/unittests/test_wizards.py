@@ -415,7 +415,7 @@ class TestWizards(TestWizardsBase):
         #   True - the rest of the homing are successful
         # ]
 
-        self.hw.tower.sync_wait_async = MagicMock(side_effect=[
+        self.hw.tower.sync_ensure_async = MagicMock(side_effect=[
             TowerHomeFailed(),
             AsyncMock().__call__(),
             AsyncMock().__call__(),
@@ -423,7 +423,7 @@ class TestWizards(TestWizardsBase):
         data = self._run_self_test()
         self.assertEqual(0, data["towerSensitivity"])
 
-        self.hw.tower.sync_wait_async = MagicMock(side_effect=[
+        self.hw.tower.sync_ensure_async = MagicMock(side_effect=[
             TowerHomeFailed(),
             TowerHomeFailed(),
             AsyncMock().__call__(),
@@ -432,7 +432,7 @@ class TestWizards(TestWizardsBase):
         data = self._run_self_test()
         self.assertEqual(1, data["towerSensitivity"])
 
-        self.hw.tower.sync_wait_async = MagicMock(side_effect=[
+        self.hw.tower.sync_ensure_async = MagicMock(side_effect=[
             TowerEndstopNotReached(),
             TowerEndstopNotReached(),
             AsyncMock().__call__(),
@@ -441,7 +441,7 @@ class TestWizards(TestWizardsBase):
         data = self._run_self_test()
         self.assertEqual(1, data["towerSensitivity"])
 
-        self.hw.tower.sync_wait_async = MagicMock(side_effect=[
+        self.hw.tower.sync_ensure_async = MagicMock(side_effect=[
             TowerHomeFailed(),
             TowerHomeFailed(),
             TowerHomeFailed(),
@@ -451,10 +451,10 @@ class TestWizards(TestWizardsBase):
         data = self._run_self_test()
         self.assertEqual(2, data["towerSensitivity"])
 
-        self.hw.tower.sync_wait_async = Mock(side_effect=TowerHomeFailed())
+        self.hw.tower.sync_ensure_async = Mock(side_effect=TowerHomeFailed())
         self._run_self_test(expected_state=WizardState.FAILED)
 
-        self.hw.tower.sync_wait_async = Mock(
+        self.hw.tower.sync_ensure_async = Mock(
             side_effect=TowerEndstopNotReached())
         self._run_self_test(expected_state=WizardState.FAILED)
 

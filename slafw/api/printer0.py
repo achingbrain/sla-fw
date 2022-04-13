@@ -259,7 +259,7 @@ class Printer0:
         """
         Home tower axis
         """
-        self.printer.hw.tower.sync_wait()
+        self.printer.hw.tower.sync_ensure()
 
     @auto_dbus
     @state_checked(Printer0State.IDLE)
@@ -273,7 +273,7 @@ class Printer0:
             self.printer.hw.tilt.position = self.printer.hw.config.tiltMax
             self.printer.hw.tilt.layer_down_wait()
             if not self.printer.hw.tilt.synced:
-                self.printer.hw.tilt.sync_wait()
+                self.printer.hw.tilt.sync_ensure()
             self.printer.hw.tilt.layer_up_wait()
 
     @auto_dbus

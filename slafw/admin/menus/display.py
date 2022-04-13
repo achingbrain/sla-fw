@@ -365,7 +365,7 @@ class DirectPwmSetMenu(SafeAdminMenu):
         with WarningAction(self._printer.hw.power_led):
             status.set("<h3>Tilt is going to level<h3>")
             self._printer.hw.tilt.profile_id = TiltProfile.homingFast
-            self._printer.hw.tilt.sync_wait()
+            self._printer.hw.tilt.sync_ensure()
             self._printer.hw.tilt.profile_id = TiltProfile.moveFast
             self._printer.hw.tilt.move_ensure(self._printer.hw.config.tiltHeight)  # move to level
 

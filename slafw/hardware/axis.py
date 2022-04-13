@@ -150,7 +150,7 @@ class Axis(ABC):
                     self._target_position,
                 )
                 profile_backup = self._current_profile
-                await self.sync_wait_async()
+                await self.sync_ensure_async()
                 self.profile_id = profile_backup
                 self.move(self._target_position)
                 while self.moving:
@@ -256,31 +256,31 @@ class Axis(ABC):
     def homing_status(self) -> HomingStatus:
         """get actual state of axis homing"""
 
-    def sync_wait(self, retries: int = 2) -> None:
+    def sync_ensure(self, retries: int = 2) -> None:
+        """blocking method for axis homing. retries = number of additional tries when homing fails"""
+        asyncio.run(self.sync_ensure_async(retries=retries))
+
+    async def sync_ensure_async(self, retries: int = 2) -> None:
         """blocking method for axis homing. retries = number of additional tries when homing fails"""
         with WarningAction(self._power_led):
-            asyncio.run(self.sync_wait_async(retries=retries))
-
-    async def sync_wait_async(self, retries: int = 2) -> None:
-        """blocking method for axis homing. retries = number of additional tries when homing fails"""
-        while True:
-            self.sync()
-            while self.moving:
-                await asyncio.sleep(0.25)
             while True:
-                homing_status = self.homing_status
-                if homing_status.value == HomingStatus.SYNCED.value:
-                    self.position = self.home_position
-                    return
-                if homing_status.value < HomingStatus.SYNCED.value:
-                    self._logger.warning("Homing failed! Status: %s",
-                                         homing_status)
-                    if retries < 1:
-                        self._logger.error("Homing max tries reached!")
-                        self._raise_home_failed()
-                    retries -= 1
-                    break
-                await asyncio.sleep(0.25)
+                self.sync()
+                while self.moving:
+                    await asyncio.sleep(0.25)
+                while True:
+                    homing_status = self.homing_status
+                    if homing_status.value == HomingStatus.SYNCED.value:
+                        self.position = self.home_position
+                        return
+                    if homing_status.value < HomingStatus.SYNCED.value:
+                        self._logger.warning("Homing failed! Status: %s",
+                                             homing_status)
+                        if retries < 1:
+                            self._logger.error("Homing max tries reached!")
+                            self._raise_home_failed()
+                        retries -= 1
+                        break
+                    await asyncio.sleep(0.25)
 
     @staticmethod
     @abstractmethod

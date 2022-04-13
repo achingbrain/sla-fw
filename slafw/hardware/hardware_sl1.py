@@ -200,7 +200,6 @@ class HardwareSL1(BaseHardware):
                     except Exception as e:
                         raise ConfigException() from e
 
-            # TODO: what is this?
             self.tilt.movement_ended.connect(lambda: self._tilt_position_checker.set_rapid_update(False))
 
     def flashMC(self):

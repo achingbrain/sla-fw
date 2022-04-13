@@ -47,5 +47,5 @@ class MoveToTank(Check):
         self.hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        await self.hw.tower.sync_wait_async(retries=3)  # Let this fail fast, allow for proper tower synced check
+        await self.hw.tower.sync_ensure_async(retries=3)  # Let this fail fast, allow for proper tower synced check
         self.hw.tower.release()

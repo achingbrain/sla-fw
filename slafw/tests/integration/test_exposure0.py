@@ -91,16 +91,16 @@ class TestIntegrationExposure0(SlaFwIntegrationTestCaseBase):
         self._test_home_axis()
 
     def test_home_axis_with_tilt(self):
-        self.printer.hw.tilt.sync_wait()
+        self.printer.hw.tilt.sync_ensure()
         self._test_home_axis()
 
     def test_home_axis_with_tower(self):
-        self.printer.hw.tower.sync_wait()
+        self.printer.hw.tower.sync_ensure()
         self._test_home_axis()
 
     def test_home_axis_with_both(self):
-        self.printer.hw.tilt.sync_wait()
-        self.printer.hw.tower.sync_wait()
+        self.printer.hw.tilt.sync_ensure()
+        self.printer.hw.tower.sync_ensure()
         self.exposure0.confirm_start()
         for _ in range(600):
             self.assertNotEqual(Exposure0State.HOMING_AXIS, Exposure0State(self.exposure0.state))

@@ -735,7 +735,7 @@ class Exposure:
                 raise TiltFailed()
 
             self.state = ExposureState.STUCK_RECOVERY
-            self.hw.tilt.sync_wait()
+            self.hw.tilt.sync_ensure()
             self.state = ExposureState.STIRRING
             self.hw.tilt.stir_resin()
 
@@ -893,7 +893,7 @@ class Exposure:
                         # Stir resin before resuming print
                         if self.hw.config.tilt:
                             self.state = ExposureState.STIRRING
-                            self.hw.tilt.sync_wait()
+                            self.hw.tilt.sync_ensure()
                             self.hw.tilt.stir_resin()
                         was_stirring = True
 

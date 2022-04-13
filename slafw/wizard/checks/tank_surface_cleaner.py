@@ -49,7 +49,7 @@ class HomeTower(DangerousCheck):
         self._hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        await self._hw.tower.sync_wait_async()
+        await self._hw.tower.sync_ensure_async()
 
 
 class TiltHome(DangerousCheck):
@@ -61,7 +61,7 @@ class TiltHome(DangerousCheck):
         )
 
     async def async_task_run(self, actions: UserActionBroker):
-        await self._hw.tilt.sync_wait_async()
+        await self._hw.tilt.sync_ensure_async()
 
 
 class TiltUp(DangerousCheck):

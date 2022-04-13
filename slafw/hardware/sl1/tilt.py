@@ -125,7 +125,7 @@ class TiltSL1(Tilt):
             while self.moving:
                 await asyncio.sleep(0.1)
             count += step
-        await self.sync_wait_async(retries=0)
+        await self.sync_ensure_async(retries=0)
 
     # TODO: force unit check
     def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
@@ -164,7 +164,7 @@ class TiltSL1(Tilt):
             self.move(self.home_position)
             while self.moving:
                 sleep(0.1)
-            await self.sync_wait_async()
+            await self.sync_ensure_async()
 
     @property
     def homing_status(self) -> HomingStatus:
@@ -172,7 +172,7 @@ class TiltSL1(Tilt):
 
     def sync(self) -> None:
         self._mcc.do("!tiho")
-        sleep(0.1)  #FIXME: mc-fw does not start the movement immediately -> wait a bit
+        sleep(0.2)  #FIXME: mc-fw does not start the movement immediately -> wait a bit
 
     async def home_calibrate_wait_async(self):
         self._mcc.do("!tihc")
@@ -183,7 +183,7 @@ class TiltSL1(Tilt):
         if not self.synced:
             while self._tower.moving:
                 await asyncio.sleep(0.25)
-            await self.sync_wait_async()
+            await self.sync_ensure_async()
         self.profile_id = TiltProfile.moveFast
         await self.move_ensure_async(self._config.tiltHeight)
 

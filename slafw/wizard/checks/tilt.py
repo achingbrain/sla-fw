@@ -15,7 +15,6 @@ from slafw.errors.errors import (
     InvalidTiltAlignPosition,
     PrinterException,
 )
-from slafw.hardware.axis import HomingStatus
 from slafw.hardware.base.hardware import BaseHardware
 from slafw import test_runtime
 from slafw.hardware.sl1.tower import TowerProfile
@@ -36,7 +35,7 @@ class TiltHomeTest(DangerousCheck, ABC):
     async def async_task_run(self, actions: UserActionBroker):
         home_status = self._hw.tilt.homing_status
         for _ in range(3):
-            await self._hw.tilt.sync_wait_async()
+            await self._hw.tilt.sync_ensure_async()
             home_status = self._hw.tilt.homing_status
             if home_status == -2:
                 raise TiltEndstopNotReached()
@@ -60,16 +59,16 @@ class TiltLevelTest(DangerousCheck):
         # TODO: We should have such a method in Hardware
         self._hw.tilt.profile_id = TiltProfile.homingFast
         self._hw.tilt.sync()
-        home_status = self._hw.tilt.homing_status.value
-        while home_status != HomingStatus.SYNCED.value:
-            if home_status == HomingStatus.ENDSTOP_NOT_REACHED.value:
+        home_status = self._hw.tilt.homing_status
+        while home_status != 0:
+            if home_status == -2:
                 raise TiltEndstopNotReached()
-            if home_status == HomingStatus.BLOCKED_AXIS.value:
+            if home_status == -3:
                 raise TiltHomeCheckFailed()
-            if home_status < HomingStatus.SYNCED.value:
+            if home_status < 0:
                 raise PrinterException("Unknown printer home error")
             await asyncio.sleep(0.25)
-            home_status = self._hw.tilt.homing_status.value
+            home_status = self._hw.tilt.homing_status
         self._hw.tilt.position = 0
 
         # Set tilt to leveled position
@@ -125,7 +124,7 @@ class TiltTimingTest(DangerousCheck):
         while not self._hw.tower.synced:
             await asyncio.sleep(0.25)
 
-        await self._hw.tilt.sync_wait_async()  # FIXME MC cant properly home tilt while tower is moving
+        await self._hw.tilt.sync_ensure_async()  # FIXME MC cant properly home tilt while tower is moving
         self._config_writer.tiltSlowTime = await self._get_tilt_time_sec(slow_move=True)
         self._config_writer.tiltFastTime = await self._get_tilt_time_sec(slow_move=False)
         self._hw.tower.profile_id = TowerProfile.homingFast

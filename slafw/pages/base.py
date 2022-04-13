@@ -260,7 +260,7 @@ class Page:
 
 
     def _syncTower(self):
-        if not self.display.hw.tower.sync_wait():
+        if not self.display.hw.tower.sync_ensure():
             self.display.pages['error'].setParams(code=Sl1Codes.TOWER_HOME_FAILED.raw_code)
             return "error"
         #endif
@@ -269,7 +269,7 @@ class Page:
 
 
     def _syncTilt(self):
-        if not self.display.hw.tilt.sync_wait(): # FIXME throws exception
+        if not self.display.hw.tilt.sync_ensure(): # FIXME throws exception
             self.display.pages['error'].setParams(code=Sl1Codes.TILT_HOME_FAILED.raw_code)
             return "error"
         #endif

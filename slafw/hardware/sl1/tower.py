@@ -94,7 +94,7 @@ class TowerSL1(Tower):
 
     async def verify_async(self) -> None:
         if not self.synced:
-            await self.sync_wait_async()
+            await self.sync_ensure_async()
         else:
             self.profile_id = TowerProfile.moveFast
             await self.move_ensure_async(self._config.tower_height_nm)

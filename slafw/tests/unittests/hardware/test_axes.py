@@ -162,7 +162,7 @@ class DoNotRunTestDirectlyFromBaseClass:
                 self.assertGreater(0, self.axis.position)
 
         def test_release(self):
-            self.axis.sync_wait()
+            self.axis.sync_ensure()
             self.axis.position = 0
             self.axis.move_api(2)
             self.axis.release()
@@ -189,8 +189,8 @@ class DoNotRunTestDirectlyFromBaseClass:
             self.assertFalse(self.axis.synced)
             self.assertEqual(HomingStatus.UNKNOWN, self.axis.homing_status)
 
-        def sync_wait(self):
-            self.axis.sync_wait()
+        def test_sync_ensure(self):
+            self.axis.sync_ensure()
             self.assertEqual(HomingStatus.SYNCED, self.axis.homing_status)
 
         def test_sync_wait_async(self):
@@ -198,7 +198,7 @@ class DoNotRunTestDirectlyFromBaseClass:
             # successful rehome
             with patch(path, new_callable=PropertyMock) as mock_status:
                 mock_status.side_effect = [HomingStatus.BLOCKED_AXIS, HomingStatus.BLOCKED_AXIS, HomingStatus.SYNCED]
-                asyncio.run(self.axis.sync_wait_async(retries=2))
+                asyncio.run(self.axis.sync_ensure_async(retries=2))
                 self.assertFalse(self.axis.moving)
             self.assertTrue(self.axis.synced)
 
@@ -206,7 +206,7 @@ class DoNotRunTestDirectlyFromBaseClass:
             with patch(path, new_callable=PropertyMock) as mock_status:
                 mock_status.side_effect = [HomingStatus.BLOCKED_AXIS, HomingStatus.BLOCKED_AXIS, HomingStatus.SYNCED]
                 with self.assertRaises((TiltHomeFailed, TowerHomeFailed)):
-                    asyncio.run(self.axis.sync_wait_async(retries=1))
+                    asyncio.run(self.axis.sync_ensure_async(retries=1))
                 self.assertFalse(self.axis.moving)
 
 
@@ -224,7 +224,7 @@ class DoNotRunTestDirectlyFromBaseClass:
             self.assertEqual(self.axis.config_height_position, self.axis.position)
 
         async def test_verify_async_already_synced(self) -> None:
-            await self.axis.sync_wait_async()
+            await self.axis.sync_ensure_async()
             self.assertEqual(HomingStatus.SYNCED, self.axis.homing_status)
             task = self.axis.verify_async()
             self.assertEqual(HomingStatus.SYNCED, self.axis.homing_status)

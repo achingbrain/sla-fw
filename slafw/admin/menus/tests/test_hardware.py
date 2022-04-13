@@ -169,7 +169,7 @@ class ResinSensorTestMenu(AdminMenu):
             self.status = "Moving platform to the top..."
 
             try:
-                self._printer.hw.tower.sync_wait()
+                self._printer.hw.tower.sync_ensure()
             except TowerHomeFailed:
                 self._control.enter(Error(self._control, text="Failed to sync tower"))
                 self._printer.hw.motors_release()
@@ -177,7 +177,7 @@ class ResinSensorTestMenu(AdminMenu):
 
             self.status = "Homing tilt..."
             try:
-                self._printer.hw.tilt.sync_wait()
+                self._printer.hw.tilt.sync_ensure()
             except TiltHomeFailed:
                 self._control.enter(Error(self._control, text="Failed to sync tilt"))
                 self._printer.hw.motors_release()
@@ -259,8 +259,8 @@ class InfiniteTestMenu(AdminMenu):
         self._printer.hw.start_fans()
         self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwm
         self._printer.hw.uv_led.on()
-        self._printer.hw.tower.sync_wait()
-        self._printer.hw.tilt.sync_wait()
+        self._printer.hw.tower.sync_ensure()
+        self._printer.hw.tilt.sync_ensure()
         self._printer.hw.tower.profile_id = TowerProfile.homingFast
         self._printer.hw.tilt.profile_id = TiltProfile.homingFast
 
@@ -273,7 +273,7 @@ class InfiniteTestMenu(AdminMenu):
         with WarningAction(self._printer.hw.power_led):
             while self._run:
                 self._printer.hw.tower.move_ensure(self._printer.hw.tower.resin_end_pos_nm)
-                self._printer.hw.tower.sync_wait()
+                self._printer.hw.tower.sync_ensure()
                 tower_cycles += 1
                 self.tower = tower_cycles
             self._printer.hw_all_off()

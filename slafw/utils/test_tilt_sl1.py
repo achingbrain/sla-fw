@@ -18,7 +18,7 @@ printer_model = PrinterModel.SL1
 hw_config = HwConfig()
 hw = HardwareSL1(hw_config, printer_model)
 
-hw.tilt.sync_wait()
+hw.tilt.sync_ensure()
 hw.tilt.move(5300)
 while hw.tilt.moving:
     sleep(0.1)
