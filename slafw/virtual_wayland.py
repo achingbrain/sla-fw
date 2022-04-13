@@ -135,8 +135,10 @@ class Virtual:
     def __call__(self):
         with patch("slafw.motion_controller.controller.serial", slafw.tests.mocks.mc_port), patch(
             "slafw.libUvLedMeterMulti.serial", slafw.tests.mocks.mc_port
-        ), patch("slafw.motion_controller.controller.UInput", Mock()), patch(
-            "slafw.motion_controller.controller.gpio", Mock()
+        ), patch("slafw.motion_controller.controller.UInput", Mock()
+        ), patch("slafw.motion_controller.controller.chip", Mock()
+        ), patch("slafw.motion_controller.controller.find_line", Mock()
+        ), patch("slafw.motion_controller.controller.line_request", Mock()
         ), patch(
             "slafw.functions.files.get_save_path", self.fake_save_path
         ), patch(

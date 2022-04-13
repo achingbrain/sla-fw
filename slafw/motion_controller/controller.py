@@ -17,7 +17,7 @@ from threading import Thread, Lock
 from time import sleep
 from typing import Optional, Callable, List, Any, Tuple
 
-import gpio
+from gpiod import chip, line_request, find_line
 import serial
 from PySignal import Signal
 from evdev import UInput, ecodes
@@ -514,10 +514,18 @@ class MotionController:
         """
         self.logger.info("Doing hard reset of the motion controller")
         self.trace.append_trace(LineTrace(LineMarker.RESET, b"Motion controller hard reset"))
-        gpio.setup(131, gpio.OUT)
-        gpio.set(131, 1)
+        rst = find_line("mc-reset")
+        if not rst:
+            self.logger.info("GPIO mc-reset not found")
+            rst = chip(2).get_line(131)
+        if not rst:
+            raise MotionControllerException("Hard reset failed", self.trace)
+        config = line_request()
+        config.request_type = line_request.DIRECTION_OUTPUT
+        rst.request(config)
+        rst.set_value(1)
         sleep(1 / 1000000)
-        gpio.set(131, 0)
+        rst.set_value(0)
 
     def getStateBits(self, request: List[str] = None, check_for_updates: bool = True):
         if not request:

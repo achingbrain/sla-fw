@@ -95,7 +95,9 @@ class SlafwTestCase(TestCase):
         factory_enable_path.touch()
 
         return [
-            patch("slafw.motion_controller.controller.gpio"),
+            patch("slafw.motion_controller.controller.chip"),
+            patch("slafw.motion_controller.controller.find_line"),
+            patch("slafw.motion_controller.controller.line_request"),
             patch("slafw.motion_controller.controller.UInput"),
             patch("slafw.motion_controller.controller.serial", mc_port),
             patch("slafw.libUvLedMeterMulti.serial.tools.list_ports"),
