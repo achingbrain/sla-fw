@@ -12,6 +12,7 @@ from slafw.configs.hw import HwConfig
 from slafw.errors.errors import MotionControllerException, TiltPositionFailed
 from slafw.hardware.axis import AxisProfileBase, HomingStatus
 from slafw.hardware.power_led import PowerLed
+from slafw.hardware.sl1.tower import TowerSL1
 from slafw.hardware.tilt import Tilt
 from slafw.motion_controller.controller import MotionController
 
@@ -34,9 +35,11 @@ class TiltSL1(Tilt):
     # pylint: disable=too-many-instance-attributes
     # pylint: disable=too-many-public-methods
 
-    def __init__(self, mcc: MotionController, config: HwConfig, power_led: PowerLed):
+    def __init__(self, mcc: MotionController, config: HwConfig,
+                 power_led: PowerLed, tower: TowerSL1):
         super().__init__(config, power_led)
         self._mcc = mcc
+        self._tower = tower
         self._sensitivity = {
             #                -2       -1        0        +1       +2
             "homingFast": [[20, 5], [20, 6], [20, 7], [21, 9], [22, 12]],
@@ -178,9 +181,8 @@ class TiltSL1(Tilt):
 
     async def verify_async(self) -> None:
         if not self.synced:
-            # FIXME MC cant properly home tilt while tower is moving but we have no reference to tower
-            # while self.tower.moving:
-            #    await asyncio.sleep(0.25)
+            while self._tower.moving:
+                await asyncio.sleep(0.25)
             await self.sync_wait_async()
         self.profile_id = TiltProfile.moveFast
         await self.move_ensure_async(self._config.tiltHeight)

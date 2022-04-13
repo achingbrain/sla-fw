@@ -84,8 +84,8 @@ class HardwareSL1(BaseHardware):
         else:
             raise NotImplementedError
         self.power_led = PowerLedSL1(self.mcc)
-        self.tilt = TiltSL1(self.mcc, self.config, self.power_led)
         self.tower = TowerSL1(self.mcc, self.config, self.power_led)
+        self.tilt = TiltSL1(self.mcc, self.config, self.power_led, self.tower)
         self.display = PrintDisplaySL1(self.mcc)
 
         self._tilt_position_checker = ValueChecker(

@@ -264,7 +264,8 @@ class TestTilt(DoNotRunTestDirectlyFromBaseClass.BaseSL1AxisTest):
 
     def setUp(self):
         super().setUp()
-        self.axis = TiltSL1(self.mcc, self.config, self.power_led)
+        tower = TowerSL1(self.mcc, self.config, self.power_led)
+        self.axis = TiltSL1(self.mcc, self.config, self.power_led, tower)
         self.pos = self.axis.config_height_position / 4 # aprox 1000 usteps
         self.fullstep_offset = (31, -32)
 
