@@ -210,18 +210,19 @@ class InfiniteTestMenu(AdminMenu):
                 AdminAction("Stop", self.stop),
             )
         )
-
         self._printer = printer
-        self._status = "Initializing"
-        self._tower = 0
-        self._tilt = 0
+        self._tower_cycles = 0
+        self._tilt_cycles = 0
         self._run = True
-        self._thread = Thread(target=self._runner)
-        self._thread.start()
+        self._thread_tilt = Thread(target=self._runner_tilt)
+        self._thread_tower = Thread(target=self._runner_tower)
+        self._thread_init = Thread(target=self._runner_init)
+        self._thread_init.start()
 
     def on_leave(self):
         self._run = False
-        self._thread.join()
+        self._thread_tilt.join()
+        self._thread_tower.join()
 
     def stop(self):
         self.status = "Waiting for test thread to join"
@@ -238,77 +239,55 @@ class InfiniteTestMenu(AdminMenu):
 
     @property
     def tower(self):
-        return f"Tower cycles: {self._tower}"
+        return f"Tower cycles: {self._tower_cycles}"
 
     @tower.setter
     def tower(self, value: int):
-        self._tower = value
+        self._tower_cycles = value
 
     @property
     def tilt(self):
-        return f"Tilt cycles: {self._tilt}"
+        return f"Tilt cycles: {self._tilt_cycles}"
 
     @tilt.setter
     def tilt(self, value: int):
-        self._tilt = value
+        self._tilt_cycles = value
 
-    def _runner(self):
-        self.status = "Infinite test"
-        tower_counter = 0
-        tilt_counter = 0
-        tower_status = 0
-        tilt_may_move = True
-        tower_target_position_nm = 0
-        # up = 0
-        # above Display = 1
-        # down = 3
+    def _runner_init(self):
+        self.status = "Initializing"
+        self._printer.hw.exposure_screen.draw_pattern(draw_chess, 16)
+        self._printer.hw.start_fans()
+        self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwm
+        self._printer.hw.uv_led.on()
+        self._printer.hw.tower.sync_wait()
+        self._printer.hw.tilt.sync_wait()
+        self._printer.hw.tower.profile_id = TowerProfile.homingFast
+        self._printer.hw.tilt.profile_id = TiltProfile.homingFast
 
+        self.status = "Running"
+        self._thread_tilt.start()
+        self._thread_tower.start()
+
+    def _runner_tower(self):
+        tower_cycles = 0
         with WarningAction(self._printer.hw.power_led):
-            self._printer.hw.exposure_screen.draw_pattern(draw_chess, 16)
-            self._printer.hw.start_fans()
-            self._printer.hw.uv_led.pwm = self._printer.hw.config.uvPwm
-            self._printer.hw.uv_led.on()
-            self._printer.hw.tower.sync_wait()
-            self._printer.hw.tilt.sync_wait()
             while self._run:
-                if not self._printer.hw.tower.moving:
-                    if tower_status == 0:  # tower moved to top
-                        tower_counter += 1
-                        self.tower = tower_counter
-                        self.logger.info("towerCounter: %d, tiltCounter: %d", tower_counter, tilt_counter)
-                        if (tower_counter % 100) == 0:  # save uv statistics every 100 tower cycles
-                            self._printer.hw.uv_led.save_usage()
-                        self._printer.hw.tower.position = 0
-                        self._printer.hw.tower.profile_id = TowerProfile.homingFast
-                        tower_target_position_nm = self._printer.hw.tower.above_surface_nm
-                        self._printer.hw.tower.move(tower_target_position_nm)
-                        tower_status = 1
-                    elif tower_status == 1:  # tower above the display
-                        tilt_may_move = False
-                        if self._printer.hw.tilt.on_target_position:
-                            tower_status = 2
-                            self._printer.hw.tilt.profile_id = TiltProfile.layerMoveSlow
-                            self._printer.hw.tower.profile_id = TowerProfile.homingSlow
-                            tower_target_position_nm = self._printer.hw.tower.min_nm
-                            self._printer.hw.tower.move(tower_target_position_nm)
-                    elif tower_status == 2:
-                        tilt_may_move = True
-                        tower_target_position_nm = self._printer.hw.tower.end_nm
-                        self._printer.hw.tower.move(tower_target_position_nm)
-                        tower_status = 0
-                if not self._printer.hw.tilt.moving:
-                    # hack to force tilt to move. Needs MC FW fix. Tilt cannot move up when tower moving
-                    if self._printer.hw.tilt.position < 128:
-                        self._printer.hw.tower.stop()
-                        self._printer.hw.tilt.profile_id = TiltProfile.homingFast
-                        self._printer.hw.tilt.move(self._printer.hw.config.tiltHeight)
-                        self._printer.hw.tower.profile_id = TowerProfile.homingFast
-                        self._printer.hw.tower.move(tower_target_position_nm)
-                        sleep(1)
-                    elif tilt_may_move:
-                        tilt_counter += 1
-                        self.tilt = tilt_counter
-                        self._printer.hw.tilt.profile_id = TiltProfile.homingFast
-                        self._printer.hw.tilt.sync_wait()
-                sleep(0.25)
+                self._printer.hw.tower.move_ensure(self._printer.hw.tower.resin_end_pos_nm)
+                self._printer.hw.tower.sync_wait()
+                tower_cycles += 1
+                self.tower = tower_cycles
+            self._printer.hw_all_off()
+
+    def _runner_tilt(self):
+        tilt_cycles = 0
+        with WarningAction(self._printer.hw.power_led):
+            while self._run:
+                self._printer.hw.tilt.move(self._printer.hw.tilt.config_height_position)
+                while self._printer.hw.tilt.moving:
+                    sleep(0.25)
+                self._printer.hw.tilt.move(50)
+                while self._printer.hw.tilt.moving:
+                    sleep(0.25)
+                tilt_cycles += 1
+                self.tilt = tilt_cycles
             self._printer.hw_all_off()
