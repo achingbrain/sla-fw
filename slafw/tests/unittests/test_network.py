@@ -6,7 +6,7 @@
 import unittest
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryFile
 from unittest.mock import Mock
 
 from slafw.libNetwork import Network
@@ -33,12 +33,11 @@ class TestExamples(SlafwTestCaseDBus, RefCheckTestCase):
     def test_download(self):
         # pylint: disable = no-self-use
         network = Network("TEST")
-        with TemporaryDirectory() as temp:
-            target = Path(temp) / "examples.tar.gz"
+        with TemporaryFile() as temp:
             callback = Mock()
             network.download_url(
                 "http://localhost:8000/mini_examples.tar.gz",
-                str(target),
+                temp,
                 progress_callback=callback,
             )
             callback.assert_called()

@@ -1,11 +1,11 @@
 # This file is part of the SLA firmware
-# Copyright (C) 2020 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2020-2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from enum import Enum
 
 
-class LogsState(Enum):
+class ExportState(Enum):
     IDLE = 0
     EXPORTING = 1
     SAVING = 2
@@ -15,7 +15,7 @@ class LogsState(Enum):
 
     @staticmethod
     def finished_states():
-        return {LogsState.FINISHED, LogsState.CANCELED, LogsState.FAILED}
+        return {ExportState.FINISHED, ExportState.CANCELED, ExportState.FAILED}
 
 
 class StoreType(Enum):

@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -16,6 +17,7 @@ from typing import Optional, List
 
 from slafw import defines, test_runtime
 from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.base.hardware import BaseHardware
 
 
 def get_save_path() -> Optional[Path]:
@@ -98,3 +100,9 @@ def usb_remount(path: str):
         return
 
     subprocess.check_call(["usbremount", path])
+
+
+def get_export_file_name(hw: BaseHardware) -> str:
+    serial = re.sub("[^a-zA-Z0-9]", "_", hw.cpuSerialNo)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    return f"{serial}.{timestamp}"

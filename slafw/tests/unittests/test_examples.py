@@ -29,9 +29,9 @@ class TestExamples(SlafwTestCaseDBus):
                 "shutil.chown", chown
             ), patch("pydbus.SystemBus", fake_network_system_bus):
                 self._internal_examples_download()
-            chown.assert_called()
             examples = list(Path(temp).rglob("*.sl1"))
             self.assertEqual(3, len(examples))
+            chown.assert_called()
             self.assertTrue(self.download_happening, "Download progress reported")
             self.assertTrue(self.unpack_happening, "Unpacking progress reported")
             self.assertTrue(self.copy_happening, "Copy progress reported")

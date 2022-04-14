@@ -15,8 +15,8 @@ from slafw.admin.safe_menu import SafeAdminMenu
 from slafw.errors.errors import FailedToSetLogLevel
 from slafw.logger_config import get_log_level, set_log_level
 from slafw.libPrinter import Printer
-from slafw.state_actions.logs import ServerUpload
-from slafw.states.logs import LogsState
+from slafw.state_actions.logs import ServerUploadLogs
+from slafw.states.data_export import ExportState
 
 
 class LoggingMenu(SafeAdminMenu):
@@ -24,7 +24,6 @@ class LoggingMenu(SafeAdminMenu):
         super().__init__(control)
         self._printer = printer
         self._status: Optional[AdminLabel] = None
-        self._upload_state: Optional[LogsState] = None
 
         self.add_back()
         self.add_items(
@@ -81,28 +80,30 @@ class LoggingMenu(SafeAdminMenu):
             self._control.enter(Info(self._control, "Logs was truncated successfully", pop=2))
         except Exception as e:
             self.logger.exception("truncate_logs exception: %s", str(e))
-            self._control.enter(Error(self._control, text="Failed to truncate logs"))
+            text = f"{type(e).__name__}\n{Exception.__str__(e)}"
+            self._control.enter(Error(self._control, text=text, headline="Failed to truncate logs"))
 
     def _upload_dev(self):
         self.enter(Wait(self._control, self._do_upload_dev))
 
     def _do_upload_dev(self, status: AdminLabel):
         self._status = status
-        exporter = ServerUpload(self._printer.hw, defines.log_url_dev)
+        exporter = ServerUploadLogs(self._printer.hw, defines.log_url_dev)
         exporter.state_changed.connect(self._state_callback)
         exporter.store_progress_changed.connect(self._store_progress_callback)
         exporter.start()
-        while self._upload_state not in LogsState.finished_states():
+        while exporter.state not in ExportState.finished_states():
             sleep(0.5)
         self._printer.hw.beepEcho()
-        if self._upload_state == LogsState.FINISHED:
+        if exporter.state == ExportState.FINISHED:
             self._control.enter(Info(self._control, "Logs was uploaded successfully", pop=2))
         else:
-            self._control.enter(Error(self._control, text="Failed to upload logs"))
+            self._control.enter(Error(self._control,
+                text=exporter.format_exception(),
+                headline="Failed to upload logs"))
 
-    def _state_callback(self, state: LogsState):
-        self._upload_state = state
+    def _state_callback(self, state: ExportState):
         self._status.set(state.name)
 
     def _store_progress_callback(self, value: float):
-        self._status.set("SAVING: %d %%" % int(value * 100))
+        self._status.set("UPLOADING: %d %%" % int(value * 100))

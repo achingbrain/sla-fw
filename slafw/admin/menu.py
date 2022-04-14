@@ -3,8 +3,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
+from pathlib import Path
 from collections import OrderedDict
-from typing import Dict, Optional, Iterable
+from typing import Dict, List, Optional, Iterable, Callable
+from functools import partial
+from glob import iglob
 
 from PySignal import Signal
 
@@ -60,3 +63,12 @@ class AdminMenu(AdminMenuBase):
     def del_item(self, item: AdminItem):
         del self._items[item.name]
         self.items_changed.emit()
+
+    def list_files(self, path: Path, filters: List[str], callback: Callable, icon):
+        all_files: List[str] = []
+        for f in filters:
+#            all_files.extend(iglob(f, root_dir=path, recursive=True)) # TODO python 3.10
+            all_files.extend(iglob(str(path / f), recursive=True))
+        cut_off = len(str(path))+1
+        for file in all_files:
+            self.add_item(AdminAction(file[cut_off:], partial(callback, path, file[cut_off:]), icon))

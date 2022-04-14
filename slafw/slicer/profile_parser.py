@@ -39,7 +39,7 @@ class ProfileParser:
         return val
 
 
-    def _inherit(self, section : str) -> dict:
+    def _inherit(self, section: str) -> dict:
         tmp = dict()
         inherits = self.config[section].get('inherits', None)
         if inherits:
@@ -57,7 +57,7 @@ class ProfileParser:
         return tmp
 
 
-    def _condition(self, condition : str, compact : bool, find_in : dict) -> bool:
+    def _condition(self, condition: str, compact: bool, find_in: dict) -> bool:
         # TODO need to be improved for non SLA printers
         result = True
         if compact:
@@ -91,10 +91,7 @@ class ProfileParser:
         return result
 
 
-    def parse(self, filename : str):
-        if not filename:
-            self.logger.info("Empty filename")
-            return None
+    def parse(self, filename: str):
         self.config = configparser.ConfigParser(comment_prefixes=("#",), interpolation=None)
         try:
             self.config.read(filename)

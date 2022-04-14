@@ -9,6 +9,7 @@
 import json
 import logging
 import threading
+import tempfile
 from time import sleep
 from abc import ABC, abstractmethod
 
@@ -62,13 +63,13 @@ class AdminCheck(BackgroundNetworkCheck):
     def check(self):
         self.logger.info("Querying admin enabled")
         query_url = defines.admincheckURL + "/?serial=" + self.hw.cpuSerialNo
-        try:
-            self.inet.download_url(query_url, defines.admincheckTemp)
-        except Exception:
-            self.logger.exception("download_url exception:")
-            return None
-        with open(defines.admincheckTemp, "r") as file:
-            admin_check = json.load(file)
+        with tempfile.TemporaryFile() as tf:
+            try:
+                self.inet.download_url(query_url, tf)
+            except Exception:
+                self.logger.exception("download_url exception:")
+                return None
+            admin_check = json.load(tf)
             result = admin_check.get("result", None)
             if result is None:
                 self.logger.warning("Error querying admin enabled")
@@ -90,18 +91,21 @@ class SlicerProfileUpdater(BackgroundNetworkCheck):
     def check(self):
         self.logger.info("Checking slicer profiles update")
         downloader = ProfileDownloader(self.inet, self.profile.vendor)
-        new_version = downloader.checkUpdates()
-        retc = defines.slicerProfilesCheckOK
-        if new_version is None:
-            retc = defines.slicerProfilesCheckProblem
-        elif new_version:
-            f = downloader.download(new_version)
-            new_profile = ProfileParser(self.printer_type_name).parse(f)
-            if new_profile and new_profile.save(filename = defines.slicerProfilesFile):
-                self.profile.data = new_profile.data
+        try:
+            new_version = downloader.check_updates()
+            if new_version:
+                with tempfile.NamedTemporaryFile() as tf:
+                    downloader.download(new_version, tf)
+                    new_profile = ProfileParser(self.printer_type_name).parse(tf.name)
+                    if new_profile and new_profile.save(filename = defines.slicerProfilesFile):
+                        self.profile.data = new_profile.data
+                        return defines.slicerProfilesCheckOK
+                    else:
+                        self.logger.warning("Problem with new profile file, giving up")
             else:
-                self.logger.info("Problem with new profile file, giving up")
-                retc = defines.slicerProfilesCheckProblem
-        else:
-            self.logger.info("No new version of slicer profiles available")
-        return retc
+                self.logger.info("No new version of slicer profiles available")
+                return defines.slicerProfilesCheckOK
+        except Exception:
+            self.logger.exception("Exception, giving up")
+
+        return defines.slicerProfilesCheckProblem

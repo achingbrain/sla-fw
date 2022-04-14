@@ -45,7 +45,7 @@ mv -f \"$CFG\" \"$CFG.new\"; \
 cp \"$CFG.bak\" \"$CFG\"; \
 systemctl daemon-reload; \
 systemctl restart slafw; \
-systemctl restart touch-ui model-detect.service model-detect.path
+systemctl restart model-detect.service
 "
 
 echo "Removing remote temp"

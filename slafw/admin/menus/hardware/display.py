@@ -6,7 +6,6 @@ from datetime import timedelta
 from itertools import chain
 from functools import partial
 from pathlib import Path
-from glob import iglob
 
 from slafw import defines
 from slafw.libPrinter import Printer
@@ -228,19 +227,7 @@ class UsbFileMenu(SafeAdminMenu):
         if usb_path is None:
             self.add_label("USB not present. To get files from USB, plug the USB\nand re-enter.", "error_small_white")
         else:
-            self._list_files(usb_path, "png")
-            self._list_files(usb_path, "svg")
-
-    def _list_files(self, path: Path, suffix: str):
-#        all_files = iglob("**/*." + suffix, root_dir=path, recursive=True) # TODO python 3.10
-        all_files = iglob(str(path / "**/*.") + suffix, recursive=True)
-        cut_off = len(str(path))+1
-        for file in all_files:
-            self.add_item(AdminAction(
-                file[cut_off:],
-                partial(self._usb_test, path, file),
-                "usb_color"
-            ))
+            self.list_files(usb_path, ["**/*.png", "**/*.svg"], self._usb_test, "usb_color")
 
     @SafeAdminMenu.safe_call
     def _usb_test(self, path: Path, name: str):

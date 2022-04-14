@@ -18,10 +18,10 @@ from slafw import defines
 from slafw.tests import mocks
 from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw.api.logs0 import Logs0
-from slafw.states.logs import LogsState, StoreType
+from slafw.states.data_export import ExportState, StoreType
 
 
-async def fake_log_export_process(_, log_file: Path):
+async def fake_log_export_process(log_file: Path):
     return await asyncio.create_subprocess_shell(
         '(sleep 1; date) > "{0}"'.format(str(log_file)),
         stderr=asyncio.subprocess.PIPE
@@ -49,36 +49,36 @@ class TestLogs0(SlafwTestCaseDBus, RefCheckTestCase):
         super().tearDown()
 
     def test_initial_state(self):
-        self.assertEqual(LogsState.IDLE.value, self.logs0.state)
+        self.assertEqual(ExportState.IDLE.value, self.logs0.state)
         self.assertEqual(StoreType.IDLE.value, self.logs0.type)
         self.assertEqual(0, self.logs0.export_progress)
         self.assertEqual(0, self.logs0.store_progress)
 
-    @patch("slafw.state_actions.logs.LogsExport._run_log_export_process", fake_log_export_process)
+    @patch("slafw.state_actions.logs.logs.run_log_export_process", fake_log_export_process)
     def test_cancel(self):
         self.logs0.usb_save()
         for _ in range(50):
             sleep(0.1)
-            if self.logs0.state != LogsState.IDLE:
+            if self.logs0.state != ExportState.IDLE:
                 break
         self.logs0.cancel()
         self.waiter.set()
         for _ in range(100):
             sleep(0.1)
-            if self.logs0.state in [LogsState.CANCELED.value, LogsState.FAILED.value, LogsState.FINISHED.value]:
+            if self.logs0.state in [ExportState.CANCELED.value, ExportState.FAILED.value, ExportState.FINISHED.value]:
                 break
-        self.assertEqual(LogsState.CANCELED.value, self.logs0.state)
+        self.assertEqual(ExportState.CANCELED.value, self.logs0.state)
 
-    @patch("slafw.state_actions.logs.LogsExport._run_log_export_process", fake_log_export_process)
+    @patch("slafw.state_actions.logs.logs.run_log_export_process", fake_log_export_process)
     def test_usbsave(self):
         self.logs0.usb_save()
         self.waiter.set()
         for _ in range(600):
             sleep(0.1)
-            if self.logs0.state in [LogsState.CANCELED.value, LogsState.FAILED.value, LogsState.FINISHED.value]:
+            if self.logs0.state in [ExportState.CANCELED.value, ExportState.FAILED.value, ExportState.FINISHED.value]:
                 break
         self.assertEqual(StoreType.USB.value, self.logs0.type)
-        self.assertEqual(LogsState.FINISHED.value, self.logs0.state)
+        self.assertEqual(ExportState.FINISHED.value, self.logs0.state)
         self.assertEqual(1, self.logs0.export_progress)
         self.assertEqual(1, self.logs0.store_progress)
 

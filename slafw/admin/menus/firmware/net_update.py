@@ -5,8 +5,10 @@
 import functools
 import json
 import logging
+import tempfile
 from threading import Thread
 from time import sleep
+from os import unlink
 
 import distro
 import pydbus
@@ -47,12 +49,11 @@ class NetUpdate(AdminMenu):
     def _download_list(self):
         query_url = f"{defines.firmwareListURL}/?serial={self._printer.hw.cpuSerialNo}&version={distro.version()}"
 
-        self._printer.inet.download_url(
-            query_url, defines.firmwareListTemp, timeout_sec=5, progress_callback=self._download_callback
-        )
-
-        with open(defines.firmwareListTemp) as list_file:
-            firmwares = json.load(list_file)
+        with tempfile.TemporaryFile() as tf:
+            self._printer.inet.download_url(
+                query_url, tf, timeout_sec=5, progress_callback=self._download_callback
+            )
+            firmwares = json.load(tf)
             self.add_items(
                 [
                     AdminAction(firmware["version"], functools.partial(self._install_fw, firmware), "firmware-icon")
@@ -100,12 +101,14 @@ class FwInstall(AdminMenu):
         self._status = value
 
     def _install(self):
-        self.fetch_update(self._firmware["url"])
-        self.do_update(defines.firmwareTempFile)
+        with tempfile.NamedTemporaryFile(delete=False) as tf:
+            self.fetch_update(self._firmware["url"], tf)
+        self.do_update(tf.name)
+        unlink(tf.name)
 
-    def fetch_update(self, fw_url):
+    def fetch_update(self, fw_url, file):
         try:
-            self._printer.inet.download_url(fw_url, defines.firmwareTempFile, progress_callback=self._download_callback)
+            self._printer.inet.download_url(fw_url, file, progress_callback=self._download_callback)
         except Exception as e:
             self._logger.error("Firmware fetch failed: %s", str(e))
             self._control.enter(Error(self._control, text="Firmware fetch failed"))

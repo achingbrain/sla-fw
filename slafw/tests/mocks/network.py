@@ -6,9 +6,9 @@
 # pylint: disable=too-few-public-methods
 
 from pathlib import Path
-from shutil import copyfile
 from typing import Optional, Callable
 from unittest.mock import Mock
+from io import BytesIO
 import re
 
 from PySignal import Signal
@@ -34,7 +34,7 @@ class Network:
     @staticmethod
     def download_url(
         url: str,
-        destination: str,
+        file: BytesIO,
         progress_callback: Optional[Callable[[float], None]] = None,
     ):
         dld_regex = re.compile(defines.examplesURL.replace("{PRINTER_MODEL}", printer_model_regex(True)))
@@ -43,7 +43,9 @@ class Network:
         mini_examples = Path(samples.__file__).parent / "mini_examples.tar.gz"
         progress_callback(0)
         progress_callback(1)
-        copyfile(mini_examples, destination)
+        with open(mini_examples, "rb") as source:
+            file.write(source.read())
+        file.seek(0)
         progress_callback(99)
         progress_callback(100)
 

@@ -23,5 +23,5 @@ ssh root@${SLA} "
 set -o xtrace; \
 systemctl daemon-reload; \
 systemctl restart slafw; \
-systemctl restart touch-ui model-detect.service model-detect.path
+systemctl restart model-detect.service
 "

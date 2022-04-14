@@ -108,7 +108,7 @@ class Examples(Thread):
             self.state = ExamplesState.DOWNLOADING
             self._logger.info("Downloading examples archive")
             url = defines.examplesURL.replace("{PRINTER_MODEL}", self._printer_model.name)
-            self._network.download_url(url, archive.name, progress_callback=self._download_callback)
+            self._network.download_url(url, archive, progress_callback=self._download_callback)
 
             self.state = ExamplesState.UNPACKING
             self._logger.info("Extracting examples archive")

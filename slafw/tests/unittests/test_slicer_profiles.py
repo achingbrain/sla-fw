@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import unittest
+import tempfile
 
 from slafw.tests.base import SlafwTestCaseDBus
 from slafw.slicer.slicer_profile import SlicerProfile
@@ -32,9 +33,11 @@ class TestSlicerProfiles(SlafwTestCaseDBus):
         self.assertEqual(profile.printer, profile2test.printer, "printer")
 
         downloader = ProfileDownloader(Network("CZPX1234X123XC12345"), profile.vendor)
-        new_version = downloader.checkUpdates()
+        new_version = downloader.check_updates()
         self.assertIsNotNone(new_version)
-        new_profile = ProfileParser("SL1").parse(downloader.download(new_version))
+        with tempfile.NamedTemporaryFile() as tf:
+            downloader.download(new_version, tf)
+            new_profile = ProfileParser("SL1").parse(tf.name)
         self.assertIsNotNone(new_profile)
         print(new_profile)
 

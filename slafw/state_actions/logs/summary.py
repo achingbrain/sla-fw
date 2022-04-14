@@ -116,8 +116,6 @@ def log_system() -> Mapping[str, Any]:
     )
 
     fw_files = glob.glob(os.path.join(defines.mediaRootPath, "**/*.raucb"))
-    if os.path.exists(defines.firmwareTempFile):
-        fw_files.append(defines.firmwareTempFile)
 
     for key, fw_file in enumerate(fw_files):
         data["raucb updates"][key] = {}

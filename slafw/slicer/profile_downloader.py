@@ -3,13 +3,13 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# TODO: Fix following pylint problems
-# pylint: disable=no-else-return
 
 import logging
-from pathlib import Path
+import tempfile
+from io import BytesIO
 
 from slafw import defines
+from slafw.libNetwork import Network
 
 
 class ProfileDownloader:
@@ -17,59 +17,43 @@ class ProfileDownloader:
     INDEX_FILENAME = "index.idx"
     VERSION_SUFFIX = ".ini"
 
-    def __init__(self, inet, vendor):
+    def __init__(self, inet: Network, vendor: dict):
         self.logger = logging.getLogger(__name__)
         self.inet = inet
         self.vendor = vendor
 
 
-    def checkUpdates(self) -> str:
-        updateURL = self.vendor.get('config_update_url', None)
-        if not updateURL:
-            self.logger.error("Missing 'config_update_url' key")
-            return ""
-        try:
-            updateURL += self.INDEX_FILENAME
-            tmpfile = Path(defines.ramdiskPath) / self.INDEX_FILENAME
-            self.inet.download_url(updateURL, tmpfile)
-            slicerMinVersion = None
-            version, note  = None, None
-            with open(tmpfile, "r") as f:
-                while True:
-                    line = f.readline().strip()
-                    if not line:
-                        break
-                    if line.startswith("min_slic3r_version"):
-                        slicerMinVersion = line.split("=")[1].strip()
-                    elif slicerMinVersion != defines.slicerMinVersion:
-                        self.logger.debug("line '%s' is for different slicer version", line)
-                    else:
-                        version, note = line.split(" ", 1)
-                        self.logger.debug("Found version '%s' with note '%s'", version, note)
-                        break
-            if version != self.vendor.get('config_version', None):
-                return version
-            else:
-                return ""
-        except Exception:
-            self.logger.exception("Exception, returning error")
-            return None
+    def check_updates(self) -> str:
+        update_url = self.vendor.get('config_update_url', None)
+        if not update_url:
+            raise RuntimeError("Missing 'config_update_url' key")
+        update_url += self.INDEX_FILENAME
+        slicerMinVersion = None
+        version, note = None, None
+        with tempfile.TemporaryFile() as tf:
+            self.inet.download_url(update_url, tf)
+            while True:
+                line = tf.readline().strip().decode('utf-8')
+                if not line:
+                    break
+                if line.startswith("min_slic3r_version"):
+                    slicerMinVersion = line.split("=")[1].strip()
+                elif slicerMinVersion != defines.slicerMinVersion:
+                    self.logger.debug("line '%s' is for different slicer version", line)
+                else:
+                    version, note = line.split(" ", 1)
+                    self.logger.debug("Found version '%s' with note '%s'", version, note)
+                    break
+        if version != self.vendor.get('config_version', None):
+            return version
+        return ""
 
 
-    def download(self, version) -> str:
+    def download(self, version: str, file: BytesIO) -> None:
         if not version:
-            self.logger.error("Empty version")
-            return None
-        updateURL = self.vendor.get('config_update_url', None)
-        if not updateURL:
-            self.logger.error("Missing 'config_update_url' key")
-            return None
-        try:
-            filename = version + self.VERSION_SUFFIX
-            updateURL += filename
-            tmpfile = Path(defines.ramdiskPath) / filename
-            self.inet.download_url(updateURL, tmpfile)
-            return tmpfile
-        except Exception:
-            self.logger.exception("Exception, returning 'no data'.")
-            return None
+            raise RuntimeError("Empty version")
+        update_url = self.vendor.get('config_update_url', None)
+        if not update_url:
+            raise RuntimeError("Missing 'config_update_url' key")
+        update_url += version + self.VERSION_SUFFIX
+        self.inet.download_url(update_url, file)

@@ -11,6 +11,7 @@ import os
 from time import monotonic
 from typing import Optional, Any, Dict, Callable
 from urllib.request import urlopen, Request
+from io import BytesIO
 
 import distro
 import pydbus
@@ -114,32 +115,27 @@ class Network:
         return self._bus.get(self.NETWORKMANAGER_SERVICE, path)
 
     # TODO: Fix Pylint warnings
-    # pylint: disable = too-many-arguments
     # pylint: disable = too-many-branches
     def download_url(
         self,
         url: str,
-        destination: str,
-        page=None,
+        file: BytesIO,
         timeout_sec=10,
         progress_callback: Optional[Callable[[float], None]] = None,
     ) -> None:
         """
-        Fetches file specified by url info destination while displaying progress
+        Fetches data specified by url info file while displaying progress
 
         This is implemented as chunked copy from source file descriptor to the destination file descriptor. The progress
         is updated once the chunk is copied. The source file descriptor is either standard file when the source is
         mounted USB drive or urlopen result.
 
         :param url: Source url
-        :param destination: Destination file
-        :param page: Wait page to update
+        :param file: Destination file descriptor
         :param timeout_sec: Timeout in seconds
         :param progress_callback: Progress reporting function
         :return: None
         """
-        if page:
-            page.showItems(line2="0%")
         if progress_callback:
             progress_callback(0)
 
@@ -162,6 +158,7 @@ class Network:
 
             block_size = 8 * 1024
         else:
+            # TODO do we still need this functionality?
             # URL is file, source is file
             self.logger.info("Copying file %s", url)
             source = open(url, "rb")
@@ -169,28 +166,26 @@ class Network:
             block_size = 1024 * 1024
 
         try:
-            with open(destination, "wb") as file:
-                last_report_s = monotonic()
-                while True:
-                    buffer = source.read(block_size)
-                    if not buffer or buffer == "":
-                        break
-                    file.write(buffer)
+            last_report_s = monotonic()
+            while True:
+                buffer = source.read(block_size)
+                if not buffer or buffer == "":
+                    break
+                file.write(buffer)
 
-                    if file_size is not None:
-                        progress = file.tell() / file_size
-                    else:
-                        progress = 0
+                if file_size is not None:
+                    progress = file.tell() / file_size
+                else:
+                    progress = 0
 
-                    if monotonic() - last_report_s > self.REPORT_INTERVAL_S or progress == 1:
-                        last_report_s = monotonic()
-                        if page:
-                            page.showItems(line2="%d%%" % int(100 * progress))
-                        if progress_callback:
-                            progress_callback(progress)
+                if monotonic() - last_report_s > self.REPORT_INTERVAL_S or progress == 1:
+                    last_report_s = monotonic()
+                    if progress_callback:
+                        progress_callback(progress)
 
-                if file_size and file.tell() != file_size:
-                    raise DownloadFailed(url, file_size, file.tell())
+            if file_size and file.tell() != file_size:
+                raise DownloadFailed(url, file_size, file.tell())
+            file.seek(0)
         finally:
             source.close()
 

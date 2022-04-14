@@ -12,8 +12,9 @@ from slafw.errors.errors import PrinterException
 
 from slafw.api.decorators import dbus_api, auto_dbus, wrap_dict_data
 from slafw.hardware.base.hardware import BaseHardware
-from slafw.state_actions.logs import LogsExport, UsbExport, ServerUpload
-from slafw.states.logs import LogsState, StoreType
+from slafw.state_actions.data_export import DataExport
+from slafw.state_actions.logs import UsbExportLogs, ServerUploadLogs
+from slafw.states.data_export import ExportState, StoreType
 from slafw import defines
 
 
@@ -27,25 +28,25 @@ class Logs0:
     def __init__(self, hw: BaseHardware):
         self._logger = logging.getLogger(__name__)
         self._hw = hw
-        self._exporter: Optional[LogsExport] = None
+        self._exporter: Optional[DataExport] = None
 
     @auto_dbus
     def usb_save(self) -> None:
-        if self._exporter and self._exporter.state not in LogsState.finished_states():
+        if self._exporter and self._exporter.state not in ExportState.finished_states():
             self._logger.warning("No starting another log export as it is already running")
             return
 
-        self._start_exporter(UsbExport(self._hw))
+        self._start_exporter(UsbExportLogs(self._hw))
 
     @auto_dbus
     def server_upload(self) -> None:
-        if self._exporter and self._exporter.state not in LogsState.finished_states():
+        if self._exporter and self._exporter.state not in ExportState.finished_states():
             self._logger.warning("No starting another log export as it is already running")
             return
 
-        self._start_exporter(ServerUpload(self._hw, defines.log_url))
+        self._start_exporter(ServerUploadLogs(self._hw, defines.log_url))
 
-    def _start_exporter(self, exporter: LogsExport):
+    def _start_exporter(self, exporter: DataExport):
         self._exporter = exporter
         self.PropertiesChanged(self.__INTERFACE__, {"type": exporter.type.value}, [])
         exporter.state_changed.connect(
@@ -57,10 +58,10 @@ class Logs0:
         exporter.store_progress_changed.connect(
             lambda value: self.PropertiesChanged(self.__INTERFACE__, {"store_progress": value}, [])
         )
-        exporter.uploaded_log_identifier_changed.connect(
+        exporter.uploaded_data_identifier_changed.connect(
             lambda value: self.PropertiesChanged(self.__INTERFACE__, {"log_upload_identifier": value}, [])
         )
-        exporter.uploaded_log_url_changed.connect(
+        exporter.uploaded_data_identifier_changed.connect(
             lambda value: self.PropertiesChanged(self.__INTERFACE__, {"log_upload_url": value}, [])
         )
         exporter.exception_changed.connect(
@@ -91,7 +92,7 @@ class Logs0:
     @property
     def state(self) -> int:
         if not self._exporter:
-            return LogsState.IDLE.value
+            return ExportState.IDLE.value
         return self._exporter.state.value
 
     @auto_dbus
@@ -128,19 +129,21 @@ class Logs0:
     @auto_dbus
     @property
     def log_upload_identifier(self) -> str:
-        if not self._exporter or not self._exporter.log_upload_identifier:
+        if not self._exporter or not self._exporter.data_upload_identifier:
             return ""
 
-        return self._exporter.log_upload_identifier
+        return self._exporter.data_upload_identifier
 
     @auto_dbus
-    def last_log_upload_identifier(self) -> str: # pylint: disable=no-self-use
-        return LogsExport.last_log_upload_identifier()
+    def last_log_upload_identifier(self) -> str:
+        if not self._exporter:
+            return ""
+        return self._exporter.last_data_upload_identifier
 
     @auto_dbus
     @property
     def log_upload_url(self) -> str:
-        if not self._exporter or not self._exporter.log_upload_url:
+        if not self._exporter or not self._exporter.data_upload_url:
             return ""
 
-        return self._exporter.log_upload_url
+        return self._exporter.data_upload_url
