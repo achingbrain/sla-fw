@@ -17,7 +17,6 @@ from psutil import NoSuchProcess
 from slafw.api.printer0 import Printer0State
 from slafw.tests.mocks.dbus.filemanager0 import FileManager0
 from slafw.tests.mocks.dbus.hostname import Hostname
-from slafw.tests.mocks.dbus.locale import Locale
 from slafw.tests.mocks.dbus.networkmanager import NetworkManager
 from slafw.tests.mocks.dbus.timedate import TimeDate
 from slafw.virtual import run_virtual
@@ -53,7 +52,6 @@ class TestVirtualPrinter(DBusTestCase):
                 NetworkManager.__INTERFACE__, nm, ("Settings", nm), ("test1", nm), ("test2", nm), ("test3", nm),
             ),
             bus.publish(Hostname.__INTERFACE__, Hostname()),
-            bus.publish(Locale.__INTERFACE__, Locale()),
             bus.publish(TimeDate.__INTERFACE__, TimeDate()),
         ]
         run_virtual()

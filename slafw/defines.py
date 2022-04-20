@@ -136,7 +136,6 @@ uv_temp_hysteresis = 10  # 10 deg C hysteresis
 # keep at least 110 MB of free space when copying project to internal storage or extracting examples
 internalReservedSpace = 110 * 1024 * 1024
 
-localedir = os.path.join(swPath, "locales")
 manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
 videosURL = "https://www.prusa3d.com/SL1guide/"
 aboutURL = "https://www.prusa3d.com/about-us/"

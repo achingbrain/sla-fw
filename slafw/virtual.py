@@ -13,9 +13,7 @@ a desktop computer without motion controller connected. This mode is intended fo
 """
 
 import asyncio
-import builtins
 import concurrent
-import gettext
 import logging
 import os
 import signal
@@ -52,10 +50,6 @@ from slafw.tests.mocks.sl1s_uvled_booster import BoosterMock
 if "CI" in os.environ:
     defines.printer_model_run = Path(os.environ["CI_PROJECT_DIR"] + "/model")
 printer_model = PrinterModel()
-
-# use system locale settings for translation
-gettext.install("slafw", defines.localedir, names=("ngettext",))
-builtins.N_ = lambda x: x  # type: ignore
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", level=logging.DEBUG)
 

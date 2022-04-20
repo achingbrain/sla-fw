@@ -4,7 +4,6 @@
 # Copyright (C) 2021-2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import gettext
 import hashlib
 import json
 import logging
@@ -258,9 +257,6 @@ class Printer:
         self.logger.info("Registering event handlers")
         self.inet.register_events()
         self._dbus_subscriptions.append(
-            self.system_bus.get("org.freedesktop.locale1").PropertiesChanged.connect(self._locale_changed)
-        )
-        self._dbus_subscriptions.append(
             self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
         )
         self.logger.info("connecting cz.prusa3d.sl1.filemanager0 DBus signals")
@@ -344,20 +340,6 @@ class Printer:
         except UVPWMComputationError:
             self.logger.exception("Failed to compute UV PWM")
             self.hw.config.uvPwm = self.hw.uv_led.parameters.safe_default_pwm
-
-    def _locale_changed(self, __, changed, ___):
-        if "Locale" not in changed:
-            return
-
-        lang = re.sub(r"LANG=(.*)\..*", r"\g<1>", changed["Locale"][0])
-
-        try:
-            self.logger.debug("Obtaining translation: %s", lang)
-            translation = gettext.translation("slafw", localedir=defines.localedir, languages=[lang], fallback=True)
-            self.logger.info("Installing translation: %s", lang)
-            translation.install(names="ngettext")
-        except (IOError, OSError):
-            self.logger.exception("Translation for %s cannot be installed.", lang)
 
     def _rauc_changed(self, __, changed, ___):
         if "Operation" in changed:

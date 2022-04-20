@@ -21,7 +21,7 @@ setup(
     version="2022.01.11",
     packages=find_packages(exclude=["slafw.tests"]),
     scripts=['slafw/main.py', 'slafw/scripts/export_logs.bash'],
-    package_data={'slafw': ['data/*', 'data/*/*', 'locales/*/LC_MESSAGES/*.mo']},
+    package_data={'slafw': ['data/*', 'data/*/*']},
     data_files=data_files,
     url="https://gitlab.com/prusa3d/sl1/sla-fw",
     license="GNU General Public License v3 or later (GPLv3+)",
