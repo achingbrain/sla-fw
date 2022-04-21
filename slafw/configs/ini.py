@@ -258,7 +258,7 @@ class Config(ValueConfig):
         obj = {}
         for val in self._values.values():
             if (not factory or val.factory) and (not val.is_default(self) or nondefault):
-                obj[val.key] = val.value_getter(self)
+                obj[val.key] = val.type[0](val.value_getter(self))
         return obj
 
     def _write_file(self, file_path: Path, factory: bool = False):

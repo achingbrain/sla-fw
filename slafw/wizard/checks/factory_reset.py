@@ -17,6 +17,7 @@ import pydbus
 import paho.mqtt.publish as mqtt
 
 from slafw import defines, test_runtime
+from slafw.configs.unit import Nm
 from slafw.configs.runtime import RuntimeConfig
 from slafw.errors.errors import (
     MissingUVPWM,
@@ -313,13 +314,13 @@ class InitiatePackingMoves(DangerousCheck):
 
         # move tilt and tower to packing position
         self._hw.tilt.profile_id = TiltProfile.homingFast
-        self._hw.tilt.move(defines.defaultTiltHeight)
+        self._hw.tilt.move(self._hw.config.tiltHeight)
         while self._hw.tilt.moving:
             await sleep(0.25)
 
         self._hw.tower.profile_id = TowerProfile.homingFast
         # TODO: Constant in code !!!
-        await self._hw.tower.move_ensure_async(self._hw.config.tower_height_nm - 74_000_000)
+        await self._hw.tower.move_ensure_async(self._hw.config.tower_height_nm - Nm(74_000_000))
 
 
 class FinishPackingMoves(Check):
@@ -330,7 +331,7 @@ class FinishPackingMoves(Check):
     async def async_task_run(self, actions: UserActionBroker):
         # slightly press the foam against printers base
         # TODO: Constant in code !!!
-        await self._hw.tower.move_ensure_async(self._hw.config.tower_height_nm - 93_000_000)
+        await self._hw.tower.move_ensure_async(self._hw.config.tower_height_nm - Nm(93_000_000))
 
 
 class DisableAccess(SyncCheck):

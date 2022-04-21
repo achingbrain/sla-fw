@@ -32,6 +32,7 @@ from slafw.api.decorators import (
 from slafw.api.examples0 import Examples0
 from slafw.api.exposure0 import Exposure0
 from slafw.configs.stats import TomlConfigStats
+from slafw.configs.unit import Nm, Ustep
 from slafw.errors import tests
 from slafw.errors.errors import ReprintWithoutHistory, PrinterException
 from slafw.functions.files import get_all_supported_files
@@ -337,26 +338,26 @@ class Printer0:
         """
         Read or set tower position in nm
         """
-        return self.printer.hw.tower.position
+        return int(self.printer.hw.tower.position)
 
     @auto_dbus
     @tower_position_nm.setter
     @state_checked(Printer0State.IDLE)
     def tower_position_nm(self, position_nm: int) -> None:
-        self.printer.hw.tower.position = position_nm
+        self.printer.hw.tower.position = Nm(position_nm)
 
     @property
     def tilt_position(self) -> int:
         """
         Read or set tilt position in micro-steps
         """
-        return self.printer.hw.tilt.position
+        return int(self.printer.hw.tilt.position)
 
     @auto_dbus
     @tilt_position.setter
     @state_checked(Printer0State.IDLE)
     def tilt_position(self, micro_steps: int):
-        self.printer.hw.tilt.position = micro_steps
+        self.printer.hw.tilt.position = Ustep(micro_steps)
 
     @auto_dbus
     @property

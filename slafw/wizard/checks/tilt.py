@@ -8,6 +8,7 @@ from time import time
 from typing import Optional, Dict, Any
 
 from slafw import defines
+from slafw.configs.unit import Ustep
 from slafw.errors.errors import (
     TiltHomeCheckFailed,
     TiltEndstopNotReached,
@@ -59,7 +60,7 @@ class TiltLevelTest(DangerousCheck):
         # TODO: We should have such a method in Hardware
         self._hw.tilt.profile_id = TiltProfile.homingFast
         self._hw.tilt.sync()
-        home_status = self._hw.tilt.homing_status
+        home_status = self._hw.tilt.homing_status.value
         while home_status != 0:
             if home_status == -2:
                 raise TiltEndstopNotReached()
@@ -68,8 +69,8 @@ class TiltLevelTest(DangerousCheck):
             if home_status < 0:
                 raise PrinterException("Unknown printer home error")
             await asyncio.sleep(0.25)
-            home_status = self._hw.tilt.homing_status
-        self._hw.tilt.position = 0
+            home_status = self._hw.tilt.homing_status.value
+        self._hw.tilt.position = Ustep(0)
 
         # Set tilt to leveled position
         self._hw.tilt.profile_id = TiltProfile.moveFast
@@ -84,12 +85,12 @@ class TiltRangeTest(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.tilt.profile_id = TiltProfile.moveFast
-        self._hw.tilt.move(defines.tiltMax)
+        self._hw.tilt.move(self._hw.config.tiltMax)
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
         self.progress = 0.25
 
-        self._hw.tilt.move(512)  # go down fast before endstop
+        self._hw.tilt.move(Ustep(512))  # go down fast before endstop
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
         self.progress = 0.5
@@ -102,12 +103,12 @@ class TiltRangeTest(DangerousCheck):
 
         # TODO make MC homing more accurate
         if (
-            self._hw.tilt.position < -defines.tiltHomingTolerance
-            or self._hw.tilt.position > defines.tiltHomingTolerance
+            self._hw.tilt.position < Ustep(-defines.tiltHomingTolerance)
+            or self._hw.tilt.position > Ustep(defines.tiltHomingTolerance)
         ) and not test_runtime.testing:
             raise TiltAxisCheckFailed(self._hw.tilt.position)
         self._hw.tilt.profile_id = TiltProfile.moveFast
-        self._hw.tilt.move(defines.defaultTiltHeight)
+        self._hw.tilt.move(self._hw.config.tiltHeight)
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
 
@@ -171,7 +172,7 @@ class TiltCalibrationStartTest(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.tilt.profile_id = TiltProfile.homingFast
-        self._hw.tilt.move(defines.tiltCalibrationStart)
+        self._hw.tilt.move(Ustep(defines.tiltCalibrationStart))
         while self._hw.tilt.moving:
             await asyncio.sleep(0.25)
 
@@ -212,4 +213,4 @@ class TiltAlignTest(Check):
         self._hw.tilt.move_api(direction, fullstep=True)
 
     def get_result_data(self) -> Dict[str, Any]:
-        return {"tiltHeight": self._config_writer.tiltHeight}
+        return {"tiltHeight": int(self._config_writer.tiltHeight)}

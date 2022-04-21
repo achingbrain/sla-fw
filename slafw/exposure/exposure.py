@@ -37,6 +37,7 @@ from PySignal import Signal
 
 from slafw import defines, test_runtime
 from slafw.api.devices import HardwareDeviceId
+from slafw.configs.unit import Nm
 from slafw.configs.runtime import RuntimeConfig
 from slafw.configs.stats import TomlConfigStats
 from slafw.errors import tests
@@ -252,7 +253,7 @@ class StartPositionsCheck(ExposureCheckRunner):
         self.expo.hw.tower.profile_id = TowerProfile.homingFast
         try:
             # TODO: Constant in code, seems important
-            await self.expo.hw.tower.move_ensure_async(0.25 * 1_000_000, retries=2)
+            await self.expo.hw.tower.move_ensure_async(Nm(0.25 * 1_000_000), retries=2)
             self.logger.debug("Tower on print start position")
         except TowerMoveFailed as e:
             exception = e
@@ -291,7 +292,7 @@ class Exposure:
         self.exposure_image = weakref.proxy(exposure_image)
         self.resin_count = 0.0
         self.resin_volume = None
-        self.tower_position_nm = 0
+        self.tower_position_nm = Nm(0)
         self.actual_layer = 0
         self.slow_layers_done = 0
         self.printStartTime = datetime.now(tz=timezone.utc)
@@ -407,7 +408,7 @@ class Exposure:
             self.change.emit(key, value)
 
     def startProject(self):
-        self.tower_position_nm = 0
+        self.tower_position_nm = Nm(0)
         self.actual_layer = 0
         self.resin_count = 0.0
         self.slow_layers_done = 0
@@ -416,7 +417,7 @@ class Exposure:
     def prepare(self):
         self.exposure_image.preload_image(0)
         self.hw.tower.profile_id = TowerProfile.layer
-        self.hw.tower.move_ensure(0)  # first layer will move up
+        self.hw.tower.move_ensure(Nm(0))  # first layer will move up
 
         self.exposure_image.blank_screen()
         self.hw.uv_led.pwm = self.hw.config.uvPwmPrint
@@ -578,7 +579,7 @@ class Exposure:
 
         if self.hw.config.tilt:
             self.logger.info("%s tilt up", "Slow" if self._slow_move else "Fast")
-            if self.hw.config.layerTowerHop:
+            if self.hw.config.layer_tower_hop_nm:
                 self.hw.tower.move_ensure(position_nm + self.hw.config.layer_tower_hop_nm)
                 self.hw.tilt.layer_up_wait(slowMove=self._slow_move)
                 self.hw.tower.move_ensure(position_nm)
@@ -911,7 +912,7 @@ class Exposure:
 
                 layer = project.layers[self.actual_layer]
 
-                self.tower_position_nm += layer.height_nm
+                self.tower_position_nm += Nm(layer.height_nm)
 
                 self.logger.info(
                     "Layer started » {"
@@ -931,7 +932,7 @@ class Exposure:
                     layer.image.replace(project.name, project_hash),
                     str(layer.times_ms),
                     self.slow_layers_done,
-                    self.tower_position_nm / 1e6,
+                    int(self.tower_position_nm) / 1e6,
                     project.total_height_nm / 1e6,
                     int(round((datetime.now(tz=timezone.utc) - self.printStartTime).total_seconds() / 60)),
                     self.estimate_remain_time_ms(),
@@ -996,7 +997,7 @@ class Exposure:
             self.resin_count,
             self.remain_resin_ml if self.remain_resin_ml else -1,
             exposure_times,
-            self.tower_position_nm / 1e6,
+            int(self.tower_position_nm) / 1e6,
         )
 
         self.exposure_image.save_display_usage()

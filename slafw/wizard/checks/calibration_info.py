@@ -27,7 +27,7 @@ class CalibrationInfo(Check):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._logger.debug("Obtaining calibration information")
-        self._result_data = CheckData(self._hw_config.tiltHeight, self._hw_config.tower_height_nm)
+        self._result_data = CheckData(int(self._hw_config.tiltHeight), int(self._hw_config.tower_height_nm))
 
     def get_result_data(self) -> Dict[str, Any]:
         return asdict(self._result_data)

@@ -9,6 +9,7 @@ from slafw.admin.control import AdminControl
 from slafw.admin.items import AdminAction, AdminTextValue
 from slafw.admin.menu import AdminMenu
 from slafw.admin.menus.dialogs import Error, Confirm, Info
+from slafw.configs.unit import Ustep
 from slafw.hardware.sl1.tower import TowerProfile
 from slafw.libPrinter import Printer
 from slafw.libUvLedMeterMulti import UvLedMeterMulti
@@ -285,7 +286,7 @@ class InfiniteTestMenu(AdminMenu):
                 self._printer.hw.tilt.move(self._printer.hw.tilt.config_height_position)
                 while self._printer.hw.tilt.moving:
                     sleep(0.25)
-                self._printer.hw.tilt.move(50)
+                self._printer.hw.tilt.move(Ustep(50))
                 while self._printer.hw.tilt.moving:
                     sleep(0.25)
                 tilt_cycles += 1

@@ -8,11 +8,12 @@ import re
 from abc import ABC, abstractmethod
 from enum import unique, Enum
 from functools import cached_property
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from PySignal import Signal
 
 from slafw.configs.hw import HwConfig
+from slafw.configs.unit import Unit
 from slafw.errors.errors import MotionControllerException
 from slafw.hardware.power_led import PowerLed
 from slafw.hardware.power_led_action import WarningAction
@@ -60,8 +61,8 @@ class HomingStatus(Enum):
 class Axis(ABC):
     # pylint: disable=too-many-public-methods
     # pylint: disable=too-many-instance-attributes
-    _target_position: int = 0
-    _last_position: int = 0  # used by move_api
+    _target_position: Unit = Unit(0)
+    _last_position: Unit = Unit(0)  # used by move_api
     _current_profile: AxisProfileBase
     _sensitivity: Dict[str, List[List[int]]]
 
@@ -79,34 +80,30 @@ class Axis(ABC):
 
     @cached_property
     @abstractmethod
-    # TODO: use unit checking nm X ustep
-    def home_position(self) -> int:
+    def home_position(self) -> Unit:
         """
         returns value with home position
-        Tower - top position (config.towerHeight)
+        Tower - top position (config.tower_height_nm)
         Tilt - bottom position (0)
         """
 
     @cached_property
     @abstractmethod
-    # TODO: use unit checking nm X ustep
-    def config_height_position(self) -> int:
+    def config_height_position(self) -> Unit:
         """
         returns value with calibrated height position
-        Tower - top position (config.towerHeight)
+        Tower - top position (config.tower_height_nm)
         Tilt - level position (config.tiltHeight)
         """
 
     @property
     @abstractmethod
-    # TODO: use unit checking nm X ustep
-    def position(self) -> int:
+    def position(self) -> Unit:
         """get current position of the axis"""
 
     @position.setter
     @abstractmethod
-    # TODO: use unit checking nm X ustep
-    def position(self, position: int):
+    def position(self, position: Unit) -> None:
         """set current position of the axis"""
 
     @property
@@ -121,14 +118,14 @@ class Axis(ABC):
         if self.position != self._target_position:
             self._logger.warning(
                 "Not on required position! Actual position: %d, Target "
-                "position: %d ",
+                "position: %d, unit: %s",
                 self.position,
                 self._target_position,
+                type(self._target_position)
             )
             return False
         return True
 
-    # TODO: use unit checking nm X ustep
     async def ensure_position_async(self, retries: int = 1) -> None:
         """
         Waits for move to finish and checks the position.
@@ -145,9 +142,10 @@ class Axis(ABC):
             if retries:
                 retries -= 1
                 self._logger.warning(
-                    "Not on required position! Sync forced. Actual position: %d, Target position: %d ",
+                    "Not on required position! Sync forced. Actual position: %d, Target position: %d, unit: %s",
                     self.position,
                     self._target_position,
+                    type(self._target_position)
                 )
                 profile_backup = self._current_profile
                 await self.sync_ensure_async()
@@ -170,14 +168,15 @@ class Axis(ABC):
         """determine if axis is moving at the moment"""
 
     @abstractmethod
-    def move(self, position: int) -> None:
+    def move(self, position: Unit) -> None:
         """initiate movement of the axis"""
 
-    def move_ensure(self, position, retries=1) -> None:
+    def move_ensure(self, position: Unit, retries=1) -> None:
         """initiate blocking movement of the axis"""
         asyncio.run(self.move_ensure_async(position, retries))
 
-    async def move_ensure_async(self, position, retries=1) -> None:
+    async def move_ensure_async(self, position: Unit, retries=1) \
+            -> None:
         """initiate blocking movement of the axis"""
         self.move(position)
         await self.ensure_position_async(retries)
@@ -355,3 +354,11 @@ class Axis(ABC):
     def sensitivity_dict(self) -> Dict[str, List[List[int]]]:
         """return dict with axis sensitivity values"""
         return self._sensitivity
+
+    @staticmethod
+    def _check_units(value: Any, unit: Unit) -> None:
+        """
+        Raises TypeError if the value is not the same Unit as value
+        """
+        if not isinstance(value, unit):
+            raise TypeError(f"Incompatible units {type(value)}, {unit}")

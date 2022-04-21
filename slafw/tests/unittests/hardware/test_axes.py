@@ -12,6 +12,7 @@ from unittest.mock import Mock, PropertyMock, patch
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
+from slafw.configs.unit import Nm, Ustep, Unit
 from slafw.errors.errors import TiltPositionFailed, TowerPositionFailed, \
     TowerMoveFailed, TiltMoveFailed, TowerHomeFailed, TiltHomeFailed
 from slafw.hardware.axis import Axis, HomingStatus, AxisProfileBase
@@ -29,7 +30,9 @@ class DoNotRunTestDirectlyFromBaseClass:
     # pylint: disable = too-few-public-methods
     class BaseSL1AxisTest(SlafwTestCase, IsolatedAsyncioTestCase, ABC):
         axis: Axis  # reference to axis object (TiltSL1, TowerSL1)
-        pos: int  # arbitrary position used for testing moves
+        pos: Unit  # arbitrary position used for testing moves
+        unit: Unit
+        incompatible_unit: Unit
         fullstep_offset: Tuple[int]  # tower is set to 1/16 ustepping, tilt is set to 1/32
 
         def setUp(self) -> None:
@@ -44,7 +47,7 @@ class DoNotRunTestDirectlyFromBaseClass:
             super().tearDown()
 
         def test_position(self):
-            positions = [self.pos, 0]
+            positions = [self.pos, self.pos // 2]
             for position in positions:
                 self.axis.position = position
                 self.assertEqual(position, self.axis.position)
@@ -54,7 +57,6 @@ class DoNotRunTestDirectlyFromBaseClass:
 
         def test_basic_movement(self):
             self.assertFalse(self.axis.moving)
-            self.axis.position = 0
             self.axis.move(self.pos)
             self.assertTrue(self.axis.moving)
             while self.axis.moving:
@@ -64,56 +66,60 @@ class DoNotRunTestDirectlyFromBaseClass:
             self.assertTrue(self.axis.on_target_position)
             self.assertEqual(self.axis.position, self.pos)
 
-        # TODO: use unit checking nm X ustep
         def test_ensure_position_async(self):
             path = "slafw.hardware.sl1." + self.axis.name + "." + self.axis.name.capitalize() + "SL1.position"
             pos = self.pos
+            one = self.unit(1)
+            two = self.unit(2)
+            side_effect_position = [one, one, one, two, two, two, pos, pos]
 
             # normal behaviour
-            self.axis.position = 0
+            self.axis.position = self.axis.home_position
             self.axis.move(pos)
             asyncio.run(self.axis.ensure_position_async())
             self.assertFalse(self.axis.moving)
             self.assertEqual(self.axis.position, pos)
 
             # successful retries 2
-            self.axis.position = 0
+            self.axis.position = self.axis.home_position
             with patch(path, new_callable=PropertyMock) as mock_position:
-                mock_position.side_effect = [1, 1, 1, 2, 2, 2, pos, pos]
+                mock_position.side_effect = side_effect_position
                 self.axis.move(pos)
                 asyncio.run(self.axis.ensure_position_async(retries=2))
                 self.assertFalse(self.axis.moving)
             self.assertEqual(self.axis.position, pos)
 
             # maximum tries reached
-            self.axis.position = 0
+            self.axis.position = self.axis.home_position
             with patch(path, new_callable=PropertyMock) as mock_position:
-                mock_position.side_effect = [1, 1, 1, 2, 2, 2, pos, pos]
+                mock_position.side_effect = side_effect_position
                 self.axis.move(pos)
                 with self.assertRaises((TowerMoveFailed, TiltMoveFailed)):
                     asyncio.run(self.axis.ensure_position_async(retries=1))
                 self.assertFalse(self.axis.moving)
 
         def test_move_ensure(self):
-            self.axis.position = 0
+            self.axis.position = self.axis.home_position
             self.axis.move_ensure(self.pos)
             self.assertFalse(self.axis.moving)
             self.assertEqual(self.axis.position, self.pos)
 
         def test_move_api_stop(self):
-            self.axis.position = 0
+            self.axis.position = self.pos
+            self.axis.move_api(2)
+            self.assertTrue(self.axis.moving)
             current_profile = self.axis.profile_id
             self.axis.move_api(0)
             self.assertFalse(self.axis.moving)
-            self.assertEqual(0, self.axis.position)
+            self.assertLess(self.pos, self.axis.position)
             self.assertEqual(current_profile, self.axis.profile_id)
 
         def _test_move_api_up_down(self, speed: int):
-            self.axis.position = 0
+            self.axis.position = self.pos
             current_profile = self.axis.profile_id
             self.axis.move_api(speed)
             self.assertTrue(self.axis.moving)
-            self.assertLess(0, self.axis.position)
+            self.assertLess(self.pos, self.axis.position)
             self.assertNotEqual(current_profile, self.axis.profile_id)
             current_profile = self.axis.profile_id
             self.axis.stop()
@@ -131,31 +137,21 @@ class DoNotRunTestDirectlyFromBaseClass:
 
         # TODO: fix mc-fw to mimic real HW accurately. Now moves tilt: +31 -32 steps, tower +-16 steps
         def test_move_api_goto_fullstep(self):
-            # fullstep up
-            self.axis.position = 0
-            self.axis.move_api(2)
-            sleep(0.1)
-            self.axis.stop()
-            position = self.axis.position
-            self.axis.move_api(0, fullstep=True)
-            while self.axis.moving:
-                sleep(0.1)
-            self.assertEqual(position + self.fullstep_offset[0], self.axis.position)
-
-            #fullstep down
-            self.axis.position = self.pos
-            self.axis.move_api(-2)
-            sleep(0.1)
-            self.axis.stop()
-            position = self.axis.position
-            self.axis.move_api(0, fullstep=True)
-            while self.axis.moving:
-                sleep(0.1)
-            self.assertEqual(position + self.fullstep_offset[1], self.axis.position)
+            for i in range(2):
+                self.axis.position = self.pos
+                # move down fast (-2)
+                # move up fast (2)
+                self.axis.move_api(((i - 1) * 4) + 2)
+                self.assertTrue(self.axis.moving)
+                self.axis.stop()
+                pos = self.axis.position
+                self.axis.move_api(0, fullstep=True)
+                self.assertEqual(pos + self.fullstep_offset[i],
+                                 self.axis.position)
 
         def stop(self) -> None:
-            self.axis.position = 0
-            self.axis.move(1000)
+            self.axis.position = self.axis.home_position
+            self.axis.move(self.pos)
             while self.axis.moving:
                 self.axis.stop()
                 self.assertFalse(self.axis.moving)
@@ -163,19 +159,18 @@ class DoNotRunTestDirectlyFromBaseClass:
 
         def test_release(self):
             self.axis.sync_ensure()
-            self.axis.position = 0
+            self.axis.position = self.axis.home_position
             self.axis.move_api(2)
             self.axis.release()
             self.assertFalse(self.axis.synced)
 
         # TODO: fix mc-fw to mimic real HW accurately. Now moves tilt: +31 -32 steps, tower +-16 steps
         def test_go_to_fullstep(self):
-            self.axis.position = 0
-            self.axis.go_to_fullstep(go_up=True)
-            self.assertEqual(self.axis.position, self.fullstep_offset[0])
-            self.axis.position = 0
-            self.axis.go_to_fullstep(go_up=False)
-            self.assertEqual(self.axis.position, self.fullstep_offset[1])
+            for i in range(2):
+                self.axis.position = self.pos
+                self.axis.go_to_fullstep(go_up=bool(i))
+                self.assertEqual(self.axis.position,
+                                 self.pos + self.fullstep_offset[i])
 
         def test_sync(self):
             self.assertEqual(HomingStatus.UNKNOWN, self.axis.homing_status)
@@ -259,6 +254,17 @@ class DoNotRunTestDirectlyFromBaseClass:
                 self.assertEqual(7, len(profile))
                 self.assertEqual(type([int]), type(profile))
 
+        def test_unit(self):
+            self.assertEqual(type(self.axis.position), self.unit)
+            self.assertEqual(type(self.axis.home_position), self.unit)
+            self.assertEqual(type(self.axis.config_height_position), self.unit)
+            self.axis.position = self.unit(0)
+            with self.assertRaises(TypeError):
+                self.axis.position = self.incompatible_unit(0)
+            self.axis.move(self.unit(0))
+            with self.assertRaises(TypeError):
+                self.axis.move(self.incompatible_unit(0))
+
 
 class TestTilt(DoNotRunTestDirectlyFromBaseClass.BaseSL1AxisTest):
 
@@ -267,13 +273,15 @@ class TestTilt(DoNotRunTestDirectlyFromBaseClass.BaseSL1AxisTest):
         tower = TowerSL1(self.mcc, self.config, self.power_led)
         self.axis = TiltSL1(self.mcc, self.config, self.power_led, tower)
         self.pos = self.axis.config_height_position / 4 # aprox 1000 usteps
-        self.fullstep_offset = (31, -32)
+        self.unit = Ustep
+        self.incompatible_unit = Nm
+        self.fullstep_offset = (Ustep(-32), Ustep(31))
 
     def test_name(self) -> str:
         self.assertEqual(self.axis.name, "tilt")
 
     def test_home_position(self) -> int:
-        self.assertEqual(self.axis.home_position, 0)
+        self.assertEqual(self.axis.home_position, Ustep(0))
 
     def test_config_height_position(self) -> int:
         self.assertEqual(self.axis.config_height_position, self.config.tiltHeight)
@@ -287,7 +295,7 @@ class TestTilt(DoNotRunTestDirectlyFromBaseClass.BaseSL1AxisTest):
             self.axis._raise_home_failed()
 
     def test_move_api_min(self) -> None:
-        self.axis.position = 1000
+        self.axis.position = self.pos
         self.axis._move_api_min()
         self.assertTrue(self.axis.moving)
         self.assertEqual(self.axis._target_position, self.axis.home_position)
@@ -331,12 +339,13 @@ class TestTilt(DoNotRunTestDirectlyFromBaseClass.BaseSL1AxisTest):
     # TODO test better
     def test_layer_down(self):
         asyncio.run(self.axis.layer_down_wait_async())
-        self.assertLessEqual(abs(self.axis.position), defines.tiltHomingTolerance)
+        self.assertLessEqual(abs(self.axis.position),
+                             Ustep(defines.tiltHomingTolerance))
 
     def test_stir_resin(self):
         asyncio.run(self.axis.stir_resin_async())
         self.assertTrue(self.axis.synced)
-        self.assertEqual(0, self.axis.position)
+        self.assertEqual(self.axis.position, Ustep(0))
 
 
 class TestTower(DoNotRunTestDirectlyFromBaseClass.BaseSL1AxisTest):
@@ -344,16 +353,23 @@ class TestTower(DoNotRunTestDirectlyFromBaseClass.BaseSL1AxisTest):
     def setUp(self):
         super().setUp()
         self.axis = TowerSL1(self.mcc, self.config, self.power_led)
-        self.pos = self.axis.resin_start_pos_nm
-        self.fullstep_offset = (self.config.tower_microsteps_to_nm(16), self.config.tower_microsteps_to_nm(-16))
+        self.pos = self.axis.home_position / 2
+        self.unit = Nm
+        self.incompatible_unit = Ustep
+        offset = self.config.tower_microsteps_to_nm(16)
+        self.fullstep_offset = (-offset, offset)
 
-    def test_name(self) -> str:
+    def test_name(self):
         self.assertEqual(self.axis.name, "tower")
 
-    def test_home_position(self) -> int:
+    def test_home_position(self):
         self.assertEqual(self.axis.home_position, self.config.tower_height_nm)
 
-    def test_config_height_position(self) -> int:
+    def test_config_height_position(self):
+        print(type(self.axis.home_position))
+        print(type(self.config.tower_height_nm))
+        print(self.axis.home_position)
+        print(self.config.tower_height_nm)
         self.assertEqual(self.axis.home_position, self.config.tower_height_nm)
 
     def test_raise_move_failed(self):

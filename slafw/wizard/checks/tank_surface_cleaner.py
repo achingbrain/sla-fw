@@ -6,6 +6,7 @@ from asyncio import sleep
 from time import time
 from enum import Enum, unique
 
+from slafw.configs.unit import Nm
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.sl1.tower import TowerProfile
 from slafw.image.exposure_image import ExposureImage
@@ -85,7 +86,7 @@ class TowerSafeDistance(DangerousCheck):
 
     async def async_task_run(self, actions: UserActionBroker):
         self._hw.tower.profile_id = TowerProfile.homingFast
-        await self._hw.tower.move_ensure_async(36_000_000)
+        await self._hw.tower.move_ensure_async(self._hw.tower.resin_start_pos_nm)
 
 
 class TouchDown(DangerousCheck):
@@ -102,7 +103,7 @@ class TouchDown(DangerousCheck):
         # Note: Do not use towerMoveAbsoluteWaitAsync here. It's periodically calling isTowerOnPosition which
         # is causing the printer to try to fix the tower position
 
-        target_position_nm = self._hw.config.tankCleaningAdaptorHeight_nm - 3_000_000
+        target_position_nm = self._hw.config.tankCleaningAdaptorHeight_nm - Nm(3_000_000)
         self._hw.tower.move(target_position_nm)
         while self._hw.tower.moving:
             await sleep(0.25)
@@ -169,10 +170,10 @@ class GentlyUp(Check):
 
         await self._hw.tilt.layer_down_wait_async(slowMove=True)
         # TODO: constant in code !!!
-        target_position = 50_000_000
+        target_position = Nm(50_000_000)
         for _ in range(3):
             self._hw.tower.move(target_position)
             while self._hw.tower.moving:
                 await asyncio.sleep(0.25)
-            if abs(target_position - self._hw.tower.position) < 10:
+            if abs(target_position - self._hw.tower.position) < Nm(10):
                 break

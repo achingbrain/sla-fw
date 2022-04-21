@@ -5,11 +5,13 @@
 from asyncio import gather
 from typing import Optional, Dict, Any
 
+from slafw.configs.unit import Nm
 from slafw.errors.errors import ResinSensorFailed
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.wizard.actions import UserActionBroker
 from slafw.wizard.checks.base import WizardCheckType, DangerousCheck
 from slafw.wizard.setup import Configuration, TankSetup, PlatformSetup, Resource
+
 
 class ResinSensorTest(DangerousCheck):
     allowed_min_mm = 4
@@ -27,7 +29,7 @@ class ResinSensorTest(DangerousCheck):
     async def async_task_run(self, actions: UserActionBroker):
         await self.wait_cover_closed()
         await gather(self._hw.tower.verify_async(), self._hw.tilt.verify_async())
-        self._hw.tower.position = 120_000_000  # TODO: constant in code
+        self._hw.tower.position = Nm(120_000_000)  # TODO: constant in code
         position_mm = await self._hw.get_resin_sensor_position_mm()
         self._logger.debug("resin triggered at %s mm", position_mm)
 

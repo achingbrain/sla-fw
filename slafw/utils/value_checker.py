@@ -83,7 +83,7 @@ class ValueChecker:
         """
         while True:
             new_value = self._getter()
-            if self._last_value != new_value:
+            if self._last_value is None or self._last_value != new_value:
                 self._last_value = new_value
                 self.emit(new_value)
             await self._delay.delay(self._interval.get_seconds(self._rapid_update))

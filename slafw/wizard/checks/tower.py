@@ -5,6 +5,7 @@ import asyncio
 from asyncio import sleep, gather
 from typing import Dict, Any
 
+from slafw.configs.unit import Nm
 from slafw.errors.errors import TowerBelowSurface, TowerAxisCheckFailed, TowerHomeFailed, TowerEndstopNotReached
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.sl1.tower import TowerProfile
@@ -58,11 +59,11 @@ class TowerRangeTest(DangerousCheck):
         self._hw.tower.position = self._hw.tower.end_nm
 
         self._hw.tower.profile_id = TowerProfile.homingFast
-        await self._hw.tower.move_ensure_async(0)
+        await self._hw.tower.move_ensure_async(Nm(0))
 
-        if self._hw.tower.position == 0:
+        if self._hw.tower.position == Nm(0):
             # stop 10 mm before end-stop to change sensitive profile
-            await self._hw.tower.move_ensure_async(self._hw.tower.end_nm - 10_000_000)
+            await self._hw.tower.move_ensure_async(self._hw.tower.end_nm - Nm(10_000_000))
 
             self._hw.tower.profile_id = TowerProfile.homingSlow
             self._hw.tower.move(self._hw.tower.max_nm)
@@ -93,7 +94,7 @@ class TowerAlignTest(DangerousCheck):
         await self.wait_cover_closed()
         self._logger.info("Starting platform calibration")
         self._hw.tilt.profile_id = TiltProfile.layerMoveSlow # set higher current
-        self._hw.tower.position = 0
+        self._hw.tower.position = Nm(0)
         self._hw.tower.profile_id = TowerProfile.homingFast
 
         self._logger.info("Moving platform to above position")
@@ -104,7 +105,7 @@ class TowerAlignTest(DangerousCheck):
         self._logger.info("tower position above: %d nm", self._hw.tower.position)
         if self._hw.tower.position != self._hw.tower.above_surface_nm:
             self._logger.error(
-                "Platform calibration [above] failed %s != %s nm",
+                "Platform calibration [above] failed %s != %s Nm",
                 self._hw.tower.position,
                 self._hw.tower.above_surface_nm,
             )
@@ -151,5 +152,5 @@ class TowerAlignTest(DangerousCheck):
 
     def get_result_data(self) -> Dict[str, Any]:
         return {
-            "tower_height_nm": self._config_writer.tower_height_nm,
+            "tower_height_nm": int(self._config_writer.tower_height_nm),
         }

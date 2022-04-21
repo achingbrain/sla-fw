@@ -4,6 +4,7 @@
 from typing import List
 
 from slafw.configs.hw import HwConfig
+from slafw.configs.unit import Unit
 from slafw.hardware.axis import Axis, AxisProfileBase, HomingStatus
 from slafw.hardware.power_led import PowerLed
 from slafw.hardware.tilt import Tilt
@@ -17,23 +18,23 @@ class MockAxis(Axis):
                  power_led: PowerLed):
         super().__init__(config, power_led)
         self._mcc = mcc
-        self._target_position = 0
+        self._target_position = Unit(0)
         self._homing_status = HomingStatus.UNKNOWN
         self._current_profile = None
 
     @property
-    def position(self) -> int:
+    def position(self) -> Unit:
         return self._target_position
 
     @position.setter
-    def position(self, position):
+    def position(self, position: Unit):
         self._target_position = position
 
     @property
     def moving(self) -> bool:
         return False
 
-    def move(self, position: int) -> None:
+    def move(self, position: Unit) -> None:
         self.position = position
 
     def stop(self) -> None:

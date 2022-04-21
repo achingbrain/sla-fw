@@ -17,8 +17,10 @@ from typing import Optional, List, Dict, Type, Union, Any, Callable, Set
 from queue import Queue
 from readerwriterlock import rwlock
 
+from slafw.configs.unit import Unit
 from slafw.errors.errors import ConfigException
 from slafw import test_runtime
+
 
 class BaseConfig(ABC):
     """
@@ -67,6 +69,7 @@ class BaseConfig(ABC):
 
 
 class Value(property, ABC):
+    # pylint: disable=too-many-instance-attributes
     """
     Base class for values included in configuration files.
 
@@ -82,7 +85,7 @@ class Value(property, ABC):
     """
 
     @abstractmethod
-    def __init__(self, value_type: List[Type], default, key=None, factory=False, doc=""):
+    def __init__(self, value_type: List[Type], default, key=None, factory=False, doc="", unit: Unit = None):
         """
         Config value constructor
 
@@ -92,7 +95,9 @@ class Value(property, ABC):
          returns default value.
         :param key: Key name in the configuration file. If set to None (default) it will be set to property name.
         :param factory: Whenever the value should be stored in factory configuration file.
-        :param doc: Documentation string fro the configuration item
+        :param doc: Documentation string from the configuration item
+        :param unit: unit of given value such as Ustep or Nm. Dbus currently does not support custom data types.
+         So values including unit must be saved with the unit manually.
         """
 
         def getter(config: BaseConfig) -> value_type[0]:  # type: ignore
@@ -116,6 +121,9 @@ class Value(property, ABC):
         self.default = default
         self.factory = factory
         self.default_doc = doc
+        self.unit = value_type[0]
+        if unit is not None:
+            self.unit = unit
 
     def base_doc(self) -> str:
         """
@@ -167,7 +175,10 @@ class Value(property, ABC):
         :param config: Config to read from
         :return: Value
         """
-        return config.data_values[self.name]
+        value = config.data_values[self.name]
+        if value is None:
+            return value
+        return self.unit(value)
 
     def set_value(self, config: BaseConfig, value: Any) -> None:
         config.data_values[self.name] = value
@@ -181,7 +192,10 @@ class Value(property, ABC):
         :param config: Config to read from
         :return: Value
         """
-        return config.data_raw_values[self.name]
+        value = config.data_raw_values[self.name]
+        if value is None:
+            return value
+        return self.unit(value)
 
     def set_raw_value(self, config: BaseConfig, value: Any) -> None:
         config.data_raw_values[self.name] = value
@@ -203,7 +217,9 @@ class Value(property, ABC):
     def get_default_value(self, config: BaseConfig) -> Any:
         if not any(isinstance(self.default, t) for t in self.type) and callable(self.default) and config:
             return self.default(config)
-        return self.default
+        if self.default is None:
+            return self.default
+        return self.unit(self.default)
 
     def setup(self, config: BaseConfig, name: str) -> None:
         """
@@ -321,7 +337,11 @@ class NumericValue(Value):
         """
         super().__init__(*args, **kwargs)
         self.min = minimum
+        if minimum is not None and self.unit is not None:
+            self.min = self.unit(minimum)
         self.max = maximum
+        if maximum is not None and self.unit is not None:
+            self.max = self.unit(maximum)
         self.__doc__ = f"""{self.base_doc()}
             :range: {self.min} - {self.max}
         """
@@ -348,7 +368,7 @@ class IntValue(NumericValue):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__([int], *args, **kwargs)
+        super().__init__([int, Unit], *args, **kwargs)
 
 
 class FloatValue(NumericValue):

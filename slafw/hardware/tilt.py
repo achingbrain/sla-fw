@@ -6,6 +6,7 @@ import asyncio
 from abc import abstractmethod
 from functools import cached_property
 
+from slafw.configs.unit import Ustep
 from slafw.errors.errors import TiltMoveFailed, TiltHomeFailed
 from slafw.hardware.axis import Axis
 
@@ -21,18 +22,16 @@ class Tilt(Axis):
         return self._config.tiltSensitivity
 
     @cached_property
-    def home_position(self) -> int:
-        return 0
+    def home_position(self) -> Ustep:
+        return Ustep(0)
 
     @cached_property
-    def config_height_position(self) -> int:
+    def config_height_position(self) -> Ustep:
         return self._config.tiltHeight
 
-    # TODO: force unit check
     @abstractmethod
-    def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
+    def layer_up_wait(self, slowMove: bool = False, tiltHeight: Ustep = Ustep(0)) -> None:
         """tilt up during the print"""
-
 
     def layer_down_wait(self, slowMove: bool = False) -> None:
         asyncio.run(self.layer_down_wait_async(slowMove=slowMove))

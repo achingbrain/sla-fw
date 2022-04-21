@@ -8,6 +8,7 @@ from typing import List
 
 from slafw import defines
 from slafw.configs.ini import Config
+from slafw.configs.unit import Nm, Ustep
 from slafw.configs.value import BoolValue, IntValue, IntListValue, FloatValue, TextValue
 
 
@@ -23,23 +24,23 @@ class HwConfig(Config):
        notation. For details see Toml format specification: https://en.wikipedia.org/wiki/TOML
     """
 
-    def tower_microsteps_to_nm(self, microsteps: int) -> int:
+    def tower_microsteps_to_nm(self, microsteps: int) -> Nm:
         """
         Covert microsteps to nanometers using the current tower pitch
 
         :param microsteps: Tower position in microsteps
         :return: Tower position in nanometers
         """
-        return self.tower_microstep_size_nm * microsteps
+        return Nm(self.tower_microstep_size_nm * microsteps)
 
-    def nm_to_tower_microsteps(self, nanometers: int) -> int:
+    def nm_to_tower_microsteps(self, nanometers: int) -> Ustep:
         """
         Covert nanometers to microsteps using the current tower pitch
 
         :param nanometers: Tower position in nanometers
         :return: Tower position in microsteps
         """
-        return nanometers // self.tower_microstep_size_nm
+        return Ustep(nanometers // self.tower_microstep_size_nm)
 
     fanCheck = BoolValue(True, doc="Check fan function if set to True.")
     coverCheck = BoolValue(True, doc="Check for closed cover during printer movements and exposure if set to True.")
@@ -70,9 +71,11 @@ class HwConfig(Config):
     # tilt related
     tilt = BoolValue(True, doc="Use tilt to tear off the layers.")
     tiltSensitivity = IntValue(0, minimum=-2, maximum=2, doc="Tilt sensitivity adjustment")
-    tiltHeight = IntValue(defines.defaultTiltHeight, doc="Position of the leveled tilt. [ustep]")
-    tiltMax = IntValue(defines.tiltMax, doc="Max position allowed. It shoud corespond to the top deadlock of the axis. [ustep]")
-    tiltMin = IntValue(defines.tiltMin, doc="Position used to ensure the tilt ends at the bottom. [ustep]")
+    tiltHeight = IntValue(defines.defaultTiltHeight, unit=Ustep, doc="Position of the leveled tilt. [ustep]")
+    tiltMax = IntValue(defines.tiltMax, unit=Ustep,
+                       doc="Max position allowed. It shoud corespond to the top deadlock of the axis. [ustep]")
+    tiltMin = IntValue(defines.tiltMin, unit=Ustep,
+                       doc="Position used to ensure the tilt ends at the bottom. [ustep]")
     raw_tiltdownlargefill = IntListValue([5, 650, 1000, 4, 1, 0, 64, 3], length=8, key="tiltdownlargefill", doc="Definitions for tilt down where printed area > limit4fast. Profiles, offsets and wait times.")
     raw_tiltdownsmallfill = IntListValue([5, 0, 0, 6, 1, 0, 0, 0], length=8, key="tiltdownsmallfill", doc="Definitions for tilt down where printed area < limit4fast. Profiles, offsets and wait times.")
     raw_tiltuplargefill = IntListValue([2, 400, 0, 5, 1, 0, 0, 0], length=8, key="tiltuplargefill", doc="Definitions for tilt up where printed area > limit4fast. Profiles, offsets and wait times.")
@@ -102,10 +105,12 @@ class HwConfig(Config):
     # Deprecated - use calib_tower_offset_nm
     calibTowerOffset = IntValue(
         lambda self: self.nm_to_tower_microsteps(defines.defaultTowerOffset * 1_000_000),
+        unit=Ustep,
         doc="Adjustment of zero on the tower axis. [microsteps]",
     )
     calib_tower_offset_nm = IntValue(
-        lambda self:self.tower_microsteps_to_nm(self.calibTowerOffset),
+        lambda self: self.tower_microsteps_to_nm(self.calibTowerOffset),
+        unit=Nm,
         doc="Adjustment of zero on the tower axis. [nanometers]",
     )
 
@@ -117,14 +122,15 @@ class HwConfig(Config):
         0, minimum=0, maximum=20, doc="Duration of electronic trigger durint the layer change, currently discarded. [tenths of a second]"
     )
     # Deprecated - use layer_tower_hop_nm
-    layerTowerHop = IntValue(
-        0, minimum=0, maximum=80000, doc="How much to rise the tower during layer change. [microsteps]"
+    layerTowerHop = IntValue(0, unit=Ustep, minimum=0, maximum=80000,
+                             doc="How much to rise the tower during layer change. [microsteps]"
     )
     layer_tower_hop_nm = IntValue(
         lambda self: self.tower_microsteps_to_nm(self.layerTowerHop),
+        unit=Nm,
         minimum=0,
         maximum=100_000_000,
-        doc = "How much to rise the tower during layer change. [microsteps]"
+        doc = "How much to rise the tower during layer change. [nm]"
     )
     delayBeforeExposure = IntValue(
         0, minimum=0, maximum=300, doc="Delay between tear off and exposure. [tenths of a second]"
@@ -135,9 +141,10 @@ class HwConfig(Config):
     upAndDownWait = IntValue(10, minimum=0, maximum=600, doc="Up&Down wait time. [seconds]")
     upAndDownEveryLayer = IntValue(0, minimum=0, maximum=500, doc="Do Up&Down every N layers, 0 means never.")
     # Deprecated - use up_and_down_z_offset_nm
-    upAndDownZoffset = IntValue(0, minimum=-800, maximum=800)
+    upAndDownZoffset = IntValue(0, unit=Ustep, minimum=-800, maximum=800)
     up_and_down_z_offset_nm = IntValue(
         lambda self: self.tower_microsteps_to_nm(self.upAndDownZoffset),
+        unit=Nm,
         minimum=-50_000_000,
         maximum=50_000_000,
     )
@@ -187,8 +194,12 @@ class HwConfig(Config):
     rpmControlOverride = BoolValue(False, doc="Overide UV FAN RPM control with UV LED temp. Force the RPM set in this config.")
     tankCleaningExposureTime = IntValue(0, minimum=5, maximum=120, doc="Exposure time when running the tank surface cleaning wizard, default 0 needs to be overwritten once the printer model is known.")
     tankCleaningGentlyUpProfile = IntValue(1, minimum=0, maximum=3, doc="Select the profile used for the upward movement of the platform in the tank surface cleaning wizard(should be cast into GentlyUpProfile enum).")
-    tankCleaningMinDistance_nm = IntValue(100_000, minimum=0, maximum=5_000_000, doc="Distance of the garbage collector from the resin tank bottom when moving down.")
-    tankCleaningAdaptorHeight_nm = IntValue(25_000_000, minimum=3_000_000, maximum=200_000_000, doc="Expected cleaning adapter height, the platform will descend at most 3mm below this height")
+    tankCleaningMinDistance_nm = IntValue(100_000,  unit=Nm, minimum=0, maximum=5_000_000,
+                                          doc="Distance of the garbage collector from the resin tank bottom "
+                                              "when moving down.")
+    tankCleaningAdaptorHeight_nm = IntValue(25_000_000, unit=Nm, minimum=3_000_000, maximum=200_000_000,
+                                            doc="Expected cleaning adapter height, the platform will descend at most "
+                                                "3mm below this height")
 
     currentProfilesSet = TextValue("n/a", doc="Last applied profiles set")
 
@@ -204,7 +215,7 @@ class HwConfig(Config):
         :return: True if printer is calibrated, False otherwise
         """
         # TODO: Throw away raw_calibrated, judge calibrated based on tilt/tower height
-        return self.raw_calibrated and self.tiltHeight % 64 == 0
+        return self.raw_calibrated and int(self.tiltHeight) % 64 == 0
 
     @calibrated.setter
     def calibrated(self, value: bool) -> None:
@@ -213,14 +224,17 @@ class HwConfig(Config):
     # Deprecated - use tower_height_nm
     towerHeight = IntValue(
         lambda self: self.nm_to_tower_microsteps(defines.defaultTowerHeight * 1_000_000),
+        unit=Ustep,
         doc="Maximum tower height. [microsteps]"
     )
     tower_height_nm = IntValue(
         lambda self: self.tower_microsteps_to_nm(self.towerHeight),
-        doc = "Current tower height. [nanometers]"
+        unit=Nm,
+        doc="Current tower height. [nanometers]"
     )
 
-    max_tower_height_mm = IntValue(150, key="maxTowerHeight_mm", doc="Maximum tower height in mm")
+    max_tower_height_mm = IntValue(150, unit=Nm, key="maxTowerHeight_mm",
+                                   doc="Maximum tower height in mm")
     showWizard = BoolValue(True, doc="Display wizard at startup if True.")
     showUnboxing = BoolValue(True, doc="Display unboxing wizard at startup if True.")
     showI18nSelect = BoolValue(True, doc="Display language select dialog at startup if True.")

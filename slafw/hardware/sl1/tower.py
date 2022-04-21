@@ -6,6 +6,7 @@ from enum import unique
 from typing import List
 
 from slafw.configs.hw import HwConfig
+from slafw.configs.unit import Nm
 from slafw.errors.errors import MotionControllerException, \
     TowerPositionFailed
 from slafw.hardware.axis import AxisProfileBase, HomingStatus
@@ -41,16 +42,16 @@ class TowerSL1(Tower):
         }
 
     @property
-    def position(self) -> int:
+    def position(self) -> Nm:
         return self._config.tower_microsteps_to_nm(self._mcc.doGetInt("?twpo"))
 
-    # TODO: force unit check
     @position.setter
-    def position(self, position):
+    def position(self, position: Nm) -> None:
+        self._check_units(position, Nm)
         if self.moving:
             raise TowerPositionFailed(
                 "Failed to set tower position since its moving")
-        self._mcc.do("!twpo", self._config.nm_to_tower_microsteps(position))
+        self._mcc.do("!twpo", int(self._config.nm_to_tower_microsteps(position)))
         self._target_position = position
         self._logger.debug("Position set to: %d nm", self._target_position)
 
@@ -60,9 +61,9 @@ class TowerSL1(Tower):
             return True
         return False
 
-    # TODO: force unit check
-    def move(self, position: int) -> None:
-        self._mcc.do("!twma", self._config.nm_to_tower_microsteps(position))
+    def move(self, position: Nm) -> None:
+        self._check_units(position, Nm)
+        self._mcc.do("!twma", int(self._config.nm_to_tower_microsteps(position)))
         self._target_position = position
         self._logger.debug("Move initiated. Target position: %d nm", position)
 
@@ -71,8 +72,7 @@ class TowerSL1(Tower):
         axis_moving = self._mcc.doGetInt("?mot")
         self._mcc.do("!mot", axis_moving & ~1)
         self._target_position = self.position
-        self._logger.debug("Move stopped. Rewriting target position to: %d nm",
-                           self._target_position)
+        self._logger.debug("Move stopped. Rewriting target position to: %d nm", self._target_position)
 
     def go_to_fullstep(self, go_up: bool):
         self._mcc.do("!twgf", int(go_up))

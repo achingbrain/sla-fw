@@ -9,6 +9,7 @@ from typing import List
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
+from slafw.configs.unit import Ustep
 from slafw.errors.errors import MotionControllerException, TiltPositionFailed
 from slafw.hardware.axis import AxisProfileBase, HomingStatus
 from slafw.hardware.power_led import PowerLed
@@ -47,17 +48,17 @@ class TiltSL1(Tilt):
         }
 
     @property
-    def position(self) -> int:
-        return self._mcc.doGetInt("?tipo")
+    def position(self) -> Ustep:
+        return Ustep(self._mcc.doGetInt("?tipo"))
 
-    # TODO: force unit check
     @position.setter
-    def position(self, position):
+    def position(self, position: Ustep) -> None:
+        self._check_units(position, Ustep)
         if self.moving:
             raise TiltPositionFailed("Failed to set tilt position since its moving")
-        self._mcc.do("!tipo", position)
+        self._mcc.do("!tipo", int(position))
         self._target_position = position
-        self._logger.debug("Position set to: %d nm", self._target_position)
+        self._logger.debug("Position set to: %d ustep", self._target_position)
 
     @property
     def moving(self):
@@ -65,11 +66,11 @@ class TiltSL1(Tilt):
             return True
         return False
 
-    # TODO: force unit check
     def move(self, position):
-        self._mcc.do("!tima", position)
+        self._check_units(position, Ustep)
+        self._mcc.do("!tima", int(position))
         self._target_position = position
-        self._logger.debug("Move initiated. Target position: %d nm",
+        self._logger.debug("Move initiated. Target position: %d ustep",
                            self._target_position)
 
     def _move_api_get_profile(self, speed) -> TiltProfile:
@@ -81,7 +82,7 @@ class TiltSL1(Tilt):
         axis_moving = self._mcc.doGetInt("?mot")
         self._mcc.do("!mot", axis_moving & ~2)
         self._target_position = self.position
-        self._logger.debug("Move stopped. Rewriting target position to: %d nm",
+        self._logger.debug("Move stopped. Rewriting target position to: %d ustep",
                            self._target_position)
 
     def go_to_fullstep(self, go_up: bool):
@@ -92,19 +93,19 @@ class TiltSL1(Tilt):
         # initial release movement with optional sleep at the end
         self.profile_id = TiltProfile(profile[0])
         if profile[1] > 0:
-            self.move(self.position - profile[1])
+            self.move(self.position - Ustep(profile[1]))
             while self.moving:
                 await asyncio.sleep(0.1)
         await asyncio.sleep(profile[2] / 1000.0)
         # next movement may be splited
         self.profile_id = TiltProfile(profile[3])
-        movePerCycle = int(self.position / profile[4])
+        movePerCycle = self.position // profile[4]
         for _ in range(profile[4]):
             self.move(self.position - movePerCycle)
             while self.moving:
                 await asyncio.sleep(0.1)
             await asyncio.sleep(profile[5] / 1000.0)
-        tolerance = defines.tiltHomingTolerance
+        tolerance = Ustep(defines.tiltHomingTolerance)
         # if not already in endstop ensure we end up at defined bottom position
         if not self._mcc.checkState("endstop"):
             self.move(-tolerance)
@@ -117,8 +118,8 @@ class TiltSL1(Tilt):
         # unstuck
         self._logger.warning("Tilt unstucking")
         self.profile_id = TiltProfile.layerRelease
-        count = 0
-        step = 128
+        count = Ustep(0)
+        step = Ustep(128)
         while count < self._config.tiltMax and not self._mcc.checkState("endstop"):
             self.position = step
             self.move(self.home_position)
@@ -127,8 +128,7 @@ class TiltSL1(Tilt):
             count += step
         await self.sync_ensure_async(retries=0)
 
-    # TODO: force unit check
-    def layer_up_wait(self, slowMove: bool = False, tiltHeight: int = 0) -> None:
+    def layer_up_wait(self, slowMove: bool = False, tiltHeight: Ustep = Ustep(0)) -> None:
         if tiltHeight == self.home_position: # use self._config.tiltHeight by default
             _tiltHeight = self.config_height_position
         else: # in case of calibration there is need to force new unstored tiltHeight
@@ -136,14 +136,14 @@ class TiltSL1(Tilt):
         profile = self._config.tuneTilt[2] if slowMove else self._config.tuneTilt[3]
 
         self.profile_id = TiltProfile(profile[0])
-        self.move(_tiltHeight - profile[1])
+        self.move(_tiltHeight - Ustep(profile[1]))
         while self.moving:
             sleep(0.1)
         sleep(profile[2] / 1000.0)
         self.profile_id = TiltProfile(profile[3])
 
         # finish move may be also splited in multiple sections
-        movePerCycle = int((_tiltHeight - self.position) / profile[4])
+        movePerCycle = (_tiltHeight - self.position) // profile[4]
         for _ in range(profile[4]):
             self.move(self.position + movePerCycle)
             while self.moving:

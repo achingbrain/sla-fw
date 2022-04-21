@@ -14,6 +14,7 @@ import time
 import pydbus
 import toml
 
+from slafw.configs.unit import Nm, Ustep
 from slafw.tests.mocks.hardware import HardwareMock
 from slafw.wizard.wizards.new_expo_panel import NewExpoPanelWizard
 
@@ -579,7 +580,7 @@ class TestWizards(TestWizardsBase):
 
         def side_effect_move(position):
             if position == self.hw.tower.min_nm:
-                original_move(self.hw.tower.min_nm + 1)
+                original_move(self.hw.tower.min_nm + Nm(1))
             else:
                 original_move(position)
 
@@ -592,7 +593,7 @@ class TestWizards(TestWizardsBase):
             if wizard.state == WizardState.PREPARE_CALIBRATION_TILT_ALIGN:
                 wizard.prepare_calibration_tilt_align_done()
             if wizard.state == WizardState.LEVEL_TILT:
-                self.hw.tilt.position = 4992
+                self.hw.tilt.position = Ustep(4992)
                 wizard.tilt_aligned()
             if wizard.state == WizardState.PREPARE_CALIBRATION_PLATFORM_ALIGN:
                 wizard.prepare_calibration_platform_align_done()
@@ -804,7 +805,7 @@ class TankSurfaceCleanerTest(TestWizardsBase):
         original_move = self.hw.tower.move
 
         def side_effect_move(position):
-            if position == self.hw.config.tankCleaningAdaptorHeight_nm - 3_000_000:
+            if position == self.hw.config.tankCleaningAdaptorHeight_nm - Nm(3_000_000):
                 original_move(self.hw.config.tankCleaningAdaptorHeight_nm)
             else:
                 original_move(position)
@@ -831,11 +832,11 @@ class TankSurfaceCleanerTest(TestWizardsBase):
     def test_tank_surface_cleaner_fail_safe(self):
         def on_check_states_changed():
             if WizardCheckType.EXPOSING_DEBRIS in self.wizard.check_state \
-                    and  self.wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.RUNNING:
+                    and self.wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.RUNNING:
                 time.sleep(1)
                 self.wizard.cancel()
-            if WizardCheckType.EXPOSING_DEBRIS in  self.wizard.check_state \
-                    and  self.wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
+            if WizardCheckType.EXPOSING_DEBRIS in self.wizard.check_state \
+                    and self.wizard.check_state[WizardCheckType.EXPOSING_DEBRIS] == WizardCheckState.CANCELED:
                 assert not self.hw.uv_led.active
 
         self.wizard.check_states_changed.connect(on_check_states_changed)

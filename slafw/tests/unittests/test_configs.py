@@ -3,6 +3,7 @@
 # Copyright (C) 2018-2019 Prusa Research s.r.o. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import operator
 import unittest
 from pathlib import Path
 from shutil import copyfile
@@ -10,6 +11,7 @@ from unittest.mock import Mock, MagicMock
 
 from slafw import defines
 from slafw.configs.hw import HwConfig
+from slafw.configs.unit import Nm, Ustep
 from slafw.configs.ini import Config
 from slafw.configs.project import ProjectConfig
 from slafw.configs.value import FloatValue, IntListValue, IntValue, BoolValue, FloatListValue, TextValue
@@ -225,7 +227,7 @@ class TestHardwareConfig(SlafwTestCase):
         self.assertTrue(hw_config.coverCheck, "Test cover check read")
         self.assertTrue(hw_config.coverCheck, "Test cover check read")
         self.assertFalse(hw_config.calibrated, "Test calibrated read")
-        self.assertEqual(hw_config.layerTowerHop, 0, "Test layerTowerHop read")
+        self.assertEqual(hw_config.layerTowerHop, Ustep(0), "Test layerTowerHop read")
 
     @staticmethod
     def get_config_content(path: Path):
@@ -243,8 +245,8 @@ class TestHardwareConfig(SlafwTestCase):
 
     def test_write(self):
         hw_config = HwConfig(self.test_config_path, is_master=True)
-        hw_config.tower_height_nm = -1
-        tower_height_nm = 1024
+        hw_config.tower_height_nm = Nm(-1)
+        tower_height_nm = Nm(1024)
         hw_config.tower_height_nm = tower_height_nm
 
         self.assertEqual(hw_config.tower_height_nm, tower_height_nm, "Check tower height is set")
@@ -253,27 +255,14 @@ class TestHardwareConfig(SlafwTestCase):
 
         print(hw_config)
         hw_config.write(self.writetest_config_path)
-        self.assertEqual(
-            # "MCBoardVersion = 6\r\n"
-            # "showUnboxing = true\r\n"
-            # "MCversionCheck = false\r\n"
-            # "autoOff = true\r\n"
-            "uvPwm = 222\n" "tower_height_nm = 1024\n",
-            self.get_config_content(self.writetest_config_path),
-            "Check file lines append",
-        )
+        self.assertEqual('uvPwm = 222\ntower_height_nm = 1024\n', self.get_config_content(self.writetest_config_path),
+                         "Check file lines append",)
 
         del hw_config.MCBoardVersion
         hw_config.write(self.test_config_path)
         print(self.get_config_content(self.writetest_config_path))
-        self.assertEqual(
-            # "showUnboxing = false\r\n"
-            # "MCversionCheck = false\r\n"
-            # "autoOff = true\r\n"
-            "uvPwm = 222\n" "tower_height_nm = 1024\n",
-            self.get_config_content(self.test_config_path),
-            "Check file lines delete",
-        )
+        self.assertEqual('uvPwm = 222\ntower_height_nm = 1024\n', self.get_config_content(self.test_config_path),
+                         "Check file lines delete",)
 
     def test_uvledpwm1(self):
         hw_config = HwConfig(self.SAMPLES_DIR / "hardware.cfg")
@@ -329,10 +318,10 @@ class TestConfigHelper(SlafwTestCase):
         self.assertIsInstance(self.helper.resinSensor, bool)
 
     def test_integerValueStore(self):
-        self.helper.towerHeight = 42
+        self.helper.uvWarmUpTime = 42
 
-        self.assertEqual(self.helper.towerHeight, 42)
-        self.assertIsInstance(self.helper.towerHeight, int)
+        self.assertEqual(self.helper.uvWarmUpTime, 42)
+        self.assertIsInstance(self.helper.uvWarmUpTime, int)
 
     def test_floatValueStore(self):
         self.helper.tiltFastTime = 4.2
@@ -418,6 +407,77 @@ class TestPrintConfig(SlafwTestCase):
     def test_name(self):
         self.assertEqual("123456789", self.print_config.job_dir)
 
+
+class TestUnit(SlafwTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.a = Nm(2)
+        self.b = self.a
+        self.c = Nm(4)
+        self.d = Ustep(0)
+        self.e = 1
+
+    def test_eq_neq(self):
+        self.assertEqual(self.a, self.b)
+        self.assertEqual(self.b, self.a)
+        self.assertNotEqual(self.a, self.c)
+        self.assertNotEqual(self.c, self.a)
+        for op in (operator.eq, operator.ne):
+            with self.assertRaises(TypeError):
+                _ = op(self.a, self.d)
+            with self.assertRaises(TypeError):
+                _ = op(self.a, self.e)
+
+    def test_gt_ge_lt_le(self):
+        self.assertLess(self.a, self.c)
+        self.assertLessEqual(self.a, self.a)
+        self.assertGreater(self.c, self.a)
+        self.assertGreaterEqual(self.a, self.a)
+        for op in (operator.gt, operator.ge, operator.lt, operator.le):
+            with self.assertRaises(TypeError):
+                _ = op(self.a, self.d)
+            with self.assertRaises(TypeError):
+                _ = op(self.a, self.e)
+
+    def test_add_sub(self):
+        r = Nm(6)
+        self.assertEqual(r, self.a + self.c)
+        self.assertEqual(r, self.c + self.a)
+        r = Nm(-2)
+        self.assertEqual(r, self.a - self.c)
+        self.assertEqual(self.a, self.c - self.a)
+        for op in (operator.add, operator.sub):
+            with self.assertRaises(TypeError):
+                _ = op(self.a, self.d)
+            with self.assertRaises(TypeError):
+                _ = op(self.a, self.e)
+
+    def test_mul_div(self):
+        r = Nm(8)
+        self.assertEqual(r, self.a * self.c)
+        self.assertEqual(r, self.c * self.a)
+        r = Nm(0)
+        self.assertEqual(r, self.a / self.c)
+        self.assertEqual(self.a, self.c / self.a)
+        r = Nm(1)
+        c = Nm(3)
+        self.assertEqual(r, self.c // c)
+        r = Nm(0)
+        self.assertEqual(r, c // self.c)
+        for op in (operator.mul, operator.truediv, operator.floordiv):
+            with self.assertRaises(TypeError):
+                _ = op(self.a, self.d)
+            _ = op(self.a, self.e)
+
+    def test_str_repr_int_abs_neg(self):
+        self.assertEqual("2", str(self.a))
+        self.assertEqual("2", repr(self.a))
+        self.assertEqual(2, int(self.a))
+        self.assertEqual(self.a, abs(self.a))
+        a = Nm(-2)
+        self.assertEqual(self.a, abs(a))
+        self.assertEqual(self.a, -a)
 
 if __name__ == "__main__":
     unittest.main()

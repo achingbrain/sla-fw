@@ -328,7 +328,7 @@ class Exposure0:
 
         :return: Layer position in nanometers
         """
-        return self.exposure.hw.tower.position
+        return int(self.exposure.hw.tower.position)
 
     @auto_dbus
     @property

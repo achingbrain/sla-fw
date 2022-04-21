@@ -366,7 +366,7 @@ class HardwareSL1(BaseHardware):
                 return 0.0
         finally:
             self.resinSensor(False)
-        return self.tower.position / 1_000_000
+        return float(self.tower.position) / 1_000_000
 
     @staticmethod
     def _get_profiles_with_sensitivity(axis: Axis, profiles: List[List[int]] = None, sens: int = None) -> List[List[int]]:

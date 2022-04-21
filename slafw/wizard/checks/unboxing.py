@@ -5,6 +5,7 @@
 from asyncio import sleep
 from typing import Optional
 
+from slafw.configs.unit import Nm
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.sl1.tower import TowerProfile
 from slafw.wizard.actions import UserActionBroker
@@ -13,7 +14,7 @@ from slafw.wizard.setup import Configuration, Resource
 
 
 class MoveToFoam(Check):
-    FOAM_TARGET_POSITION_NM = 30_000_000
+    FOAM_TARGET_POSITION_NM = Nm(30_000_000)
 
     def __init__(self, hw: BaseHardware):
         super().__init__(
@@ -23,7 +24,7 @@ class MoveToFoam(Check):
         self.hw = hw
 
     async def async_task_run(self, actions: UserActionBroker):
-        self.hw.tower.position = 0
+        self.hw.tower.position = Nm(0)
         self.hw.tower.profile_id = TowerProfile.homingFast
         initial_pos_nm = self.hw.tower.position
         self.hw.tower.move(self.FOAM_TARGET_POSITION_NM)
