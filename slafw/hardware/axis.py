@@ -72,7 +72,6 @@ class Axis(ABC):
         self.movement_ended = Signal()
         self._config = config
         self._power_led = power_led
-        self._current_profile = None
 
     @property
     def name(self) -> str:

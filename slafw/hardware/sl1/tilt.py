@@ -41,6 +41,7 @@ class TiltSL1(Tilt):
         super().__init__(config, power_led)
         self._mcc = mcc
         self._tower = tower
+        self._current_profile = TiltProfile.homingFast
         self._sensitivity = {
             #                -2       -1        0        +1       +2
             "homingFast": [[20, 5], [20, 6], [20, 7], [21, 9], [22, 12]],
@@ -199,10 +200,9 @@ class TiltSL1(Tilt):
             raise MotionControllerException(
                 "Cannot change profiles while tilt is moving.", None
             )
-        if self._current_profile != profile_id:
-            self._mcc.do("!tics", profile_id.value)
-            self._current_profile = profile_id
-            self._logger.debug("Profile set to: %s", self._current_profile)
+        self._mcc.do("!tics", profile_id.value)
+        self._current_profile = profile_id
+        self._logger.debug("Profile set to: %s", self._current_profile)
 
     @property
     def profile(self) -> List[int]:
@@ -229,7 +229,6 @@ class TiltSL1(Tilt):
     @profiles.setter
     def profiles(self, profiles: List[List[int]]):
         """save all profiles to MC"""
-        currentProfile = self.profile_id
         if len(profiles) != 8:
             raise MotionControllerException("Wrong number of profiles passed", None)
         currentProfile = self.profile_id

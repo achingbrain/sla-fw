@@ -35,6 +35,7 @@ class TowerSL1(Tower):
     def __init__(self, mcc: MotionController, config: HwConfig, power_led: PowerLed):
         super().__init__(config, power_led)
         self._mcc = mcc
+        self._current_profile = TowerProfile.homingFast
         self._sensitivity = {
             #                -2       -1        0        +1       +2
             "homingFast": [[22, 0], [22, 2], [22, 4], [22, 6], [22, 8]],
@@ -109,10 +110,9 @@ class TowerSL1(Tower):
             raise MotionControllerException(
                 "Cannot change profiles while tower is moving.", None
             )
-        if self._current_profile != profile_id:
-            self._mcc.do("!twcs", profile_id.value)
-            self._current_profile = profile_id
-            self._logger.debug("Profile set to: %s", self._current_profile)
+        self._mcc.do("!twcs", profile_id.value)
+        self._current_profile = profile_id
+        self._logger.debug("Profile set to: %s", self._current_profile)
 
     @property
     def profile(self) -> List[int]:
