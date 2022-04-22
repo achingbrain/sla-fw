@@ -8,7 +8,7 @@ from slafw.configs.runtime import RuntimeConfig
 from slafw.hardware.base.hardware import BaseHardware
 from slafw.image.exposure_image import ExposureImage
 from slafw.wizard.checks.tank_surface_cleaner import HomeTower, TiltHome, TiltUp, TowerSafeDistance, TouchDown, \
-    GentlyUp, ExposeDebris, Check
+    GentlyUp, ExposeDebris, HomeTowerFinish, Check
 from slafw.wizard.group import SingleCheckGroup, CheckGroup
 from slafw.wizard.wizard import WizardId, Wizard, WizardDataPackage, WizardState
 from slafw.wizard.actions import UserActionBroker
@@ -69,7 +69,7 @@ class TankSurfaceCleaner(Wizard):
                 SingleCheckGroup(TouchDown(self._package.hw)),
                 SingleCheckGroup(ExposeDebris(self._package.hw, self._package.exposure_image)),
                 SingleCheckGroup(GentlyUp(self._package.hw)),
-                SingleCheckGroup(HomeTower(self._package.hw)),
+                SingleCheckGroup(HomeTowerFinish(self._package.hw)),
                 RemoveCleaningAdaptorGroup(),
             ],
             self._package,

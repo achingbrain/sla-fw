@@ -81,6 +81,7 @@ class WizardCheckType(Enum):
     EXPOSING_DEBRIS = 78
     TOWER_GENTLY_UP = 79
     WAITING_FOR_USER = 80
+    TOWER_HOME_FINISH = 81
 
 
 class BaseCheck(ABC):

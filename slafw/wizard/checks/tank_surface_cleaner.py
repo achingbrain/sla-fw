@@ -53,6 +53,18 @@ class HomeTower(DangerousCheck):
         await self._hw.tower.sync_ensure_async()
 
 
+class HomeTowerFinish(DangerousCheck):
+    """ Home tower at the end of wizard """
+
+    def __init__(self, hw: BaseHardware):
+        super().__init__(
+            hw, WizardCheckType.TOWER_HOME_FINISH, Configuration(None, None), [Resource.TOWER],
+        )
+        self._hw = hw
+
+    async def async_task_run(self, actions: UserActionBroker):
+        await self._hw.tower.sync_ensure_async()
+
 class TiltHome(DangerousCheck):
     """ Home the platform (to the top) """
 
