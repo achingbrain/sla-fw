@@ -41,15 +41,6 @@ printer_m1_enabled = factoryMountPoint / "printer_m1_enabled"
 expoPanelLogFileName = "expo_panel_log.json"
 expoPanelLogPath = factoryMountPoint / expoPanelLogFileName
 
-# Deprecated. Used be calibration data show, but this does not respect new format used by API based wizards.
-# TODO: This needs to be fixed in order to be able to display recent wizard data properly.
-wizardDataFilename = "wizard_data.toml"  # deprecated
-wizardDataPath = configDir / wizardDataFilename  # deprecated
-wizardDataPathFactory = factoryMountPoint / wizardDataFilename  # deprecated
-uvCalibDataFilename = "uvcalib_data.toml"  # deprecated
-uvCalibDataPath = configDir / uvCalibDataFilename  # deprecated
-uvCalibDataPathFactory = factoryMountPoint / uvCalibDataFilename  # deprecated
-
 uvCalibDuration = 60 # 1 minute countdown
 
 configFile = "config.ini"
@@ -83,12 +74,7 @@ slicerProfilesCheckOK = 86400   # once per day
 
 cpuSNFile = "/sys/bus/nvmem/devices/sunxi-sid0/nvmem"
 
-scriptDir = "/usr/share/slafw/scripts"
-flashMcCommand = os.path.join(scriptDir, "flashMC.sh")
-TruncLogsCommand = os.path.join(scriptDir, "truncate_logs.sh")
-
-qtDisplayPort = 32768
-templates = '/srv/http/intranet/templates'
+script_dir = Path("/usr/share/slafw/scripts")
 
 motionControlDevice = "/dev/ttyS2"
 mc_debug_port = 8192
@@ -96,7 +82,6 @@ uv_meter_device = "/dev/uvmeter"
 
 wifiSetupFile = "/etc/hostapd.secrets.json"
 
-octoprintURI = ":8000"
 octoprintAuthFile = configDir / "slicer-upload-api.key"
 
 # all resin* in ml
@@ -132,17 +117,11 @@ uv_temp_hysteresis = 10  # 10 deg C hysteresis
 # keep at least 110 MB of free space when copying project to internal storage or extracting examples
 internalReservedSpace = 110 * 1024 * 1024
 
-manualURL = "https://www.prusa3d.com/SL1handbook-ENG/"
-videosURL = "https://www.prusa3d.com/SL1guide/"
-aboutURL = "https://www.prusa3d.com/about-us/"
-firmwareListURL = "https://sl1.prusa3d.com/check-update"
 internalProjectPath = os.path.join(persistentStorage, "projects")
 internalProjectGroup = "projects"
 internalProjectMode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
 internalProjectDirMode = stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH
 examplesURL = "https://sl1.prusa3d.com/examples-cleaning-adaptor-{PRINTER_MODEL}.tar.gz"
-admincheckURL = "https://sl1.prusa3d.com/check-admin"
-admincheckTemp = os.path.join(ramdiskPath, "admincheck.json")
 bootFailedStamp = os.path.join(persistentStorage, "failedboot")
 apikeyFile = configDir / "api.key"
 uvLedMeterMaxWait_s = 10
@@ -164,13 +143,9 @@ exposure_slow_move_delay_before = 10    # [tenths of a second] applied when slow
 fan_check_override = test_runtime.testing
 default_hostname = "prusa-"
 mqtt_prusa_host = "mqttstage.prusa"
-set_update_channel_bin = "/usr/sbin/set-update-channel.sh"
 update_channel = Path("/etc/update_channel")
 
-log_url = "https://prusa3d.link/wp-json/p3d/v1/logserver"
-log_url_dev = "http://cucek.prusa/api/upload"
 emmc_serial_path = Path("/sys/block/mmcblk2/device/cid")
-data_upload_token = "84U83mUQ"
 local_time_path = Path("/etc/localtime")
 exposure_panel_of_node = Path("/sys/bus/i2c/devices/1-000f/of_node")
 

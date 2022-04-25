@@ -39,12 +39,7 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
 
         Path(self.api_key_file).touch()
         defines.nginx_http_digest.touch()
-        Path(self.uv_calib_data_file).touch()
         shutil.copy(self.SAMPLES_DIR / "self_test_data.json", Path(defines.factoryMountPoint))
-        shutil.copy(
-            self.SAMPLES_DIR / "uvcalib_data-60.toml",
-            Path(self.uv_calib_factory_data_file),
-        )
 
         os.environ["SDL_AUDIODRIVER"] = "disk"
         os.environ["SDL_DISKAUDIOFILE"] = str(self.sdl_audio_file)
@@ -66,17 +61,13 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
         self.temp_dir_wizard_history = TemporaryDirectory()
         self.sdl_audio_file = self.TEMP_DIR / "slafw.sdl_audio.raw"
         self.api_key_file = self.TEMP_DIR / "api.key"
-        self.uv_calib_data_file = self.TEMP_DIR / defines.uvCalibDataFilename
-        self.uv_calib_factory_data_file = (self.TEMP_DIR / f"factory-{defines.uvCalibDataFilename}")
         self.counter_log = self.TEMP_DIR / defines.counterLogFilename
-        self.wizard_data_file = self.TEMP_DIR / defines.wizardDataFilename
         self.temp_dir_project = TemporaryDirectory()
 
         return super().patches() + [
             patch("slafw.defines.wizardHistoryPath", Path(self.temp_dir_wizard_history.name)),
             patch("slafw.defines.cpuSNFile", str(self.SAMPLES_DIR / "nvmem")),
             patch("slafw.defines.hwConfigPathFactory", self.hardware_factory_file),
-            patch("slafw.defines.templates", str(self.SLAFW_DIR / "intranet" / "templates")),
             patch("slafw.defines.hwConfigPath", self.hardware_file),
             patch("slafw.defines.internalProjectPath", str(self.SAMPLES_DIR)),
             patch("slafw.defines.octoprintAuthFile", str(self.SAMPLES_DIR / "slicer-upload-api.key")),
@@ -93,10 +84,7 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
             patch("slafw.defines.lastProjectPickler", self._change_dir(defines.lastProjectPickler)),
             patch("slafw.defines.last_job", self.TEMP_DIR / "last_job"),
             patch("slafw.defines.last_log_token", self.TEMP_DIR / "last_log_token"),
-            patch("slafw.defines.uvCalibDataPath", self.uv_calib_data_file),
-            patch("slafw.defines.uvCalibDataPathFactory", self.uv_calib_factory_data_file),
             patch("slafw.defines.counterLog", self.counter_log),
-            patch("slafw.defines.wizardDataPathFactory", str(self.wizard_data_file)),
             patch("slafw.defines.nginx_http_digest", self.TEMP_DIR / "http_digest_enabled"),
         ]
 
@@ -133,7 +121,6 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
             self.hardware_file,
             self.sdl_audio_file,
             self.api_key_file,
-            self.uv_calib_data_file,
         ]
 
         for file in files:

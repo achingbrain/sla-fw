@@ -486,7 +486,10 @@ class MotionController:
                 self.reset()
 
                 process = subprocess.Popen(
-                    [defines.flashMcCommand, defines.dataPath, str(mc_board_version), defines.motionControlDevice],
+                    [defines.script_dir / "flashMC.sh",
+                        defines.dataPath,
+                        str(mc_board_version),
+                        defines.motionControlDevice],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     universal_newlines=True,

@@ -29,7 +29,7 @@ def export_configs(temp_dir: Path):
 
 async def run_log_export_process(data_file: Path) -> Process:
     return await asyncio.create_subprocess_shell(
-        'export_logs.bash "{0}"'.format(str(data_file)),
+        str(defines.script_dir / f"export_logs.sh '{data_file}'"),
         stderr=asyncio.subprocess.PIPE
     )
 
@@ -78,7 +78,7 @@ async def do_export(parent: DataExport, tmpdir_path: Path) -> Path:
 
     log_tar_file = tmpdir_path / f"logs.{get_export_file_name(parent.hw)}.tar.xz"
     parent.proc = await asyncio.create_subprocess_shell(
-        'tar -cf - -C "{0}" "{1}" | xz -T0 -0 > "{2}"'.format(str(tmpdir_path), logs_dir.name, str(log_tar_file)),
+        f"tar -cf - -C '{tmpdir_path}' '{logs_dir.name}' | xz -T0 -0 > '{log_tar_file}'",
         stderr=asyncio.subprocess.PIPE
     )
     _, stderr = await parent.proc.communicate()

@@ -266,7 +266,6 @@ class TestWizards(TestWizardsBase):
         self.exposure_image = Mock()  # wizards use weakly-reference to exposure_image
 
         # Mock factory data
-        defines.uvCalibDataPath = self.TEMP_DIR / defines.uvCalibDataFilename
         self.hw.config.uvPwm = 210
         copyfile(
             self.SAMPLES_DIR / "uv_calibration_data.json",
@@ -538,7 +537,6 @@ class TestWizards(TestWizardsBase):
         # Assert factory reset was performed
         self.assertEqual(unboxing, self.hw.config.showUnboxing)
         self.assertFalse(defines.apikeyFile.exists(), "API-Key file deleted")
-        self.assertFalse(defines.uvCalibDataPath.exists(), "User UV calibration data reset")
 
         self.assertFalse(defines.slicerProfilesFile.exists(), "Slicer profiles removed")
 

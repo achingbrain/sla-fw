@@ -18,9 +18,9 @@ data_files = [
 
 setup(
     name="slafw",
-    version="2022.01.11",
+    version="2022.05.09",
     packages=find_packages(exclude=["slafw.tests"]),
-    scripts=['slafw/main.py', 'slafw/scripts/export_logs.bash'],
+    scripts=['slafw/main.py'],
     package_data={'slafw': ['data/*', 'data/*/*']},
     data_files=data_files,
     url="https://gitlab.com/prusa3d/sl1/sla-fw",

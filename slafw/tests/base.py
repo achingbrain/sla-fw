@@ -113,8 +113,6 @@ class SlafwTestCase(TestCase):
             patch("slafw.defines.wizardHistoryPathFactory", self.TEMP_DIR / "wizard_history" / "factory_data"),
             patch("slafw.defines.factoryMountPoint", self.TEMP_DIR),
             patch("slafw.defines.configDir", self.TEMP_DIR),
-            patch("slafw.defines.uvCalibDataPathFactory", self.TEMP_DIR / defines.uvCalibDataFilename),
-            patch("slafw.defines.wizardDataPathFactory", self.TEMP_DIR / defines.wizardDataFilename),
             patch("slafw.defines.hwConfigPath", self.TEMP_DIR / "hwconfig.toml"),
             patch("slafw.defines.hwConfigPathFactory", self.TEMP_DIR / "hwconfig-factory.toml"),
             patch("slafw.defines.printer_model", self.TEMP_DIR / "model"),

@@ -54,6 +54,8 @@ class BackgroundNetworkCheck(ABC):
 
 
 class AdminCheck(BackgroundNetworkCheck):
+    ADMIN_CHECK_URL = "https://sl1.prusa3d.com/check-admin"
+
     def __init__(self, config: RuntimeConfig, hw: BaseHardware, inet: Network):
         super().__init__(inet)
         self.config = config
@@ -62,7 +64,7 @@ class AdminCheck(BackgroundNetworkCheck):
 
     def check(self):
         self.logger.info("Querying admin enabled")
-        query_url = defines.admincheckURL + "/?serial=" + self.hw.cpuSerialNo
+        query_url = self.ADMIN_CHECK_URL + "/?serial=" + self.hw.cpuSerialNo
         with tempfile.TemporaryFile() as tf:
             try:
                 self.inet.download_url(query_url, tf)

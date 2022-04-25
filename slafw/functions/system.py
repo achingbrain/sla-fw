@@ -22,6 +22,9 @@ from slafw.hardware.base.hardware import BaseHardware
 from slafw.hardware.printer_model import PrinterModel
 
 
+set_update_channel_bin = "/usr/sbin/set-update-channel.sh"
+
+
 def shut_down(hw: BaseHardware, reboot=False):
     if test_runtime.testing:
         print("Skipping poweroff due to testing")
@@ -45,7 +48,7 @@ def get_update_channel() -> str:
 
 def set_update_channel(channel: str):
     try:
-        subprocess.check_call([defines.set_update_channel_bin, channel])
+        subprocess.check_call([set_update_channel_bin, channel])
     except Exception as e:
         raise FailedUpdateChannelSet() from e
 

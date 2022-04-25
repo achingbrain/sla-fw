@@ -20,6 +20,8 @@ from slafw.states.data_export import ExportState
 
 
 class LoggingMenu(SafeAdminMenu):
+    LOG_URL_DEV = "http://cucek.prusa/api/upload"
+
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
         self._printer = printer
@@ -58,37 +60,32 @@ class LoggingMenu(SafeAdminMenu):
     @SafeAdminMenu.safe_call
     def _do_truncate_logs(self, status: AdminLabel):
         status.set("Truncating logs")
-
-        # FIXME copy&paste from controller.py, create method/function for calling shell
         try:
-            process = subprocess.Popen(
-                [defines.TruncLogsCommand, "60s"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
+            completed_process = subprocess.run(
+                    [defines.script_dir / "truncate_logs.sh", "60s"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    check=True,
             )
-            while True:
-                line = process.stdout.readline()
-                if line == "" and process.poll() is not None:
-                    break
-                if line:
-                    line = line.strip()
-                    if line == "":
-                        continue
-                    self.logger.info("truncate_logs: '%s'", line)
-            status.set("Done")
-            self._control.enter(Info(self._control, "Logs was truncated successfully", pop=2))
         except Exception as e:
             self.logger.exception("truncate_logs exception: %s", str(e))
+            if isinstance(e, subprocess.CalledProcessError):
+                # TODO pylint 2.13
+                self.logger.error("truncate_logs: '%s'", e.output.strip())  # pylint: disable=no-member
             text = f"{type(e).__name__}\n{Exception.__str__(e)}"
             self._control.enter(Error(self._control, text=text, headline="Failed to truncate logs"))
+            return
+
+        self.logger.info("truncate_logs: '%s'", completed_process.stdout.strip())
+        self._control.enter(Info(self._control, "Logs was truncated successfully", pop=2))
 
     def _upload_dev(self):
         self.enter(Wait(self._control, self._do_upload_dev))
 
     def _do_upload_dev(self, status: AdminLabel):
         self._status = status
-        exporter = ServerUploadLogs(self._printer.hw, defines.log_url_dev)
+        exporter = ServerUploadLogs(self._printer.hw, self.LOG_URL_DEV)
         exporter.state_changed.connect(self._state_callback)
         exporter.store_progress_changed.connect(self._store_progress_callback)
         exporter.start()

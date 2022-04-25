@@ -13,7 +13,6 @@ from os import unlink
 import distro
 import pydbus
 
-from slafw import defines
 from slafw.admin.control import AdminControl
 from slafw.admin.items import AdminAction, AdminTextValue
 from slafw.admin.menu import AdminMenu
@@ -23,6 +22,8 @@ from slafw.libPrinter import Printer
 
 
 class NetUpdate(AdminMenu):
+    FIRMWARE_LIST_URL = "https://sl1.prusa3d.com/check-update"
+
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
         self._printer = printer
@@ -47,7 +48,7 @@ class NetUpdate(AdminMenu):
         self._thread.join()
 
     def _download_list(self):
-        query_url = f"{defines.firmwareListURL}/?serial={self._printer.hw.cpuSerialNo}&version={distro.version()}"
+        query_url = f"{self.FIRMWARE_LIST_URL}/?serial={self._printer.hw.cpuSerialNo}&version={distro.version()}"
 
         with tempfile.TemporaryFile() as tf:
             self._printer.inet.download_url(

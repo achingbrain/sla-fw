@@ -73,7 +73,6 @@ def change_dir(path):
 
 defines.hwConfigPath = HARDWARE_FILE
 defines.hwConfigPathFactory = HARDWARE_FILE_FACTORY
-defines.templates = str(SLAFW_DIR / "intranet" / "templates")
 test_runtime.testing = True
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
 defines.internalProjectPath = str(SAMPLES_DIR)
@@ -92,7 +91,6 @@ defines.lastProjectHwConfig = change_dir(defines.lastProjectHwConfig)
 defines.lastProjectFactoryFile = change_dir(defines.lastProjectFactoryFile)
 defines.lastProjectConfigFile = change_dir(defines.lastProjectConfigFile)
 defines.lastProjectPickler = change_dir(defines.lastProjectPickler)
-defines.uvCalibDataPath = Path(defines.ramdiskPath) / defines.uvCalibDataFilename
 defines.slicerProfilesFile = TEMP_DIR / defines.profilesFile
 defines.loggingConfig = TEMP_DIR / "logging_config.json"
 defines.last_job = Path(defines.ramdiskPath) / "last_job"
@@ -105,7 +103,6 @@ defines.wizardHistoryPath = TEMP_DIR / "wizard_history" / "user_data"
 defines.wizardHistoryPath.mkdir(exist_ok=True, parents=True)
 defines.wizardHistoryPathFactory = TEMP_DIR / "wizard_history" / "factory_data"
 defines.wizardHistoryPathFactory.mkdir(exist_ok=True, parents=True)
-defines.uvCalibDataPathFactory = TEMP_DIR / "uv_calib_data_factory.toml"
 defines.counterLog = TEMP_DIR / defines.counterLogFilename
 
 # disable SL1SUpgradeDowngradeWizard by default
@@ -115,7 +112,6 @@ set_configured_printer_model(printer_model)
 defines.firstboot = TEMP_DIR / "firstboot"
 defines.factory_enable = TEMP_DIR / "factory_mode_enabled"
 defines.factory_enable.touch()  # Enable factory mode
-defines.admincheckTemp = str(TEMP_DIR / "admincheck.json")
 defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / printer_model.name.lower()  # type: ignore[attr-defined]
 
 

@@ -21,7 +21,6 @@ import aiohttp
 from PySignal import Signal
 from aiohttp.client_exceptions import ClientConnectorError
 
-from slafw import defines
 from slafw.errors.errors import NotConnected, ConnectionFailed, NotEnoughInternalSpace, NoExternalStorage
 from slafw.functions.files import get_save_path, usb_remount
 from slafw.hardware.base.hardware import BaseHardware
@@ -250,6 +249,8 @@ class FileReader(BufferedReader):
 
 
 class ServerUpload(DataExport):
+    DATA_UPLOAD_TOKEN = "84U83mUQ"
+
     # pylint: disable=too-many-arguments
     def __init__(self, hw: BaseHardware, last_token_path: Path, do_export, url: str, file_keyword: str):
         super().__init__(hw, last_token_path, do_export)
@@ -271,7 +272,7 @@ class ServerUpload(DataExport):
                     filename=src.name,
                     content_type="application/x-xz",
                 )
-                data.add_field("token", defines.data_upload_token)
+                data.add_field("token", self.DATA_UPLOAD_TOKEN)
                 data.add_field("serial", self.hw.cpuSerialNo)
 
                 try:

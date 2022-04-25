@@ -15,13 +15,13 @@ from slafw.hardware.base.hardware import BaseHardware
 from slafw.state_actions.data_export import DataExport
 from slafw.state_actions.logs import UsbExportLogs, ServerUploadLogs
 from slafw.states.data_export import ExportState, StoreType
-from slafw import defines
 
 
 @dbus_api
 class Logs0:
     __INTERFACE__ = "cz.prusa3d.sl1.logs0"
     DBUS_PATH = "/cz/prusa3d/sl1/logs0"
+    LOG_URL = "https://prusa3d.link/wp-json/p3d/v1/logserver"
 
     PropertiesChanged = signal()
 
@@ -44,7 +44,7 @@ class Logs0:
             self._logger.warning("No starting another log export as it is already running")
             return
 
-        self._start_exporter(ServerUploadLogs(self._hw, defines.log_url))
+        self._start_exporter(ServerUploadLogs(self._hw, self.LOG_URL))
 
     def _start_exporter(self, exporter: DataExport):
         self._exporter = exporter
