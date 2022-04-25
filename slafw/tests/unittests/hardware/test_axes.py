@@ -173,6 +173,7 @@ class DoNotRunTestDirectlyFromBaseClass:
                                  self.pos + self.fullstep_offset[i])
 
         def test_sync(self):
+            self.axis.position = self.pos
             self.assertEqual(HomingStatus.UNKNOWN, self.axis.homing_status)
             self.axis.sync()
             self.assertLess(HomingStatus.SYNCED.value, self.axis.homing_status.value)
