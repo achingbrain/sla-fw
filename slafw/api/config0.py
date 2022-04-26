@@ -62,7 +62,7 @@ def wrap_property(func_name=None):
 
         @functools.wraps(f.fget)
         def getter(self):
-            return getattr(self.hw.config, name)
+            return getattr(self.config, name)
 
         getter.__name__ = func.__name__
         getter.__doc__ = f.__doc__
@@ -70,7 +70,7 @@ def wrap_property(func_name=None):
         if f.fset:
             @functools.wraps(f.fset)
             def setter(self, value):
-                setattr(self.hw.config, name, value)
+                setattr(self.config, name, value)
 
             return property(fget=getter, fset=setter)
 
@@ -94,9 +94,9 @@ class Config0:
 
     PropertiesChanged = signal()
 
-    def __init__(self, hw: BaseHardware):
-        self.hw = hw
-        self.hw.config.add_onchange_handler(self._on_change)
+    def __init__(self, config: HwConfig):
+        self.config = config
+        self.config.add_onchange_handler(self._on_change)
 
     @auto_dbus
     def save(self) -> None:
@@ -105,17 +105,7 @@ class Config0:
 
         :return: None
         """
-        self.hw.config.write()
-
-    @auto_dbus
-    def update_motor_sensitivity(self) -> None:
-        """
-        Write configured motor sensitivity to Motion Controller
-
-        :return: None
-        """
-        self.hw.set_stepper_sensitivity(self.hw.tower, self.hw.config.towerSensitivity)
-        self.hw.set_stepper_sensitivity(self.hw.tilt, self.hw.config.tiltSensitivity)
+        self.config.write()
 
     @auto_dbus
     @property
@@ -138,7 +128,7 @@ class Config0:
 
         :return: Config settings constraints as dictionary
         """
-        values = self.hw.config.get_values()
+        values = self.config.get_values()
         return wrap_dict_data_recursive({
             name: self._process_value(value)
             for name, value in values.items()
@@ -162,7 +152,7 @@ class Config0:
     def _on_change(self, key: str, _: Any):
         if key in self.CHANGED_MAP:
             for changed in self.CHANGED_MAP[key]:
-                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.hw.config, changed)}, [])
+                self.PropertiesChanged(self.__INTERFACE__, {changed: getattr(self.config, changed)}, [])
 
     CHANGED_MAP = {
         "screwMm": {"microStepsMM"},

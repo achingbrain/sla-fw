@@ -32,6 +32,7 @@ logger.info("Logging is set to level %s", logging.getLevelName(logger.level))
 warnings.simplefilter("ignore")
 
 printer = libPrinter.Printer()
+
 SystemBus().publish(Printer0.__INTERFACE__, Printer0(printer))
 SystemBus().publish(Standard0.__INTERFACE__, Standard0(printer))
 admin_manager = AdminManager()

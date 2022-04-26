@@ -61,7 +61,7 @@ class TestsMenu(SafeAdminMenu):
         )
 
     def simulate_disconnected_display(self):
-        self._printer.exception_occurred.emit(UnknownPrinterModel())
+        self._printer.enter_fatal_error(UnknownPrinterModel())
 
     @SafeAdminMenu.safe_call
     def send_printer_data(self):

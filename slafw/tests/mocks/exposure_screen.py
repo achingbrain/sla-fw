@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from unittest.mock import Mock
+
 from slafw.hardware.printer_model import PrinterModel
 from slafw.hardware.sl1.exposure_screen import ExposureScreenSL1
 
@@ -13,15 +14,24 @@ class ExposureScreen:
     # pylint: disable = too-few-public-methods
     # pylint: disable = too-many-instance-attributes
     def __init__(self, printer_model: PrinterModel):
-        real_expo_screen = ExposureScreenSL1(printer_model)
-        self.parameters = real_expo_screen.parameters
+        self._real_expo_screen = ExposureScreenSL1(printer_model)
 
-        self.start = Mock()
-        self.exit = Mock()
-        self.show = Mock()
-        self.blank_screen = Mock()
-        self.create_areas = Mock()
-        self.blank_area = Mock()
-        self.draw_pattern = Mock()
-        self.serial_number = real_expo_screen.serial_number
-        self.transmittance = real_expo_screen.transmittance
+    start = Mock()
+    exit = Mock()
+    show = Mock()
+    blank_screen = Mock()
+    create_areas = Mock()
+    blank_area = Mock()
+    draw_pattern = Mock()
+
+    @property
+    def parameters(self):
+        return self._real_expo_screen.parameters
+
+    @property
+    def transmittance(self):
+        return self._real_expo_screen.transmittance
+
+    @property
+    def serial_number(self):
+        return self._real_expo_screen.serial_number

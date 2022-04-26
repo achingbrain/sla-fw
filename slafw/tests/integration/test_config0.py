@@ -60,7 +60,6 @@ class TestIntegrationConfig0(SlaFwIntegrationTestCaseBase):
         self.assertTrue(self.config0.resinSensor)
         self.assertEqual(dict, type(self.config0.constraints))
 
-        # TODO: Test update_motor_sensitivity
         # TODO: Test save
 
 

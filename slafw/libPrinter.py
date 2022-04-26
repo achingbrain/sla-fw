@@ -77,12 +77,15 @@ from slafw.wizard.wizards.uv_calibration import UVCalibrationWizard
 
 class Printer:
     # pylint: disable = too-many-instance-attributes
+    # pylint: disable = too-many-public-methods
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.logger.info("SLA firmware initializing")
         self._printer_identifier: Optional[str] = None
         init_time = monotonic()
         self.exception_occurred = Signal()  # Use this one to emit recoverable errors
+        self.fatal_error: Optional[Exception] = None
+        self.fatal_error_changed = Signal()
         self.admin_check: Optional[AdminCheck] = None
         self.slicer_profile: Optional[SlicerProfile] = None
         self.slicer_profile_updater: Optional[SlicerProfileUpdater] = None
@@ -101,51 +104,29 @@ class Printer:
         self.self_tested_changed = Signal()
         self._oneclick_inhibitors: Set[str] = set()
         self._run_expo_panel_wizard = False
-        self.model = PrinterModel()
 
         # HwConfig and runtime config
-        hw_config = HwConfig(
+        self.hw_config = HwConfig(
             file_path=Path(defines.hwConfigPath),
             factory_file_path=Path(defines.hwConfigPathFactory),
             is_master=True,
         )
 
-        hw_config.add_onchange_handler(self._config_changed)
+        self.hw_config.add_onchange_handler(self._config_changed)
         self.runtime_config = RuntimeConfig()
         try:
-            hw_config.read_file()
+            self.hw_config.read_file()
         except ConfigException:
             self.logger.warning("Failed to read configuration file", exc_info=True)
-        self.logger.info(str(hw_config))
+        self.logger.info(str(self.hw_config))
 
-        self.logger.info("Initializing libHardware")
-        self.hw: BaseHardware = HardwareSL1(hw_config, self.model)
-
-        self.hw.uv_led_temp.overheat_changed.connect(self._on_uv_led_temp_overheat)
-        self.hw.uv_led_fan.error_changed.connect(self._on_uv_fan_error)
-        self.hw.blower_fan.error_changed.connect(self._on_blower_fan_error)
-        self.hw.rear_fan.error_changed.connect(self._on_rear_fan_error)
-
-        # needed before init of other components (display etc)
-        # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
-        #   Currently calibration needs to be performed in the factory.
-        # if self.factoryMode and self.hw.isKit:
-        #     self.factoryMode = False
-        #     self.logger.warning("Factory mode disabled for kit")
-        #
-
-        self.logger.info("Initializing libNetwork")
-        self.inet = Network(self.hw.cpuSerialNo)
-
-        self.logger.info("Initializing ExposureImage")
-        self.exposure_image = ExposureImage(self.hw, self.model)
-
-        self.logger.info("Registering config D-Bus services")
-        self.system_bus = SystemBus()
-        self.config0_dbus = self.system_bus.publish(Config0.__INTERFACE__, Config0(self.hw))
-
-        self.logger.info("registering log0 dbus interface")
-        self.logs0_dbus = self.system_bus.publish(Logs0.__INTERFACE__, Logs0(self.hw))
+        self._system_bus = SystemBus()
+        self.inet: Optional[Network] = None
+        self.exposure_image: Optional[ExposureImage] = None
+        self.config0_dbus = None
+        self.logs0_dbus = None
+        self.model: Optional[PrinterModel] = None
+        self.hw: Optional[BaseHardware] = None
 
         self.logger.info("SLA firmware initialized in %.03f", monotonic() - init_time)
 
@@ -166,10 +147,46 @@ class Printer:
     def has_state(self, state: PrinterState) -> bool:
         return state in self._states
 
+    def enter_fatal_error(self, exception: Exception):
+        self.fatal_error = exception
+        self.fatal_error_changed.emit(self.fatal_error)
+        self.set_state(PrinterState.EXCEPTION)
+
     def setup(self):
+        try:
+            self.do_setup()
+        except Exception as exception:
+            self.logger.exception("Printer setup failure")
+            self.enter_fatal_error(exception)
+
+    def do_setup(self):
         self.logger.info("SLA firmware starting, PID: %d", os.getpid())
         self.logger.info("System version: %s", distro.version())
         start_time = monotonic()
+
+        self.logger.info("Initializing libHardware")
+        self.model = PrinterModel()
+        self.hw = HardwareSL1(self.hw_config, self.model)
+
+        self.hw.uv_led_temp.overheat_changed.connect(self._on_uv_led_temp_overheat)
+        self.hw.uv_led_fan.error_changed.connect(self._on_uv_fan_error)
+        self.hw.blower_fan.error_changed.connect(self._on_blower_fan_error)
+        self.hw.rear_fan.error_changed.connect(self._on_rear_fan_error)
+
+        # needed before init of other components (display etc)
+        # TODO: Enable this once kit A64 do not require being turned on during manufacturing.
+        #   Currently calibration needs to be performed in the factory.
+        # if self.factoryMode and self.hw.isKit:
+        #     self.factoryMode = False
+        #     self.logger.warning("Factory mode disabled for kit")
+        #
+
+        self.inet = Network(self.hw.cpuSerialNo)
+        self.exposure_image = ExposureImage(self.hw, self.model)
+
+        self.logger.info("Registering remaining D-Bus services")
+        self.config0_dbus = self._system_bus.publish(Config0.__INTERFACE__, Config0(self.hw_config))
+        self.logs0_dbus = self._system_bus.publish(Logs0.__INTERFACE__, Logs0(self.hw))
 
         try:
             TomlConfigStats(defines.statsData, self.hw).update_reboot_counter()
@@ -224,10 +241,14 @@ class Printer:
 
     def stop(self):
         self.action_manager.exit()
-        self.exposure_image.exit()
-        self.hw.exit()
-        self.config0_dbus.unpublish()
-        self.logs0_dbus.unpublish()
+        if self.exposure_image:
+            self.exposure_image.exit()
+        if self.hw:
+            self.hw.exit()
+        if self.config0_dbus:
+            self.config0_dbus.unpublish()
+        if self.logs0_dbus:
+            self.logs0_dbus.unpublish()
         for subscription in self._dbus_subscriptions:
             subscription.unsubscribe()
 
@@ -257,16 +278,16 @@ class Printer:
         self.logger.info("Registering event handlers")
         self.inet.register_events()
         self._dbus_subscriptions.append(
-            self.system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
+            self._system_bus.get("de.pengutronix.rauc", "/").PropertiesChanged.connect(self._rauc_changed)
         )
         self.logger.info("connecting cz.prusa3d.sl1.filemanager0 DBus signals")
         self._dbus_subscriptions.append(
-            self.system_bus.subscribe(
+            self._system_bus.subscribe(
                 object="/cz/prusa3d/sl1/filemanager0", signal="MediaInserted", signal_fired=self._media_inserted
             )
         )
         self._dbus_subscriptions.append(
-            self.system_bus.subscribe(
+            self._system_bus.subscribe(
                 object="/cz/prusa3d/sl1/filemanager0", signal="MediaEjected", signal_fired=self._media_ejected
             )
         )
@@ -552,7 +573,6 @@ class Printer:
             )
             self.set_state(PrinterState.WIZARD, active=True)
             uv_calibration.join()
-            passing = uv_calibration.state is WizardState.DONE
             self.logger.info("UV calibration wizard finished")
 
         self.set_state(PrinterState.WIZARD, active=False)

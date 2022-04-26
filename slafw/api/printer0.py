@@ -71,7 +71,8 @@ class Printer0:
 
     - Internal non-fatal errors at startup are reported using exception signal. The signal includes exception data
       dictionary.
-    - Fatal errors result in printer crash and are supposed to be resolved by systemd
+    - Fatal errors result in printer crash and are supposed to be resolved by system restart. Meanwhile, the user might
+      update firmware or upload logs.
     - Errors resulting from DBus calls are reported as native DBus errors. Exception data dictionary is embedded as Json
       into a DBus error message.
     """
@@ -93,37 +94,46 @@ class Printer0:
         self.printer.http_digest_changed.connect(self._on_http_digest_changed)
         self.printer.api_key_changed.connect(self._on_api_key_changed)
         self.printer.data_privacy_changed.connect(self._on_data_privacy_changed)
-        self.printer.hw.uv_led_fan.rpm_changed.connect(self._on_uv_led_fan_changed)
-        self.printer.hw.uv_led_fan.error_changed.connect(self._on_uv_led_fan_changed)
-        self.printer.hw.blower_fan.rpm_changed.connect(self._on_blower_fan_changed)
-        self.printer.hw.blower_fan.error_changed.connect(self._on_blower_fan_changed)
-        self.printer.hw.rear_fan.rpm_changed.connect(self._on_rear_fan_changed)
-        self.printer.hw.rear_fan.error_changed.connect(self._on_rear_fan_changed)
-        self.printer.hw.uv_led_temp.value_changed.connect(self._on_uv_temp_changed)
-        self.printer.hw.ambient_temp.value_changed.connect(self._on_ambient_temp_changed)
-        self.printer.hw.cpu_temp.value_changed.connect(self._on_cpu_temp_changed)
-        self.printer.hw.resin_sensor_state_changed.connect(self._on_resin_sensor_changed)
-        self.printer.hw.cover_state_changed.connect(self._on_cover_state_changed)
-        self.printer.hw.power_button_state_changed.connect(self._on_power_switch_state_changed)
         self.printer.action_manager.exposure_change.connect(self._on_exposure_change)
-        self.printer.hw.mc_sw_version_changed.connect(self._on_controller_sw_version_change)
-        self.printer.hw.uv_led.usage_s_changed.connect(self._on_uv_usage_changed)
-        self.printer.hw.display.usage_s_changed.connect(self._on_display_usage_changed)
         self.printer.runtime_config.factory_mode_changed.connect(self._on_factory_mode_changed)
         self.printer.runtime_config.show_admin_changed.connect(self._on_admin_enabled_changed)
-        self.printer.hw.tower_position_changed.connect(self._on_tower_position_changed)
-        self.printer.hw.tilt_position_changed.connect(self._on_tilt_position_changed)
         self.printer.unboxed_changed.connect(self._on_unboxed_changed)
         self.printer.self_tested_changed.connect(self._on_self_tested_changed)
         self.printer.mechanically_calibrated_changed.connect(self._on_mechanically_calibrated_changed)
         self.printer.uv_calibrated_changed.connect(self._on_uv_calibrated_changed)
         self.printer.exception_occurred.connect(self._on_exception)
+        self.printer.fatal_error_changed.connect(self._on_fatal_error)
+
+        # Register HW dependent event in case we actually have the hardware
+        if self.printer.hw:
+            self.printer.hw.uv_led_fan.rpm_changed.connect(self._on_uv_led_fan_changed)
+            self.printer.hw.uv_led_fan.error_changed.connect(self._on_uv_led_fan_changed)
+            self.printer.hw.blower_fan.rpm_changed.connect(self._on_blower_fan_changed)
+            self.printer.hw.blower_fan.error_changed.connect(self._on_blower_fan_changed)
+            self.printer.hw.rear_fan.rpm_changed.connect(self._on_rear_fan_changed)
+            self.printer.hw.rear_fan.error_changed.connect(self._on_rear_fan_changed)
+            self.printer.hw.uv_led_temp.value_changed.connect(self._on_uv_temp_changed)
+            self.printer.hw.ambient_temp.value_changed.connect(self._on_ambient_temp_changed)
+            self.printer.hw.cpu_temp.value_changed.connect(self._on_cpu_temp_changed)
+            self.printer.hw.resin_sensor_state_changed.connect(self._on_resin_sensor_changed)
+            self.printer.hw.cover_state_changed.connect(self._on_cover_state_changed)
+            self.printer.hw.power_button_state_changed.connect(self._on_power_switch_state_changed)
+            self.printer.hw.mc_sw_version_changed.connect(self._on_controller_sw_version_change)
+            self.printer.hw.uv_led.usage_s_changed.connect(self._on_uv_usage_changed)
+            self.printer.hw.display.usage_s_changed.connect(self._on_display_usage_changed)
+            self.printer.hw.tower_position_changed.connect(self._on_tower_position_changed)
+            self.printer.hw.tilt_position_changed.connect(self._on_tilt_position_changed)
 
     def _on_state_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"state": self.state}, [])
 
     def _on_exception(self, exception: Exception):
         self.exception(wrap_dict_data(PrinterException.as_dict(exception)))
+
+    def _on_fatal_error(self, exception: Exception):
+        self.PropertiesChanged(
+            self.__INTERFACE__, {"failure_reason": wrap_dict_data(PrinterException.as_dict(exception))}, []
+        )
 
     def _on_http_digest_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"http_digest": self.http_digest}, [])
@@ -212,6 +222,11 @@ class Printer0:
             return state.value
 
         return Printer0State.IDLE.value
+
+    @auto_dbus
+    @property
+    def failure_reason(self) -> Dict[str, Any]:
+        return wrap_dict_data(PrinterException.as_dict(self.printer.fatal_error))
 
     @auto_dbus_signal
     def exception(self, value: Dict[str, Any]):
@@ -409,10 +424,7 @@ class Printer0:
 
     @staticmethod
     def _format_fan(fan: Fan):
-        return {
-            "rpm": fan.rpm,
-            "error": 1 if fan.error else 0
-        }
+        return {"rpm": fan.rpm, "error": 1 if fan.error else 0}
 
     @auto_dbus
     @property

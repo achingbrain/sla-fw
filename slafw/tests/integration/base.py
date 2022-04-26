@@ -51,6 +51,7 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
 
         self.printer = Printer()
         test_runtime.exposure_image = self.printer.exposure_image
+        self.try_start_printer()
 
         self._printer0 = Printer0(self.printer)
         # pylint: disable = no-member
@@ -58,7 +59,6 @@ class SlaFwIntegrationTestCaseBase(SlafwTestCaseDBus, RefCheckTestCase):
             Printer0.__INTERFACE__,
             (None, weakref.proxy(self._printer0), self._printer0.dbus),
         )
-        self.try_start_printer()
 
     def patches(self) -> List[patch]:
         self.hardware_factory_file = self.TEMP_DIR / "hardware.toml"

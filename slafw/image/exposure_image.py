@@ -44,6 +44,7 @@ class ExposureImage:
         self._hw = hardware
         self._model = model
         self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing")
         self._project: Optional[Project] = None
         self._calibration: Optional[Calibration] = None
         self._buffer: Optional[Image] = None

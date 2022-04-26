@@ -1,31 +1,62 @@
 # This file is part of the SLA firmware
-# Copyright (C) 2021 Prusa Research a.s. - www.prusa3d.com
+# Copyright (C) 2021-2022 Prusa Research a.s. - www.prusa3d.com
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import Optional
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+from unittest.mock import patch
 
+from slafw.errors.errors import UnknownPrinterModel
 from slafw.hardware.printer_model import PrinterModel
-from slafw.tests.base import RefCheckTestCase, SlafwTestCaseDBus
 from slafw.libPrinter import Printer
+from slafw.states.printer import PrinterState
+from slafw.tests.base import RefCheckTestCase, SlafwTestCaseDBus
+
+
+class TestPrinterSetup(SlafwTestCaseDBus):
+    printer: Printer
+
+    def tearDown(self) -> None:
+        self.printer.stop()
+        del self.printer.exposure_image
+        del self.printer
+
+        super().tearDown()
+
+    def test_setup_ok(self) -> None:
+        self.printer = Printer()
+        self.printer.setup()
+        self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
+
+    @patch("slafw.hardware.hardware_sl1.ExposureScreenSL1.start", Mock(side_effect = UnknownPrinterModel()))
+    def test_setup_fail(self) -> None:
+        self.printer = Printer()
+        observer = Mock(__name__="mock")
+        self.printer.state_changed.connect(observer)
+        self.printer.setup()
+        self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
+        observer.assert_called()
+        self.assertEqual(PrinterState.EXCEPTION, self.printer.state)
+        self.assertIsInstance(self.printer.fatal_error, UnknownPrinterModel)
 
 
 class TestPrinter(SlafwTestCaseDBus, RefCheckTestCase):
+    printer: Printer
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.printer: Optional[Printer] = None  # This is here to provide type hint on self.printer
 
     @patch("slafw.hardware.printer_model.PrinterModel.detect_model", Mock(return_value=PrinterModel.SL1))
     def setUp(self) -> None:
         super().setUp()
 
         self.printer = Printer()
-        self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
         self.printer.setup()
+        self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
 
     def tearDown(self) -> None:
         self.printer.stop()
-        self.printer = None
+        del self.printer.exposure_image
+        del self.printer
 
         super().tearDown()
 

@@ -8,12 +8,14 @@ import unittest
 import weakref
 from pathlib import Path
 from time import sleep
-from typing import Type
+from typing import Type, List
+from unittest.mock import patch, Mock
 
 import pydbus
 
 from slafw.api.exposure0 import Exposure0
 from slafw.api.printer0 import Printer0State, Printer0
+from slafw.errors.errors import UnknownPrinterModel
 from slafw.exposure.exposure import Exposure
 from slafw.functions.system import printer_model_regex
 from slafw.hardware.printer_model import PrinterModel
@@ -199,6 +201,20 @@ class TestIntegrationPrinter0(SlaFwIntegrationTestCaseBase):
                 # Weak reference target just disappeared, does not count
                 pass
         return counter
+
+
+class TestIntegrationUnknownPrinter0(SlaFwIntegrationTestCaseBase):
+    def patches(self) -> List[patch]:
+        return super().patches() + [
+            patch("slafw.hardware.printer_model.PrinterModel.detect_model", Mock(side_effect=UnknownPrinterModel()))
+        ]
+
+    def setUp(self):
+        super().setUp()
+        self.printer0: Printer0 = pydbus.SystemBus().get("cz.prusa3d.sl1.printer0")
+
+    def test_unknown_model(self):
+        self.assertEqual(Printer0State.EXCEPTION, Printer0State(self.printer0.state))
 
 
 if __name__ == "__main__":

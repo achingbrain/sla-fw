@@ -28,6 +28,7 @@ class Network:
 
     def __init__(self, cpu_serial_no: str):
         self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing")
         self.version_id = distro.version()
         self.cpu_serial_no = cpu_serial_no
         self.assign_active = None

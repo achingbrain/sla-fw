@@ -29,16 +29,6 @@ class TestStartupSL1S(SlafwTestCaseDBus, RefCheckTestCase):
 
         self.printer = Printer()
 
-        # Default setup
-        self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
-        self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1S)
-        self.printer.hw.exposure_screen.transmittance = 4.17
-        self.printer.hw.sl1s_booster = Mock()
-        self.printer.hw.config.showUnboxing = False
-        self.printer.hw.config.showWizard = False
-        self.printer.hw.config.calibrated = True
-        self.printer.hw.config.uvPwm = 208
-
     def tearDown(self) -> None:
         self.printer.stop()
         del self.printer
@@ -46,13 +36,15 @@ class TestStartupSL1S(SlafwTestCaseDBus, RefCheckTestCase):
 
     def test_expo_panel_log_first_record(self):
         self._run_printer()
-        self.assertEqual(self.printer.state, PrinterState.RUNNING)      # no wizard is running, no error is raised
+        self.assertEqual(self.printer.state, PrinterState.RUNNING)  # no wizard is running, no error is raised
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
-        self.assertEqual(1, len(log))                                   # log holds only one record
+        self.assertEqual(1, len(log))  # log holds only one record
         last_key = list(log)[-1]
-        self.assertTrue(abs(datetime.strptime(last_key, "%Y-%m-%d %H:%M:%S") - datetime.now().replace(
-            microsecond=0)) < timedelta(seconds=5))
+        self.assertTrue(
+            abs(datetime.strptime(last_key, "%Y-%m-%d %H:%M:%S") - datetime.now().replace(microsecond=0))
+            < timedelta(seconds=5)
+        )
         self.assertEqual(self.printer.hw.exposure_screen.serial_number, log[last_key]["panel_sn"])
         self.assertRaises(KeyError, lambda: log[last_key]["counter_s"])
 
@@ -66,22 +58,36 @@ class TestStartupSL1S(SlafwTestCaseDBus, RefCheckTestCase):
 
         last_key = list(log)[-1]  # last record has to be newly added
         self.assertNotEqual(
-            self.printer.hw.exposure_screen.serial_number,
-            log[last_key]["panel_sn"])  # wizard is not done, so new panel is not recorded
+            self.printer.hw.exposure_screen.serial_number, log[last_key]["panel_sn"]
+        )  # wizard is not done, so new panel is not recorded
 
     def test_expo_panel_log_old_panel(self):
-        copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
-        type(self.printer.hw.exposure_screen).serial_number = PropertyMock(return_value="CZPX2921X021X000262")
-        observer = Mock(__name__ = "MockObserver")
+        observer = Mock(__name__="MockObserver")
         self.printer.exception_occurred.connect(observer)
-        self._run_printer()
+        copyfile(self.SAMPLES_DIR / defines.expoPanelLogFileName, defines.expoPanelLogPath)
+        with patch(
+            "slafw.hardware.hardware_sl1.ExposureScreenSL1.serial_number",
+            PropertyMock(return_value="CZPX2921X021X000262"),
+        ):
+            self._run_printer()
         with open(defines.expoPanelLogPath, "r") as f:
             log = json.load(f)
-        next_to_last_key = list(log)[-2]    # get counter_s from sample file
+        next_to_last_key = list(log)[-2]  # get counter_s from sample file
         observer.assert_called_with(OldExpoPanel(counter_h=round(log[next_to_last_key]["counter_s"] / 3600)))
 
+    @patch("slafw.hardware.printer_model.PrinterModel.detect_model", Mock(return_value=PrinterModel.SL1S))
     def _run_printer(self):
         self.printer.setup()
+
+        # Default setup
+        self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
+        self.printer.hw.exposure_screen.start.return_value = PrinterModel.SL1S
+        type(self.printer.hw.exposure_screen).transmittance = PropertyMock(return_value=4.17)
+        self.printer.hw.sl1s_booster = Mock()
+        self.printer.hw.config.showUnboxing = False
+        self.printer.hw.config.showWizard = False
+        self.printer.hw.config.calibrated = True
+        self.printer.hw.config.uvPwm = 208
 
 
 class TestStartupSL1(SlafwTestCaseDBus):
@@ -95,6 +101,23 @@ class TestStartupSL1(SlafwTestCaseDBus):
         set_configured_printer_model(PrinterModel.SL1)  # Set SL1S as the current model
         self.printer = Printer()
 
+    def tearDown(self) -> None:
+        self.printer.stop()
+        del self.printer
+        super().tearDown()
+
+    def test_expo_panel_log_sl1(self):
+        self._run_printer()
+        self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1)
+        set_configured_printer_model(PrinterModel.SL1)  # Set SL1 as the current model
+
+        self.assertEqual(self.printer.state, PrinterState.RUNNING)  # no wizard is running, no error is raised
+        with self.assertRaises(FileNotFoundError):
+            _ = open(defines.expoPanelLogPath, "r")
+
+    def _run_printer(self):
+        self.printer.setup()
+
         # Default setup
         self.printer.hw.config.factory_reset()  # Ensure this tests does not depend on previous config
         self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1)
@@ -102,20 +125,3 @@ class TestStartupSL1(SlafwTestCaseDBus):
         self.printer.hw.config.showWizard = False
         self.printer.hw.config.calibrated = True
         self.printer.hw.config.uvPwm = 208
-
-    def tearDown(self) -> None:
-        self.printer.stop()
-        del self.printer
-        super().tearDown()
-
-    def test_expo_panel_log_sl1(self):
-        self.printer.hw.exposure_screen.start = Mock(return_value=PrinterModel.SL1)
-        set_configured_printer_model(PrinterModel.SL1)  # Set SL1 as the current model
-
-        self._run_printer()
-        self.assertEqual(self.printer.state, PrinterState.RUNNING)  # no wizard is running, no error is raised
-        with self.assertRaises(FileNotFoundError):
-            _ = open(defines.expoPanelLogPath, "r")
-
-    def _run_printer(self):
-        self.printer.setup()

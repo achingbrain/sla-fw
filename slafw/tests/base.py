@@ -86,7 +86,10 @@ class SlafwTestCase(TestCase):
         # Test overrides
         warnings.simplefilter("always")
         test_runtime.testing = True
-        set_configured_printer_model(PrinterModel())  # Do not run UpgradeWizard by default),
+        try:
+            set_configured_printer_model(PrinterModel())  # Do not run UpgradeWizard by default),
+        except Exception:
+            pass
 
     def patches(self) -> List[patch]:
         wizard_history_path = self.TEMP_DIR / "wizard_history" / "user_data"

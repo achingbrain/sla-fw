@@ -164,20 +164,13 @@ class Virtual:
 
         test_runtime.exposure_image = self.printer.exposure_image
 
-        print("Overriding printer settings")
-        self.printer.hw.config.calibrated = True
-        self.printer.hw.config.fanCheck = False
-        self.printer.hw.config.coverCheck = False
-        self.printer.hw.config.resinSensor = False
-
         print("Publishing printer on D-Bus")
         self.printer0 = bus.publish(Printer0.__INTERFACE__, Printer0(self.printer))
         self.standard0 = bus.publish(Standard0.__INTERFACE__, Standard0(self.printer))
         self.admin_manager = AdminManager()
         self.admin0_dbus = bus.publish(Admin0.__INTERFACE__, Admin0(self.admin_manager, self.printer))
         print("Running printer")
-        threading.Thread(target=self.printer.setup).start()  # Does not block, but requires Rauc on DBus
-
+        threading.Thread(target=self.printer_setup_body).start()  # Does not block, but requires Rauc on DBus
         self.glib_loop = GLib.MainLoop().run()
 
         def tear_down(signum, _):
@@ -193,6 +186,14 @@ class Virtual:
 
         print("Running glib mainloop")
         self.glib_loop.run()  # type: ignore[attr-defined]
+
+    def printer_setup_body(self):
+        self.printer.setup()
+        print("Overriding printer settings")
+        self.printer.hw.config.calibrated = True
+        self.printer.hw.config.fanCheck = False
+        self.printer.hw.config.coverCheck = False
+        self.printer.hw.config.resinSensor = False
 
     def fake_save_path(self):
         return Path(self.temp)
