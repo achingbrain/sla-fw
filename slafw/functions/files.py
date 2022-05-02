@@ -43,7 +43,7 @@ def get_all_supported_files(printer_model: PrinterModel, path: Path) -> list:
     :return: list of all supported files
     """
     files: List[Path] = []
-    for extension in printer_model.extensions:
+    for extension in printer_model.extensions:  # type: ignore[attr-defined]
         files.extend(path.rglob("*%s" % extension))
     return files
 

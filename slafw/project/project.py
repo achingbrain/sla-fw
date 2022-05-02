@@ -55,7 +55,7 @@ class ProjectLayer:
         self.image = image
         self.height_nm = height_nm
         self.times_ms: Optional[Collection[int]] = None
-        self.consumed_resin_nl = None
+        self.consumed_resin_nl: Optional[int] = None
         self.bbox = BBox()
         self.calibration_type = LayerCalibrationType.NONE
 

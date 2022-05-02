@@ -24,6 +24,7 @@ from slafw.hardware.base.temp_sensor import TempSensor
 from slafw.hardware.base.uv_led import UVLED
 from slafw.hardware.power_led import PowerLed
 from slafw.hardware.printer_model import PrinterModel
+from slafw.hardware.sl1s_uvled_booster import Booster
 from slafw.hardware.tilt import Tilt
 from slafw.hardware.tower import Tower
 
@@ -43,6 +44,7 @@ class BaseHardware:
     cpu_temp: TempSensor
     exposure_screen: ExposureScreen
     power_led: PowerLed
+    sl1s_booster: Booster
 
     def __init__(self, hw_config: HwConfig, printer_model: PrinterModel):
         self.logger = logging.getLogger(__name__)
@@ -267,4 +269,99 @@ class BaseHardware:
     def motors_release(self) -> None:
         """
         Disables all stepper motors
+        """
+
+    @abstractmethod
+    def getResinSensorState(self) -> bool:
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    def isCoverClosed(self, check_for_updates: bool = True) -> bool:
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    def isCoverVirtuallyClosed(self, check_for_updates: bool = True) -> bool:
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    def getPowerswitchState(self) -> bool:
+        """
+        TODO: Create component for this one
+        """
+
+    @property
+    @abstractmethod
+    def mcFwVersion(self):
+        """
+        TODO: Create component for this one
+        """
+
+    @property
+    @abstractmethod
+    def mcFwRevision(self):
+        """
+        TODO: Create component for this one
+        """
+
+    @property
+    @abstractmethod
+    def mcBoardRevision(self):
+        """
+        TODO: Create component for this one
+        """
+
+    @property
+    @abstractmethod
+    def mcSerialNo(self) -> str:
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    def eraseEeprom(self):
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    async def get_resin_sensor_position_mm(self) -> float:
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    async def get_resin_volume_async(self) -> float:
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    def flashMC(self):
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    def initDefaults(self):
+        """
+        TODO: Create component for this one
+        """
+
+    @abstractmethod
+    def resinSensor(self, state: bool):
+        """
+        TODO: Create component for this one
+        """
+
+    @staticmethod
+    @abstractmethod
+    def calcPercVolume(volume_ml: float) -> int:
+        """
+        TODO: Create component for this one
         """

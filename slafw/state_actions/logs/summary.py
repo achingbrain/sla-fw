@@ -89,7 +89,7 @@ def log_hw(hw: BaseHardware) -> Mapping[str, Any]:
         "CPU usage per core": psutil.cpu_percent(percpu=True),
         "CPU times": psutil.cpu_times()._asdict(),
         "Language": locales,
-    } | hw.uv_led.info
+    } | hw.uv_led.info  # type: ignore[operator]
 
 
 def log_system() -> Mapping[str, Any]:

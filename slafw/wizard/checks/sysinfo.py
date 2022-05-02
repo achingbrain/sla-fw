@@ -48,7 +48,7 @@ class SystemInfoTest(Check):
             self._hw.mcBoardRevision,
             self._hw.uv_led.usage_s,
             self._hw.display.usage_s,
-            printer_model.name,
+            printer_model.name,  # type: ignore[attr-defined]
         )
 
     def get_result_data(self) -> Dict[str, Any]:

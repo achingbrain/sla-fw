@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from typing import Dict
+
 from slafw import defines
 from slafw.errors.errors import UnknownPrinterModel
 from slafw.hardware.base.printer_model import PrinterModelBase
@@ -25,7 +27,7 @@ class PrinterModelMeta(type):
 class PrinterModel(metaclass=PrinterModelMeta):
     # TODO: This mimics existing PrinterModel behaviour defined by enum. Maybe this is not the best way to handle
     # TODO: dynamic registration of models. Maybe a class factory method on base model would be more readable.
-    MODELS = {}
+    MODELS: Dict[str, PrinterModelBase] = {}
 
     def __new__(cls):
         return cls.detect_model()
@@ -35,7 +37,7 @@ class PrinterModel(metaclass=PrinterModelMeta):
         cls.MODELS[model.name.upper()] = model
 
     @classmethod
-    def detect_model(cls) -> PrinterModel:
+    def detect_model(cls) -> PrinterModelBase:
         for model in cls.MODELS.values():
             if (defines.printer_model_run / model.name.lower()).exists():
                 return model

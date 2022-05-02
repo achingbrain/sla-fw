@@ -701,7 +701,7 @@ class Printer0:
 
         :return: Set of extension strings
         """
-        return list(self.printer.model.extensions)
+        return list(self.printer.model.extensions)  # type: ignore[union-attr]
 
     @auto_dbus
     @deprecated("Use filemanager instead")
@@ -722,7 +722,7 @@ class Printer0:
     @auto_dbus
     @property
     def printer_model(self) -> int:
-        return self.printer.model.value
+        return self.printer.model.value  # type: ignore[union-attr]
 
     @auto_dbus
     @property
@@ -908,16 +908,16 @@ class Printer0:
 
     @auto_dbus
     def power_led_set_warning(self) -> None:
-        return self.printer.hw.power_led.set_warning()
+        self.printer.hw.power_led.set_warning()
 
     @auto_dbus
     def power_led_remove_warning(self) -> None:
-        return self.printer.hw.power_led.remove_warning()
+        self.printer.hw.power_led.remove_warning()
 
     @auto_dbus
     def power_led_set_error(self) -> None:
-        return self.printer.hw.power_led.set_error()
+        self.printer.hw.power_led.set_error()
 
     @auto_dbus
     def power_led_remove_error(self) -> None:
-        return self.printer.hw.power_led.remove_error()
+        self.printer.hw.power_led.remove_error()

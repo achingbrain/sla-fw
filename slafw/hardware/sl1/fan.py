@@ -31,8 +31,8 @@ class SL1Fan(Fan):
             name, min_rpm, max_rpm, default_rpm, reference=reference, auto_control_inhibitor=auto_control_inhibitor
         )
         self._index = index
-        self._rpm = None
-        self._error = False
+        self._rpm: Optional[int] = None
+        self._error: Optional[bool] = False
         self._target_rpm = self.default_rpm
         self._enabled = enabled
         self._mcc = mcc
@@ -77,7 +77,7 @@ class SL1Fan(Fan):
             self._rpm = rpms[self._index]
             self.rpm_changed.emit(self._rpm)
 
-    def _on_fans_error_changed(self, error: Dict[int, int]):
+    def _on_fans_error_changed(self, error: Dict[int, bool]):
         if error[self._index] != self._error:
             self._error = error[self._index]
             self.error_changed.emit(self._error)

@@ -192,7 +192,7 @@ class ResetHWConfig(ResetCheck):
         self._hw.config.factory_reset()
         if self._disable_unboxing:
             self._hw.config.showUnboxing = False
-        self._hw.config.vatRevision = printer_model.options.vat_revision
+        self._hw.config.vatRevision = printer_model.options.vat_revision  # type: ignore[attr-defined]
         self._hw.config.write()
         # TODO: Why is this here? Separate task would be better.
         rmtree(defines.wizardHistoryPath, ignore_errors=True)
@@ -247,7 +247,7 @@ class SendPrinterData(SyncCheck):
             raise MissingUVPWM()
 
         # Ensure the printer is able to compute UV PWM
-        if printer_model.options.has_UV_calculation:
+        if printer_model.options.has_UV_calculation:  # type: ignore[attr-defined]
             compute_uvpwm(self._hw)
 
         # Ensure examples are present
@@ -271,7 +271,7 @@ class SendPrinterData(SyncCheck):
         # Get UV calibration data
         calibration_dict = {}
         # only for printers with UV calibration
-        if printer_model.options.has_UV_calibration:
+        if printer_model.options.has_UV_calibration:  # type: ignore[attr-defined]
             try:
                 with (defines.factoryMountPoint / UVCalibrationWizard.get_data_filename()).open("rt") as file:
                     calibration_dict = json.load(file)

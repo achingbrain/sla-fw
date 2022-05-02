@@ -27,7 +27,7 @@ class SL1TempSensor(TempSensor):
     ):
         super().__init__(name=name, minimal=minimal, maximal=maximal, critical=critical, hysteresis=hysteresis)
         self._index = index
-        self._value = None
+        self._value: Optional[float] = None
 
         mcc.temps_changed.connect(self._on_mc_temps_changed)
         mcc.value_refresh_failed.connect(self._on_value_refresh_failed)

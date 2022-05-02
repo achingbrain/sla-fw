@@ -8,7 +8,7 @@ from pathlib import Path
 from time import sleep
 from typing import Optional
 
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, AsyncMock
 
 from slafw.tests.base import SlafwTestCaseDBus, RefCheckTestCase
 from slafw.hardware.base.hardware import BaseHardware
@@ -96,7 +96,7 @@ class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
     def test_resin_enough(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.get_resin_volume_async.return_value = defines.resinMaxVolume
+        hw.get_resin_volume_async = AsyncMock(return_value = defines.resinMaxVolume)
         exposure = self._run_exposure(hw)
         self.assertNotEqual(exposure.state, ExposureState.FAILURE)
         self.assertIsNone(exposure.warning)
@@ -104,7 +104,7 @@ class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
     def test_resin_warning(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.get_resin_volume_async.return_value = defines.resinMinVolume + 0.1
+        hw.get_resin_volume_async = AsyncMock(return_value = defines.resinMinVolume + 0.1)
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.fatal_error, WarningEscalation)
         self.assertIsInstance(exposure.fatal_error.warning, ResinNotEnough)  # pylint: disable=no-member
@@ -112,7 +112,7 @@ class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
     def test_resin_error(self):
         hw = self.setupHw()
         self._fake_calibration(hw)
-        hw.get_resin_volume_async.return_value = defines.resinMinVolume - 0.1
+        hw.get_resin_volume_async = AsyncMock(return_value = defines.resinMinVolume - 0.1)
         exposure = self._run_exposure(hw)
         self.assertIsInstance(exposure.fatal_error, ResinTooLow)
 
@@ -180,7 +180,7 @@ class TestExposure(SlafwTestCaseDBus, RefCheckTestCase):
         hw = self.setupHw()
         self._fake_calibration(hw)
         fake_resin_volume = 100.0
-        hw.get_resin_volume_async.return_value = fake_resin_volume
+        hw.get_resin_volume_async = AsyncMock(return_value = fake_resin_volume)
         exposure = self._start_exposure(hw)
         feedme_done = False
 

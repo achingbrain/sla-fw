@@ -5,7 +5,7 @@
 from abc import ABC
 from asyncio import sleep
 from functools import cached_property
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, Tuple
 
 from slafw.errors.errors import UVLEDsVoltagesDifferTooMuch, BoosterError, UVLEDsDisconnected, UVLEDsRowFailed
 from slafw.hardware.base.temp_sensor import TempSensor
@@ -37,13 +37,13 @@ class UVLEDSL1x(UVLED, ABC):
 
     @property
     def active(self) -> bool:
-        return self._get_led_state()[0]
+        return self._get_led_state()[0] == 1
 
     @property
     def pulse_remaining(self) -> int:
         return self._get_led_state()[1]
 
-    def _get_led_state(self) -> (int, int):
+    def _get_led_state(self) -> Tuple[int, int]:
         data = self._mcc.doGetIntList("?uled")
         if not data:
             raise ValueError(f"UV data not valid: {data}")
@@ -85,6 +85,8 @@ class UVLEDSL1x(UVLED, ABC):
 
     @property
     def _is500khz(self) -> bool:
+        if not isinstance(self._mcc.board["revision"], int):
+            raise ValueError(f"Board revision not a number: \"{self._mcc.board['revision']}\"")
         return self._mcc.board["revision"] > 6 or (
             self._mcc.board["revision"] == 6 and self._mcc.board["subRevision"] == "c"
         )
@@ -122,7 +124,7 @@ class SL1UVLED(UVLEDSL1x):
             "UV LED Line 2 Voltage": voltages[1],
             "UV LED Line 3 Voltage": voltages[2],
             "Power Supply Voltage": voltages[3],
-        }
+        }  # type: ignore[operator]
 
     @cached_property
     def parameters(self) -> UvLedParameters:
@@ -173,7 +175,7 @@ class SL1UVLED(UVLEDSL1x):
             "wizardUvVoltageRow2": row2,
             # data in mV for 1/6, 1/2, 1/1 of max PWM for MC board
             "wizardUvVoltageRow3": row3,
-        }
+        }  # type: ignore[operator]
 
 
 class SL1SUVLED(UVLEDSL1x):
@@ -234,4 +236,4 @@ class SL1SUVLED(UVLEDSL1x):
                 raise UVLEDsRowFailed()
         finally:
             self.off()
-        return super().info | {"Booster status": self._booster.status()}
+        return super().info | {"Booster status": self._booster.status()}  # type: ignore[operator]

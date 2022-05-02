@@ -269,7 +269,7 @@ class LogsExport(ABC, Thread):
             return log_tar_file
 
     @staticmethod
-    async def _run_log_export_process(log_file: Path) -> asyncio.subprocess:
+    async def _run_log_export_process(log_file: Path) -> Process:
         return await asyncio.create_subprocess_shell(
             'export_logs.bash "{0}"'.format(str(log_file)),
             stderr=asyncio.subprocess.PIPE

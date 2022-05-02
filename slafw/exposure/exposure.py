@@ -199,7 +199,7 @@ class ResinCheck(ExposureCheckRunner):
     def __init__(self, *args, **kwargs):
         super().__init__(ExposureCheck.RESIN, *args, **kwargs)
 
-    async def measure_resin_retries(self, retries: int) -> int:
+    async def measure_resin_retries(self, retries: int) -> float:
         try:
             return await self.do_measure_resin()
         except (ResinMeasureFailed, ResinTooLow, ResinTooHigh):
@@ -207,7 +207,7 @@ class ResinCheck(ExposureCheckRunner):
                 return await self.measure_resin_retries(retries - 1)
             raise
 
-    async def do_measure_resin(self) -> int:
+    async def do_measure_resin(self) -> float:
         volume_ml = await self.expo.hw.get_resin_volume_async()
         self.expo.setResinVolume(volume_ml)
 
@@ -719,7 +719,7 @@ class Exposure:
                         return "exit"
                 except Empty:
                     pass
-                if not self.hw.uv_led_overheat:
+                if not self.hw.uv_led_temp.overheat:
                     break
                 self.hw.beepAlarm(3)
                 sleep(3)

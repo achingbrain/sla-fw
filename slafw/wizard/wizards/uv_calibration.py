@@ -47,7 +47,7 @@ class UVCalibrationPrepare(CheckGroup):
 
     async def setup(self, actions: UserActionBroker):
         printer_model = get_configured_printer_model()
-        if not printer_model.options.has_UV_calibration:
+        if not printer_model.options.has_UV_calibration:  # type: ignore[attr-defined]
             raise PrinterError("UV calibration does not work on this printer model")
         await self.wait_for_user(actions, actions.uv_calibration_prepared, WizardState.UV_CALIBRATION_PREPARE)
 

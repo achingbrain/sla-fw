@@ -67,4 +67,4 @@ class MarkPrinterModel(Check):
     async def async_task_run(self, actions: UserActionBroker):
         self._logger.info("Setting printer model to %s", self._model)
         set_configured_printer_model(self._model)
-        self._config.vatRevision = self._model.options.vat_revision
+        self._config.vatRevision = self._model.options.vat_revision  # type: ignore[attr-defined]

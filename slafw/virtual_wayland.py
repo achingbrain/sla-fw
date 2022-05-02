@@ -76,7 +76,6 @@ defines.hwConfigPathFactory = HARDWARE_FILE_FACTORY
 defines.templates = str(SLAFW_DIR / "intranet" / "templates")
 test_runtime.testing = True
 defines.cpuSNFile = str(SAMPLES_DIR / "nvmem")
-defines.cpuTempFile = str(SAMPLES_DIR / "cputemp")
 defines.internalProjectPath = str(SAMPLES_DIR)
 defines.ramdiskPath = str(TEMP_DIR)
 defines.octoprintAuthFile = SAMPLES_DIR / "slicer-upload-api.key"
@@ -118,8 +117,8 @@ set_configured_printer_model(printer_model)
 defines.firstboot = TEMP_DIR / "firstboot"
 defines.factory_enable = TEMP_DIR / "factory_mode_enabled"
 defines.factory_enable.touch()  # Enable factory mode
-defines.admincheckTemp = TEMP_DIR / "admincheck.json"
-defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / printer_model.name.lower()
+defines.admincheckTemp = str(TEMP_DIR / "admincheck.json")
+defines.exposure_panel_of_node = SAMPLES_DIR / "of_node" / printer_model.name.lower()  # type: ignore[attr-defined]
 
 
 class Virtual:
@@ -147,7 +146,8 @@ class Virtual:
         ), patch(
             # fake resin measurement 100 ml
             "slafw.hardware.hardware_sl1.HardwareSL1.get_resin_volume_async", AsyncMock(return_value=100)
-        ), patch("slafw.hardware.hardware_sl1.Booster", BoosterMock):
+        ), patch("slafw.hardware.hardware_sl1.Booster", BoosterMock
+        ), patch("slafw.hardware.a64.temp_sensor.A64CPUTempSensor.CPU_TEMP_PATH", SAMPLES_DIR / "cputemp"):
             print("Resolving system bus")
             bus = pydbus.SystemBus()
             print("Publishing Rauc mock")

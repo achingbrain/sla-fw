@@ -123,7 +123,7 @@ class Value(property, ABC):
         self.default_doc = doc
         self.unit = value_type[0]
         if unit is not None:
-            self.unit = unit
+            self.unit = unit  # type: ignore[assignment]
 
     def base_doc(self) -> str:
         """

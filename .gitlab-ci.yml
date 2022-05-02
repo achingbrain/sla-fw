@@ -85,7 +85,6 @@ mypy:
   dependencies: []
   script:
     - sh mypy.sh
-  allow_failure: true
 
 pages:
   stage: deploy

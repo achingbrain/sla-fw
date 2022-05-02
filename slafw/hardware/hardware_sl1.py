@@ -263,7 +263,7 @@ class HardwareSL1(BaseHardware):
             self.beep(1900, 0.05)
             sleep(0.25)
 
-    def resinSensor(self, state):
+    def resinSensor(self, state: bool):
         """Enable/Disable resin sensor"""
         self.mcc.do("!rsen", 1 if state else 0)
 
@@ -274,7 +274,7 @@ class HardwareSL1(BaseHardware):
         """
         return self.mcc.doGetBool("?rsen")
 
-    def getResinSensorState(self):
+    def getResinSensorState(self) -> bool:
         """
         Read resin sensor value
         :return: True if resin is detected, False otherwise
@@ -282,16 +282,16 @@ class HardwareSL1(BaseHardware):
         return self.mcc.doGetBool("?rsst")
 
     @safe_call(False, MotionControllerException)
-    def isCoverClosed(self, check_for_updates: bool = True):
+    def isCoverClosed(self, check_for_updates: bool = True) -> bool:
         return self.mcc.checkState("cover", check_for_updates)
 
-    def isCoverVirtuallyClosed(self, check_for_updates: bool = True):
+    def isCoverVirtuallyClosed(self, check_for_updates: bool = True) -> bool:
         """
         Check whenever the cover is closed or cover check is disabled
         """
         return self.isCoverClosed(check_for_updates=check_for_updates) or not self.config.coverCheck
 
-    def getPowerswitchState(self):
+    def getPowerswitchState(self) -> bool:
         return self.mcc.checkState("button")
 
     def _cpu_overheat(self, overheat: bool):
@@ -347,7 +347,7 @@ class HardwareSL1(BaseHardware):
         return int(round(await self.get_precise_resin_volume_ml_async() / 10.0) * 10)
 
     @staticmethod
-    def calcPercVolume(volume_ml):
+    def calcPercVolume(volume_ml) -> int:
         return 10 * ceil(10 * volume_ml / defines.resinMaxVolume)
 
     @safe_call(0, MotionControllerException)

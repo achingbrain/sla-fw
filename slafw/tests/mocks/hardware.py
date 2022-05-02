@@ -4,7 +4,7 @@
 
 from pathlib import Path
 from typing import List
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 
 from PySignal import Signal
 
@@ -26,17 +26,13 @@ class HardwareMock(BaseHardware):
     # pylint: disable = too-many-instance-attributes
     # pylint: disable = no-self-use
     # pylint: disable = too-many-statements
+    # pylint: disable = too-many-public-methods
     def __init__(self, config: HwConfig = None, printer_model: PrinterModel = PrinterModel.SL1):
         if config is None:
             config = HwConfig(Path("/tmp/dummyhwconfig.toml"), is_master=True)  # TODO better!
+            config.coverCheck = False
         super().__init__(config, printer_model)
-        self.mcSerialNo = "CZPX0619X678XC12345"
         self.config = config
-        self.mcFwVersion = "1.0.0"
-        self.mcBoardRevision = "6c"
-
-        self.get_resin_volume_async = AsyncMock(return_value=defines.resinMaxVolume)
-        self.get_resin_sensor_position_mm = AsyncMock(return_value=12.8)
 
         self.uv_led_temp = MockTempSensor(
             "UV LED",
@@ -62,16 +58,9 @@ class HardwareMock(BaseHardware):
             reference=self.uv_led_temp,
             auto_control_inhibitor=lambda: self.config.rpmControlOverride,
         )
-        self.blower_fan = MockFan("UV LED", defines.fanMinRPM,
-                                  defines.fanMaxRPM, 3300)
-        self.rear_fan = MockFan("UV LED", defines.fanMinRPM, defines.fanMaxRPM,
-                                1000)
-        self.fans = {
-            0: self.uv_led_fan,
-            1: self.blower_fan,
-            2: self.rear_fan,
-        }
-        self.exposure_screen = ExposureScreen(printer_model)
+        self.blower_fan = MockFan("UV LED", defines.fanMinRPM, defines.fanMaxRPM, 3300)
+        self.rear_fan = MockFan("UV LED", defines.fanMinRPM, defines.fanMaxRPM, 1000)
+        self.exposure_screen = ExposureScreen(printer_model)  # type: ignore[assignment]
         self.mcc = MotionControllerMock.get_6c()
         self.power_led = Mock()
         self.tower = MockTower(self.mcc, self.config, self.power_led)
@@ -114,11 +103,56 @@ class HardwareMock(BaseHardware):
         pass
 
     @staticmethod
-    def _get_profiles_with_sensitivity(axis: Axis, profiles: List[List[int]] = None, sens: int = None) -> List[List[int]]:
-        pass
+    def _get_profiles_with_sensitivity(
+        axis: Axis, profiles: List[List[int]] = None, sens: int = None
+    ) -> List[List[int]]:
+        return []
 
     def set_stepper_sensitivity(self, axis: Axis, sens: int) -> None:
         self.logger.info("%s profiles changed to sensitivity: %d", axis.name, sens)
+
+    def getResinSensorState(self) -> bool:
+        return True
+
+    def isCoverClosed(self, check_for_updates: bool = True) -> bool:
+        return True
+
+    def isCoverVirtuallyClosed(self, check_for_updates: bool = True) -> bool:
+        return True
+
+    @property
+    def mcFwVersion(self):
+        return "1.0.0"
+
+    @property
+    def mcFwRevision(self):
+        return 6
+
+    @property
+    def mcBoardRevision(self):
+        return "6c"
+
+    @property
+    def mcSerialNo(self) -> str:
+        return "CZPX0619X678XC12345"
+
+    def eraseEeprom(self):
+        pass
+
+    async def get_resin_sensor_position_mm(self) -> float:
+        return 12.8
+
+    async def get_resin_volume_async(self) -> float:
+        return defines.resinMaxVolume
+
+    def flashMC(self):
+        pass
+
+    def initDefaults(self):
+        pass
+
+    def resinSensor(self, state: bool):
+        pass
 
     def __reduce__(self):
         return (Mock, ())

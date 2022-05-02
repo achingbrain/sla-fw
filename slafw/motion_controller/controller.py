@@ -517,7 +517,7 @@ class MotionController:
         rst = find_line("mc-reset")
         if not rst:
             self.logger.info("GPIO mc-reset not found")
-            rst = chip(2).get_line(131)
+            rst = chip(2).get_line(131)  # type: ignore[assignment]
         if not rst:
             raise MotionControllerException("Hard reset failed", self.trace)
         config = line_request()

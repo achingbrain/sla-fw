@@ -91,7 +91,7 @@ def set_configured_printer_model(model: PrinterModel):
             file.unlink()
 
     # Add new model definition
-    model_file = defines.printer_model / model.name.lower()
+    model_file = defines.printer_model / model.name.lower()  # type: ignore[attr-defined]
     model_file.parent.mkdir(exist_ok=True)
     model_file.touch()
 
@@ -146,7 +146,7 @@ def set_hostname(hostname: str) -> None:
 
 def reset_hostname() -> None:
     printer_model = get_configured_printer_model()
-    set_hostname(defines.default_hostname + printer_model.name.lower())
+    set_hostname(defines.default_hostname + printer_model.name.lower())  # type: ignore[attr-defined]
 
 def printer_model_regex(upper_case: bool = False) -> str:
     """
