@@ -48,8 +48,10 @@ class PowerLed:
         return self._error_level_counter
 
     def remove_error(self) -> int:
-        assert self._error_level_counter > 0
-        self._error_level_counter -= 1
+        if self._error_level_counter > 0:
+            self._error_level_counter -= 1
+        else:
+            self.logger.warning("error_level_counter not greater than 0")
         if self._error_level_counter == 0:
             if self._warn_level_counter > 0:
                 self.mode = PowerLedActions.Warning
@@ -64,8 +66,10 @@ class PowerLed:
         return self._warn_level_counter
 
     def remove_warning(self) -> int:
-        assert self._warn_level_counter > 0
-        self._warn_level_counter -= 1
+        if self._warn_level_counter > 0:
+            self._warn_level_counter -= 1
+        else:
+            self.logger.warning("warn_level_counter not greater than 0")
         if self._error_level_counter == 0 and self._warn_level_counter == 0:
             self.mode = PowerLedActions.Normal
         return self._warn_level_counter
