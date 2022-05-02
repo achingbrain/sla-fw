@@ -600,12 +600,17 @@ class Printer:
                 self.hw.config.calibrated = False
                 self.hw.config.write()
 
-        except FileNotFoundError:  # no records found
+        except Exception as e:  # no records found
+            self.logger.exception(e)
             with FactoryMountedRW():
-                with open(defines.expoPanelLogPath, "w") as f:
-                    self.logger.info("No records in expo panel logs. Adding first record: %s", panel_sn)
+                with open(defines.expoPanelLogPath, "a+") as f:
+                    f.seek(0)
+                    self.logger.warning("Expo panel logs: Current contents: %s", f.read())
                     record = dict()
                     record[timestamp] = {"panel_sn": panel_sn}
+                    f.seek(0)
+                    f.truncate()
+                    self.logger.warning("Expo panel logs: Adding first record: %s", panel_sn)
                     json.dump(record, f, indent=2)
 
     def _on_uv_led_temp_overheat(self, overheated: bool):
