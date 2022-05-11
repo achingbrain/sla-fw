@@ -292,7 +292,7 @@ class Exposure:
         self.exposure_image = weakref.proxy(exposure_image)
         self.resin_count = 0.0
         self.resin_volume = None
-        self.tower_position_nm = Nm(0)
+        self.tower_position_nm = self.hw.tower.minimal_position
         self.actual_layer = 0
         self.slow_layers_done = 0
         self.printStartTime = datetime.now(tz=timezone.utc)
@@ -408,7 +408,7 @@ class Exposure:
             self.change.emit(key, value)
 
     def startProject(self):
-        self.tower_position_nm = Nm(0)
+        self.tower_position_nm = self.hw.tower.minimal_position
         self.actual_layer = 0
         self.resin_count = 0.0
         self.slow_layers_done = 0
@@ -417,7 +417,7 @@ class Exposure:
     def prepare(self):
         self.exposure_image.preload_image(0)
         self.hw.tower.profile_id = TowerProfile.layer
-        self.hw.tower.move_ensure(Nm(0))  # first layer will move up
+        self.hw.tower.move_ensure(self.hw.tower.minimal_position)  # first layer will move up
 
         self.exposure_image.blank_screen()
         self.hw.uv_led.pwm = self.hw.config.uvPwmPrint

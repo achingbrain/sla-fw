@@ -52,3 +52,15 @@ class AdminControl(ABC):
         """
         Enter fullscreen image
         """
+
+    @abstractmethod
+    def tower_moves(self) -> None:
+        """
+        Enter manual tower moves
+        """
+
+    @abstractmethod
+    def tilt_moves(self) -> None:
+        """
+        Enter manual tilt moves
+        """

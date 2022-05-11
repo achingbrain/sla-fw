@@ -29,6 +29,10 @@ class Tilt(Axis):
     def config_height_position(self) -> Ustep:
         return self._config.tiltHeight
 
+    @cached_property
+    def minimal_position(self) -> Ustep:
+        return self.home_position
+
     @abstractmethod
     def layer_up_wait(self, slowMove: bool = False, tiltHeight: Ustep = Ustep(0)) -> None:
         """tilt up during the print"""

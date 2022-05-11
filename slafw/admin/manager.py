@@ -14,6 +14,7 @@ from slafw.admin.menu import AdminMenu
 
 
 class AdminManager(AdminControl):
+    # pylint: disable=too-many-instance-attributes
     def __init__(self):
         self._logger = logging.getLogger(__name__)
         self._menus: Deque[AdminMenu] = deque()
@@ -21,6 +22,8 @@ class AdminManager(AdminControl):
         self.enter_sysinfo = Signal()
         self.enter_touchscreen_test = Signal()
         self.enter_fullscreen_image = Signal()
+        self.enter_tower_moves = Signal()
+        self.enter_tilt_moves = Signal()
 
     @property
     def current_menu(self) -> Optional[AdminMenu]:
@@ -61,3 +64,9 @@ class AdminManager(AdminControl):
 
     def fullscreen_image(self):
         self.enter_fullscreen_image.emit()
+
+    def tower_moves(self):
+        self.enter_tower_moves.emit()
+
+    def tilt_moves(self):
+        self.enter_tilt_moves.emit()

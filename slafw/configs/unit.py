@@ -21,6 +21,9 @@ class Unit:
     def __repr__(self):
         return repr(self.val)
 
+    def __bool__(self):
+        return bool(self.val)
+
     def __add__(self, other):
         return self._int_not_compatible(other, operator.add)
 

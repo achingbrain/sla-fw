@@ -305,7 +305,7 @@ class Printer0:
         self.printer.hw.motors_release()
 
     @auto_dbus
-    @state_checked([Printer0State.IDLE, Printer0State.WIZARD])
+    @state_checked([Printer0State.IDLE, Printer0State.WIZARD, Printer0State.ADMIN])
     def tower_move(self, speed: int) -> bool:
         """
         Start / stop tower movement
@@ -327,7 +327,7 @@ class Printer0:
         return self.printer.hw.tower.move_api(speed)
 
     @auto_dbus
-    @state_checked([Printer0State.IDLE, Printer0State.WIZARD])
+    @state_checked([Printer0State.IDLE, Printer0State.WIZARD, Printer0State.ADMIN])
     def tilt_move(self, speed: int) -> bool:
         """
         Start / stop tilt movement

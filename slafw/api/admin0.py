@@ -331,6 +331,14 @@ class Admin0:
     def enter_fullscreen_image(self):
         pass
 
+    @auto_dbus_signal
+    def enter_tower_moves(self):
+        pass
+
+    @auto_dbus_signal
+    def enter_tilt_moves(self):
+        pass
+
     def __init__(self, manager: AdminManager, printer: Printer):
         self._logger = logging.getLogger(__name__)
         self._manager = manager
@@ -343,6 +351,8 @@ class Admin0:
         manager.enter_sysinfo.connect(self._on_enter_sysinfo)
         manager.enter_touchscreen_test.connect(self._on_enter_touchscreen_test)
         manager.enter_fullscreen_image.connect(self._on_enter_fullscreen_image)
+        manager.enter_tower_moves.connect(self._on_enter_tower_moves)
+        manager.enter_tilt_moves.connect(self._on_enter_tilt_moves)
 
     def _on_enter_sysinfo(self):
         self.enter_sysinfo()
@@ -352,6 +362,12 @@ class Admin0:
 
     def _on_enter_fullscreen_image(self):
         self.enter_fullscreen_image()
+
+    def _on_enter_tower_moves(self):
+        self.enter_tower_moves()
+
+    def _on_enter_tilt_moves(self):
+        self.enter_tilt_moves()
 
     @auto_dbus
     def enter(self) -> None:

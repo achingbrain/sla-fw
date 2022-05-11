@@ -20,6 +20,8 @@ from slafw.errors.errors import ConfigException
 from slafw.hardware.printer_model import PrinterModel
 
 
+# TODO - split to Axis menu + autosave
+
 class ProfilesSetsMenu(SafeAdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
@@ -27,6 +29,7 @@ class ProfilesSetsMenu(SafeAdminMenu):
         self._temp = self._printer.hw.config.get_writer()
 
         self.add_back()
+        self.add_item(AdminAction("Save", self._save))
 
         usbPath = get_save_path()
         if usbPath is None:
@@ -39,7 +42,6 @@ class ProfilesSetsMenu(SafeAdminMenu):
             self._listProfiles(os.path.join(defines.dataPath, model.name), internal=True)
 
         self.add_item(AdminBoolValue.from_value("Lock profiles", self._temp, "lockProfiles"))
-        self.add_item(AdminAction("Save", self._save))
 
     def _listProfiles(self, basePath: Path, internal: bool):
         files = glob(os.path.join(basePath, "*.tilt"))

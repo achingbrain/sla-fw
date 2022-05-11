@@ -95,6 +95,13 @@ class Axis(ABC):
         Tilt - level position (config.tiltHeight)
         """
 
+    @cached_property
+    @abstractmethod
+    def minimal_position(self) -> Unit:
+        """
+        returns value with minimlal position (0)
+        """
+
     @property
     @abstractmethod
     def position(self) -> Unit:
@@ -286,12 +293,12 @@ class Axis(ABC):
         """Immediately raises axis home exception"""
 
     def home_calibrate_wait(self):
-        """test and save tilt motor phase for accurate homing"""
+        """test and save axis motor phase for accurate homing"""
         return asyncio.run(self.home_calibrate_wait_async())
 
     @abstractmethod
     async def home_calibrate_wait_async(self):
-        """test and save tilt motor phase for accurate homing"""
+        """test and save axis motor phase for accurate homing"""
         homing_status = HomingStatus.STARTED.value
         while homing_status > HomingStatus.SYNCED.value:  # not done and not error
             homing_status = self.homing_status.value

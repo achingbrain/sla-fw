@@ -3,30 +3,55 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from slafw.libPrinter import Printer
+from slafw.hardware.axis import Axis
 from slafw.admin.control import AdminControl
 from slafw.admin.items import AdminAction
 from slafw.admin.menu import AdminMenu
 from slafw.admin.menus.hardware.tests import HardwareTestMenu
 from slafw.admin.menus.hardware.display import ExposureDisplayMenu
 from slafw.admin.menus.hardware.motion_controller import MotionControllerMenu
-from slafw.admin.menus.hardware.tilt_and_tower import TiltAndTowerMenu
+from slafw.admin.menus.hardware.axis import AxisMenu
+from slafw.admin.menus.hardware.profiles_sets import ProfilesSetsMenu
 
 
 class HardwareRoot(AdminMenu):
     def __init__(self, control: AdminControl, printer: Printer):
         super().__init__(control)
-
-        self.add_back()
-        self.add_items(
-            (
-                AdminAction("Exposure display", lambda: self.enter(ExposureDisplayMenu(self._control, printer)), "display_replacement"),
-                # TODO separate Tilt and Tower
-                AdminAction("Tilt and tower", lambda: self.enter(TiltAndTowerMenu(self._control, printer))),
+        self._printer = printer
+        items = [
+                AdminAction(
+                    "Exposure display",
+                    lambda: self.enter(ExposureDisplayMenu(self._control, printer)),
+                    "display_replacement"
+                )]
+        for axis in printer.hw.axes.values():
+            items.append(
+                AdminAction(
+                    axis.name.capitalize(),
+                    self._get_callback(axis),
+                    f"{axis.name}_sensivity_color"
+                ))
+        items.append(
+                AdminAction(
+                    "Profile sets",
+                    lambda: self.enter(ProfilesSetsMenu(self._control, self._printer)),
+                    "steppers_color"
+                ))
+        items.append(
                 AdminAction(
                     "Motion controller",
                     lambda: self.enter(MotionControllerMenu(self._control, printer)),
                     "control_color"
-                ),
-                AdminAction("Hardware tests", lambda: self.enter(HardwareTestMenu(self._control, printer)), "limit_color"),
-            ),
-        )
+                ))
+        items.append(
+                AdminAction(
+                    "Hardware tests",
+                    lambda: self.enter(HardwareTestMenu(self._control, printer)),
+                    "limit_color"
+                ))
+
+        self.add_back()
+        self.add_items(items)
+
+    def _get_callback(self, axis: Axis):
+        return lambda: self.enter(AxisMenu(self._control, self._printer, axis))

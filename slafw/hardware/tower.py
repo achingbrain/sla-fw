@@ -27,6 +27,10 @@ class Tower(Axis):
     def config_height_position(self) -> Nm:
         return self.home_position
 
+    @cached_property
+    def minimal_position(self) -> Nm:
+        return Nm(0)
+
     # FIXME: move to the config
     @cached_property
     def min_nm(self) -> Nm:
