@@ -28,7 +28,7 @@ class HwConfigMenu(SettingsMenu):
         for name, value in self._config.get_values().items():
             if isinstance(value, IntValue):
                 step = self.NAME_STEP_MAP.get(name, 1)
-                yield AdminIntValue.from_value(name, self._temp, name, step, "edit_white")
+                yield AdminIntValue.from_value(name, self._temp, name, step, "edit_white", unit=value.unit)
             if isinstance(value, FloatValue):
                 step = self.NAME_STEP_MAP.get(name, 0.1)
                 yield AdminFloatValue.from_value(name, self._temp, name, step, "edit_white")

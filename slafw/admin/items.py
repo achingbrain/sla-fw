@@ -68,16 +68,23 @@ class AdminValue(AdminItem):
 
 class AdminIntValue(AdminValue):
     # pylint: disable = too-many-arguments
-    def __init__(self, name: str, getter: Callable, setter: Callable, step: int, icon: str=""):
+    def __init__(
+        self, name: str, getter: Callable, setter: Callable, step: int, icon: str = "", unit: type = None
+    ):
         super().__init__(name, getter, setter, icon)
         self._step = step
+        self._unit = unit
 
     @classmethod
-    def from_value(cls, name: str, obj: object, prop: str, step: int, icon: str="") -> AdminIntValue:
+    def from_value(
+            cls, name: str, obj: object, prop: str, step: int, icon: str = "", unit: type = None
+    ) -> AdminIntValue:
         def g():
             return getattr(obj, prop)
 
         def s(value):
+            if unit:
+                value = unit(value)
             setattr(obj, prop, value)
 
         return AdminIntValue(name, g, s, step, icon)
