@@ -173,14 +173,19 @@ class DoNotRunTestDirectlyFromBaseClass:
                 self.assertEqual(self.axis.position,
                                  self.pos + self.fullstep_offset[i])
 
+        def _assert_homing_status_reached(self, status: HomingStatus, timeout_s = 60):
+            for _ in range(timeout_s * 10):
+                if self.axis.homing_status == status:
+                    break
+                sleep(0.1)
+            self.assertEqual(status, self.axis.homing_status)
+
         def test_sync(self):
             self.axis.position = self.pos
             self.assertEqual(HomingStatus.UNKNOWN, self.axis.homing_status)
             self.axis.sync()
             self.assertLess(HomingStatus.SYNCED.value, self.axis.homing_status.value)
-            while self.axis.moving:
-                sleep(0.1)
-            self.assertEqual(HomingStatus.SYNCED, self.axis.homing_status)
+            self._assert_homing_status_reached(HomingStatus.SYNCED)
             self.assertTrue(self.axis.synced)
             self.axis.release()
             self.assertFalse(self.axis.synced)
