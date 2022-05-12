@@ -491,7 +491,7 @@ class TestWizards(TestWizardsBase):
     def test_packing_complete(self):
         self.hw.config.showWizard = False
         self.hw.config.calibrated = True
-        self.hw.config.tower_height_nm = 0
+        self.hw.config.tower_height_nm = Nm(0)
         self.runtime_config.factory_mode = True
         wizard = PackingWizard(self.hw, self.runtime_config)
 

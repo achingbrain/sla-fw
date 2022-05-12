@@ -85,7 +85,7 @@ class Value(property, ABC):
     """
 
     @abstractmethod
-    def __init__(self, value_type: List[Type], default, key=None, factory=False, doc="", unit: Unit = None):
+    def __init__(self, value_type: List[Type], default, key=None, factory=False, doc="", unit: type = None):
         """
         Config value constructor
 
@@ -121,9 +121,9 @@ class Value(property, ABC):
         self.default = default
         self.factory = factory
         self.default_doc = doc
-        self.unit = value_type[0]
+        self.unit: Optional[type] = value_type[0]
         if unit is not None:
-            self.unit = unit  # type: ignore[assignment]
+            self.unit = unit
 
     def base_doc(self) -> str:
         """
@@ -152,6 +152,8 @@ class Value(property, ABC):
 
         :param val: Value to check
         """
+        if not isinstance(val, self.unit):
+            raise ValueError(f"Value \"{val}\" not compatible with \"{self.unit}\"")
 
     @staticmethod
     def adapt(val):
@@ -270,7 +272,7 @@ class Value(property, ABC):
             else:
                 self.set_value(config, adapted)
                 self.set_raw_value(config, val)
-        except (ValueError, ConfigException) as exception:
+        except (ValueError, ConfigException, TypeError) as exception:
             raise ConfigException(f"Setting config value {self.name} to {val} failed") from exception
 
     def value_getter(self, config: BaseConfig) -> Any:
