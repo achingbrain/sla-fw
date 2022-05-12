@@ -41,6 +41,7 @@ from slafw.hardware.sl1.tower import TowerProfile, TowerSL1
 from slafw.hardware.sl1.uv_led import SL1UVLED, SL1SUVLED
 from slafw.hardware.sl1s_uvled_booster import Booster
 from slafw.motion_controller.controller import MotionController
+from slafw.tests.mocks.exposure_screen import VirtualExposureScreen
 from slafw.utils.value_checker import ValueChecker, UpdateInterval
 
 
@@ -55,6 +56,8 @@ class HardwareSL1(BaseHardware):
             self.exposure_screen = SL1ExposureScreen(self.mcc)
         elif printer_model in (PrinterModel.SL1S, PrinterModel.M1):
             self.exposure_screen = SL1SExposureScreen(self.mcc)
+        elif printer_model == PrinterModel.VIRTUAL:
+            self.exposure_screen = VirtualExposureScreen()
         else:
             raise NotImplementedError
 

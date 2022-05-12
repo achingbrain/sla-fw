@@ -40,8 +40,6 @@ from slafw.functions.system import set_configured_printer_model
 from slafw.hardware.printer_model import PrinterModel
 from slafw.tests import samples
 from slafw.tests.mocks.dbus.rauc import Rauc
-# Initialize parser
-from slafw.tests.mocks.exposure_screen import MockExposureScreen
 from slafw.tests.mocks.sl1s_uvled_booster import BoosterMock
 
 # gitlab CI job creates model folder in different location due to restricted permissions in Docker container
@@ -90,8 +88,6 @@ class Virtual:
             patch("slafw.motion_controller.controller.find_line", Mock()),
             patch("slafw.motion_controller.controller.line_request", Mock()),
             patch("slafw.functions.files.get_save_path", self.fake_save_path),
-            patch("slafw.hardware.hardware_sl1.SL1ExposureScreen", MockExposureScreen),
-            patch("slafw.hardware.hardware_sl1.SL1SExposureScreen", MockExposureScreen),
             patch("slafw.hardware.hardware_sl1.HardwareSL1.isCoverClosed", Mock(return_value=True)),
             patch(
                 "slafw.hardware.hardware_sl1.HardwareSL1.get_resin_volume_async",
@@ -134,6 +130,9 @@ class Virtual:
             patch("slafw.defines.exposure_panel_of_node", SAMPLES_DIR / "of_node" / printer_model.name.lower()),
             patch("slafw.defines.expoPanelLogPath", self.temp / defines.expoPanelLogFileName),
         ]
+
+        if not os.environ.get("WAYLAND_DISPLAY") or printer_model != PrinterModel.VIRTUAL:
+            patches.append(patch("slafw.hardware.base.exposure_screen.Wayland", Mock()))
 
         copyfile(SAMPLES_DIR / "hardware-virtual.cfg", hardware_file)
         copyfile(SAMPLES_DIR / "hardware.toml", hardware_file_factory)
