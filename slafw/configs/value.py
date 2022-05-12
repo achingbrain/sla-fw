@@ -381,6 +381,12 @@ class FloatValue(NumericValue):
     def __init__(self, *args, **kwargs):
         super().__init__([float, int], *args, **kwargs)
 
+    def adapt(self, val: Optional[Union[int, float]]):
+        adapted = super().adapt(val)
+        if isinstance(val, int):
+            return float(adapted)
+        return adapted
+
 
 class ListValue(Value):
     """

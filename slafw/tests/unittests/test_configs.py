@@ -69,7 +69,7 @@ class TestConfigValues(SlafwTestCase):
             """
         a = 5.5
         b = 11
-        c = -1.0
+        c = -1
         """
         )
         self.assertEqual(5.5, c.a)
