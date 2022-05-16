@@ -41,6 +41,7 @@ from slafw.hardware.printer_model import PrinterModel
 from slafw.tests import samples
 from slafw.tests.mocks.dbus.rauc import Rauc
 from slafw.tests.mocks.sl1s_uvled_booster import BoosterMock
+from slafw.tests.mocks.wayland import WaylandMock
 
 # gitlab CI job creates model folder in different location due to restricted permissions in Docker container
 # common path is /builds/project-0/model
@@ -132,7 +133,7 @@ class Virtual:
         ]
 
         if not os.environ.get("WAYLAND_DISPLAY") or printer_model != PrinterModel.VIRTUAL:
-            patches.append(patch("slafw.hardware.base.exposure_screen.Wayland", Mock()))
+            patches.append(patch("slafw.hardware.base.exposure_screen.Wayland", WaylandMock))
 
         copyfile(SAMPLES_DIR / "hardware-virtual.cfg", hardware_file)
         copyfile(SAMPLES_DIR / "hardware.toml", hardware_file_factory)

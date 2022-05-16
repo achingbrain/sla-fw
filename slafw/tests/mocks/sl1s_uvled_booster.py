@@ -8,9 +8,8 @@ from unittest.mock import Mock
 class BoosterMock(Mock):
     _pwm = 0
 
-    @staticmethod
-    def status() -> Tuple[bool, List]:
-        return True, [1, 2, 3]
+    def status(self) -> Tuple[bool, List]:
+        return bool(self._pwm > 60), [False, False, False]
 
     @property
     def pwm(self) -> int:
