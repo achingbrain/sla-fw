@@ -11,7 +11,7 @@ from pydbus.generic import signal
 from pydbus.registration import ObjectRegistration
 
 from slafw.admin.items import AdminAction, AdminIntValue, AdminFloatValue, AdminBoolValue, AdminTextValue, AdminItem, \
-    AdminFixedValue
+    AdminFixedValue, AdminSelectionValue
 from slafw.admin.manager import AdminManager
 from slafw.admin.menu import AdminMenu
 from slafw.admin.menus.root import RootMenu
@@ -178,6 +178,55 @@ class Admin0FloatValueItem:
 
     def _value_changed(self):
         self.PropertiesChanged(self.__INTERFACE__, {"value": self.value}, [])
+
+
+@dbus_api
+class Admin0SelectionItem:
+    """
+    SL1 administrative interface value item
+    """
+
+    __INTERFACE__ = "cz.prusa3d.sl1.admin0.value.selection"
+    PropertiesChanged = signal()
+
+    def __init__(self, item: AdminSelectionValue):
+        self._item = item
+        item.changed.connect(self._value_changed)
+
+    @auto_dbus
+    @property
+    def name(self) -> str:
+        return self._item.name
+
+    @auto_dbus
+    @property
+    def icon(self) -> str:
+        return self._item.icon
+
+    @auto_dbus
+    @property
+    def value(self) -> int:
+        return self._item.get_value()
+
+    @auto_dbus
+    @value.setter
+    def value(self, value: int):
+        self._item.set_value(value)
+
+    @auto_dbus
+    @property
+    def selection(self) -> List[str]:
+        return self._item.selection
+
+    @auto_dbus
+    @property
+    def wrap_around(self) -> bool:
+        return self._item.wrap_around
+
+    def _value_changed(self):
+        self.PropertiesChanged(self.__INTERFACE__, {"value": self.value}, [])
+
+
 
 
 @dbus_api
@@ -396,6 +445,14 @@ class Admin0:
                 self._item_names.add((Admin0TextValueItem.__INTERFACE__, dbus_name))
                 self._children.append(
                     (Admin0TextValueItem.__INTERFACE__, DBusObjectPath(f"/cz/prusa3d/sl1/admin0/Items/{dbus_name}"))
+                )
+            elif isinstance(item, AdminSelectionValue):
+                self._item_registrations.add(
+                    bus.register_object(f"/cz/prusa3d/sl1/admin0/Items/{dbus_name}", Admin0SelectionItem(item), None)
+                )
+                self._item_names.add((Admin0SelectionItem.__INTERFACE__, dbus_name))
+                self._children.append(
+                    (Admin0SelectionItem.__INTERFACE__, DBusObjectPath(f"/cz/prusa3d/sl1/admin0/Items/{dbus_name}"))
                 )
             else:
                 self._logger.warning("Item name: %s has no mapping, ignoring", item.name)

@@ -11,12 +11,14 @@ from slafw.admin.items import (
     AdminTextValue,
     AdminAction,
     AdminIntValue,
+    AdminSelectionValue,
 )
 from slafw.admin.menu import AdminMenu
 from slafw.admin.menus.dialogs import Error, Info, Confirm, Wait
 
 
 class ApiTestMenu(AdminMenu):
+    # pylint: disable = too-many-instance-attributes
     def __init__(self, control: AdminControl):
         super().__init__(control)
         self._a = 42
@@ -24,6 +26,7 @@ class ApiTestMenu(AdminMenu):
         self._cnt = 0
         self._text = "inital"
         self._run = True
+        self._index = 1
 
         self.add_back()
         self.add_item(AdminTextValue.from_property(self, ApiTestMenu.text))
@@ -40,6 +43,8 @@ class ApiTestMenu(AdminMenu):
         self.add_item(AdminAction("Info", self.info))
         self.add_item(AdminAction("Confirm", self.confirm))
         self.add_item(AdminAction("Wait", self.wait))
+        self.add_item(AdminSelectionValue("Select (wrap)", self.get_index, self.set_index,
+            ["Elem1", "Elem2", "Elem3", "Elem4"], wrap_around=True))
 
         self._thread = Thread(target=self._runner)
 
@@ -108,6 +113,12 @@ class ApiTestMenu(AdminMenu):
         for i in range(15):
             sleep(0.2)
             status.set(f"waiting: {i}")
+
+    def get_index(self):
+        return self._index
+
+    def set_index(self, x):
+        self._index = x
 
 
 class TestMenu2(AdminMenu):
