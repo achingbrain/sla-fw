@@ -8,7 +8,7 @@ import unittest
 from abc import ABC, abstractmethod
 from time import sleep
 from typing import List, Tuple
-from unittest import IsolatedAsyncioTestCase
+from unittest import IsolatedAsyncioTestCase  # pylint: disable = no-name-in-module
 from unittest.mock import Mock, PropertyMock, patch
 
 from slafw import defines
