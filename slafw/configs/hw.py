@@ -86,7 +86,7 @@ class HwConfig(Config):
         return (self.screwMm * 1000 * 1000) // (200 * 16)
 
     # tilt related
-    tilt = BoolValue(True, doc="Use tilt to tear off the layers.")
+    tilt = BoolValue(False, doc="Use tilt to tear off the layers.")
     tiltSensitivity = IntValue(0, minimum=-2, maximum=2, doc="Tilt sensitivity adjustment")
     tiltHeight = IntValue(defines.defaultTiltHeight, doc="Position of the leveled tilt. [ustep]")
     tiltMax = IntValue(defines.tiltMax, doc="Max position allowed. It shoud corespond to the top deadlock of the axis. [ustep]")
